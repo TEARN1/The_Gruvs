@@ -1,0 +1,8 @@
+node_modules
+web-build
+.env
+.git
+.vscode
+.expo
+android
+ios
