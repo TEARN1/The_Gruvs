@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build:web",
-  "outputDirectory": "web-build",
+  "buildCommand": "npx expo export -p web",
+  "outputDirectory": "dist",
   "nodeVersion": "20.x",
   "github": {
     "silent": true
