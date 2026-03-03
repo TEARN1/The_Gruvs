@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm run build:web",
+  "outputDirectory": "web-build",
+  "nodeVersion": "20.x",
+  "github": {
+    "silent": true
+  }
+}
