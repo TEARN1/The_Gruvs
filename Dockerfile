@@ -1,27 +1,20 @@
-# Build stage
-FROM node:18-alpine AS build
+﻿# Use Node 20 as required by latest Expo SDKs
+FROM node:20-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --silent
-COPY . .
-RUN npm run build:web
 
-# Production stage
-FROM nginx:stable-alpine AS production
-COPY --from=build /app/web-build /usr/share/nginx/html
+# Install dependencies (leverage Docker cache)
+COPY package*.json ./
+RUN npm ci --silent || npm install --silent
+
+# Copy project files
+COPY . .
+
+# FIX: Use 'npx expo export' without the deprecated '--output-dir' flag
+# Modern Expo versions export to the 'dist' folder by default
+RUN npx expo export -p web
+
+# Production Stage (Example using Nginx to serve the web build)
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
-# Dockerfile to build and serve the Expo web build
-FROM node:18-alpine AS build
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --silent || npm install --silent
-COPY . .
-RUN npm run build:web
-
-FROM node:18-alpine
-WORKDIR /app
-RUN npm install -g serve --silent
-COPY --from=build /app/web-build ./web-build
-EXPOSE 3000
-CMD ["serve", "-s", "web-build", "-l", "3000"]
