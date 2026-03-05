@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // 1. Set CORS headers so your Expo app can talk to Vercel
+  // CORS configuration
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -16,16 +16,14 @@ export default async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // 2. Handle the "Preflight" request (OPTIONS)
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   try {
     if (req.method === 'GET') {
-      // Fetch posts from Supabase (renaming events to posts conceptually)
       const { data, error } = await supabase
-        .from('events') // For now keeping table name 'events' as in your DB, but using it for posts
+        .from('events')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -33,15 +31,41 @@ export default async function handler(req, res) {
       return res.status(200).json(data);
 
     } else if (req.method === 'POST') {
-      // Add a new post
-      const { text, author } = req.body;
+      const { text, author, category } = req.body;
       const { data, error } = await supabase
         .from('events')
-        .insert([{ text, author: author || 'Anonymous', done: false }])
+        .insert([{
+          text,
+          author: author || 'Anonymous',
+          category: category || 'General',
+          going_count: 0
+        }])
         .select();
 
       if (error) throw error;
       return res.status(201).json(data[0]);
+
+    } else if (req.method === 'PATCH') {
+      // RSVP Logic: Increment/Decrement going_count
+      const { id, increment } = req.body;
+
+      // Get current count
+      const { data: eventData } = await supabase
+        .from('events')
+        .select('going_count')
+        .eq('id', id)
+        .single();
+
+      const newCount = (eventData?.going_count || 0) + (increment ? 1 : -1);
+
+      const { data, error } = await supabase
+        .from('events')
+        .update({ going_count: Math.max(0, newCount) })
+        .eq('id', id)
+        .select();
+
+      if (error) throw error;
+      return res.status(200).json(data[0]);
 
     } else if (req.method === 'DELETE') {
       const { id } = req.query;
