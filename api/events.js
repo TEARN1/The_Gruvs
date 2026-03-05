@@ -11,6 +11,8 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const isUuid = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
   try {
     if (req.method === 'GET') {
       const { q = '', category = 'All', lat, lng, radius = 50000, sortBy = 'created_at', offset = 0, limit = 12 } = req.query;
