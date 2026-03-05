@@ -6,80 +6,55 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
     if (req.method === 'GET') {
-      const { category } = req.query;
-      let query = supabase.from('events').select('*').order('created_at', { ascending: false });
-      if (category && category !== 'General') query = query.eq('category', category);
-
-      const { data, error } = await query;
+      const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       return res.status(200).json(data);
 
     } else if (req.method === 'POST') {
-      const { text, author, author_id, gender, category } = req.body;
-      if (!text) return res.status(400).json({ error: 'Missing content' });
+      const { text, author, author_id, gender } = req.body;
 
-      const { data, error } = await supabase
-        .from('events')
-        .insert([{
-          text,
-          author,
-          author_id, // For ownership check
-          gender,    // To persist theme style
-          category: category || 'General',
-          likes: [],     // Array of user IDs
-          comments: []   // Array of { id, author, text, created_at }
-        }])
-        .select();
+      const { data, error } = await supabase.from('events').insert([{
+        owner_id: author_id,
+        content: { text, author_name: author, gender },
+        engagement_metrics: { liked_by: [], comments: [] }
+      }]).select();
 
       if (error) throw error;
       return res.status(201).json(data[0]);
 
     } else if (req.method === 'PATCH') {
-      const { id, userId, action, comment, author: commentAuthor } = req.body;
+      const { id, userId, action, comment, author_name } = req.body;
+      const { data: post } = await supabase.from('events').select('engagement_metrics').eq('id', id).single();
 
-      const { data: post, error: fetchErr } = await supabase.from('events').select('*').eq('id', id).single();
-      if (fetchErr) throw fetchErr;
-
-      let updates = {};
+      let metrics = post.engagement_metrics || { liked_by: [], comments: [] };
 
       if (action === 'like') {
-        const likes = post.likes || [];
-        updates.likes = likes.includes(userId) ? likes.filter(uid => uid !== userId) : [...likes, userId];
+        const likedBy = metrics.liked_by || [];
+        metrics.liked_by = likedBy.includes(userId) ? likedBy.filter(u => u !== userId) : [...likedBy, userId];
       } else if (action === 'comment') {
-        const comments = post.comments || [];
-        updates.comments = [...comments, {
+        metrics.comments = [...(metrics.comments || []), {
           id: Date.now().toString(),
-          author: commentAuthor || 'Anonymous',
+          author: author_name,
           text: comment,
           created_at: new Date().toISOString()
         }];
       }
 
-      const { data, error } = await supabase.from('events').update(updates).eq('id', id).select();
+      const { data, error } = await supabase.from('events').update({ engagement_metrics: metrics }).eq('id', id).select();
       if (error) throw error;
       return res.status(200).json(data[0]);
 
     } else if (req.method === 'DELETE') {
       const { id, userId } = req.query;
-
-      const { data: post } = await supabase.from('events').select('author_id').eq('id', id).single();
-      if (post && post.author_id !== userId) {
-        return res.status(403).json({ error: 'Unauthorized: Only the creator can delete this post' });
-      }
-
-      const { error } = await supabase.from('events').delete().eq('id', id);
+      const { error } = await supabase.from('events').delete().eq('id', id).eq('owner_id', userId);
       if (error) throw error;
       return res.status(200).json({ message: 'Deleted' });
     }
