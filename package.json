@@ -8,7 +8,7 @@
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
-    "build:web": "npx expo export:web --output-dir web-build",
+    "build:web": "npx expo export -p web",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
@@ -22,12 +22,12 @@
   "dependencies": {
     "@expo/metro-runtime": "~55.0.6",
     "@react-native-async-storage/async-storage": "*",
-    "expo": "*",
-    "expo-status-bar": "*",
-    "react": "*",
-    "react-dom": "19.2.0",
-    "react-native": "*",
-    "react-native-web": "^0.21.0"
+    "expo": "~55.0.4",
+    "expo-status-bar": "~2.1.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native": "0.77.0",
+    "react-native-web": "~0.19.13"
   },
   "devDependencies": {
     "@testing-library/react-native": "^12.9.0",
