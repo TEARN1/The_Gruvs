@@ -105,6 +105,12 @@ export default async function handler(req, res) {
           c.id === commentId ? { ...c, likes: (c.likes || 0) + 1 } : c
         );
 
+      } else if (action === 'edit_comment') {
+        const { text } = req.body;
+        metrics.comments = (metrics.comments || []).map(c =>
+          c.id === commentId ? { ...c, text, edited: true } : c
+        );
+
       } else if (action === 'delete_comment') {
         metrics.comments = (metrics.comments || []).filter(c => c.id !== commentId);
 
