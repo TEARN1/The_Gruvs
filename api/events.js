@@ -22,20 +22,33 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const { data, error } = await supabase
+      const { category } = req.query;
+      let query = supabase
         .from('events')
         .select('*')
         .order('created_at', { ascending: false });
 
+      // Align with Frontend: Filter by category if one is provided
+      if (category && category !== 'General') {
+        query = query.eq('category', category);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return res.status(200).json(data);
 
     } else if (req.method === 'POST') {
       const { text, author, category } = req.body;
+
+      // Validation: Align with Frontend requirement for content
+      if (!text || text.trim().length === 0) {
+        return res.status(400).json({ error: 'Post content cannot be empty' });
+      }
+
       const { data, error } = await supabase
         .from('events')
         .insert([{
-          text,
+          text: text.trim(),
           author: author || 'Anonymous',
           category: category || 'General',
           going_count: 0
@@ -46,10 +59,9 @@ export default async function handler(req, res) {
       return res.status(201).json(data[0]);
 
     } else if (req.method === 'PATCH') {
-      // RSVP Logic: Increment/Decrement going_count
+      // RSVP Logic: Atomic increment/decrement
       const { id, increment } = req.body;
 
-      // Get current count
       const { data: eventData } = await supabase
         .from('events')
         .select('going_count')
