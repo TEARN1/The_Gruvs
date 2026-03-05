@@ -37,8 +37,6 @@ export default async function handler(req, res) {
         engagement_metrics: { liked_by: [], comments: [] }
       };
 
-      // Only include owner_id if it's a valid UUID to avoid DB errors
-      // If no valid UUID is provided, owner_id will be null (or handled by DB default)
       if (author_id && isUuid(author_id)) {
         insertData.owner_id = author_id;
       }
@@ -52,7 +50,7 @@ export default async function handler(req, res) {
       return res.status(201).json(data[0]);
 
     } else if (req.method === 'PATCH') {
-      const { id, userId, action, comment, author_name } = req.body;
+      const { id, userId, action, comment, author_name, parentId } = req.body;
       const { data: post } = await supabase.from('events').select('engagement_metrics').eq('id', id).single();
       let metrics = post.engagement_metrics || { liked_by: [], comments: [] };
 
@@ -60,12 +58,21 @@ export default async function handler(req, res) {
         const likedBy = metrics.liked_by || [];
         metrics.liked_by = likedBy.includes(userId) ? likedBy.filter(u => u !== userId) : [...likedBy, userId];
       } else if (action === 'comment') {
-        metrics.comments = [...(metrics.comments || []), {
+        const comments = metrics.comments || [];
+        const newComment = {
           id: Date.now().toString(),
+          parentId: parentId || null,
           author: author_name,
           text: comment,
-          created_at: new Date().toISOString()
-        }];
+          created_at: new Date().toISOString(),
+          likes: 0
+        };
+        metrics.comments = [...comments, newComment];
+      } else if (action === 'like_comment') {
+        const { commentId } = req.body;
+        metrics.comments = (metrics.comments || []).map(c =>
+          c.id === commentId ? { ...c, likes: (c.likes || 0) + 1 } : c
+        );
       }
 
       const { data, error } = await supabase.from('events').update({ engagement_metrics: metrics }).eq('id', id).select();
@@ -74,8 +81,6 @@ export default async function handler(req, res) {
 
     } else if (req.method === 'DELETE') {
       const { id, userId } = req.query;
-
-      // Ownership check only if userId is a valid UUID
       let query = supabase.from('events').delete().eq('id', id);
       if (userId && isUuid(userId)) {
         query = query.eq('owner_id', userId);
