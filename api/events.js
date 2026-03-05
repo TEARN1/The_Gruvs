@@ -19,18 +19,19 @@ export default async function handler(req, res) {
       return res.status(200).json(data);
 
     } else if (req.method === 'POST') {
+      // Destructure directly from body
       const { title, text, author, author_id, gender, location, dateTime, guests } = req.body;
 
       const { data, error } = await supabase.from('events').insert([{
         owner_id: author_id,
         content: {
-          title,
-          text,
-          author_name: author,
-          gender,
+          title: title || 'Untitled Event',
+          text: text || '',
+          author_name: author || 'Anonymous',
+          gender: gender || 'male',
           location: location || 'TBA',
           dateTime: dateTime || 'TBA',
-          guests: guests || []
+          guests: guests || ''
         },
         engagement_metrics: { liked_by: [], comments: [] }
       }]).select();
@@ -41,7 +42,6 @@ export default async function handler(req, res) {
     } else if (req.method === 'PATCH') {
       const { id, userId, action, comment, author_name } = req.body;
       const { data: post } = await supabase.from('events').select('engagement_metrics').eq('id', id).single();
-
       let metrics = post.engagement_metrics || { liked_by: [], comments: [] };
 
       if (action === 'like') {
