@@ -1,112 +1,41 @@
-# The Gruvs
+# The Gruvs 🚀
 
-Simple Expo app. This repository contains the source for the mobile/web app.
+A cross-platform React Native app (mobile + web) built with Expo for managing events and tasks.
 
-Quick start
+## 🌐 Quick Deploy (Web - No Expo Account Needed)
+1. **Push to GitHub**: (Already done! ✅)
+2. **Connect to Vercel**:
+   - Go to [vercel.com](https://vercel.com) and import your repo.
+   - **Environment Variables**: Add `EXPO_PUBLIC_API_URL` with your deployment URL.
+3. **Live!**: Your app will be accessible via a URL like `the-gruvs.vercel.app`.
 
-Install deps:
+---
 
-```bash
-npm ci
-```
+## 📱 Mobile Testing (Expo Go)
+You can test on your physical device without an Expo account:
+1. Install **Expo Go** from the App Store/Play Store.
+2. Run `npm start` in this folder.
+3. Scan the QR code with your phone camera.
 
-Run in Expo (native):
+---
 
-```bash
-npm start
-```
+## 🏗 Project Status
+- **Web**: Configured for Vercel with serverless API support.
+- **Mobile**: Ready for production build (Requires EAS CLI & Account).
+- **Backend**: Serverless API at `/api/events` (Note: Currently volatile/stateless).
 
-Run in web mode:
+---
 
-```bash
-npm run web
-```
+## 🚧 Next Mission: "Persistent Data"
+Since the web version is ready to go, the next logical step is to stop the data from disappearing:
+1. Set up a **Supabase** or **MongoDB** database.
+2. Update `api/events.js` to save items to the database instead of a local variable.
 
-Build static web output (produces `web-build`):
+---
 
-```bash
-npm run build:web
-```
-
-Docker build & run (serves static build with nginx):
-
-```bash
-# build image
-docker build -t the-gruvs:latest .
-
-# run container
-docker run -p 8080:80 the-gruvs:latest
-
-# open http://localhost:8080
-```
-
-Publish to GitHub
-
-1. Create a GitHub repo named `The_Gruvs`.
-2. Add remote and push:
-
-```powershell
-git remote add origin https://github.com/<your-username>/The_Gruvs.git
-git branch -M main
-git push -u origin main
-```
-
-Deploy to Vercel (static)
-
-- Connect GitHub repo to Vercel.
-- Build Command: `npm run build:web`
-- Output Directory: `web-build`
-- Add any environment variables in Vercel dashboard.
-
-CI
-
-This repo includes a GitHub Actions workflow that runs tests and builds the web output on push to `main`.# The Gruvs
-
-A cross-platform React Native app (mobile + web) starter that manages simple To‑Do events called "The Gruvs".
-
-What I scaffolded:
-
-- Basic Expo-based React Native app (`App.js`) with a simple events To‑Do list UI.
-- `package.json` with scripts for starting and building.
-- `Dockerfile` for building & serving the web build.
-- GitHub Actions CI workflow to build the web bundle.
-
-Quick start (local):
-
-1. Install Node.js (LTS) and npm.
-2. Install the Expo CLI globally if you want: `npm install -g expo-cli` (optional).
-3. Install dependencies:
-
+## ⚙️ Development
 ```bash
 npm install
+npm run web    # Preview Web
+npm start      # Preview Mobile (Expo Go)
 ```
-
-4. Start the app (dev):
-
-```bash
-npm run start
-# or web only
-npm run web
-```
-
-Web build (static):
-
-```bash
-npm run build:web  # uses `expo export:web` under the hood
-```
-
-Docker (serves the web build on port 3000):
-
-```bash
-docker build -t the-gruvs:web .
-docker run -p 3000:3000 the-gruvs:web
-```
-
-Next recommended steps:
-
-- Commit this repo, push to GitHub, and enable GitHub Actions (CI will run the web build).
-- Deploy the web build on Vercel (connect the repo) or any static host.
-- For mobile releases, set up Expo/EAS builds and credentials (I can add EAS config and GitHub secrets).
-- If you want Windows desktop support, I can add `react-native-windows` integration notes and scripts.
-
-If you'd like, I can now initialize git, commit, and push to a new GitHub repo and configure automatic deploys to Vercel/EAS.

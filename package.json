@@ -2,6 +2,9 @@
   "name": "the-gruvs",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
