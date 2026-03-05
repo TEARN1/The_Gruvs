@@ -19,11 +19,19 @@ export default async function handler(req, res) {
       return res.status(200).json(data);
 
     } else if (req.method === 'POST') {
-      const { text, author, author_id, gender } = req.body;
+      const { title, text, author, author_id, gender, location, dateTime, guests } = req.body;
 
       const { data, error } = await supabase.from('events').insert([{
         owner_id: author_id,
-        content: { text, author_name: author, gender },
+        content: {
+          title,
+          text,
+          author_name: author,
+          gender,
+          location: location || 'TBA',
+          dateTime: dateTime || 'TBA',
+          guests: guests || []
+        },
         engagement_metrics: { liked_by: [], comments: [] }
       }]).select();
 
