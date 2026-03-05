@@ -7,7 +7,7 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -16,13 +16,25 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: false });
+      const { q, category } = req.query;
+      let query = supabase.from('events').select('*').order('created_at', { ascending: false });
+
+      // Billionaire Logic: Search Engine
+      if (q) {
+        query = query.or(`content->>title.ilike.%${q}%,content->>text.ilike.%${q}%`);
+      }
+      if (category && category !== 'All') {
+        query = query.eq('content->>category', category);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return res.status(200).json(data);
 
     } else if (req.method === 'POST') {
-      const { title, text, author, author_id, gender, location, dateTime, guests } = req.body;
+      const { title, text, author, author_id, gender, location, dateTime, guests, category } = req.body;
       const insertData = {
+        owner_id: isUuid(author_id) ? author_id : null,
         content: {
           title: title || 'Untitled Event',
           text: text || '',
@@ -30,19 +42,30 @@ export default async function handler(req, res) {
           gender: gender || 'male',
           location: location || 'TBA',
           dateTime: dateTime || 'TBA',
-          guests: guests || ''
+          guests: guests || '',
+          category: category || 'Meetup'
         },
-        engagement_metrics: { liked_by: [], comments: [], reports: [] }
+        engagement_metrics: { liked_by: [], comments: [], reports: [], rsvps: {} }
       };
-      if (author_id && isUuid(author_id)) insertData.owner_id = author_id;
       const { data, error } = await supabase.from('events').insert([insertData]).select();
       if (error) throw error;
       return res.status(201).json(data[0]);
 
+    } else if (req.method === 'PUT') {
+      // Edit Post Logic
+      const { id, userId, title, text, location, dateTime, guests, category } = req.body;
+      const { data: post } = await supabase.from('events').select('owner_id, content').eq('id', id).single();
+      if (post.owner_id !== userId) return res.status(403).json({ error: 'Unauthorized' });
+
+      const updatedContent = { ...post.content, title, text, location, dateTime, guests, category };
+      const { data, error } = await supabase.from('events').update({ content: updatedContent }).eq('id', id).select();
+      if (error) throw error;
+      return res.status(200).json(data[0]);
+
     } else if (req.method === 'PATCH') {
-      const { id, userId, action, comment, author_name, parentId, video_url, video_duration, user_created_at } = req.body;
+      const { id, userId, action, comment, author_name, parentId, rsvpStatus, targetId, reason, commentId, video_url, video_duration, user_created_at } = req.body;
       const { data: post } = await supabase.from('events').select('engagement_metrics').eq('id', id).single();
-      let metrics = post.engagement_metrics || { liked_by: [], comments: [], reports: [] };
+      let metrics = post.engagement_metrics || { liked_by: [], comments: [], reports: [], rsvps: {} };
 
       if (action === 'comment') {
         // --- VIDEO VALIDATION ---
@@ -73,15 +96,21 @@ export default async function handler(req, res) {
         };
         metrics.comments = [...(metrics.comments || []), newComment];
 
+      } else if (action === 'rsvp') {
+        if (!metrics.rsvps) metrics.rsvps = {};
+        metrics.rsvps[userId] = rsvpStatus;
+
       } else if (action === 'like_comment') {
-        const { commentId } = req.body;
         metrics.comments = (metrics.comments || []).map(c =>
           c.id === commentId ? { ...c, likes: (c.likes || 0) + 1 } : c
         );
 
+      } else if (action === 'delete_comment') {
+        metrics.comments = (metrics.comments || []).filter(c => c.id !== commentId);
+
       } else if (action === 'report') {
-        const { targetId, reason, details } = req.body;
-        metrics.reports = [...(metrics.reports || []), { targetId, reporterId: userId, reason, details, status: 'pending', created_at: new Date() }];
+        metrics.reports = [...(metrics.reports || []), { targetId, reporterId: userId, reason, created_at: new Date(), status: 'pending' }];
+
       } else if (action === 'like') {
         const likedBy = metrics.liked_by || [];
         metrics.liked_by = likedBy.includes(userId) ? likedBy.filter(u => u !== userId) : [...likedBy, userId];
