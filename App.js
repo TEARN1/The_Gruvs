@@ -1,222 +1,211 @@
 import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView, View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, useColorScheme
+  StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, ScrollView
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-// Logic for API URL
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
 
-const CATEGORIES = ['General', 'Music', 'Tech', 'Art', 'Sports'];
+// Simulate User Session
+const CURRENT_USER = { id: 'u1', name: 'Alex', gender: 'male' }; // Change to 'female' to see Pink Glass theme
 
 export default function App() {
-  const colorScheme = useColorScheme(); // 'light' or 'dark'
-  const isDark = colorScheme === 'dark';
-  const theme = isDark ? darkTheme : lightTheme;
-
   const [content, setContent] = useState('');
-  const [author, setAuthor] = useState('User123');
-  const [selectedCategory, setSelectedCategory] = useState('General');
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeCommentPost, setActiveCommentPost] = useState(null);
+  const [commentText, setCommentText] = useState('');
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
+  const theme = CURRENT_USER.gender === 'male' ? maleGlassTheme : femaleGlassTheme;
+
+  useEffect(() => { fetchPosts(); }, []);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
       const res = await fetch(API_URL);
-      if (res.ok) {
-        const data = await res.json();
-        setPosts(data);
-      }
-    } catch (err) {
-      console.warn('Failed to fetch posts', err);
-    } finally {
-      setLoading(false);
-    }
+      if (res.ok) setPosts(await res.json());
+    } catch (err) { console.warn(err); } finally { setLoading(false); }
   };
 
   const createPost = async () => {
     if (!content.trim()) return;
-
     const newPost = {
-      id: Date.now().toString(),
       text: content.trim(),
-      author: author,
-      category: selectedCategory,
-      going_count: 0,
+      author: CURRENT_USER.name,
+      author_id: CURRENT_USER.id,
+      gender: CURRENT_USER.gender,
       created_at: new Date().toISOString()
     };
-
-    setPosts(prev => [newPost, ...prev]);
-    setContent('');
-
     try {
-      await fetch(API_URL, {
+      const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPost)
       });
-    } catch (err) {
-      console.warn('Sync failed');
-    }
+      if (res.ok) fetchPosts();
+      setContent('');
+    } catch (err) { console.warn(err); }
   };
 
-  const toggleRSVP = async (id, isGoing) => {
-    // Optimistic UI update
-    setPosts(prev => prev.map(p =>
-      p.id === id ? { ...p, going_count: (p.going_count || 0) + (isGoing ? -1 : 1), user_going: !isGoing } : p
-    ));
-
+  const handleLike = async (id) => {
     try {
       await fetch(API_URL, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, increment: !isGoing })
+        body: JSON.stringify({ id, userId: CURRENT_USER.id, action: 'like' })
       });
-    } catch (err) {
-      console.warn('RSVP failed');
-    }
+      fetchPosts();
+    } catch (err) { console.warn(err); }
+  };
+
+  const addComment = async (id) => {
+    if (!commentText.trim()) return;
+    try {
+      await fetch(API_URL, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'comment', comment: commentText, author: CURRENT_USER.name })
+      });
+      setCommentText('');
+      setActiveCommentPost(null);
+      fetchPosts();
+    } catch (err) { console.warn(err); }
   };
 
   const deletePost = async (id) => {
-    setPosts(prev => prev.filter(p => p.id !== id));
     try {
-      await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
-    } catch (err) {
-      console.warn('Delete sync failed');
-    }
+      const res = await fetch(`${API_URL}?id=${id}&userId=${CURRENT_USER.id}`, { method: 'DELETE' });
+      if (res.ok) setPosts(p => p.filter(x => x.id !== id));
+      else alert("You can't delete someone else's post!");
+    } catch (err) { console.warn(err); }
   };
 
-  const renderPost = ({ item }) => (
-    <View style={[styles.postCard, { backgroundColor: theme.card }]}>
-      <View style={styles.postHeader}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{item.author?.[0].toUpperCase()}</Text></View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.authorName, { color: theme.text }]}>{item.author || 'Anonymous'}</Text>
-          <View style={styles.metaRow}>
-            <Text style={styles.timestamp}>{new Date(item.created_at || Date.now()).toLocaleDateString()}</Text>
-            <View style={styles.tag}><Text style={styles.tagText}>{item.category || 'General'}</Text></View>
+  const renderPost = ({ item }) => {
+    const postTheme = item.gender === 'male' ? maleGlassTheme : femaleGlassTheme;
+    const hasLiked = (item.likes || []).includes(CURRENT_USER.id);
+
+    return (
+      <View style={[styles.postCard, { backgroundColor: postTheme.card, borderColor: postTheme.border }]}>
+        <View style={styles.postHeader}>
+          <View style={[styles.avatar, { backgroundColor: postTheme.accent }]}><Text style={styles.avatarText}>{item.author?.[0]}</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.authorName, { color: postTheme.text }]}>{item.author}</Text>
+            <Text style={[styles.timestamp, { color: postTheme.subtext }]}>{new Date(item.created_at).toLocaleDateString()}</Text>
           </View>
+          {item.author_id === CURRENT_USER.id && (
+            <TouchableOpacity onPress={() => deletePost(item.id)}><Text style={styles.deleteX}>✕</Text></TouchableOpacity>
+          )}
         </View>
-      </View>
-      <Text style={[styles.postContent, { color: theme.text }]}>{item.text}</Text>
 
-      <View style={styles.postFooter}>
-        <TouchableOpacity
-          style={[styles.rsvpBtn, item.user_going && styles.rsvpBtnActive]}
-          onPress={() => toggleRSVP(item.id, item.user_going)}
-        >
-          <Text style={[styles.rsvpBtnText, item.user_going && styles.rsvpBtnTextActive]}>
-            {item.user_going ? '✅ Going' : '⭐ RSVP'} ({item.going_count || 0})
-          </Text>
-        </TouchableOpacity>
+        <Text style={[styles.postContent, { color: postTheme.text }]}>{item.text}</Text>
 
-        <TouchableOpacity onPress={() => deletePost(item.id)} style={styles.deleteBtn}>
-          <Text style={styles.deleteText}>Delete</Text>
-        </TouchableOpacity>
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={() => handleLike(item.id)} style={styles.action}>
+            <Text style={{ color: hasLiked ? '#ff4444' : postTheme.subtext }}>{hasLiked ? '❤️' : '🤍'} {item.likes?.length || 0}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setActiveCommentPost(item.id)} style={styles.action}>
+            <Text style={{ color: postTheme.subtext }}>💬 {item.comments?.length || 0}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {activeCommentPost === item.id && (
+          <View style={styles.commentInputRow}>
+            <TextInput
+              style={[styles.smallInput, { color: postTheme.text, borderColor: postTheme.border }]}
+              placeholder="Write a comment..."
+              value={commentText}
+              onChangeText={setCommentText}
+            />
+            <TouchableOpacity onPress={() => addComment(item.id)}><Text style={{ color: postTheme.accent }}>Send</Text></TouchableOpacity>
+          </View>
+        )}
+
+        {item.comments?.length > 0 && (
+          <View style={styles.commentsList}>
+            {item.comments.slice(0, 2).map(c => (
+              <Text key={c.id} style={[styles.commentText, { color: postTheme.subtext }]}>
+                <Text style={{ fontWeight: 'bold' }}>{c.author}:</Text> {c.text}
+              </Text>
+            ))}
+          </View>
+        )}
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <Text style={styles.logo}>THE GRUVS</Text>
-      </View>
+      <StatusBar style="light" />
+      <View style={styles.topHeader}><Text style={[styles.logo, { color: theme.accent }]}>THE GRUVS</Text></View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <FlatList
           data={posts}
           keyExtractor={item => item.id}
           renderItem={renderPost}
-          contentContainerStyle={styles.feed}
           ListHeaderComponent={
-            <View style={[styles.inputContainer, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-              <View style={styles.categoryRow}>
-                {CATEGORIES.map(cat => (
-                  <TouchableOpacity
-                    key={cat}
-                    onPress={() => setSelectedCategory(cat)}
-                    style={[styles.catTab, selectedCategory === cat && styles.catTabActive]}
-                  >
-                    <Text style={[styles.catTabText, selectedCategory === cat && styles.catTabTextActive]}>{cat}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            <View style={[styles.inputBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <TextInput
-                style={[styles.input, { color: theme.text }]}
-                placeholder="Post an event..."
-                placeholderTextColor={isDark ? '#888' : '#aaa'}
+                placeholder="What's on your mind?"
+                placeholderTextColor={theme.subtext}
+                style={[styles.mainInput, { color: theme.text }]}
                 multiline
                 value={content}
                 onChangeText={setContent}
               />
-              <TouchableOpacity style={styles.postBtn} onPress={createPost}>
-                <Text style={styles.postBtnText}>Post Event</Text>
+              <TouchableOpacity style={[styles.postBtn, { backgroundColor: theme.accent }]} onPress={createPost}>
+                <Text style={styles.postBtnText}>Post</Text>
               </TouchableOpacity>
             </View>
           }
-          ListEmptyComponent={
-            loading ? <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 50 }} /> :
-            <Text style={styles.emptyText}>No events yet. Host the first one!</Text>
-          }
+          ListEmptyComponent={loading && <ActivityIndicator color={theme.accent} />}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const lightTheme = {
-  background: '#f9fafb',
-  card: '#ffffff',
-  text: '#111827',
-  border: '#e5e7eb'
+const maleGlassTheme = {
+  background: '#000000',
+  card: 'rgba(25, 25, 25, 0.8)',
+  border: 'rgba(100, 100, 255, 0.2)',
+  text: '#ffffff',
+  subtext: '#888',
+  accent: '#3b82f6'
 };
 
-const darkTheme = {
-  background: '#0f172a',
-  card: '#1e293b',
-  text: '#f8fafc',
-  border: '#334155'
+const femaleGlassTheme = {
+  background: '#1a000d',
+  card: 'rgba(50, 0, 25, 0.7)',
+  border: 'rgba(255, 100, 200, 0.3)',
+  text: '#ffffff',
+  subtext: '#ffb3d9',
+  accent: '#ff4da6'
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { height: 60, justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1 },
-  logo: { fontSize: 22, fontWeight: '900', color: '#6366f1', letterSpacing: 2 },
-  feed: { paddingBottom: 20 },
-  inputContainer: { padding: 15, marginBottom: 10, borderBottomWidth: 1 },
-  categoryRow: { flexDirection: 'row', marginBottom: 15, flexWrap: 'wrap' },
-  catTab: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, backgroundColor: '#eee', marginRight: 8, marginBottom: 5 },
-  catTabActive: { backgroundColor: '#6366f1' },
-  catTabText: { fontSize: 12, color: '#666' },
-  catTabTextActive: { color: '#fff', fontWeight: 'bold' },
-  input: { fontSize: 18, minHeight: 60, textAlignVertical: 'top', marginBottom: 10 },
-  postBtn: { backgroundColor: '#6366f1', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-  postBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  postCard: { padding: 15, marginBottom: 10, marginHorizontal: 10, borderRadius: 12, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
-  postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#6366f133', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  avatarText: { fontWeight: 'bold', color: '#6366f1' },
-  authorName: { fontWeight: 'bold', fontSize: 16 },
-  metaRow: { flexDirection: 'row', alignItems: 'center' },
-  timestamp: { color: '#64748b', fontSize: 12, marginRight: 10 },
-  tag: { backgroundColor: '#6366f111', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  tagText: { fontSize: 10, color: '#6366f1', fontWeight: 'bold' },
-  postContent: { fontSize: 16, lineHeight: 24, marginBottom: 15 },
-  postFooter: { flexDirection: 'row', borderTopWidth: 1, borderColor: '#64748b22', paddingTop: 12, justifyContent: 'space-between', alignItems: 'center' },
-  rsvpBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
-  rsvpBtnActive: { backgroundColor: '#10b981' },
-  rsvpBtnText: { color: '#475569', fontWeight: 'bold' },
-  rsvpBtnTextActive: { color: '#fff' },
-  deleteBtn: { padding: 5 },
-  deleteText: { color: '#ef4444', fontSize: 12, fontWeight: 'bold' },
-  emptyText: { textAlign: 'center', marginTop: 50, color: '#64748b', fontSize: 16 }
+  topHeader: { height: 60, justifyContent: 'center', alignItems: 'center' },
+  logo: { fontSize: 24, fontWeight: '900', letterSpacing: 4 },
+  inputBox: { margin: 15, padding: 15, borderRadius: 20, borderWidth: 1 },
+  mainInput: { fontSize: 18, minHeight: 60, textAlignVertical: 'top' },
+  postBtn: { padding: 10, borderRadius: 15, alignItems: 'center', marginTop: 10 },
+  postBtnText: { color: '#fff', fontWeight: 'bold' },
+  postCard: { margin: 10, padding: 15, borderRadius: 25, borderWidth: 1 },
+  postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  avatar: { width: 35, height: 35, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  avatarText: { color: '#fff', fontWeight: 'bold' },
+  authorName: { fontWeight: 'bold' },
+  timestamp: { fontSize: 10 },
+  deleteX: { color: '#ff4444', fontSize: 18, padding: 5 },
+  postContent: { fontSize: 16, marginBottom: 15, lineHeight: 22 },
+  footer: { flexDirection: 'row', borderTopWidth: 0.5, borderColor: '#444', paddingTop: 10 },
+  action: { marginRight: 20 },
+  commentInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
+  smallInput: { flex: 1, borderWidth: 1, borderRadius: 10, padding: 5, marginRight: 10, fontSize: 12 },
+  commentsList: { marginTop: 10, borderTopWidth: 0.2, borderColor: '#555', paddingTop: 5 },
+  commentText: { fontSize: 12, marginBottom: 2 }
 });
