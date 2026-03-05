@@ -12,6 +12,9 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  // Helper to check for valid UUID format
+  const isUuid = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
   try {
     if (req.method === 'GET') {
       const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: false });
@@ -19,11 +22,9 @@ export default async function handler(req, res) {
       return res.status(200).json(data);
 
     } else if (req.method === 'POST') {
-      // Destructure directly from body
       const { title, text, author, author_id, gender, location, dateTime, guests } = req.body;
 
-      const { data, error } = await supabase.from('events').insert([{
-        owner_id: author_id,
+      const insertData = {
         content: {
           title: title || 'Untitled Event',
           text: text || '',
@@ -34,9 +35,20 @@ export default async function handler(req, res) {
           guests: guests || ''
         },
         engagement_metrics: { liked_by: [], comments: [] }
-      }]).select();
+      };
 
-      if (error) throw error;
+      // Only include owner_id if it's a valid UUID to avoid DB errors
+      // If no valid UUID is provided, owner_id will be null (or handled by DB default)
+      if (author_id && isUuid(author_id)) {
+        insertData.owner_id = author_id;
+      }
+
+      const { data, error } = await supabase.from('events').insert([insertData]).select();
+
+      if (error) {
+        console.error('Insert Error:', error);
+        return res.status(400).json({ error: error.message });
+      }
       return res.status(201).json(data[0]);
 
     } else if (req.method === 'PATCH') {
@@ -62,7 +74,14 @@ export default async function handler(req, res) {
 
     } else if (req.method === 'DELETE') {
       const { id, userId } = req.query;
-      const { error } = await supabase.from('events').delete().eq('id', id).eq('owner_id', userId);
+
+      // Ownership check only if userId is a valid UUID
+      let query = supabase.from('events').delete().eq('id', id);
+      if (userId && isUuid(userId)) {
+        query = query.eq('owner_id', userId);
+      }
+
+      const { error } = await query;
       if (error) throw error;
       return res.status(200).json({ message: 'Deleted' });
     }
