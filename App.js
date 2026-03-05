@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, TextInput, Button, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { SafeAreaView, View, Text, TextInput, Button, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 let AsyncStorage;
 try {
-  // optional native async storage
-  // will work if `@react-native-async-storage/async-storage` is installed
-  // for web, we fall back to window.localStorage
   // eslint-disable-next-line global-require
   AsyncStorage = require('@react-native-async-storage/async-storage').default;
 } catch (e) {
@@ -14,7 +11,12 @@ try {
 }
 
 const STORAGE_KEY = 'the-gruvs:events';
-const API_URL = '/api/events';
+
+// For Web, /api works if hosted on the same domain (Vercel).
+// For Mobile, we MUST use an absolute URL.
+// Change 'https://the-gruvs.vercel.app' to your actual Vercel deployment URL.
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
+const API_URL = BASE_URL ? `${BASE_URL}/api/events` : '/api/events';
 
 export default function App() {
   const [text, setText] = useState('');
@@ -31,21 +33,24 @@ export default function App() {
 
         let dataFetched = false;
 
-        // Attempt to fetch from our Vercel Serverless Backend
-        try {
-          const res = await fetch(API_URL);
-          if (res.ok) {
-            const apiData = await res.json();
-            if (Array.isArray(apiData)) {
-              setItems(apiData);
-              dataFetched = true;
+        // If we're on mobile and have no BASE_URL, we can't fetch from backend.
+        if (Platform.OS !== 'web' && !BASE_URL) {
+          console.warn('No API BASE_URL configured for mobile. Falling back to local storage.');
+        } else {
+          try {
+            const res = await fetch(API_URL);
+            if (res.ok) {
+              const apiData = await res.json();
+              if (Array.isArray(apiData)) {
+                setItems(apiData);
+                dataFetched = true;
+              }
             }
+          } catch (apiErr) {
+            console.warn('Backend unavailable, falling back to local storage', apiErr);
           }
-        } catch (apiErr) {
-          console.warn('Backend unavailable, falling back to local storage', apiErr);
         }
 
-        // If backend failed, load locally
         if (!dataFetched) {
           let raw = null;
           if (AsyncStorage) raw = await AsyncStorage.getItem(STORAGE_KEY);
@@ -58,15 +63,15 @@ export default function App() {
         console.error('Critical failure loading items:', e);
         setErrorMsg('Unable to load data. Please refresh.');
       } finally {
-        setLoading(false); // Done loading! Prevents blank screen.
+        setLoading(false);
       }
     }
     load();
   }, []);
 
-  // 2. Battery & CPU Friendly Sync: Only save locally when items actually change, NOT on mount.
+  // 2. Battery & CPU Friendly Sync: Only save locally when items actually change.
   useEffect(() => {
-    if (loading) return; // FIX: Prevents saving an empty array over real data before loading finishes
+    if (loading) return;
 
     async function saveLocally() {
       try {
@@ -84,11 +89,9 @@ export default function App() {
     if (!text.trim()) return;
     const newItem = { id: Date.now().toString(), text: text.trim(), done: false };
 
-    // Optimistic UI update (Fast, responsive feeling for the user)
     setItems(prev => [newItem, ...prev]);
     setText('');
 
-    // Sync to Backend
     try {
       await fetch(API_URL, {
         method: 'POST',
@@ -116,14 +119,14 @@ export default function App() {
   async function removeItem(id) {
     setItems(prev => prev.filter(i => i.id !== id));
     try {
-      await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
+      const deleteUrl = API_URL.includes('?') ? `${API_URL}&id=${id}` : `${API_URL}?id=${id}`;
+      await fetch(deleteUrl, { method: 'DELETE' });
     } catch (err) {
       console.warn('Backend sync failed for delete:', err);
     }
   }
 
   const renderItem = ({ item }) => {
-    // Failsafe against corrupted local storage data
     if (!item) return null;
     return (
       <View style={styles.itemRow}>
@@ -154,7 +157,6 @@ export default function App() {
         <Button title="Add" onPress={addItem} />
       </View>
 
-      {/* Show a spinner instead of a blank screen while loading */}
       {loading ? (
         <ActivityIndicator size="large" color="#0000ff" style={{ marginTop: 20 }} />
       ) : (
@@ -163,7 +165,6 @@ export default function App() {
           keyExtractor={i => i?.id || Math.random().toString()}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
-          // Performance optimization for long lists (battery/CPU friendly):
           removeClippedSubviews={true}
           initialNumToRender={10}
         />
@@ -174,7 +175,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#fff', flex: 1, padding: 16 },
+  container: { backgroundColor: '#fff', flex: 1, padding: 16, paddingTop: Platform.OS === 'android' ? 40 : 16 },
   deleteBtn: { paddingHorizontal: 12, paddingVertical: 6 },
   deleteText: { color: '#d00', fontWeight: 'bold' },
   errorText: { color: 'red', marginBottom: 10, textAlign: 'center' },
