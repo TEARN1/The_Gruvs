@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, TextInput, Button, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
+// Fallback AsyncStorage for Web/Native
 let AsyncStorage;
 try {
   // eslint-disable-next-line global-require
@@ -12,11 +13,11 @@ try {
 
 const STORAGE_KEY = 'the-gruvs:events';
 
-// For Web, /api works if hosted on the same domain (Vercel).
-// For Mobile, we MUST use an absolute URL.
-// Change 'https://the-gruvs.vercel.app' to your actual Vercel deployment URL.
+// Logic for API URL
+// On Web, Vercel allows /api/events
+// On Mobile, we need the full URL
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
-const API_URL = BASE_URL ? `${BASE_URL}/api/events` : '/api/events';
+const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
 
 export default function App() {
   const [text, setText] = useState('');
@@ -24,44 +25,46 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // 1. Initial Load: Try Backend, fallback to Local Storage
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
         setErrorMsg('');
 
-        let dataFetched = false;
+        let initialData = [];
 
-        // If we're on mobile and have no BASE_URL, we can't fetch from backend.
-        if (Platform.OS !== 'web' && !BASE_URL) {
-          console.warn('No API BASE_URL configured for mobile. Falling back to local storage.');
-        } else {
-          try {
-            const res = await fetch(API_URL);
-            if (res.ok) {
-              const apiData = await res.json();
-              if (Array.isArray(apiData)) {
-                setItems(apiData);
-                dataFetched = true;
-              }
-            }
-          } catch (apiErr) {
-            console.warn('Backend unavailable, falling back to local storage', apiErr);
-          }
-        }
-
-        if (!dataFetched) {
+        // 1. Try Local Storage first (Fastest UI)
+        try {
           let raw = null;
           if (AsyncStorage) raw = await AsyncStorage.getItem(STORAGE_KEY);
           else if (typeof window !== 'undefined' && window.localStorage) raw = window.localStorage.getItem(STORAGE_KEY);
 
-          if (raw) setItems(JSON.parse(raw));
+          if (raw) {
+            initialData = JSON.parse(raw);
+            setItems(initialData);
+          }
+        } catch (e) {
+          console.warn('Local storage load failed', e);
+        }
+
+        // 2. Try to Sync with Backend
+        if (BASE_URL || Platform.OS === 'web') {
+          try {
+            const res = await fetch(API_URL);
+            if (res.ok) {
+              const apiData = await res.json();
+              if (Array.isArray(apiData) && apiData.length > 0) {
+                setItems(apiData);
+              }
+            }
+          } catch (apiErr) {
+            console.warn('Backend sync failed', apiErr);
+          }
         }
 
       } catch (e) {
-        console.error('Critical failure loading items:', e);
-        setErrorMsg('Unable to load data. Please refresh.');
+        console.error('Load failed', e);
+        setErrorMsg('Connection error. Using offline mode.');
       } finally {
         setLoading(false);
       }
@@ -69,17 +72,16 @@ export default function App() {
     load();
   }, []);
 
-  // 2. Battery & CPU Friendly Sync: Only save locally when items actually change.
+  // Save locally whenever items change
   useEffect(() => {
     if (loading) return;
-
     async function saveLocally() {
       try {
         const raw = JSON.stringify(items);
         if (AsyncStorage) await AsyncStorage.setItem(STORAGE_KEY, raw);
         else if (typeof window !== 'undefined' && window.localStorage) window.localStorage.setItem(STORAGE_KEY, raw);
       } catch (e) {
-        console.warn('Failed to save items to local storage', e);
+        console.warn('Local save failed', e);
       }
     }
     saveLocally();
@@ -88,7 +90,6 @@ export default function App() {
   async function addItem() {
     if (!text.trim()) return;
     const newItem = { id: Date.now().toString(), text: text.trim(), done: false };
-
     setItems(prev => [newItem, ...prev]);
     setText('');
 
@@ -98,9 +99,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newItem)
       });
-    } catch (err) {
-      console.warn('Backend sync failed for add:', err);
-    }
+    } catch (err) { console.warn('Sync failed'); }
   }
 
   async function toggleDone(id) {
@@ -111,9 +110,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
       });
-    } catch (err) {
-      console.warn('Backend sync failed for toggle:', err);
-    }
+    } catch (err) { console.warn('Sync failed'); }
   }
 
   async function removeItem(id) {
@@ -121,70 +118,64 @@ export default function App() {
     try {
       const deleteUrl = API_URL.includes('?') ? `${API_URL}&id=${id}` : `${API_URL}?id=${id}`;
       await fetch(deleteUrl, { method: 'DELETE' });
-    } catch (err) {
-      console.warn('Backend sync failed for delete:', err);
-    }
+    } catch (err) { console.warn('Sync failed'); }
   }
 
-  const renderItem = ({ item }) => {
-    if (!item) return null;
-    return (
-      <View style={styles.itemRow}>
-        <TouchableOpacity onPress={() => toggleDone(item.id)} style={styles.itemTextWrap}>
-          <Text style={[styles.itemText, item.done && styles.itemDone]}>{item.text}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => removeItem(item.id)} style={styles.deleteBtn}>
-          <Text style={styles.deleteText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
+  const renderItem = ({ item }) => (
+    <View style={styles.itemRow}>
+      <TouchableOpacity onPress={() => toggleDone(item.id)} style={styles.itemTextWrap}>
+        <Text style={[styles.itemText, item.done && styles.itemDone]}>{item.text}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => removeItem(item.id)} style={styles.deleteBtn}>
+        <Text style={styles.deleteText}>Delete</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>The Gruvs</Text>
+      <View style={styles.inner}>
+        <Text style={styles.title}>The Gruvs</Text>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="Add an event..."
+            value={text}
+            onChangeText={setText}
+            onSubmitEditing={addItem}
+          />
+          <Button title="Add" onPress={addItem} />
+        </View>
 
-      {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
-
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="Add an event..."
-          value={text}
-          onChangeText={setText}
-          onSubmitEditing={addItem}
-        />
-        <Button title="Add" onPress={addItem} />
+        {loading && items.length === 0 ? (
+          <ActivityIndicator size="large" color="#0000ff" style={{ marginTop: 50 }} />
+        ) : (
+          <FlatList
+            data={items}
+            keyExtractor={item => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={<Text style={styles.emptyText}>No events yet. Add one above!</Text>}
+          />
+        )}
       </View>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" style={{ marginTop: 20 }} />
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={i => i?.id || Math.random().toString()}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
-          removeClippedSubviews={true}
-          initialNumToRender={10}
-        />
-      )}
       <StatusBar style="auto" />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#fff', flex: 1, padding: 16, paddingTop: Platform.OS === 'android' ? 40 : 16 },
-  deleteBtn: { paddingHorizontal: 12, paddingVertical: 6 },
-  deleteText: { color: '#d00', fontWeight: 'bold' },
-  errorText: { color: 'red', marginBottom: 10, textAlign: 'center' },
-  input: { borderColor: '#ccc', borderRadius: 6, borderWidth: 1, flex: 1, marginRight: 8, padding: 10, backgroundColor: '#f9f9f9' },
-  inputRow: { alignItems: 'center', flexDirection: 'row', marginBottom: 16 },
-  itemDone: { color: '#888', textDecorationLine: 'line-through' },
-  itemRow: { alignItems: 'center', borderBottomWidth: 1, borderColor: '#eee', flexDirection: 'row', paddingVertical: 12 },
-  itemText: { fontSize: 16, color: '#333' },
+  container: { backgroundColor: '#fff', flex: 1 },
+  inner: { flex: 1, padding: 20, paddingTop: Platform.OS === 'android' ? 45 : 20 },
+  title: { fontSize: 32, fontWeight: '900', marginBottom: 20, color: '#000', textAlign: 'center' },
+  inputRow: { flexDirection: 'row', marginBottom: 20, alignItems: 'center' },
+  input: { flex: 1, borderBottomWidth: 2, borderColor: '#000', marginRight: 10, padding: 8, fontSize: 18 },
+  list: { paddingBottom: 50 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderColor: '#eee' },
   itemTextWrap: { flex: 1 },
-  list: { paddingBottom: 80 },
-  title: { fontSize: 28, fontWeight: '800', marginBottom: 16, color: '#111', textAlign: 'center' }
+  itemText: { fontSize: 18, color: '#333' },
+  itemDone: { textDecorationLine: 'line-through', color: '#aaa' },
+  deleteBtn: { padding: 5 },
+  deleteText: { color: '#ff4444', fontWeight: 'bold' },
+  emptyText: { textAlign: 'center', marginTop: 50, color: '#999', fontSize: 16 }
 });
