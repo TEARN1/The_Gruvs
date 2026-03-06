@@ -4,6 +4,9 @@ import {
   StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, Modal, RefreshControl, Alert, ScrollView, Image
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { getTheme } from './src/data';
+import { AuthScreen, ProfileScreen } from './src/screens';
+import { useToast, Toast } from './src/components';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
@@ -118,7 +121,7 @@ export default function App() {
         </ScrollView>
       </View>
 
-      <FlatList data={posts} keyExtractor={item => item.id} renderPost={renderPost} contentContainerStyle={{ paddingBottom: 100 }} />
+      <FlatList data={posts} keyExtractor={item => item.id} renderItem={renderPost} contentContainerStyle={{ paddingBottom: 100 }} />
 
       <View style={[styles.bottomNav, { backgroundColor: theme.navBg, borderTopColor: theme.cardBorder }]}>
         <TouchableOpacity onPress={() => setScreen('feed')} style={styles.navItem}>
