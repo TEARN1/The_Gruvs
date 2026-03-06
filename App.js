@@ -70,8 +70,31 @@ export default function App() {
         url += `&lat=${userLocation.latitude}&lng=${userLocation.longitude}`;
       }
       const res = await fetch(url);
-      if (res.ok) setPosts(await res.json());
-    } catch (err) { console.error(err); } finally { setRefreshing(false); }
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        if (Array.isArray(data)) setPosts(data);
+        else throw new Error("Not an array");
+      } catch (parseErr) {
+        throw new Error("API not running or returned HTML.");
+      }
+    } catch (err) {
+      console.warn("Using offline seed data. API fetch failed:", err.message);
+      setPosts([
+        {
+          id: 'seed_1',
+          created_at: new Date().toISOString(),
+          content: { title: 'Local Art Walk Downtown', text: 'Come check out local artists from the community setting up booths and galleries.', author_name: 'Sarah G.', category: 'Arts & Culture', location: 'Downtown Plaza', dateTime: 'Tonight at 7 PM' },
+          engagement_metrics: { liked_by: ['u1', 'u2', 'u3'], comments: [{ id: 'c1', author: 'Mark', text: 'Will there be food trucks too?' }], rsvps: { 'u1': 'going', 'u2': 'preparing' }, views: 142, heat_index: 85, rsvpEnabled: true }
+        },
+        {
+          id: 'seed_2',
+          created_at: new Date().toISOString(),
+          content: { title: 'Pickleball Tournament', text: 'Casual bracket for beginners. Paddles provided!', author_name: 'Coach Dave', category: 'Sports & Fitness', location: 'Community Park Courts', dateTime: 'Saturday 10 AM' },
+          engagement_metrics: { liked_by: ['u4'], comments: [{ id: 'c2', author: 'Jen', text: 'I am so ready for this!' }], rsvps: { 'u4': 'going' }, views: 65, heat_index: 30, rsvpEnabled: true }
+        }
+      ]);
+    } finally { setRefreshing(false); }
   };
 
   const createEvent = async () => {
