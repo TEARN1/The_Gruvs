@@ -34,7 +34,34 @@ export default async function handler(req, res) {
       query = query.range(Number(offset), Number(offset) + Number(limit) - 1);
       const { data, error } = await query;
       if (error) throw error;
-      return res.status(200).json(data || []);
+
+      let eventsResponse = data || [];
+      if (eventsResponse.length === 0) {
+        // DB is empty, return high-quality seed data
+        eventsResponse = [
+          {
+            id: 'seed_1',
+            created_at: new Date().toISOString(),
+            content: { title: 'Local Art Walk Downtown', text: 'Come check out local artists from the community setting up booths and galleries.', author_name: 'Sarah G.', category: 'Arts & Culture', location: 'Downtown Plaza', dateTime: 'Tonight at 7 PM' },
+            engagement_metrics: {
+              liked_by: ['u1', 'u2', 'u3'],
+              comments: [{ id: 'c1', author: 'Mark', text: 'Will there be food trucks too?' }],
+              rsvps: { 'u1': 'going', 'u2': 'preparing' }, views: 142, heat_index: 85, rsvpEnabled: true
+            }
+          },
+          {
+            id: 'seed_2',
+            created_at: new Date().toISOString(),
+            content: { title: 'Pickleball Tournament', text: 'Casual bracket for beginners. Paddles provided!', author_name: 'Coach Dave', category: 'Sports & Fitness', location: 'Community Park Courts', dateTime: 'Saturday 10 AM' },
+            engagement_metrics: {
+              liked_by: ['u4'],
+              comments: [{ id: 'c2', author: 'Jen', text: 'I am so ready for this!' }],
+              rsvps: { 'u4': 'going' }, views: 65, heat_index: 30, rsvpEnabled: true
+            }
+          }
+        ];
+      }
+      return res.status(200).json(eventsResponse);
     }
 
     if (req.method === 'POST') {

@@ -15,3 +15,9 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn(),
 };
+
+// Mock expo-location
+jest.mock('expo-location', () => ({
+  requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+  getCurrentPositionAsync: jest.fn().mockResolvedValue({ coords: { latitude: 37.7749, longitude: -122.4194 } }),
+}));

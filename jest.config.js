@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   preset: 'react-native',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],

@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   SafeAreaView, View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, Modal, RefreshControl, Alert, ScrollView
+  StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, Modal, RefreshControl, ScrollView, Image
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as Location from 'expo-location';
+import { getTheme, ALL_CATEGORIES } from './src/data';
+import { AuthScreen, ProfileScreen } from './src/screens';
+import { ConfirmDialog, Toast, useToast } from './src/components';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
@@ -19,7 +23,6 @@ const MASTER_CATEGORIES = [
 
 export default function App() {
   const [screen, setScreen] = useState('auth');
-  const [authMode, setAuthMode] = useState('signin'); // 'signin', 'signup', 'visitor'
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,46 +32,91 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [collapsedThreads, setCollapsedThreads] = useState(false);
 
-  const [eventForm, setEventForm] = useState({ title: '', text: '', location: '', dateTime: '', guests: '', category: 'Social Milestones' });
+  const [eventForm, setEventForm] = useState({ title: '', text: '', location: '', dateTime: '', guests: '', category: 'Social' });
   const [commentText, setCommentText] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
-  const [authForm, setAuthForm] = useState({ username: '', password: '', gender: 'male' });
+  const [userLocation, setUserLocation] = useState(null);
 
-  const theme = user?.gender === 'female' ? femaleTheme : (user?.gender === 'male' ? maleTheme : dayTheme);
+  const { toasts, addToast } = useToast();
+  const [confirmDialog, setConfirmDialog] = useState({ visible: false });
 
-  useEffect(() => { if(screen === 'feed') fetchPosts(); }, [screen, searchQuery, activeCategory]);
+  const theme = getTheme(user?.gender || 'day');
+
+  useEffect(() => {
+    if (screen === 'feed') {
+      requestLocation();
+      fetchPosts();
+    }
+  }, [screen, searchQuery, activeCategory]);
+
+  const requestLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        addToast("Location blocks access to Nearby filter.", "info");
+        return;
+      }
+      let location = await Location.getCurrentPositionAsync({});
+      setUserLocation(location.coords);
+    } catch (e) {
+      console.warn(e);
+    }
+  };
 
   const fetchPosts = async () => {
     try {
-      const url = `${API_URL}?q=${searchQuery}&category=${activeCategory}`;
+      let url = `${API_URL}?q=${searchQuery}&category=${activeCategory}`;
+      if (activeCategory === 'Near Me' && userLocation) {
+        url += `&lat=${userLocation.latitude}&lng=${userLocation.longitude}`;
+      }
       const res = await fetch(url);
       if (res.ok) setPosts(await res.json());
     } catch (err) { console.error(err); } finally { setRefreshing(false); }
   };
 
   const createEvent = async () => {
-    if (!eventForm.title.trim() || !eventForm.text.trim()) return Alert.alert("Required", "Fields missing.");
+    if (!eventForm.title.trim() || !eventForm.text.trim()) {
+      addToast("Fields missing.", "error");
+      return;
+    }
+
+    // Optimistic UI updates
+    const tempPost = {
+      id: 'temp_' + Date.now(),
+      content: { ...eventForm, author_name: user.name, author_id: user.id },
+      engagement_metrics: { liked_by: [], comments: [], rsvps: {} }
+    };
+    setPosts(prev => [tempPost, ...prev]);
+
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...eventForm, author: user.name, author_id: user.id, gender: user.gender })
+        body: JSON.stringify({ ...eventForm, author: user.name, author_id: user.id, gender: user.gender, coords: userLocation })
       });
       if (res.ok) {
-        setEventForm({ title: '', text: '', location: '', dateTime: '', guests: '', category: 'Social Milestones' });
+        setEventForm({ title: '', text: '', location: '', dateTime: '', guests: '', category: 'Social' });
         setModalVisible(false);
+        addToast("Event posted!", "success");
         fetchPosts();
       }
-    } catch (err) { console.warn(err); }
+    } catch (err) { console.warn(err); addToast("Failed to post event.", "error"); fetchPosts(); }
   };
 
-  const handleAuth = () => {
-    setUser({ id: 'user_01', name: authForm.username || 'Alex', gender: authForm.gender });
+  const handleLogin = (form) => {
+    setUser({ id: 'user_' + Date.now(), name: form.username || 'User', email: form.email, gender: 'male', interests: [] });
     setScreen('feed');
+    addToast("Welcome back!", "success");
+  };
+
+  const handleSignup = (form) => {
+    setUser({ id: 'user_' + Date.now(), name: form.username || 'User', email: form.email, gender: form.gender || 'other', interests: form.interests });
+    setScreen('feed');
+    addToast("Account created!", "success");
   };
 
   const handleRSVP = async (postId, status) => {
-    if (!user) return Alert.alert("Visitor Mode", "Please sign in to RSVP");
+    if (!user) return addToast("Please sign in to interact", "warning");
     try {
       await fetch(API_URL, {
         method: 'PATCH',
@@ -76,7 +124,24 @@ export default function App() {
         body: JSON.stringify({ id: postId, userId: user.id, action: 'rsvp', rsvpStatus: status })
       });
       fetchPosts();
-    } catch (err) { console.warn(err); }
+      addToast(`Status updated to ${status.replace('_', ' ')}`, "success");
+    } catch (err) { console.warn(err); addToast("Failed to update status", "error"); }
+  };
+
+  const submitComment = async (postId) => {
+    if (!user) return addToast("Sign in to comment", "warning");
+    if (!commentText.trim()) return;
+    try {
+      await fetch(API_URL, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId, action: 'comment', author_name: user.name, comment: commentText, parentId: replyingTo?.commentId || null })
+      });
+      setCommentText('');
+      setReplyingTo(null);
+      fetchPosts();
+      addToast("Added to live chat!", "success");
+    } catch (err) { console.warn(err); addToast("Failed to post comment", "error"); }
   };
 
   const renderPost = ({ item }) => {
@@ -85,32 +150,50 @@ export default function App() {
     const userRsvp = user ? metrics.rsvps?.[user.id] : null;
 
     return (
-      <View style={[styles.postCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-        <View style={styles.categoryBadge}><Text style={styles.categoryBadgeText}>{postData.category}</Text></View>
+      <View style={[styles.postCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <View style={styles.categoryBadge}><Text style={styles.categoryBadgeText}>{postData.category || 'Event'}</Text></View>
         <Text style={[styles.eventTitle, { color: theme.text }]}>{postData.title}</Text>
-        <Text style={styles.eventAuthor}>By {postData.author_name}</Text>
+        <Text style={[styles.eventAuthor, { color: theme.acc }]}>By {postData.author_name}</Text>
         <View style={styles.detailBox}>
-          <Text style={styles.detailText}>📍 {postData.location}</Text>
-          <Text style={styles.detailText}>📅 {postData.dateTime}</Text>
+          <Text style={[styles.detailText, { color: theme.sub }]}>📍 {postData.location}</Text>
+          <Text style={[styles.detailText, { color: theme.sub }]}>📅 {postData.dateTime}</Text>
         </View>
         <Text style={[styles.eventDescription, { color: theme.text }]}>{postData.text}</Text>
 
-        <View style={styles.rsvpRow}>
-          {['going', 'maybe', 'not_going'].map(s => (
-            <TouchableOpacity key={s} style={[styles.rsvpBtn, userRsvp === s && {backgroundColor: theme.accent}]} onPress={() => handleRSVP(item.id, s)}>
-              <Text style={styles.rsvpBtnText}>{s.toUpperCase()}</Text>
+        <View style={styles.mediaPlaceholder}>
+          <Text style={{ color: '#888', fontStyle: 'italic', fontSize: 12 }}>📷 Event Media Highlights</Text>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rsvpScroll}>
+          {[
+            { id: 'preparing', icon: '📝', label: 'PREPARING' },
+            { id: 'going', icon: '🚗', label: 'ON WAY' },
+            { id: 'at_event', icon: '📍', label: 'AT EVENT' },
+            { id: 'departing', icon: '👋', label: 'LEAVING' },
+            { id: 'attended', icon: '⭐', label: 'ATTENDED' }
+          ].map(s => (
+            <TouchableOpacity key={s.id} style={[styles.rsvpBtn, userRsvp === s.id && { backgroundColor: theme.acc, borderColor: theme.acc }]} onPress={() => handleRSVP(item.id, s.id)}>
+              <Text style={[styles.rsvpBtnText, userRsvp === s.id && { color: '#fff' }]}>{s.icon} {s.label}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
         <View style={styles.commentSection}>
           <View style={styles.commentsHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.accent }]}>{metrics.comments?.length || 0} Comments</Text>
-            <TouchableOpacity onPress={() => setCollapsedThreads(!collapsedThreads)}><Text style={{color: '#888', fontSize: 10}}>{collapsedThreads ? '[⬆ Expand]' : '[⬇ Collapse]'}</Text></TouchableOpacity>
+            <Text style={[styles.sectionTitle, { color: theme.acc, fontWeight: 'bold' }]}>{metrics.comments?.length || 0} Comments & Live Chat</Text>
+            <TouchableOpacity onPress={() => setCollapsedThreads(!collapsedThreads)}><Text style={{ color: theme.sub, fontSize: 11, fontWeight: 'bold' }}>{collapsedThreads ? 'EXPAND  ▼' : 'COLLAPSE  ▲'}</Text></TouchableOpacity>
           </View>
+
+          {!collapsedThreads && metrics.comments?.map((c, idx) => (
+            <View key={c.id || idx} style={[styles.commentNode, { borderColor: theme.border }]}>
+              <Text style={[styles.commentAuthor, { color: theme.text }]}>{c.author}</Text>
+              <Text style={{ color: theme.sub, fontSize: 13 }}>{c.text}</Text>
+            </View>
+          ))}
+
           <View style={styles.addCommentRow}>
-            <TextInput style={[styles.commentInput, { color: theme.text }]} placeholder="Add comment..." placeholderTextColor="#888" value={replyingTo?.postId === item.id ? commentText : ''} onChangeText={setCommentText} />
-            <TouchableOpacity style={[styles.sendBtn, {backgroundColor: theme.accent}]} onPress={() => {}}><Text style={styles.sendText}>Send</Text></TouchableOpacity>
+            <TextInput style={[styles.commentInput, { color: theme.text, backgroundColor: theme.inp }]} placeholder="Join the chat..." placeholderTextColor={theme.sub} value={replyingTo?.postId === item.id ? commentText : (replyingTo ? '' : commentText)} onChangeText={t => { setCommentText(t); if (!replyingTo || replyingTo.postId !== item.id) setReplyingTo({ postId: item.id }); }} />
+            <TouchableOpacity style={[styles.sendBtn, { backgroundColor: theme.acc }]} onPress={() => submitComment(item.id)}><Text style={styles.sendText}>Send</Text></TouchableOpacity>
           </View>
         </View>
       </View>
@@ -118,53 +201,43 @@ export default function App() {
   };
 
   if (screen === 'auth') {
-    const isSignup = authMode === 'signup';
     return (
-      <SafeAreaView style={styles.authWrapper}>
-        <StatusBar style="dark" />
-        <KeyboardAvoidingView behavior="padding" style={styles.authCenter}>
-          <View style={styles.glassCard}>
-            <Text style={styles.authLogo}>THE GRUV</Text>
-            <Text style={styles.authTagline}>{isSignup ? 'CREATE YOUR IDENTITY' : 'CONNECT TO THE ENGINE'}</Text>
+      <View style={{ flex: 1 }}>
+        <AuthScreen onLogin={handleLogin} onSignup={handleSignup} />
+        <Toast toasts={toasts} />
+        <TouchableOpacity style={{ position: 'absolute', top: 50, right: 30, backgroundColor: 'rgba(0,0,0,0.1)', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20 }} onPress={() => { setUser(null); setScreen('feed'); }}>
+          <Text style={{ color: '#555', fontWeight: 'bold' }}>ENTER AS VISITOR →</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
-            <TextInput style={styles.glassInput} placeholder="Username" placeholderTextColor="#888" onChangeText={t => setAuthForm({...authForm, username: t})} />
-            <TextInput style={styles.glassInput} placeholder="Password" placeholderTextColor="#888" secureTextEntry onChangeText={t => setAuthForm({...authForm, password: t})} />
-
-            {isSignup && (
-              <View style={styles.genderRow}>
-                <TouchableOpacity onPress={() => setAuthForm({...authForm, gender: 'male'})} style={[styles.genderBtn, authForm.gender === 'male' && styles.maleActive]}><Text style={styles.genderText}>MALE</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => setAuthForm({...authForm, gender: 'female'})} style={[styles.genderBtn, authForm.gender === 'female' && styles.femaleActive]}><Text style={styles.genderText}>FEMALE</Text></TouchableOpacity>
-              </View>
-            )}
-
-            <TouchableOpacity style={styles.glowBtn} onPress={handleAuth}>
-              <Text style={styles.glowBtnText}>{isSignup ? 'SIGN UP' : 'SIGN IN'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.switchBtn} onPress={() => setAuthMode(isSignup ? 'signin' : 'signup')}>
-              <Text style={styles.switchText}>{isSignup ? 'ALREADY HAVE AN ACCOUNT? SIGN IN' : 'NEW TO THE ENGINE? SIGN UP'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.switchBtn, {marginTop: 15}]} onPress={() => { setUser(null); setScreen('feed'); }}>
-              <Text style={[styles.switchText, {color: '#ff4da6', textDecorationLine: 'underline'}]}>CONTINUE AS VISITOR</Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+  if (screen === 'profile') {
+    return (
+      <View style={{ flex: 1 }}>
+        <ProfileScreen user={user} theme={theme} onUpdate={(f) => { setUser({ ...user, ...f }); addToast("Profile updated!", "success"); }} onLogout={() => { setUser(null); setScreen('auth'); }} onBack={() => setScreen('feed')} />
+        <Toast toasts={toasts} />
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar style="light" />
       <View style={styles.header}>
-        <TextInput style={[styles.searchBar, { backgroundColor: theme.card }]} placeholder="Search events..." placeholderTextColor="#888" value={searchQuery} onChangeText={setSearchQuery} />
+        <TextInput style={[styles.searchBar, { backgroundColor: theme.inp, color: theme.it, borderColor: theme.border }]} placeholder="Search events..." placeholderTextColor={theme.sub} value={searchQuery} onChangeText={setSearchQuery} />
       </View>
 
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {MASTER_CATEGORIES.map(cat => (
-            <TouchableOpacity key={cat} onPress={() => setActiveCategory(cat)} style={[styles.filterBtn, activeCategory === cat && {backgroundColor: theme.accent}]}><Text style={styles.filterText}>{cat}</Text></TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setActiveCategory('Near Me')}
+            style={[styles.filterBtn, activeCategory === 'Near Me' && { backgroundColor: theme.acc }]}
+          >
+            <Text style={[styles.filterText, activeCategory === 'Near Me' && { color: '#fff' }]}>📍 Near Me</Text>
+          </TouchableOpacity>
+          {ALL_CATEGORIES.slice(0, 15).map(cat => (
+            <TouchableOpacity key={cat} onPress={() => setActiveCategory(cat)} style={[styles.filterBtn, activeCategory === cat && { backgroundColor: theme.acc }]}><Text style={[styles.filterText, activeCategory === cat && { color: '#fff' }]}>{cat}</Text></TouchableOpacity>
           ))}
         </ScrollView>
       </View>
@@ -177,35 +250,34 @@ export default function App() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPosts(); }} tintColor="#ff4da6" />}
       />
 
-      {user && <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}><Text style={styles.fabIcon}>+</Text></TouchableOpacity>}
+      {user && <TouchableOpacity style={[styles.fab, { backgroundColor: theme.acc }]} onPress={() => setModalVisible(true)}><Text style={styles.fabIcon}>+</Text></TouchableOpacity>}
 
-      <View style={[styles.bottomNav, { backgroundColor: theme.navBg }]}>
-        <TouchableOpacity onPress={() => setScreen('feed')} style={styles.navItem}><Text style={[styles.navIcon, screen === 'feed' && {color: theme.accent}]}>🏠</Text><Text style={[styles.navText, screen === 'feed' && {color: theme.accent}]}>Home</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => { if(user) setScreen('profile'); else setScreen('auth'); }} style={styles.navItem}><Text style={[styles.navIcon, screen === 'profile' && {color: theme.accent}]}>👤</Text><Text style={[styles.navText, screen === 'profile' && {color: theme.accent}]}>{user ? 'Profile' : 'Sign In'}</Text></TouchableOpacity>
+      <View style={[styles.bottomNav, { backgroundColor: theme.nav, borderTopColor: theme.border }]}>
+        <TouchableOpacity onPress={() => setScreen('feed')} style={styles.navItem}><Text style={[styles.navIcon, screen === 'feed' && { color: theme.acc }]}>🏠</Text><Text style={[styles.navText, screen === 'feed' && { color: theme.acc }]}>Home</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => { if (user) setScreen('profile'); else setScreen('auth'); }} style={styles.navItem}><Text style={[styles.navIcon, screen === 'profile' && { color: theme.acc }]}>👤</Text><Text style={[styles.navText, screen === 'profile' && { color: theme.acc }]}>{user ? 'Profile' : 'Sign In'}</Text></TouchableOpacity>
       </View>
 
       <Modal animationType="slide" transparent visible={modalVisible}>
         <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView behavior="padding" style={[styles.modalContent, { backgroundColor: theme.background, borderColor: theme.accent }]}>
-            <Text style={styles.modalTitle}>POST NEW EVENT</Text>
-            <TextInput style={styles.modalInput} placeholder="Event Title *" placeholderTextColor="#666" value={eventForm.title} onChangeText={t => setEventForm({...eventForm, title: t})} />
-            <TextInput style={styles.modalInput} placeholder="Location / Venue *" placeholderTextColor="#666" value={eventForm.location} onChangeText={t => setEventForm({...eventForm, location: t})} />
-            <TextInput style={styles.modalInput} placeholder="Date & Time *" placeholderTextColor="#666" value={eventForm.dateTime} onChangeText={t => setEventForm({...eventForm, dateTime: t})} />
-            <TextInput style={[styles.modalInput, { height: 80 }]} placeholder="Description *" placeholderTextColor="#666" multiline value={eventForm.text} onChangeText={t => setEventForm({...eventForm, text: t})} />
+          <KeyboardAvoidingView behavior="padding" style={[styles.modalContent, { backgroundColor: theme.bg, borderColor: theme.border }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>POST NEW EVENT</Text>
+            <TextInput style={[styles.modalInput, { backgroundColor: theme.inp, color: theme.it }]} placeholder="Event Title *" placeholderTextColor={theme.sub} value={eventForm.title} onChangeText={t => setEventForm({ ...eventForm, title: t })} />
+            <TextInput style={[styles.modalInput, { backgroundColor: theme.inp, color: theme.it }]} placeholder="Location / Venue *" placeholderTextColor={theme.sub} value={eventForm.location} onChangeText={t => setEventForm({ ...eventForm, location: t })} />
+            <TextInput style={[styles.modalInput, { backgroundColor: theme.inp, color: theme.it }]} placeholder="Date & Time *" placeholderTextColor={theme.sub} value={eventForm.dateTime} onChangeText={t => setEventForm({ ...eventForm, dateTime: t })} />
+            <TextInput style={[styles.modalInput, { backgroundColor: theme.inp, color: theme.it, height: 80 }]} placeholder="Description *" placeholderTextColor={theme.sub} multiline value={eventForm.text} onChangeText={t => setEventForm({ ...eventForm, text: t })} />
             <View style={styles.modalButtons}>
-              <TouchableOpacity onPress={() => setModalVisible(false)}><Text style={{color: '#888'}}>CANCEL</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.postBtn} onPress={createEvent}><Text style={{color: '#fff', fontWeight: 'bold'}}>SAVE EVENT</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setModalVisible(false)}><Text style={{ color: theme.sub, fontWeight: 'bold' }}>CANCEL</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.postBtn, { backgroundColor: theme.acc }]} onPress={createEvent}><Text style={{ color: '#fff', fontWeight: 'bold' }}>SAVE EVENT</Text></TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
         </View>
       </Modal>
+
+      <Toast toasts={toasts} />
+      <ConfirmDialog {...confirmDialog} />
     </SafeAreaView>
   );
 }
-
-const dayTheme = { background: '#f9fafb', card: '#fff', text: '#111', subtext: '#666', cardBorder: '#ddd', navBg: '#fff', accent: '#ff4da6' };
-const maleTheme = { background: '#000', card: 'rgba(30,30,35,0.9)', text: '#fff', subtext: '#aaa', cardBorder: '#ff4da6', navBg: '#111', accent: '#ff4da6' };
-const femaleTheme = { background: '#1a000d', card: 'rgba(60,10,30,0.8)', text: '#fff', subtext: '#ffb3d9', cardBorder: '#000', navBg: '#300', accent: '#ff4da6' };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -249,22 +321,22 @@ const styles = StyleSheet.create({
   switchBtn: { marginTop: 20, alignItems: 'center' },
   switchText: { fontSize: 10, color: '#888', fontWeight: 'bold' },
   header: { height: 60, paddingHorizontal: 20, justifyContent: 'center' },
-  searchBar: { padding: 12, borderRadius: 15, color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  searchBar: { padding: 12, borderRadius: 15, borderWidth: 1 },
   filterRow: { height: 50, paddingLeft: 15, marginVertical: 10 },
-  filterBtn: { paddingHorizontal: 18, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', marginRight: 10, height: 38, justifyContent: 'center' },
-  filterText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  logo: { fontSize: 26, fontWeight: '900', letterSpacing: 8 },
-  postCard: { margin: 15, padding: 20, borderRadius: 25, borderWidth: 1.5 },
-  categoryBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(255,77,166,0.15)', marginBottom: 6 },
-  categoryBadgeText: { color: '#ff4da6', fontSize: 10, fontWeight: '900' },
-  eventTitle: { fontSize: 24, fontWeight: 'bold' },
-  eventAuthor: { color: '#ff4da6', fontSize: 12, marginBottom: 10, fontWeight: '600' },
-  detailBox: { marginBottom: 12 },
-  detailText: { color: '#888', fontSize: 13 },
+  filterBtn: { paddingHorizontal: 16, borderRadius: 20, backgroundColor: 'rgba(128,128,128,0.1)', marginRight: 10, height: 38, justifyContent: 'center' },
+  filterText: { color: '#888', fontSize: 13, fontWeight: 'bold' },
+  postCard: { margin: 15, padding: 20, borderRadius: 25, borderWidth: 1.5, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+  categoryBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(128,128,128,0.15)', marginBottom: 10 },
+  categoryBadgeText: { color: '#888', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  eventTitle: { fontSize: 24, fontWeight: '900', marginBottom: 4 },
+  eventAuthor: { fontSize: 13, marginBottom: 12, fontWeight: '700' },
+  detailBox: { marginBottom: 15, backgroundColor: 'rgba(128,128,128,0.05)', padding: 12, borderRadius: 12 },
+  detailText: { fontSize: 13, fontWeight: '600', marginBottom: 4 },
   eventDescription: { fontSize: 16, marginBottom: 20, lineHeight: 24 },
-  rsvpRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  rsvpBtn: { flex: 1, padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', marginHorizontal: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  rsvpBtnText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  mediaPlaceholder: { height: 120, backgroundColor: 'rgba(128,128,128,0.1)', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 20, borderWidth: 1, borderColor: 'rgba(128,128,128,0.2)', borderStyle: 'dashed' },
+  rsvpScroll: { flexDirection: 'row', marginBottom: 20 },
+  rsvpBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(128,128,128,0.08)', alignItems: 'center', marginRight: 8, borderWidth: 1, borderColor: 'transparent' },
+  rsvpBtnText: { color: '#888', fontSize: 11, fontWeight: '800' },
   commentsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   commentSection: { borderTopWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)', paddingTop: 15 },
   commentNode: { marginBottom: 15, paddingLeft: 15, borderLeftWidth: 2 },

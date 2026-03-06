@@ -1,0 +1,18 @@
+
+> the-gruvs@0.1.0 test
+> jest
+
+PASS __tests__/App.test.js
+  <App />
+    ÔêÜ renders the auth screen with login form (1583 ms)
+    ÔêÜ shows signup form when SIGN UP is pressed (24 ms)
+    ÔêÜ navigates to feed after login with username (169 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        4.629 s
+Ran all test suites.
+Jest did not exit one second after the test run has completed.
+
+'This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.

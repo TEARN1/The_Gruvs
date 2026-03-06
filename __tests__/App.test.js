@@ -11,7 +11,7 @@ describe('<App />', () => {
 
   it('renders the auth screen with login form', () => {
     const { getByText, getByPlaceholderText } = render(<App />);
-    expect(getByText('THE GRUV')).toBeTruthy();
+    expect(getByText('Welcome Back')).toBeTruthy();
     expect(getByPlaceholderText('Username')).toBeTruthy();
     expect(getByPlaceholderText('Password')).toBeTruthy();
     expect(getByText('LOGIN')).toBeTruthy();
@@ -19,6 +19,9 @@ describe('<App />', () => {
 
   it('shows signup form when SIGN UP is pressed', () => {
     const { getByText, getByPlaceholderText } = render(<App />);
+    // Initial mode is login, the toggle button has 'SIGN UP' in it. Let's find exactly the text or substring.
+    // AuthScreen has Text "SIGN UP" within the toggle button:
+    // "Don't have an account? SIGN UP"
     fireEvent.press(getByText('SIGN UP'));
     expect(getByPlaceholderText('Email')).toBeTruthy();
     expect(getByPlaceholderText('Confirm Password')).toBeTruthy();
@@ -29,6 +32,6 @@ describe('<App />', () => {
     fireEvent.changeText(getByPlaceholderText('Username'), 'Alex');
     fireEvent.changeText(getByPlaceholderText('Password'), 'pass1234');
     await act(async () => { fireEvent.press(getByText('LOGIN')); });
-    expect(getByPlaceholderText('🔍 Search events...')).toBeTruthy();
+    expect(getByPlaceholderText('Search events...')).toBeTruthy();
   });
 });
