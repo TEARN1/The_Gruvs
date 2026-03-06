@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { getTheme } from './src/data';
 import { AuthScreen, ProfileScreen } from './src/screens';
 import { useToast, Toast } from './src/components';
+import { BILLIONAIRE_EVENTS } from './src/billionaireSeedData';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
@@ -50,20 +51,24 @@ export default function App() {
         setPosts(Array.isArray(data) ? data : []);
       }
     } catch (err) {
-      // Seed data if API is offline
-      setPosts([
-        {
-          id: '1',
-          content: { title: 'Sunday Revival', author_name: 'Mark', text: 'Join us for a powerful session!', category: 'Revival', location: 'Grace Hall', dateTime: 'Tonight at 7 PM' },
-          engagement_metrics: { liked_by: [], comments: [{id: 'c1', author: 'Sarah', text: 'I will be there!'}], rsvps: {}, heat_index: 0, views: 0 }
-        },
-        {
-          id: '2',
-          content: { title: 'Tech Meetup', author_name: 'Alex', text: 'Meet fellow developers and share ideas', category: 'Hackathon', location: 'Tech Hub', dateTime: 'Saturday 2 PM' },
-          engagement_metrics: { liked_by: [], comments: [], rsvps: {}, heat_index: 0, views: 0 }
-        }
-      ]);
-      addToast('Using demo data (API offline)', 'info');
+      // Seed data with 50 billionaire events if API is offline
+      let events = [...BILLIONAIRE_EVENTS];
+
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        events = events.filter(e =>
+          e.content.title.toLowerCase().includes(query) ||
+          e.content.author_name.toLowerCase().includes(query) ||
+          e.content.text.toLowerCase().includes(query)
+        );
+      }
+
+      if (activeCategory !== 'All') {
+        events = events.filter(e => e.content.category === activeCategory);
+      }
+
+      setPosts(events);
+      addToast('📱 Using 50 billionaire events (API offline)', 'info');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -347,34 +352,39 @@ const femaleTheme = { background: '#1a000d', card: 'rgba(60,10,30,0.8)', text: '
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { height: 60, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center' },
-  searchBar: { flex: 1, padding: 12, borderRadius: 15, color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  filterRow: { height: 50, paddingLeft: 15, marginVertical: 10, flexDirection: 'row', alignItems: 'center' },
-  filterIconBtn: { marginRight: 10 },
-  filterBtn: { paddingHorizontal: 18, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', marginRight: 10, height: 35, justifyContent: 'center' },
+  header: { height: 60, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  searchBar: { flex: 1, padding: 12, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginLeft: 10 },
+  filterRow: { height: 50, paddingLeft: 10, marginVertical: 10, flexDirection: 'row', alignItems: 'center' },
+  filterIconBtn: { marginHorizontal: 8, paddingHorizontal: 12, borderRadius: 20, height: 35, justifyContent: 'center', alignItems: 'center' },
+  filterBtn: { paddingHorizontal: 18, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', marginHorizontal: 6, height: 35, justifyContent: 'center' },
   filterText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  glassCard: { width: '100%', padding: 35, borderRadius: 35, backgroundColor: 'rgba(255, 255, 255, 0.8)', borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.5)', elevation: 10 },
-  authLogo: { fontSize: 32, fontWeight: '900', color: '#ff4da6', textAlign: 'center', letterSpacing: 10, marginBottom: 40 },
-  glowBtn: { backgroundColor: '#ff4da6', padding: 18, borderRadius: 18, alignItems: 'center', shadowColor: '#ff4da6', shadowOpacity: 0.8, shadowRadius: 15 },
-  glowBtnText: { color: '#fff', fontWeight: '900', letterSpacing: 2 },
-  postCard: { margin: 15, padding: 20, borderRadius: 25, borderWidth: 1.5 },
-  categoryBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(255,77,166,0.15)', marginBottom: 6 },
+  postCard: { margin: 12, padding: 18, borderRadius: 20, borderWidth: 1 },
+  categoryBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(255,77,166,0.15)', marginBottom: 8 },
   categoryBadgeText: { color: '#ff4da6', fontSize: 10, fontWeight: '900' },
-  eventTitle: { fontSize: 24, fontWeight: 'bold' },
-  eventAuthor: { color: '#ff4da6', fontSize: 12, marginBottom: 10, fontWeight: '600' },
+  eventTitle: { fontSize: 20, fontWeight: '900', marginBottom: 4 },
+  eventAuthor: { fontSize: 12, marginBottom: 10, fontWeight: '700' },
   detailBox: { marginBottom: 12 },
-  detailText: { color: '#888', fontSize: 13 },
-  mediaPlaceholder: { height: 100, backgroundColor: 'rgba(128,128,128,0.1)', borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 15, borderStyle: 'dashed', borderWidth: 1, borderColor: '#444' },
-  eventDescription: { fontSize: 16, marginBottom: 20, lineHeight: 24 },
-  commentSection: { borderTopWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)', paddingTop: 15 },
-  commentsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  commentNode: { marginBottom: 10, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: '#ff4da6' },
-  commentAuthor: { fontWeight: 'bold', fontSize: 13 },
-  addCommentRow: { flexDirection: 'row', marginTop: 15, alignItems: 'center' },
-  commentInput: { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 15 },
-  sendBtn: { marginLeft: 10, padding: 12, borderRadius: 15 },
-  sendText: { color: '#fff', fontWeight: 'bold' },
-  bottomNav: { position: 'absolute', bottom: 0, width: '100%', height: 80, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', borderTopWidth: 1.5 },
-  navItem: { alignItems: 'center' },
-  navText: { fontSize: 10, fontWeight: '600', marginTop: 4 }
+  detailText: { fontSize: 13, marginBottom: 4 },
+  mediaPlaceholder: { height: 80, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 15, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  eventDescription: { fontSize: 15, marginBottom: 16, lineHeight: 22 },
+  engagementRow: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, paddingTop: 12, marginBottom: 12 },
+  engagementBtn: { flex: 1, alignItems: 'center', paddingVertical: 8 },
+  commentSection: { borderTopWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)', paddingTop: 12 },
+  commentsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  sectionTitle: { fontWeight: '700', fontSize: 12 },
+  commentNode: { marginBottom: 8, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: '#ff4da6' },
+  commentAuthor: { fontWeight: '700', fontSize: 12 },
+  addCommentRow: { flexDirection: 'row', marginTop: 12, alignItems: 'center', gap: 8 },
+  commentInput: { flex: 1, padding: 10, borderRadius: 12, fontSize: 13 },
+  sendBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+  sendText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  bottomNav: { position: 'absolute', bottom: 0, width: '100%', height: 70, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', borderTopWidth: 1 },
+  navItem: { alignItems: 'center', justifyContent: 'center' },
+  navText: { fontSize: 10, fontWeight: '700', marginTop: 4 },
+  modalContent: { flex: 1, marginTop: 40, borderTopLeftRadius: 30, borderTopRightRadius: 30 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  modalTitle: { fontSize: 18, fontWeight: '900' },
+  input: { width: '100%', padding: 14, borderRadius: 12, marginBottom: 12, fontSize: 15, fontWeight: '500' },
+  submitBtn: { padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20, marginBottom: 30 },
+  submitBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 }
 });

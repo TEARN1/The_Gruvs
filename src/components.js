@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Animated, Easing, Platform, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, Animated, Easing, Platform, Pressable, FlatList } from 'react-native';
 
 // ─── Glow Button ────────────────────────────────────────────────────────────
 export function GlowButton({ onPress, children, style, themeAcc, disabled }) {
@@ -100,7 +100,7 @@ export function ReportModal({ visible, onSubmit, onCancel, theme }) {
     return (
         <Modal transparent animationType="slide" visible={visible}>
             <View style={dlgStyles.overlay}>
-                <View style={[dlgStyles.box, { backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1 }]}>
+                <View style={[dlgStyles.box, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
                     <Text style={[dlgStyles.title, { color: theme.text }]}>🚩 Report Content</Text>
                     {REPORT_REASONS.map(r => (
                         <TouchableOpacity
@@ -125,3 +125,58 @@ export function ReportModal({ visible, onSubmit, onCancel, theme }) {
         </Modal>
     );
 }
+
+// ─── Search Suggestions Component ───────────────────────────────────────────
+export function SearchSuggestions({ suggestions, onSuggestSelected, theme, visible }) {
+    if (!visible || !suggestions?.length) return null;
+
+    return (
+        <View style={[suggestionStyles.container, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <FlatList
+                data={suggestions}
+                keyExtractor={(item, idx) => `${item}-${idx}`}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={suggestionStyles.item}
+                        onPress={() => onSuggestSelected(item)}
+                    >
+                        <Text style={[suggestionStyles.text, { color: theme.text }]}>🔍 {item}</Text>
+                    </TouchableOpacity>
+                )}
+                scrollEnabled={false}
+            />
+        </View>
+    );
+}
+
+const suggestionStyles = StyleSheet.create({
+    container: { maxHeight: 200, borderRadius: 12, borderWidth: 1, overflow: 'hidden', marginHorizontal: 15, marginTop: 5 },
+    item: { paddingHorizontal: 15, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
+    text: { fontSize: 13, fontWeight: '500' }
+});
+
+// ─── Loading Spinner ───────────────────────────────────────────────────────
+export function LoadingSpinner({ color = '#ff4da6' }) {
+    const spin = new Animated.Value(0);
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.timing(spin, {
+                toValue: 1,
+                duration: 1000,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        ).start();
+    }, [spin]);
+
+    const spinAnim = spin.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+    });
+
+    return (
+        <Animated.View style={{ transform: [{ rotate: spinAnim }], width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: color, borderTopColor: 'transparent' }} />
+    );
+}
+
