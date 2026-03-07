@@ -9,6 +9,14 @@ import { AuthScreen, ProfileScreen } from './src/screens';
 import { useToast, Toast } from './src/components';
 import { BILLIONAIRE_EVENTS } from './src/billionaireSeedData';
 
+// 🆕 FEATURE SYSTEMS (200+ NEW FEATURES)
+import { SocialEngine } from './src/socialEngine';
+import { FeedEngine, SearchEngine } from './src/feedEngine';
+import { MessagingSystem, NotificationManager } from './src/messagingSystem';
+import { EventsManager, AnalyticsEngine } from './src/eventsManager';
+import { SafetyManager, GamificationEngine } from './src/safetyAndGamification';
+import { CommunitiesManager, SavedSearchesManager, ActivityTracker } from './src/advancedFeatures';
+
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
 
