@@ -5,7 +5,9 @@ export const StorageKeys = {
   USER_PROFILE: '@gruv_user',
   THEME_PREFERENCE: '@gruv_theme',
   SAVED_EVENTS: '@gruv_saved',
-  USER_INTERESTS: '@gruv_interests'
+  USER_INTERESTS: '@gruv_interests',
+  FOLLOWING: '@gruv_following',
+  FOLLOWERS: '@gruv_followers'
 };
 
 export const UserStorage = {
@@ -32,9 +34,60 @@ export const UserStorage = {
   async clearUser() {
     try {
       await AsyncStorage.removeItem(StorageKeys.USER_PROFILE);
+      await AsyncStorage.removeItem(StorageKeys.FOLLOWING);
+      await AsyncStorage.removeItem(StorageKeys.FOLLOWERS);
       return true;
     } catch (err) {
       console.error('Error clearing user:', err);
+      return false;
+    }
+  }
+};
+
+export const SocialStorage = {
+  async getFollowing() {
+    try {
+      const following = await AsyncStorage.getItem(StorageKeys.FOLLOWING);
+      return following ? JSON.parse(following) : [];
+    } catch (err) {
+      console.error('Error getting following:', err);
+      return [];
+    }
+  },
+
+  async getFollowers() {
+    try {
+      const followers = await AsyncStorage.getItem(StorageKeys.FOLLOWERS);
+      return followers ? JSON.parse(followers) : [];
+    } catch (err) {
+      console.error('Error getting followers:', err);
+      return [];
+    }
+  },
+
+  async followUser(targetUserId) {
+    try {
+      const following = await this.getFollowing();
+      if (!following.includes(targetUserId)) {
+        const newFollowing = [...following, targetUserId];
+        await AsyncStorage.setItem(StorageKeys.FOLLOWING, JSON.stringify(newFollowing));
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Error following user:', err);
+      return false;
+    }
+  },
+
+  async unfollowUser(targetUserId) {
+    try {
+      const following = await this.getFollowing();
+      const newFollowing = following.filter(id => id !== targetUserId);
+      await AsyncStorage.setItem(StorageKeys.FOLLOWING, JSON.stringify(newFollowing));
+      return true;
+    } catch (err) {
+      console.error('Error unfollowing user:', err);
       return false;
     }
   }
@@ -91,10 +144,10 @@ export const LocationHelper = {
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a =
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   },
 

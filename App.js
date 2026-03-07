@@ -31,6 +31,7 @@ const MASTER_CATEGORIES = [
 export default function App() {
   const [screen, setScreen] = useState('auth');
   const [user, setUser] = useState(null);
+  const [following, setFollowing] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,8 +51,15 @@ export default function App() {
   const theme = user ? getTheme(user.gender || 'male') : getTheme('day'); // Light mode is default
 
   useEffect(() => {
-    if(screen === 'feed') fetchPosts();
-  }, [screen, searchQuery, activeCategory]);
+    if (screen === 'feed') fetchPosts();
+    if (user) loadSocialData();
+  }, [screen, searchQuery, activeCategory, user]);
+
+  const loadSocialData = async () => {
+    const { SocialStorage } = require('./src/storage');
+    const followed = await SocialStorage.getFollowing();
+    setFollowing(followed);
+  };
 
   const fetchPosts = async () => {
     try {
@@ -172,6 +180,36 @@ export default function App() {
     }
   };
 
+  const handleFollow = async (targetUserId) => {
+    if (!user || user.id === targetUserId) return;
+
+    const isFollowing = following.includes(targetUserId);
+    const action = isFollowing ? 'unfollow' : 'follow';
+
+    try {
+      const res = await fetch(`${API_URL}?route=follow`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          follower_id: user.id,
+          following_id: targetUserId,
+          action
+        })
+      });
+
+      if (res.ok) {
+        const newFollowing = isFollowing
+          ? following.filter(id => id !== targetUserId)
+          : [...following, targetUserId];
+
+        setFollowing(newFollowing);
+        addToast(isFollowing ? 'Unfollowed 👤' : 'Following! 👥', 'success');
+      }
+    } catch (err) {
+      addToast('Failed to update follow status', 'error');
+    }
+  };
+
   const renderPost = ({ item }) => {
     const postData = item.content || {};
     const metrics = item.engagement_metrics || { liked_by: [], comments: [], rsvps: {}, saveCount: 0, shareCount: 0 };
@@ -194,7 +232,22 @@ export default function App() {
 
         {/* Title & Author */}
         <Text style={[styles.eventTitle, { color: theme.text }]}>{postData.title}</Text>
-        <Text style={[styles.eventAuthor, { color: theme.acc }]}>By {postData.author_name}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' }}>
+          <Text style={[styles.eventAuthor, { color: theme.acc, marginBottom: 0 }]}>By {postData.author_name}</Text>
+          {user?.id !== item.author_id && (
+            <TouchableOpacity
+              onPress={() => handleFollow(item.author_id)}
+              style={[
+                styles.followBtn,
+                { borderColor: theme.acc, backgroundColor: following.includes(item.author_id) ? theme.acc : 'transparent' }
+              ]}
+            >
+              <Text style={[styles.followBtnText, { color: following.includes(item.author_id) ? '#fff' : theme.acc }]}>
+                {following.includes(item.author_id) ? 'Following' : '+ Follow'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Event Description - Now comes first */}
         <Text style={[styles.eventDescription, { color: theme.text }]}>{postData.text}</Text>
@@ -244,8 +297,8 @@ export default function App() {
         <View style={[styles.commentSection, { backgroundColor: 'rgba(255,77,166,0.02)' }]}>
           <View style={styles.commentsHeader}>
             <Text style={[styles.sectionTitle, { color: theme.acc }]}>{metrics.comments?.length || 0} Comments</Text>
-            <TouchableOpacity onPress={() => setCollapsedThreads({...collapsedThreads, [item.id]: !collapsedThreads[item.id]})}>
-              <Text style={{color: theme.sub, fontSize: 11}}>{collapsedThreads[item.id] ? 'EXPAND ▼' : 'COLLAPSE ▲'}</Text>
+            <TouchableOpacity onPress={() => setCollapsedThreads({ ...collapsedThreads, [item.id]: !collapsedThreads[item.id] })}>
+              <Text style={{ color: theme.sub, fontSize: 11 }}>{collapsedThreads[item.id] ? 'EXPAND ▼' : 'COLLAPSE ▲'}</Text>
             </TouchableOpacity>
           </View>
 
@@ -276,24 +329,24 @@ export default function App() {
               placeholderTextColor={theme.sub}
               multiline
               value={commentText[item.id] || ''}
-              onChangeText={(text) => setCommentText({...commentText, [item.id]: text})}
+              onChangeText={(text) => setCommentText({ ...commentText, [item.id]: text })}
             />
 
             {/* Rich Media Options */}
             <View style={styles.mediaOptions}>
               <TouchableOpacity style={styles.mediaBtn} onPress={() => addToast('Image upload ready', 'info')}>
-                <Text style={{fontSize: 16}}>🖼️</Text>
+                <Text style={{ fontSize: 16 }}>🖼️</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.mediaBtn} onPress={() => addToast('Video upload ready', 'info')}>
-                <Text style={{fontSize: 16}}>🎥</Text>
+                <Text style={{ fontSize: 16 }}>🎥</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.mediaBtn} onPress={() => addToast('Sticker picker ready', 'info')}>
-                <Text style={{fontSize: 16}}>🎭</Text>
+                <Text style={{ fontSize: 16 }}>🎭</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.mediaBtn} onPress={() => addToast('Voice recording ready', 'info')}>
-                <Text style={{fontSize: 16}}>🎤</Text>
+                <Text style={{ fontSize: 16 }}>🎤</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.sendBtn, {backgroundColor: theme.acc}]} onPress={() => handleAddComment(item.id)}>
+              <TouchableOpacity style={[styles.sendBtn, { backgroundColor: theme.acc }]} onPress={() => handleAddComment(item.id)}>
                 <Text style={styles.sendText}>Send</Text>
               </TouchableOpacity>
             </View>
@@ -304,11 +357,11 @@ export default function App() {
   };
 
   if (screen === 'auth') {
-    return <AuthScreen onLogin={(form) => { setUser({...form, id: 'u1', name: form.username}); setScreen('feed'); }} onSignup={(form) => { setUser({...form, id: 'u1', name: form.username}); setScreen('feed'); }} />;
+    return <AuthScreen onLogin={(form) => { setUser({ ...form, id: 'u1', name: form.username }); setScreen('feed'); }} onSignup={(form) => { setUser({ ...form, id: 'u1', name: form.username }); setScreen('feed'); }} />;
   }
 
   if (screen === 'profile') {
-    return <ProfileScreen user={user} theme={theme} onUpdate={(form) => { setUser({...user, ...form}); addToast('Profile updated!', 'success'); }} onLogout={() => { setUser(null); setScreen('auth'); }} onBack={() => setScreen('feed')} />;
+    return <ProfileScreen user={user} theme={theme} onUpdate={(form) => { setUser({ ...user, ...form }); addToast('Profile updated!', 'success'); }} onLogout={() => { setUser(null); setScreen('auth'); }} onBack={() => setScreen('feed')} />;
   }
 
   return (
@@ -329,8 +382,8 @@ export default function App() {
 
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity style={[styles.filterIconBtn, {backgroundColor: theme.inp}]} onPress={() => setCreateEventModalVisible(true)}>
-            <Text style={{fontSize: 18}}>➕</Text>
+          <TouchableOpacity style={[styles.filterIconBtn, { backgroundColor: theme.inp }]} onPress={() => setCreateEventModalVisible(true)}>
+            <Text style={{ fontSize: 18 }}>➕</Text>
           </TouchableOpacity>
           {['All', 'Church', 'Mosque', 'Sports', 'Career', 'Social', 'Tech'].map(cat => (
             <TouchableOpacity
@@ -338,17 +391,17 @@ export default function App() {
               onPress={() => setActiveCategory(cat)}
               style={[
                 styles.filterBtn,
-                activeCategory === cat && {backgroundColor: theme.acc}
+                activeCategory === cat && { backgroundColor: theme.acc }
               ]}
             >
-              <Text style={[styles.filterText, activeCategory === cat && {color: '#fff'}]}>{cat}</Text>
+              <Text style={[styles.filterText, activeCategory === cat && { color: '#fff' }]}>{cat}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
       {loading ? (
-        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={theme.acc} />
         </View>
       ) : (
@@ -362,46 +415,46 @@ export default function App() {
       )}
 
       <Modal visible={createEventModalVisible} animationType="slide" transparent>
-        <SafeAreaView style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.5)'}}>
-          <View style={[styles.modalContent, {backgroundColor: theme.card}]}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, {color: theme.text}]}>Create New Event</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Create New Event</Text>
               <TouchableOpacity onPress={() => setCreateEventModalVisible(false)}>
-                <Text style={{fontSize: 24, color: theme.text}}>✕</Text>
+                <Text style={{ fontSize: 24, color: theme.text }}>✕</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView style={{flex: 1, padding: 20}}>
+            <ScrollView style={{ flex: 1, padding: 20 }}>
               <TextInput
-                style={[styles.input, {backgroundColor: theme.inp, color: theme.text}]}
+                style={[styles.input, { backgroundColor: theme.inp, color: theme.text }]}
                 placeholder="Event Title"
                 placeholderTextColor={theme.sub}
                 value={eventForm.title}
-                onChangeText={(t) => setEventForm({...eventForm, title: t})}
+                onChangeText={(t) => setEventForm({ ...eventForm, title: t })}
               />
               <TextInput
-                style={[styles.input, {backgroundColor: theme.inp, color: theme.text, height: 100}]}
+                style={[styles.input, { backgroundColor: theme.inp, color: theme.text, height: 100 }]}
                 placeholder="Event Description"
                 placeholderTextColor={theme.sub}
                 multiline
                 value={eventForm.text}
-                onChangeText={(t) => setEventForm({...eventForm, text: t})}
+                onChangeText={(t) => setEventForm({ ...eventForm, text: t })}
               />
               <TextInput
-                style={[styles.input, {backgroundColor: theme.inp, color: theme.text}]}
+                style={[styles.input, { backgroundColor: theme.inp, color: theme.text }]}
                 placeholder="Location"
                 placeholderTextColor={theme.sub}
                 value={eventForm.location}
-                onChangeText={(t) => setEventForm({...eventForm, location: t})}
+                onChangeText={(t) => setEventForm({ ...eventForm, location: t })}
               />
               <TextInput
-                style={[styles.input, {backgroundColor: theme.inp, color: theme.text}]}
+                style={[styles.input, { backgroundColor: theme.inp, color: theme.text }]}
                 placeholder="Date & Time"
                 placeholderTextColor={theme.sub}
                 value={eventForm.dateTime}
-                onChangeText={(t) => setEventForm({...eventForm, dateTime: t})}
+                onChangeText={(t) => setEventForm({ ...eventForm, dateTime: t })}
               />
               <TouchableOpacity
-                style={[styles.submitBtn, {backgroundColor: theme.acc}]}
+                style={[styles.submitBtn, { backgroundColor: theme.acc }]}
                 onPress={handleCreateEvent}
               >
                 <Text style={styles.submitBtnText}>Create Event</Text>
@@ -413,12 +466,12 @@ export default function App() {
 
       <View style={[styles.bottomNav, { backgroundColor: theme.nav, borderTopColor: theme.border }]}>
         <TouchableOpacity onPress={() => setScreen('feed')} style={styles.navItem}>
-          <Text style={{fontSize: 24}}>🏠</Text>
-          <Text style={[styles.navText, {color: screen === 'feed' ? theme.acc : theme.sub}]}>Home</Text>
+          <Text style={{ fontSize: 24 }}>🏠</Text>
+          <Text style={[styles.navText, { color: screen === 'feed' ? theme.acc : theme.sub }]}>Home</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setScreen('profile')} style={styles.navItem}>
-          <Text style={{fontSize: 24}}>👤</Text>
-          <Text style={[styles.navText, {color: screen === 'profile' ? theme.acc : theme.sub}]}>Profile</Text>
+          <Text style={{ fontSize: 24 }}>👤</Text>
+          <Text style={[styles.navText, { color: screen === 'profile' ? theme.acc : theme.sub }]}>Profile</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -468,5 +521,7 @@ const styles = StyleSheet.create({
   submitBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   mediaOptions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginLeft: 8 },
   mediaBtn: { paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(255,77,166,0.08)', justifyContent: 'center', alignItems: 'center' },
-  threadsContainer: { marginTop: 12 }
+  threadsContainer: { marginTop: 12 },
+  followBtn: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
+  followBtnText: { fontSize: 11, fontWeight: '700' }
 });

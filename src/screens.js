@@ -78,7 +78,20 @@ export function AuthScreen({ onLogin, onSignup }) {
 
 export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
     const [edit, setEdit] = useState(false);
+    const [followingCount, setFollowingCount] = useState(0);
+    const [followersCount, setFollowersCount] = useState(0);
     const [form, setForm] = useState({ bio: user?.bio || '', email: user?.email || '', gender: user?.gender || 'male', interests: user?.interests || [] });
+
+    React.useEffect(() => {
+        const loadCounts = async () => {
+            const { SocialStorage } = require('./ storage');
+            const following = await SocialStorage.getFollowing();
+            const followers = await SocialStorage.getFollowers();
+            setFollowingCount(following.length);
+            setFollowersCount(followers.length);
+        };
+        loadCounts();
+    }, []);
 
     const toggleInterest = (id) => setForm(p => ({ ...p, interests: p.interests.includes(id) ? p.interests.filter(x => x !== id) : [...p.interests, id] }));
 
@@ -93,7 +106,19 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
                     <View style={[styles.avatar, { backgroundColor: theme.acc }]}><Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase()}</Text></View>
                     <Text style={[styles.profileName, { color: theme.text }]}>{user?.name}</Text>
                     <Text style={{ color: theme.sub, fontSize: 14 }}>{user?.email}</Text>
-                    {user?.bio ? <Text style={{ color: theme.text, marginTop: 10, textAlign: 'center', maxWidth: 400, lineHeight: 22 }}>{user.bio}</Text> : null}
+
+                    <View style={[styles.row, { marginTop: 15, gap: 25 }]}>
+                        <View style={{ alignItems: 'center' }}>
+                            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '900' }}>{followingCount}</Text>
+                            <Text style={{ color: theme.sub, fontSize: 12 }}>Following</Text>
+                        </View>
+                        <View style={{ alignItems: 'center' }}>
+                            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '900' }}>{followersCount}</Text>
+                            <Text style={{ color: theme.sub, fontSize: 12 }}>Followers</Text>
+                        </View>
+                    </View>
+
+                    {user?.bio ? <Text style={{ color: theme.text, marginTop: 15, textAlign: 'center', maxWidth: 400, lineHeight: 22 }}>{user.bio}</Text> : null}
 
                     <View style={[styles.row, { justifyContent: 'center', marginTop: 15 }]}>
                         {(user?.interests || []).map(intId => {
