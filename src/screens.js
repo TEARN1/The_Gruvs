@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 import { GENDERS, getTheme, INTERESTS } from './data';
+import * as ImagePicker from 'expo-image-picker';
 import { GlowButton } from './components';
 
 export function AuthScreen({ onLogin, onSignup }) {
@@ -80,11 +81,30 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
     const [edit, setEdit] = useState(false);
     const [followingCount, setFollowingCount] = useState(0);
     const [followersCount, setFollowersCount] = useState(0);
-    const [form, setForm] = useState({ bio: user?.bio || '', email: user?.email || '', gender: user?.gender || 'male', interests: user?.interests || [] });
+    const [form, setForm] = useState({
+        bio: user?.bio || '',
+        email: user?.email || '',
+        gender: user?.gender || 'male',
+        interests: user?.interests || [],
+        banner: user?.banner || null
+    });
+
+    const pickBanner = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [16, 9],
+            quality: 0.7,
+        });
+
+        if (!result.canceled) {
+            setForm({ ...form, banner: result.assets[0].uri });
+        }
+    };
 
     React.useEffect(() => {
         const loadCounts = async () => {
-            const { SocialStorage } = require('./ storage');
+            const { SocialStorage } = require('./storage');
             const following = await SocialStorage.getFollowing();
             const followers = await SocialStorage.getFollowers();
             setFollowingCount(following.length);
@@ -102,10 +122,21 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
                     <Text style={{ color: theme.acc, fontSize: 15, fontWeight: '600' }}>← Back to Feed</Text>
                 </TouchableOpacity>
 
-                <View style={{ alignItems: 'center', marginBottom: 30 }}>
-                    <View style={[styles.avatar, { backgroundColor: theme.acc }]}><Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase()}</Text></View>
-                    <Text style={[styles.profileName, { color: theme.text }]}>{user?.name}</Text>
-                    <Text style={{ color: theme.sub, fontSize: 14 }}>{user?.email}</Text>
+                <View style={{ marginBottom: 30 }}>
+                    {/* Banner Image */}
+                    <View style={[styles.bannerContainer, { backgroundColor: theme.inp }]}>
+                        {user.banner ? (
+                            <Image source={{ uri: user.banner }} style={styles.bannerImage} />
+                        ) : (
+                            <View style={[styles.bannerPlaceholder, { backgroundColor: theme.acc + '20' }]} />
+                        )}
+                    </View>
+
+                    <View style={{ alignItems: 'center', marginTop: -40 }}>
+                        <View style={[styles.avatar, { backgroundColor: theme.acc, borderWidth: 4, borderColor: theme.card }]}><Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase()}</Text></View>
+                        <Text style={[styles.profileName, { color: theme.text }]}>{user?.name}</Text>
+                        <Text style={{ color: theme.sub, fontSize: 14 }}>{user?.email}</Text>
+                    </View>
 
                     <View style={[styles.row, { marginTop: 15, gap: 25 }]}>
                         <View style={{ alignItems: 'center' }}>
@@ -143,6 +174,14 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
                         <Text style={[styles.title, { color: theme.text, textAlign: 'left', marginBottom: 5 }]}>Edit Profile</Text>
                         <TextInput style={[styles.input, { backgroundColor: theme.inp, color: theme.it }]} placeholder="Email" value={form.email} onChangeText={t => setForm(p => ({ ...p, email: t }))} placeholderTextColor={theme.sub} />
                         <TextInput style={[styles.input, { backgroundColor: theme.inp, color: theme.it, height: 80 }]} placeholder="Bio" multiline value={form.bio} onChangeText={t => setForm(p => ({ ...p, bio: t }))} placeholderTextColor={theme.sub} />
+
+                        <TouchableOpacity onPress={pickBanner} style={[styles.bannerPicker, { borderColor: theme.acc }]}>
+                            {form.banner ? (
+                                <Image source={{ uri: form.banner }} style={styles.bannerPreview} />
+                            ) : (
+                                <Text style={{ color: theme.acc }}>🖼️ Change Banner Image</Text>
+                            )}
+                        </TouchableOpacity>
 
                         <Text style={[styles.label, { color: theme.text }]}>Gender</Text>
                         <View style={styles.row}>
@@ -198,4 +237,9 @@ const styles = StyleSheet.create({
     avatar: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 15, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10 },
     avatarText: { color: '#fff', fontSize: 36, fontWeight: '900' },
     profileName: { fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
+    bannerContainer: { width: '100%', height: 120, borderRadius: 20, overflow: 'hidden', marginBottom: 10 },
+    bannerImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+    bannerPlaceholder: { width: '100%', height: '100%' },
+    bannerPicker: { width: '100%', height: 80, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', marginBottom: 15, overflow: 'hidden' },
+    bannerPreview: { width: '100%', height: '100%', resizeMode: 'cover' }
 });

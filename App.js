@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView, View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, Modal, RefreshControl, Alert, ScrollView, Image
+  StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, Modal, RefreshControl, Alert, ScrollView, Image, Share
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
 import { getTheme } from './src/data';
 import { AuthScreen, ProfileScreen } from './src/screens';
 import { useToast, Toast } from './src/components';
@@ -40,9 +40,16 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [collapsedThreads, setCollapsedThreads] = useState({});
   const [createEventModalVisible, setCreateEventModalVisible] = useState(false);
+  const [advancedSearchVisible, setAdvancedSearchVisible] = useState(false);
+  const [filters, setFilters] = useState({
+    startDate: '',
+    endDate: '',
+    radius: '50', // km
+    sortBy: 'recent'
+  });
 
   const [eventForm, setEventForm] = useState({
-    title: '', text: '', location: '', dateTime: '', category: 'Church'
+    title: '', text: '', location: '', dateTime: '', category: 'Church', image: null
   });
   const [commentText, setCommentText] = useState({});
 
@@ -64,7 +71,7 @@ export default function App() {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const url = `${API_URL}?q=${searchQuery}&category=${activeCategory}`;
+      const url = `${API_URL}?q=${searchQuery}&category=${activeCategory}&startDate=${filters.startDate}&endDate=${filters.endDate}&radius=${filters.radius}&sortBy=${filters.sortBy}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -95,6 +102,19 @@ export default function App() {
     }
   };
 
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setEventForm({ ...eventForm, image: result.assets[0].uri });
+    }
+  };
+
   const handleCreateEvent = async () => {
     if (!eventForm.title || !eventForm.text || !eventForm.location) {
       addToast('Please fill in all fields', 'error');
@@ -107,6 +127,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...eventForm,
+          image: eventForm.image,
           author: user?.name || 'Anonymous',
           author_id: user?.id,
           gender: user?.gender
@@ -115,7 +136,7 @@ export default function App() {
 
       if (res.ok) {
         addToast('Event created successfully! 🎉', 'success');
-        setEventForm({ title: '', text: '', location: '', dateTime: '', category: 'Church' });
+        setEventForm({ title: '', text: '', location: '', dateTime: '', category: 'Church', image: null });
         setCreateEventModalVisible(false);
         fetchPosts();
       }
@@ -262,14 +283,8 @@ export default function App() {
 
         {/* Media Gallery (max 15 images, 3 videos) */}
         <MediaGallery
-          images={postData.images || [
-            'https://via.placeholder.com/200',
-            'https://via.placeholder.com/200',
-            'https://via.placeholder.com/200'
-          ]}
-          videos={postData.videos || [
-            { thumbnail: 'https://via.placeholder.com/200' }
-          ]}
+          images={postData.image ? [postData.image] : (postData.images || [])}
+          videos={postData.videos || []}
           onAddMedia={() => addToast('Add media functionality coming soon', 'info')}
         />
 
@@ -281,8 +296,20 @@ export default function App() {
           reposts={metrics.shareCount || 0}
           onLike={() => handleLike(item.id)}
           onRsvp={() => handleRsvp(item.id, userRsvp === 'yes' ? 'no' : 'yes')}
-          onSave={async () => { await SocialEngine.saveEvent(user?.id, item.id); addToast('Event saved! 🔖', 'success'); }}
-          onRepost={async () => { await SocialEngine.shareEvent(user?.id, item.id, postData.title); addToast('Event shared! 🔄', 'success'); }}
+          onSave={async () => {
+            await SocialEngine.saveEvent(user?.id, item.id);
+            addToast('Event saved! 🔖', 'success');
+          }}
+          onRepost={async () => {
+            try {
+              await Share.share({
+                message: `Check out this event: ${postData.title}\n${postData.text}\nLocation: ${postData.location}`,
+              });
+              await SocialEngine.shareEvent(user?.id, item.id, postData.title);
+            } catch (err) {
+              addToast('Failed to share event', 'error');
+            }
+          }}
           theme={theme}
         />
 
@@ -378,6 +405,12 @@ export default function App() {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
+        <TouchableOpacity
+          style={[styles.filterIconBtn, { backgroundColor: theme.inp, marginLeft: 8 }]}
+          onPress={() => setAdvancedSearchVisible(true)}
+        >
+          <Text style={{ fontSize: 18 }}>⚙️</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.filterRow}>
@@ -453,11 +486,81 @@ export default function App() {
                 value={eventForm.dateTime}
                 onChangeText={(t) => setEventForm({ ...eventForm, dateTime: t })}
               />
+
+              <TouchableOpacity
+                style={[styles.imagePickerBtn, { backgroundColor: theme.inp }]}
+                onPress={pickImage}
+              >
+                {eventForm.image ? (
+                  <Image source={{ uri: eventForm.image }} style={styles.imagePreview} />
+                ) : (
+                  <Text style={{ color: theme.sub }}>📷 Add Event Image</Text>
+                )}
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={[styles.submitBtn, { backgroundColor: theme.acc }]}
                 onPress={handleCreateEvent}
               >
                 <Text style={styles.submitBtnText}>Create Event</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal visible={advancedSearchVisible} animationType="slide" transparent>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Advanced Search</Text>
+              <TouchableOpacity onPress={() => setAdvancedSearchVisible(false)}>
+                <Text style={{ fontSize: 24, color: theme.text }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ flex: 1, padding: 20 }}>
+              <Text style={[styles.label, { color: theme.text }]}>Sort By</Text>
+              <View style={styles.row}>
+                {['recent', 'trending', 'recommended'].map(s => (
+                  <TouchableOpacity
+                    key={s}
+                    onPress={() => setFilters({ ...filters, sortBy: s })}
+                    style={[styles.pill, { borderColor: theme.acc, backgroundColor: filters.sortBy === s ? theme.acc : 'transparent' }]}
+                  >
+                    <Text style={{ color: filters.sortBy === s ? '#fff' : theme.acc, fontSize: 12 }}>{s.toUpperCase()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={[styles.label, { color: theme.text, marginTop: 15 }]}>Date Range</Text>
+              <View style={styles.addCommentRow}>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.inp, color: theme.text, flex: 1 }]}
+                  placeholder="Start (YYYY-MM-DD)"
+                  value={filters.startDate}
+                  onChangeText={(t) => setFilters({ ...filters, startDate: t })}
+                />
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.inp, color: theme.text, flex: 1 }]}
+                  placeholder="End (YYYY-MM-DD)"
+                  value={filters.endDate}
+                  onChangeText={(t) => setFilters({ ...filters, endDate: t })}
+                />
+              </View>
+
+              <Text style={[styles.label, { color: theme.text, marginTop: 15 }]}>Search Radius (km)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.inp, color: theme.text }]}
+                keyboardType="numeric"
+                value={filters.radius}
+                onChangeText={(t) => setFilters({ ...filters, radius: t })}
+              />
+
+              <TouchableOpacity
+                style={[styles.submitBtn, { backgroundColor: theme.acc }]}
+                onPress={() => { fetchPosts(); setAdvancedSearchVisible(false); }}
+              >
+                <Text style={styles.submitBtnText}>Apply Filters</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -523,5 +626,7 @@ const styles = StyleSheet.create({
   mediaBtn: { paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(255,77,166,0.08)', justifyContent: 'center', alignItems: 'center' },
   threadsContainer: { marginTop: 12 },
   followBtn: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
-  followBtnText: { fontSize: 11, fontWeight: '700' }
+  followBtnText: { fontSize: 11, fontWeight: '700' },
+  imagePickerBtn: { width: '100%', height: 150, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 15, borderStyle: 'dashed', borderWidth: 1, borderColor: '#ccc', overflow: 'hidden' },
+  imagePreview: { width: '100%', height: '100%', resizeMode: 'cover' }
 });
