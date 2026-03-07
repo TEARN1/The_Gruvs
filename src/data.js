@@ -1,10 +1,11 @@
 // ─── Themes ───────────────────────────────────────────────────────────────────
+// 🆕 LIGHT MODE IS DEFAULT - with gender-based accent colors
 export const THEMES = {
-    day: { bg: '#f0f2f5', card: '#fff', text: '#111', sub: '#666', border: '#e2e8f0', nav: '#fff', acc: '#ff4da6', inp: '#e8ecf0', it: '#111', glow: 'rgba(255,77,166,0.3)' },
-    male: { bg: '#020210', card: '#0d0d28', text: '#fff', sub: '#94a3b8', border: '#3b82f6', nav: '#070718', acc: '#3b82f6', inp: '#141430', it: '#fff', glow: 'rgba(59,130,246,0.4)' },
-    female: { bg: '#0e0007', card: '#1a0010', text: '#fff', sub: '#f9a8d4', border: '#ff4da6', nav: '#110009', acc: '#ff4da6', inp: '#200015', it: '#fff', glow: 'rgba(255,77,166,0.4)' },
-    other: { bg: '#05001a', card: '#0e0830', text: '#fff', sub: '#c4b5fd', border: '#8b5cf6', nav: '#080020', acc: '#8b5cf6', inp: '#120a35', it: '#fff', glow: 'rgba(139,92,246,0.4)' },
-    prefer_not: { bg: '#111', card: '#1e1e1e', text: '#eee', sub: '#888', border: '#444', nav: '#181818', acc: '#888', inp: '#2a2a2a', it: '#eee', glow: 'rgba(150,150,150,0.3)' },
+    day: { bg: '#f9fafb', card: '#fff', text: '#111', sub: '#666', border: '#e2e8f0', nav: '#fff', acc: '#ff4da6', inp: '#e8ecf0', it: '#111', glow: 'rgba(255,77,166,0.3)' },
+    male: { bg: '#f9fafb', card: '#fff', text: '#111', sub: '#666', border: '#e2e8f0', nav: '#fff', acc: '#3b82f6', inp: '#e8ecf0', it: '#111', glow: 'rgba(59,130,246,0.3)' },
+    female: { bg: '#f9fafb', card: '#fff', text: '#111', sub: '#666', border: '#e2e8f0', nav: '#fff', acc: '#ff4da6', inp: '#e8ecf0', it: '#111', glow: 'rgba(255,77,166,0.3)' },
+    other: { bg: '#f9fafb', card: '#fff', text: '#111', sub: '#666', border: '#e2e8f0', nav: '#fff', acc: '#8b5cf6', inp: '#e8ecf0', it: '#111', glow: 'rgba(139,92,246,0.3)' },
+    prefer_not: { bg: '#f9fafb', card: '#fff', text: '#111', sub: '#666', border: '#e2e8f0', nav: '#fff', acc: '#888', inp: '#e8ecf0', it: '#111', glow: 'rgba(150,150,150,0.2)' },
 };
 export const getTheme = (g) => THEMES[g] || THEMES.day;
 

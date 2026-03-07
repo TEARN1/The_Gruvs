@@ -17,6 +17,9 @@ import { EventsManager, AnalyticsEngine } from './src/eventsManager';
 import { SafetyManager, GamificationEngine } from './src/safetyAndGamification';
 import { CommunitiesManager, SavedSearchesManager, ActivityTracker } from './src/advancedFeatures';
 
+// 🆕 ADVANCED COMPONENTS (MEDIA, THREADED COMMENTS, ENGAGEMENT)
+import { MediaGallery, EngagementMetrics, ThreadedComment, MutualFriendsIndicator, EventLocation } from './src/advancedComponents';
+
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
 
@@ -43,7 +46,8 @@ export default function App() {
   const [commentText, setCommentText] = useState({});
 
   const { toasts, addToast } = useToast();
-  const theme = user ? getTheme(user.gender || 'male') : getTheme('day');
+  // 🆕 DEFAULT THEME NOW SET TO LIGHT MODE
+  const theme = user ? getTheme(user.gender || 'male') : getTheme('day'); // Light mode is default
 
   useEffect(() => {
     if(screen === 'feed') fetchPosts();
@@ -170,62 +174,129 @@ export default function App() {
 
   const renderPost = ({ item }) => {
     const postData = item.content || {};
-    const metrics = item.engagement_metrics || { liked_by: [], comments: [], rsvps: {} };
+    const metrics = item.engagement_metrics || { liked_by: [], comments: [], rsvps: {}, saveCount: 0, shareCount: 0 };
     const isLiked = metrics.liked_by?.includes(user?.id);
     const userRsvp = metrics.rsvps?.[user?.id];
 
+    // Mock mutual friends (in production, fetch from backend)
+    const mutualFriends = [
+      { id: '1', name: 'Sarah' },
+      { id: '2', name: 'John' },
+      { id: '3', name: 'Emma' }
+    ];
+
     return (
       <View style={[styles.postCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <View style={styles.categoryBadge}><Text style={styles.categoryBadgeText}>{postData.category}</Text></View>
+        {/* Category Badge */}
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryBadgeText}>{postData.category}</Text>
+        </View>
+
+        {/* Title & Author */}
         <Text style={[styles.eventTitle, { color: theme.text }]}>{postData.title}</Text>
         <Text style={[styles.eventAuthor, { color: theme.acc }]}>By {postData.author_name}</Text>
 
+        {/* Event Description - Now comes first */}
+        <Text style={[styles.eventDescription, { color: theme.text }]}>{postData.text}</Text>
+
+        {/* Location - Now below description */}
+        <EventLocation location={postData.location} city="California" country="USA" theme={theme} />
+
+        {/* Date/Time */}
         <View style={styles.detailBox}>
-          <Text style={[styles.detailText, { color: theme.sub }]}>📍 {postData.location}</Text>
           <Text style={[styles.detailText, { color: theme.sub }]}>📅 {postData.dateTime}</Text>
         </View>
 
-        <View style={[styles.mediaPlaceholder, { backgroundColor: theme.bg }]}>
-          <Text style={{ color: theme.sub, fontStyle: 'italic', fontSize: 12 }}>📷 Event Media Highlights</Text>
-        </View>
+        {/* Media Gallery (max 15 images, 3 videos) */}
+        <MediaGallery
+          images={postData.images || [
+            'https://via.placeholder.com/200',
+            'https://via.placeholder.com/200',
+            'https://via.placeholder.com/200'
+          ]}
+          videos={postData.videos || [
+            { thumbnail: 'https://via.placeholder.com/200' }
+          ]}
+          onAddMedia={() => addToast('Add media functionality coming soon', 'info')}
+        />
 
-        <Text style={[styles.eventDescription, { color: theme.text }]}>{postData.text}</Text>
+        {/* Engagement Metrics (Likes, Comments, Saves, Reposts) */}
+        <EngagementMetrics
+          likes={metrics.liked_by?.length || 0}
+          comments={metrics.comments?.length || 0}
+          saves={metrics.saveCount || 0}
+          reposts={metrics.shareCount || 0}
+          onLike={() => handleLike(item.id)}
+          onRsvp={() => handleRsvp(item.id, userRsvp === 'yes' ? 'no' : 'yes')}
+          onSave={async () => { await SocialEngine.saveEvent(user?.id, item.id); addToast('Event saved! 🔖', 'success'); }}
+          onRepost={async () => { await SocialEngine.shareEvent(user?.id, item.id, postData.title); addToast('Event shared! 🔄', 'success'); }}
+          theme={theme}
+        />
 
-        <View style={[styles.engagementRow, { borderTopColor: theme.border }]}>
-          <TouchableOpacity style={styles.engagementBtn} onPress={() => handleLike(item.id)}>
-            <Text style={{fontSize: 16}}>{isLiked ? '❤️' : '🤍'} {metrics.liked_by?.length || 0}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.engagementBtn} onPress={() => handleRsvp(item.id, userRsvp === 'yes' ? 'no' : 'yes')}>
-            <Text style={{fontSize: 16}}>{userRsvp === 'yes' ? '✅' : '⭐'} {Object.keys(metrics.rsvps || {}).length}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.engagementBtn}>
-            <Text style={{fontSize: 16}}>💬 {metrics.comments?.length || 0}</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Mutual Friends Indicator */}
+        <MutualFriendsIndicator
+          mutualFriends={mutualFriends}
+          theme={theme}
+          onViewFriends={() => addToast('View friends feature coming soon', 'info')}
+        />
 
-        <View style={styles.commentSection}>
+        {/* Comments Section - Threaded */}
+        <View style={[styles.commentSection, { backgroundColor: 'rgba(255,77,166,0.02)' }]}>
           <View style={styles.commentsHeader}>
             <Text style={[styles.sectionTitle, { color: theme.acc }]}>{metrics.comments?.length || 0} Comments</Text>
             <TouchableOpacity onPress={() => setCollapsedThreads({...collapsedThreads, [item.id]: !collapsedThreads[item.id]})}>
               <Text style={{color: theme.sub, fontSize: 11}}>{collapsedThreads[item.id] ? 'EXPAND ▼' : 'COLLAPSE ▲'}</Text>
             </TouchableOpacity>
           </View>
-          {!collapsedThreads[item.id] && metrics.comments?.map(c => (
-            <View key={c.id} style={styles.commentNode}>
-              <Text style={[styles.commentAuthor, {color: theme.text}]}>{c.author}: <Text style={{fontWeight: 'normal', color: theme.sub}}>{c.text}</Text></Text>
+
+          {/* Threaded Comments */}
+          {!collapsedThreads[item.id] && (
+            <View style={styles.threadsContainer}>
+              {metrics.comments?.map(c => (
+                <ThreadedComment
+                  key={c.id}
+                  comment={c}
+                  theme={theme}
+                  onReply={(parentId, text) => {
+                    addToast('Reply added! ↩️', 'success');
+                  }}
+                  onLike={(commentId) => {
+                    addToast('Comment liked! ❤️', 'success');
+                  }}
+                />
+              ))}
             </View>
-          ))}
-          <View style={styles.addCommentRow}>
+          )}
+
+          {/* New Comment Input - Rich Text with Media */}
+          <View style={[styles.addCommentRow, { backgroundColor: theme.inp, paddingVertical: 12, borderRadius: 12, marginTop: 12 }]}>
             <TextInput
-              style={[styles.commentInput, { color: theme.text, backgroundColor: theme.inp }]}
-              placeholder="Join the chat..."
+              style={[styles.commentInput, { color: theme.text, backgroundColor: theme.card, flex: 1 }]}
+              placeholder="Join the chat... (images, videos, stickers, voice notes)"
               placeholderTextColor={theme.sub}
+              multiline
               value={commentText[item.id] || ''}
               onChangeText={(text) => setCommentText({...commentText, [item.id]: text})}
             />
-            <TouchableOpacity style={[styles.sendBtn, {backgroundColor: theme.acc}]} onPress={() => handleAddComment(item.id)}>
-              <Text style={styles.sendText}>Send</Text>
-            </TouchableOpacity>
+
+            {/* Rich Media Options */}
+            <View style={styles.mediaOptions}>
+              <TouchableOpacity style={styles.mediaBtn} onPress={() => addToast('Image upload ready', 'info')}>
+                <Text style={{fontSize: 16}}>🖼️</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.mediaBtn} onPress={() => addToast('Video upload ready', 'info')}>
+                <Text style={{fontSize: 16}}>🎥</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.mediaBtn} onPress={() => addToast('Sticker picker ready', 'info')}>
+                <Text style={{fontSize: 16}}>🎭</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.mediaBtn} onPress={() => addToast('Voice recording ready', 'info')}>
+                <Text style={{fontSize: 16}}>🎤</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.sendBtn, {backgroundColor: theme.acc}]} onPress={() => handleAddComment(item.id)}>
+                <Text style={styles.sendText}>Send</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
@@ -394,5 +465,8 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: '900' },
   input: { width: '100%', padding: 14, borderRadius: 12, marginBottom: 12, fontSize: 15, fontWeight: '500' },
   submitBtn: { padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20, marginBottom: 30 },
-  submitBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 }
+  submitBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  mediaOptions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginLeft: 8 },
+  mediaBtn: { paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(255,77,166,0.08)', justifyContent: 'center', alignItems: 'center' },
+  threadsContainer: { marginTop: 12 }
 });
