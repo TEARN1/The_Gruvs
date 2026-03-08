@@ -2,12 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // User preferences storage
 export const StorageKeys = {
-  USER_PROFILE: '@gruv_user',
-  THEME_PREFERENCE: '@gruv_theme',
-  SAVED_EVENTS: '@gruv_saved',
-  USER_INTERESTS: '@gruv_interests',
-  FOLLOWING: '@gruv_following',
-  FOLLOWERS: '@gruv_followers'
+  USER_PROFILE: '@gruvs_user',
+  THEME_PREFERENCE: '@gruvs_theme',
+  SAVED_EVENTS: '@gruvs_saved',
+  USER_INTERESTS: '@gruvs_interests',
+  FOLLOWING: '@gruvs_following',
+  FOLLOWERS: '@gruvs_followers'
 };
 
 export const UserStorage = {

@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView, View, Text, TextInput, TouchableOpacity, FlatList,
   StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, Modal, RefreshControl, Alert, ScrollView, Image, Share
@@ -397,7 +398,7 @@ export default function App() {
       <StatusBar style={theme.acc === '#3b82f6' ? "light" : "light"} />
 
       <View style={styles.header}>
-        <Text style={{ fontSize: 20, color: theme.acc, marginRight: 15, fontWeight: 'bold' }}>THE GRUV</Text>
+        <Text style={{ fontSize: 20, color: theme.acc, marginRight: 15, fontWeight: 'bold' }}>THE GRUVS</Text>
         <TextInput
           style={[styles.searchBar, { backgroundColor: theme.inp, color: theme.text }]}
           placeholder="Search events..."

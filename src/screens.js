@@ -25,7 +25,7 @@ export function AuthScreen({ onLogin, onSignup }) {
         <SafeAreaView style={[styles.container, { backgroundColor: '#f0f2f5' }]}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.center}>
                 <ScrollView contentContainerStyle={styles.scroll}>
-                    <Text style={[styles.logo, { color: previewAcc }]}>THE GRUV</Text>
+                    <Text style={[styles.logo, { color: previewAcc }]}>THE GRUVS</Text>
                     <Text style={styles.tagline}>ADVANCED NETWORK</Text>
 
                     <View style={[styles.card, { borderColor: previewAcc, boxShadow: `0px 8px 30px rgba(0,0,0,0.08)` }]}>
