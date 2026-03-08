@@ -7,51 +7,67 @@ const NAV_ITEMS = [
     { id: 'messages', label: 'Messages', icon: '💬' },
     { id: 'happenings', label: 'Happenings', icon: '⚡' },
     { id: 'drops', label: 'Drops', icon: '🎁' },
+    { id: 'community', label: 'Community', icon: '👥' },
+    { id: 'security', label: 'Security', icon: '🔒' },
+    { id: 'wallet', label: 'Wallet', icon: '👛' },
+    { id: 'add_event', label: 'Add Event', icon: '➕', special: true },
 ];
 
-export function Sidebar({ activeScreen, onNavigate, onLogout, theme }) {
+export function Sidebar({ activeScreen, onNavigate, onLogout, theme, isCollapsed }) {
     return (
-        <View style={[styles.container, { backgroundColor: theme.sidebarBg || '#4b168c' }]}>
-            <Text style={styles.logo}>The Gruv</Text>
+        <View style={[
+            styles.container,
+            { backgroundColor: theme.sidebarBg || '#4b168c' },
+            isCollapsed && styles.collapsedContainer
+        ]}>
+            <View style={styles.logoRow}>
+                <Text style={styles.logoIcon}>G</Text>
+                {!isCollapsed && <Text style={styles.logoText}>The Gruv</Text>}
+            </View>
 
-            <ScrollView style={styles.navContainer}>
+            <ScrollView style={styles.navContainer} showsVerticalScrollIndicator={false}>
                 {NAV_ITEMS.map((item) => (
                     <TouchableOpacity
                         key={item.id}
                         style={[
                             styles.navItem,
-                            activeScreen === item.id && [styles.activeNavItem, { backgroundColor: 'rgba(255,255,255,0.1)' }]
+                            activeScreen === item.id && [styles.activeNavItem, { backgroundColor: '#a855f7' }],
+                            item.special && styles.specialNavItem
                         ]}
                         onPress={() => onNavigate(item.id)}
                     >
-                        <Text style={styles.navIcon}>{item.icon}</Text>
-                        <Text style={[styles.navLabel, activeScreen === item.id && styles.activeNavLabel]}>
-                            {item.label}
-                        </Text>
+                        <Text style={[styles.navIcon, item.special && styles.specialNavIcon]}>{item.icon}</Text>
+                        {!isCollapsed && (
+                            <Text style={[styles.navLabel, activeScreen === item.id && styles.activeNavLabel]}>
+                                {item.label}
+                            </Text>
+                        )}
                     </TouchableOpacity>
                 ))}
 
-                <View style={styles.sponsoredCard}>
-                    <Text style={styles.sponsoredLabel}>Sponsored</Text>
-                    <View style={styles.brandRow}>
-                        <View style={styles.brandAvatar} />
-                        <Text style={styles.brandName}>BrandName</Text>
+                {!isCollapsed && (
+                    <View style={styles.sponsoredCard}>
+                        <Text style={styles.sponsoredLabel}>Sponsored</Text>
+                        <View style={styles.brandRow}>
+                            <View style={styles.brandAvatar} />
+                            <Text style={styles.brandName}>BrandName</Text>
+                        </View>
+                        <Text style={styles.sponsoredDesc}>Check out our new collection!</Text>
+                        <TouchableOpacity style={[styles.viewBtn, { backgroundColor: theme.accent }]}>
+                            <Text style={styles.viewBtnText}>View</Text>
+                        </TouchableOpacity>
                     </View>
-                    <Text style={styles.sponsoredDesc}>Check out our new collection!</Text>
-                    <TouchableOpacity style={[styles.viewBtn, { backgroundColor: theme.accent }]}>
-                        <Text style={styles.viewBtnText}>View</Text>
-                    </TouchableOpacity>
-                </View>
+                )}
 
-                <View style={styles.profileIndicator}>
+                <TouchableOpacity style={styles.profileIndicator} onPress={() => onNavigate('profile')}>
                     <View style={[styles.dot, { backgroundColor: '#a855f7' }]} />
-                    <Text style={styles.profileIndicatorText}>Purple Haze</Text>
-                </View>
+                    {!isCollapsed && <Text style={styles.profileIndicatorText}>Purple Haze</Text>}
+                </TouchableOpacity>
             </ScrollView>
 
-            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+            <TouchableOpacity style={[styles.logoutBtn, isCollapsed && styles.collapsedLogoutBtn]} onPress={onLogout}>
                 <Text style={styles.logoutIcon}>←</Text>
-                <Text style={styles.logoutText}>Logout</Text>
+                {!isCollapsed && <Text style={styles.logoutText}>Logout</Text>}
             </TouchableOpacity>
         </View>
     );
@@ -65,24 +81,55 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         borderRightWidth: 1,
         borderRightColor: 'rgba(255,255,255,0.1)',
+        transition: 'width 0.3s ease',
     },
-    logo: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#fff',
+    collapsedContainer: {
+        width: 100,
+        paddingHorizontal: 15,
+        alignItems: 'center',
+    },
+    logoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: 40,
         marginLeft: 10,
+        gap: 12,
+    },
+    logoIcon: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#fff',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        width: 50,
+        height: 50,
+        borderRadius: 15,
+        textAlign: 'center',
+        lineHeight: 50,
+    },
+    logoText: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#fff',
+        letterSpacing: 1,
     },
     navContainer: {
         flex: 1,
+        width: '100%',
     },
     navItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 14,
         paddingHorizontal: 15,
-        borderRadius: 15,
+        borderRadius: 18,
         marginBottom: 8,
+    },
+    specialNavItem: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        marginTop: 20,
+    },
+    specialNavIcon: {
+        color: '#a855f7',
     },
     activeNavItem: {
         // backgroundColor matches parent scrollview or design
@@ -133,9 +180,8 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     sponsoredDesc: {
-        color: '#fff',
+        color: 'rgba(255,255,255,0.6)',
         fontSize: 12,
-        opacity: 0.8,
         marginBottom: 15,
     },
     viewBtn: {
@@ -163,16 +209,24 @@ const styles = StyleSheet.create({
     profileIndicatorText: {
         color: '#fff',
         fontSize: 14,
-        fontWeight: '500',
+        fontWeight: '700',
     },
     logoutBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#ef4444',
+        backgroundColor: '#ff4d4d',
         borderRadius: 18,
         paddingVertical: 15,
         paddingHorizontal: 20,
         marginTop: 20,
+        width: '100%',
+    },
+    collapsedLogoutBtn: {
+        paddingHorizontal: 0,
+        justifyContent: 'center',
+        width: 50,
+        height: 50,
+        borderRadius: 15,
     },
     logoutIcon: {
         color: '#fff',
