@@ -78,168 +78,224 @@ export function AuthScreen({ onLogin, onSignup }) {
 }
 
 export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
-    const [edit, setEdit] = useState(false);
-    const [followingCount, setFollowingCount] = useState(0);
-    const [followersCount, setFollowersCount] = useState(0);
-    const [form, setForm] = useState({
-        bio: user?.bio || '',
-        email: user?.email || '',
-        gender: user?.gender || 'male',
-        interests: user?.interests || [],
-        banner: user?.banner || null
-    });
+    const [activeTab, setActiveTab] = useState('Overview');
 
-    const pickBanner = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [16, 9],
-            quality: 0.7,
-        });
-
-        if (!result.canceled) {
-            setForm({ ...form, banner: result.assets[0].uri });
-        }
-    };
-
-    React.useEffect(() => {
-        const loadCounts = async () => {
-            const { SocialStorage } = require('./storage');
-            const following = await SocialStorage.getFollowing();
-            const followers = await SocialStorage.getFollowers();
-            setFollowingCount(following.length);
-            setFollowersCount(followers.length);
-        };
-        loadCounts();
-    }, []);
-
-    const toggleInterest = (id) => setForm(p => ({ ...p, interests: p.interests.includes(id) ? p.interests.filter(x => x !== id) : [...p.interests, id] }));
+    const stats = [
+        { label: 'Points', value: '0' },
+        { label: 'Followers', value: '1' },
+        { label: 'Following', value: '0' },
+        { label: 'Events', value: '0' },
+    ];
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-            <ScrollView contentContainerStyle={{ padding: 25, paddingBottom: 100, maxWidth: 800, alignSelf: 'center', width: '100%' }}>
-                <TouchableOpacity onPress={onBack} style={{ marginBottom: 20 }}>
-                    <Text style={{ color: theme.acc, fontSize: 15, fontWeight: '600' }}>← Back to Feed</Text>
-                </TouchableOpacity>
-
-                <View style={{ marginBottom: 30 }}>
-                    {/* Banner Image */}
-                    <View style={[styles.bannerContainer, { backgroundColor: theme.inp }]}>
-                        {user.banner ? (
-                            <Image source={{ uri: user.banner }} style={styles.bannerImage} />
-                        ) : (
-                            <View style={[styles.bannerPlaceholder, { backgroundColor: theme.acc + '20' }]} />
-                        )}
-                    </View>
-
-                    <View style={{ alignItems: 'center', marginTop: -40 }}>
-                        <View style={[styles.avatar, { backgroundColor: theme.acc, borderWidth: 4, borderColor: theme.card }]}><Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase()}</Text></View>
-                        <Text style={[styles.profileName, { color: theme.text }]}>{user?.name}</Text>
-                        <Text style={{ color: theme.sub, fontSize: 14 }}>{user?.email}</Text>
-                    </View>
-
-                    <View style={[styles.row, { marginTop: 15, gap: 25 }]}>
-                        <View style={{ alignItems: 'center' }}>
-                            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '900' }}>{followingCount}</Text>
-                            <Text style={{ color: theme.sub, fontSize: 12 }}>Following</Text>
-                        </View>
-                        <View style={{ alignItems: 'center' }}>
-                            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '900' }}>{followersCount}</Text>
-                            <Text style={{ color: theme.sub, fontSize: 12 }}>Followers</Text>
-                        </View>
-                    </View>
-
-                    {user?.bio ? <Text style={{ color: theme.text, marginTop: 15, textAlign: 'center', maxWidth: 400, lineHeight: 22 }}>{user.bio}</Text> : null}
-
-                    <View style={[styles.row, { justifyContent: 'center', marginTop: 15 }]}>
-                        {(user?.interests || []).map(intId => {
-                            const int = INTERESTS.find(i => i.id === intId);
-                            if (!int) return null;
-                            return <Text key={intId} style={[styles.pill, { color: int.color, borderColor: int.color }]}>{int.icon} {int.label}</Text>;
-                        })}
+            <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+                {/* Cover Image & Avatar */}
+                <View style={styles.bannerContainer}>
+                    <View style={styles.bannerPlaceholder} />
+                    <View style={styles.userFollowedBadge}>
+                        <Text style={styles.followedBadgeText}>✓ User followed</Text>
                     </View>
                 </View>
 
-                {!edit ? (
-                    <View style={styles.gap}>
-                        <GlowButton themeAcc={theme.acc} style={[styles.btn, { backgroundColor: theme.acc }]} onPress={() => setEdit(true)}>
-                            <Text style={styles.btnText}>✏️ EDIT PROFILE</Text>
-                        </GlowButton>
-                        <GlowButton themeAcc="#ef4444" style={[styles.btn, { backgroundColor: '#ef4444' }]} onPress={onLogout}>
-                            <Text style={styles.btnText}>LOGOUT</Text>
-                        </GlowButton>
+                <View style={styles.profileHeader}>
+                    <View style={styles.avatarWrapper}>
+                        <View style={[styles.avatarCircle, { borderColor: theme.acc }]}>
+                            <Text style={styles.avatarText}>{user?.name?.[0]}</Text>
+                        </View>
+                        <View style={styles.levelBadge}>
+                            <Text style={styles.levelText}>Lvl 1</Text>
+                        </View>
+                        <View style={styles.statusDot} />
                     </View>
-                ) : (
-                    <View style={styles.gap}>
-                        <Text style={[styles.title, { color: theme.text, textAlign: 'left', marginBottom: 5 }]}>Edit Profile</Text>
-                        <TextInput style={[styles.input, { backgroundColor: theme.inp, color: theme.it }]} placeholder="Email" value={form.email} onChangeText={t => setForm(p => ({ ...p, email: t }))} placeholderTextColor={theme.sub} />
-                        <TextInput style={[styles.input, { backgroundColor: theme.inp, color: theme.it, height: 80 }]} placeholder="Bio" multiline value={form.bio} onChangeText={t => setForm(p => ({ ...p, bio: t }))} placeholderTextColor={theme.sub} />
 
-                        <TouchableOpacity onPress={pickBanner} style={[styles.bannerPicker, { borderColor: theme.acc }]}>
-                            {form.banner ? (
-                                <Image source={{ uri: form.banner }} style={styles.bannerPreview} />
-                            ) : (
-                                <Text style={{ color: theme.acc }}>🖼️ Change Banner Image</Text>
-                            )}
+                    <View style={styles.headerInfo}>
+                        <View style={styles.nameRow}>
+                            <Text style={styles.profileName}>{user?.name} Hub Global</Text>
+                            <View style={styles.verifiedIcon}><Text style={{ color: '#fff', fontSize: 10 }}>@</Text></View>
+                        </View>
+
+                        <View style={styles.levelProgressContainer}>
+                            <Text style={styles.levelProgressText}>Level 1</Text>
+                            <Text style={styles.xpText}>/ 100 XP</Text>
+                        </View>
+                        <View style={styles.progressBar}>
+                            <View style={[styles.progressFill, { backgroundColor: theme.acc, width: '40%' }]} />
+                        </View>
+                    </View>
+
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity style={styles.msgIconBtn}>
+                            <Text style={styles.msgIcon}>💬</Text>
                         </TouchableOpacity>
-
-                        <Text style={[styles.label, { color: theme.text }]}>Gender</Text>
-                        <View style={styles.row}>
-                            {GENDERS.map(g => (
-                                <TouchableOpacity key={g.value} onPress={() => setForm(p => ({ ...p, gender: g.value }))}
-                                    style={[styles.pill, { borderColor: g.accent, backgroundColor: form.gender === g.value ? g.accent : 'transparent' }]}>
-                                    <Text style={{ color: form.gender === g.value ? '#fff' : g.accent, fontWeight: '700', fontSize: 12 }}>{g.label}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        <Text style={[styles.label, { color: theme.text, marginTop: 10 }]}>Interests</Text>
-                        <View style={styles.row}>
-                            {INTERESTS.map(int => (
-                                <TouchableOpacity key={int.id} onPress={() => toggleInterest(int.id)}
-                                    style={[styles.pill, { borderColor: int.color, backgroundColor: form.interests.includes(int.id) ? int.color : 'transparent' }]}>
-                                    <Text style={{ color: form.interests.includes(int.id) ? '#fff' : int.color, fontWeight: '700', fontSize: 12 }}>{int.icon} {int.label}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        <View style={[styles.row, { marginTop: 20 }]}>
-                            <GlowButton themeAcc="#10b981" style={[styles.btn, { backgroundColor: '#10b981', flex: 1 }]} onPress={() => { onUpdate(form); setEdit(false); }}>
-                                <Text style={styles.btnText}>SAVE CHANGES</Text>
-                            </GlowButton>
-                            <GlowButton themeAcc="#888" style={[styles.btn, { backgroundColor: '#888', flex: 1 }]} onPress={() => setEdit(false)}>
-                                <Text style={styles.btnText}>CANCEL</Text>
-                            </GlowButton>
-                        </View>
+                        <TouchableOpacity style={[styles.followBtn, { backgroundColor: '#fff' }]}>
+                            <Text style={styles.followBtnText}>Following</Text>
+                        </TouchableOpacity>
                     </View>
-                )}
+                </View>
+
+                <View style={styles.bioSection}>
+                    <Text style={styles.bioText}>No bio yet.</Text>
+                    <View style={styles.locationRow}>
+                        <Text style={styles.locIcon}>📍</Text>
+                        <Text style={styles.webLink}>🔗 website.com</Text>
+                    </View>
+                </View>
+
+                <View style={styles.statsGrid}>
+                    {stats.map((s, idx) => (
+                        <View key={idx} style={[styles.statItem, idx < stats.length - 1 && styles.statBorder]}>
+                            <Text style={styles.statValue}>{s.value}</Text>
+                            <Text style={styles.statLabel}>{s.label}</Text>
+                        </View>
+                    ))}
+                </View>
+
+                {/* Tabs */}
+                <View style={styles.tabsContainer}>
+                    {['Overview', 'Moments', 'Badges'].map(tab => (
+                        <TouchableOpacity
+                            key={tab}
+                            style={[styles.tab, activeTab === tab && styles.activeTab]}
+                            onPress={() => setActiveTab(tab)}
+                        >
+                            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                <View style={styles.suggestionsHeader}>
+                    <Text style={styles.suggestionsTitle}>👥 People You Might Know</Text>
+                </View>
             </ScrollView>
+
+            {/* Floating Buttons */}
+            <View style={styles.fabContainer}>
+                <TouchableOpacity style={styles.fabUp}><Text style={styles.fabIcon}>↑</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.fabChat}><Text style={styles.fabIcon}>💬</Text></TouchableOpacity>
+            </View>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    center: { flex: 1, justifyContent: 'center' },
-    scroll: { alignItems: 'center', padding: 20, paddingBottom: 40 },
-    logo: { fontSize: 28, fontWeight: '900', letterSpacing: 8, marginBottom: 4 },
-    tagline: { color: '#888', fontSize: 12, letterSpacing: 5, marginBottom: 30, fontWeight: '600' },
-    card: { width: '100%', maxWidth: 500, backgroundColor: '#fff', borderRadius: 24, borderWidth: 2, padding: 30 },
-    title: { fontSize: 22, fontWeight: '900', color: '#111', marginBottom: 20, textAlign: 'center' },
-    input: { width: '100%', backgroundColor: '#f5f7f9', padding: 15, borderRadius: 14, marginBottom: 14, fontSize: 15, fontWeight: '500' },
-    gap: { width: '100%', gap: 12, marginBottom: 15 },
-    label: { fontWeight: '700', color: '#444', marginBottom: 6, fontSize: 13 },
-    row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    pill: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 2 },
-    btn: { padding: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center', width: '100%', marginTop: 10 },
-    btnText: { color: '#fff', fontWeight: '800', letterSpacing: 1.5, fontSize: 14 },
-    switchText: { color: '#666', fontSize: 13, textAlign: 'center' },
-    avatar: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 15, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10 },
-    avatarText: { color: '#fff', fontSize: 36, fontWeight: '900' },
-    profileName: { fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
-    bannerContainer: { width: '100%', height: 120, borderRadius: 20, overflow: 'hidden', marginBottom: 10 },
-    bannerImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-    bannerPlaceholder: { width: '100%', height: '100%' },
-    bannerPicker: { width: '100%', height: 80, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', marginBottom: 15, overflow: 'hidden' },
-    bannerPreview: { width: '100%', height: '100%', resizeMode: 'cover' }
+    bannerContainer: { width: '100%', height: 200, position: 'relative' },
+    bannerPlaceholder: { width: '100%', height: '100%', backgroundColor: '#1e0a35' },
+    userFollowedBadge: {
+        position: 'absolute',
+        top: 20,
+        alignSelf: 'center',
+        backgroundColor: '#10b981',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    followedBadgeText: { color: '#fff', fontWeight: 'bold' },
+    profileHeader: {
+        flexDirection: 'row',
+        paddingHorizontal: 25,
+        marginTop: -50,
+        alignItems: 'flex-end',
+    },
+    avatarWrapper: { position: 'relative' },
+    avatarCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: '#333',
+        borderWidth: 4,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarText: { color: '#fff', fontSize: 40, fontWeight: 'bold' },
+    levelBadge: {
+        position: 'absolute',
+        bottom: -15,
+        alignSelf: 'center',
+        backgroundColor: '#310a5d',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    levelText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+    statusDot: {
+        position: 'absolute',
+        right: 5,
+        bottom: 10,
+        width: 25,
+        height: 25,
+        borderRadius: 13,
+        backgroundColor: '#22c55e',
+        borderWidth: 3,
+        borderColor: '#310a5d',
+    },
+    headerInfo: { flex: 1, marginLeft: 20, paddingBottom: 10 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 5 },
+    profileName: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
+    verifiedIcon: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    levelProgressContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+    levelProgressText: { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
+    xpText: { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
+    progressBar: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, width: '100%' },
+    progressFill: { height: '100%', borderRadius: 3 },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 15, paddingBottom: 15 },
+    msgIconBtn: { opacity: 0.6 },
+    msgIcon: { fontSize: 24, color: '#fff' },
+    followBtn: { paddingHorizontal: 25, paddingVertical: 12, borderRadius: 25 },
+    followBtnText: { color: '#000', fontWeight: 'bold' },
+    bioSection: { paddingHorizontal: 25, marginTop: 25 },
+    bioText: { color: '#fff', fontSize: 16, marginBottom: 15 },
+    locationRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    locIcon: { fontSize: 16, opacity: 0.4 },
+    webLink: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
+    statsGrid: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        margin: 25,
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    statItem: { flex: 1, alignItems: 'center' },
+    statBorder: { borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.05)' },
+    statValue: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+    statLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 4 },
+    tabsContainer: { flexDirection: 'row', paddingHorizontal: 25, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    tab: { paddingVertical: 15, marginRight: 30 },
+    activeTab: { borderBottomWidth: 2, borderBottomColor: '#fff' },
+    tabText: { color: 'rgba(255,255,255,0.6)', fontSize: 16, fontWeight: '600' },
+    activeTabText: { color: '#fff' },
+    suggestionsHeader: { padding: 25 },
+    suggestionsTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', opacity: 0.8 },
+    fabContainer: { position: 'absolute', bottom: 30, right: 20, gap: 15 },
+    fabUp: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(168, 85, 247, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fabChat: {
+        width: 65,
+        height: 65,
+        borderRadius: 33,
+        backgroundColor: '#ff4da6',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fabIcon: { color: '#fff', fontSize: 24, fontWeight: 'bold' }
 });
