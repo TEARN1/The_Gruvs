@@ -22,7 +22,7 @@ export function DailyVibeCheck({ progress, theme, onViewLeaderboard }) {
 
             <View style={styles.questList}>
                 {quests.map(quest => (
-                    <View key={quest.id} style={styles.questItem}>
+                    <TouchableOpacity key={quest.id} style={styles.questItem} onPress={() => onQuestClick(quest.id)}>
                         <View style={styles.questInfo}>
                             <Text style={styles.questLabel}>{quest.label}</Text>
                             <Text style={styles.questProgress}>{quest.current}/{quest.total}</Text>
@@ -35,7 +35,7 @@ export function DailyVibeCheck({ progress, theme, onViewLeaderboard }) {
                                 ]}
                             />
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 ))}
             </View>
 

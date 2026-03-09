@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView, useWindowDimensions, Alert } from 'react-native';
 import { GENDERS, getTheme, INTERESTS } from './data';
 import * as ImagePicker from 'expo-image-picker';
 import { GlowButton } from './components';
@@ -181,6 +181,8 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
 }
 
 export function ExploreScreen({ theme, onNavigate }) {
+    const { width } = useWindowDimensions();
+    const isMobile = width < 768;
     const [activeTab, setActiveTab] = useState('Top');
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -204,7 +206,7 @@ export function ExploreScreen({ theme, onNavigate }) {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <View style={styles.exploreHeader}>
-                <View style={styles.searchBarContainer}>
+                <View style={[styles.searchBarContainer, isMobile && { flex: 1 }]}>
                     <Text style={styles.searchIcon}>🔍</Text>
                     <TextInput
                         style={styles.searchInput}
@@ -277,16 +279,18 @@ export function ExploreScreen({ theme, onNavigate }) {
 
                 {activeTab === 'Events' && (
                     viewMode === 'list' ? (
-                        events.map(event => (
-                            <View key={event.id} style={styles.eventRow}>
-                                <View style={styles.eventThumb} />
-                                <View style={styles.eventInfo}>
-                                    <Text style={styles.eventName}>{event.title}</Text>
-                                    <Text style={styles.eventMeta}>{event.date} • {event.loc}</Text>
-                                    <Text style={styles.eventSnippet}>{event.desc}</Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                            {events.map(event => (
+                                <View key={event.id} style={[styles.eventRow, { width: width > 768 ? '48%' : '100%', marginBottom: 15 }]}>
+                                    <View style={styles.eventThumb} />
+                                    <View style={styles.eventInfo}>
+                                        <Text style={styles.eventName}>{event.title}</Text>
+                                        <Text style={styles.eventMeta}>{event.date} • {event.loc}</Text>
+                                        {!isMobile && <Text style={styles.eventSnippet}>{event.desc}</Text>}
+                                    </View>
                                 </View>
-                            </View>
-                        ))
+                            ))}
+                        </View>
                     ) : (
                         <View style={styles.mapContainer}>
                             <TouchableOpacity activeOpacity={1} style={styles.mapMock} onPress={() => setSelectedEvent(null)}>
@@ -505,28 +509,43 @@ export function MessagesScreen({ onNavigate, theme }) {
 }
 
 export function DropsScreen({ onNavigate, theme }) {
-    const drops = [
-        { id: '1', title: 'VIP Jazz Pass', type: 'Ticket', price: 'Claim Free', color: '#ff4da6' },
-        { id: '2', title: 'Gaming Skin', type: 'NFT', price: 'Claimed', color: '#a855f7' },
-        { id: '3', title: 'Signed Merch', type: 'Merch', price: 'R250', color: '#3b82f6' },
-    ];
+    const { width } = useWindowDimensions();
+    const isMobile = width < 768;
+    const numColumns = width > 1200 ? 4 : (width > 768 ? 2 : 1);
+
+    const [drops, setDrops] = useState([
+        { id: '1', title: 'Jazz VIP Pass', cost: '500 VP', claimed: false },
+        { id: '2', title: 'Tech Hub Sticker', cost: '100 VP', claimed: true },
+        { id: '3', title: 'Rooftop NFT', cost: '2500 VP', claimed: false },
+        { id: '4', title: 'Coffee Voucher', cost: '300 VP', claimed: false },
+    ]);
+
+    const handleClaim = (id) => {
+        setDrops(prev => prev.map(d => d.id === id ? { ...d, claimed: true } : d));
+        Alert.alert('Success', 'Drop claimed! Check your wallet.');
+    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.sidebarBg }]}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>EXCLUSIVE DROPS</Text>
             </View>
-            <ScrollView contentContainerStyle={styles.dropsGrid}>
-                {drops.map(drop => (
-                    <View key={drop.id} style={styles.dropCard}>
-                        <View style={[styles.dropImage, { backgroundColor: drop.color }]} />
-                        <Text style={styles.dropType}>{drop.type}</Text>
-                        <Text style={styles.dropTitle}>{drop.title}</Text>
-                        <TouchableOpacity style={[styles.claimBtn, { backgroundColor: theme.accent }]}>
-                            <Text style={styles.claimText}>{drop.price}</Text>
-                        </TouchableOpacity>
-                    </View>
-                ))}
+            <ScrollView contentContainerStyle={[styles.dropsGrid, { paddingHorizontal: isMobile ? 20 : 10 }]}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                    {drops.map(drop => (
+                        <View key={drop.id} style={[styles.dropCard, { width: width > 1200 ? '23%' : (width > 768 ? '48%' : '100%') }]}>
+                            <View style={styles.dropImage} />
+                            <Text style={styles.dropTitle}>{drop.title}</Text>
+                            <Text style={styles.dropCost}>{drop.cost}</Text>
+                            <TouchableOpacity
+                                style={[styles.claimBtn, drop.claimed && { backgroundColor: 'rgba(255,255,255,0.1)' }]}
+                                onPress={() => !drop.claimed && handleClaim(drop.id)}
+                            >
+                                <Text style={styles.claimText}>{drop.claimed ? 'Claimed' : 'Claim now'}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ))}
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
@@ -594,11 +613,18 @@ export function WalletScreen({ theme, onNavigate }) {
 }
 
 export function CommunityScreen({ theme, onNavigate }) {
-    const tribes = [
+    const { width } = useWindowDimensions();
+    const isMobile = width < 768;
+
+    const [tribesList, setTribesList] = useState([
         { id: '1', name: 'Jazz Lovers', members: '1.2k', desc: 'Chill vibes & saxophones.', joined: true },
         { id: '2', name: 'Techies JHB', members: '3.5k', desc: 'Building the future of Mzansi.', joined: false },
         { id: '3', name: 'Desert Nomads', members: '800', desc: 'Burning Man afrika style.', joined: false },
-    ];
+    ]);
+
+    const toggleJoinTribe = (id) => {
+        setTribesList(prev => prev.map(t => t.id === id ? { ...t, joined: !t.joined } : t));
+    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.sidebarBg }]}>
@@ -608,24 +634,29 @@ export function CommunityScreen({ theme, onNavigate }) {
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.tribeGrid}>
-                {tribes.map(tribe => (
-                    <View key={tribe.id} style={styles.tribeCard}>
-                        <View style={styles.tribeHeader}>
-                            <View style={styles.tribeAvatar} />
-                            <View>
-                                <Text style={styles.tribeName}>{tribe.name}</Text>
-                                <Text style={styles.tribeMembers}>{tribe.members} members</Text>
+            <ScrollView contentContainerStyle={[styles.tribeGrid, { paddingHorizontal: isMobile ? 20 : 10 }]}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                    {tribesList.map(tribe => (
+                        <View key={tribe.id} style={[styles.tribeCard, { width: width > 1024 ? '31%' : (width > 768 ? '48%' : '100%') }]}>
+                            <View style={styles.tribeHeader}>
+                                <View style={styles.tribeAvatar} />
+                                <View>
+                                    <Text style={styles.tribeName}>{tribe.name}</Text>
+                                    <Text style={styles.tribeMembers}>{tribe.members} members</Text>
+                                </View>
                             </View>
+                            <Text style={styles.tribeDesc}>{tribe.desc}</Text>
+                            <TouchableOpacity
+                                style={[styles.tribeActionBtn, tribe.joined && { backgroundColor: 'rgba(255,255,255,0.1)' }]}
+                                onPress={() => toggleJoinTribe(tribe.id)}
+                            >
+                                <Text style={[styles.tribeActionText, tribe.joined && { opacity: 0.5 }]}>
+                                    {tribe.joined ? 'Joined' : 'Join Tribe'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
-                        <Text style={styles.tribeDesc}>{tribe.desc}</Text>
-                        <TouchableOpacity style={[styles.tribeActionBtn, tribe.joined && { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                            <Text style={[styles.tribeActionText, tribe.joined && { opacity: 0.5 }]}>
-                                {tribe.joined ? 'Joined' : 'Join Tribe'}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                ))}
+                    ))}
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
@@ -812,13 +843,61 @@ const styles = StyleSheet.create({
 
     detailHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, height: 60, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
     backBtn: { width: 40, height: 40, justifyContent: 'center' },
-    backIcon: { color: '#fff', fontSize: 32 },
-    headerTitle: { flex: 1, color: '#fff', fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
+    backIcon: { color: '#fff', fontSize: 24 },
+    headerTitle: { color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+    logoutIconText: { fontSize: 20 },
+
+    // Profile Screen Styles
+    profileHeader: { alignItems: 'center', paddingVertical: 30 },
+    avatarLarge: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#444', marginBottom: 15, position: 'relative' },
+    vipBadgeSmall: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#ffcc00', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 2, borderColor: '#310a5d' },
+    vipTextSmall: { color: '#000', fontSize: 8, fontWeight: '900' },
+    profileName: { color: '#fff', fontSize: 24, fontWeight: '900' },
+    profileHandle: { color: 'rgba(255,255,255,0.4)', fontSize: 14, marginTop: 4 },
+    statsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 25, gap: 20 },
+    statItem: { alignItems: 'center' },
+    statValue: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    statLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
+    lineDivider: { width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.1)' },
+    sectionTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 25, marginTop: 20, marginBottom: 15 },
+    achievementScroll: { paddingLeft: 25, paddingRight: 10 },
+    achievementCard: { width: 80, height: 100, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+    achIcon: { fontSize: 28, marginBottom: 8 },
+    achLabel: { color: '#fff', fontSize: 10, fontWeight: 'bold', textAlign: 'center' },
+    tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', marginTop: 30, paddingHorizontal: 25 },
+    tabItem: { paddingVertical: 15, marginRight: 25, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+    activeTabItem: { borderBottomColor: '#a855f7' },
+    tabText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 'bold' },
+    activeTabText: { color: '#fff' },
+    tabContent: { padding: 50, alignItems: 'center' },
+    emptyContentText: { color: 'rgba(255,255,255,0.3)', fontSize: 14 },
+
+    // Event Detail Styles
+    detailCard: { padding: 25 },
+    trendingTribeBadge: { position: 'absolute', top: 20, left: 20, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 15 },
+    trendingText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+    detailInfo: { marginTop: 25 },
+    detailTitle: { color: '#fff', fontSize: 32, fontWeight: '900', lineHeight: 38 },
+    locationRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 },
+    locIcon: { fontSize: 14 },
+    locText: { color: '#a855f7', fontSize: 16, fontWeight: 'bold' },
+    socialProofSection: { flexDirection: 'row', alignItems: 'center', marginTop: 25, height: 40 },
+    avatarStack: { width: 100, height: 40, position: 'relative' },
+    stackAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#555', borderWidth: 3, borderColor: '#310a5d', position: 'absolute' },
+    proofText: { color: 'rgba(255,255,255,0.6)', fontSize: 13, flex: 1, marginLeft: 15 },
+    detailDesc: { color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 26, marginTop: 25 },
+    lineupCard: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 20, borderRadius: 25, marginTop: 30 },
+    lineupLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' },
+    lineupValue: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginTop: 10 },
+    bottomAction: { padding: 25, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+    mainActionBtn: { height: 65, borderRadius: 25, justifyContent: 'center', alignItems: 'center' },
+    mainActionText: { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: 1 },
     shareBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
     shareIcon: { fontSize: 20 },
 
     detailContent: { paddingBottom: 50 },
     detailBanner: { width: '100%', height: 300, position: 'relative' },
+
     detailTags: { position: 'absolute', bottom: 20, left: 20, flexDirection: 'row', gap: 10 },
     detailTag: { backgroundColor: 'rgba(168, 85, 247, 0.8)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
     detailTagText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },

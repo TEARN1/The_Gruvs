@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, TextInput, useWindowDimensions } from 'react-native';
 import * as Descriptors from '../descriptors';
 
 export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
@@ -7,6 +7,18 @@ export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
     const [isFollowing, setIsFollowing] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recordTime, setRecordTime] = useState(0);
+    const [isReposted, setIsReposted] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
+    const [currentMediaIdx, setCurrentMediaIdx] = useState(0);
+
+    const { width } = useWindowDimensions();
+    const isMobile = width < 768;
+
+    const mediaItems = content.media || [
+        { type: 'image', url: 'https://via.placeholder.com/400x250?text=Event+Image+1' },
+        { type: 'video', url: 'https://via.placeholder.com/400x250?text=Event+Video+1' }
+    ];
 
     useEffect(() => {
         let interval;
@@ -28,7 +40,11 @@ export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
     ];
 
     return (
-        <View style={styles.card}>
+        <View
+            style={[styles.card, isHovered && styles.cardGlow]}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             {/* LIVE Badge */}
             <View style={styles.liveBadge}>
                 <Text style={styles.liveBadgeText}>LIVE</Text>
@@ -53,21 +69,40 @@ export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
             </View>
 
             {/* Content Body */}
-            <TouchableOpacity onPress={onPress} style={styles.contentBody}>
-                <Text style={styles.eventTitle}>{content.title}</Text>
-                <Text style={styles.eventDesc}>{content.text}</Text>
+            <TouchableOpacity onPress={onPress} style={[styles.contentBody, isMobile && { paddingHorizontal: 15 }]}>
+                <Text style={[styles.eventTitle, isMobile && { fontSize: 20 }]}>{content.title}</Text>
+                <Text style={[styles.eventDesc, isMobile && { fontSize: 13 }]}>{content.text}</Text>
 
-                {/* Image Placeholder */}
-                <View style={styles.mediaPlaceholder}>
-                    <Text style={styles.mediaText}>{content.title} media 1</Text>
-                    <View style={styles.mediaPagination}>
-                        <Text style={styles.paginationText}>1/2</Text>
+                <View style={[styles.mediaCarousel, isMobile && { height: 200 }]}>
+                    <View style={[styles.mediaPlaceholder, isMobile && { height: 200 }]}>
+                        <Text style={styles.mediaText}>
+                            {mediaItems[currentMediaIdx].type.toUpperCase()}: {content.title} {currentMediaIdx + 1}
+                        </Text>
+                        <View style={styles.mediaPagination}>
+                            <Text style={styles.paginationText}>{currentMediaIdx + 1}/{mediaItems.length}</Text>
+                        </View>
+                        {mediaItems.length > 1 && (
+                            <>
+                                <TouchableOpacity
+                                    style={[styles.carouselNav, { left: 10 }]}
+                                    onPress={(e) => { e.stopPropagation(); setCurrentMediaIdx(prev => (prev > 0 ? prev - 1 : mediaItems.length - 1)); }}
+                                >
+                                    <Text style={styles.carouselNavText}>‹</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.carouselNav, { right: 10 }]}
+                                    onPress={(e) => { e.stopPropagation(); setCurrentMediaIdx(prev => (prev < mediaItems.length - 1 ? prev + 1 : 0)); }}
+                                >
+                                    <Text style={styles.carouselNavText}>›</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
                     </View>
                 </View>
             </TouchableOpacity>
 
             {/* Location & Distance Grid */}
-            <View style={styles.metaGrid}>
+            <View style={[styles.metaGrid, isMobile && { gap: 20, paddingHorizontal: 15 }]}>
                 <View style={styles.metaItem}>
                     <Text style={styles.metaLabel}>📍 Location</Text>
                     <Text style={styles.metaValue}>{content.location}</Text>
@@ -91,17 +126,21 @@ export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
             {/* Interaction Bar */}
             <View style={styles.interactionBar}>
                 <View style={styles.metrics}>
-                    <TouchableOpacity style={styles.metricBtn} onPress={onLike}>
-                        <Text style={styles.metricIcon}>🤍</Text>
-                        <Text style={styles.metricText}>{engagement_metrics.likes}</Text>
+                    <TouchableOpacity style={styles.metricItem} onPress={onLike}>
+                        <Text style={styles.metricIcon}>❤️</Text>
+                        <Text style={styles.metricText}>{post.engagement_metrics.likes}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.metricBtn}>
+                    <TouchableOpacity style={styles.metricItem}>
                         <Text style={styles.metricIcon}>💬</Text>
-                        <Text style={styles.metricText}>{engagement_metrics.comments}</Text>
+                        <Text style={styles.metricText}>{post.engagement_metrics.comments}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.metricBtn}>
-                        <Text style={styles.metricIcon}>🔄</Text>
-                        <Text style={[styles.metricText, { color: '#4ade80' }]}>Reposted</Text>
+                    <TouchableOpacity style={styles.metricItem} onPress={() => setIsReposted(!isReposted)}>
+                        <Text style={[styles.metricIcon, isReposted && { color: '#10b981' }]}>↺</Text>
+                        <Text style={styles.metricText}>{post.engagement_metrics.reposts + (isReposted ? 1 : 0)}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.metricItem} onPress={() => setIsSaved(!isSaved)}>
+                        <Text style={[styles.metricIcon, isSaved && { color: '#a855f7' }]}>{isSaved ? '🔖' : '🏷️'}</Text>
+                        <Text style={styles.metricText}>Save</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -120,7 +159,15 @@ export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
                 <Text style={styles.commentsTitle}>Top Comments</Text>
                 <View style={styles.comment}>
                     <Text style={styles.commentAuthor}>Alex: <Text style={styles.commentText}>Hello, Can i come ?</Text></Text>
-                    <View style={styles.commentActions}>
+                    {/* Top Comment Highlight */}
+                    <View style={styles.topCommentBox}>
+                        <Text style={styles.topCommentLabel}>Top Comment</Text>
+                        <Text style={styles.topCommentText} numberOfLines={2}>
+                            "Best rooftop vibe in JHB! Make sure to get there early for the sunset view. 🎷🌇"
+                        </Text>
+                    </View>
+
+                    <View style={styles.commentInputRow}>
                         <TouchableOpacity><Text style={styles.commentActionText}>👍 1</Text></TouchableOpacity>
                         <TouchableOpacity><Text style={styles.commentActionText}>Reply</Text></TouchableOpacity>
                     </View>
@@ -172,6 +219,16 @@ const styles = StyleSheet.create({
         borderColor: '#ff4d01', // Vibrant orange/red border
         overflow: 'hidden',
         position: 'relative',
+        transition: 'all 0.3s ease',
+    },
+    cardGlow: {
+        borderColor: '#ffcc00',
+        shadowColor: '#ffcc00',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 20,
+        elevation: 20,
+        transform: [{ scale: 1.01 }],
     },
     liveBadge: {
         position: 'absolute',
@@ -240,6 +297,19 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     paginationText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+    mediaCarousel: { width: '100%', position: 'relative' },
+    carouselNav: {
+        position: 'absolute',
+        top: '45%',
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 30,
+    },
+    carouselNavText: { color: '#fff', fontSize: 24, fontWeight: 'bold', marginTop: -4 },
     metaGrid: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 20, gap: 40 },
     metaItem: { gap: 4 },
     metaLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
@@ -251,35 +321,61 @@ const styles = StyleSheet.create({
     activeVibeTag: { backgroundColor: 'rgba(255,77,166,0.1)', borderColor: '#ff4da6' },
     activeVibeTagText: { color: '#ff4da6', fontWeight: 'bold' },
     interactionBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 15,
+        paddingHorizontal: 20,
         paddingVertical: 15,
         borderTopWidth: 1,
         borderTopColor: 'rgba(255,255,255,0.05)',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
-    metrics: { flexDirection: 'row', gap: 12 },
-    metricBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    metricIcon: { fontSize: 18, color: '#fff' },
-    metricText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+    metrics: {
+        flexDirection: 'row',
+        gap: 20,
+    },
+    metricItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    metricIcon: { color: 'rgba(255,255,255,0.4)', fontSize: 16 },
+    metricText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 'bold' },
     actionButtons: { flexDirection: 'row', gap: 10 },
-    rsvpBtn: { backgroundColor: '#a855f7', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
-    rsvpBtnText: { color: '#fff', fontWeight: 'bold' },
-    buyBtn: { backgroundColor: '#ffcc00', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12 },
-    buyBtnText: { color: '#000', fontWeight: 'bold' },
-    commentsSection: { backgroundColor: 'rgba(0,0,0,0.1)', padding: 20 },
-    commentsTitle: { color: '#fff', fontSize: 15, fontWeight: 'bold', marginBottom: 15 },
+    rsvpBtn: { backgroundColor: '#a855f7', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12 },
+    rsvpBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+    buyBtn: { backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    buyBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+
+    commentsSection: {
+        paddingHorizontal: 20,
+        paddingVertical: 20,
+        backgroundColor: 'rgba(0,0,0,0.1)',
+    },
+    commentsTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 15 },
     comment: { marginBottom: 15 },
-    commentAuthor: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-    commentText: { fontWeight: 'normal', opacity: 0.8 },
-    commentActions: { flexDirection: 'row', gap: 15, marginTop: 5 },
-    commentActionText: { color: 'rgba(255,255,255,0.4)', fontSize: 11 },
+    commentAuthor: { color: '#a855f7', fontWeight: 'bold', fontSize: 13 },
+    commentText: { color: 'rgba(255,255,255,0.8)', fontWeight: 'normal' },
+    commentActions: { flexDirection: 'row', gap: 15, marginTop: 8 },
+    commentActionText: { color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 'bold' },
+
+    topCommentBox: {
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 15,
+        padding: 12,
+        marginTop: 10,
+        marginBottom: 10,
+        borderLeftWidth: 3,
+        borderLeftColor: '#a855f7',
+    },
+    topCommentLabel: { color: '#a855f7', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 4 },
+    topCommentText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontStyle: 'italic' },
+
+    commentInputRow: { marginTop: 15 },
     inlineInputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 18,
+        borderRadius: 20,
         paddingHorizontal: 15,
         height: 50,
     },

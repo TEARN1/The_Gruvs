@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView, View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, Modal, RefreshControl, Alert, ScrollView, Image
+  StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, Modal, RefreshControl, Alert, ScrollView, Image, useWindowDimensions
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Sidebar } from './src/components/Sidebar';
@@ -10,10 +10,12 @@ import {
   LeaderboardScreen, MessagesScreen, DropsScreen, HappeningsScreen,
   WalletScreen, CommunityScreen
 } from './src/screens';
+import { EVENT_CATEGORIES } from './src/data/eventTaxonomy';
 import { EventCard } from './src/components/EventCard';
 import { SocialPost } from './src/components/SocialPost';
 import { StoriesUI } from './src/components/StoriesUI';
 import { DailyVibeCheck } from './src/components/DailyVibeCheck';
+import { BottomNav } from './src/components/BottomNav';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
@@ -29,6 +31,24 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [showVibeAssistant, setShowVibeAssistant] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filters, setFilters] = useState({ sort: 'newest', type: 'all', surname: '' });
+  const [discoveryEvent, setDiscoveryEvent] = useState(null);
+  const [vibeSearchTerm, setVibeSearchTerm] = useState('');
+  const [newEvent, setNewEvent] = useState({ title: '', location: '', vibe: '', text: 'No description provided.' });
+  const [justPosted, setJustPosted] = useState(false);
+
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const isTablet = width >= 768 && width < 1024;
+
+  const handleNavigate = (id) => {
+    if (id === 'add_event') {
+      setShowAddEventModal(true);
+    } else {
+      setActiveScreen(id);
+    }
+  };
 
   // New Deep Purple Premium Theme
   const theme = {
@@ -49,9 +69,48 @@ export default function App() {
     }
   };
 
+  const filteredVibeCategories = EVENT_CATEGORIES.filter(category =>
+    category.toLowerCase().includes(vibeSearchTerm.toLowerCase())
+  );
+
   useEffect(() => {
     if (user && screen === 'feed') fetchPosts();
   }, [user, screen]);
+
+  useEffect(() => {
+    if (justPosted) {
+      const timer = setTimeout(() => setJustPosted(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [justPosted]);
+
+  const handlePostEvent = () => {
+    if (!newEvent.title || !newEvent.location) {
+      Alert.alert('Missing Info', 'Please provide a title and location for your vibe.');
+      return;
+    }
+
+    const postToAdd = {
+      id: Date.now().toString(),
+      type: 'event',
+      content: {
+        title: newEvent.title,
+        author_name: user?.name || 'You',
+        text: newEvent.text,
+        location: newEvent.location,
+        distance: '0 km away',
+        lineup: 'Open Mic / Community Host',
+        tags: [newEvent.vibe, 'new', 'community'],
+        price: 'Free'
+      },
+      engagement_metrics: { likes: 0, comments: 0, reposts: 0 }
+    };
+
+    setPosts([postToAdd, ...posts]);
+    setNewEvent({ title: '', location: '', vibe: '', text: 'No description provided.' });
+    setShowAddEventModal(false);
+    setJustPosted(true);
+  };
 
   const fetchPosts = async () => {
     try {
@@ -95,17 +154,33 @@ export default function App() {
     } finally { setLoading(false); }
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setScreen('auth');
+  const handleRSVP = (eventId) => {
+    Alert.alert('RSVP Confirmed!', 'Check your Wallet for the ticket.');
   };
+
+  const handleLogout = () => {
+    setActiveScreen('auth');
+    setUser(null);
+  };
+
+  const filteredPosts = posts.filter(p => {
+    const matchesSearch = p.content.title.toLowerCase().includes(filters.surname.toLowerCase()) ||
+      p.content.author_name.toLowerCase().includes(filters.surname.toLowerCase()) ||
+      (p.content.tags && p.content.tags.some(t => t.toLowerCase().includes(filters.surname.toLowerCase())));
+    const matchesType = filters.type === 'all' ||
+      (p.content.tags && p.content.tags.some(t => t.toLowerCase() === filters.type.toLowerCase())) ||
+      (p.content.title.toLowerCase().includes(filters.type.toLowerCase()));
+    return matchesSearch && matchesType;
+  })
+    .sort((a, b) => {
+      if (filters.sort === 'popular') return b.engagement_metrics.likes - a.engagement_metrics.likes;
+      return 0; // Default newest (original order)
+    });
+
+  const hasActiveFilters = filters.type !== 'all' || filters.surname !== '' || filters.sort !== 'newest';
 
   const handleLike = () => {
     setVibeProgress(prev => ({ ...prev, likes: Math.min(prev.likes + 1, 3) }));
-  };
-
-  const handleRSVP = () => {
-    setVibeProgress(prev => ({ ...prev, rsvps: Math.min(prev.rsvps + 1, 1) }));
   };
 
   if (screen === 'auth') {
@@ -127,20 +202,16 @@ export default function App() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      <View style={styles.mainLayout}>
-        <Sidebar
-          activeScreen={activeScreen}
-          onNavigate={(s) => {
-            if (s === 'add_event') {
-              setShowAddEventModal(true);
-            } else {
-              setActiveScreen(s);
-            }
-          }}
-          onLogout={handleLogout}
-          theme={theme}
-          isCollapsed={isSidebarCollapsed}
-        />
+      <View style={[styles.mainLayout, isMobile && { flexDirection: 'column' }]}>
+        {!isMobile && (
+          <Sidebar
+            activeScreen={activeScreen}
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+            theme={theme}
+            isCollapsed={isSidebarCollapsed || isTablet}
+          />
+        )}
 
         <View style={styles.contentArea}>
           {activeScreen === 'feed' && (
@@ -149,16 +220,24 @@ export default function App() {
                 <TouchableOpacity style={styles.menuBtn} onPress={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
                   <Text style={styles.menuIconText}>≡</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.profileIndicatorHeader} onPress={() => setActiveScreen('profile')}>
+                  <View style={styles.avatarMini}>
+                    <View style={styles.vipBadgeSidebar}><Text style={styles.vipTextSidebar}>VIP</Text></View>
+                  </View>
+                </TouchableOpacity>
                 <View style={styles.searchContainer}>
                   <Text style={styles.searchIcon}>🔍</Text>
                   <TextInput
                     style={styles.searchInput}
-                    placeholder="Search events, vibes, people..."
+                    placeholder="Search characters or hosts..."
                     placeholderTextColor="rgba(255,255,255,0.5)"
+                    value={filters.surname}
+                    onChangeText={(t) => setFilters({ ...filters, surname: t })}
                   />
                 </View>
-                <TouchableOpacity style={styles.filterBtn}>
+                <TouchableOpacity style={styles.filterBtn} onPress={() => setShowFilterModal(true)}>
                   <Text style={styles.filterIcon}>▽</Text>
+                  {hasActiveFilters && <View style={styles.filterBadge} />}
                 </TouchableOpacity>
               </View>
 
@@ -168,28 +247,66 @@ export default function App() {
                   progress={vibeProgress}
                   theme={theme}
                   onViewLeaderboard={() => setActiveScreen('leaderboard')}
+                  onQuestClick={(questId) => {
+                    // Logic to show a discovery event based on quest
+                    const match = posts.find(p => p.type === 'event' && !p.isLiked);
+                    setDiscoveryEvent(match || posts[0]);
+                  }}
                 />
 
-                <View style={styles.feedHeaderRow}>
-                  <Text style={styles.feedSectionTitle}>LIVE EVENTS</Text>
-                </View>
-                {posts.map(post => (
-                  post.type === 'event' ? (
+                {discoveryEvent && (
+                  <View style={styles.discoveryOverlay}>
+                    <Text style={styles.discoveryTitle}>Matched for your Quest:</Text>
                     <EventCard
-                      key={post.id}
-                      post={post}
+                      post={discoveryEvent}
                       theme={theme}
+                      compact={true}
                       onPress={() => {
-                        setSelectedEvent({ id: post.id, title: post.content.title, ...post.content });
+                        setSelectedEvent(discoveryEvent.content);
                         setActiveScreen('event_detail');
+                        setDiscoveryEvent(null);
                       }}
-                      onLike={handleLike}
-                      onRSVP={handleRSVP}
                     />
+                    <TouchableOpacity onPress={() => setDiscoveryEvent(null)} style={styles.closeDiscovery}>
+                      <Text style={styles.closeDiscoveryText}>Dismiss</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                <View style={styles.feedHeaderRow}>
+                  <Text style={styles.feedSectionTitle}>
+                    {hasActiveFilters ? 'FILTERED RESULTS' : 'LIVE EVENTS'}
+                  </Text>
+                  {hasActiveFilters && (
+                    <TouchableOpacity onPress={() => setFilters({ sort: 'newest', type: 'all', surname: '' })}>
+                      <Text style={styles.clearFiltersText}>Clear All</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {filteredPosts.map(post => {
+                  const isTrending = post.engagement_metrics && post.engagement_metrics.likes > 50;
+                  return post.type === 'event' ? (
+                    <View key={post.id}>
+                      {isTrending && (
+                        <View style={styles.trendingRibbon}>
+                          <Text style={styles.trendingRibbonText}>🔥 TRENDING</Text>
+                        </View>
+                      )}
+                      <EventCard
+                        post={post}
+                        theme={theme}
+                        onPress={() => {
+                          setSelectedEvent({ id: post.id, title: post.content.title, ...post.content });
+                          setActiveScreen('event_detail');
+                        }}
+                        onLike={handleLike}
+                        onRSVP={handleRSVP}
+                      />
+                    </View>
                   ) : (
                     <SocialPost key={post.id} post={post} theme={theme} />
-                  )
-                ))}
+                  );
+                })}
               </ScrollView>
 
               {/* Floating Action Buttons */}
@@ -286,6 +403,13 @@ export default function App() {
             </SafeAreaView>
           )}
         </View>
+        {isMobile && (
+          <BottomNav
+            activeScreen={activeScreen}
+            onNavigate={handleNavigate}
+            theme={theme}
+          />
+        )}
       </View>
 
       {/* Add Event Modal */}
@@ -304,34 +428,75 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalForm}>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Event Title"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-              />
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Location"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-              />
-              <View style={styles.modalVibeSelector}>
-                <Text style={styles.vibeSelectorLabel}>Select Vibe:</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.vibeScroll}>
-                  {['Chill', 'High Energy', 'Sophisticated', 'Electronic'].map(v => (
-                    <TouchableOpacity key={v} style={styles.vibeChip}>
-                      <Text style={styles.vibeChipText}>{v}</Text>
+            <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+              <View style={styles.modalForm}>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Event Title"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={newEvent.title}
+                  onChangeText={(val) => setNewEvent({ ...newEvent, title: val })}
+                />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Location"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={newEvent.location}
+                  onChangeText={(val) => setNewEvent({ ...newEvent, location: val })}
+                />
+                <TextInput
+                  style={[styles.modalInput, { height: 80, paddingTop: 12 }]}
+                  placeholder="What's the vibe? (Description)"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  multiline
+                  value={newEvent.text}
+                  onChangeText={(val) => setNewEvent({ ...newEvent, text: val })}
+                />
+
+                <View style={styles.mediaUploadSection}>
+                  <Text style={styles.vibeSelectorLabel}>Upload Media (Images/Video):</Text>
+                  <View style={styles.mediaUploadGrid}>
+                    <TouchableOpacity style={styles.uploadPlaceholder}>
+                      <Text style={styles.uploadIcon}>📸</Text>
+                      <Text style={styles.uploadSubText}>Add Image</Text>
                     </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                    <TouchableOpacity style={styles.uploadPlaceholder}>
+                      <Text style={styles.uploadIcon}>🎥</Text>
+                      <Text style={styles.uploadSubText}>Add Video</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.modalVibeSelector}>
+                  <Text style={styles.vibeSelectorLabel}>Select Tribe/Vibe:</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Search categories..."
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    value={vibeSearchTerm}
+                    onChangeText={setVibeSearchTerm}
+                  />
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.vibeScroll}>
+                    {filteredVibeCategories.map(v => (
+                      <TouchableOpacity
+                        key={v}
+                        style={[styles.vibeChip, newEvent.vibe === v && { backgroundColor: theme.accent }]}
+                        onPress={() => setNewEvent({ ...newEvent, vibe: v })}
+                      >
+                        <Text style={styles.vibeChipText}>{v}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.postEventBtn, { backgroundColor: theme.accent }]}
+                  onPress={handlePostEvent}
+                >
+                  <Text style={styles.postEventBtnText}>Post to The Gruvs</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={[styles.postEventBtn, { backgroundColor: theme.accent }]}
-                onPress={() => setShowAddEventModal(false)}
-              >
-                <Text style={styles.postEventBtnText}>Create Event</Text>
-              </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -345,12 +510,6 @@ export default function App() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { borderRadius: 40, padding: 0, overflow: 'hidden' }]}>
-            <View style={[styles.assistantHeader, { backgroundColor: theme.accent }]}>
-              <Text style={styles.assistantTitle}>🤖 VIBE ASSISTANT</Text>
-              <TouchableOpacity onPress={() => setShowVibeAssistant(false)}>
-                <Text style={styles.closeModalText}>✕</Text>
-              </TouchableOpacity>
-            </View>
             <View style={styles.chatArea}>
               <ScrollView style={{ padding: 20 }}>
                 <View style={styles.aiBubble}>
@@ -363,6 +522,13 @@ export default function App() {
                   <Text style={styles.chatText}>I'd check out "Joburg Rooftop Jazz". It's trending with 75+ likes and perfect for a relaxed evening! 🎷</Text>
                 </View>
               </ScrollView>
+              <View style={styles.assistantQuickActions}>
+                {['Suggest Jazz', 'Claim Drops', 'My Tickets', 'Who is Sarah?'].map(action => (
+                  <TouchableOpacity key={action} style={styles.assistantChip}>
+                    <Text style={styles.assistantChipText}>{action}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               <View style={styles.chatInputRow}>
                 <TextInput
                   placeholder="Ask me anything..."
@@ -374,6 +540,81 @@ export default function App() {
                 </TouchableOpacity>
               </View>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Advanced Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>ADVANCED FILTERS</Text>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <Text style={styles.closeModalText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalForm}>
+              <Text style={styles.filterLabel}>Sort By</Text>
+              <View style={styles.filterRow}>
+                {['newest', 'popular'].map(s => (
+                  <TouchableOpacity
+                    key={s}
+                    style={[styles.filterChip, filters.sort === s && styles.activeFilterChip]}
+                    onPress={() => setFilters({ ...filters, sort: s })}
+                  >
+                    <Text style={styles.filterChipText}>{s.toUpperCase()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.filterLabel}>Event Type / Tribe</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Search tribes (e.g. Jazz, Amapiano)..."
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={vibeSearchTerm}
+                onChangeText={setVibeSearchTerm}
+              />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+                <TouchableOpacity
+                  style={[styles.filterChip, filters.type === 'all' && styles.activeFilterChip]}
+                  onPress={() => setFilters({ ...filters, type: 'all' })}
+                >
+                  <Text style={styles.filterChipText}>ALL</Text>
+                </TouchableOpacity>
+                {filteredVibeCategories.map(t => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.filterChip, filters.type === t && styles.activeFilterChip]}
+                    onPress={() => setFilters({ ...filters, type: t })}
+                  >
+                    <Text style={styles.filterChipText}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <Text style={styles.filterLabel}>Search by Host Surname</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter surname..."
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={filters.surname}
+                onChangeText={(t) => setFilters({ ...filters, surname: t })}
+              />
+
+              <TouchableOpacity
+                style={[styles.postEventBtn, { backgroundColor: theme.accent, marginTop: 30 }]}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <Text style={styles.postEventBtnText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -417,6 +658,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '300',
   },
+  profileIndicatorHeader: {
+    marginLeft: 10,
+    marginRight: 15,
+  },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -440,7 +685,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  filterIcon: { color: '#fff', fontSize: 20 },
+  filterIcon: { color: '#fff', fontSize: 24 },
+  filterBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ff4da6',
+    borderWidth: 1,
+    borderColor: '#310a5d',
+  },
   scrollContent: { paddingBottom: 50 },
   postCard: {
     backgroundColor: 'rgba(255,255,255,0.05)',
@@ -451,8 +707,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  feedHeaderRow: { marginBottom: 15 },
-  feedSectionTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 'bold', letterSpacing: 1 },
+  feedHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  clearFiltersText: { color: '#a855f7', fontSize: 12, fontWeight: 'bold' },
+  feedSectionTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  trendingRibbon: {
+    backgroundColor: 'rgba(255, 77, 166, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: -15,
+    marginLeft: 20,
+    zIndex: 10,
+    borderWidth: 1,
+    borderColor: '#ff4da6',
+  },
+  trendingRibbonText: { color: '#ff4da6', fontSize: 9, fontWeight: '900' },
 
   fabContainer: {
     position: 'absolute',
@@ -532,8 +807,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-  postEventBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-
+  postEventBtnText: { color: '#fff', fontWeight: '900', fontSize: 13, letterSpacing: 1 },
+  mediaUploadSection: { marginTop: 20, marginBottom: 20 },
+  mediaUploadGrid: { flexDirection: 'row', gap: 15, marginTop: 10 },
+  uploadPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadIcon: { fontSize: 24, marginBottom: 4 },
+  uploadSubText: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 'bold' },
   // Vibe Assistant Styles
   assistantHeader: {
     padding: 25,
@@ -586,4 +875,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  assistantQuickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+  assistantChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  assistantChipText: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 'bold' },
+  avatarMini: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#555', marginRight: 10, position: 'relative' },
+  vipBadgeSidebar: { position: 'absolute', bottom: -2, right: -2, backgroundColor: '#ffcc00', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4, borderWidth: 1, borderColor: '#4b168c' },
+  vipTextSidebar: { color: '#000', fontSize: 6, fontWeight: '900' },
+  discoveryOverlay: {
+    backgroundColor: 'rgba(168, 85, 247, 0.1)',
+    borderRadius: 25,
+    padding: 20,
+    marginBottom: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.3)',
+  },
+  discoveryTitle: { color: '#a855f7', fontWeight: 'bold', fontSize: 12, marginBottom: 15, textTransform: 'uppercase' },
+  closeDiscovery: { marginTop: 10, alignSelf: 'center' },
+  closeDiscoveryText: { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
+  filterLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 'bold', marginBottom: 10, marginTop: 15 },
+  filterRow: { flexDirection: 'row', gap: 10 },
+  filterChip: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  activeFilterChip: { backgroundColor: '#a855f7', borderColor: '#a855f7' },
+  filterChipText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  filterScroll: { flexDirection: 'row' },
 });

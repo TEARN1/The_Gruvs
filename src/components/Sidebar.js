@@ -14,6 +14,7 @@ const NAV_ITEMS = [
 ];
 
 export function Sidebar({ activeScreen, onNavigate, onLogout, theme, isCollapsed }) {
+    const [hoveredItem, setHoveredItem] = React.useState(null);
     return (
         <View style={[
             styles.container,
@@ -32,9 +33,12 @@ export function Sidebar({ activeScreen, onNavigate, onLogout, theme, isCollapsed
                         style={[
                             styles.navItem,
                             activeScreen === item.id && [styles.activeNavItem, { backgroundColor: '#a855f7' }],
-                            item.special && styles.specialNavItem
+                            item.special && styles.specialNavItem,
+                            hoveredItem === item.id && styles.navItemHover
                         ]}
                         onPress={() => onNavigate(item.id)}
+                        onMouseEnter={() => setHoveredItem(item.id)}
+                        onMouseLeave={() => setHoveredItem(null)}
                     >
                         <Text style={[styles.navIcon, item.special && styles.specialNavIcon]}>{item.icon}</Text>
                         {!isCollapsed && (
@@ -65,7 +69,16 @@ export function Sidebar({ activeScreen, onNavigate, onLogout, theme, isCollapsed
                 </TouchableOpacity>
             </ScrollView>
 
-            <TouchableOpacity style={[styles.logoutBtn, isCollapsed && styles.collapsedLogoutBtn]} onPress={onLogout}>
+            <TouchableOpacity
+                style={[
+                    styles.logoutBtn,
+                    isCollapsed && styles.collapsedLogoutBtn,
+                    hoveredItem === 'logout' && { backgroundColor: '#ff6666', transform: [{ scale: 1.05 }] }
+                ]}
+                onPress={onLogout}
+                onMouseEnter={() => setHoveredItem('logout')}
+                onMouseLeave={() => setHoveredItem(null)}
+            >
                 <Text style={styles.logoutIcon}>←</Text>
                 {!isCollapsed && <Text style={styles.logoutText}>Logout</Text>}
             </TouchableOpacity>
@@ -123,6 +136,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         borderRadius: 18,
         marginBottom: 8,
+        transition: 'all 0.2s ease',
+    },
+    navItemHover: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        transform: [{ scale: 1.05 }, { translateX: 5 }],
+        shadowColor: "#fff",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
     },
     specialNavItem: {
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
