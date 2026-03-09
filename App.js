@@ -16,6 +16,8 @@ import { SocialPost } from './src/components/SocialPost';
 import { StoriesUI } from './src/components/StoriesUI';
 import { DailyVibeCheck } from './src/components/DailyVibeCheck';
 import { BottomNav } from './src/components/BottomNav';
+import { NotificationCenter } from './src/components/NotificationCenter';
+import { LevelUpOverlay } from './src/components/LevelUpOverlay';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
@@ -37,6 +39,9 @@ export default function App() {
   const [vibeSearchTerm, setVibeSearchTerm] = useState('');
   const [newEvent, setNewEvent] = useState({ title: '', location: '', vibe: '', text: 'No description provided.' });
   const [justPosted, setJustPosted] = useState(false);
+  const [activeTheme, setActiveTheme] = useState('purple');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [levelUpVisible, setLevelUpVisible] = useState(false);
 
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -50,24 +55,46 @@ export default function App() {
     }
   };
 
-  // New Deep Purple Premium Theme
-  const theme = {
-    background: '#310a5d', // Deepest purple
-    sidebarBg: '#4b168c', // Lighter purple sidebar
-    card: 'rgba(75, 22, 140, 0.4)', // Glassy purple
-    text: '#ffffff',
-    subText: 'rgba(255, 255, 255, 0.7)',
-    accent: '#ff4da6', // Pink
-    yellow: '#ffcc00',
-    red: '#ef4444',
-    border: 'rgba(255, 255, 255, 0.1)',
-    glass: {
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-      backdropFilter: 'blur(10px)',
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+  const THEMES = {
+    purple: {
+      background: '#310a5d',
+      sidebarBg: '#4b168c',
+      card: 'rgba(75, 22, 140, 0.4)',
+      text: '#ffffff',
+      subText: 'rgba(255, 255, 255, 0.7)',
+      accent: '#ff4da6',
+      yellow: '#ffcc00',
+      red: '#ef4444',
+      border: 'rgba(255, 255, 255, 0.1)',
+      glass: { backgroundColor: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }
+    },
+    gold: {
+      background: '#3d2b00',
+      sidebarBg: '#594400',
+      card: 'rgba(89, 68, 0, 0.4)',
+      text: '#ffffff',
+      subText: 'rgba(255, 255, 255, 0.7)',
+      accent: '#ffcc00',
+      yellow: '#ffffff',
+      red: '#ff4d01',
+      border: 'rgba(255, 255, 255, 0.1)',
+      glass: { backgroundColor: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }
+    },
+    blue: {
+      background: '#031026',
+      sidebarBg: '#0a192f',
+      card: 'rgba(10, 25, 47, 0.6)',
+      text: '#e6f1ff',
+      subText: 'rgba(230, 241, 255, 0.7)',
+      accent: '#64ffda',
+      yellow: '#f4d03f',
+      red: '#f06292',
+      border: 'rgba(100, 255, 218, 0.1)',
+      glass: { backgroundColor: 'rgba(100, 255, 218, 0.05)', backdropFilter: 'blur(10px)', borderWidth: 1, borderColor: 'rgba(100, 255, 218, 0.2)' }
     }
   };
+
+  const theme = THEMES[activeTheme];
 
   const filteredVibeCategories = EVENT_CATEGORIES.filter(category =>
     category.toLowerCase().includes(vibeSearchTerm.toLowerCase())
@@ -180,7 +207,14 @@ export default function App() {
   const hasActiveFilters = filters.type !== 'all' || filters.surname !== '' || filters.sort !== 'newest';
 
   const handleLike = () => {
-    setVibeProgress(prev => ({ ...prev, likes: Math.min(prev.likes + 1, 3) }));
+    setVibeProgress(prev => {
+      const next = { ...prev, likes: Math.min(prev.likes + 1, 3) };
+      if (next.likes === 3 && prev.likes < 3) {
+        setLevelUpVisible(true);
+        setTimeout(() => setLevelUpVisible(false), 4000);
+      }
+      return next;
+    });
   };
 
   if (screen === 'auth') {
@@ -225,6 +259,25 @@ export default function App() {
                     <View style={styles.vipBadgeSidebar}><Text style={styles.vipTextSidebar}>VIP</Text></View>
                   </View>
                 </TouchableOpacity>
+
+                {/* Notification Bell */}
+                <TouchableOpacity style={styles.notiBell} onPress={() => setShowNotifications(true)}>
+                  <Text style={styles.notiBellIcon}>🔔</Text>
+                  <View style={styles.notiDot} />
+                </TouchableOpacity>
+
+                {/* Theme Switcher Quick Toggles */}
+                {!isMobile && (
+                  <View style={styles.themeToggles}>
+                    {['purple', 'gold', 'blue'].map(t => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[styles.themeToggle, { backgroundColor: THEMES[t].background, borderColor: activeTheme === t ? '#fff' : 'transparent' }]}
+                        onPress={() => setActiveTheme(t)}
+                      />
+                    ))}
+                  </View>
+                )}
                 <View style={styles.searchContainer}>
                   <Text style={styles.searchIcon}>🔍</Text>
                   <TextInput
@@ -242,6 +295,21 @@ export default function App() {
               </View>
 
               <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.taxonomySearchV2}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.taxonomyChipScroll}>
+                    {['All Vibes', ...EVENT_CATEGORIES.slice(0, 15)].map(tag => (
+                      <TouchableOpacity
+                        key={tag}
+                        style={[styles.taxonomyChip, (filters.type === tag || (tag === 'All Vibes' && filters.type === 'all')) && { backgroundColor: theme.accent, borderColor: theme.accent }]}
+                        onPress={() => setFilters({ ...filters, type: tag === 'All Vibes' ? 'all' : tag })}
+                      >
+                        <Text style={[styles.taxonomyChipText, (filters.type === tag || (tag === 'All Vibes' && filters.type === 'all')) && { color: '#fff' }]}>
+                          {tag === 'All Vibes' ? '🌈 All Vibes' : tag}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
                 <StoriesUI theme={theme} />
                 <DailyVibeCheck
                   progress={vibeProgress}
@@ -410,6 +478,18 @@ export default function App() {
             theme={theme}
           />
         )}
+
+        <NotificationCenter
+          visible={showNotifications}
+          onClose={() => setShowNotifications(false)}
+          theme={theme}
+        />
+
+        <LevelUpOverlay
+          visible={levelUpVisible}
+          onDismiss={() => setLevelUpVisible(false)}
+          theme={theme}
+        />
       </View>
 
       {/* Add Event Modal */}
@@ -621,6 +701,8 @@ export default function App() {
     </SafeAreaView>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -898,4 +980,28 @@ const styles = StyleSheet.create({
   activeFilterChip: { backgroundColor: '#a855f7', borderColor: '#a855f7' },
   filterChipText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
   filterScroll: { flexDirection: 'row' },
+
+  // New Social & Gamification Styles
+  notiBell: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  notiBellIcon: { fontSize: 20 },
+  notiDot: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ff4da6', borderWidth: 1, borderColor: '#310a5d' },
+
+  themeToggles: { flexDirection: 'row', gap: 8, marginRight: 20, alignItems: 'center' },
+  themeToggle: { width: 24, height: 24, borderRadius: 12, borderWidth: 2 },
+
+  levelUpBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
+
+  // Taxonomy Search V2
+  taxonomySearchV2: { paddingVertical: 15, paddingLeft: 10 },
+  taxonomyChipScroll: { flexGrow: 0 },
+  taxonomyChip: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    marginRight: 12,
+  },
+  taxonomyChipText: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 'bold' },
 });

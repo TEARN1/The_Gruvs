@@ -32,7 +32,7 @@ export function Sidebar({ activeScreen, onNavigate, onLogout, theme, isCollapsed
                         key={item.id}
                         style={[
                             styles.navItem,
-                            activeScreen === item.id && [styles.activeNavItem, { backgroundColor: '#a855f7' }],
+                            activeScreen === item.id && [styles.activeNavItem, { backgroundColor: theme.accent }],
                             item.special && styles.specialNavItem,
                             hoveredItem === item.id && styles.navItemHover
                         ]}
@@ -64,7 +64,7 @@ export function Sidebar({ activeScreen, onNavigate, onLogout, theme, isCollapsed
                 )}
 
                 <TouchableOpacity style={styles.profileIndicator} onPress={() => onNavigate('profile')}>
-                    <View style={[styles.dot, { backgroundColor: '#a855f7' }]} />
+                    <View style={[styles.dot, { backgroundColor: theme.accent }]} />
                     {!isCollapsed && <Text style={styles.profileIndicatorText}>Purple Haze</Text>}
                 </TouchableOpacity>
             </ScrollView>

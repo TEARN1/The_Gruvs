@@ -117,8 +117,8 @@ export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
             <View style={styles.vibeRow}>
                 <Text style={styles.vibeIcon}>🏷️</Text>
                 {vibes.map((vibe, idx) => (
-                    <View key={idx} style={[styles.vibeTag, idx === 0 && styles.activeVibeTag]}>
-                        <Text style={[styles.vibeTagText, idx === 0 && styles.activeVibeTagText]}>{vibe}</Text>
+                    <View key={idx} style={[styles.vibeTag, idx === 0 && [styles.activeVibeTag, { borderColor: theme.accent, backgroundColor: `${theme.accent}1A` }]]}>
+                        <Text style={[styles.vibeTagText, idx === 0 && [styles.activeVibeTagText, { color: theme.accent }]]}>{vibe}</Text>
                     </View>
                 ))}
             </View>
@@ -139,13 +139,13 @@ export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
                         <Text style={styles.metricText}>{post.engagement_metrics.reposts + (isReposted ? 1 : 0)}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.metricItem} onPress={() => setIsSaved(!isSaved)}>
-                        <Text style={[styles.metricIcon, isSaved && { color: '#a855f7' }]}>{isSaved ? '🔖' : '🏷️'}</Text>
+                        <Text style={[styles.metricIcon, isSaved && { color: theme.accent }]}>{isSaved ? '🔖' : '🏷️'}</Text>
                         <Text style={styles.metricText}>Save</Text>
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.actionButtons}>
-                    <TouchableOpacity style={styles.rsvpBtn} onPress={onRSVP}>
+                    <TouchableOpacity style={[styles.rsvpBtn, { backgroundColor: theme.accent }]} onPress={onRSVP}>
                         <Text style={styles.rsvpBtnText}>RSVP</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.buyBtn}>
@@ -158,10 +158,10 @@ export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
             <View style={styles.commentsSection}>
                 <Text style={styles.commentsTitle}>Top Comments</Text>
                 <View style={styles.comment}>
-                    <Text style={styles.commentAuthor}>Alex: <Text style={styles.commentText}>Hello, Can i come ?</Text></Text>
+                    <Text style={[styles.commentAuthor, { color: theme.accent }]}>Alex: <Text style={styles.commentText}>Hello, Can i come ?</Text></Text>
                     {/* Top Comment Highlight */}
-                    <View style={styles.topCommentBox}>
-                        <Text style={styles.topCommentLabel}>Top Comment</Text>
+                    <View style={[styles.topCommentBox, { borderLeftColor: theme.accent }]}>
+                        <Text style={[styles.topCommentLabel, { color: theme.accent }]}>Top Comment</Text>
                         <Text style={styles.topCommentText} numberOfLines={2}>
                             "Best rooftop vibe in JHB! Make sure to get there early for the sunset view. 🎷🌇"
                         </Text>
@@ -175,10 +175,10 @@ export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
 
                 {/* Inline Input or Recording */}
                 {isRecording ? (
-                    <View style={styles.recordingContainer}>
-                        <View style={styles.recordingDot} />
-                        <Text style={styles.recordingText}>Recording... {recordTime}s / 30s</Text>
-                        <TouchableOpacity style={styles.stopRecordingBtn} onPress={() => setIsRecording(false)}>
+                    <View style={[styles.recordingContainer, { backgroundColor: `${theme.red}1A`, borderColor: `${theme.red}33` }]}>
+                        <View style={[styles.recordingDot, { backgroundColor: theme.red }]} />
+                        <Text style={[styles.recordingText, { color: theme.red }]}>Recording... {recordTime}s / 30s</Text>
+                        <TouchableOpacity style={[styles.stopRecordingBtn, { backgroundColor: theme.red }]} onPress={() => setIsRecording(false)}>
                             <Text style={styles.stopIconText}>⏹</Text>
                         </TouchableOpacity>
                     </View>
@@ -193,7 +193,7 @@ export function EventCard({ post, theme, onPress, onLike, onRSVP }) {
                             <TouchableOpacity style={styles.inputActionBtn} onPress={() => setIsRecording(true)}>
                                 <Text style={styles.micIcon}>🎤</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.sendBtn}><Text>✈️</Text></TouchableOpacity>
+                            <TouchableOpacity style={[styles.sendBtn, { backgroundColor: theme.accent }]}><Text>✈️</Text></TouchableOpacity>
                         </View>
                     </View>
                 )}
@@ -261,8 +261,8 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.1)',
     },
     followingBtn: {
-        backgroundColor: '#a855f7',
-        borderColor: '#a855f7',
+        backgroundColor: theme.accent,
+        borderColor: theme.accent,
     },
     followBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
     hostMsgBtn: {
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     metricIcon: { color: 'rgba(255,255,255,0.4)', fontSize: 16 },
     metricText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 'bold' },
     actionButtons: { flexDirection: 'row', gap: 10 },
-    rsvpBtn: { backgroundColor: '#a855f7', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12 },
+    rsvpBtn: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12 },
     rsvpBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
     buyBtn: { backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     buyBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     },
     commentsTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 15 },
     comment: { marginBottom: 15 },
-    commentAuthor: { color: '#a855f7', fontWeight: 'bold', fontSize: 13 },
+    commentAuthor: { fontWeight: 'bold', fontSize: 13 },
     commentText: { color: 'rgba(255,255,255,0.8)', fontWeight: 'normal' },
     commentActions: { flexDirection: 'row', gap: 15, marginTop: 8 },
     commentActionText: { color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 'bold' },
@@ -365,9 +365,8 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 10,
         borderLeftWidth: 3,
-        borderLeftColor: '#a855f7',
     },
-    topCommentLabel: { color: '#a855f7', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 4 },
+    topCommentLabel: { fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 4 },
     topCommentText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontStyle: 'italic' },
 
     commentInputRow: { marginTop: 15 },
@@ -395,11 +394,9 @@ const styles = StyleSheet.create({
         width: 10,
         height: 10,
         borderRadius: 5,
-        backgroundColor: '#ef4444',
     },
     recordingText: {
         flex: 1,
-        color: '#ef4444',
         fontSize: 14,
         fontWeight: 'bold',
     },
@@ -407,7 +404,6 @@ const styles = StyleSheet.create({
         width: 35,
         height: 35,
         borderRadius: 10,
-        backgroundColor: '#ef4444',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -415,7 +411,7 @@ const styles = StyleSheet.create({
     inputActions: { flexDirection: 'row', gap: 10 },
     micIcon: { fontSize: 18, color: '#fff' },
     inputActionBtn: { width: 35, height: 35, justifyContent: 'center', alignItems: 'center', opacity: 0.8 },
-    sendBtn: { width: 35, height: 35, borderRadius: 10, backgroundColor: '#a855f7', justifyContent: 'center', alignItems: 'center' },
+    sendBtn: { width: 35, height: 35, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
     absBookmark: { position: 'absolute', top: 50, right: 65, width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
     absMenu: { position: 'absolute', top: 50, right: 20, width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
     absIcon: { color: '#fff', fontSize: 18 },

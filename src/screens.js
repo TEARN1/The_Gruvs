@@ -283,6 +283,9 @@ export function ExploreScreen({ theme, onNavigate }) {
                             {events.map(event => (
                                 <View key={event.id} style={[styles.eventRow, { width: width > 768 ? '48%' : '100%', marginBottom: 15 }]}>
                                     <View style={styles.eventThumb} />
+                                    <View style={[styles.vibeMatchBadge, { backgroundColor: `${theme.accent}33`, borderColor: `${theme.accent}66` }]}>
+                                        <Text style={[styles.vibeMatchScore, { color: theme.accent }]}>{85 + parseInt(event.id)}% Match</Text>
+                                    </View>
                                     <View style={styles.eventInfo}>
                                         <Text style={styles.eventName}>{event.title}</Text>
                                         <Text style={styles.eventMeta}>{event.date} • {event.loc}</Text>
@@ -294,11 +297,11 @@ export function ExploreScreen({ theme, onNavigate }) {
                     ) : (
                         <View style={styles.mapContainer}>
                             <TouchableOpacity activeOpacity={1} style={styles.mapMock} onPress={() => setSelectedEvent(null)}>
-                                <TouchableOpacity style={[styles.mapPin, { top: 50, left: 150 }]} onPress={() => setSelectedEvent(events[0])} />
-                                <TouchableOpacity style={[styles.mapPin, { top: 120, left: 80 }]} onPress={() => setSelectedEvent(events[1])} />
-                                <TouchableOpacity style={[styles.mapPin, { top: 180, left: 220 }, selectedEvent?.id === '3' && styles.activeMapPin]} onPress={() => setSelectedEvent(events[2])} />
-                                <TouchableOpacity style={[styles.mapPin, { top: 250, left: 130 }]} onPress={() => setSelectedEvent(events[3])} />
-                                <TouchableOpacity style={[styles.mapPin, { top: 60, left: 280 }]} onPress={() => setSelectedEvent(events[4])} />
+                                <TouchableOpacity style={[styles.mapPin, { top: 50, left: 150 }, selectedEvent?.id === '1' && { backgroundColor: theme.accent }]} onPress={() => setSelectedEvent(events[0])} />
+                                <TouchableOpacity style={[styles.mapPin, { top: 120, left: 80 }, selectedEvent?.id === '2' && { backgroundColor: theme.accent }]} onPress={() => setSelectedEvent(events[1])} />
+                                <TouchableOpacity style={[styles.mapPin, { top: 180, left: 220 }, selectedEvent?.id === '3' && { backgroundColor: theme.accent }]} onPress={() => setSelectedEvent(events[2])} />
+                                <TouchableOpacity style={[styles.mapPin, { top: 250, left: 130 }, selectedEvent?.id === '4' && { backgroundColor: theme.accent }]} onPress={() => setSelectedEvent(events[3])} />
+                                <TouchableOpacity style={[styles.mapPin, { top: 60, left: 280 }, selectedEvent?.id === '5' && { backgroundColor: theme.accent }]} onPress={() => setSelectedEvent(events[4])} />
                             </TouchableOpacity>
 
                             {selectedEvent && (
@@ -474,16 +477,50 @@ export function LeaderboardScreen({ onNavigate, theme }) {
 }
 
 export function MessagesScreen({ onNavigate, theme }) {
+    const [selectedChat, setSelectedChat] = useState(null);
     const chats = [
-        { id: '1', name: 'Sarah', lastMsg: 'See you at the Jazz night!', time: '10m', unread: 2 },
-        { id: '2', name: 'Vibe Central', lastMsg: 'Your RSVP is confirmed.', time: '2h', unread: 0 },
-        { id: '3', name: 'Gamer Hub', lastMsg: 'New drop alert! 🎮', time: '5h', unread: 1 },
+        { id: '1', name: 'Sarah', lastMsg: 'See you at the Jazz night!', time: '10m', unread: 2, status: 'At Jazz Roof 🎷' },
+        { id: '2', name: 'Vibe Central', lastMsg: 'Your RSVP is confirmed.', time: '2h', unread: 0, status: 'Official Bot 🤖' },
+        { id: '3', name: 'Gamer Hub', lastMsg: 'New drop alert! 🎮', time: '5h', unread: 1, status: 'Gaming Mode 🕹️' },
     ];
+
+    if (selectedChat) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: theme.sidebarBg }]}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => setSelectedChat(null)}><Text style={styles.backIcon}>←</Text></TouchableOpacity>
+                    <View style={styles.chatHeaderInfo}>
+                        <Text style={styles.headerTitle}>{selectedChat.name}</Text>
+                        <Text style={styles.chatStatusSub}>{selectedChat.status}</Text>
+                    </View>
+                    <View style={{ width: 40 }} />
+                </View>
+                <ScrollView contentContainerStyle={styles.messageBubbleContainer}>
+                    <View style={styles.msgBubbleLeft}>
+                        <Text style={styles.msgText}>Hey! Are you heading to the rooftop tonight?</Text>
+                        <Text style={styles.msgTime}>18:45</Text>
+                    </View>
+                    <View style={[styles.msgBubbleRight, { backgroundColor: theme.accent }]}>
+                        <Text style={[styles.msgText, { color: '#fff' }]}>Definitely! Just finishing up some work first.</Text>
+                        <Text style={[styles.msgTime, { color: 'rgba(255,255,255,0.6)' }]}>18:50</Text>
+                    </View>
+                </ScrollView>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.chatInputRow}>
+                    <TextInput placeholder="Type a vibe..." placeholderTextColor="rgba(255,255,255,0.4)" style={styles.chatInput} />
+                    <TouchableOpacity style={[styles.sendCircle, { backgroundColor: theme.accent }]}>
+                        <Text>↗️</Text>
+                    </TouchableOpacity>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.sidebarBg }]}>
             <View style={styles.header}>
+                <TouchableOpacity onPress={() => onNavigate('feed')}><Text style={styles.backIcon}>←</Text></TouchableOpacity>
                 <Text style={styles.headerTitle}>MESSAGES</Text>
+                <View style={{ width: 40 }} />
             </View>
             <View style={styles.searchBar}>
                 <Text>🔍</Text>
@@ -491,16 +528,16 @@ export function MessagesScreen({ onNavigate, theme }) {
             </View>
             <ScrollView style={styles.chatList}>
                 {chats.map(chat => (
-                    <TouchableOpacity key={chat.id} style={styles.chatItem}>
+                    <TouchableOpacity key={chat.id} style={styles.chatItem} onPress={() => setSelectedChat(chat)}>
                         <View style={styles.itemAvatarSmall} />
                         <View style={styles.chatInfo}>
-                            <Text style={styles.chatName}>{chat.name}</Text>
+                            <View style={styles.chatRowTop}>
+                                <Text style={styles.chatName}>{chat.name}</Text>
+                                <Text style={styles.chatTime}>{chat.time}</Text>
+                            </View>
                             <Text style={styles.chatMsg} numberOfLines={1}>{chat.lastMsg}</Text>
                         </View>
-                        <View style={styles.chatMeta}>
-                            <Text style={styles.chatTime}>{chat.time}</Text>
-                            {chat.unread > 0 && <View style={styles.unreadBadge}><Text style={styles.unreadText}>{chat.unread}</Text></View>}
-                        </View>
+                        {chat.unread > 0 && <View style={[styles.unreadBadge, { backgroundColor: theme.accent }]}><Text style={styles.unreadText}>{chat.unread}</Text></View>}
                     </TouchableOpacity>
                 ))}
             </ScrollView>
@@ -552,26 +589,42 @@ export function DropsScreen({ onNavigate, theme }) {
 }
 
 export function HappeningsScreen({ theme, onNavigate }) {
+    const pulseEvents = [
+        { id: '1', time: 'LIVE', title: 'Main Stage: Black Coffee', status: 'DJ set started 10m ago', color: '#ff4da6' },
+        { id: '2', time: '20:00', title: 'VIP Lounge: Mixology Workshop', status: 'Starts in 25m', color: theme.accent },
+        { id: '3', time: '21:30', title: 'Rooftop: Fireworks Display', status: 'Scheduled', color: '#ffcc00' },
+        { id: '4', time: '22:00', title: 'Afterparty: Deep House Sessions', status: 'Tickets selling fast', color: '#00f2ff' },
+    ];
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.sidebarBg }]}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>HAPPENINGS</Text>
+                <TouchableOpacity onPress={() => onNavigate('feed')}><Text style={styles.backIcon}>←</Text></TouchableOpacity>
+                <Text style={styles.headerTitle}>PULSE TIMELINE</Text>
+                <View style={{ width: 40 }} />
             </View>
-            <ScrollView style={styles.scrollContent}>
-                <Text style={styles.sectionTitle}>What's Buzzing</Text>
-                <View style={styles.eventRow}>
-                    <View style={styles.eventThumb} />
-                    <View style={styles.eventInfo}>
-                        <Text style={styles.eventName}>Secret Garden Party</Text>
-                        <Text style={styles.eventMeta}>Trending in Joburg • 2.4k buzz</Text>
+            <ScrollView style={styles.scrollContent} contentContainerStyle={{ padding: 25 }}>
+                <Text style={styles.sectionTitle}>Tonight's Flow</Text>
+                {pulseEvents.map((item, idx) => (
+                    <View key={item.id} style={styles.pulseItem}>
+                        <View style={styles.pulseTimeCol}>
+                            <Text style={[styles.pulseTime, item.time === 'LIVE' && { color: '#ef4444', fontWeight: '900' }]}>{item.time}</Text>
+                            {idx !== pulseEvents.length - 1 && <View style={styles.pulseLinkLine} />}
+                        </View>
+                        <TouchableOpacity style={[styles.pulseCard, { borderLeftColor: item.color }]}>
+                            <Text style={styles.pulseTitle}>{item.title}</Text>
+                            <Text style={styles.pulseStatus}>{item.status}</Text>
+                            {item.time === 'LIVE' && <View style={styles.liveIndicator} />}
+                        </TouchableOpacity>
                     </View>
-                </View>
+                ))}
             </ScrollView>
         </SafeAreaView>
     );
 }
 
 export function WalletScreen({ theme, onNavigate }) {
+    const [mode, setMode] = useState('tickets'); // 'tickets' or 'scan'
     const tickets = [
         { id: '1', event: 'Joburg Rooftop Jazz', date: 'March 15, 2026', time: '19:00', code: 'GRV-JAZZ-X9' },
         { id: '2', event: 'Cape Town Gaming Expo', date: 'April 02, 2026', time: '10:00', code: 'GRV-GAME-L2' },
@@ -585,29 +638,56 @@ export function WalletScreen({ theme, onNavigate }) {
                 <View style={{ width: 40 }} />
             </View>
 
-            <View style={styles.balanceCard}>
-                <Text style={styles.balanceLabel}>Total Vibe Points</Text>
-                <Text style={styles.balanceValue}>12,450</Text>
-                <Text style={styles.balanceEth}>≈ 0.45 ETH</Text>
+            <View style={styles.walletTabs}>
+                <TouchableOpacity style={[styles.walletTab, mode === 'tickets' && styles.activeWalletTab, mode === 'tickets' && { borderBottomColor: theme.accent }]} onPress={() => setMode('tickets')}>
+                    <Text style={[styles.walletTabText, mode === 'tickets' && { color: theme.accent }]}>TICKETS</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.walletTab, mode === 'scan' && styles.activeWalletTab, mode === 'scan' && { borderBottomColor: theme.accent }]} onPress={() => setMode('scan')}>
+                    <Text style={[styles.walletTabText, mode === 'scan' && { color: theme.accent }]}>SCANNER</Text>
+                </TouchableOpacity>
             </View>
 
-            <Text style={styles.ticketSectionTitle}>My Tickets</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ticketScroll}>
-                {tickets.map(ticket => (
-                    <View key={ticket.id} style={styles.ticketCard}>
-                        <View style={styles.ticketMain}>
-                            <Text style={styles.ticketEvent}>{ticket.event}</Text>
-                            <Text style={styles.ticketDate}>{ticket.date} • {ticket.time}</Text>
-                        </View>
-                        <View style={styles.qrPlaceholder}>
-                            <View style={styles.qrDotContainer}>
-                                {[...Array(16)].map((_, i) => <View key={i} style={styles.qrDot} />)}
-                            </View>
-                            <Text style={styles.qrCodeText}>{ticket.code}</Text>
-                        </View>
+            {mode === 'tickets' ? (
+                <>
+                    <View style={styles.balanceCard}>
+                        <Text style={styles.balanceLabel}>Total Vibe Points</Text>
+                        <Text style={styles.balanceValue}>12,450</Text>
+                        <Text style={styles.balanceEth}>≈ 0.45 ETH</Text>
                     </View>
-                ))}
-            </ScrollView>
+
+                    <Text style={styles.ticketSectionTitle}>My Tickets</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ticketScroll}>
+                        {tickets.map(ticket => (
+                            <View key={ticket.id} style={styles.ticketCard}>
+                                <View style={styles.ticketMain}>
+                                    <Text style={styles.ticketEvent}>{ticket.event}</Text>
+                                    <Text style={styles.ticketDate}>{ticket.date} • {ticket.time}</Text>
+                                </View>
+                                <View style={styles.qrPlaceholder}>
+                                    <View style={styles.qrDotContainer}>
+                                        {[...Array(16)].map((_, i) => <View key={i} style={styles.qrDot} />)}
+                                    </View>
+                                    <Text style={styles.qrCodeText}>{ticket.code}</Text>
+                                </View>
+                            </View>
+                        ))}
+                    </ScrollView>
+                </>
+            ) : (
+                <View style={styles.scannerContainer}>
+                    <View style={styles.scannerWindow}>
+                        <View style={styles.scannerCornerTL} />
+                        <View style={styles.scannerCornerTR} />
+                        <View style={styles.scannerCornerBL} />
+                        <View style={styles.scannerCornerBR} />
+                        <View style={[styles.scannerLine, { backgroundColor: theme.accent }]} />
+                        <Text style={styles.scannerInstructions}>Align QR code within the frame</Text>
+                    </View>
+                    <TouchableOpacity style={[styles.bigBtn, { backgroundColor: theme.accent, marginTop: 40 }]} onPress={() => Alert.alert('Simulated', 'Scanning ticket... VIP access granted!')}>
+                        <Text style={styles.bigBtnText}>SIMULATE SCAN</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
@@ -664,6 +744,9 @@ export function CommunityScreen({ theme, onNavigate }) {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, height: 80, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    headerTitle: { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: 2 },
+    backIcon: { color: '#fff', fontSize: 24, paddingRight: 10 },
     bannerContainer: { width: '100%', height: 200, position: 'relative' },
     bannerPlaceholder: { width: '100%', height: '100%', backgroundColor: '#1e0a35' },
     userFollowedBadge: {
@@ -1095,4 +1178,47 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     tribeActionText: { color: '#fff', fontWeight: 'bold' },
+
+    // Pulse Timeline Styles
+    pulseItem: { flexDirection: 'row', marginBottom: 25, minHeight: 80 },
+    pulseTimeCol: { width: 60, alignItems: 'center', paddingTop: 10 },
+    pulseTime: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 'bold' },
+    pulseLinkLine: { width: 2, flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 10, borderRadius: 1 },
+    pulseCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: 18, borderLeftWidth: 4, marginLeft: 15, position: 'relative' },
+    pulseTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 5 },
+    pulseStatus: { color: 'rgba(255,255,255,0.5)', fontSize: 13 },
+    liveIndicator: { position: 'absolute', top: 15, right: 15, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' },
+
+    // Messenger++ Styles
+    chatHeaderInfo: { flex: 1, alignItems: 'center' },
+    chatStatusSub: { color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 },
+    messageBubbleContainer: { padding: 20, gap: 15 },
+    msgBubbleLeft: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 20, borderTopLeftRadius: 5, maxWidth: '80%' },
+    msgBubbleRight: { alignSelf: 'flex-end', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 20, borderTopRightRadius: 5, maxWidth: '80%' },
+    msgText: { color: 'rgba(255,255,255,0.8)', fontSize: 14, lineHeight: 20 },
+    msgTime: { color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 4, alignSelf: 'flex-end' },
+    chatInputRow: { flexDirection: 'row', padding: 15, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
+    chatInput: { flex: 1, color: '#fff', fontSize: 14, paddingHorizontal: 20, height: 50, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 25 },
+    sendCircle: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginLeft: 12 },
+    chatRowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+    chatTime: { color: 'rgba(255,255,255,0.3)', fontSize: 10 },
+
+    // Wallet Tabs
+    walletTabs: { flexDirection: 'row', paddingHorizontal: 25, marginBottom: 20 },
+    walletTab: { paddingBottom: 10, marginRight: 25, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    walletTabText: { color: 'rgba(255,255,255,0.4)', fontWeight: 'bold', fontSize: 13 },
+
+    // Scanner Styles
+    scannerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 100 },
+    scannerWindow: { width: 280, height: 280, borderRadius: 30, backgroundColor: 'rgba(0,0,0,0.5)', position: 'relative', justifyContent: 'center', alignItems: 'center' },
+    scannerCornerTL: { position: 'absolute', top: 0, left: 0, width: 40, height: 40, borderTopWidth: 4, borderLeftWidth: 4, borderColor: '#fff' },
+    scannerCornerTR: { position: 'absolute', top: 0, right: 0, width: 40, height: 40, borderTopWidth: 4, borderRightWidth: 4, borderColor: '#fff' },
+    scannerCornerBL: { position: 'absolute', bottom: 0, left: 0, width: 40, height: 40, borderBottomWidth: 4, borderLeftWidth: 4, borderColor: '#fff' },
+    scannerCornerBR: { position: 'absolute', bottom: 0, right: 0, width: 40, height: 40, borderBottomWidth: 4, borderRightWidth: 4, borderColor: '#fff' },
+    scannerLine: { width: '80%', height: 2, borderRadius: 1 },
+    scannerInstructions: { position: 'absolute', bottom: -40, color: 'rgba(255,255,255,0.5)', fontSize: 13 },
+
+    // Vibe Match Styles
+    vibeMatchBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(168, 85, 247, 0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(168, 85, 247, 0.4)' },
+    vibeMatchScore: { color: '#a855f7', fontSize: 10, fontWeight: 'bold' },
 });
