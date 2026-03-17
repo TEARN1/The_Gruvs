@@ -1,0 +1,1 @@
+Place icon.png, splash.png, adaptive-icon.png, favicon.png and any other static assets here. These files are referenced in `app.json` but are not included yet; add real image files before building for production.

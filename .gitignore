@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -41,3 +42,18 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+=======
+node_modules
+web-build
+dist
+.expo
+.vscode
+.env
+.env.local
+.DS_Store
+android
+ios
+.vercel
+.vercel
+.env*.local
+>>>>>>> dc6fad18cb2997cf6fa06ef7f9459ec8f7919837
