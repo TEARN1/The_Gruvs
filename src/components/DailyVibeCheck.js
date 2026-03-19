@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 
 export function DailyVibeCheck({ progress, theme, onViewLeaderboard, onQuestClick }) {
     const quests = [
@@ -34,7 +34,7 @@ export function DailyVibeCheck({ progress, theme, onViewLeaderboard, onQuestClic
                                     {
                                         width: `${Math.min((quest.current / quest.total) * 100, 100)}%`,
                                         backgroundColor: theme.accent,
-                                        boxShadow: `0px 0px 10px ${theme.accent}`
+                                        ...(Platform.OS === 'web' && { boxShadow: `0px 0px 10px ${theme.accent}` })
                                     }
                                 ]}
                             />

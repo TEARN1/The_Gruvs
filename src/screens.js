@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView, useWindowDimensions, Alert } from 'react-native';
+import { useStore } from './state/useStore';
+import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView, useWindowDimensions, Alert, ImageBackground, Switch } from 'react-native';
 import { GENDERS, getTheme, INTERESTS } from './data';
 import * as ImagePicker from 'expo-image-picker';
 import { GlowButton } from './components';
@@ -22,74 +23,82 @@ export function AuthScreen({ onLogin, onSignup }) {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: '#f0f2f5' }]}>
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.center}>
-                <ScrollView contentContainerStyle={styles.scroll}>
-                    <Text style={[styles.logo, { color: previewAcc }]}>THE GRUVS</Text>
-                    <Text style={styles.tagline}>ADVANCED NETWORK</Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
+            <ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819' }} blurRadius={20} style={{ flex: 1, justifyContent: 'center' }}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.center}>
+                    <ScrollView contentContainerStyle={styles.scroll}>
+                        <View style={styles.glassContainerAuth}>
+                            <Text style={[styles.logo, { color: previewAcc }]}>THE GRUVS</Text>
+                            <Text style={styles.tagline}>ADVANCED NETWORK</Text>
 
-                    <View style={[styles.card, { borderColor: previewAcc, boxShadow: `0px 8px 30px rgba(0,0,0,0.08)` }]}>
-                        <Text style={styles.title}>{isSignup ? 'Create Account' : 'Welcome Back'}</Text>
+                            <Text style={styles.authTitle}>{isSignup ? 'Create Account' : 'Welcome Back'}</Text>
 
-                        <TextInput style={styles.input} placeholder="Username" value={form.username} onChangeText={t => setForm(p => ({ ...p, username: t }))} />
-                        {isSignup && <TextInput style={styles.input} placeholder="Email" value={form.email} onChangeText={t => setForm(p => ({ ...p, email: t }))} keyboardType="email-address" />}
-                        <TextInput style={styles.input} placeholder="Password" secureTextEntry value={form.password} onChangeText={t => setForm(p => ({ ...p, password: t }))} />
-                        {isSignup && <TextInput style={styles.input} placeholder="Confirm Password" secureTextEntry value={form.confirm} onChangeText={t => setForm(p => ({ ...p, confirm: t }))} />}
+                            <TextInput style={styles.glassInput} placeholder="Username" placeholderTextColor="rgba(255,255,255,0.6)" value={form.username} onChangeText={t => setForm(p => ({ ...p, username: t }))} />
+                            {isSignup && <TextInput style={styles.glassInput} placeholder="Email" placeholderTextColor="rgba(255,255,255,0.6)" value={form.email} onChangeText={t => setForm(p => ({ ...p, email: t }))} keyboardType="email-address" />}
+                            <TextInput style={styles.glassInput} placeholder="Password" placeholderTextColor="rgba(255,255,255,0.6)" secureTextEntry value={form.password} onChangeText={t => setForm(p => ({ ...p, password: t }))} />
+                            {isSignup && <TextInput style={styles.glassInput} placeholder="Confirm Password" placeholderTextColor="rgba(255,255,255,0.6)" secureTextEntry value={form.confirm} onChangeText={t => setForm(p => ({ ...p, confirm: t }))} />}
 
-                        {isSignup && (
-                            <View style={styles.gap}>
-                                <Text style={styles.label}>Select Gender</Text>
-                                <View style={styles.row}>
-                                    {GENDERS.map(g => (
-                                        <TouchableOpacity key={g.value} onPress={() => setForm(p => ({ ...p, gender: g.value }))}
-                                            style={[styles.pill, { borderColor: g.accent, backgroundColor: form.gender === g.value ? g.accent : 'transparent' }]}>
-                                            <Text style={{ color: form.gender === g.value ? '#fff' : g.accent, fontWeight: '700', fontSize: 13 }}>{g.icon} {g.label}</Text>
-                                        </TouchableOpacity>
-                                    ))}
+                            {isSignup && (
+                                <View style={styles.gap}>
+                                    <Text style={styles.glassLabel}>Select Gender</Text>
+                                    <View style={styles.row}>
+                                        {GENDERS.map(g => (
+                                            <TouchableOpacity key={g.value} onPress={() => setForm(p => ({ ...p, gender: g.value }))}
+                                                style={[styles.glassPill, { borderColor: form.gender === g.value ? g.accent : 'rgba(255,255,255,0.3)', backgroundColor: form.gender === g.value ? g.accent : 'transparent' }]}>
+                                                <Text style={{ color: form.gender === g.value ? '#fff' : 'rgba(255,255,255,0.7)', fontWeight: '700', fontSize: 13 }}>{g.icon} {g.label}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+
+                                    <Text style={[styles.glassLabel, { marginTop: 15 }]}>What are your interests?</Text>
+                                    <View style={styles.row}>
+                                        {INTERESTS.map(int => (
+                                            <TouchableOpacity key={int.id} onPress={() => toggleInterest(int.id)}
+                                                style={[styles.glassPill, { borderColor: interests.includes(int.id) ? int.color : 'rgba(255,255,255,0.3)', backgroundColor: interests.includes(int.id) ? int.color : 'transparent' }]}>
+                                                <Text style={{ color: interests.includes(int.id) ? '#fff' : 'rgba(255,255,255,0.7)', fontWeight: '700', fontSize: 12 }}>{int.icon} {int.label}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
                                 </View>
+                            )}
 
-                                <Text style={[styles.label, { marginTop: 15 }]}>What are your interests? (Helps personalize feed)</Text>
-                                <View style={styles.row}>
-                                    {INTERESTS.map(int => (
-                                        <TouchableOpacity key={int.id} onPress={() => toggleInterest(int.id)}
-                                            style={[styles.pill, { borderColor: int.color, backgroundColor: interests.includes(int.id) ? int.color : 'transparent' }]}>
-                                            <Text style={{ color: interests.includes(int.id) ? '#fff' : int.color, fontWeight: '700', fontSize: 12 }}>{int.icon} {int.label}</Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </View>
-                        )}
+                            <TouchableOpacity style={[styles.glassJoinBtn, { backgroundColor: previewAcc }]} onPress={handleSubmit}>
+                                <Text style={styles.glassJoinBtnText}>{isSignup ? 'SIGN UP' : 'LOGIN'}</Text>
+                            </TouchableOpacity>
 
-                        <GlowButton themeAcc={previewAcc} style={[styles.btn, { backgroundColor: previewAcc }]} onPress={handleSubmit}>
-                            <Text style={styles.btnText}>{isSignup ? 'SIGN UP' : 'LOGIN'}</Text>
-                        </GlowButton>
-
-                        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => setMode(isSignup ? 'login' : 'signup')}>
-                            <Text style={styles.switchText}>
-                                {isSignup ? 'Already have an account? ' : "Don't have an account? "}
-                                <Text style={{ color: previewAcc, fontWeight: '800' }}>{isSignup ? 'LOGIN' : 'SIGN UP'}</Text>
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                            <TouchableOpacity style={{ marginTop: 16 }} onPress={() => setMode(isSignup ? 'login' : 'signup')}>
+                                <Text style={styles.switchText}>
+                                    {isSignup ? 'Already have an account? ' : "Don't have an account? "}
+                                    <Text style={{ color: previewAcc, fontWeight: '800' }}>{isSignup ? 'LOGIN' : 'SIGN UP'}</Text>
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </ImageBackground>
         </SafeAreaView>
     );
 }
 
 export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
     const [activeTab, setActiveTab] = useState('Overview');
+    const [ghostMode, setGhostMode] = useState(false);
+    
+    // Require useStore lazily to avoid circular dependencies if any, or just import at top. Let's assume it's imported via useStore hook or passed in. 
+    // We can use the Zustand store directly.
+    const store = useStore();
 
     const stats = [
-        { label: 'Points', value: '0' },
-        { label: 'Followers', value: '1' },
-        { label: 'Following', value: '0' },
-        { label: 'Events', value: '0' },
+        { label: 'Points', value: '12,450' },
+        { label: 'Followers', value: '3,210' },
+        { label: 'Following', value: store.followedUsers?.length || 0 },
+        { label: 'Events Saved', value: store.savedPosts?.length || 0 },
     ];
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-            <View style={styles.detailHeader}>
+            <ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819' }} blurRadius={20} style={{ flex: 1 }}>
+            <View style={[styles.detailHeader, { borderBottomColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(0,0,0,0.3)' }]}>
                 <TouchableOpacity onPress={onBack} style={styles.backBtn}>
                     <Text style={styles.backIcon}>‹</Text>
                 </TouchableOpacity>
@@ -99,53 +108,44 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
             <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
                 {/* Cover Image & Avatar */}
                 <View style={styles.bannerContainer}>
-                    <View style={styles.bannerPlaceholder} />
+                    <ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819' }} style={styles.bannerPlaceholder} />
                     <View style={styles.userFollowedBadge}>
-                        <Text style={styles.followedBadgeText}>✓ User followed</Text>
+                        <Text style={styles.followedBadgeText}>✓ Top Creator</Text>
                     </View>
                 </View>
 
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarWrapper}>
                         <View style={[styles.avatarCircle, { borderColor: theme.acc }]}>
-                            <Text style={styles.avatarText}>{user?.name?.[0]}</Text>
+                            <Text style={styles.avatarText}>{user?.name?.[0] || 'V'}</Text>
                         </View>
                         <View style={styles.levelBadge}>
-                            <Text style={styles.levelText}>Lvl 1</Text>
+                            <Text style={styles.levelText}>PRO</Text>
                         </View>
                         <View style={styles.statusDot} />
                     </View>
 
                     <View style={styles.headerInfo}>
                         <View style={styles.nameRow}>
-                            <Text style={styles.profileName}>{user?.name} Hub Global</Text>
+                            <Text style={styles.profileName}>{user?.name} Global</Text>
                             <View style={styles.verifiedIcon}><Text style={{ color: '#fff', fontSize: 10 }}>@</Text></View>
                         </View>
 
                         <View style={styles.levelProgressContainer}>
-                            <Text style={styles.levelProgressText}>Level 1</Text>
-                            <Text style={styles.xpText}>/ 100 XP</Text>
+                            <Text style={styles.levelProgressText}>Level 10</Text>
+                            <Text style={styles.xpText}>12.4k / 15k XP</Text>
                         </View>
                         <View style={styles.progressBar}>
-                            <View style={[styles.progressFill, { backgroundColor: theme.acc, width: '40%' }]} />
+                            <View style={[styles.progressFill, { backgroundColor: theme.acc, width: '80%' }]} />
                         </View>
-                    </View>
-
-                    <View style={styles.headerActions}>
-                        <TouchableOpacity style={styles.msgIconBtn}>
-                            <Text style={styles.msgIcon}>💬</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.followBtn, { backgroundColor: '#fff' }]}>
-                            <Text style={styles.followBtnText}>Following</Text>
-                        </TouchableOpacity>
                     </View>
                 </View>
 
                 <View style={styles.bioSection}>
-                    <Text style={styles.bioText}>No bio yet.</Text>
+                    <Text style={styles.bioText}>Traveling the world. Curating the best frequencies.</Text>
                     <View style={styles.locationRow}>
                         <Text style={styles.locIcon}>📍</Text>
-                        <Text style={styles.webLink}>🔗 website.com</Text>
+                        <Text style={styles.webLink}>🔗 thegruvs.com</Text>
                     </View>
                 </View>
 
@@ -157,6 +157,25 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
                         </View>
                     ))}
                 </View>
+                
+                {/* Ghost Mode Toggle */}
+                <View style={[styles.statsGrid, { marginTop: 0, justifyContent: 'space-between', alignItems: 'center' }]}>
+                    <View>
+                        <Text style={[styles.statValue, { color: theme.acc, fontSize: 18, fontWeight: 'bold' }]}>Ghost Mode</Text>
+                        <Text style={[styles.statLabel, { color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 4 }]}>Hide location from the global map</Text>
+                    </View>
+                    <Switch
+                        value={ghostMode}
+                        onValueChange={setGhostMode}
+                        trackColor={{ false: 'rgba(255,255,255,0.2)', true: theme.acc }}
+                        thumbColor={'#fff'}
+                    />
+                </View>
+
+                {/* Log out Button */}
+                <TouchableOpacity style={[styles.statsGrid, { marginTop: 0, justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)' }]} onPress={onLogout}>
+                    <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: 'bold' }}>Sign Out</Text>
+                </TouchableOpacity>
 
                 {/* Tabs */}
                 <View style={styles.tabsContainer}>
@@ -175,7 +194,7 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
                     <Text style={styles.suggestionsTitle}>👥 People You Might Know</Text>
                 </View>
             </ScrollView>
-
+            </ImageBackground>
         </SafeAreaView>
     );
 }
@@ -1221,4 +1240,55 @@ const styles = StyleSheet.create({
     // Vibe Match Styles
     vibeMatchBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(168, 85, 247, 0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(168, 85, 247, 0.4)' },
     vibeMatchScore: { color: '#a855f7', fontSize: 10, fontWeight: 'bold' },
+
+    glassContainerAuth: {
+        width: '100%',
+        maxWidth: 400,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        padding: 30,
+        borderRadius: 30,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 10,
+        marginVertical: 40,
+        alignSelf: 'center',
+    },
+    authTitle: { color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 20, marginTop: 10 },
+    glassInput: {
+        width: '100%',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 15,
+        padding: 15,
+        marginBottom: 15,
+        color: '#fff',
+        fontSize: 16,
+    },
+    glassLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600', marginBottom: 10, alignSelf: 'flex-start' },
+    glassPill: {
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        borderRadius: 20,
+        borderWidth: 1,
+        marginRight: 10,
+        marginBottom: 10,
+    },
+    glassJoinBtn: {
+        width: '100%',
+        paddingVertical: 18,
+        borderRadius: 20,
+        alignItems: 'center',
+        marginTop: 20,
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 8,
+    },
+    glassJoinBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

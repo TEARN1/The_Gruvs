@@ -23,104 +23,88 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const {
         q = '', category = 'All', sortBy = 'created_at', limit = 12,
-        cursor, lat, lng, radius = 50000,
+        cursor, lat, lng, radius = 10000, // Default 10km
         userId, networkType = 'public', interests = ''
       } = req.query;
 
       let query = supabase.from('events').select('*');
 
-      // 1. Text Search & 88. Vector Search Readiness
-      if (q) query = query.or(`content->>title.ilike.%${q}%,content->>text.ilike.%${q}%,content->>slug.ilike.%${q}%`);
+      // 1. Text Search
+      if (q) query = query.or(`content->>title.ilike.%${q}%,content->>text.ilike.%${q}%`);
 
-      // 2. Taxonomy & Interest Filtering
+      // 2. Taxonomy Filtering
       if (category && category !== 'All') query = query.eq('content->>category', category);
-      if (interests) query = query.in('content->>category', interests.split(',').map(i => i.trim()));
 
-      // 29. Network Privacy Moat
-      if (networkType === 'circle') {
-        if (userId) query = query.eq('owner_id', userId);
-        else return res.status(200).json([]);
-      } else {
-        query = query.eq('content->>network_type', 'public');
+      // 3. Privacy & Ghost Mode (Exclude private users from map discovery)
+      // Note: This assumes a join or a subquery if we were using a more complex schema, 
+      // but for simplicity, we check the owner's privacy status if possible.
+      // For now, we filter by networkType.
+      query = query.eq('content->>network_type', networkType);
+
+      // 4. POSTGIS RADAR (Adjustable Radius)
+      if (lat && lng) {
+        query = query.filter('coords', 'st_dwithin', `POINT(${lng} ${lat}),${radius}`);
       }
 
-      // 3. KEYSET PAGINATION (O(log N) Performance)
-      if (cursor) {
-        if (sortBy === 'trending') query = query.lt('engagement_metrics->heat_index', parseFloat(cursor));
-        else query = query.lt('created_at', cursor);
-      }
-
-      // 4. POSTGIS RADAR
-      if (lat && lng) query = query.filter('coords', 'st_dwithin', `POINT(${lng} ${lat}),${radius}`);
-
-      // 8. HEAT DECAY SORTING (Viral Velocity)
+      // 5. PRIORITY & HEAT SORTING
+      // Paid events always come first (priority_score), then based on sortBy
       if (sortBy === 'trending') {
-        query = query.order('engagement_metrics->>heat_index', { ascending: false });
+        query = query.order('is_paid', { ascending: false })
+                     .order('engagement_metrics->>heat_index', { ascending: false });
       } else {
-        query = query.order('created_at', { ascending: false });
+        query = query.order('is_paid', { ascending: false })
+                     .order('created_at', { ascending: false });
+      }
+
+      // 6. KEYSET PAGINATION
+      if (cursor) {
+        query = query.lt('created_at', cursor);
       }
 
       query = query.limit(Number(limit));
       const { data, error } = await query;
       if (error) throw error;
 
-      // 49. EVENT TIMELINE PHASES & 60. SCARCITY ENGINE
       const enrichedData = (data || []).map(event => {
-        const now = new Date();
-        const eventTime = new Date(event.content?.dateTime || event.created_at);
-        const hoursUntil = (eventTime - now) / (1000 * 60 * 60);
-
         const rsvpCount = Object.keys(event.engagement_metrics?.rsvps || {}).length;
-        const capacity = event.content?.max_guests || 999999;
-
+        const capacity = event.content?.max_guests || 999; 
         return {
           ...event,
-          context: {
-            phase: hoursUntil <= 2 && hoursUntil > 0 ? 'check-in' : hoursUntil <= 0 && hoursUntil > -4 ? 'live' : hoursUntil <= -4 ? 'recap' : 'upcoming',
-            user_region: userRegion,
-            user_city: userCity,
-            is_surging: (event.engagement_metrics?.heat_index > 100),
-            scarcity_alert: (capacity - rsvpCount < (capacity * 0.1)),
-            waitlist_active: rsvpCount >= capacity
+          scarcity: {
+            remaining: Math.max(0, capacity - rsvpCount),
+            is_sold_out: rsvpCount >= capacity,
+            is_filling_fast: (capacity - rsvpCount) < (capacity * 0.1)
           }
         };
       });
 
       return res.status(200).json(enrichedData);
+
     }
 
-    // ─── POST: AI-Ready Event Creation with Multi-Moat Protection ──────────
     if (req.method === 'POST') {
-      const { title, text, author, author_id, gender, location, dateTime, guests, category, tags, coords, isRecurring, maxGuests, networkType, isEncrypted } = req.body;
+      const { title, text, author, author_id, category, slides, coords, is_paid, max_guests } = req.body;
 
-      // 21. AI TOXICITY SCANNER
-      const forbidden = ['bad_word_flag', 'bot_spam_trigger'];
-      if (forbidden.some(word => text?.toLowerCase().includes(word))) return res.status(400).json({ error: 'Safety violation' });
-
-      // 36. AUTOMATIC SLUG GENERATION
       const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Math.random().toString(36).substring(7)}`;
 
       const insertData = {
         owner_id: isUuid(author_id) ? author_id : null,
-        tags: tags || [],
         coords: (coords?.lat && coords?.lng) ? `POINT(${coords.lng} ${coords.lat})` : null,
+        is_paid: !!is_paid,
+        priority_score: is_paid ? 100 : 0,
         content: {
           title: (title || '').trim(),
           text: (text || '').trim(),
           slug,
           author_name: author,
-          gender, location, dateTime, guests,
-          category: category || 'Social Milestones',
-          is_recurring: !!isRecurring,
-          max_guests: maxGuests || null,
-          network_type: networkType || 'public',
-          is_encrypted: !!isEncrypted,
-          status: 'active'
+          category: category || 'General',
+          slides: slides || [], // Multi-media slides
+          max_guests: max_guests || null,
+          network_type: 'public'
         },
         engagement_metrics: {
-          liked_by: [], comments: [], reports: [], rsvps: {},
-          views: 0, heat_index: 0, rsvpEnabled: true,
-          conversion_rate: 0
+          liked_by: [], comments: [], rsvps: {},
+          views: 0, heat_index: 0
         }
       };
 
@@ -128,6 +112,7 @@ export default async function handler(req, res) {
       if (error) throw error;
       return res.status(201).json(data[0]);
     }
+
 
     // ─── PATCH: Atomic Engagement & Velocity Decay ─────────────────────
     if (req.method === 'PATCH') {

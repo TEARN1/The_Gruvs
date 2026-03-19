@@ -94,7 +94,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         borderRightWidth: 1,
         borderRightColor: 'rgba(255,255,255,0.1)',
-        transition: 'width 0.3s ease',
     },
     collapsedContainer: {
         width: 100,
@@ -136,7 +135,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         borderRadius: 18,
         marginBottom: 8,
-        transition: 'all 0.2s ease',
     },
     navItemHover: {
         backgroundColor: 'rgba(255,255,255,0.1)',

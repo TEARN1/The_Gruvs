@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Animated, Easing, Platform, Pressable, FlatList } from 'react-native';
+import { useStore } from './state/useStore';
 
 // ─── Glow Button ────────────────────────────────────────────────────────────
-export function GlowButton({ onPress, children, style, themeAcc, disabled }) {
+export function GlowButton({ onPress, children, style, themeAcc, disabled, eventId }) {
     const [hover, setHover] = useState(false);
     const scale = new Animated.Value(1);
+    const hoverStart = useRef(0);
 
     const handlePressIn = () => Animated.spring(scale, { toValue: 0.95, useNativeDriver: true }).start();
     const handlePressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
@@ -12,7 +14,18 @@ export function GlowButton({ onPress, children, style, themeAcc, disabled }) {
     return (
         <Pressable
             onPress={onPress} disabled={disabled}
-            onHoverIn={() => setHover(true)} onHoverOut={() => setHover(false)}
+            onHoverIn={() => {
+                setHover(true);
+                hoverStart.current = Date.now();
+            }} 
+            onHoverOut={() => {
+                setHover(false);
+                if (eventId && hoverStart.current > 0) {
+                    const duration = Date.now() - hoverStart.current;
+                    useStore.getState().logInteraction('hover', eventId, duration);
+                }
+                hoverStart.current = 0;
+            }}
             onPressIn={handlePressIn} onPressOut={handlePressOut}
         >
             <Animated.View style={[
