@@ -25,7 +25,7 @@ const PROFILE_TYPES = [
 
 export default function ProfileScreen({ navigation }) {
   const {
-    user, setUser, savedPosts, likedPosts, rsvpState, handleFollow, followedUsers
+    user, setUser, savedPosts, likedPosts, rsvpState, handleFollow, followedUsers, posts
   } = useStore();
 
   const [activeTab, setActiveTab] = useState('Saved');
@@ -41,11 +41,23 @@ export default function ProfileScreen({ navigation }) {
 
   const TABS = ['Saved', 'Liked', 'Going', 'Interested', 'Commented'];
 
+  const mappedEvents = {
+    Saved: posts.filter(p => savedPosts.includes(p.id)),
+    Liked: posts.filter(p => p.engagement_metrics?.liked_by?.includes(user?.id || 'anon')),
+    Going: posts.filter(p => rsvpState[p.id] === 'going'),
+    Interested: posts.filter(p => rsvpState[p.id] === 'interested'),
+    Commented: posts.filter(p => p.engagement_metrics?.comments?.some(c => c.author === (user?.name || 'anon'))),
+  };
+
   // Simulate a proximity alert for any "going" or "interested" events within 1km
   const checkProximity = () => {
-    const goingEvents = MOCK_EVENTS['Going'];
+    const goingEvents = mappedEvents['Going'];
     if (goingEvents.length > 0) {
       setSelectedEvent(goingEvents[0]);
+      setShowProximityAlert(true);
+    } else if (MOCK_EVENTS['Going'].length > 0) {
+      // Fallback to mock for demonstration
+      setSelectedEvent(MOCK_EVENTS['Going'][0]);
       setShowProximityAlert(true);
     }
   };
@@ -221,19 +233,18 @@ export default function ProfileScreen({ navigation }) {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        {(MOCK_EVENTS[activeTab] || []).length === 0 ? (
+        {(mappedEvents[activeTab] || []).length === 0 ? (
           <Text style={styles.emptyMsg}>No {activeTab.toLowerCase()} events yet.</Text>
         ) : (
-          MOCK_EVENTS[activeTab].map(ev => (
+          mappedEvents[activeTab].map(ev => (
             <View key={ev.id} style={styles.eventRow}>
-              <View style={styles.eventRowCategory}><Text style={styles.eventRowCategoryText}>{ev.category}</Text></View>
+              <View style={styles.eventRowCategory}><Text style={styles.eventRowCategoryText}>{ev.content?.category || 'General'}</Text></View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.eventRowTitle}>{ev.title}</Text>
-                <Text style={styles.eventRowLocation}>{ev.location}</Text>
+                <Text style={styles.eventRowTitle}>{ev.content?.title || 'Unknown Event'}</Text>
+                <Text style={styles.eventRowLocation}>{ev.content?.location || 'TBA'}</Text>
               </View>
               <View style={styles.eventRowCountdown}>
-                <Text style={[styles.eventRowDays, { color: ev.daysLeft <= 2 ? '#ef4444' : ACCENT }]}>{ev.daysLeft}d</Text>
-                <Text style={styles.eventRowDaysLabel}>left</Text>
+                <Text style={[styles.eventRowDays, { color: ACCENT }]}>{'>>'}</Text>
               </View>
             </View>
           ))
@@ -276,12 +287,12 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.alertTitle}>Event Near You! 📍</Text>
           {selectedEvent && (
             <>
-              <Text style={styles.alertEventName}>{selectedEvent.title}</Text>
-              <Text style={styles.alertEventLocation}>{selectedEvent.location}</Text>
+              <Text style={styles.alertEventName}>{selectedEvent.content?.title || selectedEvent.title}</Text>
+              <Text style={styles.alertEventLocation}>{selectedEvent.content?.location || selectedEvent.location}</Text>
               <View style={styles.countdownRow}>
                 <MaterialCommunityIcons name="timer-outline" size={16} color={ACCENT} />
-                <Text style={[styles.countdownText, { color: selectedEvent.daysLeft <= 2 ? '#ef4444' : ACCENT }]}>
-                  {selectedEvent.daysLeft} day{selectedEvent.daysLeft !== 1 ? 's' : ''} left
+                <Text style={[styles.countdownText, { color: (selectedEvent.daysLeft || 0) <= 2 ? '#ef4444' : ACCENT }]}>
+                  {selectedEvent.daysLeft || 1} day{(selectedEvent.daysLeft || 1) !== 1 ? 's' : ''} left
                 </Text>
               </View>
             </>

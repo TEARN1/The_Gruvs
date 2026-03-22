@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../../state/useStore';
 import { ACCENT, THEME } from '../../theme';
+import GruvsLogo from '../../components/GruvsLogo';
 
 export default function LandingScreen({ navigation }) {
   const setUser = useStore(s => s.setUser);
@@ -19,7 +20,7 @@ export default function LandingScreen({ navigation }) {
   return (
     <ImageBackground style={styles.authPage} source={{ uri: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819' }} blurRadius={10}>
       <View style={styles.glassContainer}>
-        <Text style={styles.brandLogo}>THE GRUVS</Text>
+        <GruvsLogo size={80} style={{ marginBottom: 20 }} />
         <View style={styles.authWelcomeRow}>
           <Text style={styles.authWelcomeTitle}>Welcome to the Frequency</Text>
           <Ionicons name="sparkles" size={24} color={ACCENT} />

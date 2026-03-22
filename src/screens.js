@@ -4,6 +4,7 @@ import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Keyboa
 import { GENDERS, getTheme, INTERESTS } from './data';
 import * as ImagePicker from 'expo-image-picker';
 import { GlowButton } from './components';
+import GruvsLogo from './components/GruvsLogo';
 
 export function AuthScreen({ onLogin, onSignup }) {
     const [mode, setMode] = useState('login');
@@ -28,7 +29,7 @@ export function AuthScreen({ onLogin, onSignup }) {
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.center}>
                     <ScrollView contentContainerStyle={styles.scroll}>
                         <View style={styles.glassContainerAuth}>
-                            <Text style={[styles.logo, { color: previewAcc }]}>THE GRUVS</Text>
+                            <GruvsLogo size={80} style={{ marginBottom: 15 }} />
                             <Text style={styles.tagline}>ADVANCED NETWORK</Text>
 
                             <Text style={styles.authTitle}>{isSignup ? 'Create Account' : 'Welcome Back'}</Text>
