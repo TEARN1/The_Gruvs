@@ -1,0 +1,10 @@
+Navigating to http://localhost:8081...
+[BROWSER CONSOLE] INFO: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+[BROWSER CONSOLE] WARNING: "shadow*" style props are deprecated. Use "boxShadow".
+[BROWSER CONSOLE] LOG: Running application "main" with appParams:
+ {rootTag: #root, hydrate: undefined} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[BROWSER CONSOLE] WARNING: [REALTIME] Supabase client not initialized. Realtime disabled.
+Evaluating body content...
+Root element HTML length: 3661

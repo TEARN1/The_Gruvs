@@ -53,6 +53,8 @@ export const useStore = create(
   notifications: SEED_NOTIFICATIONS,
   notifVisible: false,
   setNotifVisible: (v) => set({ notifVisible: v }),
+  addEventModalVisible: false,
+  setAddEventModalVisible: (v) => set({ addEventModalVisible: v }),
   followedUsers: [],
   postReactions: {},
   userReaction: {},

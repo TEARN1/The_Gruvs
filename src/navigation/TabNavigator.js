@@ -5,12 +5,14 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import FeedScreen from '../screens/feed/FeedScreen';
 import VendorNetworkScreen from '../screens/business/VendorNetworkScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import SQLScreen from '../screens/database/SQLScreen';
 import { ACCENT, THEME } from '../theme';
+import { useStore } from '../state/useStore';
+import { TouchableOpacity } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
 // A dummy component for the 'Add Event' button so it doesn't navigate, handled cleanly via modals usually.
-// For now, mapping it to feed is safe since the actual add action is inside FeedScreen for now.
 const EmptyScreen = () => null;
 
 export default function TabNavigator() {
@@ -47,6 +49,29 @@ export default function TabNavigator() {
         component={VendorNetworkScreen} 
         options={{
           tabBarIcon: ({ color }) => <MaterialCommunityIcons name="briefcase-outline" size={24} color={color} />,
+        }}
+      />
+      <Tab.Screen 
+        name="Add" 
+        component={EmptyScreen}
+        options={{
+          tabBarButton: () => (
+            <TouchableOpacity 
+              style={{ top: -15, justifyContent: 'center', alignItems: 'center' }}
+              onPress={() => useStore.getState().setAddEventModalVisible(true)}
+            >
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: ACCENT, justifyContent: 'center', alignItems: 'center', shadowColor: ACCENT, shadowOpacity: 0.5, shadowRadius: 10, elevation: 10 }}>
+                <Feather name="plus" size={26} color="#fff" />
+              </View>
+            </TouchableOpacity>
+          )
+        }}
+      />
+      <Tab.Screen 
+        name="SQL" 
+        component={SQLScreen} 
+        options={{
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="database" size={24} color={color} />,
         }}
       />
       <Tab.Screen 

@@ -25,7 +25,7 @@ const HAPPENINGS_MOCK = {
   ]
 };
 
-export default function TheHappenings() {
+export default function TheHappenings({ onCardPress }) {
   const [activeTier, setActiveTier] = useState('Ivory Park');
   
   const events = HAPPENINGS_MOCK[activeTier] || HAPPENINGS_MOCK['Midrand'];
@@ -54,11 +54,14 @@ export default function TheHappenings() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardScroll} snapToInterval={170} decelerationRate="fast">
         {events.map((ev, index) => (
-          <View key={ev.id} style={styles.eventCard}>
+          <TouchableOpacity key={ev.id} style={styles.eventCard} onPress={() => onCardPress && onCardPress({ id: ev.id, content: { title: ev.title, location: ev.venue } })} activeOpacity={0.85}>
             <ImageBackground source={{ uri: ev.img }} style={styles.cardImg} imageStyle={styles.cardImgInner}>
               <View style={styles.overlay}>
                 <View style={styles.rankBadge}>
                   <Text style={styles.rankText}>#{index + 1}</Text>
+                </View>
+                <View style={styles.premiumBadge}>
+                  <Ionicons name="sparkles" size={12} color={GOLD} />
                 </View>
                 <View style={styles.cardInfo}>
                   <Text style={styles.eventTitle} numberOfLines={2}>{ev.title}</Text>
@@ -70,7 +73,7 @@ export default function TheHappenings() {
                 </View>
               </View>
             </ImageBackground>
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
@@ -188,8 +191,18 @@ const styles = StyleSheet.create({
     marginTop: 4
   },
   scoreText: {
-    color: '#ff4500',
+    color: GOLD,
     fontSize: 10,
-    fontWeight: '800'
+    fontWeight: '900'
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)'
   }
 });

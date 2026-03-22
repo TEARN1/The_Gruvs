@@ -6,6 +6,21 @@ import { ACCENT, GOLD, SILVER, PLAT, THEME } from '../theme';
 import { REACTIONS, rsvpCounts } from '../social';
 import RichText from './RichText';
 import TicketModal from './TicketModal';
+import VoiceRecorder from './VoiceRecorder';
+
+const getCountdown = (dateStr) => {
+  if (!dateStr) return null;
+  const now = new Date();
+  const target = new Date(dateStr);
+  const diff = target - now;
+  if (diff < 0) return 'Happening Now';
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days === 0) {
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    return `${hours}h left`;
+  }
+  return `${days}d left`;
+};
 
 // Comment tier logic
 function getCommentTier(comment) {
@@ -35,7 +50,7 @@ function sortComments(comments) {
   });
 }
 
-export default function PostCard({ item }) {
+export default function PostCard({ item, navigation }) {
   const { user, handleFollow, followedUsers, userReaction, postReactions, handleReact,
           rsvpState, handleRSVP, regruvePosts, handleRegruve, savedPosts, handleSave, 
           handleCommentLike, handleCommentSubmit } = useStore();
@@ -45,6 +60,9 @@ export default function PostCard({ item }) {
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
   const [replyTo, setReplyTo] = useState(null); // { id: c.id, author: c.author }
   const [commentText, setCommentText] = useState('');
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [slideLikes, setSlideLikes] = useState({}); // { slideIdx: count }
+  const [slideSaved, setSlideSaved] = useState({}); // { slideIdx: bool }
 
   const d = item.content || {};
   const m = item.engagement_metrics || { liked_by: [], comments: [], rsvps: {} };
@@ -102,7 +120,20 @@ export default function PostCard({ item }) {
               <Text style={[styles.tierBadge, { color: badge.color }]}>{badge.label}</Text>
             )}
             {c.replyTo && !c.parentId && <Text style={styles.replyingTo}>↩ replying to @{c.replyTo}</Text>}
-            <Text style={styles.commentAuthor}>{c.author}: <Text style={styles.commentBody}>{c.text}</Text></Text>
+            <Text style={styles.commentAuthor}>{c.author}: 
+              {c.text.startsWith('[Voice Note]') ? null : <Text style={styles.commentBody}> {c.text}</Text>}
+            </Text>
+            {c.text.startsWith('[Voice Note]') && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a3e', borderRadius: 12, padding: 6, marginTop: 4, width: 140, gap: 10 }}>
+                <Ionicons name="play-circle" size={24} color={ACCENT} />
+                <View style={{ flexDirection: 'row', gap: 2, flex: 1, alignItems: 'center' }}>
+                  {[10, 16, 12, 18, 10, 14, 8].map((h, i) => <View key={i} style={{ width: 3, height: h, backgroundColor: '#55608a', borderRadius: 2 }} />)}
+                </View>
+                <TouchableOpacity onPress={() => handleSave(c.id)}>
+                  <Ionicons name="download-outline" size={18} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            )}
             <View style={styles.commentActions}>
               <TouchableOpacity style={styles.commentActionBtn} onPress={() => handleCommentLike(item.id, c.id)}>
                 <Ionicons name={isCommentLiked ? "heart" : "heart-outline"} size={13} color={isCommentLiked ? ACCENT : THEME.sub} />
@@ -127,7 +158,7 @@ export default function PostCard({ item }) {
       {/* Header */}
       <View style={styles.cardHeader}>
         <View style={styles.authorRow}>
-          <TouchableOpacity onPress={() => handleFollow(d.author_id || item.id)} style={styles.avatarCircle}>
+          <TouchableOpacity onPress={() => navigation?.navigate?.('OtherProfile', { userId: d.author_id || item.id })} style={styles.avatarCircle}>
             <Text style={styles.avatarInitial}>{(d.author_name || 'V')[0]}</Text>
           </TouchableOpacity>
           <View>
@@ -139,9 +170,17 @@ export default function PostCard({ item }) {
             <Text style={styles.postTime}>2h ago</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.menuBtn}>
-          <Ionicons name="ellipsis-horizontal" size={20} color={THEME.sub} />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          {getCountdown(d.dateTime) && (
+            <View style={styles.countdownBadge}>
+              <MaterialCommunityIcons name="timer-outline" size={12} color={ACCENT} />
+              <Text style={styles.countdownText}>{getCountdown(d.dateTime)}</Text>
+            </View>
+          )}
+          <TouchableOpacity style={styles.menuBtn}>
+            <Ionicons name="ellipsis-horizontal" size={20} color={THEME.sub} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Content */}
@@ -180,7 +219,24 @@ export default function PostCard({ item }) {
                     <TouchableOpacity style={styles.rotateBtn}><Ionicons name="sync" size={20} color="#fff" /></TouchableOpacity>
                   </View>
                 ) : (
-                  <Image source={{ uri: s.url }} style={styles.mediaImage} />
+                  <View style={{ flex: 1 }}>
+                    <Image source={{ uri: s.url }} style={styles.mediaImage} />
+                    <View style={styles.slideOverlay}>
+                      <TouchableOpacity 
+                        style={styles.slideAction} 
+                        onPress={() => setSlideLikes(prev => ({ ...prev, [idx]: (prev[idx] || 0) + 1 }))}
+                      >
+                        <Ionicons name="heart" size={16} color="#fff" />
+                        <Text style={styles.slideActionText}>{slideLikes[idx] || 0}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.slideAction}
+                        onPress={() => setSlideSaved(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                      >
+                        <Ionicons name={slideSaved[idx] ? "bookmark" : "bookmark-outline"} size={16} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 )}
               </View>
             ))}
@@ -206,12 +262,6 @@ export default function PostCard({ item }) {
               </TouchableOpacity>
             ))}
           </View>
-          {item.is_paid && (
-            <TouchableOpacity style={styles.ticketBtn} onPress={() => setTicketModalVisible(true)}>
-              <MaterialCommunityIcons name="ticket-confirmation-outline" size={16} color="#000" />
-              <Text style={styles.ticketBtnText}>Get Tickets</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         {/* Engagement Bar */}
@@ -292,13 +342,26 @@ export default function PostCard({ item }) {
                 onChangeText={setCommentText}
                 onSubmitEditing={submitComment}
               />
-              <TouchableOpacity style={styles.sendBtn} onPress={() => {}}>
+              <TouchableOpacity style={styles.sendBtn} onPress={() => setShowVoiceRecorder(!showVoiceRecorder)}>
                 <Ionicons name="mic" size={16} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.sendBtn, { backgroundColor: '#10b981' }]} onPress={() => handleCommentSubmit(item.id, `📍 My Live Location`, replyTo?.author, replyTo?.id)}>
+                <Ionicons name="location" size={16} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.sendBtn} onPress={submitComment}>
                 <Ionicons name="send" size={16} color="#fff" />
               </TouchableOpacity>
             </View>
+            
+            {showVoiceRecorder && (
+              <VoiceRecorder 
+                onSend={(uri) => {
+                  handleCommentSubmit(item.id, `[Voice Note]`, replyTo?.author, replyTo?.id);
+                  setShowVoiceRecorder(false);
+                }}
+                onCancel={() => setShowVoiceRecorder(false)}
+              />
+            )}
           </View>
         )}
       </View>
@@ -372,4 +435,12 @@ const styles = StyleSheet.create({
   commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
   commentInput: { flex: 1, height: 42, borderRadius: 14, paddingHorizontal: 14, backgroundColor: '#0d0d28', color: '#fff', fontSize: 14, borderWidth: 1, borderColor: '#1e1e3f' },
   sendBtn: { width: 42, height: 42, borderRadius: 14, backgroundColor: ACCENT, justifyContent: 'center', alignItems: 'center' },
+
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  countdownBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,77,166,0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  countdownText: { color: ACCENT, fontSize: 11, fontWeight: '800' },
+
+  slideOverlay: { position: 'absolute', bottom: 12, right: 12, flexDirection: 'row', gap: 10, backgroundColor: 'rgba(0,0,0,0.4)', padding: 8, borderRadius: 20 },
+  slideAction: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  slideActionText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
