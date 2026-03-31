@@ -64,8 +64,12 @@ export default function PostCard({ item, navigation }) {
   const [slideLikes, setSlideLikes] = useState({}); // { slideIdx: count }
   const [slideSaved, setSlideSaved] = useState({}); // { slideIdx: bool }
 
-  const d = item.content || {};
-  const m = item.engagement_metrics || { liked_by: [], comments: [], rsvps: {} };
+  const d = item.content || item || {};
+  const m = item.engagement_metrics || { 
+    liked_by: item.liked_by || [], 
+    comments: item.comments || [], 
+    rsvps: item.rsvps || {} 
+  };
   const counts = rsvpCounts(m.rsvps);
   const myRSVP = rsvpState[item.id];
   const myReaction = userReaction[item.id];

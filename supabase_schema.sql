@@ -385,3 +385,29 @@ alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.notifications;
 
 -- END OF SCHEMA
+
+-- =========================================================================
+-- 5. RPC FUNCTIONS FOR ATOMIC OPERATIONS
+-- =========================================================================
+
+-- Increment Views
+CREATE OR REPLACE FUNCTION public.increment_views(event_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE public.events
+  SET views = views + 1,
+      trending_score = trending_score + 1
+  WHERE id = event_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Increment RSVPs (triggered or manual)
+CREATE OR REPLACE FUNCTION public.increment_rsvp(event_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE public.events
+  SET rsvp_count = rsvp_count + 1,
+      trending_score = trending_score + 10
+  WHERE id = event_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

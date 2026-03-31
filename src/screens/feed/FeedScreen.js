@@ -99,18 +99,15 @@ export default function FeedScreen({ navigation }) {
     const newPost = {
       id: Date.now().toString(),
       is_paid: false,
-      content: {
-        title: newEventTitle,
-        author_name: user?.name || 'Anonymous',
-        text: newEventDescription,
-        category: newEventCategory,
-        location: newEventLocation,
-        dateTime: newEventStart || 'Just now',
-        guestLimit: newEventGuests || 'Unlimited',
-        slides: newEventImage ? [{ type: 'image', url: newEventImage.uri }]
-                  : newEventVideo ? [{ type: 'video', url: newEventVideo.uri }] : [],
-      },
-      engagement_metrics: { liked_by: [], comments: [], rsvps: {} }
+      title: newEventTitle,
+      description: newEventDescription,
+      category: newEventCategory,
+      location: newEventLocation,
+      date_time: newEventStart || new Date().toISOString(),
+      author_id: user?.id || 'anon',
+      author_name: user?.name || 'Anonymous',
+      media: newEventImage ? [{ type: 'image', url: newEventImage.uri }] : (newEventVideo ? [{ type: 'video', url: newEventVideo.uri }] : []),
+      liked_by: [], comments: [], rsvps: {}
     };
     setPosts(prev => [newPost, ...(prev || [])]);
     setAddEventModalVisible(false);

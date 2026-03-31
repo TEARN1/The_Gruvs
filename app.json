@@ -2,6 +2,7 @@
   "expo": {
     "name": "The Gruvs",
     "slug": "the-gruvs",
+    "scheme": "thegruvs",
     "version": "1.0.0",
     "platforms": [
       "ios",
