@@ -18,7 +18,7 @@ export default function LandingScreen({ navigation }) {
   };
 
   return (
-    <ImageBackground style={styles.authPage} source={{ uri: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819' }} blurRadius={10}>
+    <View style={[styles.authPage, { backgroundColor: '#050514' }]}>
       <View style={styles.glassContainer}>
         <GruvsLogo size={80} style={{ marginBottom: 20 }} />
         <View style={styles.authWelcomeRow}>
@@ -38,7 +38,7 @@ export default function LandingScreen({ navigation }) {
         
         <Text style={styles.legalText}>By continuing, you agree to our Terms & Privacy Policy.</Text>
       </View>
-    </ImageBackground>
+    </View>
   );
 }
 

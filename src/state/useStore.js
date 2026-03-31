@@ -19,10 +19,13 @@ export const useStore = create(
   // Feed/Post State
   posts: [],
   loading: false,
+  error: null,
   searchQuery: '',
   setSearchQuery: (q) => set({ searchQuery: q }),
   activeCategory: 'All',
   setActiveCategory: (c) => set({ activeCategory: c }),
+  customCategories: [],
+  addCustomCategory: (c) => set((state) => ({ customCategories: [...state.customCategories, c] })),
 
   // Telemetry Log / Interaction Inventory
   interactionMetrics: [],
@@ -64,16 +67,20 @@ export const useStore = create(
 
   // Actions
   fetchPosts: async (coords) => {
-    set({ loading: true });
+    set({ loading: true, error: null });
     try {
       const { searchQuery, activeCategory } = get();
       let url = `${API_URL}?q=${encodeURIComponent(searchQuery)}&category=${encodeURIComponent(activeCategory)}`;
       if (coords) url += `&lat=${coords.latitude}&lng=${coords.longitude}&radius=10000`;
       const res = await fetch(url);
-      if (res.ok) set({ posts: await res.json() });
+      if (res.ok) {
+          set({ posts: await res.json() });
+      } else {
+          set({ posts: [], error: 'Failed to fetch events. Syncing offline mode.' });
+      }
     } catch {
       // Fallback for demo
-      set({ posts: MOCK_EVENTS });
+      set({ posts: [], error: 'Network error. The Gruvs is offline.' });
     } finally {
       set({ loading: false });
     }

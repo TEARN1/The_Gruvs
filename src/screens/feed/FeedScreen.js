@@ -20,7 +20,7 @@ const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_U
 
 export default function FeedScreen({ navigation }) {
   const {
-    posts, loading, fetchPosts, searchQuery, setSearchQuery,
+    posts, loading, error, fetchPosts, searchQuery, setSearchQuery,
     activeCategory, setActiveCategory, user, notifVisible, setNotifVisible,
     notifications, markNotifsRead, setPosts, addEventModalVisible, setAddEventModalVisible
   } = useStore();
@@ -39,6 +39,8 @@ export default function FeedScreen({ navigation }) {
   const [newEventImage, setNewEventImage] = useState(null);
   const [newEventVideo, setNewEventVideo] = useState(null);
   const [newEventCategory, setNewEventCategory] = useState('All');
+  const [newEventStart, setNewEventStart] = useState('');
+  const [newEventGuests, setNewEventGuests] = useState('');
 
   const { width } = useWindowDimensions();
   const isPC = Platform.OS === 'web' && width > 768;
@@ -103,7 +105,8 @@ export default function FeedScreen({ navigation }) {
         text: newEventDescription,
         category: newEventCategory,
         location: newEventLocation,
-        dateTime: 'Just now',
+        dateTime: newEventStart || 'Just now',
+        guestLimit: newEventGuests || 'Unlimited',
         slides: newEventImage ? [{ type: 'image', url: newEventImage.uri }]
                   : newEventVideo ? [{ type: 'video', url: newEventVideo.uri }] : [],
       },
@@ -112,6 +115,7 @@ export default function FeedScreen({ navigation }) {
     setPosts(prev => [newPost, ...(prev || [])]);
     setAddEventModalVisible(false);
     setNewEventTitle(''); setNewEventDescription(''); setNewEventLocation('');
+    setNewEventStart(''); setNewEventGuests('');
     setNewEventImage(null); setNewEventVideo(null);
     try { fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: newEventTitle }) }); } catch {}
   };
@@ -209,6 +213,16 @@ export default function FeedScreen({ navigation }) {
                 <TextInput style={[styles.input, { height: 100, textAlignVertical: 'top' }]} placeholder="What's the vibe?" placeholderTextColor="#55608a" value={newEventDescription} onChangeText={setNewEventDescription} multiline />
                 <Text style={styles.formLabel}>Location</Text>
                 <TextInput style={styles.input} placeholder="Address or venue" placeholderTextColor="#55608a" value={newEventLocation} onChangeText={setNewEventLocation} />
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.formLabel}>Starting</Text>
+                    <TextInput style={styles.input} placeholder="Date & Time" placeholderTextColor="#55608a" value={newEventStart} onChangeText={setNewEventStart} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.formLabel}>Guest Limit</Text>
+                    <TextInput style={styles.input} placeholder="e.g. 50" keyboardType="numeric" placeholderTextColor="#55608a" value={newEventGuests} onChangeText={setNewEventGuests} />
+                  </View>
+                </View>
                 <Text style={styles.formLabel}>Media</Text>
                 <View style={styles.mediaRow}>
                   <TouchableOpacity style={styles.mediaPicker} onPress={() => pickMedia('image')}>
@@ -325,7 +339,7 @@ export default function FeedScreen({ navigation }) {
           <MaterialCommunityIcons name="tune-variant" size={20} color={ACCENT} />
         </TouchableOpacity>
       </View>
-      <TheHappenings onCardPress={openHappeningDetail} />
+      {/* <TheHappenings onCardPress={openHappeningDetail} /> */}
       <View style={styles.quickBar}>
         <TouchableOpacity style={styles.nearMeBtn} onPress={getGPSLocation}>
           <Ionicons name="location" size={14} color={ACCENT} />
@@ -377,12 +391,30 @@ export default function FeedScreen({ navigation }) {
             refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchPosts} tintColor={ACCENT} />}
             contentContainerStyle={{ paddingBottom: 60 }}
             ListHeaderComponent={<FeedHeader />}
-            ListEmptyComponent={!loading && (
-              <View style={styles.emptyBox}>
-                <MaterialCommunityIcons name="calendar-search" size={48} color="#2a2a4a" />
-                <Text style={styles.emptyText}>Nothing found for "{searchQuery || activeCategory}"</Text>
-              </View>
-            )}
+            ListEmptyComponent={() => {
+              if (loading) {
+                return (
+                  <View style={styles.emptyBox}>
+                    <ActivityIndicator size="large" color={ACCENT} style={{ marginBottom: 12 }} />
+                    <Text style={styles.emptyText}>Syncing with the gruvs...</Text>
+                  </View>
+                );
+              }
+              if (error) {
+                return (
+                  <View style={styles.emptyBox}>
+                    <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#ef4444" />
+                    <Text style={[styles.emptyText, { color: '#ef4444' }]}>{error}</Text>
+                  </View>
+                );
+              }
+              return (
+                <View style={styles.emptyBox}>
+                  <MaterialCommunityIcons name="calendar-search" size={48} color="#2a2a4a" />
+                  <Text style={styles.emptyText}>Nothing found for "{searchQuery || activeCategory}"</Text>
+                </View>
+              );
+            }}
           />
         </View>
 
@@ -424,12 +456,30 @@ export default function FeedScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchPosts} tintColor={ACCENT} />}
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={<FeedHeader />}
-        ListEmptyComponent={!loading && (
-          <View style={styles.emptyBox}>
-            <MaterialCommunityIcons name="calendar-search" size={48} color="#2a2a4a" />
-            <Text style={styles.emptyText}>Nothing found for "{searchQuery || activeCategory}"</Text>
-          </View>
-        )}
+        ListEmptyComponent={() => {
+          if (loading) {
+            return (
+              <View style={styles.emptyBox}>
+                <ActivityIndicator size="large" color={ACCENT} style={{ marginBottom: 12 }} />
+                <Text style={styles.emptyText}>Syncing with the gruvs...</Text>
+              </View>
+            );
+          }
+          if (error) {
+            return (
+              <View style={styles.emptyBox}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#ef4444" />
+                <Text style={[styles.emptyText, { color: '#ef4444' }]}>{error}</Text>
+              </View>
+            );
+          }
+          return (
+            <View style={styles.emptyBox}>
+              <MaterialCommunityIcons name="calendar-search" size={48} color="#2a2a4a" />
+              <Text style={styles.emptyText}>Nothing found for "{searchQuery || activeCategory}"</Text>
+            </View>
+          );
+        }}
       />
       {renderModals()}
     </View>

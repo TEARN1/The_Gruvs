@@ -24,10 +24,9 @@ export function AuthScreen({ onLogin, onSignup }) {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
-            <ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819' }} blurRadius={20} style={{ flex: 1, justifyContent: 'center' }}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.center}>
-                    <ScrollView contentContainerStyle={styles.scroll}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#050514' }}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                <ScrollView contentContainerStyle={[styles.center, { flexGrow: 1, paddingVertical: 40 }]}>
                         <View style={styles.glassContainerAuth}>
                             <GruvsLogo size={80} style={{ marginBottom: 15 }} />
                             <Text style={styles.tagline}>ADVANCED NETWORK</Text>
@@ -74,9 +73,8 @@ export function AuthScreen({ onLogin, onSignup }) {
                                 </Text>
                             </TouchableOpacity>
                         </View>
-                    </ScrollView>
-                </KeyboardAvoidingView>
-            </ImageBackground>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -98,7 +96,6 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-            <ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819' }} blurRadius={20} style={{ flex: 1 }}>
             <View style={[styles.detailHeader, { borderBottomColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(0,0,0,0.3)' }]}>
                 <TouchableOpacity onPress={onBack} style={styles.backBtn}>
                     <Text style={styles.backIcon}>‹</Text>
@@ -109,7 +106,7 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
             <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
                 {/* Cover Image & Avatar */}
                 <View style={styles.bannerContainer}>
-                    <ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819' }} style={styles.bannerPlaceholder} />
+                    <View style={[styles.bannerPlaceholder, { backgroundColor: '#1e1e3f' }]} />
                     <View style={styles.userFollowedBadge}>
                         <Text style={styles.followedBadgeText}>✓ Top Creator</Text>
                     </View>
@@ -195,7 +192,6 @@ export function ProfileScreen({ user, theme, onUpdate, onLogout, onBack }) {
                     <Text style={styles.suggestionsTitle}>👥 People You Might Know</Text>
                 </View>
             </ScrollView>
-            </ImageBackground>
         </SafeAreaView>
     );
 }

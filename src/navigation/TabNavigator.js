@@ -5,7 +5,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import FeedScreen from '../screens/feed/FeedScreen';
 import VendorNetworkScreen from '../screens/business/VendorNetworkScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
-import SQLScreen from '../screens/database/SQLScreen';
+
 import { ACCENT, THEME } from '../theme';
 import { useStore } from '../state/useStore';
 import { TouchableOpacity } from 'react-native';
@@ -67,13 +67,7 @@ export default function TabNavigator() {
           )
         }}
       />
-      <Tab.Screen 
-        name="SQL" 
-        component={SQLScreen} 
-        options={{
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="database" size={24} color={color} />,
-        }}
-      />
+
       <Tab.Screen 
         name="Profile" 
         component={ProfileScreen} 
