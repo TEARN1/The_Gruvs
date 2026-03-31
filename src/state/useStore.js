@@ -12,9 +12,72 @@ const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_U
 export const useStore = create(
   persist(
     (set, get) => ({
-      // Auth state
       user: null,
       setUser: (user) => set({ user }),
+      profile: null,
+      setProfile: (p) => set({ profile: p }),
+
+      // Real Auth Logic (A to Z fix)
+      signUp: async (email, password, metadata) => {
+        set({ loading: true, error: null });
+        try {
+          const { data, error } = await supabase.auth.signUp({ 
+            email, 
+            password,
+            options: { data: metadata }
+          });
+          if (error) throw error;
+          
+          // Create profile record (though trigger should do it, we'll be safer in case of latency)
+          const { error: pErr } = await supabase.from('profiles').upsert({
+            id: data.user.id,
+            email: email,
+            username: metadata.username,
+            name: metadata.username,
+            gender: metadata.gender,
+            interests: metadata.interests || []
+          });
+          if (pErr) console.warn('[AUTH] Profile sync error:', pErr);
+          
+          set({ user: data.user });
+          return { success: true };
+        } catch (err) {
+          set({ error: err.message });
+          return { success: false, error: err.message };
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      signIn: async (email, password) => {
+        set({ loading: true, error: null });
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          
+          // Fetch profile
+          const { data: pData } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+          set({ user: data.user, profile: pData });
+          return { success: true };
+        } catch (err) {
+          set({ error: err.message });
+          return { success: false, error: err.message };
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      signOut: async () => {
+        await supabase.auth.signOut();
+        set({ user: null, profile: null });
+      },
+
+      syncProfile: async () => {
+        const u = get().user;
+        if (!u) return;
+        const { data } = await supabase.from('profiles').select('*').eq('id', u.id).single();
+        if (data) set({ profile: data });
+      },
 
   // Feed/Post State
   posts: [],

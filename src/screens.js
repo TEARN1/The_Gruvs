@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from './state/useStore';
-import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView, useWindowDimensions, Alert, ImageBackground, Switch } from 'react-native';
+import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView, useWindowDimensions, Alert, ImageBackground, Switch, ActivityIndicator } from 'react-native';
 import { GENDERS, getTheme, INTERESTS } from './data';
 import * as ImagePicker from 'expo-image-picker';
 import { GlowButton } from './components';
@@ -18,9 +18,30 @@ export function AuthScreen({ onLogin, onSignup }) {
         setInterests(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     };
 
-    const handleSubmit = () => {
-        if (isSignup) onSignup({ ...form, interests });
-        else onLogin(form);
+    const { signUp, signIn, setError, loading, error } = useStore();
+
+    const handleSubmit = async () => {
+        if (isSignup) {
+            if (!form.email || !form.password || !form.username) {
+                Alert.alert('Missing Fields', 'Please fill in all required fields.');
+                return;
+            }
+            const res = await signUp(form.email, form.password, { 
+                username: form.username, 
+                gender: form.gender, 
+                interests 
+            });
+            if (res.success) Alert.alert('Success', 'Account created! Welcome to the frequency.');
+        } else {
+            const res = await signIn(form.email || form.username, form.password);
+            if (res.success) {
+                // Login handled by store state change
+            }
+        }
+    };
+
+    const handleVisitor = () => {
+        useStore.getState().setUser({ id: 'visitor', name: 'Visitor', visitor: true });
     };
 
     return (
@@ -62,8 +83,14 @@ export function AuthScreen({ onLogin, onSignup }) {
                                 </View>
                             )}
 
-                            <TouchableOpacity style={[styles.glassJoinBtn, { backgroundColor: previewAcc }]} onPress={handleSubmit}>
-                                <Text style={styles.glassJoinBtnText}>{isSignup ? 'SIGN UP' : 'LOGIN'}</Text>
+                            {error && <Text style={{ color: '#ef4444', marginBottom: 12, fontSize: 13 }}>{error}</Text>}
+
+                            <TouchableOpacity 
+                              style={[styles.glassJoinBtn, { backgroundColor: previewAcc }]} 
+                              onPress={handleSubmit}
+                              disabled={loading}
+                            >
+                                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.glassJoinBtnText}>{isSignup ? 'SIGN UP' : 'LOGIN'}</Text>}
                             </TouchableOpacity>
 
                             <TouchableOpacity style={{ marginTop: 16 }} onPress={() => setMode(isSignup ? 'login' : 'signup')}>
@@ -72,6 +99,12 @@ export function AuthScreen({ onLogin, onSignup }) {
                                     <Text style={{ color: previewAcc, fontWeight: '800' }}>{isSignup ? 'LOGIN' : 'SIGN UP'}</Text>
                                 </Text>
                             </TouchableOpacity>
+
+                            {!isSignup && (
+                              <TouchableOpacity style={{ marginTop: 30, opacity: 0.8 }} onPress={handleVisitor}>
+                                  <Text style={styles.switchText}>Just Looking Around</Text>
+                              </TouchableOpacity>
+                            )}
                         </View>
                 </ScrollView>
             </KeyboardAvoidingView>

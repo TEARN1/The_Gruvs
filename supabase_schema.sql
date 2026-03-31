@@ -93,6 +93,8 @@ CREATE TABLE public.events (
     description TEXT,
     category TEXT,
     location TEXT,
+    latitude FLOAT8,
+    longitude FLOAT8,
     date_time TIMESTAMP WITH TIME ZONE,
     is_paid BOOLEAN DEFAULT FALSE,
     media JSONB DEFAULT '[]'::jsonb, -- array of {type, url}

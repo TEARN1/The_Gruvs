@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useStore } from '../../state/useStore';
+import { supabase } from '../../supabase';
 import { ACCENT, THEME, GOLD } from '../../theme';
 import VoiceRecorder from '../../components/VoiceRecorder';
 
@@ -207,7 +208,13 @@ export default function ProfileScreen({ navigation }) {
           <TouchableOpacity
             key={pt.id}
             style={[styles.profileTypeRow, profileType === pt.id && styles.profileTypeRowActive]}
-            onPress={() => setProfileType(pt.id)}>
+            onPress={async () => {
+              setProfileType(pt.id);
+              if (user?.id) {
+                const { error } = await supabase.from('profiles').update({ privacy: pt.id }).eq('id', user.id);
+                if (error) Alert.alert('Error', 'Failed to update profile type: ' + error.message);
+              }
+            }}>
             <View style={styles.profileTypeLeft}>
               <Ionicons name={pt.icon} size={24} color={profileType === pt.id ? ACCENT : '#94a3b8'} />
               <View style={{ flex: 1 }}>

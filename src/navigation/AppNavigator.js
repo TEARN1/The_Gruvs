@@ -5,7 +5,7 @@ import { useStore } from '../state/useStore';
 
 // Screens
 import LandingScreen from '../screens/auth/LandingScreen';
-import { AuthScreen } from '../screens';
+import AuthScreen from '../screens/auth/AuthScreen';
 import TabNavigator from './TabNavigator';
 
 const Stack = createNativeStackNavigator();
@@ -20,9 +20,7 @@ export default function AppNavigator() {
           // Auth Stack
           <Stack.Group screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Landing" component={LandingScreen} />
-            <Stack.Screen name="Auth">
-              {(props) => <AuthScreen {...props} onLogin={(form) => useStore.getState().setUser({ id: 'u1', name: form.username || 'User', gender: form.gender || 'other', visitor: false })} onSignup={(form) => useStore.getState().setUser({ id: 'u1', name: form.username || 'User', gender: form.gender || 'other', visitor: false })} />}
-            </Stack.Screen>
+            <Stack.Screen name="Auth" component={AuthScreen} />
           </Stack.Group>
         ) : (
           // Main App Stack
