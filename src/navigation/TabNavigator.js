@@ -1,14 +1,45 @@
 import React from 'react';
-import { View, Platform, useWindowDimensions } from 'react-native';
+import { View, Platform, useWindowDimensions, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import FeedScreen from '../screens/feed/FeedScreen';
-import VendorNetworkScreen from '../screens/business/VendorNetworkScreen';
-import ProfileScreen from '../screens/profile/ProfileScreen';
-
 import { ACCENT, THEME } from '../theme';
 import { useStore } from '../state/useStore';
 import { TouchableOpacity } from 'react-native';
+
+let FeedScreen, VendorNetworkScreen, ProfileScreen;
+let feedError = null;
+
+try {
+  FeedScreen = require('../screens/feed/FeedScreen').default;
+} catch (e) {
+  feedError = e;
+  FeedScreen = () => (
+    <View style={{ flex: 1, backgroundColor: '#050510', justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ color: '#ff4444' }}>Error loading Feed</Text>
+      <Text style={{ color: '#fff', fontSize: 12 }}>{e.message}</Text>
+    </View>
+  );
+}
+
+try {
+  VendorNetworkScreen = require('../screens/business/VendorNetworkScreen').default;
+} catch (e) {
+  VendorNetworkScreen = () => (
+    <View style={{ flex: 1, backgroundColor: '#050510', justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ color: '#ff4444' }}>Error loading Network</Text>
+    </View>
+  );
+}
+
+try {
+  ProfileScreen = require('../screens/profile/ProfileScreen').default;
+} catch (e) {
+  ProfileScreen = () => (
+    <View style={{ flex: 1, backgroundColor: '#050510', justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ color: '#ff4444' }}>Error loading Profile</Text>
+    </View>
+  );
+}
 
 const Tab = createBottomTabNavigator();
 
@@ -48,7 +79,7 @@ export default function TabNavigator() {
         name="Network" 
         component={VendorNetworkScreen} 
         options={{
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="briefcase-outline" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="briefcase-outline"size={24} color={color} />,
         }}
       />
       <Tab.Screen 
