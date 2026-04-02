@@ -403,13 +403,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Increment RSVPs (triggered or manual)
-CREATE OR REPLACE FUNCTION public.increment_rsvp(event_id UUID)
-RETURNS VOID AS $$
+-- Trigger function: Update event counters automatically
+CREATE OR REPLACE FUNCTION public.sync_event_engagement()
+RETURNS TRIGGER AS $$
 BEGIN
-  UPDATE public.events
-  SET rsvp_count = rsvp_count + 1,
-      trending_score = trending_score + 10
-  WHERE id = event_id;
+  IF (TG_OP = 'INSERT') THEN
+    IF (TG_TABLE_NAME = 'event_likes') THEN
+      UPDATE public.events SET like_count = like_count + 1, trending_score = trending_score + 5 WHERE id = NEW.event_id;
+    ELSIF (TG_TABLE_NAME = 'event_rsvps') THEN
+      UPDATE public.events SET rsvp_count = rsvp_count + 1, trending_score = trending_score + 10 WHERE id = NEW.event_id;
+    END IF;
+  ELSIF (TG_OP = 'DELETE') THEN
+    IF (TG_TABLE_NAME = 'event_likes') THEN
+      UPDATE public.events SET like_count = like_count - 1 WHERE id = OLD.event_id;
+    ELSIF (TG_TABLE_NAME = 'event_rsvps') THEN
+      UPDATE public.events SET rsvp_count = rsvp_count - 1 WHERE id = OLD.event_id;
+    END IF;
+  END IF;
+  RETURN NULL;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER sync_likes_trigger AFTER INSERT OR DELETE ON public.event_likes FOR EACH ROW EXECUTE PROCEDURE public.sync_event_engagement();
+CREATE TRIGGER sync_rsvps_trigger AFTER INSERT OR DELETE ON public.event_rsvps FOR EACH ROW EXECUTE PROCEDURE public.sync_event_engagement();

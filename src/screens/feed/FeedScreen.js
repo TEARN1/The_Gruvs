@@ -41,6 +41,13 @@ export default function FeedScreen({ navigation }) {
   const [newEventCategory, setNewEventCategory] = useState('All');
   const [newEventStart, setNewEventStart] = useState('');
   const [newEventGuests, setNewEventGuests] = useState('');
+  const [ticketTiers, setTicketTiers] = useState([
+    { id: 'free', name: 'Free', amount: 0, entries: '', color: '#10b981' },
+    { id: 'vip', name: 'VIP', amount: '', entries: '', color: '#ff4da6' },
+    { id: 'vvip', name: 'VVIP', amount: '', entries: '', color: '#FFD700' },
+    { id: 'vvvip', name: 'VVVIP', amount: '', entries: '', color: '#a78bfa' },
+  ]);
+  const [newCustomTier, setNewCustomTier] = useState({ name: '', amount: '', entries: '' });
 
   const { width } = useWindowDimensions();
   const isPC = Platform.OS === 'web' && width > 768;
@@ -107,6 +114,7 @@ export default function FeedScreen({ navigation }) {
       author_id: user?.id || 'anon',
       author_name: user?.name || 'Anonymous',
       media: newEventImage ? [{ type: 'image', url: newEventImage.uri }] : (newEventVideo ? [{ type: 'video', url: newEventVideo.uri }] : []),
+      ticketTiers: ticketTiers.filter(t => t.amount !== '' || t.name === 'Free'),
       liked_by: [], comments: [], rsvps: {}
     };
     setPosts(prev => [newPost, ...(prev || [])]);
@@ -114,7 +122,35 @@ export default function FeedScreen({ navigation }) {
     setNewEventTitle(''); setNewEventDescription(''); setNewEventLocation('');
     setNewEventStart(''); setNewEventGuests('');
     setNewEventImage(null); setNewEventVideo(null);
+    setTicketTiers([
+      { id: 'free', name: 'Free', amount: 0, entries: '', color: '#10b981' },
+      { id: 'vip', name: 'VIP', amount: '', entries: '', color: '#ff4da6' },
+      { id: 'vvip', name: 'VVIP', amount: '', entries: '', color: '#FFD700' },
+      { id: 'vvvip', name: 'VVVIP', amount: '', entries: '', color: '#a78bfa' },
+    ]);
+    setNewCustomTier({ name: '', amount: '', entries: '' });
     try { fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: newEventTitle }) }); } catch {}
+  };
+
+  const updateTicketTier = (tierId, field, value) => {
+    setTicketTiers(prev => prev.map(t => t.id === tierId ? { ...t, [field]: value } : t));
+  };
+
+  const addCustomTier = () => {
+    if (!newCustomTier.name.trim()) return;
+    setTicketTiers(prev => [...prev, {
+      id: `custom-${Date.now()}`,
+      name: newCustomTier.name,
+      amount: newCustomTier.amount || 0,
+      entries: newCustomTier.entries,
+      color: '#' + Math.floor(Math.random()*16777215).toString(16),
+      isCustom: true
+    }]);
+    setNewCustomTier({ name: '', amount: '', entries: '' });
+  };
+
+  const removeTicketTier = (tierId) => {
+    setTicketTiers(prev => prev.filter(t => t.id !== tierId));
   };
 
   const openHappeningDetail = (item) => {
@@ -232,6 +268,86 @@ export default function FeedScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
                 {newEventImage && <Image source={{ uri: newEventImage.uri }} style={styles.mediaPreview} />}
+
+                {/* Ticket Tiers Section */}
+                <Text style={[styles.formLabel, { marginTop: 12 }]}>Ticket Tiers</Text>
+                <View style={styles.tierContainer}>
+                  {ticketTiers.map(tier => (
+                    <View key={tier.id} style={styles.tierCard}>
+                      <View style={[styles.tierColorDot, { backgroundColor: tier.color }]} />
+                      <View style={styles.tierInputs}>
+                        <Text style={styles.tierName}>{tier.name}</Text>
+                        <View style={styles.tierRow}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.tierLabel}>Price</Text>
+                            <TextInput
+                              style={styles.tierInput}
+                              placeholder="R"
+                              placeholderTextColor="#55608a"
+                              keyboardType="numeric"
+                              value={tier.amount.toString()}
+                              onChangeText={(val) => updateTicketTier(tier.id, 'amount', val)}
+                            />
+                          </View>
+                          <View style={{ flex: 1, marginLeft: 8 }}>
+                            <Text style={styles.tierLabel}>Entries</Text>
+                            <TextInput
+                              style={styles.tierInput}
+                              placeholder="Limit"
+                              placeholderTextColor="#55608a"
+                              keyboardType="numeric"
+                              value={tier.entries}
+                              onChangeText={(val) => updateTicketTier(tier.id, 'entries', val)}
+                            />
+                          </View>
+                        </View>
+                      </View>
+                      {tier.isCustom && (
+                        <TouchableOpacity onPress={() => removeTicketTier(tier.id)}>
+                          <Ionicons name="close-circle" size={20} color="#ef4444" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+
+                  {/* Add Custom Tier */}
+                  <View style={styles.customTierForm}>
+                    <Text style={styles.tierLabel}>Add Custom Tier</Text>
+                    <TextInput
+                      style={styles.tierInput}
+                      placeholder="Tier name (e.g. PLATINUM)"
+                      placeholderTextColor="#55608a"
+                      value={newCustomTier.name}
+                      onChangeText={(val) => setNewCustomTier({ ...newCustomTier, name: val })}
+                    />
+                    <View style={styles.tierRow}>
+                      <TextInput
+                        style={[styles.tierInput, { flex: 1 }]}
+                        placeholder="Price"
+                        placeholderTextColor="#55608a"
+                        keyboardType="numeric"
+                        value={newCustomTier.amount}
+                        onChangeText={(val) => setNewCustomTier({ ...newCustomTier, amount: val })}
+                      />
+                      <TextInput
+                        style={[styles.tierInput, { flex: 1, marginLeft: 8 }]}
+                        placeholder="Entries"
+                        placeholderTextColor="#55608a"
+                        keyboardType="numeric"
+                        value={newCustomTier.entries}
+                        onChangeText={(val) => setNewCustomTier({ ...newCustomTier, entries: val })}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.addTierBtn, !newCustomTier.name.trim() && { opacity: 0.5 }]}
+                      disabled={!newCustomTier.name.trim()}
+                      onPress={addCustomTier}>
+                      <Ionicons name="add-circle-outline" size={18} color="#fff" />
+                      <Text style={styles.addTierBtnText}>Add Tier</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
                 <TouchableOpacity
                   style={[styles.publishBtn, !newEventTitle.trim() && { opacity: 0.5 }]}
                   onPress={handleCreateEvent}
@@ -376,6 +492,11 @@ export default function FeedScreen({ navigation }) {
           {/* Big + button between Network and Profile */}
           <TouchableOpacity style={styles.navAdd} onPress={() => setAddEventModalVisible(true)}>
             <Feather name="plus" size={26} color="#fff" />
+          </TouchableOpacity>
+          {/* New button */}
+          <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Messages')}>
+            <MaterialCommunityIcons name="chat-outline" size={26} color="#94a3b8" />
+            <Text style={styles.navLabel}>Chat</Text>
           </TouchableOpacity>
         </View>
 
@@ -566,6 +687,20 @@ const styles = StyleSheet.create({
   mediaPicker: { flex: 1, height: 80, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: '#2a2a4a', gap: 6 },
   mediaPickerText: { color: '#55608a', fontSize: 12 },
   mediaPreview: { width: '100%', height: 160, borderRadius: 14, marginBottom: 16 },
+  
+  // Ticket Tiers
+  tierContainer: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a3e' },
+  tierCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d0d25', borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#1e1e3f' },
+  tierColorDot: { width: 16, height: 16, borderRadius: 8, marginRight: 10 },
+  tierInputs: { flex: 1 },
+  tierName: { color: '#fff', fontWeight: '700', fontSize: 13, marginBottom: 8 },
+  tierRow: { flexDirection: 'row', gap: 8 },
+  tierLabel: { color: '#55608a', fontSize: 10, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' },
+  tierInput: { backgroundColor: '#050514', color: '#fff', borderRadius: 8, padding: 10, fontSize: 13, borderWidth: 1, borderColor: '#1e1e3f', flex: 1 },
+  customTierForm: { backgroundColor: '#050514', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(255,77,166,0.2)', borderStyle: 'dashed' },
+  addTierBtn: { backgroundColor: 'rgba(255,77,166,0.2)', borderColor: ACCENT, borderWidth: 1, borderRadius: 10, padding: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10 },
+  addTierBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  
   publishBtn: { backgroundColor: ACCENT, paddingVertical: 16, borderRadius: 18, alignItems: 'center', marginTop: 8 },
   publishBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
 
@@ -589,3 +724,4 @@ const styles = StyleSheet.create({
   actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14 },
   actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 });
+

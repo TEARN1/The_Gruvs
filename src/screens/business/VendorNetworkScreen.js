@@ -4,16 +4,20 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ACCENT, THEME, GOLD } from '../../theme';
 import { StatusBar } from 'expo-status-bar';
 
-const CATEGORIES = ['All', 'DJs', 'Photographers', 'Security', 'Sound Engineers', 'Caterers', 'Promoters'];
-
-const MOCK_VENDORS = [
-  { id: 'v1', name: 'DJ Maphorisa', category: 'DJs', rating: 4.9, reviews: 342, rate: 'R15,000/hr', img: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=200&h=200&fit=crop' },
-  { id: 'v2', name: 'Lens Queen Studio', category: 'Photographers', rating: 4.8, reviews: 120, rate: 'R2,500/event', img: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&h=200&fit=crop' },
-  { id: 'v3', name: 'Elite Guard Auth', category: 'Security', rating: 4.9, reviews: 89, rate: 'R500/guard/hr', img: 'https://images.unsplash.com/photo-1506869640319-fea1a2ab8e40?w=200&h=200&fit=crop' },
-  { id: 'v4', name: 'Sonic Boom Tech', category: 'Sound Engineers', rating: 4.7, reviews: 56, rate: 'R4,000/rig', img: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=200&h=200&fit=crop' }
+const CATEGORIES = [
+  'All', 'DJs', 'Photographers', 'Security', 'Sound Engineers', 
+  'Caterers', 'Promoters', 'Decorators', 'Florists', 'Venues',
+  'Bartenders', 'Makeup Artists', 'Videographers', 'Event Planners'
 ];
 
-export default function VendorNetworkScreen() {
+const MOCK_VENDORS = [
+  { id: 'v1', name: 'DJ Maphorisa', category: 'DJs', rating: 4.9, reviews: 342, rate: 'R15,000/hr', img: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=200&h=200&fit=crop', imageCount: 5 },
+  { id: 'v2', name: 'Lens Queen Studio', category: 'Photographers', rating: 4.8, reviews: 120, rate: 'R2,500/event', img: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&h=200&fit=crop', imageCount: 12 },
+  { id: 'v3', name: 'Elite Guard Auth', category: 'Security', rating: 4.9, reviews: 89, rate: 'R500/guard/hr', img: 'https://images.unsplash.com/photo-1506869640319-fea1a2ab8e40?w=200&h=200&fit=crop', imageCount: 3 },
+  { id: 'v4', name: 'Sonic Boom Tech', category: 'Sound Engineers', rating: 4.7, reviews: 56, rate: 'R4,000/rig', img: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=200&h=200&fit=crop', imageCount: 8 }
+];
+
+export default function VendorNetworkScreen({ navigation }) {
   const [activeCat, setActiveCat] = useState('All');
   const [search, setSearch] = useState('');
 
@@ -26,8 +30,15 @@ export default function VendorNetworkScreen() {
     <View style={styles.container}>
       <StatusBar style="light" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Vendor Network</Text>
-        <Text style={styles.headerSub}>Hire the best talent for your next event.</Text>
+        <View style={styles.headerTop}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Vendor Network</Text>
+            <Text style={styles.headerSub}>Hire the best talent for your next event.</Text>
+          </View>
+          <TouchableOpacity style={styles.closeBtn} onPress={() => navigation?.goBack?.()}>
+            <Ionicons name="close" size={24} color="#94a3b8" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.searchBox}>
@@ -65,7 +76,14 @@ export default function VendorNetworkScreen() {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <View style={styles.vendorCard}>
-            <Image source={{ uri: item.img }} style={styles.vendorImg} />
+            <View style={styles.vendorImgContainer}>
+              <Image source={{ uri: item.img }} style={styles.vendorImg} />
+              {item.imageCount && item.imageCount > 1 && (
+                <View style={styles.imageCounter}>
+                  <Text style={styles.imageCounterText}>1/{item.imageCount}</Text>
+                </View>
+              )}
+            </View>
             <View style={styles.vendorInfo}>
               <View style={styles.vHeader}>
                 <Text style={styles.vendorName}>{item.name}</Text>
@@ -93,8 +111,10 @@ export default function VendorNetworkScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: THEME.bg },
   header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 15 },
+  headerTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   headerTitle: { color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: 1 },
   headerSub: { color: THEME.sub, fontSize: 14, marginTop: 4 },
+  closeBtn: { padding: 8, justifyContent: 'flex-start' },
   
   searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d0d25', marginHorizontal: 20, borderRadius: 16, paddingHorizontal: 16, height: 48, borderWidth: 1, borderColor: '#1e1e3f', marginBottom: 15 },
   searchInput: { flex: 1, color: '#fff', marginLeft: 10, fontSize: 15 },
@@ -106,8 +126,11 @@ const styles = StyleSheet.create({
   catTextActive: { color: ACCENT, fontWeight: '800' },
   
   listContent: { paddingHorizontal: 20, paddingBottom: 120, gap: 16 },
-  vendorCard: { flexDirection: 'row', backgroundColor: THEME.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: THEME.cardBorder },
+  vendorCard: { flexDirection: 'row', backgroundColor: THEME.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: THEME.cardBorder, position: 'relative' },
+  vendorImgContainer: { position: 'relative' },
   vendorImg: { width: 80, height: 80, borderRadius: 12, backgroundColor: '#1e1e3f' },
+  imageCounter: { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  imageCounterText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   vendorInfo: { flex: 1, marginLeft: 14, justifyContent: 'space-between' },
   vHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   vendorName: { color: '#fff', fontSize: 16, fontWeight: '800' },
@@ -120,3 +143,4 @@ const styles = StyleSheet.create({
   hireBtn: { backgroundColor: ACCENT, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
   hireText: { color: '#fff', fontSize: 12, fontWeight: '800' }
 });
+

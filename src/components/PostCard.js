@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Image, ScrollView, Linking, StyleSheet, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, TextInput, Image, ScrollView, Linking, StyleSheet, Platform, Animated } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useStore } from '../state/useStore';
 import { ACCENT, GOLD, SILVER, PLAT, THEME } from '../theme';
@@ -155,6 +155,14 @@ export default function PostCard({ item, navigation }) {
     });
   };
 
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const animatePush = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 1.2, duration: 100, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true })
+    ]).start();
+  };
+
   return (
     <View style={[styles.postCard, item.is_paid && styles.paidCard]}>
       {item.is_paid && <Text style={styles.paidBadge}>PRO</Text>}
@@ -212,45 +220,7 @@ export default function PostCard({ item, navigation }) {
           <Ionicons name="open-outline" size={11} color={ACCENT} style={{ marginLeft: 3 }} />
         </TouchableOpacity>
 
-        {/* Media */}
-        {d.slides && d.slides.length > 0 ? (
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.mediaScroll}>
-            {d.slides.map((s, idx) => (
-              <View key={idx} style={styles.mediaContainer}>
-                {s.type === 'video' ? (
-                  <View style={styles.videoPlaceholder}>
-                    <Ionicons name="play-circle" size={48} color="#fff" />
-                    <TouchableOpacity style={styles.rotateBtn}><Ionicons name="sync" size={20} color="#fff" /></TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={{ flex: 1 }}>
-                    <Image source={{ uri: s.url }} style={styles.mediaImage} />
-                    <View style={styles.slideOverlay}>
-                      <TouchableOpacity 
-                        style={styles.slideAction} 
-                        onPress={() => setSlideLikes(prev => ({ ...prev, [idx]: (prev[idx] || 0) + 1 }))}
-                      >
-                        <Ionicons name="heart" size={16} color="#fff" />
-                        <Text style={styles.slideActionText}>{slideLikes[idx] || 0}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={styles.slideAction}
-                        onPress={() => setSlideSaved(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                      >
-                        <Ionicons name={slideSaved[idx] ? "bookmark" : "bookmark-outline"} size={16} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-              </View>
-            ))}
-          </ScrollView>
-        ) : (
-          <View style={styles.mediaSlotEmpty}>
-            <Ionicons name="images-outline" size={22} color={THEME.sub} />
-            <Text style={styles.mediaSlotText}>Media Highlights · Max 15 Img, 3 Vid</Text>
-          </View>
-        )}
+        {/* Media Slot Removed */}
 
         {/* RSVP & Tickets Panel */}
         <View style={styles.rsvpWrapper}>
@@ -258,12 +228,17 @@ export default function PostCard({ item, navigation }) {
             {[{ id:'going', icon:'checkmark-circle', label:`Going${counts.going>0?' · '+counts.going:''}`, activeColor:'#10b981' },
               { id:'interested', icon:'star-outline', label:`Interested${counts.interested>0?' · '+counts.interested:''}`, activeColor: GOLD },
               { id:'not_going', icon:'close-circle-outline', label:'Skip', activeColor:'#ef4444' }].map(btn => (
-              <TouchableOpacity key={btn.id}
-                style={[styles.rsvpBtn, myRSVP === btn.id && { borderColor: btn.activeColor, backgroundColor: btn.activeColor + '22' }]}
-                onPress={() => handleRSVP(item.id, btn.id)}>
-                <Ionicons name={btn.icon} size={14} color={myRSVP === btn.id ? btn.activeColor : THEME.sub} />
-                <Text style={[styles.rsvpLabel, myRSVP === btn.id && { color: btn.activeColor }]}>{btn.label}</Text>
-              </TouchableOpacity>
+              <Animated.View key={btn.id} style={{ transform: [{ scale: myRSVP === btn.id ? scaleAnim : 1 }] }}>
+                <TouchableOpacity
+                  style={[styles.rsvpBtn, myRSVP === btn.id && { borderColor: btn.activeColor, backgroundColor: btn.activeColor + '22' }]}
+                  onPress={() => {
+                    animatePush();
+                    handleRSVP(item.id, btn.id);
+                  }}>
+                  <Ionicons name={btn.icon} size={14} color={myRSVP === btn.id ? btn.activeColor : THEME.sub} />
+                  <Text style={[styles.rsvpLabel, myRSVP === btn.id && { color: btn.activeColor }]}>{btn.label}</Text>
+                </TouchableOpacity>
+              </Animated.View>
             ))}
           </View>
         </View>
@@ -272,17 +247,23 @@ export default function PostCard({ item, navigation }) {
         <View style={styles.engagRow}>
           {/* Reaction button */}
           <View style={{ position:'relative' }}>
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <TouchableOpacity style={styles.engagBtn}
               onPress={() => {
+                animatePush();
                 if (myReaction) handleReact(item.id, myReaction);
                 else setReactionPickerVisible(!reactionPickerVisible);
               }}
-              onLongPress={() => setReactionPickerVisible(true)}>
+              onLongPress={() => {
+                animatePush();
+                setReactionPickerVisible(true);
+              }}>
               {topReaction
                 ? <Ionicons name={topReaction.icon} size={20} color={topReaction.color} />
                 : <Ionicons name="heart-outline" size={20} color={THEME.sub} />}
               <Text style={[styles.engagCount, myReaction && { color: ACCENT }]}>{m.liked_by?.length || 0}</Text>
             </TouchableOpacity>
+          </Animated.View>
             {reactionPickerVisible && (
               <View style={styles.reactionPicker}>
                 {REACTIONS.map(r => (

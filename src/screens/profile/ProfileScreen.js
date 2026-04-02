@@ -433,3 +433,4 @@ const styles = StyleSheet.create({
   alertNo: { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
   alertNoText: { color: '#94a3b8', fontWeight: '700', fontSize: 15 },
 });
+

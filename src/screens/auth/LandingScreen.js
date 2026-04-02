@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../../state/useStore';
-import { ACCENT, THEME } from '../../theme';
+import { ACCENT } from '../../theme';
 import GruvsLogo from '../../components/GruvsLogo';
 
 export default function LandingScreen({ navigation }) {
@@ -13,12 +13,11 @@ export default function LandingScreen({ navigation }) {
   };
 
   const handleVisitor = () => {
-    // just looking around logic
     setUser({ id: 'visitor', name: 'Visitor', gender: 'other', visitor: true });
   };
 
   return (
-    <View style={[styles.authPage, { backgroundColor: '#050514' }]}>
+    <View style={styles.authPage}>
       <View style={styles.glassContainer}>
         <GruvsLogo size={80} style={{ marginBottom: 20 }} />
         <View style={styles.authWelcomeRow}>
@@ -43,7 +42,13 @@ export default function LandingScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  authPage: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 25 },
+  authPage: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 25,
+    backgroundColor: '#050514'
+  },
   glassContainer: {
     width: '100%',
     maxWidth: 400,
@@ -59,7 +64,6 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  brandLogo: { color: '#fff', fontSize: 36, fontWeight: '900', letterSpacing: 2, marginBottom: 20 },
   authWelcomeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8, justifyContent: 'center' },
   authWelcomeTitle: { color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center' },
   subTitle: { color: '#e2e8f0', fontSize: 18, fontWeight: '600', marginBottom: 15, textAlign: 'center' },

@@ -41,14 +41,13 @@ export default async function handler(req, res) {
       // 3. Proximity (if coords provided)
       // Note: This requires PostGIS in Supabase
       if (lat && lng) {
-        // Simple bounding box for non-PostGIS fallback or filter
-        // query = query.filter(...) 
+        query = query.order(`((latitude - ${parseFloat(lat)})^2 + (longitude - ${parseFloat(lng)})^2)`, { ascending: true });
       }
 
       // 4. Sorting & Priority
       if (sortBy === 'trending') {
         query = query.order('trending_score', { ascending: false });
-      } else {
+      } else if (!lat || !lng) {
         query = query.order('created_at', { ascending: false });
       }
 

@@ -7,7 +7,11 @@ import { MOCK_EVENTS } from '../mockEvents';
 import { supabase } from '../supabase';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
-const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
+const API_URL =
+  Platform.OS === 'web'
+    ? (BASE_URL ? `${BASE_URL}/api/events` : '/api/events')
+    : (BASE_URL ? `${BASE_URL}/api/events` : '');
+const CAN_FETCH_REMOTE_EVENTS = !!API_URL;
 
 export const useStore = create(
   persist(
@@ -19,6 +23,10 @@ export const useStore = create(
 
       // Real Auth Logic (A to Z fix)
       signUp: async (email, password, metadata) => {
+        if (!supabase) {
+          set({ error: 'Backend not configured. Using demo mode.' });
+          return { success: false, error: 'No backend configured.' };
+        }
         set({ loading: true, error: null });
         try {
           const { data, error } = await supabase.auth.signUp({ 
@@ -28,7 +36,6 @@ export const useStore = create(
           });
           if (error) throw error;
           
-          // Create profile record (though trigger should do it, we'll be safer in case of latency)
           const { error: pErr } = await supabase.from('profiles').upsert({
             id: data.user.id,
             email: email,
@@ -50,12 +57,15 @@ export const useStore = create(
       },
 
       signIn: async (email, password) => {
+        if (!supabase) {
+          set({ error: 'Backend not configured. Using demo mode.' });
+          return { success: false, error: 'No backend configured.' };
+        }
         set({ loading: true, error: null });
         try {
           const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) throw error;
           
-          // Fetch profile
           const { data: pData } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
           set({ user: data.user, profile: pData });
           return { success: true };
@@ -68,13 +78,13 @@ export const useStore = create(
       },
 
       signOut: async () => {
-        await supabase.auth.signOut();
+        if (supabase) await supabase.auth.signOut();
         set({ user: null, profile: null });
       },
 
       syncProfile: async () => {
         const u = get().user;
-        if (!u) return;
+        if (!u || !supabase) return;
         const { data } = await supabase.from('profiles').select('*').eq('id', u.id).single();
         if (data) set({ profile: data });
       },
@@ -99,7 +109,24 @@ export const useStore = create(
 
   // Supabase Real-Time Engine
   realtimeSubscribed: false,
-  subscribeToRealtime: () => {
+  subscribeToRealtime: (chatId) => {
+    if (!supabase || !chatId) return () => {};
+    const channel = supabase.channel(`chat:${chatId}`)
+        .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'messages', 
+            filter: `conversation_id=eq.${chatId}` 
+        }, (payload) => {
+            // Update local messages state if needed (or refetch)
+            // For simplicity here, we'll let the component handle the refetch or update its own state
+            // but we could also merge into a global object.
+            console.log('Realtime Msg:', payload.new);
+        })
+        .subscribe();
+    return () => supabase.removeChannel(channel);
+  },
+  subscribeToEvents: () => {
     if (get().realtimeSubscribed) return;
     if (!supabase) {
       console.warn('[REALTIME] Supabase client not initialized. Realtime disabled.');
@@ -134,20 +161,27 @@ export const useStore = create(
     try {
       const { searchQuery, activeCategory } = get();
       
-      // Attempt API fetch
-      let url = `${API_URL}?q=${encodeURIComponent(searchQuery)}&category=${encodeURIComponent(activeCategory)}`;
-      if (coords) url += `&lat=${coords.latitude}&lng=${coords.longitude}&radius=50000`;
-      
-      const res = await fetch(url).catch(() => null);
-      
-      if (res && res.ok) {
-        const data = await res.json();
-        set({ posts: data, error: null });
-        return;
+      // Attempt API fetch only when an explicit backend URL is configured.
+      let res = null;
+      if (CAN_FETCH_REMOTE_EVENTS) {
+        let url = `${API_URL}?q=${encodeURIComponent(searchQuery)}&category=${encodeURIComponent(activeCategory)}`;
+        if (coords) url += `&lat=${coords.latitude}&lng=${coords.longitude}&radius=50000`;
+
+        res = await fetch(url).catch(() => null);
+
+        if (res && res.ok) {
+          const data = await res.json();
+          set({ posts: data, error: null });
+          return;
+        }
       }
 
       // ─── FALLBACK: RELIABLE DISCOVERY ENGINE (A to Z) ──────────────────
-      console.log('[STORE] API unreachable. Switching to Intelligent Fallback Engine.');
+      console.log(
+        CAN_FETCH_REMOTE_EVENTS
+          ? '[STORE] API unreachable. Switching to Intelligent Fallback Engine.'
+          : '[STORE] No API configured. Using Intelligent Fallback Engine.'
+      );
       
       let filtered = [...MOCK_EVENTS];
 

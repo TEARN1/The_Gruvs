@@ -8,16 +8,31 @@ import { VibeProvider } from './src/state/VibeContext';
 
 export default function App() {
   useEffect(() => {
-    if (useStore.getState().subscribeToRealtime) {
-      useStore.getState().subscribeToRealtime();
+    const store = useStore.getState();
+
+    try {
+      // Do not block first paint on network/store hydration.
+      if (store.fetchPosts) {
+        Promise.resolve(store.fetchPosts()).catch((err) => {
+          console.error('[APP FETCH ERROR]', err);
+        });
+      }
+
+      if (store.subscribeToEvents) {
+        store.subscribeToEvents();
+      }
+    } catch (err) {
+      console.error('[APP INIT ERROR]', err);
     }
   }, []);
-  
+
   return (
-    <SafeAreaProvider style={styles.container}>
+    <SafeAreaProvider>
       <VibeProvider>
         <StatusBar style="light" />
-        <AppNavigator />
+        <View style={styles.container}>
+          <AppNavigator />
+        </View>
       </VibeProvider>
     </SafeAreaProvider>
   );
@@ -29,4 +44,3 @@ const styles = StyleSheet.create({
     backgroundColor: '#050510',
   },
 });
-

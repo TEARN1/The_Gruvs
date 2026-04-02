@@ -1,11 +1,10 @@
--- 0. CORE SOCIAL INFRASTRUCTURE (Missing Dependencies)
--- 0. CORE SOCIAL INFRASTRUCTURE (Required Dependencies)
+-- 1. CORE TABLES
 create table if not exists public.notifications (
   id uuid default gen_random_uuid() primary key,
-  receiver_id uuid references public.profiles(id) on delete cascade,
+  receiver_id uuid references public.profiles(id) on delete cascade not null,
   actor_id uuid references public.profiles(id) on delete set null,
-  type text not null, -- 'event_like', 'achievement_unlocked', etc.
-  entity_id uuid, -- Link to event_id or message_id
+  type text not null,
+  entity_id uuid,
   content text,
   is_read boolean default false,
   created_at timestamptz default now()
@@ -18,174 +17,98 @@ create table if not exists public.conversations (
 
 create table if not exists public.messages (
   id uuid default gen_random_uuid() primary key,
-  conversation_id uuid references public.conversations(id) on delete cascade,
-  sender_id uuid references public.profiles(id) on delete cascade,
+  conversation_id uuid references public.conversations(id) on delete cascade not null,
+  sender_id uuid references public.profiles(id) on delete cascade not null,
   content text,
   created_at timestamptz default now()
 );
 
-create table if not exists public.reports (
-  id uuid default gen_random_uuid() primary key,
-  reporter_id uuid references public.profiles(id) on delete set null,
-  target_event_id uuid references public.events(id) on delete cascade,
-  reason text,
-  details text,
-  status text default 'pending',
-  created_at timestamptz default now()
-);
-
--- 0.1 CORE SOCIAL MAPPING (Views over bridge tables)
+-- 2. SOCIAL INFRASTRUCTURE & VIEWS
 create or replace view public.follows as
-select
-  sr.actor_id as follower_id,
-  sr.target_id as following_id,
-  now() as created_at
-from public.social_relations sr
-where sr.relation_type = 'follow';
+  select actor_id as follower_id, target_id as following_id, created_at
+  from public.social_relations where relation_type = 'follow';
 
-drop view if exists public.mutes cascade;
-create or replace view public.mutes as
-select
-  sr.actor_id as muter_id,
-  sr.target_id as muted_user_id,
-  now() as created_at
-from public.social_relations sr
-where sr.relation_type = 'mute';
-
-drop view if exists public.blocks cascade;
 create or replace view public.blocks as
-select
-  sr.actor_id as blocker_id,
-  sr.target_id as blocked_id,
-  now() as created_at
-from public.social_relations sr
-where sr.relation_type = 'block';
+  select actor_id as blocker_id, target_id as blocked_id, created_at
+  from public.social_relations where relation_type = 'block';
 
-drop view if exists public.likes cascade;
 create or replace view public.likes as
-select
-  (i.user_id::text || ':' || i.event_id::text)::uuid as id,
-  i.user_id,
-  i.event_id,
-  i.interacted_at as created_at
-from public.event_interactions i
-where i.action_type = 'save';
+  select id, user_id, event_id, interacted_at as created_at
+  from public.event_interactions where action_type = 'save';
 
-create table if not exists public.user_achievements (
-  user_id uuid references public.profiles(id) on delete cascade,
-  achievement_id text not null,
-  earned_at timestamptz default now(),
-  primary key (user_id, achievement_id)
-);
-
--- 1. RECURRENCE ENGINE
-create table public.event_series (
+-- 3. RECURRENCE & TICKETING
+create table if not exists public.event_series (
   id uuid default gen_random_uuid() primary key,
-  creator_id uuid references public.profiles(id) on delete cascade,
-  recurrence_pattern text, -- 'weekly', 'monthly', 'daily'
-  metadata jsonb, -- Stores custom rules (e.g., "Every Tuesday")
+  creator_id uuid references public.profiles(id) on delete cascade not null,
+  recurrence_pattern text, 
+  metadata jsonb,
   created_at timestamptz default now()
 );
 
 alter table public.events 
 add column if not exists series_id uuid references public.event_series(id) on delete set null,
 add column if not exists capacity int,
+add column if not exists heat_index float default 0.0,
 add column if not exists price numeric(10, 2) default 0.00;
 
--- 2. TICKETING & TRANSACTIONS
-create table public.tickets (
-  id uuid default gen_random_uuid() primary key,
-  event_id uuid references public.events(id) on delete cascade,
-  user_id uuid references public.profiles(id) on delete cascade,
-  purchase_price numeric(10, 2),
-  qr_code_data text unique,
-  status text default 'valid', -- 'valid', 'used', 'refunded'
-  created_at timestamptz default now()
-);
-
--- 3. TRENDING ALGORITHM (THE BRAIN)
--- This function implements the Gravity Decay formula: Score = (Engagement - 1) / (Time + 2)^Gravity
-create or replace function public.calculate_event_heat_index()
-returns void as $$
-declare
-  gravity float := 1.8;
-begin
-  update public.events e
-  set heat_index = (
-    (
-      select count(*) from public.event_interactions i
-      where i.event_id = e.id and i.action_type = 'save'
-    ) + 
-    (
-      select count(*) from public.event_interactions i
-      where i.event_id = e.id and i.action_type = 'going'
-    ) * 2 + 
-    (e.views * 0.1)
-  ) / pow(
-    extract(epoch from (now() - e.created_at)) / 3600 + 2, 
-    gravity
-  )
-  where is_cancelled = false;
-end;
-$$ language plpgsql security definer;
-
--- 4. ACHIEVEMENT AUTOMATION
+-- 4. TRIGGERS (Redirected from Views to Tables)
+-- Achievement Automation
 create or replace function public.check_user_achievements()
 returns trigger as $$
 begin
-  -- 'Social Butterfly' Trigger (50 followers)
-  if (select count(*) from public.follows where following_id = new.following_id) >= 50 then
-    insert into public.user_achievements (user_id, achievement_id)
-    values (new.following_id, 'social_butterfly')
-    on conflict do nothing;
-    
-    -- Notify user
-    insert into public.notifications (receiver_id, type, content)
-    values (new.following_id, 'achievement_unlocked', 'You unlocked the Social Butterfly achievement!');
+  if (new.relation_type = 'follow') then
+    if (select count(*) from public.social_relations where target_id = new.target_id and relation_type = 'follow') >= 50 then
+      insert into public.user_achievements (user_id, achievement_id)
+      values (new.target_id, 'social_butterfly') on conflict do nothing;
+      
+      insert into public.notifications (receiver_id, type, content)
+      values (new.target_id, 'achievement_unlocked', 'You unlocked Social Butterfly!');
+    end if;
   end if;
   return new;
 end;
 $$ language plpgsql security definer;
 
 create trigger on_follow_check_achievement
-  after insert on public.follows
-  for each row execute procedure public.check_user_achievements();
+  after insert on public.social_relations
+  for each row execute function public.check_user_achievements();
 
--- 5. NOTIFICATION AGGREGATION
--- Prevents notification spam (e.g., "User A and 5 others liked your event")
-create or replace function public.notify_on_like()
+-- Notification Logic
+create or replace function public.notify_on_interaction()
 returns trigger as $$
 begin
-  insert into public.notifications (receiver_id, actor_id, type, entity_id, content)
-  select 
-    author_id, 
-    new.user_id, 
-    'event_like', 
-    new.event_id,
-    'liked your event'
-  from public.events
-  where id = new.event_id
-  -- Only notify if the liker is not the author
-  and author_id != new.user_id;
+  if (new.action_type = 'save') then
+    insert into public.notifications (receiver_id, actor_id, type, entity_id, content)
+    select user_id, new.user_id, 'event_like', new.event_id, 'liked your event'
+    from public.events where id = new.event_id and user_id != new.user_id;
+  end if;
   return new;
 end;
 $$ language plpgsql security definer;
 
-create trigger on_like_notification
-  after insert on public.likes
-  for each row execute procedure public.notify_on_like();
+create trigger on_interaction_notification
+  after insert on public.event_interactions
+  for each row execute function public.notify_on_interaction();
 
--- 6. SEARCH VIEWS
--- A materialized view for rapid discovery of "Hot" events
+-- 5. SEARCH & FEED (Optimized)
 drop materialized view if exists public.trending_events;
 create materialized view public.trending_events as
-  select e.*, p.name as author_name, p.avatar_url as author_avatar
+  select e.*, p.username, p.avatar_url
   from public.events e
   join public.profiles p on e.user_id = p.id
   where e.event_date > now()
   order by e.heat_index desc;
 
-create index idx_trending_heat on public.trending_events(heat_index desc);
+create unique index on public.trending_events (id);
+
+-- 6. REALTIME REPLICATION
+begin;
+  drop publication if exists supabase_realtime;
+  create publication supabase_realtime for table 
+    public.messages, 
+    public.notifications, 
+    public.events;
+commit;
 
 -- 7. REAL-TIME REPLICATION
 -- Enable Realtime for messaging and heat index updates

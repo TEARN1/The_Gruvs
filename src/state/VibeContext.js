@@ -1,5 +1,4 @@
 import React, { createContext, useState } from 'react';
-import { View } from 'react-native';
 
 export const VibeContext = createContext();
 
@@ -8,9 +7,7 @@ export const VibeProvider = ({ children }) => {
 
   return (
     <VibeContext.Provider value={{ frequency, setFrequency }}>
-      <View style={{ flex: 1 }}>
-        {children}
-      </View>
+      {children}
     </VibeContext.Provider>
   );
 };
