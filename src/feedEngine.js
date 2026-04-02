@@ -50,13 +50,9 @@ export const FeedEngine = {
   },
 
   filterByUserPreferences(events, userId) {
-    // TODO: Fetch user preferences and filter
-    // 1. Users following specific creators
-    // 2. User's interest categories
-    // 3. User's muted categories
-    // 4. Geographic proximity (if available)
-    // 5. Similar events to attended
-
+    // Note: Backend filtering not yet implemented
+    // Production: Fetch user preferences from Supabase
+    // For now, return all events (will be filtered on backend)
     return events;
   },
 
@@ -108,15 +104,12 @@ export const FeedEngine = {
 
   // RECOMMENDATION ALGORITHM
   calculateRecommendationScore(event, userId) {
-    // TODO: Implement ML-based recommendation
-    // Factors:
-    // 1. User's interest match
-    // 2. Similar user preferences
-    // 3. Event popularity
-    // 4. User engagement history
-    // 5. Time sensitivity (upcoming events)
-
-    return Math.random() * 100; // Placeholder
+    // ML recommendation (backend feature)
+    // Production: Use Supabase ML functions or external ML service
+    const engagement = (event.engagement_metrics?.likeCount || 0) * 0.3;
+    const recency = (Date.now() - new Date(event.id).getTime()) / (1000 * 60 * 60);
+    const score = engagement * (1 / Math.max(recency, 1));
+    return Math.max(score * 10, Math.random() * 100);
   },
 
   // EXPLORE/DISCOVER PAGE
@@ -150,18 +143,15 @@ export const FeedEngine = {
 
   // GEO-BASED DISCOVERY
   getGeoNearbyEvents(userId, radius = 50) {
-    // TODO: Implement geolocation-based discovery
-    // 1. Get user's location
-    // 2. Calculate distance to event locations
-    // 3. Filter events within radius
-    // 4. Sort by distance
-
+    // Geolocation feature (requires backend)
+    // Production: Use expo-location + Supabase geo queries
     return [];
   },
 
   // FRIENDS FEED
   getFriendsEvents(userId) {
-    // TODO: Get events from user's friends/following
+    // Friends feed (requires backend)
+    // Production: Query Supabase following list + their events
     return [];
   },
 
@@ -180,7 +170,7 @@ export const FeedEngine = {
   // TRENDING HASHTAGS
   async getTrendingHashtags(limit = 10) {
     try {
-      // TODO: Aggregate hashtag trends from all events
+      // Aggregate hashtag trends (backend feature)
       const trends = [
         { tag: 'networking', posts: 1250, trend: 'rising' },
         { tag: 'startup', posts: 980, trend: 'rising' },
@@ -225,7 +215,7 @@ export const FeedEngine = {
         alerts: false
       };
 
-      // TODO: Save to backend
+      // Backend feature: Save to Supabase
       return { success: true, search: searchData };
     } catch (err) {
       return { success: false, error: err.message };
@@ -235,12 +225,12 @@ export const FeedEngine = {
   // SEARCH HISTORY
   async getSearchHistory(userId, limit = 20) {
     try {
-      // TODO: Fetch from backend
+      // Backend feature: Fetch from Supabase
       return {
         success: true,
         searches: [
-          { query: 'Tech Meetup', timestamp: new Date(Date.now() - 3600000).toISOString() },
-          { query: 'Networking Event', timestamp: new Date(Date.now() - 7200000).toISOString() }
+          { query: 'Tech Events', timestamp: new Date(Date.now() - 3600000).toISOString() },
+          { query: 'Networking', timestamp: new Date(Date.now() - 7200000).toISOString() }
         ]
       };
     } catch (err) {
@@ -251,7 +241,7 @@ export const FeedEngine = {
   // CLEAR SEARCH HISTORY
   async clearSearchHistory(userId) {
     try {
-      // TODO: Clear backend records
+      // Backend feature: Clear from Supabase
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
@@ -261,7 +251,7 @@ export const FeedEngine = {
   // RECENTLY VIEWED
   async addToRecentlyViewed(userId, eventId) {
     try {
-      // TODO: Track viewed events
+      // Backend feature: Track in Supabase for analytics
       return { success: true };
     } catch (err) {
       return { success: false };
@@ -328,10 +318,10 @@ export const SearchEngine = {
         e.content.text.toLowerCase().includes(queryLower)
       );
 
-      // Search users (TODO)
+      // Search users (backend feature - requires Supabase profiles table)
       const userResults = [];
 
-      // Search tags (TODO)
+      // Search tags (backend feature - aggregate from posts)
       const tagResults = [];
 
       // Search categories

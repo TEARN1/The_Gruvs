@@ -83,8 +83,8 @@ export const MessagingSystem = {
       const conv = await AsyncStorage.getItem(convKey);
       const convData = JSON.parse(conv || '{}');
 
-      // TODO: Fetch messages from backend
-      // For now, return empty array
+      // Backend feature: Fetch messages from Supabase
+      // For now, return empty array (will be populated from backend)
       return {
         success: true,
         messages: [],

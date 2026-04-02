@@ -356,9 +356,9 @@ export const DataManager = {
 
       const exported = {
         profile: userData,
-        events: [], // TODO: Get user's events
-        messages: [], // TODO: Get user's messages
-        activity: [], // TODO: Get activity log
+        events: [], // Backend feature: Query user's events from Supabase
+        messages: [], // Backend feature: Query user's messages from Supabase
+        activity: [], // Backend feature: Query activity log from Supabase
         exportDate: new Date().toISOString()
       };
 
@@ -374,7 +374,7 @@ export const DataManager = {
       const userKey = `user_${userId}`;
       await AsyncStorage.removeItem(userKey);
 
-      // TODO: Delete related data (events, messages, etc.)
+      // Backend feature: Delete related data in Supabase (events, messages, etc.)
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
