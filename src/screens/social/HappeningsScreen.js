@@ -10,7 +10,7 @@ const { width: screenWidth } = Dimensions.get('window');
 export default function HappeningsScreen({ navigation }) {
     const { width } = useWindowDimensions();
     const [refreshing, setRefreshing] = useState(false);
-    const { pulseEvents, addEventModalVisible, setAddEventModalVisible } = useStore();
+    const { posts, addEventModalVisible, setAddEventModalVisible } = useStore();
 
     const handleRefresh = () => {
         setRefreshing(true);
@@ -24,12 +24,96 @@ export default function HappeningsScreen({ navigation }) {
         { id: '4', time: '22:00', title: 'Afterparty: Deep House Sessions', status: 'Tickets selling fast', color: '#00f2ff', media: [] },
     ];
     
-    // Combine user-created events with defaults
-    const allEvents = [...pulseEvents, ...defaultPulseEvents].sort((a, b) => {
+    // Convert posts to pulse timeline format and combine with defaults
+    const userEvents = (posts || []).map(post => ({
+        id: post.id,
+        time: post.date_time ? new Date(post.date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Soon',
+        title: post.title || post.content?.title || 'Unnamed Event',
+        status: post.description || post.content?.text || 'Happening now',
+        description: post.description || post.content?.text,
+        location: post.location,
+        color: post.pulse_meta?.color || ACCENT,
+        media: post.media || [],
+    }));
+    
+    // Combine user events with defaults, sort by LIVE first
+    const allEvents = [...userEvents, ...defaultPulseEvents].sort((a, b) => {
         if (a.time === 'LIVE') return -1;
         if (b.time === 'LIVE') return 1;
         return 0;
     });
+
+    return (
+        <SafeAreaView style={[styles.container, { backgroundColor: THEME.bg }]}>
+            <View style={[styles.header, { paddingHorizontal: width < 600 ? 12 : 20 }]}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
+                    <Ionicons name="arrow-back" size={width < 600 ? 20 : 24} color="#fff" />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { fontSize: width < 600 ? 14 : 16 }]}>PULSE TIMELINE</Text>
+                <TouchableOpacity onPress={() => setAddEventModalVisible(true)} style={styles.headerBtn}>
+                    <Ionicons name="add-circle" size={width < 600 ? 20 : 24} color={ACCENT} />
+                </TouchableOpacity>
+            </View>
+            
+            <ScrollView 
+                style={styles.scrollContent} 
+                contentContainerStyle={[styles.scrollPadding, { paddingHorizontal: width < 600 ? 12 : 25 }]}
+                showsVerticalScrollIndicator={false}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={ACCENT} />}
+            >
+                <Text style={styles.sectionTitle}>Tonight's Flow</Text>
+                {allEvents.map((item, idx) => (
+                    <View key={item.id} style={styles.pulseItem}>
+                        <View style={styles.pulseTimeCol}>
+                            <Text style={[styles.pulseTime, item.time === 'LIVE' && { color: '#ef4444', fontWeight: '900' }]}>{item.time}</Text>
+                            {idx !== allEvents.length - 1 && <View style={styles.pulseLinkLine} />}
+                        </View>
+                        <TouchableOpacity style={[styles.pulseCard, { borderLeftColor: item.color }]}>
+                            {/* Media Preview */}
+                            {item.media && item.media.length > 0 && (
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaScroll}>
+                                    {item.media.map((media) => (
+                                        <View key={media.id || media.url} style={styles.mediaThumb}>
+                                            {media.type === 'photo' && (
+                                                <Image source={{ uri: media.uri || media.url }} style={styles.mediaImage} />
+                                            )}
+                                            {media.type === 'video' && (
+                                                <View style={[styles.mediaImage, { backgroundColor: '#1a1d2e', justifyContent: 'center', alignItems: 'center' }]}>
+                                                    <Ionicons name="play-circle" size={24} color={ACCENT} />
+                                                </View>
+                                            )}
+                                            {(media.type === 'image' || !media.type) && !media.type && (
+                                                <Image source={{ uri: media.uri || media.url }} style={styles.mediaImage} />
+                                            )}
+                                        </View>
+                                    ))}
+                                </ScrollView>
+                            )}
+                            
+                            {/* Event Info */}
+                            <Text style={styles.pulseTitle}>{item.title}</Text>
+                            {item.description && <Text style={styles.pulseDesc}>{item.description}</Text>}
+                            {item.location && (
+                                <View style={styles.locationRow}>
+                                    <Ionicons name="location" size={12} color={ACCENT} />
+                                    <Text style={styles.locationText}>{item.location}</Text>
+                                </View>
+                            )}
+                            <Text style={styles.pulseStatus}>{item.status}</Text>
+                            {item.time === 'LIVE' && <View style={styles.liveIndicator} />}
+                        </TouchableOpacity>
+                    </View>
+                ))}
+            </ScrollView>
+            
+            {/* Create Event Modal */}
+            <CreateEventModal 
+                visible={addEventModalVisible} 
+                onClose={() => setAddEventModalVisible(false)} 
+            />
+        </SafeAreaView>
+    );
+}
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: THEME.bg }]}>

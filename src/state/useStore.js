@@ -5,6 +5,7 @@ import { Platform, Alert } from 'react-native';
 import { SEED_STORIES, SEED_NOTIFICATIONS } from '../social';
 import { MOCK_EVENTS } from '../mockEvents';
 import { supabase } from '../supabase';
+import { ACCENT } from '../theme';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_URL =
@@ -155,31 +156,44 @@ export const useStore = create(
   savedPosts: [],
   regruvePosts: [],
   
-  // Pulse Events (User Created)
-  pulseEvents: [],
+  // Pulse Events (Synced with posts array - single source of truth)
   addPulseEvent: (event) => {
+    const { posts, user } = get();
     const newEvent = {
       id: `pulse-${Date.now()}`,
-      time: event.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      is_paid: false,
+      content: {
+        title: event.title,
+        text: event.description,
+        author_name: user?.name || 'Anonymous',
+        author_id: user?.id || 'anon',
+        category: event.category || 'All',
+      },
       title: event.title,
-      status: event.status || 'Happening now',
       description: event.description,
+      category: event.category || 'All',
       location: event.location,
+      date_time: event.time || new Date().toISOString(),
+      author_id: user?.id || 'anon',
+      author_name: user?.name || 'Anonymous',
       media: event.media || [],
-      color: event.color || ACCENT,
-      createdBy: get().user?.id || 'user',
-      createdAt: new Date().toISOString(),
+      liked_by: [],
+      comments: [],
+      engagement_metrics: {
+        likes: 0,
+        comments: [],
+        rsvps: {},
+      },
+      pulse_meta: {
+        color: event.color || ACCENT,
+        status: event.status || 'Happening now',
+        createdBy: user?.id || 'user',
+        createdAt: new Date().toISOString(),
+      }
     };
-    set({ pulseEvents: [newEvent, ...get().pulseEvents] });
+    // ADD TO POSTS (single source of truth)
+    set({ posts: [newEvent, ...(posts || [])] });
     return newEvent;
-  },
-  updatePulseEvent: (eventId, updates) => {
-    set({ 
-      pulseEvents: get().pulseEvents.map(e => e.id === eventId ? { ...e, ...updates } : e) 
-    });
-  },
-  deletePulseEvent: (eventId) => {
-    set({ pulseEvents: get().pulseEvents.filter(e => e.id !== eventId) });
   },
 
   // Actions
