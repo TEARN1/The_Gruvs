@@ -154,6 +154,33 @@ export const useStore = create(
   rsvpState: {},
   savedPosts: [],
   regruvePosts: [],
+  
+  // Pulse Events (User Created)
+  pulseEvents: [],
+  addPulseEvent: (event) => {
+    const newEvent = {
+      id: `pulse-${Date.now()}`,
+      time: event.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      title: event.title,
+      status: event.status || 'Happening now',
+      description: event.description,
+      location: event.location,
+      media: event.media || [],
+      color: event.color || ACCENT,
+      createdBy: get().user?.id || 'user',
+      createdAt: new Date().toISOString(),
+    };
+    set({ pulseEvents: [newEvent, ...get().pulseEvents] });
+    return newEvent;
+  },
+  updatePulseEvent: (eventId, updates) => {
+    set({ 
+      pulseEvents: get().pulseEvents.map(e => e.id === eventId ? { ...e, ...updates } : e) 
+    });
+  },
+  deletePulseEvent: (eventId) => {
+    set({ pulseEvents: get().pulseEvents.filter(e => e.id !== eventId) });
+  },
 
   // Actions
   fetchPosts: async (coords) => {

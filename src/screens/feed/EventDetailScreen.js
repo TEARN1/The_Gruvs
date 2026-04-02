@@ -26,31 +26,37 @@ export default function EventDetailScreen({ route, navigation }) {
     // Countdown timer effect
     useEffect(() => {
         const calculateCountdown = () => {
-            const eventDate = new Date('2024-01-12T20:00:00');
-            const now = new Date();
-            const diff = eventDate - now;
+            try {
+                // Use future date or event date if available
+                const eventDate = event?.date_time ? new Date(event.date_time) : new Date(Date.now() + 5 * 24 * 60 * 60 * 1000); // 5 days from now by default
+                const now = new Date();
+                const diff = eventDate - now;
 
-            if (diff > 0) {
-                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                
-                if (days > 0) {
-                    setTimeLeft(`${days}d ${hours}h`);
-                } else if (hours > 0) {
-                    setTimeLeft(`${hours}h ${minutes}m`);
+                if (diff > 0) {
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    if (days > 0) {
+                        setTimeLeft(`${days}d ${hours}h`);
+                    } else if (hours > 0) {
+                        setTimeLeft(`${hours}h ${minutes}m`);
+                    } else {
+                        setTimeLeft(`${Math.max(minutes, 1)}m`);
+                    }
                 } else {
-                    setTimeLeft(`${minutes}m`);
+                    setTimeLeft('Event started');
                 }
-            } else {
-                setTimeLeft('Event started');
+            } catch (err) {
+                console.warn('Countdown calculation error:', err);
+                setTimeLeft('Soon');
             }
         };
 
         calculateCountdown();
         const timer = setInterval(calculateCountdown, 60000); // Update every minute
         return () => clearInterval(timer);
-    }, []);
+    }, [event]);
 
     const handleShare = async () => {
         try {
