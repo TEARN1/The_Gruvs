@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useStore } from '../state/useStore';
@@ -24,41 +24,55 @@ const Stack = createNativeStackNavigator();
 export default function AppNavigator() {
   const user = useStore((state) => state.user);
   const [initError, setInitError] = useState(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    console.log('[NAV] Current user:', user);
-  }, [user]);
+    console.log('[NAV] Initializing...');
+    setIsReady(true);
+  }, []);
 
   if (initError) {
     return (
       <View style={{ flex: 1, backgroundColor: '#050510', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#ff4da6', marginBottom: 10 }}>Navigation Error</Text>
-        <Text style={{ color: '#fff', fontSize: 12 }}>{initError}</Text>
+        <Text style={{ color: '#ff4da6', marginBottom: 10, fontSize: 16 }}>Navigation Error</Text>
+        <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center', paddingHorizontal: 20 }}>{initError}</Text>
+      </View>
+    );
+  }
+
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#050510', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#ff4da6" />
       </View>
     );
   }
 
   return (
-    <NavigationContainer onError={(error) => {
-      console.error('[NAV ERROR]', error);
-      setInitError(error.message);
-    }}>
+    <NavigationContainer
+      onReady={() => console.log('[NAV] Ready')}
+      onError={(error) => {
+        console.error('[NAV ERROR]', error);
+        setInitError(error.message || 'Navigation error occurred');
+      }}
+    >
       <Stack.Navigator 
         screenOptions={{ 
           headerShown: false,
           animationEnabled: true
         }}
+        initialRouteName={user ? 'Main' : 'Landing'}
       >
         {!user ? (
           // Auth Stack
           <Stack.Group screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Landing" component={LandingScreen} />
+            <Stack.Screen name="Landing" component={LandingScreen} options={{ animationEnabled: false }} />
             <Stack.Screen name="Auth" component={AuthScreen} />
           </Stack.Group>
         ) : (
           // Main App Stack (Authenticated)
           <Stack.Group>
-            <Stack.Screen name="Main" component={TabNavigator} />
+            <Stack.Screen name="Main" component={TabNavigator} options={{ animationEnabled: false }} />
             <Stack.Screen name="Explore" component={ExploreScreen} />
             <Stack.Screen name="EventDetails" component={EventDetailScreen} />
             <Stack.Screen name="Messages" component={MessagesScreen} />
