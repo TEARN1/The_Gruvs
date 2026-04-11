@@ -1,0 +1,830 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View, FlatList, RefreshControl, StyleSheet, TextInput, Text, TouchableOpacity,
+  ScrollView, Modal, Platform, useWindowDimensions, KeyboardAvoidingView, ActivityIndicator,
+  Animated
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
+import * as Haptics from 'expo-haptics';
+
+import { useStore } from '../../../core/state/useStore';
+import { ACCENT, LIGHT_THEME, DARK_THEME, GOLD } from '../../../core/theme';
+import { CATEGORY_GROUPS } from '../../../core/data';
+import PostCard from '../../../shared/components/PostCard';
+import TheHappenings from '../../../shared/components/TheHappenings';
+import GruvsLogo from '../../../shared/components/GruvsLogo';
+import { Sidebar } from '../../../shared/components/Sidebar';
+import { Image } from 'expo-image';
+
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
+const API_URL = (Platform.OS === 'web' && !BASE_URL) ? '/api/events' : `${BASE_URL}/api/events`;
+
+export default function FeedScreen({ navigation }) {
+  const {
+    posts, loading, error, fetchPosts, searchQuery, setSearchQuery,
+    activeCategory, setActiveCategory, user, notifVisible, setNotifVisible,
+    notifications, markNotifsRead, setPosts, addEventModalVisible, setAddEventModalVisible,
+    themeMode
+  } = useStore();
+
+  const theme = themeMode === 'dark' ? DARK_THEME : LIGHT_THEME;
+  const isDark = themeMode === 'dark';
+
+  const [fadeAnims] = useState(new Map()); // Map of id -> Animated.Value
+
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [nearbyModalVisible, setNearbyModalVisible] = useState(false);
+  const [nearbyPeople, setNearbyPeople] = useState([]);
+  const [nearbyEvents, setNearbyEvents] = useState([]);
+  const [happeningDetailVisible, setHappeningDetailVisible] = useState(false);
+  const [selectedHappening, setSelectedHappening] = useState(null);
+
+  // Add Event Form State
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventDescription, setNewEventDescription] = useState('');
+  const [newEventLocation, setNewEventLocation] = useState('');
+  const [newEventImage, setNewEventImage] = useState(null);
+  const [newEventVideo, setNewEventVideo] = useState(null);
+  const [newEventCategory, setNewEventCategory] = useState('All');
+  const [newEventStart, setNewEventStart] = useState('');
+  const [newEventGuests, setNewEventGuests] = useState('');
+  const [ticketTiers, setTicketTiers] = useState([
+    { id: 'free', name: 'Free', amount: 0, entries: '', color: '#10b981' },
+    { id: 'vip', name: 'VIP', amount: '', entries: '', color: '#ff4da6' },
+    { id: 'vvip', name: 'VVIP', amount: '', entries: '', color: '#FFD700' },
+    { id: 'vvvip', name: 'VVVIP', amount: '', entries: '', color: '#a78bfa' },
+  ]);
+  const [newCustomTier, setNewCustomTier] = useState({ name: '', amount: '', entries: '' });
+
+  const { width } = useWindowDimensions();
+  const isPC = Platform.OS === 'web' && width > 768;
+
+  const triggerHaptic = (type = 'light') => {
+    if (Platform.OS !== 'web') {
+      if (type === 'light') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      else if (type === 'medium') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      else if (type === 'success') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const unreadNotifs = (notifications || []).filter(n => !n.read).length;
+
+  useEffect(() => {
+    fetchPosts().then(() => {
+      if (posts?.length) {
+        const animations = posts.map((p, i) => {
+          if (!fadeAnims.has(p.id)) {
+            fadeAnims.set(p.id, new Animated.Value(0));
+          }
+          return Animated.timing(fadeAnims.get(p.id), {
+            toValue: 1,
+            duration: 500,
+            delay: i * 80,
+            useNativeDriver: true,
+          });
+        });
+        Animated.parallel(animations).start();
+      }
+    });
+
+    const unsubscribe = useStore.getState().subscribeToEvents?.();
+    return () => unsubscribe?.();
+  }, [searchQuery, activeCategory]);
+
+  const getGPSLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      fetchPosts(loc.coords);
+      setNearbyPeople([
+        { id: 'n1', name: 'Zolani', distance: '300m', interests: ['Amapiano', 'Tech'], avatar: 'Z', ring: '#10b981' },
+        { id: 'n2', name: 'Sarah', distance: '850m', interests: ['Yoga', 'Faith'], avatar: 'S', ring: ACCENT },
+        { id: 'n3', name: 'Kgomotso', distance: '1.2km', interests: ['Soccer'], avatar: 'K', ring: GOLD },
+        { id: 'n4', name: 'Mpho', distance: '450m', interests: ['Music', 'Arts'], avatar: 'M', ring: '#8b5cf6' },
+      ]);
+      setNearbyEvents([
+        { id: 'e1', title: 'Shisanyama Sunday', location: 'Zone 4', distance: '600m', daysLeft: 2 },
+        { id: 'e2', title: 'Amapiano Vibes', location: 'Ivory Park', distance: '900m', daysLeft: 5 },
+      ]);
+      setNearbyModalVisible(true);
+    } catch (e) {
+      setNearbyPeople([
+        { id: 'n1', name: 'Zolani', distance: '300m', avatar: 'Z', ring: '#10b981' },
+        { id: 'n2', name: 'Sarah', distance: '850m', avatar: 'S', ring: ACCENT },
+      ]);
+      setNearbyEvents([
+        { id: 'e1', title: 'Shisanyama Sunday', location: 'Zone 4', distance: '600m', daysLeft: 2 },
+      ]);
+      setNearbyModalVisible(true);
+    }
+  };
+
+  const pickMedia = async (type) => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: type === 'video' ? ImagePicker.MediaType.Videos : ImagePicker.MediaType.All,
+        allowsEditing: false,
+        quality: 0.85,
+      });
+      if (!result.canceled) {
+        if (type === 'video') setNewEventVideo(result.assets[0]);
+        else setNewEventImage(result.assets[0]);
+      }
+    } catch {}
+  };
+
+  const handleCreateEvent = () => {
+    if (!checkAuth('create')) return;
+    if (!newEventTitle.trim()) return;
+    triggerHaptic('success');
+    const newPost = {
+      id: Date.now().toString(),
+      is_paid: false,
+      title: newEventTitle,
+      description: newEventDescription,
+      category: newEventCategory,
+      location: newEventLocation,
+      date_time: newEventStart || new Date().toISOString(),
+      author_id: user?.id || 'anon',
+      author_name: user?.name || 'Anonymous',
+      media: newEventImage ? [{ type: 'image', url: newEventImage.uri }] : (newEventVideo ? [{ type: 'video', url: newEventVideo.uri }] : []),
+      ticketTiers: ticketTiers.filter(t => t.amount !== '' || t.name === 'Free'),
+      liked_by: [], comments: [], rsvps: {}
+    };
+    setPosts(prev => [newPost, ...(prev || [])]);
+    setAddEventModalVisible(false);
+    setNewEventTitle(''); setNewEventDescription(''); setNewEventLocation('');
+    setNewEventStart(''); setNewEventGuests('');
+    setNewEventImage(null); setNewEventVideo(null);
+    setTicketTiers([
+      { id: 'free', name: 'Free', amount: 0, entries: '', color: '#10b981' },
+      { id: 'vip', name: 'VIP', amount: '', entries: '', color: '#ff4da6' },
+      { id: 'vvip', name: 'VVIP', amount: '', entries: '', color: '#FFD700' },
+      { id: 'vvvip', name: 'VVVIP', amount: '', entries: '', color: '#a78bfa' },
+    ]);
+    setNewCustomTier({ name: '', amount: '', entries: '' });
+    // Remote sync is handled optimistically; persistence logic belongs in the store.
+  };
+
+  const updateTicketTier = (tierId, field, value) => {
+    setTicketTiers(prev => prev.map(t => t.id === tierId ? { ...t, [field]: value } : t));
+  };
+
+  const addCustomTier = () => {
+    if (!newCustomTier.name.trim()) return;
+    setTicketTiers(prev => [...prev, {
+      id: `custom-${Date.now()}`,
+      name: newCustomTier.name,
+      amount: newCustomTier.amount || 0,
+      entries: newCustomTier.entries,
+      color: '#' + Math.floor(Math.random()*16777215).toString(16),
+      isCustom: true
+    }]);
+    setNewCustomTier({ name: '', amount: '', entries: '' });
+  };
+
+  const removeTicketTier = (tierId) => {
+    setTicketTiers(prev => prev.filter(t => t.id !== tierId));
+  };
+
+  const openHappeningDetail = (item) => {
+    setSelectedHappening(item);
+    setHappeningDetailVisible(true);
+  };
+
+  // ─── Shared Modals ────────────────────────────────────────────────────────────
+  function renderModals() {
+    return (
+      <>
+        {/* Categories Modal */}
+        <Modal visible={filterModalVisible} transparent animationType="slide" onRequestClose={() => setFilterModalVisible(false)}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFilterModalVisible(false)} />
+          <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => setFilterModalVisible(false)}
+              accessibilityLabel="Close categories"
+              accessibilityRole="button"
+            >
+              <Ionicons name="close" size={22} color={theme.textDim} />
+            </TouchableOpacity>
+            <View style={[styles.sheetHandle, { backgroundColor: theme.subtle }]} />
+            <Text style={[styles.sheetTitle, { color: theme.text }]} accessibilityRole="header">Browse Categories</Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              <TouchableOpacity
+                style={[styles.allEventsRow, activeCategory === 'All' && { backgroundColor: theme.accent }]}
+                onPress={() => { setActiveCategory('All'); setFilterModalVisible(false); }}
+                accessibilityRole="button"
+                accessibilityLabel="Show all events"
+                accessibilityState={{ selected: activeCategory === 'All' }}
+              >
+                <MaterialCommunityIcons name="apps" size={20} color={activeCategory === 'All' ? '#fff' : theme.textDim} />
+                <Text style={[styles.allEventsLabel, { color: activeCategory === 'All' ? '#fff' : theme.textDim }]}>All Events</Text>
+              </TouchableOpacity>
+              {Object.entries(CATEGORY_GROUPS).map(([group, cats]) => (
+                <View key={group} style={styles.catGroup}>
+                  <Text style={[styles.catGroupHeader, { color: theme.textDim }]}>{group}</Text>
+                  <View style={styles.catChipRow}>
+                    {cats.map(cat => (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[styles.catChip, { backgroundColor: theme.subtle, borderColor: theme.cardBorder }, activeCategory === cat && { backgroundColor: theme.accent, borderColor: theme.accent }]}
+                        onPress={() => { setActiveCategory(cat); setFilterModalVisible(false); }}>
+                        <Text style={[styles.catChipText, { color: theme.textDim }, activeCategory === cat && { color: '#fff' }]}>{cat}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </Modal>
+
+        {/* Notifications Modal */}
+        <Modal visible={notifVisible} transparent animationType="slide" onRequestClose={() => setNotifVisible(false)}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setNotifVisible(false)} />
+          <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setNotifVisible(false)}>
+              <Ionicons name="close" size={22} color={theme.textDim} />
+            </TouchableOpacity>
+            <View style={[styles.sheetHandle, { backgroundColor: theme.subtle }]} />
+            <View style={styles.notifHeader}>
+              <Text style={[styles.sheetTitle, { color: theme.text }]}>Notifications</Text>
+              {unreadNotifs > 0 && (
+                <TouchableOpacity onPress={markNotifsRead}>
+                  <Text style={styles.markReadText}>Mark all read</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              {(notifications || []).map(n => (
+                <TouchableOpacity key={n.id} style={[styles.notifItem, !n.read && { backgroundColor: theme.accent + '11' }]}>
+                  <View style={[styles.notifIconBox, { backgroundColor: n.type === 'like' ? '#ff4da622' : n.type === 'follow' ? '#10b98122' : '#3b82f622' }]}>
+                    <Ionicons name={n.icon || 'notifications'} size={16} color={n.type === 'like' ? ACCENT : n.type === 'follow' ? '#10b981' : '#3b82f6'} />
+                  </View>
+                  <View style={styles.notifBody}>
+                    <Text style={[styles.notifText, { color: theme.textDim }]}><Text style={{ color: theme.text, fontWeight: '700' }}>{n.actor}</Text> {n.text}</Text>
+                    <Text style={[styles.notifTime, { color: theme.textDim + '88' }]}>{n.time} ago</Text>
+                  </View>
+                  {!n.read && <View style={styles.unreadDot} />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </Modal>
+
+      {/* Add Event Modal */}
+      <CreateEventModal
+        visible={addEventModalVisible}
+        onClose={() => setAddEventModalVisible(false)}
+      />
+
+        {/* Near Me Modal */}
+        <Modal visible={nearbyModalVisible} transparent animationType="slide" onRequestClose={() => setNearbyModalVisible(false)}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setNearbyModalVisible(false)} />
+          <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setNearbyModalVisible(false)}>
+              <Ionicons name="close" size={22} color={theme.textDim} />
+            </TouchableOpacity>
+            <View style={[styles.sheetHandle, { backgroundColor: theme.subtle }]} />
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>Find Me · 1km Radius</Text>
+            <Text style={[styles.sheetSubtitle, { color: theme.textDim }]}>People who share your vibe</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 16 }}>
+              {nearbyPeople.map(p => (
+                <TouchableOpacity
+                  key={p.id} style={[styles.nearbyCard, { backgroundColor: theme.subtle, borderColor: theme.cardBorder }]}
+                  onPress={() => { setNearbyModalVisible(false); navigation.navigate('OtherProfile', { userId: p.id }); }}>
+                  <View style={[styles.nearbyAvatar, { borderColor: p.ring, backgroundColor: theme.bg }]}>
+                    <Text style={[styles.nearbyAvatarText, { color: theme.text }]}>{p.avatar}</Text>
+                    <View style={[styles.onlineDot, { borderColor: theme.subtle }]} />
+                  </View>
+                  <Text style={[styles.nearbyName, { color: theme.text }]}>{p.name}</Text>
+                  <Text style={styles.nearbyDist}>{p.distance}</Text>
+                  <TouchableOpacity style={[styles.waveBtn, { backgroundColor: theme.glass() }]} onPress={() => handleWave(p.id)}>
+                    <Text style={[styles.waveBtnText, { color: theme.text }]}>👋 Wave</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <Text style={[styles.sheetSubtitle, { marginTop: 0, color: theme.textDim }]}>Events Nearby</Text>
+            {nearbyEvents.map(e => (
+              <View key={e.id} style={[styles.nearbyEventRow, { backgroundColor: theme.subtle, borderColor: theme.cardBorder }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.text, fontWeight: '700', fontSize: 14 }}>{e.title}</Text>
+                  <Text style={{ color: theme.textDim, fontSize: 12, marginTop: 2 }}>{e.location} · {e.distance}</Text>
+                </View>
+                <View style={styles.countdownBadge}>
+                  <Text style={[styles.countdownNum, { color: e.daysLeft <= 2 ? '#ef4444' : ACCENT }]}>{e.daysLeft}d</Text>
+                  <Text style={[styles.countdownLabel, { color: theme.textDim }]}>left</Text>
+                </View>
+              </View>
+            ))}
+            <TouchableOpacity style={[styles.inviteBtn, { backgroundColor: '#3b82f611', borderColor: '#3b82f633' }]}>
+              <Ionicons name="share-social-outline" size={18} color="#3b82f6" />
+              <Text style={styles.inviteBtnText}>Invite someone to join</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
+        {/* Happening Detail Pop-up */}
+        <Modal visible={happeningDetailVisible} transparent animationType="fade" onRequestClose={() => setHappeningDetailVisible(false)}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setHappeningDetailVisible(false)} />
+          {selectedHappening && (
+            <View style={[styles.sheet, { paddingBottom: 30, backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setHappeningDetailVisible(false)}>
+                <Ionicons name="close" size={22} color={theme.textDim} />
+              </TouchableOpacity>
+              <View style={[styles.sheetHandle, { backgroundColor: theme.subtle }]} />
+              <Text style={[styles.sheetTitle, { color: theme.text }]}>{selectedHappening.content?.title || 'Event'}</Text>
+              <Text style={[styles.sheetSubtitle, { color: theme.textDim }]}>{selectedHappening.content?.location || ''}</Text>
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                {[
+                  { label: 'Going', icon: 'checkmark-circle-outline', color: '#10b981' },
+                  { label: 'Interested', icon: 'star-outline', color: ACCENT },
+                  { label: 'Skip', icon: 'close-circle-outline', color: theme.textDim },
+                ].map(a => (
+                  <TouchableOpacity key={a.label} style={[styles.actionBtn, { backgroundColor: a.color === theme.textDim ? theme.subtle : a.color }]}>
+                    <Ionicons name={a.icon} size={18} color={a.color === theme.textDim ? theme.textDim : "#fff"} />
+                    <Text style={[styles.actionBtnText, { color: a.color === theme.textDim ? theme.textDim : "#fff" }]}>{a.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </Modal>
+      </>
+    );
+  }
+
+  // ─── Header (shared between mobile + PC center) ────────────────────────────
+  const PulseHeader = () => (
+    <View style={[styles.topHeader, isPC && { width: '100%', maxWidth: 800, alignSelf: 'center', paddingHorizontal: 20 }]}>
+      <View style={[styles.searchBox, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+        <Feather name="search" size={18} color={theme.textDim} style={{ marginRight: 8 }} />
+        <TextInput
+          style={[styles.searchInput, { color: theme.text }]} placeholder="Search events, vibes, people..."
+          placeholderTextColor={theme.textDim + '88'} value={searchQuery} onChangeText={setSearchQuery}
+          onSubmitEditing={() => fetchPosts()} returnKeyType="search"
+        />
+        <TouchableOpacity
+          onPress={() => { triggerHaptic('light'); setNotifVisible(true); }}
+          style={styles.iconBtn}
+          accessibilityLabel="Notifications"
+          accessibilityRole="button"
+          accessibilityHint={`You have ${unreadNotifs} unread notifications`}
+        >
+          <Ionicons name="notifications-outline" size={20} color={unreadNotifs > 0 ? ACCENT : theme.textDim} />
+          {unreadNotifs > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unreadNotifs}</Text></View>}
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => { triggerHaptic('light'); setFilterModalVisible(true); }}
+          style={styles.iconBtn}
+          accessibilityLabel="Filter categories"
+          accessibilityRole="button"
+        >
+          <MaterialCommunityIcons name="tune-variant" size={20} color={ACCENT} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Vibe Check Scroller */}
+      <View style={styles.vibeCheck}>
+        <Text style={[styles.vibeTitle, { color: theme.text }]} accessibilityRole="header">Vibe Check</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.vibeScroll}
+          accessibilityRole="tablist"
+        >
+          {['Trending', 'Live Now', 'Underground', 'Premium', 'Amapiano', 'Techno', 'Afterparty'].map(vibe => (
+            <TouchableOpacity 
+              key={vibe} 
+              style={[
+                styles.vibePill,
+                { backgroundColor: theme.subtle, borderColor: theme.cardBorder },
+                activeCategory === vibe && { backgroundColor: ACCENT, borderColor: ACCENT }
+              ]}
+              onPress={() => {
+                triggerHaptic('light');
+                setActiveCategory(vibe === 'Trending' ? 'All' : vibe);
+              }}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeCategory === (vibe === 'Trending' ? 'All' : vibe) }}
+              accessibilityLabel={`${vibe} vibe filter`}
+            >
+              <Text style={[styles.vibePillText, { color: theme.textDim }, activeCategory === vibe && { color: '#fff' }]}>{vibe}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.quickBar}>
+        <TouchableOpacity
+          style={styles.nearMeBtn}
+          onPress={() => { triggerHaptic('medium'); getGPSLocation(); }}
+          accessibilityLabel="Find events near me"
+          accessibilityRole="button"
+        >
+          <Ionicons name="location" size={14} color={ACCENT} />
+          <Text style={styles.nearMeText}>Near Me</Text>
+        </TouchableOpacity>
+        {activeCategory !== 'All' && (
+          <View style={[styles.activeCatPill, { backgroundColor: theme.glass(0.1) }]}>
+            <Text style={[styles.activeCatPillText, { color: theme.text }]}>{activeCategory}</Text>
+            <TouchableOpacity
+              onPress={() => setActiveCategory('All')}
+              accessibilityLabel={`Clear ${activeCategory} filter`}
+              accessibilityRole="button"
+            >
+              <Feather name="x" size={12} color={ACCENT} style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+
+  const checkAuth = (action) => {
+    if (!user || user.isVisitor) {
+      navigation?.navigate?.('Auth');
+      return false;
+    }
+    return true;
+  };
+
+  const openAddEvent = () => {
+    if (!checkAuth('create')) return;
+    triggerHaptic('medium');
+    setAddEventModalVisible(true);
+  };
+
+  const handleWave = (personId) => {
+    if (!checkAuth('wave')) return;
+    triggerHaptic('success');
+    Alert.alert('Wave Sent!', 'Waiting for them to wave back...');
+  };
+
+  const renderItem = ({ item, index }) => {
+    const fadeAnim = fadeAnims.get(item.id) || new Animated.Value(1);
+    return (
+      <Animated.View style={[
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+        },
+        isPC && { width: '100%', maxWidth: 800, alignSelf: 'center', paddingHorizontal: 20 }
+      ]}>
+        <PostCard item={item} navigation={navigation} />
+      </Animated.View>
+    );
+  };
+
+  // ─── PC 3-Column Layout ────────────────────────────────────────────────────
+  if (isPC) {
+    return (
+      <View style={[styles.pcLayout, { backgroundColor: theme.bg }]}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+
+        {/* LEFT NAV / SIDEBAR */}
+        <Sidebar
+          activeScreen="feed"
+          onNavigate={(id) => {
+            if (id === 'add_event') {
+              openAddEvent();
+            } else if (id === 'feed') {
+              // already here
+            } else {
+              navigation.navigate(id === 'messages' ? 'Messages' :
+                                id === 'wallet' ? 'Vault' :
+                                id === 'network' ? 'Network' :
+                                id.charAt(0).toUpperCase() + id.slice(1));
+            }
+          }}
+          onLogout={() => useStore.getState()?.setUser?.(null)}
+          theme={theme}
+          isCollapsed={width < 1100}
+        />
+
+        {/* CENTER PULSE */}
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={posts}
+            keyExtractor={item => item.id}
+            renderItem={renderItem}
+            refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchPosts} tintColor={ACCENT} />}
+            contentContainerStyle={{ paddingBottom: 60 }}
+            ListHeaderComponent={<PulseHeader />}
+            ListEmptyComponent={() => {
+              if (loading) {
+                return (
+                  <View style={styles.emptyBox}>
+                    <ActivityIndicator size="large" color={ACCENT} style={{ marginBottom: 12 }} />
+                    <Text style={[styles.emptyText, { color: theme.textDim }]}>Syncing with the gruvs...</Text>
+                  </View>
+                );
+              }
+              if (error) {
+                return (
+                  <View style={styles.emptyBox}>
+                    <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#ef4444" />
+                    <Text style={[styles.emptyText, { color: '#ef4444' }]}>{error}</Text>
+                  </View>
+                );
+              }
+              return (
+                <View style={styles.emptyBox}>
+                  <MaterialCommunityIcons name="calendar-search" size={48} color={theme.cardBorder} />
+                  <Text style={[styles.emptyText, { color: theme.textDim }]}>Nothing found for "{searchQuery || activeCategory}"</Text>
+                </View>
+              );
+            }}
+          />
+        </View>
+
+        {/* RIGHT SIDEBAR */}
+        <View style={[styles.rightPanel, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+          <TouchableOpacity style={styles.findMeBtn} onPress={getGPSLocation}>
+            <Ionicons name="map" size={20} color="#fff" />
+            <Text style={styles.findMeBtnText}>Find Me · 1km</Text>
+          </TouchableOpacity>
+          <View style={styles.userCard}>
+            <View style={[styles.userAvatar, { backgroundColor: theme.subtle }]}>
+              <Text style={[styles.userAvatarText, { color: theme.text }]}>{user?.name?.[0] || 'U'}</Text>
+              <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
+            </View>
+            <Text style={[styles.userName, { color: theme.text }]}>{user?.name || 'User'}</Text>
+          </View>
+          <View style={[styles.settingRow, { backgroundColor: theme.subtle, borderColor: theme.cardBorder }]}>
+            <View><Text style={[styles.settingTitle, { color: theme.text }]}>Ghost Mode</Text><Text style={[styles.settingDesc, { color: theme.textDim }]}>Hide on the global map</Text></View>
+          </View>
+          <TouchableOpacity style={styles.signOutBtn} onPress={() => useStore.getState()?.setUser?.(null)}>
+            <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+
+        {renderModals()}
+      </View>
+    );
+  }
+
+  // ─── Mobile Layout ─────────────────────────────────────────────────────────
+  return (
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <FlatList
+        data={posts}
+        keyExtractor={item => item.id}
+        renderItem={renderItem}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchPosts} tintColor={ACCENT} />}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        ListHeaderComponent={<PulseHeader />}
+        ListEmptyComponent={() => {
+          if (loading) {
+            return (
+              <View style={styles.emptyBox}>
+                <ActivityIndicator size="large" color={ACCENT} style={{ marginBottom: 12 }} />
+                <Text style={[styles.emptyText, { color: theme.textDim }]}>Syncing with the gruvs...</Text>
+              </View>
+            );
+          }
+          if (error) {
+            return (
+              <View style={styles.emptyBox}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#ef4444" />
+                <Text style={[styles.emptyText, { color: '#ef4444' }]}>{error}</Text>
+              </View>
+            );
+          }
+          return (
+            <View style={styles.emptyBox}>
+              <MaterialCommunityIcons name="calendar-search" size={48} color={theme.cardBorder} />
+              <Text style={[styles.emptyText, { color: theme.textDim }]}>Nothing found for "{searchQuery || activeCategory}"</Text>
+            </View>
+          );
+        }}
+      />
+      {user?.id === 'visitor' && (
+        <View style={[styles.visitorCTA, { backgroundColor: theme.card, borderColor: ACCENT }]}>
+          <Text style={[styles.visitorText, { color: theme.text }]}>Join the movement to RSVP and engage</Text>
+          <TouchableOpacity
+            style={styles.signInBtn}
+            onPress={() => navigation.navigate('Auth')}>
+            <Text style={styles.signInBtnText}>Sign Up / Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {renderModals()}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  pcLayout: { flex: 1, flexDirection: 'row' },
+
+  // ─── Header ───
+  topHeader: { paddingTop: Platform.OS === 'web' ? 20 : 52, paddingHorizontal: 16, paddingBottom: 8 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d0d25', borderRadius: 20, paddingHorizontal: 16, height: 48, borderWidth: 1, borderColor: '#1e1e3f', marginBottom: 14 },
+  searchInput: { flex: 1, color: '#fff', fontSize: 15, height: '100%' },
+  iconBtn: { padding: 8, position: 'relative' },
+  badge: { position: 'absolute', top: 2, right: 2, width: 15, height: 15, borderRadius: 8, backgroundColor: ACCENT, justifyContent: 'center', alignItems: 'center' },
+  badgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
+  quickBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
+  nearMeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,77,166,0.1)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, gap: 5 },
+  nearMeText: { color: ACCENT, fontSize: 13, fontWeight: '700' },
+  activeCatPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.07)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
+  activeCatPillText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  vibeCheck: { marginBottom: 15 },
+  vibeTitle: { color: '#fff', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 1 },
+  vibeScroll: { gap: 10 },
+  vibePill: { 
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 18, 
+    backgroundColor: 'rgba(255,255,255,0.03)', 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.05)',
+    ...Platform.select({
+      web: { backdropFilter: 'blur(10px)' }
+    })
+  },
+  vibePillActive: { 
+    backgroundColor: ACCENT, 
+    borderColor: ACCENT, 
+    ...Platform.select({
+      web: { boxShadow: `0 0 15px ${ACCENT}80` },
+      default: { shadowColor: ACCENT, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 }
+    })
+  },
+  vibePillText: { color: '#94a3b8', fontSize: 13, fontWeight: '700' },
+  emptyBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, gap: 12 },
+  emptyText: { color: '#55608a', fontSize: 14 },
+
+  // ─── FAB ───
+  fab: { 
+    position: 'absolute', 
+    bottom: 88, 
+    right: 18, 
+    width: 56, 
+    height: 56, 
+    borderRadius: 28, 
+    backgroundColor: ACCENT, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    elevation: 14,
+    ...Platform.select({
+      web: { boxShadow: `0 8px 24px ${ACCENT}99` },
+      default: { shadowColor: ACCENT, shadowOpacity: 0.7, shadowRadius: 14, elevation: 14 }
+    })
+  },
+
+  // ─── PC Left Nav ───
+  leftNav: { width: 90, backgroundColor: '#050514', borderRightWidth: 1, borderRightColor: '#1a1a3e', paddingTop: 40, paddingBottom: 26, alignItems: 'center', gap: 24 },
+  logo: { color: ACCENT, fontSize: 34, fontWeight: '900', marginBottom: 10 },
+  navItem: { alignItems: 'center', gap: 5 },
+  navLabel: { color: '#94a3b8', fontSize: 11, fontWeight: '600' },
+  navAdd: { 
+    width: 52, 
+    height: 52, 
+    borderRadius: 16, 
+    backgroundColor: ACCENT, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    elevation: 10, 
+    marginVertical: 4,
+    ...Platform.select({
+      web: { boxShadow: `0 6px 16px ${ACCENT}80` },
+      default: { shadowColor: ACCENT, shadowOpacity: 0.5, shadowRadius: 12, elevation: 5 }
+    })
+  },
+
+  // ─── PC Right Panel ───
+  rightPanel: { width: 300, backgroundColor: '#050514', borderLeftWidth: 1, borderLeftColor: '#1a1a3e', padding: 24, gap: 18 },
+  findMeBtn: { 
+    backgroundColor: ACCENT, 
+    padding: 18, 
+    borderRadius: 18, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 10,
+    ...Platform.select({
+      web: { boxShadow: `0 8px 20px ${ACCENT}66` },
+      default: { shadowColor: ACCENT, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 }
+    })
+  },
+  findMeBtnText: { color: '#fff', fontWeight: '900', fontSize: 15 },
+  userCard: { alignItems: 'center', paddingVertical: 20 },
+  userAvatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#2a2a4a', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  userAvatarText: { color: '#fff', fontSize: 26, fontWeight: '800' },
+  proBadge: { position: 'absolute', bottom: -4, right: -4, backgroundColor: GOLD, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  proBadgeText: { color: '#000', fontSize: 9, fontWeight: '900' },
+  userName: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  settingRow: { backgroundColor: '#0a0a1e', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#1a1a3e' },
+  settingTitle: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 3 },
+  settingDesc: { color: '#55608a', fontSize: 12 },
+  signOutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 16, borderRadius: 16, backgroundColor: 'rgba(239,68,68,0.06)', marginTop: 10 },
+  signOutText: { color: '#ef4444', fontWeight: '700', fontSize: 14 },
+
+  // ─── Shared Modal Styles ───
+  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.65)' },
+  modalOverlayFull: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' },
+  sheet: { backgroundColor: '#0a0a1e', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, maxHeight: '88%', borderWidth: 1, borderColor: '#1a1a3e' },
+  sheetHandle: { width: 38, height: 4, borderRadius: 2, backgroundColor: '#2a2a4a', alignSelf: 'center', marginBottom: 16 },
+  sheetTitle: { color: '#fff', fontWeight: '800', fontSize: 20, marginBottom: 4 },
+  sheetSubtitle: { color: '#55608a', fontSize: 13, marginBottom: 14 },
+  closeBtn: { position: 'absolute', top: 18, right: 18, zIndex: 10, padding: 8 },
+
+  // Categories
+  allEventsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14, marginBottom: 8 },
+  allEventsRowActive: { backgroundColor: ACCENT },
+  allEventsLabel: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
+  catGroup: { marginBottom: 16 },
+  catGroupHeader: { color: '#55608a', fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 8, textTransform: 'uppercase' },
+  catChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  catChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: '#1e1e3f' },
+  catChipActive: { backgroundColor: ACCENT, borderColor: ACCENT },
+  catChipText: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
+
+  // Notifications
+  notifHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  markReadText: { color: ACCENT, fontSize: 13, fontWeight: '700' },
+  notifItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  notifItemUnread: { backgroundColor: 'rgba(255,77,166,0.05)', paddingHorizontal: 8, borderRadius: 14 },
+  notifIconBox: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
+  notifBody: { flex: 1 },
+  notifText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
+  notifTime: { color: '#2a2a4a', fontSize: 11, marginTop: 2 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: ACCENT },
+
+  // Add Event
+  formLabel: { color: '#55608a', fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 },
+  input: { backgroundColor: '#0d0d25', color: '#fff', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 15, borderWidth: 1, borderColor: '#1e1e3f' },
+  mediaRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  mediaPicker: { flex: 1, height: 80, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: '#2a2a4a', gap: 6 },
+  mediaPickerText: { color: '#55608a', fontSize: 12 },
+  mediaPreview: { width: '100%', height: 160, borderRadius: 14, marginBottom: 16 },
+  
+  // Ticket Tiers
+  tierContainer: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a3e' },
+  tierCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d0d25', borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#1e1e3f' },
+  tierColorDot: { width: 16, height: 16, borderRadius: 8, marginRight: 10 },
+  tierInputs: { flex: 1 },
+  tierName: { color: '#fff', fontWeight: '700', fontSize: 13, marginBottom: 8 },
+  tierRow: { flexDirection: 'row', gap: 8 },
+  tierLabel: { color: '#55608a', fontSize: 10, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' },
+  tierInput: { backgroundColor: '#050514', color: '#fff', borderRadius: 8, padding: 10, fontSize: 13, borderWidth: 1, borderColor: '#1e1e3f', flex: 1 },
+  customTierForm: { backgroundColor: '#050514', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(255,77,166,0.2)', borderStyle: 'dashed' },
+  addTierBtn: { backgroundColor: 'rgba(255,77,166,0.2)', borderColor: ACCENT, borderWidth: 1, borderRadius: 10, padding: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10 },
+  addTierBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  
+  publishBtn: { backgroundColor: ACCENT, paddingVertical: 16, borderRadius: 18, alignItems: 'center', marginTop: 8 },
+  publishBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+
+  // Near Me
+  nearbyCard: { backgroundColor: '#0d0d25', padding: 16, borderRadius: 20, alignItems: 'center', marginRight: 14, width: 130, borderWidth: 1, borderColor: '#1e1e3f' },
+  nearbyAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#2a2a4a', justifyContent: 'center', alignItems: 'center', marginBottom: 10, borderWidth: 2, position: 'relative' },
+  nearbyAvatarText: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  onlineDot: { position: 'absolute', top: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: '#10b981', borderWidth: 2, borderColor: '#0d0d25' },
+  nearbyName: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  nearbyDist: { color: ACCENT, fontSize: 11, fontWeight: '700', marginVertical: 3 },
+  waveBtn: { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9 },
+  waveBtnText: { color: '#fff', fontSize: 11 },
+  nearbyEventRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0d0d25', borderRadius: 14, padding: 14, marginBottom: 10 },
+  countdownBadge: { alignItems: 'center', marginLeft: 12 },
+  countdownNum: { fontSize: 20, fontWeight: '900' },
+  countdownLabel: { color: '#55608a', fontSize: 10 },
+  inviteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 16, borderRadius: 16, backgroundColor: 'rgba(59,130,246,0.07)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)', marginTop: 8 },
+  inviteBtnText: { color: '#3b82f6', fontWeight: '700' },
+
+  // Happening Detail Actions
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14 },
+  actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+
+  visitorCTA: {
+    position: 'absolute',
+    bottom: Platform.OS === 'web' ? 20 : 80,
+    left: 20,
+    right: 20,
+    backgroundColor: '#0d0d25',
+    padding: 16,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: ACCENT,
+    ...Platform.select({
+      web: { boxShadow: `0 8px 24px ${ACCENT}33` },
+      default: { shadowColor: ACCENT, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8 }
+    })
+  },
+  visitorText: { color: '#fff', fontSize: 13, fontWeight: '600', flex: 1, marginRight: 10 },
+  signInBtn: { backgroundColor: ACCENT, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+  signInBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+});
+

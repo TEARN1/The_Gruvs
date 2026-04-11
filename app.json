@@ -22,7 +22,24 @@
       "package": "com.thegruvs.app"
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/logo.jpg",
+      "pwa": {
+        "name": "The Gruvs",
+        "shortName": "The Gruvs",
+        "description": "Premium Social Feed for Real-Time Events",
+        "backgroundColor": "#050510",
+        "themeColor": "#ff4da6",
+        "display": "standalone",
+        "orientation": "portrait",
+        "icons": [
+          {
+            "src": "./assets/logo.jpg",
+            "sizes": [192, 512],
+            "type": "image/png"
+          }
+        ]
+      }
     },
     "extra": {
       "eas": {

@@ -32,40 +32,54 @@ export default async function handler(req, res) {
         lat, lng, radius = 50000 // 50km default
       } = req.query;
 
-      let query = supabase.from('events').select(`
-        *,
-        profiles:author_id (id, username, name, avatar, verified)
-      `);
+      try {
+        let query = supabase.from('events').select(`
+          *,
+          profiles:author_id (id, username, name, avatar, verified)
+        `);
 
-      // 1. Full Text Search
-      if (q) {
-        query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+        // 1. Full Text Search
+        if (q) {
+          query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+        }
+
+        // 2. Taxonomy filtering
+        if (category && category !== 'All') {
+          query = query.eq('category', category);
+        }
+
+        // 3. Proximity (if coords provided)
+        if (lat && lng) {
+          query = query.order(`((latitude - ${parseFloat(lat)})^2 + (longitude - ${parseFloat(lng)})^2)`, { ascending: true });
+        }
+
+        // 4. Sorting & Priority
+        if (sortBy === 'trending') {
+          query = query.order('trending_score', { ascending: false });
+        } else if (!lat || !lng) {
+          query = query.order('created_at', { ascending: false });
+        }
+
+        query = query.limit(Number(limit));
+
+        const { data, error } = await query;
+
+        // Handle missing tables gracefully by returning empty list (or mock data if you prefer)
+        if (error) {
+          console.warn('[DB WARNING] Query failed:', error.message);
+          // If the table doesn't exist, return an empty array instead of crashing
+          if (error.code === '42P01') {
+            return res.status(200).json([]);
+          }
+          throw error;
+        }
+
+        return res.status(200).json(data || []);
+      } catch (dbErr) {
+        console.error('[DB ERROR]', dbErr.message);
+        // Fallback to empty array to prevent 500
+        return res.status(200).json([]);
       }
-
-      // 2. Taxonomy filtering
-      if (category && category !== 'All') {
-        query = query.eq('category', category);
-      }
-
-      // 3. Proximity (if coords provided)
-      // Note: This requires PostGIS in Supabase
-      if (lat && lng) {
-        query = query.order(`((latitude - ${parseFloat(lat)})^2 + (longitude - ${parseFloat(lng)})^2)`, { ascending: true });
-      }
-
-      // 4. Sorting & Priority
-      if (sortBy === 'trending') {
-        query = query.order('trending_score', { ascending: false });
-      } else if (!lat || !lng) {
-        query = query.order('created_at', { ascending: false });
-      }
-
-      query = query.limit(Number(limit));
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      return res.status(200).json(data || []);
     }
 
     // ─── POST: Creation Engine ──────────────────────

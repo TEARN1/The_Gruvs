@@ -1,53 +1,70 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, LogBox, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+// Ignore specific warnings
+LogBox.ignoreLogs(['Setting a timer', 'AsyncStorage has been extracted']);
+
 let AppNavigator;
-let appError = null;
+let loadError = null;
 
 try {
-  AppNavigator = require('./src/navigation/AppNavigator').default;
+  AppNavigator = require('./src/core/navigation/AppNavigator').default;
 } catch (e) {
-  appError = e;
-  console.error('[APP] Failed to load AppNavigator:', e);
+  loadError = e;
+  console.error('[APP] Critical Load Error:', e);
 }
 
-import { useStore } from './src/state/useStore';
-import { VibeProvider } from './src/state/VibeContext';
-import ErrorBoundary from './src/components/ErrorBoundary';
+import { THEME, ACCENT } from './src/core/theme';
+import { useStore } from './src/core/state/useStore';
+import { VibeProvider } from './src/core/state/VibeContext';
+import ErrorBoundary from './src/shared/components/ErrorBoundary';
 
 export default function App() {
   const [initialized, setInitialized] = useState(false);
-  
+  const [error, setError] = useState(loadError);
+
   useEffect(() => {
-    console.log('[APP] Mounting...');
-    const store = useStore.getState();
+    async function init() {
+      try {
+        console.log('[APP] Initializing store...');
+        const store = useStore.getState();
 
-    try {
-      if (store.fetchPosts) {
-        console.log('[APP] Fetching posts...');
-        Promise.resolve(store.fetchPosts()).catch((err) => {
-          console.error('[APP FETCH ERROR]', err);
-        });
-      }
+        // Basic sanity check for store
+        if (!store) throw new Error('Store failed to initialize');
 
-      if (store.subscribeToEvents) {
-        console.log('[APP] Subscribing...');
-        store.subscribeToEvents();
+        if (store.fetchPosts) {
+          await store.fetchPosts().catch(e => console.warn('Fetch posts failed', e));
+        }
+
+        setInitialized(true);
+      } catch (err) {
+        console.error('[APP INIT ERROR]', err);
+        setError(err);
+        setInitialized(true);
       }
-    } catch (err) {
-      console.error('[APP INIT ERROR]', err);
     }
-    
-    setTimeout(() => setInitialized(true), 100);
+
+    init();
   }, []);
 
-  if (appError) {
+  // Web-specific: Ensure we have a root view that fills the screen
+  const containerStyle = [
+    styles.container,
+    Platform.OS === 'web' && { flex: 1, height: '100vh' }
+  ];
+
+  if (error) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: '#ff4da6', fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>App Failed to Load</Text>
-        <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center', paddingHorizontal: 20 }}>{appError.message}</Text>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
+        <Text style={{ color: ACCENT, fontSize: 24, fontWeight: '900', marginBottom: 20 }}>Frequency Interrupted</Text>
+        <View style={{ backgroundColor: '#141428', padding: 24, borderRadius: 24, borderLeftWidth: 6, borderLeftColor: ACCENT, width: '100%' }}>
+          <Text style={{ color: '#ffffff', fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', lineHeight: 20 }}>{error.stack || error.message}</Text>
+        </View>
+        <Text style={{ color: '#94a3b8', marginTop: 30, textAlign: 'center', fontWeight: '600' }}>
+          Check your console for more details.
+        </Text>
       </View>
     );
   }
@@ -55,8 +72,10 @@ export default function App() {
   if (!initialized || !AppNavigator) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#ff4da6" />
-        <Text style={{ color: '#fff', marginTop: 16 }}>Loading...</Text>
+        <ActivityIndicator size="large" color={ACCENT} />
+        <Text style={{ color: '#ffffff', marginTop: 24, fontSize: 13, letterSpacing: 4, fontWeight: '800', opacity: 0.6 }}>
+          TUNING FREQUENCY...
+        </Text>
       </View>
     );
   }
@@ -65,8 +84,8 @@ export default function App() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <VibeProvider>
-          <StatusBar style="light" />
-          <View style={styles.container}>
+          <StatusBar style="dark" />
+          <View style={containerStyle}>
             <AppNavigator />
           </View>
         </VibeProvider>
