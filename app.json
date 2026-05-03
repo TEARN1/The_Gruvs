@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "The Gruvs",
+    "slug": "the-gruvs",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0d1112"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.thegruvs.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "The Gruvs uses your location to show nearby events and vibers.",
+        "NSCameraUsageDescription": "The Gruvs needs camera access to post event photos.",
+        "NSPhotoLibraryUsageDescription": "The Gruvs needs photo library access to upload event media.",
+        "NSMicrophoneUsageDescription": "The Gruvs uses the microphone for video recording."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0d1112"
+      },
+      "package": "com.thegruvs.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "name": "The Gruvs",
+      "shortName": "Gruvs",
+      "description": "Discover your next event. I got you.",
+      "themeColor": "#0d1112",
+      "backgroundColor": "#0d1112"
+    },
+    "plugins": [
+      "expo-av",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "The Gruvs uses your location to show nearby events and vibers."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}
