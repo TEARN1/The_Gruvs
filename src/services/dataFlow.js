@@ -429,3 +429,72 @@ export const CalendarManager = {
     }
   },
 };
+
+// ── Journey / Route Engine ────────────────────────────────────────────────────
+export const RouteManager = {
+  // Create a new Royal Route (Itinerary)
+  async createRoute(userId, title, description, color = '#00f2ff') {
+    try {
+      const { data, error } = await supabase
+        .from('routes')
+        .insert({ creator_id: userId, title, description, route_color: color })
+        .select()
+        .single();
+      if (error) throw error;
+      cache.invalidate(`routes:${userId}`);
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  // Add an event to a route journey
+  async addStep(routeId, eventId, order, arrivalTime = null) {
+    try {
+      const { error } = await supabase
+        .from('route_steps')
+        .insert({ route_id: routeId, event_id: eventId, step_order: order, arrival_time: arrivalTime });
+      if (error) throw error;
+      cache.invalidate(`journey:${routeId}`);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  // Fetch full route journey with event details
+  async getJourney(routeId) {
+    const cacheKey = `journey:${routeId}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase
+        .from('route_steps')
+        .select('*, event:events(*)')
+        .eq('route_id', routeId)
+        .order('step_order', { ascending: true });
+      if (data) cache.set(cacheKey, data);
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Fetch routes created by a user
+  async getUserRoutes(userId) {
+    const cacheKey = `routes:${userId}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase
+        .from('routes')
+        .select('*')
+        .eq('creator_id', userId)
+        .order('created_at', { ascending: false });
+      if (data) cache.set(cacheKey, data);
+      return data || [];
+    } catch {
+      return [];
+    }
+  }
+};
