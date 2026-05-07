@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, startTransition } from 'react';
 import {
   Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Image, ActivityIndicator, RefreshControl,
@@ -180,7 +180,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
               return (
                 <TouchableOpacity
                   key={t.key}
-                  onPress={() => setFilter(t.key)}
+                  onPress={() => startTransition(() => setFilter(t.key))}
                   style={[ad.filterPill, { backgroundColor: isActive ? t.color : `${t.color}12`, borderColor: isActive ? t.color : `${t.color}25` }]}
                 >
                   <Feather name={t.icon} size={11} color={isActive ? '#000' : t.color} />

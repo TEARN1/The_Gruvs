@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, startTransition } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
   FlatList, Image, ActivityIndicator, RefreshControl,
@@ -247,7 +247,7 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
               return (
                 <TouchableOpacity
                   key={f}
-                  onPress={() => setActiveFilter(f)}
+                  onPress={() => startTransition(() => setActiveFilter(f))}
                   style={[ac.filterPill, isActive && { backgroundColor: primary, borderColor: primary }]}
                 >
                   {meta && <Feather name={meta.icon} size={11} color={isActive ? '#000' : primary} />}
