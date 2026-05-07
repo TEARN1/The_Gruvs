@@ -207,6 +207,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [openEcho, setOpenEcho] = useState({});
   const [openGallery, setOpenGallery] = useState({});
   const [openRate, setOpenRate] = useState({});
+  const [reactionFlash, setReactionFlash] = useState({});
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -418,12 +419,24 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
   };
 
+  const REACTION_COLORS = {
+    fire: '#f97316', heart: '#ef4444', hype: '#f59e0b', wow: '#8b5cf6',
+    laugh: '#facc15', crown: '#fbbf24', gem: '#06b6d4', rocket: '#3b82f6',
+    '100': '#10b981', wave: '#0ea5e9', star: '#eab308', magic: '#a78bfa',
+    electric: '#00f2ff', goat: '#84cc16', clap: '#fb923c',
+  };
+
   const handleReact = (eventId, key) => {
     if (!user) { onAuthRequired(); return; }
     setReactions(prev => ({ ...prev, [eventId]: prev[eventId] === key ? null : key }));
     setOpenReact(prev => ({ ...prev, [eventId]: false }));
     const r = REACTION_LIST.find(r => r.key === key);
-    if (r) toast.show(`Reacted ${r.emoji}`, 'info');
+    if (r) {
+      toast.show(`Reacted ${r.emoji}`, 'info');
+      const flashColor = REACTION_COLORS[key] || primary;
+      setReactionFlash(prev => ({ ...prev, [eventId]: flashColor }));
+      setTimeout(() => setReactionFlash(prev => { const n = { ...prev }; delete n[eventId]; return n; }), 600);
+    }
   };
 
   const handleBookmark = async (eventId) => {
@@ -633,21 +646,24 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
     const isWeb = Platform.OS === 'web';
 
+    const flashColor = reactionFlash[id];
+
     return (
       <FadeInView delay={index * 60} direction="up">
         <View style={[
           styles.eventCard,
-          { 
-            backgroundColor: surface, 
-            borderColor: isHighlighted ? primary : `${primary}25`,
-            borderTopColor: isHighlighted ? primary : `${primary}40`,
-            borderTopWidth: 1,
+          {
+            backgroundColor: flashColor ? `${flashColor}12` : surface,
+            borderColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
+            borderTopColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
+            borderTopWidth: flashColor ? 2 : 1,
           },
-          isHighlighted && { 
-            borderWidth: 2, 
-            ...(isWeb ? { boxShadow: `0 0 25px ${primary}80` } : { shadowColor: primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
+          (isHighlighted || flashColor) && {
+            borderWidth: 2,
+            ...(isWeb ? { boxShadow: `0 0 25px ${(flashColor || primary)}80` } : { shadowColor: flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
           },
-          isWeb && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' }
+          isWeb && !flashColor && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
+          isWeb && flashColor && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
         ]}>
 
           {/* Media */}
