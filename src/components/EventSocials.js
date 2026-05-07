@@ -46,7 +46,7 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
     try {
       // RSVP counts
       const { data: rsvpData } = await supabase
-        .from('rsvps')
+        .from('event_rsvps')
         .select('status')
         .eq('event_id', eventId);
 
@@ -59,7 +59,7 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
       // User's own RSVP
       if (user) {
         const { data: myRsvp } = await supabase
-          .from('rsvps')
+          .from('event_rsvps')
           .select('status')
           .eq('event_id', eventId)
           .eq('user_id', user.id)
@@ -67,9 +67,9 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
         if (myRsvp) setRsvpStatus(myRsvp.status);
       }
 
-      // Comments with profile info
+      // Echoes (comments) with profile info
       const { data: commentData } = await supabase
-        .from('comments')
+        .from('echoes')
         .select('*, profiles(username, avatar_url)')
         .eq('event_id', eventId)
         .order('created_at', { ascending: false })
@@ -104,7 +104,7 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
     if (loadingRsvp) return;
     setLoadingRsvp(true);
     const { error } = await supabase
-      .from('rsvps')
+      .from('event_rsvps')
       .upsert({ event_id: eventId, user_id: user.id, status }, { onConflict: 'event_id,user_id' });
     setLoadingRsvp(false);
     if (!error) {
@@ -119,8 +119,8 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
     if (!newComment.trim() || postingComment) return;
     setPostingComment(true);
     const { error } = await supabase
-      .from('comments')
-      .insert({ event_id: eventId, user_id: user.id, content: newComment.trim() });
+      .from('echoes')
+      .insert({ event_id: eventId, user_id: user.id, body: newComment.trim() });
     setPostingComment(false);
     if (!error) {
       setNewComment('');
@@ -197,10 +197,12 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
             ? <Text style={[styles.emptyText, { color: muted }]}>Be the first to echo this vibe!</Text>
             : comments.map(item => (
               <View key={item.id} style={styles.commentItem}>
-                <Image
-                  source={{ uri: item.profiles?.avatar_url || 'https://via.placeholder.com/40' }}
-                  style={[styles.commentAvatar, { borderColor: `${primary}50` }]}
-                />
+                {item.profiles?.avatar_url
+                ? <Image source={{ uri: item.profiles.avatar_url }} style={[styles.commentAvatar, { borderColor: `${primary}50` }]} />
+                : <View style={[styles.commentAvatar, { borderColor: `${primary}50`, backgroundColor: '#0891b2', alignItems: 'center', justifyContent: 'center' }]}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>{(item.profiles?.username || 'V')[0].toUpperCase()}</Text>
+                  </View>
+              }
                 <View style={styles.commentBody}>
                   <View style={styles.commentHeader}>
                     <Text style={[styles.commentUser, { color: primary }]}>
@@ -210,7 +212,7 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
                       {formatTime(item.created_at)}
                     </Text>
                   </View>
-                  <Text style={[styles.commentText, { color: textColor }]}>{item.content}</Text>
+                  <Text style={[styles.commentText, { color: textColor }]}>{item.body}</Text>
                 </View>
               </View>
             ))

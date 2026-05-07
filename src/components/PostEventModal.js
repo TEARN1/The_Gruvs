@@ -140,7 +140,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       age_restriction: ageRestriction,
       interests:       selectedCategories,
       category:        primaryCat,
-      event_type:      eventType || null,
       ticket_url:      ticketUrl.trim() || null,
     });
 

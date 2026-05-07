@@ -20,6 +20,8 @@ import { ReactPicker } from '../components/ReactPicker';
 import { EchoSection } from '../components/EchoSection';
 import { RatingSection } from '../components/RatingSection';
 import { EventGallery } from '../components/EventGallery';
+import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
+import { EventAdminPanel } from '../components/EventAdminPanel';
 import { supabase } from '../services/supabase';
 import { VibeManager, BookmarkManager } from '../services/dataFlow';
 import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
@@ -193,6 +195,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [selectedViber, setSelectedViber] = useState(null);
   const [viberModalVisible, setViberModalVisible] = useState(false);
   const [activityVisible, setActivityVisible] = useState(false);
+  const [adminEvent, setAdminEvent] = useState(null);
 
   // Per-card interaction state
   const [myVibes, setMyVibes] = useState(new Set());
@@ -611,6 +614,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const isVibed   = myVibes.has(id);
     const isSaved   = savedEvents.has(id);
     const isSample  = event.is_sample === true;
+    const isOwner   = user && event.user_id === user.id;
     const userReaction = reactions[id] || null;
     const isHighlighted = highlightedId === id;
     const catColor  = event.category_color || getCategoryColor(event.category) || primary;
@@ -830,6 +834,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               <Feather name="share-2" size={19} color={muted} />
               <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
             </TouchableOpacity>
+
+            {isOwner && (
+              <TouchableOpacity style={styles.actionBtn} onPress={() => setAdminEvent(event)}>
+                <Feather name="bar-chart-2" size={19} color={primary} />
+                <Text style={[styles.actionLabel, { color: primary }]}>Admin</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Collapsible sections */}
@@ -866,6 +877,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <>
             {renderHeader()}
             {renderTrending()}
+            {mode === 'drop' && (
+              <CrewJourneyPanel onEventPress={(ev) => {
+                const idx = events.findIndex(e => e.id === ev.id);
+                if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true });
+              }} />
+            )}
             {renderFeedHeader()}
           </>
         }
@@ -925,6 +942,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       <ActivityCenterModal
         visible={activityVisible}
         onClose={() => setActivityVisible(false)}
+      />
+      <EventAdminPanel
+        visible={!!adminEvent}
+        onClose={() => setAdminEvent(null)}
+        event={adminEvent}
+        userId={user?.id}
       />
       <TrendingModal
         visible={trendingModalVisible}

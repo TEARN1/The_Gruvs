@@ -164,10 +164,16 @@ export const TrendingManager = {
 export const VibeManager = {
   async sendVibe(eventId, userId) {
     try {
-      const { data } = await supabase.rpc('increment_vibe', { ev_id: eventId, uid: userId });
+      const { error } = await supabase.from('event_vibes')
+        .upsert({ event_id: eventId, user_id: userId }, { onConflict: 'event_id,user_id', ignoreDuplicates: true });
+      if (error) return null;
+      const { data: ev } = await supabase.from('events').select('vibe_count').eq('id', eventId).single();
+      if (ev != null) {
+        await supabase.from('events').update({ vibe_count: (ev.vibe_count || 0) + 1 }).eq('id', eventId);
+      }
       cache.invalidate(`event:${eventId}`);
       cache.invalidate('feed:');
-      return data;
+      return true;
     } catch {
       return null;
     }
@@ -175,9 +181,15 @@ export const VibeManager = {
 
   async removeVibe(eventId, userId) {
     try {
-      const { data } = await supabase.rpc('decrement_vibe', { ev_id: eventId, uid: userId });
+      const { error } = await supabase.from('event_vibes')
+        .delete().eq('event_id', eventId).eq('user_id', userId);
+      if (error) return null;
+      const { data: ev } = await supabase.from('events').select('vibe_count').eq('id', eventId).single();
+      if (ev != null) {
+        await supabase.from('events').update({ vibe_count: Math.max(0, (ev.vibe_count || 1) - 1) }).eq('id', eventId);
+      }
       cache.invalidate(`event:${eventId}`);
-      return data;
+      return true;
     } catch {
       return null;
     }

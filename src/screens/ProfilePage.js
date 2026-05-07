@@ -448,8 +448,8 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
   };
 
   const displayed = activeFilter
-    ? (people.length > 0 ? people : SAMPLE_PEOPLE).filter(p => (p.interests || []).includes(activeFilter))
-    : (people.length > 0 ? people : SAMPLE_PEOPLE);
+    ? people.filter(p => (p.interests || []).some(i => i === activeFilter || (typeof i === 'string' && i.toLowerCase().includes(activeFilter.toLowerCase()))))
+    : people;
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -501,17 +501,36 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
       </GlassView>
 
       <View style={{ paddingHorizontal: 16 }}>
-        {displayed.map(person => (
-          <FadeInView key={person.id} delay={50} direction="up">
-            <PersonCard
-              person={person}
-              primary={primary}
-              muted={muted}
-              textColor={textColor}
-              onFollow={() => {}}
-            />
-          </FadeInView>
-        ))}
+        {displayed.length === 0 && !loading ? (
+          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+            <Text style={{ fontSize: 36 }}>📍</Text>
+            <Text style={{ color: textColor, fontSize: 15, fontWeight: '800', marginTop: 12 }}>
+              No one found nearby
+            </Text>
+            <Text style={{ color: muted, fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 20 }}>
+              Try increasing your search radius or adjusting your interests filter. Make sure your location is enabled.
+            </Text>
+          </View>
+        ) : (
+          displayed.map(person => (
+            <FadeInView key={person.id} delay={50} direction="up">
+              <PersonCard
+                person={person}
+                primary={primary}
+                muted={muted}
+                textColor={textColor}
+                onFollow={async () => {
+                  if (!user) return;
+                  await supabase.from('follows').upsert(
+                    { follower_id: user.id, following_id: person.id },
+                    { onConflict: 'follower_id,following_id', ignoreDuplicates: true }
+                  );
+                  toast?.show(`Following @${person.username}`, 'success');
+                }}
+              />
+            </FadeInView>
+          ))
+        )}
       </View>
     </ScrollView>
   );
@@ -599,6 +618,10 @@ export const ProfilePage = ({ onAuthRequired }) => {
   };
 
   const handleSignOut = () => {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Sign out of The Gruvs?')) signOut();
+      return;
+    }
     Alert.alert('Sign Out?', 'Are you sure?', [
       { text: 'Stay', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: signOut },
