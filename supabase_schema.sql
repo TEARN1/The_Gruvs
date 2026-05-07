@@ -514,6 +514,7 @@ create index if not exists echoes_user_id   on echoes(user_id);
 alter table echoes enable row level security;
 drop policy if exists "Echoes readable"          on echoes;
 drop policy if exists "Users insert own echoes"  on echoes;
+drop policy if exists "Users update own echoes"  on echoes;
 drop policy if exists "Users delete own echoes"  on echoes;
 create policy "Echoes readable"         on echoes for select using (true);
 create policy "Users insert own echoes" on echoes for insert with check (auth.uid() = user_id);
@@ -621,6 +622,7 @@ alter table check_ins add column if not exists user_id    uuid references profil
 create index if not exists check_ins_event_id on check_ins(event_id);
 
 alter table check_ins enable row level security;
+drop policy if exists "Check-ins readable"         on check_ins;
 drop policy if exists "Users manage own check-ins" on check_ins;
 create policy "Check-ins readable"         on check_ins for select using (true);
 create policy "Users manage own check-ins" on check_ins for all    using (auth.uid() = user_id);
@@ -669,6 +671,7 @@ create index if not exists event_gallery_event_id on event_gallery(event_id);
 alter table event_gallery enable row level security;
 drop policy if exists "Gallery readable"      on event_gallery;
 drop policy if exists "Users insert gallery"  on event_gallery;
+drop policy if exists "Users delete gallery"  on event_gallery;
 create policy "Gallery readable"     on event_gallery for select using (true);
 create policy "Users insert gallery" on event_gallery for insert with check (auth.uid() = user_id);
 create policy "Users delete gallery" on event_gallery for delete using (auth.uid() = user_id);
