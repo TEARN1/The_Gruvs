@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Platform,
+  TextInput, ActivityIndicator, Alert, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { GlassView } from './GlassView';
@@ -110,6 +110,10 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <View style={f.overlay}>
         <GlassView style={[f.sheet, { backgroundColor: `${bg}F5` }]}>
           <View style={[f.pill, { backgroundColor: `${primary}40` }]} />
@@ -166,6 +170,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
           </ScrollView>
         </GlassView>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

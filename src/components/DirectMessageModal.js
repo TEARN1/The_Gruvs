@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +22,7 @@ import { GlassView } from './GlassView';
 export const DirectMessageModal = ({ visible, onClose, recipient }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const primary = currentTheme?.primary || '#00f2ff';
 
   const [messages, setMessages] = useState([]);
@@ -161,7 +163,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <GlassView style={styles.header} glow={false}>
+        <GlassView style={[styles.header, { paddingTop: (insets.top || 0) + 12 }]} glow={false}>
           <TouchableOpacity onPress={onClose} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Feather name="arrow-left" size={22} color="#e0e6e8" />
           </TouchableOpacity>
@@ -238,7 +240,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 54 : 36,
+    paddingTop: 12, // base; actual top is set inline via useSafeAreaInsets
     paddingBottom: 12,
     paddingHorizontal: 16,
     backgroundColor: '#111a1c',

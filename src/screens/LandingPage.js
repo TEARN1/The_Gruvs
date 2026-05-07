@@ -4,6 +4,7 @@ import {
   Animated, Linking, RefreshControl, ScrollView, TextInput,
   Share, Modal, Platform, ActivityIndicator,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +27,10 @@ import { EditEventModal } from '../components/EditEventModal';
 import { RSVPConfirmModal } from '../components/RSVPConfirmModal';
 import { ReportModal } from '../components/ReportModal';
 import { OfflineBanner } from '../components/OfflineBanner';
+import { SearchHistoryBar, saveSearch } from '../components/SearchHistoryBar';
+import { DateFilterStrip, dateFilterToRange } from '../components/DateFilterStrip';
+import { TonightAlert } from '../components/TonightAlert';
+import { HashtagStrip } from '../components/HashtagStrip';
 import { supabase } from '../services/supabase';
 import { VibeManager, BookmarkManager } from '../services/dataFlow';
 import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
@@ -220,6 +225,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [rsvpEvent, setRsvpEvent] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
+  const [dateFilter, setDateFilter] = useState('any');
+  const [dateRange, setDateRange] = useState(null);
+  const [activeHashtag, setActiveHashtag] = useState(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -413,6 +421,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     if (!user) { onAuthRequired(); return; }
     if (isVibing[eventId]) return;
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+
     const isCurrentVibed = myVibes.has(eventId);
     
     // Optimistic Update
@@ -489,7 +499,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   const handleBookmark = async (eventId) => {
     if (!user) { onAuthRequired(); return; }
-    
+
+    Haptics.selectionAsync().catch(() => {});
+
     const isSaved = savedEvents.has(eventId);
     
     // Optimistic Update
@@ -557,6 +569,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             placeholderTextColor={muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onSubmitEditing={() => { if (searchQuery.trim()) saveSearch(searchQuery.trim()); }}
+            returnKeyType="search"
           />
         </GlassView>
 
@@ -576,6 +590,40 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       {/* Visitor banner — only if no user */}
       {!user && <VisitorBanner onSignIn={onAuthRequired} primary={primary} muted={muted} />}
+
+      {/* Search history chips */}
+      <SearchHistoryBar
+        currentQuery={searchQuery}
+        onSelect={q => { setSearchQuery(q); setDebouncedQuery(q); }}
+        primary={primary}
+        muted={muted}
+      />
+
+      {/* Date filter strip */}
+      <DateFilterStrip
+        value={dateFilter}
+        onChange={(val, range) => { setDateFilter(val); setDateRange(range); }}
+        primary={primary}
+        muted={muted}
+      />
+
+      {/* Trending hashtags */}
+      <HashtagStrip
+        activeTag={activeHashtag}
+        onTagSelect={tag => { setActiveHashtag(tag); if (tag) setSearchQuery(`#${tag}`); else setSearchQuery(''); }}
+        primary={primary}
+        muted={muted}
+      />
+
+      {/* Tonight alert */}
+      <TonightAlert
+        events={events}
+        onPress={ev => {
+          const idx = events.findIndex(e => e.id === ev.id);
+          if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.1 });
+        }}
+        primary={primary}
+      />
 
       {/* Category pills */}
       <ScrollView
@@ -910,7 +958,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtn} onPress={() => user ? setRsvpEvent(event) : onAuthRequired()}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+              user ? setRsvpEvent(event) : onAuthRequired();
+            }}>
               <Feather name="check-circle" size={19} color={muted} />
               <Text style={[styles.actionLabel, { color: muted }]}>RSVP</Text>
             </TouchableOpacity>

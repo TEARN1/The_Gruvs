@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, Image, Animated,
+  Dimensions, Image, Animated, RefreshControl,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -301,6 +301,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [monthEvents, setMonthEvents]   = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const primary   = currentTheme?.primary    || '#00f2ff';
@@ -312,6 +313,12 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
     loadMonth(viewYear, viewMonth);
     loadUpcoming();
   }, [viewYear, viewMonth]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([loadMonth(viewYear, viewMonth), loadUpcoming()]);
+    setRefreshing(false);
+  };
 
   const loadMonth = async (y, m) => {
     setLoading(true);
@@ -373,7 +380,11 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       <AuraEffect />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 110 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={primary} />}
+      >
 
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: `${primary}15` }]}>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
-  Switch, Dimensions, Share, Platform,
+  Switch, Dimensions, Share, Platform, RefreshControl,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -20,6 +20,10 @@ import { CategoryPickerModal } from '../components/CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { useToast } from '../components/ToastNotification';
 import { SAMPLE_EVENTS } from '../constants/SampleData';
+import { StreakBadge } from '../components/StreakBadge';
+import { AchievementBadges } from '../components/AchievementBadges';
+import { ReferralCard } from '../components/ReferralCard';
+import { LeaderboardScreen } from './LeaderboardScreen';
 
 const { width } = Dimensions.get('window');
 
@@ -552,6 +556,8 @@ export const ProfilePage = ({ onAuthRequired }) => {
   const toast = useToast();
 
   const [subView, setSubView] = useState(null); // null | 'findme' | 'findthem'
+  const [refreshing, setRefreshing] = useState(false);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('gruvs'); // gruvs|saved|vibed|gallery
   const [settingsTab, setSettingsTab] = useState('discover'); // discover|aura
   const [eventCount, setEventCount] = useState(0);
@@ -727,12 +733,31 @@ export const ProfilePage = ({ onAuthRequired }) => {
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       <AuraEffect />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => { setRefreshing(true); await refreshProfile(); setRefreshing(false); }}
+            tintColor={primary}
+          />
+        }
+      >
 
         {/* Brand Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 40, gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <BrandLogo size={32} showGlow />
             <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', letterSpacing: 2 }}>MY ROYALTY</Text>
+          </View>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
+            onPress={() => setLeaderboardVisible(true)}
+          >
+            <Feather name="award" size={14} color={primary} />
+            <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Leaderboard</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Cover Photo */}
@@ -830,6 +855,21 @@ export const ProfilePage = ({ onAuthRequired }) => {
         <View style={{ paddingHorizontal: 16 }}>
             <VibeLevel score={vibeScore} primary={primary} muted={muted} textColor={textColor} />
         </View>
+
+        {/* Streak + Referral */}
+        {user && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 12 }}>
+            <StreakBadge userId={user.id} primary={primary} muted={muted} />
+            <ReferralCard userId={user.id} primary={primary} muted={muted} textColor={textColor} bg={bg} />
+          </View>
+        )}
+
+        {/* Achievement badges */}
+        {user && (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+            <AchievementBadges userId={user.id} primary={primary} muted={muted} textColor={textColor} />
+          </View>
+        )}
 
         {/* Find Me / Find Them buttons */}
         <View style={styles.findRow}>
@@ -1071,6 +1111,12 @@ export const ProfilePage = ({ onAuthRequired }) => {
         </TouchableOpacity>
 
       </ScrollView>
+
+      <LeaderboardScreen
+        visible={leaderboardVisible}
+        onClose={() => setLeaderboardVisible(false)}
+        currentUserId={user?.id}
+      />
     </View>
   );
 };
@@ -1082,7 +1128,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 
   // Sub-view header
-  subHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, paddingTop: Platform.OS === 'android' ? 28 : 14, borderBottomWidth: 1 },
+  subHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
   backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   subTitle: { fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
 

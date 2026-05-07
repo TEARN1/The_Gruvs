@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, StyleSheet, TouchableOpacity, Text,
-  SafeAreaView, StatusBar, Animated, Platform, useWindowDimensions,
+  StatusBar, Animated, Platform, useWindowDimensions,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -11,15 +12,17 @@ import { LandingPage } from './src/screens/LandingPage';
 import { ExplorePage } from './src/screens/ExplorePage';
 import { ProfilePage } from './src/screens/ProfilePage';
 import { CalendarPage } from './src/screens/CalendarPage';
+import { NotificationsScreen, useUnreadCount } from './src/screens/NotificationsScreen';
 import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
 
 const TABS = [
-  { key: 'feed',     label: 'The Drop', icon: 'home'     },
-  { key: 'explore',  label: 'Explore',  icon: 'compass'  },
-  { key: 'calendar', label: 'Calendar', icon: 'calendar' },
-  { key: 'profile',  label: 'Profile',  icon: 'user'     },
+  { key: 'feed',          label: 'The Drop',     icon: 'home'     },
+  { key: 'explore',       label: 'Explore',      icon: 'compass'  },
+  { key: 'calendar',      label: 'Calendar',     icon: 'calendar' },
+  { key: 'notifications', label: 'Alerts',       icon: 'bell'     },
+  { key: 'profile',       label: 'Profile',      icon: 'user'     },
 ];
 
 const WIDE_BREAKPOINT      = 900;
@@ -27,7 +30,8 @@ const SIDEBAR_OPEN_WIDTH   = 220;
 const SIDEBAR_CLOSED_WIDTH = 56;
 
 // ── Bottom Tab Bar (narrow screens) ──────────────────────────────────────────
-const TabBar = ({ currentTab, onTabChange, primary, muted }) => {
+const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0 }) => {
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const indicatorAnim = useRef(new Animated.Value(0)).current;
   const tabWidth = width / TABS.length;
@@ -46,7 +50,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted }) => {
   }, [currentTab, tabWidth]);
 
   return (
-    <View style={[styles.tabBar, { borderTopColor: `${primary}25` }]}>
+    <View style={[styles.tabBar, { borderTopColor: `${primary}25`, paddingBottom: insets.bottom || 6 }]}>
       <Animated.View
         style={[
           styles.indicator,
@@ -62,7 +66,14 @@ const TabBar = ({ currentTab, onTabChange, primary, muted }) => {
             onPress={() => onTabChange(tab.key)}
             activeOpacity={0.75}
           >
-            <Feather name={tab.icon} size={22} color={isActive ? primary : `${muted}`} style={{ opacity: isActive ? 1 : 0.5 }} />
+            <View style={{ position: 'relative' }}>
+              <Feather name={tab.icon} size={22} color={isActive ? primary : `${muted}`} style={{ opacity: isActive ? 1 : 0.5 }} />
+              {tab.key === 'notifications' && unreadCount > 0 && (
+                <View style={[styles.unreadBadge, { backgroundColor: '#ef4444' }]}>
+                  <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.tabLabel, { color: isActive ? primary : muted }]}>{tab.label}</Text>
             {isActive && <View style={[styles.tabDot, { backgroundColor: primary }]} />}
           </TouchableOpacity>
@@ -187,6 +198,7 @@ const MainNavigator = () => {
   const { currentTheme } = useTheme();
   const { width } = useWindowDimensions();
   useNotifications();
+  const unreadCount = useUnreadCount();
   const [currentTab, setCurrentTab] = useState('feed');
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [authModalVisible, setAuthModalVisible] = useState(false);
@@ -240,6 +252,8 @@ const MainNavigator = () => {
         );
       case 'calendar':
         return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
+      case 'notifications':
+        return <NotificationsScreen onAuthRequired={handleAuthRequired} />;
       case 'profile':
         return <ProfilePage onAuthRequired={handleAuthRequired} />;
       default:
@@ -270,7 +284,7 @@ const MainNavigator = () => {
         </View>
       )}
 
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         {isWide ? (
           // ── Wide screen: sidebar on left ───────────────────────────────
           <View style={styles.wideLayout}>
@@ -298,6 +312,7 @@ const MainNavigator = () => {
               onTabChange={handleTabChange}
               primary={primary}
               muted={muted}
+              unreadCount={unreadCount}
             />
           </View>
         )}
@@ -313,13 +328,15 @@ const MainNavigator = () => {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <MainNavigator />
-        </ToastProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <MainNavigator />
+          </ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
@@ -360,6 +377,8 @@ const styles = StyleSheet.create({
   },
   tabLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
   tabDot:   { width: 4, height: 4, borderRadius: 2, marginTop: 1 },
+  unreadBadge: { position: 'absolute', top: -4, right: -6, minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
+  unreadBadgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
 
   offlineBanner: {
     height: 30,

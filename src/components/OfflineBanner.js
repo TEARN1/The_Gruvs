@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
+import { Text, StyleSheet, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
 const checkOnline = async () => {
@@ -15,6 +16,7 @@ const checkOnline = async () => {
 };
 
 export const OfflineBanner = () => {
+  const insets = useSafeAreaInsets();
   const [isOffline, setIsOffline] = useState(false);
   const [justCameBack, setJustCameBack] = useState(false);
   const slideY = useRef(new Animated.Value(-60)).current;
@@ -56,7 +58,7 @@ export const OfflineBanner = () => {
     <Animated.View
       style={[
         styles.banner,
-        { backgroundColor: isBack ? '#10b981' : '#ef4444' },
+        { backgroundColor: isBack ? '#10b981' : '#ef4444', paddingTop: (insets.top || 0) + 10 },
         { transform: [{ translateY: slideY }] },
       ]}
       pointerEvents="none"
@@ -81,7 +83,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 10,
-    paddingTop: Platform.OS === 'ios' ? 50 : 10,
   },
   text: {
     color: '#fff',

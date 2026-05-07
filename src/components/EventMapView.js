@@ -9,6 +9,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Modal,
   ScrollView, Image, Dimensions, Linking, Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
@@ -175,6 +176,7 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent }) => {
 
 export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, onClose }) => {
   const { currentTheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const primary = currentTheme?.primary || '#00f2ff';
   const bg      = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text || '#fff';
@@ -190,7 +192,7 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
       <View style={[s.root, { backgroundColor: bg }]}>
 
         {/* Header */}
-        <View style={[s.header, { borderBottomColor: `${primary}20` }]}>
+        <View style={[s.header, { borderBottomColor: `${primary}20`, paddingTop: (insets.top || 0) + 16 }]}>
           <View>
             <Text style={[s.headerTitle, { color: textColor }]}>Events Near You</Text>
             <Text style={[s.headerSub, { color: muted }]}>
@@ -312,7 +314,7 @@ const s = StyleSheet.create({
   root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 18, paddingTop: Platform.OS === 'ios' ? 54 : 36,
+    paddingHorizontal: 18, paddingBottom: 14,
     paddingBottom: 14, borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 18, fontWeight: '900' },
