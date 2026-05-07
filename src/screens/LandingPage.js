@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, startTransition } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Image,
   Animated, Linking, RefreshControl, ScrollView, TextInput,
@@ -590,7 +590,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           return (
             <TouchableOpacity
               key={key}
-              onPress={() => setSelectedCat(isActive ? 'all' : key)}
+              onPress={() => startTransition(() => setSelectedCat(isActive ? 'all' : key))}
               style={[styles.pill, {
                 backgroundColor: isActive ? cfg.color : 'rgba(255,255,255,0.06)',
                 borderColor: isActive ? cfg.color : 'rgba(255,255,255,0.10)',
@@ -882,7 +882,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               <Text style={[styles.actionCount, { color: isVibed ? '#ef4444' : muted }]}>{vibeCounts[id] || 0}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtn} onPress={() => setOpenReact(p => ({ ...p, [id]: !p[id] }))}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenReact(p => ({ ...p, [id]: !p[id] })))}>
               {userReaction
                 ? <Text style={{ fontSize: 19 }}>{REACTION_LIST.find(r => r.key === userReaction)?.emoji || '😊'}</Text>
                 : <Feather name="smile" size={19} color={muted} />
@@ -890,17 +890,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtn} onPress={() => setOpenEcho(p => ({ ...p, [id]: !p[id] }))}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenEcho(p => ({ ...p, [id]: !p[id] })))}>
               <Feather name="message-circle" size={19} color={openEcho[id] ? primary : muted} />
               <Text style={[styles.actionCount, { color: openEcho[id] ? primary : muted }]}>{event.echo_count || 0}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtn} onPress={() => setOpenGallery(p => ({ ...p, [id]: !p[id] }))}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenGallery(p => ({ ...p, [id]: !p[id] })))}>
               <Feather name="camera" size={19} color={openGallery[id] ? primary : muted} />
               <Text style={[styles.actionLabel, { color: openGallery[id] ? primary : muted }]}>Gallery</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtn} onPress={() => setOpenRate(p => ({ ...p, [id]: !p[id] }))}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenRate(p => ({ ...p, [id]: !p[id] })))}>
               <Feather name="star" size={19} color={openRate[id] ? primary : muted} />
               <Text style={[styles.actionLabel, { color: openRate[id] ? primary : muted }]}>Rate</Text>
             </TouchableOpacity>
