@@ -44,7 +44,7 @@ export const EchoSection = ({ eventId, isSample, onAuthRequired }) => {
     if (isSample) return; // sample events use static echoes
     try {
       const { data } = await supabase
-        .from('comments')
+        .from('echoes')
         .select('*, profiles(username, avatar_url)')
         .eq('event_id', eventId)
         .order(sort === 'top' ? 'likes' : 'created_at', { ascending: false })
@@ -63,11 +63,11 @@ export const EchoSection = ({ eventId, isSample, onAuthRequired }) => {
     if (!text.trim()) return;
     if (!user) { onAuthRequired(); return; }
     setPosting(true);
-    const { error } = await supabase.from('comments').insert({
+    const { error } = await supabase.from('echoes').insert({
       event_id: eventId,
       user_id: user.id,
-      content: text.trim(),
-      reply_to: replyTo?.id || null,
+      body: text.trim(),
+      parent_id: replyTo?.id || null,
     });
     setPosting(false);
     if (!error) {
@@ -166,7 +166,7 @@ export const EchoSection = ({ eventId, isSample, onAuthRequired }) => {
                   )}
                   <Text style={[styles.echoTime, { color: muted }]}>{formatAge(echo.created_at)}</Text>
                 </View>
-                <Text style={[styles.echoContent, { color: textColor }]}>{echo.content}</Text>
+                <Text style={[styles.echoContent, { color: textColor }]}>{echo.body}</Text>
                 <View style={styles.echoActions}>
                   <TouchableOpacity onPress={() => likeEcho(echo.id)} style={[styles.likeBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
                     <Feather name="heart" size={13} color={isLiked ? '#ef4444' : muted} />

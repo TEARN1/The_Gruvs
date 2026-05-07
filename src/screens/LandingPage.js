@@ -275,7 +275,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         .order(mode === 'explore' ? 'vibe_count' : 'created_at', { ascending: false });
 
       if (selectedCat && selectedCat !== 'all') q = q.eq('category', selectedCat);
-      if (searchQuery.trim()) q = q.ilike('title', `%${searchQuery.trim()}%`);
+      if (searchQuery.trim()) {
+        const s = `%${searchQuery.trim()}%`;
+        q = q.or(`title.ilike.${s},description.ilike.${s},category.ilike.${s},venue_name.ilike.${s},city.ilike.${s}`);
+      }
 
       const { data, error } = await q.range(start, end);
 

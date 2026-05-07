@@ -52,12 +52,12 @@ export const RatingSection = ({ eventId, isSample, onAuthRequired }) => {
       return;
     }
     setSubmitting(true);
+    const filled = [stars.overall, stars.atmosphere, stars.organisation].filter(v => v > 0);
+    const avgRating = Math.round(filled.reduce((a, b) => a + b, 0) / filled.length);
     const { error } = await supabase.from('event_ratings').upsert({
       event_id: eventId,
       user_id: user.id,
-      overall: stars.overall,
-      atmosphere: stars.atmosphere,
-      organisation: stars.organisation,
+      rating: avgRating,
       review: review.trim() || null,
     }, { onConflict: 'event_id,user_id' });
     setSubmitting(false);

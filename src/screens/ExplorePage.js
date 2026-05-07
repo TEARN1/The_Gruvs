@@ -296,6 +296,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [selectedViber, setSelectedViber] = useState(null);
   const [viberModalVisible, setViberModalVisible] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
+  const [userResults, setUserResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const searchTimer = useRef(null);
@@ -357,17 +358,18 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   // Debounced search
   useEffect(() => {
-    if (!query.trim()) { setSearchResults([]); return; }
+    if (!query.trim()) { setSearchResults([]); setUserResults([]); return; }
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
-      const result = await FeedManager.fetchPage({ query, mode: 'explore' });
+      const { events, users } = await FeedManager.searchAll(query);
       const fromSample = SAMPLE_EVENTS.filter(e =>
         e.title?.toLowerCase().includes(query.toLowerCase()) ||
-        e.description?.toLowerCase().includes(query.toLowerCase())
+        e.description?.toLowerCase().includes(query.toLowerCase()) ||
+        e.category?.toLowerCase().includes(query.toLowerCase())
       );
-      const combined = result.events.length > 0 ? result.events : fromSample;
-      setSearchResults(combined);
+      setSearchResults(events.length > 0 ? events : fromSample);
+      setUserResults(users);
       setSearching(false);
     }, 350);
     return () => clearTimeout(searchTimer.current);
@@ -425,21 +427,46 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Text style={[{ color: muted, textAlign: 'center', marginTop: 20, fontSize: 13 }]}>
                 Searching the kingdom...
               </Text>
-            ) : searchResults.length === 0 ? (
+            ) : (searchResults.length === 0 && userResults.length === 0) ? (
               <View style={styles.noResults}>
                 <Feather name="search" size={36} color={muted} />
-                <Text style={[styles.noResultsText, { color: muted }]}>No gruvs found for "{query}"</Text>
+                <Text style={[styles.noResultsText, { color: muted }]}>No results for "{query}"</Text>
               </View>
             ) : (
               <>
-                <Text style={[styles.resultCount, { color: muted }]}>
-                  {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
-                </Text>
-                {searchResults.map((ev, i) => (
-                  <FadeInView key={ev.id} delay={i * 40} direction="up">
-                    <SearchResultCard ev={ev} primary={primary} textColor={textColor} muted={muted} catColor={ev.category_color || getCategoryColor(ev.category) || primary} onPress={() => onNavigateToEvent && onNavigateToEvent(ev)} />
-                  </FadeInView>
-                ))}
+                {userResults.length > 0 && (
+                  <>
+                    <Text style={[styles.resultCount, { color: muted }]}>PEOPLE</Text>
+                    {userResults.map((u, i) => (
+                      <FadeInView key={u.id} delay={i * 30} direction="up">
+                        <View style={[src.wrap, { borderColor: `${primary}25` }]}>
+                          <Image source={{ uri: u.avatar_url || `https://i.pravatar.cc/60?u=${u.id}` }} style={[src.thumb, { borderRadius: 30 }]} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={[src.title, { color: textColor, fontSize: 13 }]}>@{u.username}</Text>
+                            {u.bio ? <Text style={[src.metaText, { color: muted }]} numberOfLines={1}>{u.bio}</Text> : null}
+                            {u.location ? <Text style={[src.metaText, { color: muted }]}>{u.location}</Text> : null}
+                          </View>
+                          <View style={[src.badge, { backgroundColor: `${primary}20` }]}>
+                            <Feather name="zap" size={11} color={primary} />
+                            <Text style={[src.badgeText, { color: primary }]}>{u.vibe_score || 0}</Text>
+                          </View>
+                        </View>
+                      </FadeInView>
+                    ))}
+                  </>
+                )}
+                {searchResults.length > 0 && (
+                  <>
+                    <Text style={[styles.resultCount, { color: muted, marginTop: userResults.length > 0 ? 12 : 0 }]}>
+                      EVENTS — {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+                    </Text>
+                    {searchResults.map((ev, i) => (
+                      <FadeInView key={ev.id} delay={i * 40} direction="up">
+                        <SearchResultCard ev={ev} primary={primary} textColor={textColor} muted={muted} catColor={ev.category_color || getCategoryColor(ev.category) || primary} onPress={() => onNavigateToEvent && onNavigateToEvent(ev)} />
+                      </FadeInView>
+                    ))}
+                  </>
+                )}
               </>
             )}
           </View>
@@ -452,13 +479,13 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             </View>
 
             {/* ── Hero card ──────────────────────────────────────────────── */}
-            {!loading && featuredEvent ? (
+            {featuredEvent ? (
               <FadeInView direction="up" delay={0}>
                 <HeroCard event={featuredEvent} primary={primary} onPress={() => onNavigateToEvent && onNavigateToEvent(featuredEvent)} />
               </FadeInView>
-            ) : (
+            ) : loading ? (
               <View style={[styles.heroSkeleton, { backgroundColor: `${primary}12` }]} />
-            )}
+            ) : null}
 
             {/* ── Happening Now ───────────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>

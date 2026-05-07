@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
-  FlatList, Modal, Dimensions, ActivityIndicator,
+  FlatList, Modal, Dimensions, ActivityIndicator, Platform,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
@@ -45,9 +46,44 @@ export const EventGallery = ({ eventId }) => {
       alert('Sign in to add photos to the gallery!');
       return;
     }
-    // Real upload would use expo-image-picker + Supabase Storage
-    // Stub that shows the intent:
-    alert('Photo upload coming soon! Connect Supabase Storage to enable this.');
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Photo library permission is required to upload photos.');
+        return;
+      }
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    setUploading(true);
+    try {
+      const ext = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${eventId}/${user.id}_${Date.now()}.${ext}`;
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
+      const { error: uploadError } = await supabase.storage
+        .from('event-media')
+        .upload(fileName, blob, { contentType: `image/${ext}`, upsert: false });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('event-media').getPublicUrl(fileName);
+      const { error: dbError } = await supabase.from('event_gallery').insert({
+        event_id: eventId,
+        user_id: user.id,
+        url: urlData.publicUrl,
+        media_type: 'image',
+      });
+      if (dbError) throw dbError;
+      fetchGallery();
+    } catch (e) {
+      alert('Upload failed: ' + e.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const previewCount = Math.min(gallery.length, 3);
@@ -97,7 +133,7 @@ export const EventGallery = ({ eventId }) => {
               renderItem={({ item }) => (
                 <TouchableOpacity onPress={() => setLightboxItem(item)}>
                   <Image
-                    source={{ uri: item.media_url }}
+                    source={{ uri: item.url }}
                     style={styles.thumb}
                   />
                   {item.profiles?.username && (
@@ -138,7 +174,7 @@ export const EventGallery = ({ eventId }) => {
               activeOpacity={1}
               onPress={() => setLightboxItem(null)}
             >
-              <Image source={{ uri: lightboxItem.media_url }} style={styles.lightboxImage} resizeMode="contain" />
+              <Image source={{ uri: lightboxItem.url }} style={styles.lightboxImage} resizeMode="contain" />
               <View style={styles.lightboxMeta}>
                 <Text style={styles.lightboxUser}>
                   @{lightboxItem.profiles?.username || 'Viber'}

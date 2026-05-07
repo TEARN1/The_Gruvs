@@ -39,7 +39,10 @@ export const FeedManager = {
         .range(page * FeedManager.PAGE_SIZE, (page + 1) * FeedManager.PAGE_SIZE - 1);
 
       if (category !== 'all') q = q.eq('category', category);
-      if (query.trim()) q = q.ilike('title', `%${query.trim()}%`);
+      if (query.trim()) {
+        const s = `%${query.trim()}%`;
+        q = q.or(`title.ilike.${s},description.ilike.${s},category.ilike.${s},venue_name.ilike.${s},city.ilike.${s},tags.cs.{${query.trim()}}`);
+      }
 
       const { data, error, count } = await q;
       if (error) throw error;
@@ -48,6 +51,29 @@ export const FeedManager = {
       return result;
     } catch {
       return { events: [], total: 0, page, hasMore: false };
+    }
+  },
+
+  async searchAll(query) {
+    if (!query.trim()) return { events: [], users: [] };
+    const s = `%${query.trim()}%`;
+    try {
+      const [evRes, userRes] = await Promise.all([
+        supabase
+          .from('events')
+          .select('*, profiles(id, username, avatar_url)')
+          .or(`title.ilike.${s},description.ilike.${s},category.ilike.${s},venue_name.ilike.${s},city.ilike.${s}`)
+          .order('vibe_count', { ascending: false })
+          .limit(20),
+        supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url, bio, location, vibe_score')
+          .or(`username.ilike.${s},display_name.ilike.${s},bio.ilike.${s},location.ilike.${s}`)
+          .limit(10),
+      ]);
+      return { events: evRes.data || [], users: userRes.data || [] };
+    } catch {
+      return { events: [], users: [] };
     }
   },
 

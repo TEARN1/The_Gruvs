@@ -14,6 +14,8 @@ import { THEMES, GENDERS } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase } from '../services/supabase';
 import { DiscoveryManager } from '../services/dataFlow';
+import { LocationService } from '../services/locationService';
+import * as ImagePicker from 'expo-image-picker';
 import { useToast } from '../components/ToastNotification';
 import { SAMPLE_EVENTS } from '../constants/SampleData';
 
@@ -70,9 +72,46 @@ const lvl = StyleSheet.create({
 });
 
 // ── Analytics Bar Chart ───────────────────────────────────────────────────────
-const AnalyticsChart = ({ primary, muted, textColor }) => {
-  const values = [4, 7, 3, 9, 6, 12, 5];
-  const max = Math.max(...values);
+const AnalyticsChart = ({ primary, muted, textColor, userId }) => {
+  const [values, setValues] = useState([0, 0, 0, 0, 0, 0, 0]);
+  const [stats, setStats] = useState({ views: 0, visits: 0, avgVibes: 0, rsvpRate: 0 });
+
+  useEffect(() => {
+    if (!userId) return;
+    const load = async () => {
+      try {
+        const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+        const [rsvpRes, vibeRes] = await Promise.all([
+          supabase
+            .from('event_rsvps')
+            .select('created_at, events!inner(user_id)')
+            .eq('events.user_id', userId)
+            .gte('created_at', since),
+          supabase
+            .from('event_vibes')
+            .select('created_at, events!inner(user_id)')
+            .eq('events.user_id', userId)
+            .gte('created_at', since),
+        ]);
+        const rsvps = rsvpRes.data || [];
+        const vibes = vibeRes.data || [];
+        const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+        [...rsvps, ...vibes].forEach(item => {
+          const day = new Date(item.created_at).getDay();
+          const idx = day === 0 ? 6 : day - 1;
+          dayCounts[idx]++;
+        });
+        setValues(dayCounts);
+        const total = rsvps.length + vibes.length;
+        const avgVibes = vibes.length > 0 ? (vibes.length / 7).toFixed(1) : '0';
+        const rsvpRate = total > 0 ? Math.round((rsvps.length / total) * 100) : 0;
+        setStats({ views: total, visits: rsvps.length, avgVibes, rsvpRate: `${rsvpRate}%` });
+      } catch {}
+    };
+    load();
+  }, [userId]);
+
+  const max = Math.max(...values, 1);
   return (
     <View>
       <View style={chart.row}>
@@ -83,7 +122,7 @@ const AnalyticsChart = ({ primary, muted, textColor }) => {
                 style={[chart.bar, {
                   height: (v / max) * 80,
                   backgroundColor: primary,
-                  opacity: i === 5 ? 1 : 0.55,
+                  opacity: i === new Date().getDay() - 1 ? 1 : 0.55,
                 }]}
               />
             </View>
@@ -93,10 +132,10 @@ const AnalyticsChart = ({ primary, muted, textColor }) => {
       </View>
       <View style={chart.statsGrid}>
         {[
-          { label: 'Total Views', value: '1.2k' },
-          { label: 'Profile Visits', value: '348' },
-          { label: 'Avg Vibes', value: '6.4' },
-          { label: 'RSVP Rate', value: '74%' },
+          { label: 'Total Activity', value: stats.views > 999 ? `${(stats.views / 1000).toFixed(1)}k` : String(stats.views) },
+          { label: 'RSVPs', value: String(stats.visits) },
+          { label: 'Avg Daily Vibes', value: String(stats.avgVibes) },
+          { label: 'RSVP Rate', value: stats.rsvpRate },
         ].map(s => (
           <View key={s.label} style={[chart.statBox, { backgroundColor: `${primary}10`, borderColor: `${primary}20` }]}>
             <Text style={[chart.statVal, { color: primary }]}>{s.value}</Text>
@@ -121,12 +160,20 @@ const chart = StyleSheet.create({
 });
 
 // ── Person Card for Find Them ─────────────────────────────────────────────────
+const pAvatarInitials = (name) => name ? name.slice(0, 2).toUpperCase() : 'G';
+const pAvatarBg = (name) => {
+  const colors = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706', '#0d9488'];
+  return colors[(name?.charCodeAt(0) || 0) % colors.length];
+};
+
 const PersonCard = ({ person, primary, muted, textColor, onFollow }) => (
   <View style={[pcard.wrap, { borderColor: `${primary}18` }]}>
-    <Image
-      source={{ uri: person.avatar_url || `https://i.pravatar.cc/80?u=${person.id}` }}
-      style={[pcard.avatar, { borderColor: `${primary}50` }]}
-    />
+    {person.avatar_url
+      ? <Image source={{ uri: person.avatar_url }} style={[pcard.avatar, { borderColor: `${primary}50` }]} />
+      : <View style={[pcard.avatar, { borderColor: `${primary}50`, backgroundColor: pAvatarBg(person.username), alignItems: 'center', justifyContent: 'center' }]}>
+          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{pAvatarInitials(person.username)}</Text>
+        </View>
+    }
     {person.is_online && <View style={pcard.onlineDot} />}
     <View style={{ flex: 1, marginLeft: 12 }}>
       <Text style={[pcard.name, { color: textColor }]}>@{person.username}</Text>
@@ -245,25 +292,35 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile }) => {
       </GlassView>
 
       <GlassView style={fm.section}>
-        <Text style={[fm.sectionTitle, { color: primary }]}>QR Code</Text>
-        <View style={[fm.qrBox, { borderColor: `${primary}30` }]}>
-          <View style={[fm.qrInner, { borderColor: `${primary}60` }]}>
-            <Text style={{ fontSize: 40 }}>⬛</Text>
-            <Text style={[fm.qrText, { color: muted }]}>QR Code</Text>
-          </View>
-          <Text style={[fm.qrHandle, { color: primary }]}>@{profile?.username || 'you'}</Text>
-          <Text style={[fm.qrSub, { color: muted }]}>Share your profile</Text>
-        </View>
+        <Text style={[fm.sectionTitle, { color: primary }]}>Put Me Out There</Text>
+        <Text style={[{ color: muted, fontSize: 12, marginBottom: 14, lineHeight: 18 }]}>
+          When active, nearby vibers can discover your profile in real time.
+        </Text>
+        <TouchableOpacity
+          style={[fm.outThereBtn, discoverable
+            ? { backgroundColor: primary, borderColor: primary }
+            : { backgroundColor: 'transparent', borderColor: `${primary}40` }
+          ]}
+          onPress={() => setDiscoverable(d => !d)}
+          activeOpacity={0.85}
+        >
+          <Feather name={discoverable ? 'radio' : 'wifi-off'} size={18} color={discoverable ? '#000' : primary} />
+          <Text style={[fm.outThereText, { color: discoverable ? '#000' : primary }]}>
+            {discoverable ? 'Discoverable — I\'m out there' : 'Hidden — Go invisible'}
+          </Text>
+        </TouchableOpacity>
       </GlassView>
 
       {/* Preview Card */}
       <GlassView style={fm.section}>
         <Text style={[fm.sectionTitle, { color: primary }]}>Preview — How others see you</Text>
         <View style={[fm.previewCard, { borderColor: `${primary}25` }]}>
-          <Image
-            source={{ uri: profile?.avatar_url || `https://i.pravatar.cc/80?u=${user?.id}` }}
-            style={[fm.previewAvatar, { borderColor: primary }]}
-          />
+          {profile?.avatar_url
+            ? <Image source={{ uri: profile.avatar_url }} style={[fm.previewAvatar, { borderColor: primary }]} />
+            : <View style={[fm.previewAvatar, { borderColor: primary, backgroundColor: pAvatarBg(profile?.username), alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900' }}>{pAvatarInitials(profile?.username)}</Text>
+              </View>
+          }
           <View style={fm.previewInfo}>
             <Text style={[fm.previewName, { color: textColor }]}>@{profile?.username || 'you'}</Text>
             <Text style={[fm.previewBio, { color: muted }]} numberOfLines={2}>{bio || 'No bio yet...'}</Text>
@@ -297,6 +354,8 @@ const fm = StyleSheet.create({
   qrText: { fontSize: 10 },
   qrHandle: { fontSize: 16, fontWeight: '900', marginBottom: 4 },
   qrSub: { fontSize: 11 },
+  outThereBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 15, borderRadius: 30, borderWidth: 1.5 },
+  outThereText: { fontWeight: '900', fontSize: 14, letterSpacing: 0.3 },
   previewCard: { flexDirection: 'row', borderWidth: 1, borderRadius: 16, padding: 14 },
   previewAvatar: { width: 56, height: 56, borderRadius: 28, borderWidth: 2 },
   previewInfo: { flex: 1, marginLeft: 12 },
@@ -321,6 +380,8 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
   const search = async () => {
     if (!user) { onAuthRequired(); return; }
     setLoading(true);
+    const coords = await LocationService.requestAndGet();
+    if (coords) LocationService.saveToProfile(user.id, coords.lat, coords.lon);
     const data = await DiscoveryManager.findNobility(user.id, distance);
     setLoading(false);
     setPeople(data && data.length > 0 ? data : SAMPLE_PEOPLE);
@@ -426,8 +487,37 @@ export const ProfilePage = ({ onAuthRequired }) => {
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
   const username  = profile?.username   || user?.user_metadata?.username || 'Viber';
-  const avatarUrl = profile?.avatar_url || `https://i.pravatar.cc/150?u=${user?.id}`;
+  const avatarUrl = profile?.avatar_url || null;
   const vibeScore = profile?.vibe_score || 0;
+
+  const avatarInitials = (name) =>
+    name ? name.split(/[\s_]/).map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'G';
+  const avatarBgColor = (name) => {
+    const colors = ['#0891b2', '#0d9488', '#7c3aed', '#dc2626', '#d97706', '#059669'];
+    return colors[(name?.charCodeAt(0) || 0) % colors.length];
+  };
+
+  const handleAvatarUpload = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') { toast.show('Photo library permission needed', 'error'); return; }
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      const ext = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `avatars/${user.id}.${ext}`;
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
+      const { error: upErr } = await supabase.storage.from('avatars').upload(fileName, blob, { contentType: `image/${ext}`, upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', user.id);
+      refreshProfile();
+      toast.show('Avatar updated!', 'success');
+    } catch (e) {
+      toast.show('Upload failed: ' + e.message, 'error');
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -543,10 +633,18 @@ export const ProfilePage = ({ onAuthRequired }) => {
 
         {/* Avatar Row */}
         <View style={styles.avatarSection}>
-          <View style={styles.avatarWrap}>
-            <Image source={{ uri: avatarUrl }} style={[styles.avatar, { borderColor: primary }]} />
+          <TouchableOpacity style={styles.avatarWrap} onPress={handleAvatarUpload} activeOpacity={0.85}>
+            {avatarUrl
+              ? <Image source={{ uri: avatarUrl }} style={[styles.avatar, { borderColor: primary }]} />
+              : <View style={[styles.avatar, { borderColor: primary, backgroundColor: avatarBgColor(username), alignItems: 'center', justifyContent: 'center' }]}>
+                  <Text style={{ color: '#fff', fontSize: 28, fontWeight: '900' }}>{avatarInitials(username)}</Text>
+                </View>
+            }
             <View style={[styles.onlineDot, { backgroundColor: '#10b981' }]} />
-          </View>
+            <View style={[styles.avatarEditBadge, { backgroundColor: primary }]}>
+              <Feather name="camera" size={10} color="#000" />
+            </View>
+          </TouchableOpacity>
           <View style={styles.avatarActions}>
             <TouchableOpacity
               style={[styles.actionBtn, { backgroundColor: primary }]}
@@ -637,7 +735,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
         <GlassView style={styles.section}>
           <Text style={[styles.sectionTitle, { color: primary }]}>Gruv Analytics</Text>
           <Text style={[styles.sectionSub, { color: muted }]}>This week's activity</Text>
-          <AnalyticsChart primary={primary} muted={muted} textColor={textColor} />
+          <AnalyticsChart primary={primary} muted={muted} textColor={textColor} userId={user?.id} />
         </GlassView>
 
         {/* Royal Pass Benefits */}
@@ -881,6 +979,7 @@ const styles = StyleSheet.create({
   avatarWrap: { position: 'relative' },
   avatar: { width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2, borderWidth: 3, backgroundColor: '#111' },
   onlineDot: { position: 'absolute', bottom: 4, right: 4, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#000' },
+  avatarEditBadge: { position: 'absolute', bottom: 18, right: 0, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#000' },
   avatarActions: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   actionBtnText: { color: '#000', fontWeight: '900', fontSize: 12 },
