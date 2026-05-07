@@ -186,6 +186,7 @@ const MainNavigator = () => {
   const { currentTheme } = useTheme();
   const { width } = useWindowDimensions();
   const [currentTab, setCurrentTab] = useState('feed');
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [targetEvent, setTargetEvent] = useState(null);
@@ -199,6 +200,14 @@ const MainNavigator = () => {
 
   const IS_DEMO_MODE = !process.env.EXPO_PUBLIC_SUPABASE_URL ||
     process.env.EXPO_PUBLIC_SUPABASE_URL.includes('your-project-id');
+
+  const handleTabChange = (tab) => {
+    if (tab === currentTab && tab === 'feed') {
+      setFeedRefreshKey(k => k + 1);
+    } else {
+      setCurrentTab(tab);
+    }
+  };
 
   const handleAuthRequired = () => setAuthModalVisible(true);
 
@@ -217,6 +226,7 @@ const MainNavigator = () => {
             onAuthRequired={handleAuthRequired}
             targetEvent={targetEvent}
             onTargetHandled={() => setTargetEvent(null)}
+            refreshKey={feedRefreshKey}
           />
         );
       case 'explore':
@@ -237,6 +247,7 @@ const MainNavigator = () => {
             onAuthRequired={handleAuthRequired}
             targetEvent={targetEvent}
             onTargetHandled={() => setTargetEvent(null)}
+            refreshKey={feedRefreshKey}
           />
         );
     }
@@ -263,7 +274,7 @@ const MainNavigator = () => {
           <View style={styles.wideLayout}>
             <SidebarNav
               currentTab={currentTab}
-              onTabChange={setCurrentTab}
+              onTabChange={handleTabChange}
               primary={primary}
               muted={muted}
               bg={bg}
@@ -282,7 +293,7 @@ const MainNavigator = () => {
             </View>
             <TabBar
               currentTab={currentTab}
-              onTabChange={setCurrentTab}
+              onTabChange={handleTabChange}
               primary={primary}
               muted={muted}
             />

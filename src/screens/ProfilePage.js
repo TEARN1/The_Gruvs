@@ -16,6 +16,8 @@ import { supabase } from '../services/supabase';
 import { DiscoveryManager } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import * as ImagePicker from 'expo-image-picker';
+import { CategoryPickerModal } from '../components/CategoryPickerModal';
+import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { useToast } from '../components/ToastNotification';
 import { SAMPLE_EVENTS } from '../constants/SampleData';
 
@@ -23,10 +25,7 @@ const { width } = Dimensions.get('window');
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 
-const INTEREST_OPTIONS = [
-  'Music', 'Art', 'Food', 'Sports', 'Tech', 'Fashion', 'Film',
-  'Dance', 'Comedy', 'Gaming', 'Wellness', 'Nature', 'Travel', 'Books',
-];
+const INTEREST_OPTIONS = ['Music', 'Art', 'Food', 'Sports', 'Tech', 'Fashion', 'Film', 'Dance', 'Comedy', 'Gaming', 'Wellness', 'Nature', 'Travel', 'Books'];
 
 const WEEK_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -210,18 +209,28 @@ const pcard = StyleSheet.create({
 });
 
 // ── Find Me Sub-View ──────────────────────────────────────────────────────────
-const FindMePage = ({ primary, muted, textColor, bg, user, profile }) => {
-  const [discoverable, setDiscoverable] = useState(true);
-  const [showOnline, setShowOnline] = useState(true);
-  const [shareEvents, setShareEvents] = useState(false);
+const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => {
+  const [discoverable, setDiscoverable] = useState(profile?.is_discoverable ?? true);
+  const [showOnline, setShowOnline] = useState(profile?.show_online ?? true);
+  const [shareEvents, setShareEvents] = useState(profile?.share_events ?? false);
   const [bio, setBio] = useState(profile?.bio || '');
   const [location, setLocation] = useState(profile?.location || '');
-  const [selectedInterests, setSelectedInterests] = useState([]);
+  const [selectedInterests, setSelectedInterests] = useState(profile?.interests || []);
+  const [catPickerVisible, setCatPickerVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const toggleInterest = (int) => {
-    setSelectedInterests(prev =>
-      prev.includes(int) ? prev.filter(i => i !== int) : [...prev, int]
-    );
+  const saveProfile = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase.from('profiles').update({
+      bio: bio.trim() || null,
+      location: location.trim() || null,
+      interests: selectedInterests,
+      is_discoverable: discoverable,
+    }).eq('id', user.id);
+    setSaving(false);
+    if (!error) toast?.show('Profile saved!', 'success');
+    else toast?.show('Save failed: ' + error.message, 'error');
   };
 
   return (
@@ -251,21 +260,53 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile }) => {
 
       <GlassView style={fm.section}>
         <Text style={[fm.sectionTitle, { color: primary }]}>My Interests</Text>
-        <View style={fm.pillWrap}>
-          {INTEREST_OPTIONS.map(int => {
-            const sel = selectedInterests.includes(int);
-            return (
-              <TouchableOpacity
-                key={int}
-                style={[fm.pill, { backgroundColor: sel ? primary : `${primary}15`, borderColor: sel ? primary : `${primary}30` }]}
-                onPress={() => toggleInterest(int)}
-              >
-                <Text style={[fm.pillText, { color: sel ? '#000' : primary }]}>{int}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <Text style={[{ color: muted, fontSize: 12, marginBottom: 12, lineHeight: 18 }]}>
+          {selectedInterests.length > 0
+            ? `${selectedInterests.length} interests selected — shown to nearby vibers.`
+            : 'Add your interests to help people discover you.'}
+        </Text>
+        {selectedInterests.length > 0 && (
+          <View style={fm.pillWrap}>
+            {selectedInterests.slice(0, 15).map(key => {
+              const meta = ALL_CATEGORIES_MAP[key];
+              const label = meta?.label || key.replace('custom_', '').replace(/_/g, ' ');
+              const color = meta?.color || primary;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => setSelectedInterests(prev => prev.filter(k => k !== key))}
+                  style={[fm.pill, { backgroundColor: `${color}18`, borderColor: `${color}40` }]}
+                >
+                  <Text style={{ fontSize: 12 }}>{meta?.icon || '✦'}</Text>
+                  <Text style={[fm.pillText, { color }]}>{label}</Text>
+                  <Feather name="x" size={10} color={color} />
+                </TouchableOpacity>
+              );
+            })}
+            {selectedInterests.length > 15 && (
+              <Text style={[fm.pillText, { color: muted }]}>+{selectedInterests.length - 15} more</Text>
+            )}
+          </View>
+        )}
+        <TouchableOpacity
+          style={[fm.catBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}08` }]}
+          onPress={() => setCatPickerVisible(true)}
+        >
+          <Feather name="tag" size={16} color={primary} />
+          <Text style={[fm.pillText, { color: primary, fontWeight: '800' }]}>
+            {selectedInterests.length > 0 ? 'Edit interests' : 'Choose from 1000+ interests'}
+          </Text>
+          <Feather name="chevron-right" size={16} color={`${primary}80`} style={{ marginLeft: 'auto' }} />
+        </TouchableOpacity>
       </GlassView>
+
+      <CategoryPickerModal
+        visible={catPickerVisible}
+        onClose={() => setCatPickerVisible(false)}
+        selected={selectedInterests}
+        onConfirm={setSelectedInterests}
+        title="My Interests"
+      />
 
       <GlassView style={fm.section}>
         <Text style={[fm.sectionTitle, { color: primary }]}>Bio & Location</Text>
@@ -333,6 +374,21 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile }) => {
           </View>
         </View>
       </GlassView>
+
+      {/* Save button */}
+      <TouchableOpacity
+        style={[fm.saveBtn, { backgroundColor: primary }]}
+        onPress={saveProfile}
+        disabled={saving}
+      >
+        {saving
+          ? <ActivityIndicator color="#000" size="small" />
+          : <>
+              <Feather name="save" size={16} color="#000" />
+              <Text style={fm.saveBtnText}>Save Profile</Text>
+            </>
+        }
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -362,6 +418,9 @@ const fm = StyleSheet.create({
   previewName: { fontSize: 15, fontWeight: '800' },
   previewBio: { fontSize: 12, marginTop: 4, lineHeight: 17 },
   previewMeta: { fontSize: 11 },
+  catBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14 },
+  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginBottom: 20, paddingVertical: 15, borderRadius: 30 },
+  saveBtnText: { color: '#000', fontWeight: '900', fontSize: 14 },
 });
 
 // ── Find Them Sub-View ────────────────────────────────────────────────────────
@@ -587,7 +646,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
           <Text style={[styles.subTitle, { color: textColor }]}>Find Me</Text>
           <View style={{ width: 40 }} />
         </View>
-        <FindMePage primary={primary} muted={muted} textColor={textColor} bg={bg} user={user} profile={profile} />
+        <FindMePage primary={primary} muted={muted} textColor={textColor} bg={bg} user={user} profile={profile} toast={toast} />
       </View>
     );
   }

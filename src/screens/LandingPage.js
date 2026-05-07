@@ -169,7 +169,7 @@ const tm = StyleSheet.create({
 });
 
 // ── Main LandingPage ──────────────────────────────────────────────────────────
-export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled }) => {
+export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();
@@ -213,7 +213,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   useEffect(() => {
     loadData(true);
-  }, [selectedCat, searchQuery, mode]);
+  }, [selectedCat, searchQuery, mode, refreshKey]);
 
   useEffect(() => { loadTrending(); }, []);
 
