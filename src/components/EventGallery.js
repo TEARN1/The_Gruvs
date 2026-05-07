@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { GlassView } from './GlassView';
+import { useToast } from './ToastNotification';
 
 const { width, height } = Dimensions.get('window');
 const THUMB_SIZE = (width * 0.9 - 48) / 3;
@@ -15,10 +16,12 @@ const THUMB_SIZE = (width * 0.9 - 48) / 3;
 export const EventGallery = ({ eventId }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
+  const toast = useToast();
   const [gallery, setGallery] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [lightboxItem, setLightboxItem] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [tableError, setTableError] = useState(false);
 
   const primary = currentTheme?.primary || '#00f2ff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
@@ -30,26 +33,32 @@ export const EventGallery = ({ eventId }) => {
 
   const fetchGallery = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('event_gallery')
         .select('*, profiles(username, avatar_url)')
         .eq('event_id', eventId)
         .order('created_at', { ascending: false });
+      if (error) {
+        // Table doesn't exist yet — show empty state silently
+        setTableError(true);
+        return;
+      }
+      setTableError(false);
       if (data) setGallery(data);
-    } catch (e) {
-      console.log('Gallery fetch error:', e.message);
+    } catch {
+      setTableError(true);
     }
   };
 
   const handleUpload = async () => {
     if (!user) {
-      alert('Sign in to add photos to the gallery!');
+      toast.show('Sign in to add photos to the gallery!', 'info');
       return;
     }
     if (Platform.OS !== 'web') {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        alert('Photo library permission is required to upload photos.');
+        toast.show('Photo library permission is required.', 'error');
         return;
       }
     }
@@ -63,7 +72,7 @@ export const EventGallery = ({ eventId }) => {
     setUploading(true);
     try {
       const ext = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${eventId}/${user.id}_${Date.now()}.${ext}`;
+      const fileName = `gallery/${eventId}/${user.id}_${Date.now()}.${ext}`;
       const response = await fetch(asset.uri);
       const blob = await response.blob();
       const { error: uploadError } = await supabase.storage
@@ -77,10 +86,16 @@ export const EventGallery = ({ eventId }) => {
         url: urlData.publicUrl,
         media_type: 'image',
       });
-      if (dbError) throw dbError;
-      fetchGallery();
+      // If table doesn't exist, the photo still uploaded to storage — inform user
+      if (dbError) {
+        setTableError(true);
+        toast.show('Photo uploaded but gallery table not set up yet. Contact your admin.', 'info');
+      } else {
+        toast.show('Photo added to gallery!', 'success');
+        fetchGallery();
+      }
     } catch (e) {
-      alert('Upload failed: ' + e.message);
+      toast.show('Upload failed: ' + e.message, 'error');
     } finally {
       setUploading(false);
     }

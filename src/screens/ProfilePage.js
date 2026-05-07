@@ -597,6 +597,37 @@ export const ProfilePage = ({ onAuthRequired }) => {
     }
   };
 
+  const handleCoverUpload = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') { toast.show('Photo library permission needed', 'error'); return; }
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.85,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      const ext = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `covers/${user.id}.${ext}`;
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
+      const { error: upErr } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, blob, { contentType: `image/${ext}`, upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      await supabase.from('profiles').update({ cover_url: urlData.publicUrl }).eq('id', user.id);
+      refreshProfile();
+      toast.show('Cover photo updated!', 'success');
+    } catch (e) {
+      toast.show('Cover upload failed: ' + e.message, 'error');
+    }
+  };
+
   useEffect(() => {
     if (user) {
       supabase
@@ -706,9 +737,14 @@ export const ProfilePage = ({ onAuthRequired }) => {
 
         {/* Cover Photo */}
         <View style={[styles.coverPhoto, { backgroundColor: `${primary}18` }]}>
-          <View style={[styles.coverPattern, { borderColor: `${primary}12` }]} />
-          <View style={[styles.coverPatternAlt, { borderColor: `${primary}10` }]} />
-          <TouchableOpacity style={styles.coverEditBtn}>
+          {profile?.cover_url
+            ? <Image source={{ uri: profile.cover_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            : <>
+                <View style={[styles.coverPattern, { borderColor: `${primary}12` }]} />
+                <View style={[styles.coverPatternAlt, { borderColor: `${primary}10` }]} />
+              </>
+          }
+          <TouchableOpacity style={styles.coverEditBtn} onPress={handleCoverUpload}>
             <Feather name="camera" size={14} color="rgba(255,255,255,0.7)" />
           </TouchableOpacity>
         </View>

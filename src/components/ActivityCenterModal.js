@@ -32,14 +32,6 @@ const formatAge = (dateStr) => {
   return `${Math.floor(h / 24)}d ago`;
 };
 
-const FALLBACK = [
-  { id: 'f1', type: 'vibe',   actor: 'kayla_vibes', actor_avatar: null, content: 'vibed with your event "Summer Splash"',     created_at: new Date(Date.now() - 120000).toISOString() },
-  { id: 'f2', type: 'echo',   actor: 'thabo_rsa',   actor_avatar: null, content: 'echoed: "Can\'t wait for this!"',            created_at: new Date(Date.now() - 900000).toISOString() },
-  { id: 'f3', type: 'follow', actor: 'nadia_g',     actor_avatar: null, content: 'is now following your vibe',                created_at: new Date(Date.now() - 3600000).toISOString() },
-  { id: 'f4', type: 'rsvp',   actor: 'sipho_z',     actor_avatar: null, content: 'RSVP\'d to your event "Rooftop Sessions"', created_at: new Date(Date.now() - 7200000).toISOString() },
-  { id: 'f5', type: 'royal',  actor: 'The Gruvs',   actor_avatar: null, content: 'You reached "Elite Viber" status! 👑',       created_at: new Date(Date.now() - 14400000).toISOString() },
-  { id: 'f6', type: 'rating', actor: 'amara_k',     actor_avatar: null, content: 'gave your event "Jazz Night" 5 stars ⭐',   created_at: new Date(Date.now() - 86400000).toISOString() },
-];
 
 export const ActivityCenterModal = ({ visible, onClose }) => {
   const { currentTheme } = useTheme();
@@ -56,7 +48,7 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
   const fetchActivities = useCallback(async (isRefresh = false) => {
-    if (!user) { setActivities(FALLBACK); return; }
+    if (!user) { setActivities([]); return; }
     if (isRefresh) setRefreshing(true); else setLoading(true);
 
     try {
@@ -177,15 +169,11 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
       // Sort all by date descending
       results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-      if (results.length > 0) {
-        setActivities(results);
-        setUnreadCount(results.filter(r => Date.now() - new Date(r.created_at) < 3600000).length);
-      } else {
-        setActivities(FALLBACK);
-      }
+      setActivities(results);
+      setUnreadCount(results.filter(r => Date.now() - new Date(r.created_at) < 3600000).length);
     } catch (e) {
       console.log('Activity fetch error:', e.message);
-      setActivities(FALLBACK);
+      setActivities([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -300,9 +288,15 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
               }}
               ListEmptyComponent={
                 <View style={ac.empty}>
-                  <Feather name="bell" size={40} color={muted} />
-                  <Text style={[ac.emptyText, { color: muted }]}>Your kingdom is quiet...</Text>
-                  <Text style={[ac.emptySub, { color: muted }]}>Activity from your events and followers appears here.</Text>
+                  <Feather name={user ? 'bell' : 'lock'} size={40} color={muted} />
+                  <Text style={[ac.emptyText, { color: muted }]}>
+                    {user ? 'Your kingdom is quiet...' : 'Sign in to see activity'}
+                  </Text>
+                  <Text style={[ac.emptySub, { color: muted }]}>
+                    {user
+                      ? 'When people vibe, echo, or RSVP to your events — it appears here.'
+                      : 'Activity from your events and followers will appear here once you sign in.'}
+                  </Text>
                 </View>
               }
             />

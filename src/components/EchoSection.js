@@ -77,18 +77,28 @@ export const EchoSection = ({ eventId, isSample, onAuthRequired }) => {
     }
   };
 
-  const likeEcho = (echoId) => {
+  const likeEcho = async (echoId) => {
     if (!user) { onAuthRequired(); return; }
+    const isCurrentlyLiked = likedEchoes.has(echoId);
+
+    // Optimistic UI update first
     setLikedEchoes(prev => {
       const next = new Set(prev);
-      next.has(echoId) ? next.delete(echoId) : next.add(echoId);
+      isCurrentlyLiked ? next.delete(echoId) : next.add(echoId);
       return next;
     });
     setEchoes(prev => prev.map(e =>
       e.id === echoId
-        ? { ...e, likes: (e.likes || 0) + (likedEchoes.has(echoId) ? -1 : 1) }
+        ? { ...e, likes: Math.max(0, (e.likes || 0) + (isCurrentlyLiked ? -1 : 1)) }
         : e
     ));
+
+    // Persist new count to Supabase
+    const echo = echoes.find(e => e.id === echoId);
+    if (echo) {
+      const newCount = Math.max(0, (echo.likes || 0) + (isCurrentlyLiked ? -1 : 1));
+      await supabase.from('echoes').update({ likes: newCount }).eq('id', echoId);
+    }
   };
 
   const avatarInitials = (name) =>
@@ -101,8 +111,8 @@ export const EchoSection = ({ eventId, isSample, onAuthRequired }) => {
 
   const displayEchoes = isSample
     ? [
-        { id: 's1', profiles: { username: 'Nandi K', avatar_url: null }, content: 'Already counting down for this one!', created_at: new Date(Date.now() - 7200000).toISOString(), likes: 18 },
-        { id: 's2', profiles: { username: 'Sipho Z', avatar_url: null }, content: 'Best night of the year every time 🔥', created_at: new Date(Date.now() - 3600000).toISOString(), likes: 9 },
+        { id: 's1', profiles: { username: 'Nandi K', avatar_url: null }, body: 'Already counting down for this one!', created_at: new Date(Date.now() - 7200000).toISOString(), likes: 18 },
+        { id: 's2', profiles: { username: 'Sipho Z', avatar_url: null }, body: 'Best night of the year every time 🔥', created_at: new Date(Date.now() - 3600000).toISOString(), likes: 9 },
       ]
     : echoes;
 
