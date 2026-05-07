@@ -1,479 +1,333 @@
 /**
- * EventMapView.js
- * Full-screen map modal showing event markers for "The Gruvs".
- * Falls back to a scrollable list on web or if react-native-maps is unavailable.
+ * EventMapView — 100% self-built, zero cost, zero API keys.
+ * Renders event coordinates as positioned pins on a canvas-style View.
+ * Uses Linking to open directions in the device's native maps app (free).
+ * No react-native-maps. No Google Maps API. No billing.
  */
-
-import React, { useRef, useMemo, useState, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  Image,
-  Platform,
-  Dimensions,
-  ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, Modal,
+  ScrollView, Image, Dimensions, Linking, Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
-// ── Attempt to load react-native-maps ────────────────────────────────────────
-let MapView = null;
-let Marker = null;
-let Callout = null;
+const { width: SW, height: SH } = Dimensions.get('window');
+const MAP_H = SH * 0.55;
+const MAP_W = SW;
+const PAD  = 24; // px padding inside the map so pins don't clip edges
 
-if (Platform.OS !== 'web') {
-  try {
-    const RNMaps = require('react-native-maps');
-    MapView = RNMaps.default;
-    Marker = RNMaps.Marker;
-    Callout = RNMaps.Callout;
-  } catch (_) {
-    // react-native-maps not installed — will use fallback list
-  }
-}
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-const CAPE_TOWN = { latitude: -33.9249, longitude: 18.4241 };
-const DELTA = { latitudeDelta: 0.08, longitudeDelta: 0.08 };
-const BG = '#0d1112';
-
-// ── Category → emoji map ──────────────────────────────────────────────────────
 const CATEGORY_EMOJI = {
-  music:      '🎵',
-  nightlife:  '🌙',
-  sport:      '⚡',
-  art:        '🎨',
-  food:       '🍽️',
-  culture:    '🏛️',
-  wellness:   '🧘',
-  tech:       '💻',
-  fashion:    '👗',
-  comedy:     '😂',
-  outdoor:    '🌿',
-  film:       '🎬',
+  music: '🎵', nightlife: '🌙', sport: '⚡', art: '🎨', food: '🍽️',
+  culture: '🏛️', wellness: '🧘', tech: '💻', fashion: '👗', comedy: '😂',
+  outdoor: '🌿', film: '🎬',
+};
+const emoji = (cat) => CATEGORY_EMOJI[cat?.toLowerCase()] ?? '📍';
+
+const openDirections = (event) => {
+  const q = encodeURIComponent(event.venue_name || event.address || `${event.lat},${event.lon}`);
+  const url = Platform.OS === 'ios'
+    ? `maps://?q=${q}`
+    : `geo:0,0?q=${q}`;
+  Linking.openURL(url).catch(() =>
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${q}`)
+  );
 };
 
-function getCategoryEmoji(category) {
-  if (!category) return '📍';
-  return CATEGORY_EMOJI[category.toLowerCase()] ?? '📍';
-}
+// Map lat/lon → pixel x/y within the MAP_W × MAP_H canvas
+const project = (lat, lon, minLat, maxLat, minLon, maxLon) => {
+  const rangeX = maxLon - minLon || 0.01;
+  const rangeY = maxLat - minLat || 0.01;
+  const x = PAD + ((lon - minLon) / rangeX) * (MAP_W - PAD * 2);
+  // Latitude increases upward on earth, downward on screen
+  const y = PAD + ((maxLat - lat) / rangeY) * (MAP_H - PAD * 2);
+  return { x, y };
+};
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function toRegion(lat, lon) {
-  return { latitude: lat, longitude: lon, ...DELTA };
-}
+const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent }) => {
+  const [selected, setSelected] = useState(null);
 
-function initialRegion(userCoords, events) {
-  if (userCoords?.lat != null && userCoords?.lon != null) {
-    return toRegion(userCoords.lat, userCoords.lon);
-  }
-  const first = events?.find(e => e.lat != null && e.lon != null);
-  if (first) return toRegion(first.lat, first.lon);
-  return { ...CAPE_TOWN, ...DELTA };
-}
+  const withCoords = events.filter(e => e.lat != null && e.lon != null);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sub-components
-// ─────────────────────────────────────────────────────────────────────────────
+  // Add user position as a virtual point if available
+  const allLats = [
+    ...withCoords.map(e => Number(e.lat)),
+    userCoords?.lat,
+  ].filter(Boolean);
+  const allLons = [
+    ...withCoords.map(e => Number(e.lon)),
+    userCoords?.lon,
+  ].filter(Boolean);
 
-/** Coloured circle shown as the map pin */
-function MarkerDot({ color, emoji }) {
+  const minLat = Math.min(...allLats);
+  const maxLat = Math.max(...allLats);
+  const minLon = Math.min(...allLons);
+  const maxLon = Math.max(...allLons);
+
+  const pins = useMemo(() => withCoords.map(e => ({
+    ...e,
+    ...project(Number(e.lat), Number(e.lon), minLat, maxLat, minLon, maxLon),
+  })), [withCoords, minLat, maxLat, minLon, maxLon]);
+
+  const userPin = userCoords?.lat != null
+    ? project(userCoords.lat, userCoords.lon, minLat, maxLat, minLon, maxLon)
+    : null;
+
   return (
-    <View style={[styles.markerDot, { backgroundColor: color || '#a78bfa' }]}>
-      <Text style={styles.markerEmoji}>{emoji}</Text>
-    </View>
-  );
-}
+    <View style={[grid.canvas, { height: MAP_H }]}>
+      {/* Grid lines for visual depth */}
+      {[0.25, 0.5, 0.75].map(f => (
+        <View key={`h${f}`} style={[grid.gridH, { top: MAP_H * f }]} />
+      ))}
+      {[0.25, 0.5, 0.75].map(f => (
+        <View key={`v${f}`} style={[grid.gridV, { left: MAP_W * f }]} />
+      ))}
 
-/** Custom callout bubble rendered inside <Callout> */
-function EventCallout({ event, onPress, primaryColor }) {
-  const thumb = event.media?.[0]?.url;
-  return (
-    <View style={styles.callout}>
-      {thumb ? (
-        <Image source={{ uri: thumb }} style={styles.calloutThumb} resizeMode="cover" />
-      ) : null}
-      <View style={styles.calloutBody}>
-        <Text style={styles.calloutTitle} numberOfLines={2}>
-          {event.title}
-        </Text>
-        {event.venue_name ? (
-          <Text style={styles.calloutVenue} numberOfLines={1}>
-            {event.venue_name}
-          </Text>
-        ) : null}
-        <View style={styles.calloutVibeRow}>
-          <Feather name="zap" size={12} color="#facc15" />
-          <Text style={styles.calloutVibeText}>
-            {event.vibe_count ?? 0} vibing
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.calloutBtn, { backgroundColor: primaryColor }]}
-          onPress={onPress}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.calloutBtnText}>View Event</Text>
-        </TouchableOpacity>
+      {/* Compass rose */}
+      <View style={grid.compass}>
+        <Text style={grid.compassN}>N</Text>
+        <Feather name="navigation" size={14} color="rgba(255,255,255,0.3)" />
       </View>
-    </View>
-  );
-}
 
-/** Single row in the fallback list */
-function EventListRow({ event, onPress, primaryColor }) {
-  const thumb = event.media?.[0]?.url;
-  const emoji = getCategoryEmoji(event.category);
-  const dotColor = event.category_color || '#a78bfa';
-
-  return (
-    <TouchableOpacity
-      style={styles.listRow}
-      onPress={() => onPress(event)}
-      activeOpacity={0.75}
-    >
-      {thumb ? (
-        <Image source={{ uri: thumb }} style={styles.listThumb} resizeMode="cover" />
-      ) : (
-        <View style={[styles.listThumbPlaceholder, { backgroundColor: dotColor }]}>
-          <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      {/* User location dot */}
+      {userPin && (
+        <View style={[grid.userDot, { left: userPin.x - 8, top: userPin.y - 8 }]}>
+          <View style={[grid.userPulse, { borderColor: primaryColor }]} />
+          <View style={[grid.userCenter, { backgroundColor: primaryColor }]} />
         </View>
       )}
-      <View style={styles.listRowInfo}>
-        <Text style={styles.listTitle} numberOfLines={1}>
-          {event.title}
-        </Text>
-        {event.venue_name ? (
-          <Text style={styles.listVenue} numberOfLines={1}>
-            <Feather name="map-pin" size={11} color="#6b7280" /> {event.venue_name}
-          </Text>
-        ) : null}
-        {event.lat != null && event.lon != null ? (
-          <Text style={styles.listCoords}>
-            {Number(event.lat).toFixed(4)}, {Number(event.lon).toFixed(4)}
-          </Text>
-        ) : null}
-        <View style={styles.calloutVibeRow}>
-          <Feather name="zap" size={11} color="#facc15" />
-          <Text style={styles.calloutVibeText}>{event.vibe_count ?? 0} vibing</Text>
-        </View>
-      </View>
-      <Feather name="chevron-right" size={18} color="#4b5563" style={{ alignSelf: 'center' }} />
-    </TouchableOpacity>
-  );
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────────────────────────────────────
+      {/* Event pins */}
+      {pins.map(pin => {
+        const isSelected = selected?.id === pin.id;
+        const color = pin.category_color || primaryColor;
+        return (
+          <TouchableOpacity
+            key={pin.id}
+            style={[grid.pin, { left: pin.x - 18, top: pin.y - 18 }]}
+            onPress={() => setSelected(isSelected ? null : pin)}
+            activeOpacity={0.8}
+          >
+            <View style={[
+              grid.pinCircle,
+              { backgroundColor: color, borderColor: isSelected ? '#fff' : 'rgba(255,255,255,0.2)' },
+              isSelected && { transform: [{ scale: 1.3 }] },
+            ]}>
+              <Text style={{ fontSize: 13 }}>{emoji(pin.category)}</Text>
+            </View>
+            {isSelected && (
+              <View style={[grid.pinTip, { backgroundColor: color }]} />
+            )}
+          </TouchableOpacity>
+        );
+      })}
+
+      {/* Callout for selected pin */}
+      {selected && (() => {
+        const CALLOUT_W = 200;
+        // Keep callout inside canvas bounds
+        let left = selected.x - CALLOUT_W / 2;
+        if (left < 8) left = 8;
+        if (left + CALLOUT_W > MAP_W - 8) left = MAP_W - CALLOUT_W - 8;
+        const above = selected.y > MAP_H / 2;
+        const top = above ? selected.y - 150 : selected.y + 28;
+        return (
+          <View style={[grid.callout, { left, top, width: CALLOUT_W }]}>
+            {selected.media?.[0]?.url && (
+              <Image source={{ uri: selected.media[0].url }} style={grid.calloutImg} />
+            )}
+            <Text style={grid.calloutTitle} numberOfLines={2}>{selected.title}</Text>
+            {selected.venue_name && (
+              <Text style={grid.calloutVenue} numberOfLines={1}>
+                <Feather name="map-pin" size={10} color="#9ca3af" /> {selected.venue_name}
+              </Text>
+            )}
+            <View style={grid.calloutActions}>
+              <TouchableOpacity
+                style={[grid.calloutBtn, { backgroundColor: selected.category_color || primaryColor }]}
+                onPress={() => onSelectEvent(selected)}
+              >
+                <Text style={grid.calloutBtnText}>View</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={grid.calloutDirBtn}
+                onPress={() => openDirections(selected)}
+              >
+                <Feather name="navigation" size={12} color="#9ca3af" />
+                <Text style={grid.calloutDirText}>Directions</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      })()}
+
+      {/* No-coords notice */}
+      {withCoords.length === 0 && (
+        <View style={grid.noCoords}>
+          <Feather name="map-off" size={32} color="rgba(255,255,255,0.2)" />
+          <Text style={grid.noCoordsText}>Events don't have coordinates yet</Text>
+          <Text style={grid.noCoordsText2}>Addresses are shown in the list below</Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
 export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, onClose }) => {
   const { currentTheme } = useTheme();
-  const primaryColor = currentTheme?.primary ?? '#a78bfa';
-  const mapRef = useRef(null);
-  const [selectedId, setSelectedId] = useState(null);
+  const primary = currentTheme?.primary || '#00f2ff';
+  const bg      = currentTheme?.background || '#0d1112';
+  const textColor = currentTheme?.text || '#fff';
+  const muted   = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
-  const region = useMemo(() => initialRegion(userCoords, events), [userCoords, events]);
-
-  const handleSelectEvent = useCallback(
-    (event) => {
-      if (onSelectEvent) onSelectEvent(event);
-      if (onClose) onClose();
-    },
-    [onSelectEvent, onClose],
-  );
-
-  const useMapView = MapView !== null && Platform.OS !== 'web';
-
-  // ── Header ─────────────────────────────────────────────────────────────────
-  const Header = (
-    <View style={styles.header}>
-      <View>
-        <Text style={styles.headerTitle}>Events Near You</Text>
-        <Text style={styles.headerSub}>
-          {events.length} {events.length === 1 ? 'event' : 'events'}
-        </Text>
-      </View>
-      <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
-        <Feather name="x" size={20} color="#f9fafb" />
-      </TouchableOpacity>
-    </View>
-  );
-
-  // ── Map content ────────────────────────────────────────────────────────────
-  const MapContent = useMapView ? (
-    <MapView
-      ref={mapRef}
-      style={styles.map}
-      mapType="standard"
-      userInterfaceStyle="dark"
-      initialRegion={region}
-      showsUserLocation={userCoords != null}
-      showsMyLocationButton={userCoords != null}
-      showsCompass={false}
-    >
-      {events.map((event) => {
-        if (event.lat == null || event.lon == null) return null;
-        const emoji = getCategoryEmoji(event.category);
-        const dotColor = event.category_color || primaryColor;
-        return (
-          <Marker
-            key={event.id}
-            coordinate={{ latitude: event.lat, longitude: event.lon }}
-            onPress={() => setSelectedId(event.id)}
-          >
-            <MarkerDot color={dotColor} emoji={emoji} />
-            <Callout tooltip onPress={() => handleSelectEvent(event)}>
-              <EventCallout
-                event={event}
-                onPress={() => handleSelectEvent(event)}
-                primaryColor={primaryColor}
-              />
-            </Callout>
-          </Marker>
-        );
-      })}
-    </MapView>
-  ) : null;
-
-  // ── Fallback list ──────────────────────────────────────────────────────────
-  const FallbackList = !useMapView ? (
-    <ScrollView
-      style={styles.fallbackList}
-      contentContainerStyle={styles.fallbackContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.fallbackBanner}>
-        <Feather name="map-off" size={16} color="#6b7280" />
-        <Text style={styles.fallbackBannerText}>
-          {Platform.OS === 'web'
-            ? 'Map view is not supported on web.'
-            : 'Map unavailable — react-native-maps not installed.'}
-        </Text>
-      </View>
-      {events.map((event) => (
-        <EventListRow
-          key={event.id}
-          event={event}
-          onPress={handleSelectEvent}
-          primaryColor={primaryColor}
-        />
-      ))}
-    </ScrollView>
-  ) : null;
+  const handleSelect = (event) => {
+    onSelectEvent?.(event);
+    onClose?.();
+  };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <View style={styles.container}>
-        {Header}
-        {useMapView ? MapContent : FallbackList}
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+      <View style={[s.root, { backgroundColor: bg }]}>
+
+        {/* Header */}
+        <View style={[s.header, { borderBottomColor: `${primary}20` }]}>
+          <View>
+            <Text style={[s.headerTitle, { color: textColor }]}>Events Near You</Text>
+            <Text style={[s.headerSub, { color: muted }]}>
+              {events.filter(e => e.lat != null).length} pinned · {events.length} total
+            </Text>
+          </View>
+          <TouchableOpacity style={[s.closeBtn, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]} onPress={onClose}>
+            <Feather name="x" size={18} color={primary} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+
+          {/* Self-built coordinate map */}
+          <MapGrid
+            events={events}
+            userCoords={userCoords}
+            primaryColor={primary}
+            onSelectEvent={handleSelect}
+          />
+
+          {/* Legend */}
+          <View style={[s.legend, { borderColor: `${primary}15` }]}>
+            <View style={s.legendRow}>
+              <View style={[s.legendDot, { backgroundColor: primary }]} />
+              <Text style={[s.legendText, { color: muted }]}>You</Text>
+            </View>
+            <View style={s.legendRow}>
+              <View style={[s.legendDot, { backgroundColor: '#8b5cf6' }]} />
+              <Text style={[s.legendText, { color: muted }]}>Event pin — tap to preview</Text>
+            </View>
+          </View>
+
+          {/* Event list below map */}
+          <Text style={[s.listHeader, { color: muted }]}>ALL EVENTS</Text>
+          {events.map(event => {
+            const color = event.category_color || primary;
+            const thumb = event.media?.[0]?.url;
+            return (
+              <TouchableOpacity
+                key={event.id}
+                style={[s.listRow, { backgroundColor: `${bg}`, borderColor: `${primary}15` }]}
+                onPress={() => handleSelect(event)}
+                activeOpacity={0.8}
+              >
+                {thumb
+                  ? <Image source={{ uri: thumb }} style={s.listThumb} />
+                  : <View style={[s.listThumb, { backgroundColor: `${color}22`, alignItems: 'center', justifyContent: 'center' }]}>
+                      <Text style={{ fontSize: 22 }}>{emoji(event.category)}</Text>
+                    </View>
+                }
+                <View style={s.listInfo}>
+                  <Text style={[s.listTitle, { color: textColor }]} numberOfLines={1}>{event.title}</Text>
+                  {event.venue_name && (
+                    <Text style={[s.listVenue, { color: muted }]} numberOfLines={1}>
+                      {event.venue_name}
+                    </Text>
+                  )}
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Feather name="zap" size={11} color={color} />
+                      <Text style={[s.listMeta, { color: color }]}>{event.vibe_count || 0}</Text>
+                    </View>
+                    {event.lat != null && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Feather name="map-pin" size={11} color={muted} />
+                        <Text style={[s.listMeta, { color: muted }]}>Pinned</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={s.dirBtn}
+                  onPress={() => openDirections(event)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Feather name="navigation" size={16} color={primary} />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
     </Modal>
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-
-  // ── Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 54 : 36,
-    paddingBottom: 12,
-    paddingHorizontal: 18,
-    backgroundColor: '#111618',
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f2937',
-    zIndex: 10,
-  },
-  headerTitle: {
-    color: '#f9fafb',
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  headerSub: {
-    color: '#6b7280',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1f2937',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // ── Map
-  map: {
-    flex: 1,
-    width: SCREEN_W,
-  },
-
-  // ── Marker dot
-  markerDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#ffffff22',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  markerEmoji: {
-    fontSize: 16,
-  },
-
-  // ── Callout
+const grid = StyleSheet.create({
+  canvas: { width: MAP_W, backgroundColor: '#0a1a1f', position: 'relative', overflow: 'hidden' },
+  gridH: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
+  gridV: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
+  compass: { position: 'absolute', top: 12, right: 14, alignItems: 'center', gap: 2 },
+  compassN: { color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: '800' },
+  userDot: { position: 'absolute', width: 16, height: 16 },
+  userPulse: { position: 'absolute', width: 28, height: 28, borderRadius: 14, borderWidth: 2, top: -6, left: -6, opacity: 0.4 },
+  userCenter: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: '#fff' },
+  pin: { position: 'absolute', width: 36, height: 36, alignItems: 'center' },
+  pinCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  pinTip: { width: 8, height: 8, borderRadius: 4, marginTop: -2 },
   callout: {
-    width: 220,
-    backgroundColor: '#111618',
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#1f2937',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 10,
+    position: 'absolute', backgroundColor: '#111a1f', borderRadius: 14, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', zIndex: 99,
+    shadowColor: '#000', shadowOpacity: 0.7, shadowRadius: 12, elevation: 12,
   },
-  calloutThumb: {
-    width: '100%',
-    height: 100,
-  },
-  calloutBody: {
-    padding: 12,
-  },
-  calloutTitle: {
-    color: '#f9fafb',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 3,
-  },
-  calloutVenue: {
-    color: '#9ca3af',
-    fontSize: 12,
-    marginBottom: 6,
-  },
-  calloutVibeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 10,
-  },
-  calloutVibeText: {
-    color: '#facc15',
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  calloutBtn: {
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  calloutBtnText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-
-  // ── Fallback list
-  fallbackList: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-  fallbackContent: {
-    paddingBottom: 40,
-    paddingTop: 8,
-  },
-  fallbackBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: 16,
-    marginVertical: 12,
-    backgroundColor: '#1f2937',
-    borderRadius: 10,
-    padding: 12,
-  },
-  fallbackBannerText: {
-    color: '#6b7280',
-    fontSize: 13,
-    flex: 1,
-    marginLeft: 8,
-  },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: '#111618',
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#1f2937',
-  },
-  listThumb: {
-    width: 80,
-    height: 80,
-  },
-  listThumbPlaceholder: {
-    width: 80,
-    height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  listRowInfo: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  listTitle: {
-    color: '#f9fafb',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 3,
-  },
-  listVenue: {
-    color: '#9ca3af',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  listCoords: {
-    color: '#4b5563',
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    marginBottom: 4,
-  },
+  calloutImg: { width: '100%', height: 80 },
+  calloutTitle: { color: '#fff', fontSize: 13, fontWeight: '800', padding: 10, paddingBottom: 4 },
+  calloutVenue: { color: '#9ca3af', fontSize: 11, paddingHorizontal: 10, paddingBottom: 8 },
+  calloutActions: { flexDirection: 'row', gap: 8, paddingHorizontal: 10, paddingBottom: 10 },
+  calloutBtn: { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: 'center' },
+  calloutBtnText: { color: '#000', fontWeight: '900', fontSize: 12 },
+  calloutDirBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8 },
+  calloutDirText: { color: '#9ca3af', fontSize: 11 },
+  noCoords: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  noCoordsText: { color: 'rgba(255,255,255,0.3)', fontSize: 14, fontWeight: '600' },
+  noCoordsText2: { color: 'rgba(255,255,255,0.2)', fontSize: 12 },
 });
 
-export default EventMapView;
+const s = StyleSheet.create({
+  root: { flex: 1 },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 18, paddingTop: Platform.OS === 'ios' ? 54 : 36,
+    paddingBottom: 14, borderBottomWidth: 1,
+  },
+  headerTitle: { fontSize: 18, fontWeight: '900' },
+  headerSub: { fontSize: 12, marginTop: 2 },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  legend: { flexDirection: 'row', gap: 20, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { fontSize: 11 },
+  listHeader: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+  listRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginBottom: 10, borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  listThumb: { width: 72, height: 72 },
+  listInfo: { flex: 1, paddingHorizontal: 12, paddingVertical: 10 },
+  listTitle: { fontSize: 14, fontWeight: '800' },
+  listVenue: { fontSize: 12, marginTop: 2 },
+  listMeta: { fontSize: 11, fontWeight: '700' },
+  dirBtn: { paddingRight: 14, paddingLeft: 4 },
+});
