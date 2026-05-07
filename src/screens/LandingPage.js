@@ -124,7 +124,7 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
           <Feather name="x" size={22} color={textColor} />
         </TouchableOpacity>
       </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, paddingTop: 10 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, paddingTop: 10 }}>
         {trending.map((spot, i) => (
           <TouchableOpacity
             key={spot.event_id || i}

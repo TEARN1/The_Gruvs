@@ -679,7 +679,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
     return (
       <View style={[styles.container, { backgroundColor: bg }]}>
         <AuraEffect />
-        <ScrollView contentContainerStyle={styles.guestContent}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.guestContent}>
           <GlassView style={styles.guestCard} glow>
             <Feather name="user" size={52} color={primary} style={{ marginBottom: 16 }} />
             <Text style={[styles.guestTitle, { color: primary }]}>Join the Gruvs</Text>

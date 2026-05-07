@@ -112,7 +112,7 @@ export const CategoryPickerModal = ({
 
           {/* Group tabs */}
           {!query && (
-            <ScrollView
+            <ScrollView showsVerticalScrollIndicator={false}
               horizontal
               showsHorizontalScrollIndicator={false}
               style={cp.groupScroll}

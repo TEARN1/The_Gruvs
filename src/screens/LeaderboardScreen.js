@@ -203,6 +203,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
               keyExtractor={item => item.id}
               renderItem={renderItem}
               showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
               ListHeaderComponent={renderTopThree()}
               refreshControl={
                 <RefreshControl

@@ -123,7 +123,7 @@ const hero = StyleSheet.create({
 
 // ── Mood selector ─────────────────────────────────────────────────────────────
 const MoodRow = ({ activeMood, onSelect, primary }) => (
-  <ScrollView
+  <ScrollView showsVerticalScrollIndicator={false}
     horizontal
     showsHorizontalScrollIndicator={false}
     contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingVertical: 4 }}
@@ -188,7 +188,7 @@ const NearbyVibers = ({ vibers, primary, textColor, onPress }) => {
   if (!vibers.length) return null;
   return (
     <View style={{ marginBottom: 6 }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}>
+      <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}>
         {vibers.map(v => (
           <TouchableOpacity key={v.profile_id || v.id} style={nv.wrap} onPress={() => onPress(v)}>
             <View style={[nv.ring, { borderColor: primary }]}>
@@ -390,7 +390,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <AuraEffect />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+      <ScrollView showsVerticalScrollIndicator={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
 
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: `${primary}18` }]}>
@@ -496,7 +496,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 textColor={textColor}
                 primary={primary}
               />
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+              <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
                 {(loading ? [{id:'s1'},{id:'s2'},{id:'s3'}] : filteredEvents.slice(0, 8)).map((ev, i) => (
                   loading ? (
                     <View key={ev.id} style={[et.wrap, { backgroundColor: `${primary}10` }]} />
@@ -518,13 +518,13 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   primary={primary}
                 />
                 {locationLoading && nearbyEvents.length === 0 ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                  <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
                     {[1, 2, 3].map(i => (
                       <View key={i} style={[et.wrap, { backgroundColor: `${primary}10` }]} />
                     ))}
                   </ScrollView>
                 ) : (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                  <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
                     {nearbyEvents.slice(0, 8).map((ev, i) => (
                       <FadeInView key={ev.id} delay={i * 50} direction="right">
                         <EventTile
@@ -553,7 +553,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {trendingEvents.length > 0 && (
               <View style={{ marginBottom: 20 }}>
                 <SectionHeader title="Trending" textColor={textColor} primary={primary} />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
+                <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
                   {trendingEvents.slice(0, 6).map((spot, i) => (
                     <TrendTile key={spot.event_id || i} spot={spot} rank={i} primary={primary} />
                   ))}

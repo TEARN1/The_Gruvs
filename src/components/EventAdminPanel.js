@@ -206,7 +206,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
           </View>
 
           {/* Filter pills */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={ad.filterScroll} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+          <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} style={ad.filterScroll} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
             {TYPES.map(t => {
               const isActive = filter === t.key;
               return (
@@ -223,7 +223,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
           </ScrollView>
 
           {/* Live feed */}
-          <ScrollView
+          <ScrollView showsVerticalScrollIndicator={false}
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={primary} />}

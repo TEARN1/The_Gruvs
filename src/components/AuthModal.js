@@ -135,7 +135,7 @@ export const AuthModal = ({ visible, onClose }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={[styles.card, { backgroundColor: bg, borderColor: `${primary}33` }]}>
 
             <View style={[styles.glowBar, { backgroundColor: primary }]} />

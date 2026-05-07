@@ -16,7 +16,7 @@ export const ViberProfileModal = ({ visible, user, onClose }) => {
             <Text style={styles.closeText}>✕</Text>
           </TouchableOpacity>
 
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
             <Image source={{ uri: user.avatar_url || 'https://via.placeholder.com/150' }} style={[styles.avatar, { borderColor: currentTheme?.primary || '#00f2ff' }]} />
             <Text style={styles.username}>@{user.username}</Text>
             <View style={[styles.badge, { backgroundColor: currentTheme?.primary || '#00f2ff' }]}>
