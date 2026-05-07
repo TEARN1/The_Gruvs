@@ -22,6 +22,10 @@ import { RatingSection } from '../components/RatingSection';
 import { EventGallery } from '../components/EventGallery';
 import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
 import { EventAdminPanel } from '../components/EventAdminPanel';
+import { EditEventModal } from '../components/EditEventModal';
+import { RSVPConfirmModal } from '../components/RSVPConfirmModal';
+import { ReportModal } from '../components/ReportModal';
+import { OfflineBanner } from '../components/OfflineBanner';
 import { supabase } from '../services/supabase';
 import { VibeManager, BookmarkManager } from '../services/dataFlow';
 import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
@@ -211,6 +215,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [openRate, setOpenRate] = useState({});
   const [reactionFlash, setReactionFlash] = useState({});
 
+  // New feature modals
+  const [editEvent, setEditEvent] = useState(null);
+  const [rsvpEvent, setRsvpEvent] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
+
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text       || '#fff';
@@ -344,6 +354,35 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       setTrending(SAMPLE_TRENDING);
     }
   }, []);
+
+  // Crew signal — who among followed users has RSVP'd to events in the feed
+  useEffect(() => {
+    if (!user || events.length === 0) return;
+    const loadCrewSignal = async () => {
+      try {
+        const { data: follows } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', user.id)
+          .limit(100);
+        if (!follows?.length) return;
+        const followedIds = follows.map(f => f.following_id);
+        const eventIds = events.map(e => e.id);
+        const { data: crewRsvps } = await supabase
+          .from('event_rsvps')
+          .select('event_id, user_id')
+          .in('event_id', eventIds)
+          .in('user_id', followedIds)
+          .eq('status', 'going');
+        const map = {};
+        (crewRsvps || []).forEach(r => {
+          map[r.event_id] = (map[r.event_id] || 0) + 1;
+        });
+        setCrewRsvpMap(map);
+      } catch {}
+    };
+    loadCrewSignal();
+  }, [user, events]);
 
 
 
@@ -638,6 +677,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const isSample  = event.is_sample === true;
     const isOwner   = user && event.user_id === user.id;
     const userReaction = reactions[id] || null;
+    const crewCount = crewRsvpMap[id] || 0;
     const isHighlighted = highlightedId === id;
     const catColor  = event.category_color || getCategoryColor(event.category) || primary;
     const title     = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
@@ -739,6 +779,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 </Text>
               </View>
             </View>
+
+            {/* Crew signal badge */}
+            {crewCount >= 1 && (
+              <View style={[styles.crewBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}35` }]}>
+                <Feather name="users" size={11} color={primary} />
+                <Text style={[styles.crewBadgeText, { color: primary }]}>
+                  {crewCount} {crewCount === 1 ? 'person' : 'people'} you follow {crewCount === 1 ? 'is' : 'are'} going
+                </Text>
+              </View>
+            )}
 
             {/* Title + description */}
             <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
@@ -859,6 +909,21 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               <Feather name="share-2" size={19} color={muted} />
               <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionBtn} onPress={() => user ? setRsvpEvent(event) : onAuthRequired()}>
+              <Feather name="check-circle" size={19} color={muted} />
+              <Text style={[styles.actionLabel, { color: muted }]}>RSVP</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionBtn} onPress={() => setReportTarget({ id, type: 'event' })}>
+              <Feather name="flag" size={19} color={muted} />
+            </TouchableOpacity>
+
+            {isOwner && (
+              <TouchableOpacity style={styles.actionBtn} onPress={() => setEditEvent(event)}>
+                <Feather name="edit-2" size={19} color={primary} />
+              </TouchableOpacity>
+            )}
 
             {isOwner && (
               <TouchableOpacity style={styles.actionBtn} onPress={() => setAdminEvent(event)}>
@@ -984,11 +1049,31 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         muted={muted}
         onSelectEvent={handleTrendingPress}
       />
+      <EditEventModal
+        visible={!!editEvent}
+        onClose={() => setEditEvent(null)}
+        event={editEvent}
+        onSaved={() => loadData(true)}
+      />
+      <RSVPConfirmModal
+        visible={!!rsvpEvent}
+        onClose={() => setRsvpEvent(null)}
+        event={rsvpEvent}
+      />
+      <ReportModal
+        visible={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targetId={reportTarget?.id}
+        targetType={reportTarget?.type}
+      />
+      <OfflineBanner />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  crewBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, alignSelf: 'flex-start', marginBottom: 8 },
+  crewBadgeText: { fontSize: 11, fontWeight: '700' },
   root: { flex: 1 },
 
   // Header

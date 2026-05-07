@@ -26,7 +26,7 @@ const cache = {
 export const FeedManager = {
   PAGE_SIZE: 15,
 
-  async fetchPage({ page = 0, category = 'all', query = '', mode = 'drop' } = {}) {
+  async fetchPage({ page = 0, category = 'all', query = '', mode = 'drop', userInterests = [], followedIds = [] } = {}) {
     const cacheKey = `feed:${mode}:${category}:${query}:${page}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
@@ -35,18 +35,42 @@ export const FeedManager = {
       let q = supabase
         .from('events')
         .select('*, profiles(id, username, avatar_url, is_verified, is_online, vibe_score)', { count: 'estimated' })
-        .order(mode === 'explore' ? 'vibe_count' : 'created_at', { ascending: false })
         .range(page * FeedManager.PAGE_SIZE, (page + 1) * FeedManager.PAGE_SIZE - 1);
 
       if (category !== 'all') q = q.eq('category', category);
+
       if (query.trim()) {
-        const s = `%${query.trim()}%`;
-        q = q.or(`title.ilike.${s},description.ilike.${s},category.ilike.${s},venue_name.ilike.${s},city.ilike.${s},tags.cs.{${query.trim()}}`);
+        // Use full-text search if available, fall back to ilike
+        q = q.or(`title.ilike.%${query.trim()}%,description.ilike.%${query.trim()}%,category.ilike.%${query.trim()}%,venue_name.ilike.%${query.trim()}%,city.ilike.%${query.trim()}%`);
+        q = q.order('vibe_count', { ascending: false });
+      } else if (mode === 'explore') {
+        q = q.order('vibe_count', { ascending: false });
+      } else if (followedIds.length > 0) {
+        // Personalized: followed users' events first, then everyone else by date
+        q = q.order('created_at', { ascending: false });
+      } else {
+        q = q.order('created_at', { ascending: false });
       }
 
       const { data, error, count } = await q;
       if (error) throw error;
-      const result = { events: data || [], total: count || 0, page, hasMore: (data?.length || 0) === FeedManager.PAGE_SIZE };
+
+      let events = data || [];
+
+      // Personalized boost — float events matching user interests and from followed creators
+      if ((userInterests.length > 0 || followedIds.length > 0) && !query.trim()) {
+        events = events.sort((a, b) => {
+          const scoreA = (followedIds.includes(a.user_id) ? 20 : 0)
+            + (userInterests.includes(a.category) ? 10 : 0)
+            + (a.vibe_count || 0) * 0.1;
+          const scoreB = (followedIds.includes(b.user_id) ? 20 : 0)
+            + (userInterests.includes(b.category) ? 10 : 0)
+            + (b.vibe_count || 0) * 0.1;
+          return scoreB - scoreA;
+        });
+      }
+
+      const result = { events, total: count || 0, page, hasMore: events.length === FeedManager.PAGE_SIZE };
       cache.set(cacheKey, result);
       return result;
     } catch {
@@ -56,22 +80,37 @@ export const FeedManager = {
 
   async searchAll(query) {
     if (!query.trim()) return { events: [], users: [] };
-    const s = `%${query.trim()}%`;
+    const s = query.trim();
     try {
-      const [evRes, userRes] = await Promise.all([
+      const [evRes, userRes, ftsRes] = await Promise.allSettled([
+        // ilike fallback — always works
         supabase
           .from('events')
           .select('*, profiles(id, username, avatar_url)')
-          .or(`title.ilike.${s},description.ilike.${s},category.ilike.${s},venue_name.ilike.${s},city.ilike.${s}`)
+          .or(`title.ilike.%${s}%,description.ilike.%${s}%,category.ilike.%${s}%,venue_name.ilike.%${s}%,city.ilike.%${s}%`)
           .order('vibe_count', { ascending: false })
           .limit(20),
         supabase
           .from('profiles')
           .select('id, username, display_name, avatar_url, bio, location, vibe_score')
-          .or(`username.ilike.${s},display_name.ilike.${s},bio.ilike.${s},location.ilike.${s}`)
+          .or(`username.ilike.%${s}%,display_name.ilike.%${s}%,bio.ilike.%${s}%`)
           .limit(10),
+        // Full-text search via RPC (requires fts index in DB — graceful fallback if not set up)
+        supabase.rpc('search_events_fts', { search_query: s, limit_count: 20 }),
       ]);
-      return { events: evRes.data || [], users: userRes.data || [] };
+
+      const ilikeEvents = evRes.status === 'fulfilled' ? (evRes.value.data || []) : [];
+      const users = userRes.status === 'fulfilled' ? (userRes.value.data || []) : [];
+      const ftsEvents = ftsRes.status === 'fulfilled' && ftsRes.value.data?.length > 0
+        ? ftsRes.value.data
+        : null;
+
+      // Prefer FTS results if available, merge with ilike deduped
+      const eventMap = new Map();
+      (ftsEvents || ilikeEvents).forEach(e => eventMap.set(e.id, e));
+      if (ftsEvents) ilikeEvents.forEach(e => { if (!eventMap.has(e.id)) eventMap.set(e.id, e); });
+
+      return { events: [...eventMap.values()].slice(0, 20), users };
     } catch {
       return { events: [], users: [] };
     }

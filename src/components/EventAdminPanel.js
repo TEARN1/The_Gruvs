@@ -1,11 +1,33 @@
 import React, { useState, useEffect, useCallback, startTransition } from 'react';
 import {
   Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, RefreshControl,
+  Image, ActivityIndicator, RefreshControl, Platform, Share,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
+
+const buildCSV = (rsvps) => {
+  const header = 'Username,Status,RSVP Date\n';
+  const rows = rsvps.map(r =>
+    `${r.profiles?.username || 'Unknown'},${r.status || 'going'},${r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}`
+  ).join('\n');
+  return header + rows;
+};
+
+const exportRSVPs = async (event, rsvps) => {
+  const csv = buildCSV(rsvps);
+  const filename = `${(event?.title || 'event').replace(/\s+/g, '_')}_rsvps.csv`;
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  } else {
+    await Share.share({ message: csv, title: filename });
+  }
+};
 
 const formatAge = (d) => {
   if (!d) return '';
@@ -39,6 +61,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
 
   const [filter, setFilter] = useState('all');
   const [feed, setFeed] = useState([]);
+  const [rsvpList, setRsvpList] = useState([]);
   const [stats, setStats] = useState({ vibes: 0, rsvps: 0, echoes: 0, avgRating: null });
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,13 +74,14 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
     try {
       const [vibeRes, rsvpRes, echoRes, ratingRes] = await Promise.all([
         supabase.from('event_vibes').select('created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(50),
-        supabase.from('event_rsvps').select('status, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('event_rsvps').select('id, status, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(200),
         supabase.from('echoes').select('body, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(50),
         supabase.from('event_ratings').select('rating, review, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(50),
       ]);
 
       const vibes = (vibeRes.data || []).map(r => ({ ...r, type: 'vibe' }));
       const rsvps = (rsvpRes.data || []).map(r => ({ ...r, type: 'rsvp' }));
+      setRsvpList(rsvpRes.data || []);
       const echoes = (echoRes.data || []).map(r => ({ ...r, type: 'echo' }));
       const ratings = (ratingRes.data || []).map(r => ({ ...r, type: 'rating' }));
 
@@ -152,7 +176,15 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                 {event?.title || 'Your Event'}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity
+              style={[ad.exportBtn, { borderColor: `${primary}40` }]}
+              onPress={() => exportRSVPs(event, rsvpList)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather name="download" size={13} color={primary} />
+              <Text style={[ad.exportText, { color: primary }]}>Export</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginLeft: 12 }}>
               <Feather name="x" size={22} color={textColor} />
             </TouchableOpacity>
           </View>
@@ -226,6 +258,8 @@ const ad = StyleSheet.create({
   statBox: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 14, borderWidth: 1, gap: 4 },
   statVal: { fontSize: 18, fontWeight: '900' },
   statLabel: { fontSize: 9, fontWeight: '700' },
+  exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
+  exportText: { fontSize: 11, fontWeight: '800' },
   filterScroll: { maxHeight: 42, marginBottom: 12 },
   filterPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
   filterText: { fontSize: 11, fontWeight: '800' },

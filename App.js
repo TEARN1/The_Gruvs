@@ -13,6 +13,7 @@ import { ProfilePage } from './src/screens/ProfilePage';
 import { CalendarPage } from './src/screens/CalendarPage';
 import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
+import { useNotifications } from './src/hooks/useNotifications';
 
 const TABS = [
   { key: 'feed',     label: 'The Drop', icon: 'home'     },
@@ -185,6 +186,7 @@ const sb = StyleSheet.create({
 const MainNavigator = () => {
   const { currentTheme } = useTheme();
   const { width } = useWindowDimensions();
+  useNotifications();
   const [currentTab, setCurrentTab] = useState('feed');
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [authModalVisible, setAuthModalVisible] = useState(false);
