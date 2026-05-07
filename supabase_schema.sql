@@ -111,24 +111,42 @@ declare
   base_uname  text;
   final_uname text;
 begin
-  base_uname := coalesce(
-    new.raw_user_meta_data->>'username',
-    lower(regexp_replace(split_part(new.email, '@', 1), '[^a-z0-9_]', '', 'g'))
-  );
-  -- Guarantee uniqueness: append 4-char random suffix on collision
-  final_uname := base_uname;
-  while exists (select 1 from profiles where username = final_uname) loop
-    final_uname := base_uname || '_' || left(gen_random_uuid()::text, 4);
-  end loop;
+  base_uname := lower(regexp_replace(
+    coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
+    '[^a-z0-9_]', '', 'g'
+  ));
 
-  insert into profiles (id, username, display_name, avatar_url)
-  values (
-    new.id,
-    final_uname,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    new.raw_user_meta_data->>'avatar_url'
-  )
-  on conflict (id) do nothing;
+  -- Fallback if email prefix produces an empty string
+  if base_uname is null or base_uname = '' then
+    base_uname := 'user' || left(new.id::text, 6);
+  end if;
+
+  final_uname := base_uname;
+
+  begin
+    insert into public.profiles (id, username, display_name, avatar_url)
+    values (
+      new.id,
+      final_uname,
+      coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+      new.raw_user_meta_data->>'avatar_url'
+    );
+  exception
+    when unique_violation then
+      -- Username already taken — fall back to a UUID-derived handle
+      insert into public.profiles (id, username, display_name, avatar_url)
+      values (
+        new.id,
+        'user_' || left(new.id::text, 8),
+        coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+        new.raw_user_meta_data->>'avatar_url'
+      )
+      on conflict (id) do nothing;
+    when others then
+      -- Never let a profile insert failure block the auth signup
+      null;
+  end;
+
   return new;
 end;
 $$;
