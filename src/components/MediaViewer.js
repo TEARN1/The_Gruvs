@@ -13,7 +13,17 @@ export const MediaViewer = ({ media, containerWidth }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [videoStates, setVideoStates] = useState({});
 
-  if (!media || media.length === 0) return null;
+  if (!media || media.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Image
+          source={{ uri: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800' }}
+          style={styles.media}
+          resizeMode="cover"
+        />
+      </View>
+    );
+  }
 
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (viewableItems.length > 0) {

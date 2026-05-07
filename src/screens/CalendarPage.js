@@ -290,7 +290,7 @@ const us = StyleSheet.create({
 });
 
 // ── Main CalendarPage ─────────────────────────────────────────────────────────
-export const CalendarPage = ({ onAuthRequired }) => {
+export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 
@@ -510,7 +510,7 @@ export const CalendarPage = ({ onAuthRequired }) => {
                 primary={primary}
                 textColor={textColor}
                 muted={muted}
-                onPress={() => {}}
+                onPress={() => onNavigateToEvent?.(ev)}
               />
             ))
           )}

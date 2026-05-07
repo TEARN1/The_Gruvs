@@ -107,14 +107,24 @@ create trigger profiles_touch before update on profiles
 -- Auto-create profile on signup
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer as $$
+declare
+  base_uname  text;
+  final_uname text;
 begin
+  base_uname := coalesce(
+    new.raw_user_meta_data->>'username',
+    lower(regexp_replace(split_part(new.email, '@', 1), '[^a-z0-9_]', '', 'g'))
+  );
+  -- Guarantee uniqueness: append 4-char random suffix on collision
+  final_uname := base_uname;
+  while exists (select 1 from profiles where username = final_uname) loop
+    final_uname := base_uname || '_' || left(gen_random_uuid()::text, 4);
+  end loop;
+
   insert into profiles (id, username, display_name, avatar_url)
   values (
     new.id,
-    coalesce(
-      new.raw_user_meta_data->>'username',
-      lower(regexp_replace(split_part(new.email, '@', 1), '[^a-z0-9_]', '', 'g'))
-    ),
+    final_uname,
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
     new.raw_user_meta_data->>'avatar_url'
   )

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 
 const AuthContext = createContext();
@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
-      setLoading(false);
+      else setLoading(false);
     }).catch(() => setLoading(false));
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }) => {
         fetchProfile(session.user.id);
       } else {
         setProfile(null);
+        setLoading(false);
       }
     });
 
@@ -40,6 +41,8 @@ export const AuthProvider = ({ children }) => {
       if (data) setProfile(data);
     } catch (e) {
       console.log('Profile fetch error:', e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,6 +52,9 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+    setSession(null);
   };
 
   return (

@@ -51,24 +51,31 @@ export const BrandLogo = ({ size = 42, showGlow = false, style }) => {
           height: size,
           borderRadius: size * 0.22,
           borderColor: primary,
-          backgroundColor: `${primary}10`,
+          backgroundColor: `${primary}08`,
           shadowColor: primary,
           shadowOpacity,
-          shadowRadius: showGlow ? 20 : 8,
+          shadowRadius: showGlow ? 25 : 10,
           shadowOffset: { width: 0, height: 0 },
-          elevation: 8,
+          elevation: 10,
         },
         style,
       ]}
     >
-      {/* Crown tip */}
-      <View style={[styles.crownBar, { bottom: size * 0.62, borderBottomColor: primary }]} />
-      <View style={[styles.crownLeft,  { bottom: size * 0.58, left: size * 0.22, borderColor: primary }]} />
-      <View style={[styles.crownRight, { bottom: size * 0.58, right: size * 0.22, borderColor: primary }]} />
-      {/* H letter */}
-      <Text style={[styles.letter, { fontSize: size * 0.52, color: accent }]}>H</Text>
-      {/* Lightning stripe */}
-      <View style={[styles.stripe, { backgroundColor: primary, width: size * 0.62, top: size * 0.45 }]} />
+      {/* Crown */}
+      <View style={[styles.crownContainer, { width: size * 0.4, height: size * 0.2, top: size * 0.1 }]}>
+        <View style={[styles.crownPoint, { backgroundColor: primary, left: 0 }]} />
+        <View style={[styles.crownPoint, { backgroundColor: primary, alignSelf: 'center', height: '100%' }]} />
+        <View style={[styles.crownPoint, { backgroundColor: primary, right: 0 }]} />
+        <View style={[styles.crownBase, { backgroundColor: primary }]} />
+      </View>
+
+      {/* H letter with metallic effect */}
+      <View style={[styles.hContainer, { width: size * 0.6, height: size * 0.6, top: size * 0.15 }]}>
+        <View style={[styles.hLeg, { backgroundColor: accent, left: 0 }]} />
+        <View style={[styles.hLeg, { backgroundColor: accent, right: 0 }]} />
+        {/* Lightning / Energy stripe */}
+        <View style={[styles.hBar, { backgroundColor: primary, top: '45%', opacity: 0.9, height: 3, transform: [{ rotate: '-10deg' }] }]} />
+      </View>
     </Animated.View>
   );
 };
@@ -83,45 +90,47 @@ export const BrandWordmark = ({ primary, muted }) => (
 
 const styles = StyleSheet.create({
   box: {
-    borderWidth: 1.5,
+    borderWidth: 1.2,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    position: 'relative',
   },
-  crownBar: {
+  crownContainer: {
     position: 'absolute',
-    width: '60%',
-    height: 0,
-    borderBottomWidth: 3,
-    alignSelf: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 10,
   },
-  crownLeft: {
-    position: 'absolute',
-    width: 5,
-    height: 8,
-    borderWidth: 1.5,
+  crownPoint: {
+    width: 3,
+    height: '70%',
     borderRadius: 2,
-  },
-  crownRight: {
     position: 'absolute',
-    width: 5,
-    height: 8,
-    borderWidth: 1.5,
-    borderRadius: 2,
   },
-  letter: {
-    fontWeight: '900',
-    letterSpacing: -2,
-    color: '#c8d4d6',
-    zIndex: 2,
-  },
-  stripe: {
+  crownBase: {
     position: 'absolute',
-    height: 3,
+    bottom: 0,
+    width: '100%',
+    height: 2,
+    borderRadius: 1,
+  },
+  hContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hLeg: {
+    width: 6,
+    height: '100%',
     borderRadius: 2,
-    opacity: 0.8,
-    transform: [{ rotate: '-8deg' }],
-    zIndex: 3,
+    position: 'absolute',
+  },
+  hBar: {
+    width: '110%',
+    borderRadius: 2,
+    position: 'absolute',
+    zIndex: 5,
   },
   wordmark: { justifyContent: 'center' },
   wordTitle: { fontSize: 19, fontWeight: '900', letterSpacing: 2.5 },

@@ -38,6 +38,7 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
           <FlatList
             data={SAMPLE_ACTIVITIES}
             keyExtractor={item => item.id}
+            showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
               <View style={[styles.item, { borderBottomColor: 'rgba(255,255,255,0.05)' }]}>
                 <View style={[styles.iconWrap, { backgroundColor: currentTheme?.primary + '15' }]}>

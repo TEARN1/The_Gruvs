@@ -1,16 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
-  TextInput, Dimensions, Animated, FlatList, Platform,
+  TextInput, Dimensions, Animated, Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../components/ToastNotification';
-import { GlassView } from '../components/GlassView';
 import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
+import { ViberProfileModal } from '../components/ViberProfileModal';
 import { FeedManager, TrendingManager, DiscoveryManager } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
@@ -282,7 +281,6 @@ const sh = StyleSheet.create({
 export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
-  const toast = useToast();
 
   const [query, setQuery] = useState('');
   const [activeMood, setActiveMood] = useState(null);
@@ -295,6 +293,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [nearbyEvents, setNearbyEvents] = useState([]);
   const [userCoords, setUserCoords] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [selectedViber, setSelectedViber] = useState(null);
+  const [viberModalVisible, setViberModalVisible] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -304,7 +304,6 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const bg        = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#131a1c';
 
   useEffect(() => {
     loadAll();
@@ -438,7 +437,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 </Text>
                 {searchResults.map((ev, i) => (
                   <FadeInView key={ev.id} delay={i * 40} direction="up">
-                    <SearchResultCard ev={ev} primary={primary} textColor={textColor} muted={muted} catColor={ev.category_color || getCategoryColor(ev.category) || primary} onPress={() => {}} />
+                    <SearchResultCard ev={ev} primary={primary} textColor={textColor} muted={muted} catColor={ev.category_color || getCategoryColor(ev.category) || primary} onPress={() => onNavigateToEvent && onNavigateToEvent(ev)} />
                   </FadeInView>
                 ))}
               </>
@@ -455,7 +454,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {/* ── Hero card ──────────────────────────────────────────────── */}
             {!loading && featuredEvent ? (
               <FadeInView direction="up" delay={0}>
-                <HeroCard event={featuredEvent} primary={primary} onPress={() => {}} />
+                <HeroCard event={featuredEvent} primary={primary} onPress={() => onNavigateToEvent && onNavigateToEvent(featuredEvent)} />
               </FadeInView>
             ) : (
               <View style={[styles.heroSkeleton, { backgroundColor: `${primary}12` }]} />
@@ -476,7 +475,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     <View key={ev.id} style={[et.wrap, { backgroundColor: `${primary}10` }]} />
                   ) : (
                     <FadeInView key={ev.id} delay={i * 50} direction="right">
-                      <EventTile event={ev} primary={primary} textColor={textColor} muted={muted} onPress={() => {}} />
+                      <EventTile event={ev} primary={primary} textColor={textColor} muted={muted} onPress={() => onNavigateToEvent && onNavigateToEvent(ev)} />
                     </FadeInView>
                   )
                 ))}
@@ -518,8 +517,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {/* ── Nearby vibers ──────────────────────────────────────────── */}
             {nearbyVibers.length > 0 && (
               <View style={{ marginBottom: 20 }}>
-                <SectionHeader title="Vibers Near You" actionLabel="Find Them" onAction={() => {}} textColor={textColor} primary={primary} />
-                <NearbyVibers vibers={nearbyVibers} primary={primary} textColor={textColor} onPress={() => {}} />
+                <SectionHeader title="Vibers Near You" actionLabel="Find Them" onAction={() => { setActiveMood(null); setActiveCat(null); }} textColor={textColor} primary={primary} />
+                <NearbyVibers vibers={nearbyVibers} primary={primary} textColor={textColor} onPress={(v) => { setSelectedViber(v); setViberModalVisible(true); }} />
               </View>
             )}
 
@@ -564,6 +563,12 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </>
         )}
       </ScrollView>
+
+      <ViberProfileModal
+        visible={viberModalVisible}
+        user={selectedViber}
+        onClose={() => setViberModalVisible(false)}
+      />
     </View>
   );
 };

@@ -151,10 +151,19 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                   ))}
                 </ScrollView>
 
+                {!!error && (
+                  <View style={styles.errorBox}>
+                    <Text style={styles.errorText}>⚠️ {error}</Text>
+                  </View>
+                )}
+
                 <TouchableOpacity
                   style={[styles.nextBtn, { backgroundColor: canProceed ? primary : 'rgba(255,255,255,0.12)' }]}
-                  onPress={() => canProceed && setStep(2)}
-                  disabled={!canProceed}
+                  onPress={() => {
+                    if (!canProceed) { setError('Please fill in the description (min 6 chars) and address first.'); return; }
+                    setError('');
+                    setStep(2);
+                  }}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={{ color: canProceed ? '#000' : muted, fontWeight: '900', fontSize: 15, letterSpacing: 1 }}>NEXT</Text>

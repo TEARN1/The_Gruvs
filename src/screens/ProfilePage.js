@@ -11,9 +11,11 @@ import { GlassView } from '../components/GlassView';
 import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { THEMES, GENDERS } from '../constants/Themes';
+import { BrandLogo } from '../components/BrandLogo';
 import { supabase } from '../services/supabase';
 import { DiscoveryManager } from '../services/dataFlow';
 import { useToast } from '../components/ToastNotification';
+import { SAMPLE_EVENTS } from '../constants/SampleData';
 
 const { width } = Dimensions.get('window');
 
@@ -682,32 +684,81 @@ export const ProfilePage = ({ onAuthRequired }) => {
         {/* Tab Content */}
         <View style={styles.tabContent}>
           {activeTab === 'gruvs' && (
-            <View style={[styles.emptyTab, { borderColor: `${primary}15` }]}>
-              <Feather name="calendar" size={32} color={muted} />
-              <Text style={[styles.emptyTabText, { color: muted }]}>
-                {eventCount === 0 ? 'No gruvs posted yet.\nCreate your first event!' : `You have ${eventCount} gruv${eventCount !== 1 ? 's' : ''}`}
-              </Text>
+            <View style={{ gap: 10 }}>
+              {SAMPLE_EVENTS.slice(0, 3).map((ev, i) => {
+                const img = ev.media?.find(m => m.type === 'image');
+                return (
+                  <View key={i} style={[styles.miniCard, { borderColor: `${primary}20` }]}>
+                    {img && <Image source={{ uri: img.url }} style={styles.miniCardImg} resizeMode="cover" />}
+                    <View style={styles.miniCardInfo}>
+                      <Text style={[styles.miniCardTitle, { color: textColor }]} numberOfLines={1}>{ev.title}</Text>
+                      <Text style={[styles.miniCardMeta, { color: muted }]}>{ev.event_date ? new Date(ev.event_date).toDateString() : 'Upcoming'}</Text>
+                      <View style={[styles.miniCardBadge, { backgroundColor: `${primary}18` }]}>
+                        <Text style={[styles.miniCardBadgeText, { color: primary }]}>{ev.category || 'Gruv'}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           )}
           {activeTab === 'saved' && (
-            <View style={[styles.emptyTab, { borderColor: `${primary}15` }]}>
-              <Feather name="bookmark" size={32} color={muted} />
-              <Text style={[styles.emptyTabText, { color: muted }]}>{'Saved events appear here.\nTap ♡ on any event to save.'}</Text>
+            <View style={{ gap: 10 }}>
+              {SAMPLE_EVENTS.slice(3, 6).map((ev, i) => {
+                const img = ev.media?.find(m => m.type === 'image');
+                return (
+                  <View key={i} style={[styles.miniCard, { borderColor: `${primary}20` }]}>
+                    {img && <Image source={{ uri: img.url }} style={styles.miniCardImg} resizeMode="cover" />}
+                    <View style={styles.miniCardInfo}>
+                      <Text style={[styles.miniCardTitle, { color: textColor }]} numberOfLines={1}>{ev.title}</Text>
+                      <Text style={[styles.miniCardMeta, { color: muted }]}>{ev.location || 'Location TBD'}</Text>
+                      <View style={[styles.miniCardBadge, { backgroundColor: `${primary}18` }]}>
+                        <Feather name="bookmark" size={10} color={primary} />
+                        <Text style={[styles.miniCardBadgeText, { color: primary }]}>Saved</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           )}
           {activeTab === 'vibed' && (
-            <View style={[styles.emptyTab, { borderColor: `${primary}15` }]}>
-              <Feather name="zap" size={32} color={muted} />
-              <Text style={[styles.emptyTabText, { color: muted }]}>{'Events you vibed with\nwill show here.'}</Text>
+            <View style={{ gap: 10 }}>
+              {SAMPLE_EVENTS.slice(6, 9).map((ev, i) => {
+                const img = ev.media?.find(m => m.type === 'image');
+                return (
+                  <View key={i} style={[styles.miniCard, { borderColor: `${primary}20` }]}>
+                    {img && <Image source={{ uri: img.url }} style={styles.miniCardImg} resizeMode="cover" />}
+                    <View style={styles.miniCardInfo}>
+                      <Text style={[styles.miniCardTitle, { color: textColor }]} numberOfLines={1}>{ev.title}</Text>
+                      <Text style={[styles.miniCardMeta, { color: muted }]}>{ev.vibe_count || 0} vibes</Text>
+                      <View style={[styles.miniCardBadge, { backgroundColor: `${primary}18` }]}>
+                        <Feather name="zap" size={10} color={primary} />
+                        <Text style={[styles.miniCardBadgeText, { color: primary }]}>Vibed</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           )}
           {activeTab === 'gallery' && (
             <View style={styles.galleryGrid}>
-              {[1,2,3,4,5,6].map(i => (
-                <View key={i} style={[styles.galleryCell, { backgroundColor: `${primary}12`, borderColor: `${primary}15` }]}>
-                  <Feather name="image" size={22} color={`${primary}40`} />
-                </View>
-              ))}
+              {SAMPLE_EVENTS.slice(0, 9).map((ev, i) => {
+                const media = ev.media?.find(m => m.type === 'image');
+                return media ? (
+                  <Image
+                    key={i}
+                    source={{ uri: media.url }}
+                    style={[styles.galleryCell, { borderColor: `${primary}15` }]}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View key={i} style={[styles.galleryCell, { backgroundColor: `${primary}12`, borderColor: `${primary}15` }]}>
+                    <Feather name="image" size={22} color={`${primary}40`} />
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
@@ -872,6 +923,13 @@ const styles = StyleSheet.create({
   tabContent: { paddingHorizontal: 16, marginBottom: 14 },
   emptyTab: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 16, paddingVertical: 36, alignItems: 'center', gap: 12 },
   emptyTabText: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  miniCard: { flexDirection: 'row', borderWidth: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.03)' },
+  miniCardImg: { width: 72, height: 72 },
+  miniCardInfo: { flex: 1, padding: 10, gap: 4 },
+  miniCardTitle: { fontSize: 13, fontWeight: '800' },
+  miniCardMeta: { fontSize: 11 },
+  miniCardBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  miniCardBadgeText: { fontSize: 10, fontWeight: '800' },
   galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   galleryCell: { width: (width - 44) / 3, height: (width - 44) / 3, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
 

@@ -26,7 +26,7 @@ import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 
 // ── Skeleton card shown while loading ─────────────────────────────────────────
-const AvatarStack = ({ count, size = 20, primary }) => {
+const AvatarStack = ({ count, size = 20 }) => {
   const displayCount = Math.min(3, count);
   return (
     <View style={styles.avatarStack}>
@@ -169,7 +169,7 @@ const tm = StyleSheet.create({
 });
 
 // ── Main LandingPage ──────────────────────────────────────────────────────────
-export const LandingPage = ({ mode = 'drop', onAuthRequired }) => {
+export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();
@@ -212,10 +212,31 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired }) => {
   const surface   = currentTheme?.surface    || '#131a1c';
 
   useEffect(() => {
-    loadData();
+    loadData(true);
   }, [selectedCat, searchQuery, mode]);
 
   useEffect(() => { loadTrending(); }, []);
+
+  // Scroll-to + highlight when arriving from Explore
+  useEffect(() => {
+    if (!targetEvent || loading || events.length === 0) return;
+
+    const targetId = String(targetEvent.id || targetEvent.event_id || '');
+    const idx = events.findIndex(e => String(e.id) === targetId);
+
+    if (idx >= 0) {
+      setHighlightedId(events[idx].id);
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.1 });
+      }, 350);
+      setTimeout(() => setHighlightedId(null), 3500);
+    } else if (targetEvent.category && targetEvent.category !== 'all') {
+      setSelectedCat(targetEvent.category);
+      toast.show(`Browsing ${targetEvent.category} events`, 'info');
+    }
+
+    onTargetHandled?.();
+  }, [targetEvent, loading, events.length]);
 
   // Real-time updates
   useEffect(() => {
@@ -248,11 +269,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired }) => {
     const end = start + PAGE_SIZE - 1;
 
     try {
-      const { data, error } = await supabase
+      let q = supabase
         .from('events')
         .select('*, profiles(username, avatar_url, is_verified, is_online, vibe_score)')
-        .order(mode === 'explore' ? 'vibe_count' : 'created_at', { ascending: false })
-        .range(start, end);
+        .order(mode === 'explore' ? 'vibe_count' : 'created_at', { ascending: false });
+
+      if (selectedCat && selectedCat !== 'all') q = q.eq('category', selectedCat);
+      if (searchQuery.trim()) q = q.ilike('title', `%${searchQuery.trim()}%`);
+
+      const { data, error } = await q.range(start, end);
 
       if (error) throw error;
 
@@ -447,28 +472,37 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired }) => {
   // ── HEADER ──────────────────────────────────────────────────────────────────
   const renderHeader = () => (
     <View style={[styles.headerWrap, { borderBottomColor: `${primary}20` }]}>
-      {/* Top bar */}
-      <View style={styles.topBar}>
-        <View style={styles.brandRow}>
-          <BrandLogo size={38} showGlow />
-          <View style={{ marginLeft: 10 }}>
-            <Text style={[styles.brandText, { color: primary }]}>THE GRUVS</Text>
-            <Text style={[styles.brandSub, { color: muted }]}>
-              {mode === 'drop' ? 'THE DROP' : 'EXPLORE'}
-            </Text>
+      {/* Main Row: Logo + Search + Actions */}
+      <View style={styles.mainRow}>
+        <View style={styles.brandGroup}>
+          <BrandLogo size={36} showGlow />
+          <View style={styles.wordmarkMini}>
+            <Text style={[styles.brandText, { color: primary }]}>GRUVS</Text>
+            <Text style={[styles.brandSub, { color: muted }]}>{mode === 'drop' ? 'DROP' : 'EXPLORE'}</Text>
           </View>
         </View>
-        <View style={styles.topActions}>
-          <TouchableOpacity style={styles.bellBtn} onPress={() => setActivityVisible(true)}>
-            <Feather name="bell" size={20} color={primary} />
-            <View style={[styles.bellDot, { backgroundColor: '#ef4444' }]} />
+
+        <GlassView style={styles.compactSearch}>
+          <Feather name="search" size={14} color={muted} style={{ marginLeft: 10 }} />
+          <TextInput
+            style={[styles.searchInput, { color: textColor }]}
+            placeholder="Search..."
+            placeholderTextColor={muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </GlassView>
+
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => setActivityVisible(true)}>
+            <Feather name="bell" size={18} color={primary} />
+            {user && <View style={[styles.bellDot, { backgroundColor: '#ef4444' }]} />}
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.postBtn, { borderColor: primary }]}
+          <TouchableOpacity 
+            style={[styles.postIconBtn, { backgroundColor: `${primary}15`, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
           >
-            <Feather name="plus" size={13} color={primary} />
-            <Text style={[styles.postBtnText, { color: primary }]}>Post</Text>
+            <Feather name="plus" size={18} color={primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -476,30 +510,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired }) => {
       {/* Visitor banner — only if no user */}
       {!user && <VisitorBanner onSignIn={onAuthRequired} primary={primary} muted={muted} />}
 
-      {/* Search + category filter for both modes */}
-      <GlassView style={styles.searchBar}>
-        <Feather name="search" size={15} color={muted} style={{ marginLeft: 12 }} />
-        <TextInput
-          style={[styles.searchInput, { color: textColor }]}
-          placeholder={mode === 'drop' ? 'Search events, venues...' : 'Explore the kingdom...'}
-          placeholderTextColor={muted}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          returnKeyType="search"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={{ paddingRight: 12 }}>
-            <Feather name="x" size={16} color={muted} />
-          </TouchableOpacity>
-        )}
-      </GlassView>
-
       {/* Category pills */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.catBar}
-        contentContainerStyle={{ paddingHorizontal: 14, gap: 7, paddingBottom: 10 }}
+        contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingBottom: 8 }}
       >
         {CATEGORY_KEYS.map(key => {
           const cfg = CATEGORY_CONFIG[key];
@@ -514,7 +530,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired }) => {
                 borderWidth: 1,
               }]}
             >
-              <Text style={{ fontSize: 11 }}>{cfg.icon}</Text>
+              <Text style={{ fontSize: 12 }}>{cfg.icon}</Text>
               <Text style={[styles.pillText, { color: isActive ? '#000' : textColor }]}>{cfg.label}</Text>
             </TouchableOpacity>
           );
@@ -629,7 +645,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired }) => {
 
           {/* Media */}
           <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }]}>
-            <MediaViewer media={event.media} />
+            <MediaViewer media={event.media && event.media.length > 0 ? event.media : [{ url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800', type: 'image' }]} />
             {/* Scrim for readability */}
             <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)' }} />
             {/* Category badge */}
@@ -889,6 +905,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired }) => {
           )
         }
         contentContainerStyle={{ paddingBottom: 110 }}
+        showsVerticalScrollIndicator={false}
       />
 
       {/* Modals */}
@@ -924,25 +941,25 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
 
   // Header
-  headerWrap: { borderBottomWidth: 1, paddingBottom: 4 },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 18, paddingBottom: 12 },
-  brandRow: { flexDirection: 'row', alignItems: 'center' },
-  brandText: { fontSize: 17, fontWeight: '900', letterSpacing: 1.5 },
-  brandSub: { fontSize: 8, fontWeight: '800', letterSpacing: 1.5, marginTop: 2 },
-  topActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  bellBtn: { position: 'relative', padding: 4 },
-  bellDot: { position: 'absolute', top: 3, right: 3, width: 7, height: 7, borderRadius: 4, borderWidth: 1.5, borderColor: '#000' },
-  postBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  postBtnText: { fontSize: 11, fontWeight: '900' },
+  headerWrap: { borderBottomWidth: 1, paddingBottom: 2 },
+  mainRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 14, paddingBottom: 10, gap: 10 },
+  brandGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  wordmarkMini: { justifyContent: 'center' },
+  brandText: { fontSize: 14, fontWeight: '900', letterSpacing: 1 },
+  brandSub: { fontSize: 7, fontWeight: '800', letterSpacing: 1, marginTop: -1, opacity: 0.6 },
+  
+  compactSearch: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 36, borderRadius: 18, borderAlpha: 0.1 },
+  searchInput: { flex: 1, fontSize: 12, paddingLeft: 6, height: '100%' },
 
-  // Search
-  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginBottom: 10, height: 42, borderRadius: 21 },
-  searchInput: { flex: 1, fontSize: 13, paddingLeft: 10 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconBtn: { padding: 8, borderRadius: 20 },
+  postIconBtn: { padding: 6, borderRadius: 12, borderWidth: 1 },
+  bellDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: '#000' },
 
   // Categories
-  catBar: { marginBottom: 2 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18 },
-  pillText: { fontSize: 10, fontWeight: '800' },
+  catBar: { marginTop: 4 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
+  pillText: { fontSize: 9, fontWeight: '800' },
 
   // Visitor banner
   visitorBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginVertical: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
