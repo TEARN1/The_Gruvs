@@ -183,6 +183,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [loading, setLoading] = useState(true);
   const [selectedCat, setSelectedCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const searchTimer = useRef(null);
   const [highlightedId, setHighlightedId] = useState(null);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -215,9 +217,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
   const surface   = currentTheme?.surface    || '#131a1c';
 
+  // Debounce search — avoids a network hit on every keystroke
+  useEffect(() => {
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => setDebouncedQuery(searchQuery), 350);
+    return () => clearTimeout(searchTimer.current);
+  }, [searchQuery]);
+
   useEffect(() => {
     loadData(true);
-  }, [selectedCat, searchQuery, mode, refreshKey]);
+  }, [selectedCat, debouncedQuery, mode, refreshKey]);
 
   useEffect(() => { loadTrending(); }, []);
 
@@ -279,8 +288,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         .order(mode === 'explore' ? 'vibe_count' : 'created_at', { ascending: false });
 
       if (selectedCat && selectedCat !== 'all') q = q.eq('category', selectedCat);
-      if (searchQuery.trim()) {
-        const s = `%${searchQuery.trim()}%`;
+      if (debouncedQuery.trim()) {
+        const s = `%${debouncedQuery.trim()}%`;
         q = q.or(`title.ilike.${s},description.ilike.${s},category.ilike.${s},venue_name.ilike.${s},city.ilike.${s}`);
       }
 
@@ -314,7 +323,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       setLoadingMore(false);
       setRefreshing(false);
     }
-  }, [selectedCat, searchQuery, mode, page, hasMore, loadingMore, events]);
+  }, [selectedCat, debouncedQuery, mode, page, hasMore, loadingMore, events]);
 
   const handleRefresh = () => {
     setRefreshing(true);

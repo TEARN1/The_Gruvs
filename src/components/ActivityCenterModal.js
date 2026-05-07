@@ -52,7 +52,6 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
 
     try {
-      // Fetch events owned by this user so we can join activities to them
       const { data: myEvents } = await supabase
         .from('events')
         .select('id, title')
@@ -62,113 +61,87 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
       const eventIds = (myEvents || []).map(e => e.id);
       const eventMap = Object.fromEntries((myEvents || []).map(e => [e.id, e.title]));
 
-      const results = [];
+      // All queries fire in parallel — partial failures don't block other results
+      const queries = [
+        supabase.from('follows')
+          .select('id, follower_id, created_at, profiles!follows_follower_id_fkey(username, avatar_url)')
+          .eq('following_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20),
+      ];
 
-      // ── Vibes on my events ──────────────────────────────────────────────────
       if (eventIds.length > 0) {
-        const { data: vibes } = await supabase
-          .from('event_vibes')
-          .select('id, event_id, user_id, created_at, profiles(username, avatar_url)')
-          .in('event_id', eventIds)
-          .neq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(30);
-
-        (vibes || []).forEach(v => {
-          results.push({
-            id: `vibe_${v.id}`,
-            type: 'vibe',
-            actor: v.profiles?.username || 'Someone',
-            actor_avatar: v.profiles?.avatar_url || null,
-            content: `vibed with your event "${eventMap[v.event_id] || 'your event'}"`,
-            created_at: v.created_at,
-          });
-        });
-
-        // ── RSVPs on my events ──────────────────────────────────────────────
-        const { data: rsvps } = await supabase
-          .from('event_rsvps')
-          .select('id, event_id, user_id, created_at, profiles(username, avatar_url)')
-          .in('event_id', eventIds)
-          .neq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(30);
-
-        (rsvps || []).forEach(r => {
-          results.push({
-            id: `rsvp_${r.id}`,
-            type: 'rsvp',
-            actor: r.profiles?.username || 'Someone',
-            actor_avatar: r.profiles?.avatar_url || null,
-            content: `RSVP'd to your event "${eventMap[r.event_id] || 'your event'}"`,
-            created_at: r.created_at,
-          });
-        });
-
-        // ── Echoes on my events ─────────────────────────────────────────────
-        const { data: echoes } = await supabase
-          .from('echoes')
-          .select('id, event_id, user_id, body, created_at, profiles(username, avatar_url)')
-          .in('event_id', eventIds)
-          .neq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(30);
-
-        (echoes || []).forEach(e => {
-          results.push({
-            id: `echo_${e.id}`,
-            type: 'echo',
-            actor: e.profiles?.username || 'Someone',
-            actor_avatar: e.profiles?.avatar_url || null,
-            content: `echoed: "${e.body?.slice(0, 60) || '...'}"`,
-            created_at: e.created_at,
-          });
-        });
-
-        // ── Ratings on my events ────────────────────────────────────────────
-        const { data: ratings } = await supabase
-          .from('event_ratings')
-          .select('id, event_id, user_id, rating, created_at, profiles(username, avatar_url)')
-          .in('event_id', eventIds)
-          .neq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
-
-        (ratings || []).forEach(r => {
-          const stars = '⭐'.repeat(Math.min(r.rating || 0, 5));
-          results.push({
-            id: `rating_${r.id}`,
-            type: 'rating',
-            actor: r.profiles?.username || 'Someone',
-            actor_avatar: r.profiles?.avatar_url || null,
-            content: `rated "${eventMap[r.event_id] || 'your event'}" ${stars}`,
-            created_at: r.created_at,
-          });
-        });
+        queries.push(
+          supabase.from('event_vibes')
+            .select('id, event_id, user_id, created_at, profiles(username, avatar_url)')
+            .in('event_id', eventIds).neq('user_id', user.id)
+            .order('created_at', { ascending: false }).limit(30),
+          supabase.from('event_rsvps')
+            .select('id, event_id, user_id, created_at, profiles(username, avatar_url)')
+            .in('event_id', eventIds).neq('user_id', user.id)
+            .order('created_at', { ascending: false }).limit(30),
+          supabase.from('echoes')
+            .select('id, event_id, user_id, body, created_at, profiles(username, avatar_url)')
+            .in('event_id', eventIds).neq('user_id', user.id)
+            .order('created_at', { ascending: false }).limit(30),
+          supabase.from('event_ratings')
+            .select('id, event_id, user_id, rating, created_at, profiles(username, avatar_url)')
+            .in('event_id', eventIds).neq('user_id', user.id)
+            .order('created_at', { ascending: false }).limit(20),
+        );
       }
 
-      // ── Followers ────────────────────────────────────────────────────────
-      const { data: follows } = await supabase
-        .from('follows')
-        .select('id, follower_id, created_at, profiles!follows_follower_id_fkey(username, avatar_url)')
-        .eq('following_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      const settled = await Promise.allSettled(queries);
+      const [followsRes, vibesRes, rsvpsRes, echoesRes, ratingsRes] = settled.map(r =>
+        r.status === 'fulfilled' ? (r.value.data || []) : []
+      );
 
-      (follows || []).forEach(f => {
+      const results = [];
+
+      (followsRes || []).forEach(f => results.push({
+        id: `follow_${f.id}`, type: 'follow',
+        actor: f.profiles?.username || 'Someone',
+        actor_avatar: f.profiles?.avatar_url || null,
+        content: 'started following you',
+        created_at: f.created_at,
+      }));
+
+      (vibesRes || []).forEach(v => results.push({
+        id: `vibe_${v.id}`, type: 'vibe',
+        actor: v.profiles?.username || 'Someone',
+        actor_avatar: v.profiles?.avatar_url || null,
+        content: `vibed with your event "${eventMap[v.event_id] || 'your event'}"`,
+        created_at: v.created_at,
+      }));
+
+      (rsvpsRes || []).forEach(r => results.push({
+        id: `rsvp_${r.id}`, type: 'rsvp',
+        actor: r.profiles?.username || 'Someone',
+        actor_avatar: r.profiles?.avatar_url || null,
+        content: `RSVP'd to your event "${eventMap[r.event_id] || 'your event'}"`,
+        created_at: r.created_at,
+      }));
+
+      (echoesRes || []).forEach(e => results.push({
+        id: `echo_${e.id}`, type: 'echo',
+        actor: e.profiles?.username || 'Someone',
+        actor_avatar: e.profiles?.avatar_url || null,
+        content: `echoed: "${e.body?.slice(0, 60) || '...'}"`,
+        created_at: e.created_at,
+      }));
+
+      (ratingsRes || []).forEach(r => {
+        const stars = '⭐'.repeat(Math.min(r.rating || 0, 5));
         results.push({
-          id: `follow_${f.id}`,
-          type: 'follow',
-          actor: f.profiles?.username || 'Someone',
-          actor_avatar: f.profiles?.avatar_url || null,
-          content: 'started following you',
-          created_at: f.created_at,
+          id: `rating_${r.id}`, type: 'rating',
+          actor: r.profiles?.username || 'Someone',
+          actor_avatar: r.profiles?.avatar_url || null,
+          content: `rated "${eventMap[r.event_id] || 'your event'}" ${stars}`,
+          created_at: r.created_at,
         });
       });
 
-      // Sort all by date descending
       results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
       setActivities(results);
       setUnreadCount(results.filter(r => Date.now() - new Date(r.created_at) < 3600000).length);
     } catch (e) {

@@ -167,10 +167,8 @@ export const VibeManager = {
       const { error } = await supabase.from('event_vibes')
         .upsert({ event_id: eventId, user_id: userId }, { onConflict: 'event_id,user_id', ignoreDuplicates: true });
       if (error) return null;
-      const { data: ev } = await supabase.from('events').select('vibe_count').eq('id', eventId).single();
-      if (ev != null) {
-        await supabase.from('events').update({ vibe_count: (ev.vibe_count || 0) + 1 }).eq('id', eventId);
-      }
+      // Atomic increment — no read-then-write race condition
+      await supabase.rpc('increment_vibe_count', { eid: eventId });
       cache.invalidate(`event:${eventId}`);
       cache.invalidate('feed:');
       return true;
@@ -184,11 +182,10 @@ export const VibeManager = {
       const { error } = await supabase.from('event_vibes')
         .delete().eq('event_id', eventId).eq('user_id', userId);
       if (error) return null;
-      const { data: ev } = await supabase.from('events').select('vibe_count').eq('id', eventId).single();
-      if (ev != null) {
-        await supabase.from('events').update({ vibe_count: Math.max(0, (ev.vibe_count || 1) - 1) }).eq('id', eventId);
-      }
+      // Atomic decrement — floors at 0
+      await supabase.rpc('decrement_vibe_count', { eid: eventId });
       cache.invalidate(`event:${eventId}`);
+      cache.invalidate('feed:');
       return true;
     } catch {
       return null;
@@ -228,7 +225,7 @@ export const VibeManager = {
     if (!userId || !eventIds.length) return new Set();
     try {
       const { data } = await supabase
-        .from('vibes')
+        .from('event_vibes')
         .select('event_id')
         .eq('user_id', userId)
         .in('event_id', eventIds);
@@ -384,7 +381,7 @@ export const AnalyticsManager = {
       const [events, saves, vibes] = await Promise.all([
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
       ]);
       const result = {
         eventCount: events.count || 0,
