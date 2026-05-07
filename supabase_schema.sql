@@ -1038,7 +1038,7 @@ on conflict (id) do nothing;
 
 drop policy if exists "Anyone can view media"    on storage.objects;
 drop policy if exists "Auth users upload media"  on storage.objects;
-drop policy if exists "Auth users delete media"  on storage.objects;
+drop policy if exists "Auth users delete own media"  on storage.objects;
 
 create policy "Anyone can view media"
   on storage.objects for select
