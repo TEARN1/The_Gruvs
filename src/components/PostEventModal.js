@@ -124,28 +124,30 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       setUploadingMedia(true);
       mediaUrls = await uploadAllMedia();
       setUploadingMedia(false);
+      // If all uploads failed, continue anyway without media
     }
 
-    // Resolve category: use first selected, or fall back to event type
     const primaryCat = selectedCategories[0] || eventType?.toLowerCase() || null;
 
-    const { error: dbError } = await supabase.from('events').insert({
-      user_id:         user.id,
-      title:           title.trim(),
-      description:     description.trim(),
-      address:         address.trim(),
-      city:            city.trim() || null,
-      event_date:      eventDate || null,
-      media:           mediaUrls,
-      age_restriction: ageRestriction,
-      interests:       selectedCategories,
-      category:        primaryCat,
-      ticket_url:      ticketUrl.trim() || null,
-    });
+    const payload = {
+      user_id:     user.id,
+      title:       title.trim(),
+      description: description.trim(),
+      address:     address.trim(),
+    };
+    if (city.trim())               payload.city            = city.trim();
+    if (eventDate.trim())          payload.event_date      = eventDate.trim();
+    if (mediaUrls.length > 0)     payload.media           = mediaUrls;
+    if (ageRestriction)           payload.age_restriction = ageRestriction;
+    if (selectedCategories.length) payload.interests      = selectedCategories;
+    if (primaryCat)               payload.category        = primaryCat;
+    if (ticketUrl.trim())         payload.ticket_url      = ticketUrl.trim();
+
+    const { error: dbError } = await supabase.from('events').insert(payload);
 
     setLoading(false);
     if (dbError) {
-      setError(dbError.message);
+      setError(`Could not post event: ${dbError.message}`);
     } else {
       reset();
       onPostSuccess?.();

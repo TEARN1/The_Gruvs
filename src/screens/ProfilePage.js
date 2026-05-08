@@ -437,12 +437,6 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const SAMPLE_PEOPLE = [
-    { id: '1', username: 'kayla_vibes', avatar_url: 'https://i.pravatar.cc/80?img=5', distance_km: 1.2, interests: ['Music', 'Art'], is_online: true },
-    { id: '2', username: 'thabo_rsa', avatar_url: 'https://i.pravatar.cc/80?img=8', distance_km: 3.7, interests: ['Sports', 'Tech'], is_online: false },
-    { id: '3', username: 'nadia_g', avatar_url: 'https://i.pravatar.cc/80?img=9', distance_km: 4.9, interests: ['Fashion', 'Food'], is_online: true },
-  ];
-
   const search = async () => {
     if (!user) { onAuthRequired(); return; }
     setLoading(true);
@@ -450,8 +444,8 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
     if (coords) LocationService.saveToProfile(user.id, coords.lat, coords.lon);
     const data = await DiscoveryManager.findNobility(user.id, distance);
     setLoading(false);
-    setPeople(data && data.length > 0 ? data : SAMPLE_PEOPLE);
-    if (!data || data.length === 0) toast.show('Showing nearby viber matches', 'info');
+    setPeople(data || []);
+    if (!data || data.length === 0) toast.show('No vibers found nearby — try a wider range', 'info');
   };
 
   const displayed = activeFilter
@@ -651,25 +645,41 @@ export const ProfilePage = ({ onAuthRequired }) => {
     return colors[(name?.charCodeAt(0) || 0) % colors.length];
   };
 
+  const uploadImageToStorage = async (asset, storagePath) => {
+    // On web, asset.uri is a blob: URL — fetch it directly
+    // On native, same fetch approach works
+    const response = await fetch(asset.uri);
+    const blob = await response.blob();
+    const mimeType = blob.type || `image/jpeg`;
+    const ext = mimeType.split('/')[1]?.split('+')[0] || 'jpg';
+    const fileName = `${storagePath}/${user.id}.${ext}`;
+    const { error } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, blob, { contentType: mimeType, upsert: true });
+    if (error) throw error;
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+    return urlData.publicUrl;
+  };
+
   const handleAvatarUpload = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') { toast.show('Photo library permission needed', 'error'); return; }
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') { toast.show('Photo library permission needed', 'error'); return; }
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
       if (result.canceled) return;
-      const asset = result.assets[0];
-      const ext = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `avatars/${user.id}.${ext}`;
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
-      const { error: upErr } = await supabase.storage.from('avatars').upload(fileName, blob, { contentType: `image/${ext}`, upsert: true });
-      if (upErr) throw upErr;
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', user.id);
+      const publicUrl = await uploadImageToStorage(result.assets[0], 'avatars');
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
       refreshProfile();
-      toast.show('Avatar updated!', 'success');
+      toast.show('Profile picture updated!', 'success');
     } catch (e) {
-      toast.show('Upload failed: ' + e.message, 'error');
+      toast.show('Upload failed: ' + (e.message || 'Unknown error'), 'error');
     }
   };
 
@@ -686,21 +696,12 @@ export const ProfilePage = ({ onAuthRequired }) => {
         quality: 0.85,
       });
       if (result.canceled) return;
-      const asset = result.assets[0];
-      const ext = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `covers/${user.id}.${ext}`;
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
-      const { error: upErr } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, blob, { contentType: `image/${ext}`, upsert: true });
-      if (upErr) throw upErr;
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      await supabase.from('profiles').update({ cover_url: urlData.publicUrl }).eq('id', user.id);
+      const publicUrl = await uploadImageToStorage(result.assets[0], 'covers');
+      await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', user.id);
       refreshProfile();
       toast.show('Cover photo updated!', 'success');
     } catch (e) {
-      toast.show('Cover upload failed: ' + e.message, 'error');
+      toast.show('Cover upload failed: ' + (e.message || 'Unknown error'), 'error');
     }
   };
 
