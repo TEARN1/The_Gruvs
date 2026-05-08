@@ -350,12 +350,7 @@ const styles = StyleSheet.create({
   },
   heroScrim: {
     ...StyleSheet.absoluteFillObject,
-    background: 'transparent',
-    backgroundImage: undefined,
     backgroundColor: 'transparent',
-    ...(Platform.OS === 'web'
-      ? { background: 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 40%, rgba(13,17,18,0.85) 100%)' }
-      : {}),
   },
   categoryBadge: {
     position: 'absolute',
