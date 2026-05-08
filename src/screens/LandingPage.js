@@ -33,6 +33,7 @@ import { TonightAlert } from '../components/TonightAlert';
 import { HashtagStrip } from '../components/HashtagStrip';
 import { useIdentity } from '../context/IdentityContext';
 import { PresenceBar } from '../components/PresenceBar';
+import { AdFlywheel } from '../components/AdFlywheel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PathMapScreen } from './PathMapScreen';
 import { supabase } from '../services/supabase';
@@ -738,6 +739,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // ── EVENT CARD ────────────────────────────────────────────────────────────────
   const renderCard = ({ item: event, index }) => {
     const id = event.id;
+    // Insert AdFlywheel every 5 cards (index 4, 9, 14…)
+    const showAd = index > 0 && index % 5 === 4;
     const isVibed   = myVibes.has(id);
     const isSaved   = savedEvents.has(id);
     const isSample  = event.is_sample === true;
@@ -764,6 +767,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const flashColor = reactionFlash[id];
 
     return (
+      <React.Fragment>
       <FadeInView delay={index * 60} direction="up">
         <View style={[
           styles.eventCard,
@@ -1032,6 +1036,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           )}
         </View>
       </FadeInView>
+      {showAd && (
+        <AdFlywheel
+          intentTag="attending"
+          onNavigateToServices={() => {}}
+        />
+      )}
+      </React.Fragment>
     );
   };
 

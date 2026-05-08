@@ -166,6 +166,35 @@ CREATE TABLE IF NOT EXISTS gig_acceptances (
   UNIQUE(gig_id, worker_id)
 );
 
+-- ── DM Rooms (mutual star match, 48h expiry) ─────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS dm_rooms (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_a      UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  user_b      UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  event_id    UUID REFERENCES events(id) ON DELETE SET NULL,
+  expires_at  TIMESTAMPTZ NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_a, user_b, event_id)
+);
+
+CREATE TABLE IF NOT EXISTS dm_messages (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id    UUID NOT NULL REFERENCES dm_rooms(id) ON DELETE CASCADE,
+  sender_id  UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  body       TEXT NOT NULL,
+  sent_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS dm_rooms_user_a_idx ON dm_rooms(user_a);
+CREATE INDEX IF NOT EXISTS dm_rooms_user_b_idx ON dm_rooms(user_b);
+CREATE INDEX IF NOT EXISTS dm_messages_room_idx ON dm_messages(room_id);
+
+-- ── User Paths (alias for paths, referenced by PathMapScreen) ─────────────────
+-- user_paths is a view over the paths table for convenience
+CREATE OR REPLACE VIEW user_paths AS
+  SELECT * FROM paths;
+
 -- ── Trust Ledger RPC ──────────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION update_sis_score(
@@ -232,3 +261,14 @@ CREATE POLICY stars_select ON path_stars FOR SELECT USING (TRUE);
 
 -- Disputes: raised_by or parties manage
 CREATE POLICY disputes_raised ON disputes FOR ALL USING (auth.uid() = raised_by);
+
+-- DM rooms: only participants
+ALTER TABLE dm_rooms    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dm_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY dm_rooms_parties   ON dm_rooms    FOR ALL    USING (auth.uid() = user_a OR auth.uid() = user_b);
+CREATE POLICY dm_messages_sender ON dm_messages FOR INSERT USING (auth.uid() = sender_id);
+CREATE POLICY dm_messages_select ON dm_messages FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM dm_rooms r WHERE r.id = room_id AND (r.user_a = auth.uid() OR r.user_b = auth.uid())
+  ));
