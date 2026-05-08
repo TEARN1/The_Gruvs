@@ -465,7 +465,7 @@ function BookingModal({
 // Main Screen
 // ---------------------------------------------------------------------------
 
-export function ServiceMarketplace() {
+export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
@@ -589,7 +589,14 @@ export function ServiceMarketplace() {
     <View style={[styles.screen, { backgroundColor: background, paddingTop: insets.top }]}>
       {/* ── Header ── */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: textColor }]}>Service Nodes</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {onClose && (
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Feather name="arrow-left" size={20} color={textColor} />
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.headerTitle, { color: textColor }]}>Service Nodes</Text>
+        </View>
 
         {/* Gig Mode toggle */}
         <TouchableOpacity

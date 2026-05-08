@@ -48,6 +48,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 1240, echo_count: 56, reaction_count: 184,
     reactions_summary: '🔥⚡🙌', age_restriction: 21,
     created_at: new Date(now.getTime() - 7200000).toISOString(),
+    end_time: new Date(now.getTime() + 2 * 86400000 + 10 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[3],
   },
 
@@ -71,6 +73,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 3100, echo_count: 23, reaction_count: 450,
     reactions_summary: '❤️✨👑', age_restriction: 23,
     created_at: new Date(now.getTime() - 86400000).toISOString(),
+    end_time: new Date(now.getTime() + 7 * 86400000 + 19 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[1],
   },
 
@@ -93,6 +97,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 750, echo_count: 12, reaction_count: 98,
     reactions_summary: '🎨💎✨', age_restriction: 0,
     created_at: new Date(now.getTime() - 172800000).toISOString(),
+    end_time: new Date(now.getTime() + 12 * 86400000 + 17 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[2],
   },
 
@@ -116,6 +122,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 8900, echo_count: 203, reaction_count: 1240,
     reactions_summary: '🔥🎵🙌', age_restriction: 18,
     created_at: new Date(now.getTime() - 43200000).toISOString(),
+    end_time: new Date(now.getTime() + 5 * 86400000 + 4 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[0],
   },
 
@@ -138,6 +146,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 2600, echo_count: 89, reaction_count: 330,
     reactions_summary: '🍷🍽️✨', age_restriction: 18,
     created_at: new Date(now.getTime() - 21600000).toISOString(),
+    end_time: new Date(now.getTime() + 9 * 86400000 + 16 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[4],
   },
 
@@ -160,6 +170,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 1750, echo_count: 44, reaction_count: 220,
     reactions_summary: '💪🏆🔥', age_restriction: 16,
     created_at: new Date(now.getTime() - 3600000).toISOString(),
+    end_time: new Date(now.getTime() + 3 * 86400000 + 0 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[5],
   },
 
@@ -183,6 +195,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 980, echo_count: 31, reaction_count: 145,
     reactions_summary: '🎷🎶❤️', age_restriction: 0,
     created_at: new Date(now.getTime() - 10800000).toISOString(),
+    end_time: new Date(now.getTime() + 9 * 86400000 + 16 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[4],
   },
 
@@ -205,6 +219,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 4200, echo_count: 118, reaction_count: 590,
     reactions_summary: '😂🤣🔥', age_restriction: 16,
     created_at: new Date(now.getTime() - 14400000).toISOString(),
+    end_time: new Date(now.getTime() + 12 * 86400000 + 17 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[2],
   },
 
@@ -227,6 +243,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 460, echo_count: 9, reaction_count: 60,
     reactions_summary: '🎨🏙️✨', age_restriction: 0,
     created_at: new Date(now.getTime() - 5400000).toISOString(),
+    end_time: new Date(now.getTime() + 12 * 86400000 + 17 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[2],
   },
 
@@ -250,6 +268,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 2100, echo_count: 76, reaction_count: 280,
     reactions_summary: '💡🚀🤖', age_restriction: 0,
     created_at: new Date(now.getTime() - 28800000).toISOString(),
+    end_time: new Date(now.getTime() + 5 * 86400000 + 4 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[0],
   },
 
@@ -272,6 +292,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 9400, echo_count: 312, reaction_count: 1800,
     reactions_summary: '🌊🔥🎶', age_restriction: 18,
     created_at: new Date(now.getTime() - 7200000).toISOString(),
+    end_time: new Date(now.getTime() + 7 * 86400000 + 19 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[1],
   },
 
@@ -294,6 +316,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 720, echo_count: 28, reaction_count: 110,
     reactions_summary: '🎬🌙✨', age_restriction: 0,
     created_at: new Date(now.getTime() - 36000000).toISOString(),
+    end_time: new Date(now.getTime() + 9 * 86400000 + 16 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[4],
   },
 
@@ -315,6 +339,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 410, echo_count: 14, reaction_count: 72,
     reactions_summary: '🧘☀️💚', age_restriction: 0,
     created_at: new Date(now.getTime() - 50400000).toISOString(),
+    end_time: new Date(now.getTime() + 3 * 86400000 + 0 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[5],
   },
 
@@ -337,6 +363,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 380, echo_count: 22, reaction_count: 88,
     reactions_summary: '👨‍👩‍👧🎨🌈', age_restriction: 0,
     created_at: new Date(now.getTime() - 18000000).toISOString(),
+    end_time: new Date(now.getTime() + 9 * 86400000 + 16 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[4],
   },
 
@@ -359,6 +387,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 5600, echo_count: 141, reaction_count: 780,
     reactions_summary: '🇿🇦🥁✨', age_restriction: 0,
     created_at: new Date(now.getTime() - 900000).toISOString(),
+    end_time: new Date(now.getTime() + 5 * 86400000 + 4 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[0],
   },
 
@@ -380,6 +410,8 @@ export const SAMPLE_EVENTS = [
     vibe_count: 560, echo_count: 33, reaction_count: 95,
     reactions_summary: '💼🚀🤝', age_restriction: 0,
     created_at: new Date(now.getTime() - 25200000).toISOString(),
+    end_time: new Date(now.getTime() + 2 * 86400000 + 10 * 3600000).toISOString(),
+    is_sample: true,
     profiles: SAMPLE_VIBERS[3],
   },
 ];

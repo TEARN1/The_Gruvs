@@ -15,6 +15,7 @@ import { LocationService } from '../services/locationService';
 import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
+import { ServiceMarketplace } from './ServiceMarketplace';
 
 const { width } = Dimensions.get('window');
 
@@ -300,6 +301,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [userResults, setUserResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [marketplaceVisible, setMarketplaceVisible] = useState(false);
   const searchTimer = useRef(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
@@ -402,6 +404,13 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Text style={[styles.headerSub, { color: muted }]}>Discover your next Gruv</Text>
             </View>
           </View>
+          <TouchableOpacity
+            onPress={() => setMarketplaceVisible(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: `${primary}40`, backgroundColor: `${primary}12` }}
+          >
+            <Feather name="truck" size={14} color={primary} />
+            <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Services</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Search bar */}
@@ -608,6 +617,12 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         user={selectedViber}
         onClose={() => setViberModalVisible(false)}
       />
+      {marketplaceVisible && (
+        <ServiceMarketplace
+          onAuthRequired={onAuthRequired}
+          onClose={() => setMarketplaceVisible(false)}
+        />
+      )}
     </View>
   );
 };

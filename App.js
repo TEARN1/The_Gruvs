@@ -14,18 +14,16 @@ import { ExplorePage } from './src/screens/ExplorePage';
 import { ProfilePage } from './src/screens/ProfilePage';
 import { CalendarPage } from './src/screens/CalendarPage';
 import { NotificationsScreen, useUnreadCount } from './src/screens/NotificationsScreen';
-import { ServiceMarketplace } from './src/screens/ServiceMarketplace';
 import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
 
 const TABS = [
-  { key: 'feed',          label: 'The Drop',     icon: 'home'     },
-  { key: 'explore',       label: 'Explore',      icon: 'compass'  },
-  { key: 'calendar',      label: 'Calendar',     icon: 'calendar' },
-  { key: 'marketplace',   label: 'Services',     icon: 'truck'    },
-  { key: 'notifications', label: 'Alerts',       icon: 'bell'     },
-  { key: 'profile',       label: 'Profile',      icon: 'user'     },
+  { key: 'feed',          label: 'The Drop',  icon: 'home'     },
+  { key: 'explore',       label: 'Explore',   icon: 'compass'  },
+  { key: 'calendar',      label: 'Calendar',  icon: 'calendar' },
+  { key: 'notifications', label: 'Alerts',    icon: 'bell'     },
+  { key: 'profile',       label: 'Profile',   icon: 'user'     },
 ];
 
 const WIDE_BREAKPOINT      = 900;
@@ -255,8 +253,6 @@ const MainNavigator = () => {
         );
       case 'calendar':
         return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
-      case 'marketplace':
-        return <ServiceMarketplace onAuthRequired={handleAuthRequired} />;
       case 'notifications':
         return <NotificationsScreen onAuthRequired={handleAuthRequired} />;
       case 'profile':

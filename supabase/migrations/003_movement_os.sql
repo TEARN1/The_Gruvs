@@ -272,3 +272,25 @@ CREATE POLICY dm_messages_select ON dm_messages FOR SELECT
   USING (EXISTS (
     SELECT 1 FROM dm_rooms r WHERE r.id = room_id AND (r.user_a = auth.uid() OR r.user_b = auth.uid())
   ));
+
+-- ── Contextual Ads (AdFlywheel) ───────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS contextual_ads (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type        TEXT NOT NULL CHECK (type IN ('event','service','gig')),
+  headline    TEXT NOT NULL,
+  subline     TEXT,
+  cta         TEXT NOT NULL DEFAULT 'View',
+  color       TEXT,
+  icon        TEXT DEFAULT 'zap',
+  badge       TEXT DEFAULT 'PROMOTED',
+  event_id    UUID REFERENCES events(id) ON DELETE SET NULL,
+  priority    INT NOT NULL DEFAULT 0,
+  active      BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS contextual_ads_active_idx ON contextual_ads(active, priority DESC);
+
+ALTER TABLE contextual_ads ENABLE ROW LEVEL SECURITY;
+CREATE POLICY ads_select ON contextual_ads FOR SELECT USING (active = TRUE);

@@ -36,6 +36,7 @@ import { PresenceBar } from '../components/PresenceBar';
 import { AdFlywheel } from '../components/AdFlywheel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PathMapScreen } from './PathMapScreen';
+import { EventDetailScreen } from './EventDetailScreen';
 import { supabase } from '../services/supabase';
 import { VibeManager, BookmarkManager } from '../services/dataFlow';
 import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
@@ -235,6 +236,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [dateRange, setDateRange] = useState(null);
   const [activeHashtag, setActiveHashtag] = useState(null);
   const [pathMapVisible, setPathMapVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -860,9 +862,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               </View>
             )}
 
-            {/* Title + description */}
-            <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
-            <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>
+            {/* Title + description — tap to open full detail */}
+            <TouchableOpacity activeOpacity={0.8} onPress={() => setSelectedEvent(event)}>
+              <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
+              <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>
+            </TouchableOpacity>
 
             {/* Meta row */}
             <View style={styles.metaRow}>
@@ -1162,6 +1166,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       />
       <OfflineBanner />
       <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
+      <EventDetailScreen
+        visible={!!selectedEvent}
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        onAuthRequired={onAuthRequired}
+      />
     </View>
   );
 };
