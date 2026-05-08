@@ -336,6 +336,18 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
             value={location}
             onChangeText={setLocation}
           />
+          <TouchableOpacity
+            onPress={async () => {
+              const coords = await LocationService.requestAndGet();
+              if (coords?.city) setLocation(coords.city);
+              else if (coords) setLocation(`${coords.lat.toFixed(3)}, ${coords.lon.toFixed(3)}`);
+              else toast?.show('Could not get location', 'error');
+            }}
+            style={{ padding: 4 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="crosshair" size={16} color={primary} />
+          </TouchableOpacity>
         </View>
       </GlassView>
 
@@ -790,7 +802,6 @@ export const ProfilePage = ({ onAuthRequired }) => {
   if (!user) {
     return (
       <View style={[styles.container, { backgroundColor: bg }]}>
-        <AuraEffect />
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.guestContent}>
           <GlassView style={styles.guestCard} glow>
             <Feather name="user" size={52} color={primary} style={{ marginBottom: 16 }} />

@@ -301,6 +301,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [marketplaceVisible, setMarketplaceVisible] = useState(false);
+  const [routes, setRoutes] = useState([]);
   const searchTimer = useRef(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
@@ -324,6 +325,17 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     setTrendingEvents(trending);
     setHappeningNow(happening);
     setCategoryCounts(counts);
+
+    // Fetch real routes from DB
+    try {
+      const { data: routeData } = await supabase
+        .from('routes')
+        .select('*, profiles(username, avatar_url)')
+        .eq('active', true)
+        .order('join_count', { ascending: false })
+        .limit(5);
+      setRoutes(routeData || []);
+    } catch { setRoutes([]); }
 
     const featured = happening.reduce((best, e) =>
       (e.vibe_count || e.going || 0) > (best.vibe_count || best.going || 0) ? e : best,
@@ -563,15 +575,14 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             )}
 
             {/* ── Royal Routes (curated multi-stop journeys) ──────────────── */}
-            <View style={{ marginBottom: 20 }}>
-              <SectionHeader title="Royal Routes" textColor={textColor} primary={primary} />
-              {[
-                { title: 'Jozi Nightowl Route', color: '#00f2ff', vibe_score: '2.4k', steps: [{ title: 'Sky Deck', icon: 'glass-wine' }, { title: 'Warehouse IX', icon: 'music' }, { title: 'Newtown Hub', icon: 'map-marker' }] },
-                { title: 'Cape Town Sunset Crawl', color: '#f59e0b', vibe_score: '1.8k', steps: [{ title: 'Signal Hill', icon: 'flag' }, { title: 'De Waterkant', icon: 'glass-wine' }, { title: 'Biscuit Mill', icon: 'music' }] },
-              ].map((route, i) => (
-                <RouteJourneyCard key={i} route={route} onPress={() => {}} />
-              ))}
-            </View>
+            {routes.length > 0 && (
+              <View style={{ marginBottom: 20 }}>
+                <SectionHeader title="Royal Routes" textColor={textColor} primary={primary} />
+                {routes.map((route, i) => (
+                  <RouteJourneyCard key={route.id || i} route={route} onPress={() => {}} />
+                ))}
+              </View>
+            )}
 
             {/* ── Category discovery ──────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>

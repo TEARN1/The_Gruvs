@@ -9,6 +9,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 
 const STORAGE_KEY = 'gruv_identity_mode';
 
@@ -75,6 +76,7 @@ export const IdentityProvider = ({ children }) => {
     setIdentityModeState(mode);
     if (mode !== 'celebrity') setBeaconActive(false);
     await AsyncStorage.setItem(STORAGE_KEY, mode);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
   }, []);
 
   const dropBeacon = useCallback(() => {

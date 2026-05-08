@@ -26,74 +26,6 @@ import { GigModeCard } from '../components/GigModeCard';
 // ---------------------------------------------------------------------------
 // Sample fallback data
 // ---------------------------------------------------------------------------
-
-const SAMPLE_PROVIDERS = [
-  {
-    id: 'sample-1',
-    username: 'ThandoMoves',
-    display_name: 'Thando Nkosi',
-    service_type: 'Full Move',
-    social_integrity_score: 87,
-    price_min: 450,
-    price_max: 1200,
-    distance_km: 2.4,
-    available: true,
-    tab: 'Moving Help',
-  },
-  {
-    id: 'sample-2',
-    username: 'BakkieKing_ZA',
-    display_name: 'Sipho Dlamini',
-    service_type: 'Bakkie',
-    social_integrity_score: 74,
-    price_min: 200,
-    price_max: 600,
-    distance_km: 5.1,
-    available: true,
-    tab: 'Moving Help',
-  },
-  {
-    id: 'sample-3',
-    username: 'PackProLisa',
-    display_name: 'Lisa Venter',
-    service_type: 'Packing',
-    social_integrity_score: 91,
-    price_min: 150,
-    price_max: 400,
-    distance_km: 1.2,
-    available: false,
-    tab: 'Event Logistics',
-  },
-];
-
-const SAMPLE_GIGS = [
-  {
-    id: 'gig-1',
-    title: 'Help Move 2-Bedroom Flat',
-    description: 'Need 2 people + bakkie for Saturday morning move from Rosebank to Sandton.',
-    category: 'moving',
-    pay_rands: 350,
-    distance_km: 3.2,
-    time_window: 'Sat 08:00–13:00',
-    poster_username: 'NombusoM',
-    social_integrity_score: 79,
-    tab: 'Moving Help',
-  },
-  {
-    id: 'gig-2',
-    title: 'Event Setup Crew Needed',
-    description: 'Setting up tables, chairs, and PA equipment for a 200-person event in Midrand.',
-    category: 'crew',
-    pay_rands: 500,
-    distance_km: 8.7,
-    time_window: 'Fri 14:00–18:00',
-    poster_username: 'EventsByZara',
-    social_integrity_score: 85,
-    tab: 'Event Logistics',
-  },
-];
-
-// ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
@@ -483,41 +415,29 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
   const [bookingTarget, setBookingTarget] = useState(null);
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
 
-  // Fetch providers from Supabase, fall back to sample data
   const fetchProviders = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('service_nodes')
         .select('*, profiles(username, avatar_url, social_integrity_score)')
         .eq('available', true)
         .order('created_at', { ascending: false });
-
-      if (error || !data || data.length === 0) {
-        setProviders(SAMPLE_PROVIDERS);
-      } else {
-        setProviders(data);
-      }
+      setProviders(data || []);
     } catch {
-      setProviders(SAMPLE_PROVIDERS);
+      setProviders([]);
     }
   }, []);
 
-  // Fetch gigs from Supabase, fall back to sample data
   const fetchGigs = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('gig_posts')
         .select('*, profiles(username, avatar_url, social_integrity_score)')
         .eq('active', true)
         .order('created_at', { ascending: false });
-
-      if (error || !data || data.length === 0) {
-        setGigs(SAMPLE_GIGS);
-      } else {
-        setGigs(data);
-      }
+      setGigs(data || []);
     } catch {
-      setGigs(SAMPLE_GIGS);
+      setGigs([]);
     }
   }, []);
 
