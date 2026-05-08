@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Component } from 'react';
 import {
   View, StyleSheet, TouchableOpacity, Text,
   StatusBar, Animated, Platform, useWindowDimensions,
@@ -17,6 +17,23 @@ import { NotificationsScreen, useUnreadCount } from './src/screens/Notifications
 import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
+
+class ErrorBoundary extends Component {
+  state = { hasError: false, error: null };
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, info) { console.error('[ErrorBoundary]', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#0d1112', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Text style={{ color: '#00f2ff', fontSize: 18, fontWeight: '900', marginBottom: 12 }}>Something went wrong</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center' }}>{String(this.state.error)}</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const TABS = [
   { key: 'feed',          label: 'The Drop',  icon: 'home'     },
@@ -329,17 +346,21 @@ const MainNavigator = () => {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <IdentityProvider>
-            <ToastProvider>
-              <MainNavigator />
-            </ToastProvider>
-          </IdentityProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <IdentityProvider>
+              <ToastProvider>
+                <ErrorBoundary>
+                  <MainNavigator />
+                </ErrorBoundary>
+              </ToastProvider>
+            </IdentityProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 

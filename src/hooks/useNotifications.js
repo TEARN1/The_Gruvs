@@ -21,23 +21,29 @@ export const useNotifications = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    receivedListener.current = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        const { title, body } = notification.request.content;
-        showToast(body || title || 'New notification');
-      }
-    );
+    try {
+      receivedListener.current = Notifications.addNotificationReceivedListener(
+        (notification) => {
+          const { title, body } = notification.request.content;
+          showToast(body || title || 'New notification');
+        }
+      );
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const data = response.notification.request.content.data;
-        console.log('Notification tapped:', data);
-      }
-    );
+      responseListener.current = Notifications.addNotificationResponseReceivedListener(
+        (response) => {
+          const data = response.notification.request.content.data;
+          console.log('Notification tapped:', data);
+        }
+      );
+    } catch {
+      // expo-notifications listeners not available on web — safe to ignore
+    }
 
     return () => {
-      receivedListener.current?.remove();
-      responseListener.current?.remove();
+      try {
+        receivedListener.current?.remove();
+        responseListener.current?.remove();
+      } catch {}
     };
   }, []);
 
