@@ -1125,7 +1125,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       <ViberProfileModal
         visible={viberModalVisible}
         user={selectedViber}
+        userId={selectedViber?.id}
         onClose={() => setViberModalVisible(false)}
+        onNavigateToEvent={(ev) => { setViberModalVisible(false); setSelectedEvent(ev); }}
       />
       <ActivityCenterModal
         visible={activityVisible}

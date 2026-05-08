@@ -615,7 +615,9 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       <ViberProfileModal
         visible={viberModalVisible}
         user={selectedViber}
+        userId={selectedViber?.id || selectedViber?.profile_id}
         onClose={() => setViberModalVisible(false)}
+        onNavigateToEvent={(ev) => { setViberModalVisible(false); onNavigateToEvent?.(ev); }}
       />
       {marketplaceVisible && (
         <ServiceMarketplace

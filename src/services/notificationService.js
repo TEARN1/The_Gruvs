@@ -91,6 +91,15 @@ export const NotificationService = {
     });
   },
 
+  async notifyProfileView(recipientId, viewerUsername, viewerAvatarUrl, viewerUserId) {
+    return this.send(recipientId, {
+      type: 'profile_view',
+      title: `${viewerUsername} viewed your profile`,
+      body: 'Tap to see who visited',
+      data: { viewer_id: viewerUserId, viewer_username: viewerUsername, viewer_avatar: viewerAvatarUrl || null },
+    });
+  },
+
   async markAllRead(userId) {
     if (!userId) return;
     try {

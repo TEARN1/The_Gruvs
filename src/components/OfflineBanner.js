@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Text, StyleSheet, Animated } from 'react-native';
+import { Text, StyleSheet, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { supabase } from '../services/supabase';
 
-const checkOnline = async () => {
+// Use Supabase health endpoint — same origin we already talk to, no CORS issues
+const pingSupabase = async () => {
   try {
-    const res = await fetch('https://www.google.com/favicon.ico', {
+    const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    if (!url || url.includes('your-project-id')) return true; // demo mode — always online
+    const res = await fetch(`${url}/rest/v1/`, {
       method: 'HEAD',
-      cache: 'no-store',
+      headers: { apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '' },
+      signal: AbortSignal.timeout(5000),
     });
-    return res.ok;
+    return res.ok || res.status === 400; // 400 means server replied — we're online
   } catch {
     return false;
   }
@@ -19,6 +24,7 @@ export const OfflineBanner = () => {
   const insets = useSafeAreaInsets();
   const [isOffline, setIsOffline] = useState(false);
   const [justCameBack, setJustCameBack] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const slideY = useRef(new Animated.Value(-60)).current;
   const intervalRef = useRef(null);
 
@@ -31,21 +37,51 @@ export const OfflineBanner = () => {
     }).start();
   };
 
-  useEffect(() => {
-    const poll = async () => {
-      const online = await checkOnline();
-      setIsOffline(prev => {
-        if (prev && online) {
-          setJustCameBack(true);
-          setTimeout(() => setJustCameBack(false), 2500);
-        }
-        return !online;
-      });
-    };
+  const checkConnectivity = async () => {
+    let online;
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
+      // navigator.onLine is instant and accurate on web
+      online = navigator.onLine;
+      // Double-check with a real ping only if navigator says offline
+      if (!online) {
+        online = await pingSupabase();
+      }
+    } else {
+      online = await pingSupabase();
+    }
 
-    poll();
-    intervalRef.current = setInterval(poll, 8000);
-    return () => clearInterval(intervalRef.current);
+    setIsOffline(prev => {
+      if (prev && online && initialized) {
+        setJustCameBack(true);
+        setTimeout(() => setJustCameBack(false), 2500);
+      }
+      return !online;
+    });
+    if (!initialized) setInitialized(true);
+  };
+
+  useEffect(() => {
+    // Delay initial check by 2s so app finishes mounting before we start pinging
+    const initTimer = setTimeout(() => {
+      checkConnectivity();
+      intervalRef.current = setInterval(checkConnectivity, 15000);
+    }, 2000);
+
+    // Web: listen to native browser online/offline events
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const handleOnline  = () => { setIsOffline(false); setJustCameBack(true); setTimeout(() => setJustCameBack(false), 2500); };
+      const handleOffline = () => setIsOffline(true);
+      window.addEventListener('online',  handleOnline);
+      window.addEventListener('offline', handleOffline);
+      return () => {
+        clearTimeout(initTimer);
+        clearInterval(intervalRef.current);
+        window.removeEventListener('online',  handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
+
+    return () => { clearTimeout(initTimer); clearInterval(intervalRef.current); };
   }, []);
 
   useEffect(() => {
@@ -84,9 +120,5 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 10,
   },
-  text: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
+  text: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });

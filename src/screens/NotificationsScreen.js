@@ -1,24 +1,25 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { GlassView } from '../components/GlassView';
 import { supabase } from '../services/supabase';
 import { NotificationService } from '../services/notificationService';
+import { ViberProfileModal } from '../components/ViberProfileModal';
 
 const TYPE_META = {
-  vibe:    { icon: 'zap',            color: '#f97316' },
-  rsvp:    { icon: 'check-circle',   color: '#10b981' },
-  echo:    { icon: 'message-circle', color: '#8b5cf6' },
-  follow:  { icon: 'user-plus',      color: '#06b6d4' },
-  comment: { icon: 'message-square', color: '#3b82f6' },
-  royal:   { icon: 'star',           color: '#f59e0b' },
-  rating:  { icon: 'award',          color: '#ec4899' },
+  vibe:         { icon: 'zap',            color: '#f97316' },
+  rsvp:         { icon: 'check-circle',   color: '#10b981' },
+  echo:         { icon: 'message-circle', color: '#8b5cf6' },
+  follow:       { icon: 'user-plus',      color: '#06b6d4' },
+  comment:      { icon: 'message-square', color: '#3b82f6' },
+  royal:        { icon: 'star',           color: '#f59e0b' },
+  rating:       { icon: 'award',          color: '#ec4899' },
+  profile_view: { icon: 'eye',            color: '#a78bfa' },
 };
 
 const SEGMENTS = ['Today', 'This Week', 'Older'];
@@ -52,6 +53,7 @@ export const NotificationsScreen = ({ onAuthRequired }) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [segment, setSegment] = useState('Today');
+  const [profileModalUserId, setProfileModalUserId] = useState(null);
   const channelRef = useRef(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
@@ -120,12 +122,22 @@ export const NotificationsScreen = ({ onAuthRequired }) => {
   const filtered = notifications.filter(n => isInSegment(n.created_at, segment));
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const handleNotifPress = (item) => {
+    if (!item.read) markRead(item.id);
+    const viewerId = item.data?.viewer_id || item.data?.actor_id;
+    if ((item.type === 'profile_view' || item.type === 'follow') && viewerId) {
+      setProfileModalUserId(viewerId);
+    }
+  };
+
   const renderItem = ({ item }) => {
     const meta = TYPE_META[item.type] || TYPE_META.vibe;
+    const avatarUrl = item.data?.viewer_avatar || item.data?.actor_avatar || null;
+    const isActionable = ['profile_view', 'follow', 'vibe', 'rsvp', 'echo'].includes(item.type);
     return (
       <TouchableOpacity
-        onPress={() => { if (!item.read) markRead(item.id); }}
-        activeOpacity={0.75}
+        onPress={() => handleNotifPress(item)}
+        activeOpacity={isActionable ? 0.75 : 1}
       >
         <View
           style={[
@@ -134,22 +146,34 @@ export const NotificationsScreen = ({ onAuthRequired }) => {
             !item.read && { backgroundColor: `${primary}08` },
           ]}
         >
-          <View style={[ns.iconWrap, { backgroundColor: `${meta.color}22` }]}>
-            <Feather name={meta.icon} size={18} color={meta.color} />
-          </View>
+          {avatarUrl ? (
+            <View style={[ns.iconWrap, { backgroundColor: `${meta.color}15` }]}>
+              <Image source={{ uri: avatarUrl }} style={ns.avatarImg} />
+              <View style={[ns.typeIcon, { backgroundColor: meta.color }]}>
+                <Feather name={meta.icon} size={9} color="#fff" />
+              </View>
+            </View>
+          ) : (
+            <View style={[ns.iconWrap, { backgroundColor: `${meta.color}22` }]}>
+              <Feather name={meta.icon} size={18} color={meta.color} />
+            </View>
+          )}
           <View style={{ flex: 1, marginLeft: 14 }}>
             <Text style={[ns.title, { color: textColor }]}>
               <Text style={{ fontWeight: '900' }}>{item.title}</Text>
             </Text>
             {!!item.body && (
-              <Text style={[ns.body, { color: muted }]} numberOfLines={2}>
-                {item.body}
-              </Text>
+              <Text style={[ns.body, { color: muted }]} numberOfLines={2}>{item.body}</Text>
             )}
-            <Text style={[ns.time, { color: muted }]}>{formatAge(item.created_at)}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+              <Text style={[ns.time, { color: muted }]}>{formatAge(item.created_at)}</Text>
+              {isActionable && (
+                <Text style={[ns.tapHint, { color: `${primary}70` }]}>· tap to view</Text>
+              )}
+            </View>
           </View>
           {!item.read && (
-            <View style={[ns.unreadDot, { backgroundColor: '#3b82f6' }]} />
+            <View style={[ns.unreadDot, { backgroundColor: primary }]} />
           )}
         </View>
       </TouchableOpacity>
@@ -239,6 +263,12 @@ export const NotificationsScreen = ({ onAuthRequired }) => {
           contentContainerStyle={{ paddingBottom: 140 }}
         />
       )}
+
+      <ViberProfileModal
+        visible={!!profileModalUserId}
+        userId={profileModalUserId}
+        onClose={() => setProfileModalUserId(null)}
+      />
     </SafeAreaView>
   );
 };
@@ -327,6 +357,9 @@ const ns = StyleSheet.create({
   body: { fontSize: 12, marginTop: 2, lineHeight: 17 },
   time: { fontSize: 11, marginTop: 4, fontWeight: '600' },
   unreadDot: { width: 9, height: 9, borderRadius: 5, marginLeft: 10 },
+  avatarImg: { width: 42, height: 42, borderRadius: 21 },
+  typeIcon: { position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#0d1112' },
+  tapHint: { fontSize: 10, fontWeight: '600' },
   empty: { alignItems: 'center', paddingTop: 70, gap: 12 },
   emptyText: { fontSize: 16, fontWeight: '800' },
   emptySub: { fontSize: 13, textAlign: 'center' },

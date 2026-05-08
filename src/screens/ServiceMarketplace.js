@@ -272,11 +272,7 @@ function BookingModal({
       setPhase('proof');
       showToast('Funds locked in escrow!', 'success');
     } else {
-      // Fallback: simulate locally so UX continues
-      const fakeId = `local-${Date.now()}`;
-      setBookingId(fakeId);
-      setPhase('proof');
-      showToast('Escrow held (offline mode)', 'info');
+      showToast('Booking failed — please check your connection and try again.', 'error');
     }
   };
 
@@ -286,11 +282,11 @@ function BookingModal({
     setLoading(false);
     if (ok) {
       showToast(`R${estimatedPrice} released to ${provider?.username}!`, 'success');
+      onSuccess?.();
+      handleClose();
     } else {
-      showToast('Payment released (simulated)', 'success');
+      showToast('Release failed — please try again or contact support.', 'error');
     }
-    onSuccess?.();
-    handleClose();
   };
 
   const handleDispute = async () => {
