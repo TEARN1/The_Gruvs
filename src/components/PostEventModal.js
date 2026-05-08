@@ -139,7 +139,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     if (eventDate.trim())          payload.event_date      = eventDate.trim();
     if (mediaUrls.length > 0)     payload.media           = mediaUrls;
     if (ageRestriction)           payload.age_restriction = ageRestriction;
-    if (selectedCategories.length) payload.interests      = selectedCategories;
     if (primaryCat)               payload.category        = primaryCat;
     if (ticketUrl.trim())         payload.ticket_url      = ticketUrl.trim();
 
