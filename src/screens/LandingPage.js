@@ -39,7 +39,6 @@ import { PathMapScreen } from './PathMapScreen';
 import { EventDetailScreen } from './EventDetailScreen';
 import { supabase } from '../services/supabase';
 import { VibeManager, BookmarkManager } from '../services/dataFlow';
-import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 
 // ── Skeleton card shown while loading ─────────────────────────────────────────
@@ -327,7 +326,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       const newEvents = data || [];
       
       if (isRefreshing) {
-        setEvents(newEvents.length > 0 ? newEvents : SAMPLE_EVENTS);
+        setEvents(newEvents);
         setHasMore(newEvents.length === PAGE_SIZE);
       } else {
         setEvents(prev => [...prev, ...newEvents]);
@@ -343,7 +342,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       if (!isRefreshing) setPage(prev => prev + 1);
 
     } catch {
-      setEvents(prev => prev.length === 0 ? SAMPLE_EVENTS : prev);
       setHasMore(false);
     } finally {
       setLoading(false);
@@ -366,9 +364,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const loadTrending = useCallback(async () => {
     try {
       const { data } = await supabase.rpc('find_popular_spots', { limit_count: 8 });
-      setTrending(data && data.length > 0 ? data : SAMPLE_TRENDING);
+      setTrending(data || []);
     } catch {
-      setTrending(SAMPLE_TRENDING);
+      setTrending([]);
     }
   }, []);
 

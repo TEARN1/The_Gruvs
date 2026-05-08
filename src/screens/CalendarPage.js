@@ -12,7 +12,6 @@ import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { CalendarManager } from '../services/dataFlow';
 import { PostEventModal } from '../components/PostEventModal';
-import { SAMPLE_EVENTS } from '../constants/SampleData';
 import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
 
 const { width } = Dimensions.get('window');
@@ -325,24 +324,13 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const loadMonth = async (y, m) => {
     setLoading(true);
     const fromDB = await CalendarManager.fetchMonthEvents(y, m);
-    // Merge DB + sample
-    const dbIds = new Set((fromDB).map(e => e.id));
-    const sampleForMonth = SAMPLE_EVENTS.filter(ev => {
-      if (!ev.event_date) return false;
-      const d = new Date(ev.event_date);
-      return d.getFullYear() === y && d.getMonth() === m && !dbIds.has(ev.id);
-    });
-    setMonthEvents([...fromDB, ...sampleForMonth]);
+    setMonthEvents(fromDB);
     setLoading(false);
   };
 
   const loadUpcoming = async () => {
     const data = await CalendarManager.fetchUpcoming(10);
-    // Augment with sample
-    const today = new Date().toISOString().split('T')[0];
-    const dbIds = new Set(data.map(e => e.id));
-    const sampleUp = SAMPLE_EVENTS.filter(e => e.event_date >= today && !dbIds.has(e.id));
-    setUpcomingEvents([...data, ...sampleUp].sort((a, b) => a.event_date?.localeCompare(b.event_date)));
+    setUpcomingEvents(data.sort((a, b) => a.event_date?.localeCompare(b.event_date)));
   };
 
   const switchMonth = (dir) => {

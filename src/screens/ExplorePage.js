@@ -12,7 +12,6 @@ import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { FeedManager, TrendingManager, DiscoveryManager } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
-import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
 import { ServiceMarketplace } from './ServiceMarketplace';
@@ -322,18 +321,15 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       TrendingManager.fetchCategoryCounts(),
     ]);
 
-    const trendFull  = trending.length  > 0 ? trending  : SAMPLE_TRENDING;
-    const happenFull = happening.length > 0 ? happening : SAMPLE_EVENTS.slice(0, 4);
-
-    setTrendingEvents(trendFull);
-    setHappeningNow(happenFull);
+    setTrendingEvents(trending);
+    setHappeningNow(happening);
     setCategoryCounts(counts);
 
-    const featured = happenFull.reduce((best, e) =>
+    const featured = happening.reduce((best, e) =>
       (e.vibe_count || e.going || 0) > (best.vibe_count || best.going || 0) ? e : best,
-      happenFull[0]
+      happening[0] || null
     );
-    setFeaturedEvent(featured || SAMPLE_EVENTS[0]);
+    setFeaturedEvent(featured || null);
 
     setLoading(false);
 
@@ -366,12 +362,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
       const { events, users } = await FeedManager.searchAll(query);
-      const fromSample = SAMPLE_EVENTS.filter(e =>
-        e.title?.toLowerCase().includes(query.toLowerCase()) ||
-        e.description?.toLowerCase().includes(query.toLowerCase()) ||
-        e.category?.toLowerCase().includes(query.toLowerCase())
-      );
-      setSearchResults(events.length > 0 ? events : fromSample);
+      setSearchResults(events);
       setUserResults(users);
       setSearching(false);
     }, 350);
@@ -380,12 +371,12 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   // Filter events by mood or category
   const filteredEvents = (() => {
-    if (activeCat) return (happeningNow.length > 0 ? happeningNow : SAMPLE_EVENTS).filter(e => e.category === activeCat);
+    if (activeCat) return happeningNow.filter(e => e.category === activeCat);
     if (activeMood) {
       const mood = MOODS.find(m => m.key === activeMood);
-      if (mood) return (happeningNow.length > 0 ? happeningNow : SAMPLE_EVENTS).filter(e => mood.cats.includes(e.category));
+      if (mood) return happeningNow.filter(e => mood.cats.includes(e.category));
     }
-    return happeningNow.length > 0 ? happeningNow : SAMPLE_EVENTS;
+    return happeningNow;
   })();
 
   const isSearching = query.trim().length > 0;
