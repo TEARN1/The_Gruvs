@@ -193,7 +193,12 @@ const NearbyVibers = ({ vibers, primary, textColor, onPress }) => {
         {vibers.map(v => (
           <TouchableOpacity key={v.profile_id || v.id} style={nv.wrap} onPress={() => onPress(v)}>
             <View style={[nv.ring, { borderColor: primary }]}>
-              <Image source={{ uri: v.avatar_url || `https://i.pravatar.cc/60?u=${v.profile_id}` }} style={nv.avatar} />
+              {v.avatar_url
+                ? <Image source={{ uri: v.avatar_url }} style={nv.avatar} />
+                : <View style={[nv.avatar, { backgroundColor: ['#0891b2','#7c3aed','#059669'][(v.username?.charCodeAt(0)||0)%3], alignItems:'center', justifyContent:'center' }]}>
+                    <Text style={{ color:'#fff', fontWeight:'900', fontSize:12 }}>{(v.username||'V')[0].toUpperCase()}</Text>
+                  </View>
+              }
               {v.is_online && <View style={nv.dot} />}
             </View>
             <Text style={[nv.name, { color: textColor }]} numberOfLines={1}>@{v.username}</Text>
@@ -453,7 +458,12 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     {userResults.map((u, i) => (
                       <FadeInView key={u.id} delay={i * 30} direction="up">
                         <View style={[src.wrap, { borderColor: `${primary}25` }]}>
-                          <Image source={{ uri: u.avatar_url || `https://i.pravatar.cc/60?u=${u.id}` }} style={[src.thumb, { borderRadius: 30 }]} />
+                          {u.avatar_url
+                            ? <Image source={{ uri: u.avatar_url }} style={[src.thumb, { borderRadius: 30 }]} />
+                            : <View style={[src.thumb, { borderRadius: 30, backgroundColor: ['#0891b2','#7c3aed','#059669'][(u.username?.charCodeAt(0)||0)%3], alignItems:'center', justifyContent:'center' }]}>
+                                <Text style={{ color:'#fff', fontWeight:'900', fontSize:12 }}>{(u.username||'V')[0].toUpperCase()}</Text>
+                              </View>
+                          }
                           <View style={{ flex: 1 }}>
                             <Text style={[src.title, { color: textColor, fontSize: 13 }]}>@{u.username}</Text>
                             {u.bio ? <Text style={[src.metaText, { color: muted }]} numberOfLines={1}>{u.bio}</Text> : null}

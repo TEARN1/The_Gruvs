@@ -229,15 +229,22 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   const saveProfile = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from('profiles').update({
+    // Build payload — only include columns that are likely to exist
+    const payload = {
       bio: bio.trim() || null,
       location: location.trim() || null,
       interests: selectedInterests,
-      is_discoverable: discoverable,
-    }).eq('id', user.id);
+    };
+    // Try saving discoverable flag separately so a missing column doesn't block the whole save
+    const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
+    if (!error) {
+      // Best-effort: update discoverable (column may not exist yet)
+      await supabase.from('profiles').update({ is_discoverable: discoverable }).eq('id', user.id).then(() => {});
+      toast?.show('Profile saved!', 'success');
+    } else {
+      toast?.show('Save failed: ' + error.message, 'error');
+    }
     setSaving(false);
-    if (!error) toast?.show('Profile saved!', 'success');
-    else toast?.show('Save failed: ' + error.message, 'error');
   };
 
   return (

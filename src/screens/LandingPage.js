@@ -43,19 +43,22 @@ import { VibeManager, BookmarkManager } from '../services/dataFlow';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 
 // ── Skeleton card shown while loading ─────────────────────────────────────────
+const AVATAR_COLORS = ['#0891b2','#7c3aed','#dc2626','#059669','#d97706','#db2777'];
 const AvatarStack = ({ count, size = 20 }) => {
+  if (!count || count === 0) return null;
   const displayCount = Math.min(3, count);
   return (
     <View style={styles.avatarStack}>
       {[...Array(displayCount)].map((_, i) => (
-        <Image
+        <View
           key={i}
-          source={{ uri: `https://i.pravatar.cc/100?u=${i + count}` }}
           style={[
             styles.stackAvatar,
-            { width: size, height: size, borderRadius: size / 2, marginLeft: i === 0 ? 0 : -size / 2, borderColor: '#000' }
+            { width: size, height: size, borderRadius: size / 2, marginLeft: i === 0 ? 0 : -size / 2, borderColor: '#000', backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length], alignItems: 'center', justifyContent: 'center' }
           ]}
-        />
+        >
+          <Text style={{ fontSize: size * 0.45, fontWeight: '900', color: '#fff' }}>V</Text>
+        </View>
       ))}
       {count > displayCount && (
         <View style={[styles.stackMore, { width: size, height: size, borderRadius: size / 2, marginLeft: -size / 2, backgroundColor: '#222', borderColor: '#000' }]}>
@@ -817,7 +820,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             <View style={styles.userRow}>
               <TouchableOpacity onPress={() => openViberProfile(event.profiles)}>
                 <View style={styles.avatarWrap}>
-                  <Image source={{ uri: event.profiles?.avatar_url || `https://i.pravatar.cc/100?u=${id}` }} style={[styles.avatar, { borderColor: primary }]} />
+                  {event.profiles?.avatar_url
+                    ? <Image source={{ uri: event.profiles.avatar_url }} style={[styles.avatar, { borderColor: primary }]} />
+                    : <View style={[styles.avatar, { borderColor: primary, backgroundColor: AVATAR_COLORS[(event.profiles?.username?.charCodeAt(0) || 0) % AVATAR_COLORS.length], alignItems: 'center', justifyContent: 'center' }]}>
+                        <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>{(event.profiles?.username || 'V')[0].toUpperCase()}</Text>
+                      </View>
+                  }
                   {event.profiles?.is_online && <View style={[styles.onlineDot, { backgroundColor: '#10b981' }]} />}
                 </View>
               </TouchableOpacity>

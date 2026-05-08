@@ -4,6 +4,7 @@ import {
   Platform, Linking, Share, Animated, Modal,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
@@ -13,6 +14,7 @@ import { EventGallery } from '../components/EventGallery';
 import { MediaViewer } from '../components/MediaViewer';
 import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
+import { LocationService } from '../services/locationService';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return 'TBD';
@@ -40,6 +42,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const { showToast } = useToast();
 
   const [rsvpStatus, setRsvpStatus] = useState(null);
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [rsvpLoading, setRsvpLoading] = useState(false);
@@ -162,6 +166,32 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     showToast('Report submitted. We will review this event.', 'info');
   };
 
+  const handleCheckIn = async () => {
+    if (!user) { onAuthRequired?.(); return; }
+    if (checkingIn || checkedIn) return;
+    setCheckingIn(true);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+    const coords = await LocationService.requestAndGet();
+    const { error } = await supabase.from('live_checkins').upsert(
+      {
+        user_id: user.id,
+        event_id: event.id,
+        lat: coords?.lat ?? event.lat ?? null,
+        lon: coords?.lon ?? event.lon ?? null,
+        checked_in_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,event_id' }
+    );
+    setCheckingIn(false);
+    if (!error) {
+      setCheckedIn(true);
+      try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+      showToast("You're checked in! Your footprint is updated.", 'success');
+    } else {
+      showToast('Check-in failed: ' + error.message, 'error');
+    }
+  };
+
   const capacity = event?.capacity || 0;
   const spotsLeft = Math.max(0, capacity - goingCount);
   const capacityPct = capacity > 0 ? Math.min(1, goingCount / capacity) : 0;
@@ -199,10 +229,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
           <View style={styles.organizerRow}>
             <View style={styles.avatarWrap}>
-              <Image
-                source={{ uri: organizer.avatar_url || `https://i.pravatar.cc/100?u=${organizer.id}` }}
-                style={styles.avatar}
-              />
+              {organizer.avatar_url
+                ? <Image source={{ uri: organizer.avatar_url }} style={styles.avatar} />
+                : <View style={[styles.avatar, { backgroundColor: ['#0891b2','#7c3aed','#059669','#dc2626'][(organizer.username?.charCodeAt(0)||0)%4], alignItems:'center', justifyContent:'center' }]}>
+                    <Text style={{ color:'#fff', fontWeight:'900', fontSize:18 }}>{(organizer.username||'V')[0].toUpperCase()}</Text>
+                  </View>
+              }
               <View style={[styles.onlineDot, { backgroundColor: primary }]} />
               {organizer.is_verified && (
                 <View style={[styles.verifiedBadge, { backgroundColor: primary }]}>
@@ -308,6 +340,24 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             >
               <Feather name="external-link" size={16} color="#000" />
               <Text style={styles.ticketBtnText}>Get Tickets</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Check In button — builds user's Digital Footprint */}
+          {user && (
+            <TouchableOpacity
+              style={[styles.checkInBtn, {
+                backgroundColor: checkedIn ? '#10b981' : primary,
+                opacity: checkingIn ? 0.7 : 1,
+              }]}
+              onPress={handleCheckIn}
+              disabled={checkingIn || checkedIn}
+              activeOpacity={0.85}
+            >
+              <Feather name={checkedIn ? 'check-circle' : 'map-pin'} size={16} color="#000" />
+              <Text style={styles.checkInBtnText}>
+                {checkingIn ? 'Checking in...' : checkedIn ? "Checked In ✓" : "Check In to This Event"}
+              </Text>
             </TouchableOpacity>
           )}
 
@@ -576,6 +626,22 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 15,
     fontWeight: '700',
+  },
+  checkInBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 14,
+    paddingVertical: 15,
+    marginBottom: 4,
+    marginTop: 8,
+  },
+  checkInBtnText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.3,
   },
   sectionDivider: {
     height: 1,
