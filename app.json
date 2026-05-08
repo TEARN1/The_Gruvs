@@ -64,6 +64,14 @@
     "plugins": [
       "expo-av",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon-512.png",
+          "color": "#0d1112",
+          "sounds": []
+        }
+      ],
+      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "The Gruvs uses your location to show nearby events and vibers."
