@@ -235,7 +235,8 @@ export const NotificationsScreen = ({ onAuthRequired }) => {
               </Text>
             </View>
           }
-          contentContainerStyle={{ paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 140 }}
         />
       )}
     </SafeAreaView>

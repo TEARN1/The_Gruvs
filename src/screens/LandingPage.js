@@ -1055,6 +1055,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         ref={flatListRef}
         data={loading ? [] : events}
         keyExtractor={item => String(item.id)}
+        showsVerticalScrollIndicator={false}
         onScrollToIndexFailed={() => {}}
         ListHeaderComponent={
           <>

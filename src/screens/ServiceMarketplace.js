@@ -491,9 +491,10 @@ export function ServiceMarketplace() {
   const fetchProviders = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from('service_providers')
-        .select('*')
-        .order('social_integrity_score', { ascending: false });
+        .from('service_nodes')
+        .select('*, profiles(username, avatar_url, social_integrity_score)')
+        .eq('available', true)
+        .order('created_at', { ascending: false });
 
       if (error || !data || data.length === 0) {
         setProviders(SAMPLE_PROVIDERS);
@@ -509,9 +510,9 @@ export function ServiceMarketplace() {
   const fetchGigs = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from('gig_listings')
-        .select('*')
-        .eq('status', 'open')
+        .from('gig_posts')
+        .select('*, profiles(username, avatar_url, social_integrity_score)')
+        .eq('active', true)
         .order('created_at', { ascending: false });
 
       if (error || !data || data.length === 0) {
@@ -680,6 +681,7 @@ export function ServiceMarketplace() {
         <FlatList
           data={filteredGigs}
           keyExtractor={(item) => String(item.id)}
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
@@ -711,6 +713,7 @@ export function ServiceMarketplace() {
         <FlatList
           data={filteredProviders}
           keyExtractor={(item) => String(item.id)}
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
@@ -844,7 +847,7 @@ const styles = StyleSheet.create({
   // List
   list: {
     paddingHorizontal: 16,
-    paddingBottom: 32,
+    paddingBottom: 140,
     paddingTop: 4,
   },
 
