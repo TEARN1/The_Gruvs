@@ -9,7 +9,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
 import { FadeInView } from '../components/FadeInView';
-import { AuraEffect } from '../components/AuraEffect';
 import { THEMES, GENDERS } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase } from '../services/supabase';
@@ -27,6 +26,7 @@ import { LeaderboardScreen } from './LeaderboardScreen';
 import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
 import { PathMapScreen } from './PathMapScreen';
 import { useIdentity } from '../context/IdentityContext';
+import { BusinessDashboardScreen } from './BusinessDashboardScreen';
 
 const { width } = Dimensions.get('window');
 
@@ -633,6 +633,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [pathMapVisible, setPathMapVisible] = useState(false);
+  const [bizDashVisible, setBizDashVisible] = useState(false);
   const [postModalVisible, setPostModalVisible] = useState(false);
   const { identityMode, modeConfig, setIdentityMode } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs');
@@ -862,7 +863,6 @@ export const ProfilePage = ({ onAuthRequired }) => {
   // Main profile
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <AuraEffect />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 140 }}
@@ -881,13 +881,22 @@ export const ProfilePage = ({ onAuthRequired }) => {
             <BrandLogo size={32} showGlow />
             <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', letterSpacing: 2 }}>MY ROYALTY</Text>
           </View>
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
-            onPress={() => setLeaderboardVisible(true)}
-          >
-            <Feather name="award" size={14} color={primary} />
-            <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Leaderboard</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
+              onPress={() => setBizDashVisible(true)}
+            >
+              <Feather name="briefcase" size={14} color={primary} />
+              <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Business</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
+              onPress={() => setLeaderboardVisible(true)}
+            >
+              <Feather name="award" size={14} color={primary} />
+              <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Leaderboard</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Cover Photo */}
@@ -1265,6 +1274,11 @@ export const ProfilePage = ({ onAuthRequired }) => {
         currentUserId={user?.id}
       />
       <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
+      {bizDashVisible && (
+        <View style={StyleSheet.absoluteFill}>
+          <BusinessDashboardScreen onClose={() => setBizDashVisible(false)} />
+        </View>
+      )}
     </View>
   );
 };

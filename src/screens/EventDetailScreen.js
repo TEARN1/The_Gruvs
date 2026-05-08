@@ -15,6 +15,7 @@ import { MediaViewer } from '../components/MediaViewer';
 import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
 import { LocationService } from '../services/locationService';
+import { EventContextualAds } from '../components/EventContextualAds';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return 'TBD';
@@ -360,6 +361,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               </Text>
             </TouchableOpacity>
           )}
+
+          {/* Contextual ads based on event phase */}
+          {event && <EventContextualAds event={event} />}
 
           <View style={styles.sectionDivider} />
           {event?.id && <EchoSection eventId={event.id} />}

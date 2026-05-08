@@ -60,7 +60,7 @@ export const RouteJourneyCard = ({ route, onPress }) => {
   };
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
+    <View>
       <GlassView style={styles.container}>
         <View style={styles.header}>
           <View style={[styles.badge, { backgroundColor: color }]}>
@@ -123,7 +123,7 @@ export const RouteJourneyCard = ({ route, onPress }) => {
           </TouchableOpacity>
         </View>
       </GlassView>
-    </TouchableOpacity>
+    </View>
   );
 };
 

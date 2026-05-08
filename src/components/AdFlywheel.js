@@ -13,40 +13,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useIdentity } from '../context/IdentityContext';
 import { supabase } from '../services/supabase';
 
-const HOUR = new Date().getHours();
 
-const SAMPLE_ADS = [
-  {
-    id: 'ad_1',
-    type: 'event',
-    headline: 'Tonight at Warehouse IX',
-    subline: 'Deep House · Doors 9pm · R120',
-    cta: 'RSVP Now',
-    color: '#00f2ff',
-    icon: 'music',
-    badge: 'TONIGHT',
-  },
-  {
-    id: 'ad_2',
-    type: 'service',
-    headline: 'Need a Bakkie?',
-    subline: '3 providers near you · avg R280',
-    cta: 'Book Now',
-    color: '#f59e0b',
-    icon: 'truck',
-    badge: 'NEARBY',
-  },
-  {
-    id: 'ad_3',
-    type: 'gig',
-    headline: 'Earn R350 Tonight',
-    subline: 'Event crew needed · Newtown · 6pm–11pm',
-    cta: 'See Gig',
-    color: '#10b981',
-    icon: 'briefcase',
-    badge: 'GIG',
-  },
-];
 
 const intentToAdType = (intent) => {
   if (!intent) return null;
@@ -97,14 +64,7 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
       }
     } catch (_) {}
 
-    // Fallback to sample ads
-    const preferred = intentToAdType(intentTag);
-    const pool = preferred ? SAMPLE_ADS.filter(a => a.type === preferred) : SAMPLE_ADS;
-    // Time-aware: prioritise tonight's events after 3pm
-    const timeFiltered = HOUR >= 15 ? pool : pool.filter(a => a.badge !== 'TONIGHT');
-    const candidates = timeFiltered.length > 0 ? timeFiltered : SAMPLE_ADS;
-    setAd(candidates[Math.floor(Math.random() * candidates.length)]);
-    fadeIn();
+    // No real ads available — hide the unit
   };
 
   const fadeIn = () => {

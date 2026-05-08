@@ -589,7 +589,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <View style={{ marginBottom: 20 }}>
                 <SectionHeader title="Royal Routes" textColor={textColor} primary={primary} />
                 {routes.map((route, i) => (
-                  <RouteJourneyCard key={route.id || i} route={route} onPress={() => {}} />
+                  <RouteJourneyCard key={route.id || i} route={route} />
                 ))}
               </View>
             )}

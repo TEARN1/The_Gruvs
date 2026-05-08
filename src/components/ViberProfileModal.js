@@ -13,6 +13,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { NotificationService } from '../services/notificationService';
+import { DirectMessageModal } from './DirectMessageModal';
 
 const RANK_LABELS = [
   { min: 0,     max: 100,    name: 'Viber',       color: '#94a3b8' },
@@ -76,6 +77,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('events');
+  const [dmOpen, setDmOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(300)).current;
 
   const primary   = currentTheme?.primary    || '#00f2ff';
@@ -262,7 +264,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[s.msgBtn, { borderColor: `${primary}40` }]}
-                      onPress={() => {/* DM coming soon */}}
+                      onPress={() => setDmOpen(true)}
                     >
                       <Feather name="message-circle" size={16} color={primary} />
                     </TouchableOpacity>
@@ -387,6 +389,12 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         </Animated.View>
       </View>
     </Modal>
+
+    <DirectMessageModal
+      visible={dmOpen}
+      onClose={() => setDmOpen(false)}
+      recipient={profile}
+    />
   );
 };
 

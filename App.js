@@ -17,6 +17,7 @@ import { NotificationsScreen, useUnreadCount } from './src/screens/Notifications
 import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
+import { BusinessDashboardScreen } from './src/screens/BusinessDashboardScreen';
 
 class ErrorBoundary extends Component {
   state = { hasError: false, error: null };
@@ -36,11 +37,12 @@ class ErrorBoundary extends Component {
 }
 
 const TABS = [
-  { key: 'feed',          label: 'The Drop',  icon: 'home'     },
-  { key: 'explore',       label: 'Explore',   icon: 'compass'  },
-  { key: 'calendar',      label: 'Calendar',  icon: 'calendar' },
-  { key: 'notifications', label: 'Alerts',    icon: 'bell'     },
-  { key: 'profile',       label: 'Profile',   icon: 'user'     },
+  { key: 'feed',          label: 'The Drop',  icon: 'home'      },
+  { key: 'explore',       label: 'Explore',   icon: 'compass'   },
+  { key: 'calendar',      label: 'Calendar',  icon: 'calendar'  },
+  { key: 'notifications', label: 'Alerts',    icon: 'bell'      },
+  { key: 'business',      label: 'Biz',       icon: 'briefcase' },
+  { key: 'profile',       label: 'Profile',   icon: 'user'      },
 ];
 
 const WIDE_BREAKPOINT      = 900;
@@ -52,7 +54,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0 }) =>
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const indicatorAnim = useRef(new Animated.Value(0)).current;
-  const tabWidth = width / TABS.length;
+  const tabWidth = width / TABS.length; // auto-scales with 6 tabs
 
   useEffect(() => {
     const index = TABS.findIndex(t => t.key === currentTab);
@@ -85,7 +87,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0 }) =>
             activeOpacity={0.75}
           >
             <View style={{ position: 'relative' }}>
-              <Feather name={tab.icon} size={22} color={isActive ? primary : `${muted}`} style={{ opacity: isActive ? 1 : 0.5 }} />
+              <Feather name={tab.icon} size={20} color={isActive ? primary : `${muted}`} style={{ opacity: isActive ? 1 : 0.5 }} />
               {tab.key === 'notifications' && unreadCount > 0 && (
                 <View style={[styles.unreadBadge, { backgroundColor: '#ef4444' }]}>
                   <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -272,6 +274,8 @@ const MainNavigator = () => {
         return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'notifications':
         return <NotificationsScreen onAuthRequired={handleAuthRequired} />;
+      case 'business':
+        return <BusinessDashboardScreen onClose={() => setCurrentTab('profile')} />;
       case 'profile':
         return <ProfilePage onAuthRequired={handleAuthRequired} />;
       default:
