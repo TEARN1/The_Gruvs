@@ -24,6 +24,9 @@ import { StreakBadge } from '../components/StreakBadge';
 import { AchievementBadges } from '../components/AchievementBadges';
 import { ReferralCard } from '../components/ReferralCard';
 import { LeaderboardScreen } from './LeaderboardScreen';
+import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
+import { PathMapScreen } from './PathMapScreen';
+import { useIdentity } from '../context/IdentityContext';
 
 const { width } = Dimensions.get('window');
 
@@ -558,6 +561,8 @@ export const ProfilePage = ({ onAuthRequired }) => {
   const [subView, setSubView] = useState(null); // null | 'findme' | 'findthem'
   const [refreshing, setRefreshing] = useState(false);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [pathMapVisible, setPathMapVisible] = useState(false);
+  const { identityMode, modeConfig, setIdentityMode } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs'); // gruvs|saved|vibed|gallery
   const [settingsTab, setSettingsTab] = useState('discover'); // discover|aura
   const [eventCount, setEventCount] = useState(0);
@@ -871,6 +876,25 @@ export const ProfilePage = ({ onAuthRequired }) => {
           </View>
         )}
 
+        {/* Social Integrity Score */}
+        {user && (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+            <SocialIntegrityBadge score={user.social_integrity_score ?? 50} size="large" primary={primary} muted={muted} textColor={textColor} bg={bg} />
+          </View>
+        )}
+
+        {/* Path Map button */}
+        {user && (
+          <TouchableOpacity
+            onPress={() => setPathMapVisible(true)}
+            style={{ marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 12, backgroundColor: `${primary}18`, borderWidth: 1, borderColor: `${primary}30` }}
+          >
+            <Feather name="map" size={18} color={primary} />
+            <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>My Path Map</Text>
+            <Text style={{ color: muted, fontSize: 11, marginLeft: 'auto' }}>Digital footprint →</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Find Me / Find Them buttons */}
         <View style={styles.findRow}>
           <TouchableOpacity
@@ -1117,6 +1141,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
         onClose={() => setLeaderboardVisible(false)}
         currentUserId={user?.id}
       />
+      <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
     </View>
   );
 };

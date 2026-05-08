@@ -31,6 +31,9 @@ import { SearchHistoryBar, saveSearch } from '../components/SearchHistoryBar';
 import { DateFilterStrip, dateFilterToRange } from '../components/DateFilterStrip';
 import { TonightAlert } from '../components/TonightAlert';
 import { HashtagStrip } from '../components/HashtagStrip';
+import { PresenceBar } from '../components/PresenceBar';
+import { ReturnPathCard } from '../components/ReturnPathCard';
+import { PathMapScreen } from './PathMapScreen';
 import { supabase } from '../services/supabase';
 import { VibeManager, BookmarkManager } from '../services/dataFlow';
 import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
@@ -228,6 +231,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [dateFilter, setDateFilter] = useState('any');
   const [dateRange, setDateRange] = useState(null);
   const [activeHashtag, setActiveHashtag] = useState(null);
+  const [pathMapVisible, setPathMapVisible] = useState(false);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -999,6 +1003,19 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           {openRate[id] && (
             <RatingSection eventId={id} isSample={isSample} onAuthRequired={onAuthRequired} />
           )}
+          {!isSample && (
+            <PresenceBar
+              eventId={id}
+              eventEndTime={event.end_time}
+              onAuthRequired={onAuthRequired}
+            />
+          )}
+          {!isSample && (
+            <ReturnPathCard
+              event={event}
+              onAuthRequired={onAuthRequired}
+            />
+          )}
         </View>
       </FadeInView>
     );
@@ -1118,6 +1135,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         targetType={reportTarget?.type}
       />
       <OfflineBanner />
+      <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
     </View>
   );
 };
