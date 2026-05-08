@@ -3,11 +3,14 @@
     "name": "The Gruvs",
     "slug": "the-gruvs",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "orientation": "portrait",
-    "icon": "./logo.jpg",
+    "icon": "./assets/icon-512.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./logo.jpg",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#0d1112"
     },
@@ -22,22 +25,29 @@
         "NSLocationWhenInUseUsageDescription": "The Gruvs uses your location to show nearby events and vibers.",
         "NSCameraUsageDescription": "The Gruvs needs camera access to post event photos.",
         "NSPhotoLibraryUsageDescription": "The Gruvs needs photo library access to upload event media.",
-        "NSMicrophoneUsageDescription": "The Gruvs uses the microphone for video recording."
+        "NSMicrophoneUsageDescription": "The Gruvs uses the microphone for video recording.",
+        "NSUserTrackingUsageDescription": "We use this to show you relevant events near you."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./logo.jpg",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0d1112"
       },
       "package": "com.thegruvs.app",
       "versionCode": 1,
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
+      "minSdkVersion": 21,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
       ]
     },
     "web": {
@@ -46,7 +56,8 @@
       "shortName": "Gruvs",
       "description": "Discover your next event. I got you.",
       "themeColor": "#0d1112",
-      "backgroundColor": "#0d1112"
+      "backgroundColor": "#0d1112",
+      "favicon": "./logo.jpg"
     },
     "plugins": [
       "expo-av",
@@ -55,12 +66,20 @@
         {
           "locationAlwaysAndWhenInUsePermission": "The Gruvs uses your location to show nearby events and vibers."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The Gruvs needs photo library access to upload event media.",
+          "cameraPermission": "The Gruvs needs camera access to post event photos."
+        }
       ]
     ],
     "extra": {
       "eas": {
         "projectId": "your-eas-project-id"
-      }
+      },
+      "privacyPolicyUrl": "https://thegruvs.app/privacy"
     }
   }
 }

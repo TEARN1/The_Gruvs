@@ -4,9 +4,9 @@ import { useTheme } from '../context/ThemeContext';
 
 let LOCAL_LOGO = null;
 try {
-  LOCAL_LOGO = require('../../logo.jpg');
+  LOCAL_LOGO = require('../../assets/icon-512.png');
 } catch {
-  try { LOCAL_LOGO = require('../../assets/logo.png'); } catch { /* styled fallback */ }
+  try { LOCAL_LOGO = require('../../logo.jpg'); } catch { /* styled fallback */ }
 }
 
 export const BrandLogo = ({ size = 42, showGlow = false, style }) => {
