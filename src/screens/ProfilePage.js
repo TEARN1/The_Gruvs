@@ -19,7 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { CategoryPickerModal } from '../components/CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { useToast } from '../components/ToastNotification';
-import { SAMPLE_EVENTS } from '../constants/SampleData';
+import { PostEventModal } from '../components/PostEventModal';
 import { StreakBadge } from '../components/StreakBadge';
 import { AchievementBadges } from '../components/AchievementBadges';
 import { ReferralCard } from '../components/ReferralCard';
@@ -552,23 +552,88 @@ const ft = StyleSheet.create({
   searchText: { color: '#000', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
 });
 
+// ── Mini event card for profile tabs ─────────────────────────────────────────
+const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon }) => {
+  const img = ev.media?.find(m => m.type === 'image') || (typeof ev.media?.[0] === 'object' ? ev.media[0] : null);
+  const imgUrl = img?.url || (typeof ev.media?.[0] === 'string' ? ev.media[0] : null);
+  return (
+    <View style={[mec.wrap, { borderColor: `${primary}20` }]}>
+      {imgUrl
+        ? <Image source={{ uri: imgUrl }} style={mec.img} resizeMode="cover" />
+        : <View style={[mec.img, { backgroundColor: `${primary}12`, alignItems: 'center', justifyContent: 'center' }]}><Feather name="image" size={18} color={`${primary}40`} /></View>
+      }
+      <View style={mec.info}>
+        <Text style={[mec.title, { color: textColor }]} numberOfLines={1}>{ev.title || 'Untitled'}</Text>
+        <Text style={[mec.meta, { color: muted }]}>
+          {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' }) : ev.venue_name || ''}
+        </Text>
+        <View style={[mec.badge, { backgroundColor: `${primary}15` }]}>
+          {badgeIcon && <Feather name={badgeIcon} size={9} color={primary} />}
+          <Text style={[mec.badgeText, { color: primary }]}>{badge}</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+const mec = StyleSheet.create({
+  wrap: { flexDirection: 'row', borderWidth: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.03)' },
+  img: { width: 72, height: 72 },
+  info: { flex: 1, padding: 10, gap: 4 },
+  title: { fontSize: 13, fontWeight: '800' },
+  meta: { fontSize: 11 },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  badgeText: { fontSize: 10, fontWeight: '800' },
+});
+
+// ── Gallery tab — pulls real media from user's own events ──────────────────────
+const GalleryTab = ({ userId, primary, muted, myEvents }) => {
+  const allImgs = myEvents.flatMap(ev =>
+    (ev.media || []).filter(m => m?.type === 'image' || typeof m === 'string').map(m => (typeof m === 'string' ? m : m.url))
+  ).filter(Boolean).slice(0, 18);
+
+  const cellSize = Math.floor((width - 44) / 3);
+  if (allImgs.length === 0) {
+    return (
+      <View style={{ alignItems: 'center', paddingVertical: 32, gap: 10 }}>
+        <Feather name="image" size={32} color={primary} style={{ opacity: 0.4 }} />
+        <Text style={{ color: muted, fontSize: 13, textAlign: 'center' }}>Your gallery will appear here{'\n'}as you post events with photos</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+      {allImgs.map((url, i) => (
+        <Image key={i} source={{ uri: url }} style={{ width: cellSize, height: cellSize, borderRadius: 10, borderWidth: 1, borderColor: `${primary}15` }} resizeMode="cover" />
+      ))}
+    </View>
+  );
+};
+
 // ── Main Profile Page ─────────────────────────────────────────────────────────
 export const ProfilePage = ({ onAuthRequired }) => {
   const { currentTheme, gender, themeIndex, changeTheme } = useTheme();
   const { user, profile, signOut, refreshProfile } = useAuth();
   const toast = useToast();
 
-  const [subView, setSubView] = useState(null); // null | 'findme' | 'findthem'
+  const [subView, setSubView] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [pathMapVisible, setPathMapVisible] = useState(false);
+  const [postModalVisible, setPostModalVisible] = useState(false);
   const { identityMode, modeConfig, setIdentityMode } = useIdentity();
-  const [activeTab, setActiveTab] = useState('gruvs'); // gruvs|saved|vibed|gallery
-  const [settingsTab, setSettingsTab] = useState('discover'); // discover|aura
+  const [activeTab, setActiveTab] = useState('gruvs');
+  const [settingsTab, setSettingsTab] = useState('discover');
   const [eventCount, setEventCount] = useState(0);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [savedCount, setSavedCount] = useState(0);
   const [editingUsername, setEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [savingUsername, setSavingUsername] = useState(false);
+  const [myEvents, setMyEvents] = useState([]);
+  const [mySavedEvents, setMySavedEvents] = useState([]);
+  const [myVibedEvents, setMyVibedEvents] = useState([]);
+  const [tabLoading, setTabLoading] = useState(false);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -640,15 +705,56 @@ export const ProfilePage = ({ onAuthRequired }) => {
   };
 
   useEffect(() => {
-    if (user) {
-      supabase
-        .from('events')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .then(({ count }) => setEventCount(count || 0))
-        .catch(() => {});
-    }
+    if (!user) return;
+    const loadCounts = async () => {
+      const [evRes, followRes, saveRes] = await Promise.allSettled([
+        supabase.from('events').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', user.id),
+        supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      ]);
+      if (evRes.status === 'fulfilled') setEventCount(evRes.value.count || 0);
+      if (followRes.status === 'fulfilled') setFollowerCount(followRes.value.count || 0);
+      if (saveRes.status === 'fulfilled') setSavedCount(saveRes.value.count || 0);
+    };
+    loadCounts();
   }, [user]);
+
+  const loadTab = useCallback(async (tab) => {
+    if (!user) return;
+    setTabLoading(true);
+    try {
+      if (tab === 'gruvs') {
+        const { data } = await supabase
+          .from('events')
+          .select('*, profiles(username, avatar_url)')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        setMyEvents(data || []);
+      } else if (tab === 'saved') {
+        const { data } = await supabase
+          .from('saved_events')
+          .select('events(*)')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        setMySavedEvents((data || []).map(r => r.events).filter(Boolean));
+      } else if (tab === 'vibed') {
+        const { data } = await supabase
+          .from('event_vibes')
+          .select('events(*)')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        setMyVibedEvents((data || []).map(r => r.events).filter(Boolean));
+      }
+    } catch {}
+    setTabLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (user) loadTab(activeTab);
+  }, [user, activeTab]);
 
   const handleSaveUsername = async () => {
     if (!newUsername.trim() || !user) return;
@@ -842,8 +948,8 @@ export const ProfilePage = ({ onAuthRequired }) => {
         <View style={[styles.statsBar, { borderColor: `${primary}18` }]}>
           {[
             { label: 'Gruvs', value: eventCount },
-            { label: 'Crew', value: profile?.followers_count || 0 },
-            { label: 'Saved', value: profile?.saved_count || 0 },
+            { label: 'Crew', value: followerCount },
+            { label: 'Saved', value: savedCount },
             { label: 'Vibed', value: vibeScore },
           ].map((s, i, arr) => (
             <React.Fragment key={s.label}>
@@ -986,83 +1092,53 @@ export const ProfilePage = ({ onAuthRequired }) => {
 
         {/* Tab Content */}
         <View style={styles.tabContent}>
-          {activeTab === 'gruvs' && (
-            <View style={{ gap: 10 }}>
-              {SAMPLE_EVENTS.slice(0, 3).map((ev, i) => {
-                const img = ev.media?.find(m => m.type === 'image');
-                return (
-                  <View key={i} style={[styles.miniCard, { borderColor: `${primary}20` }]}>
-                    {img && <Image source={{ uri: img.url }} style={styles.miniCardImg} resizeMode="cover" />}
-                    <View style={styles.miniCardInfo}>
-                      <Text style={[styles.miniCardTitle, { color: textColor }]} numberOfLines={1}>{ev.title}</Text>
-                      <Text style={[styles.miniCardMeta, { color: muted }]}>{ev.event_date ? new Date(ev.event_date).toDateString() : 'Upcoming'}</Text>
-                      <View style={[styles.miniCardBadge, { backgroundColor: `${primary}18` }]}>
-                        <Text style={[styles.miniCardBadgeText, { color: primary }]}>{ev.category || 'Gruv'}</Text>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-          {activeTab === 'saved' && (
-            <View style={{ gap: 10 }}>
-              {SAMPLE_EVENTS.slice(3, 6).map((ev, i) => {
-                const img = ev.media?.find(m => m.type === 'image');
-                return (
-                  <View key={i} style={[styles.miniCard, { borderColor: `${primary}20` }]}>
-                    {img && <Image source={{ uri: img.url }} style={styles.miniCardImg} resizeMode="cover" />}
-                    <View style={styles.miniCardInfo}>
-                      <Text style={[styles.miniCardTitle, { color: textColor }]} numberOfLines={1}>{ev.title}</Text>
-                      <Text style={[styles.miniCardMeta, { color: muted }]}>{ev.location || 'Location TBD'}</Text>
-                      <View style={[styles.miniCardBadge, { backgroundColor: `${primary}18` }]}>
-                        <Feather name="bookmark" size={10} color={primary} />
-                        <Text style={[styles.miniCardBadgeText, { color: primary }]}>Saved</Text>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-          {activeTab === 'vibed' && (
-            <View style={{ gap: 10 }}>
-              {SAMPLE_EVENTS.slice(6, 9).map((ev, i) => {
-                const img = ev.media?.find(m => m.type === 'image');
-                return (
-                  <View key={i} style={[styles.miniCard, { borderColor: `${primary}20` }]}>
-                    {img && <Image source={{ uri: img.url }} style={styles.miniCardImg} resizeMode="cover" />}
-                    <View style={styles.miniCardInfo}>
-                      <Text style={[styles.miniCardTitle, { color: textColor }]} numberOfLines={1}>{ev.title}</Text>
-                      <Text style={[styles.miniCardMeta, { color: muted }]}>{ev.vibe_count || 0} vibes</Text>
-                      <View style={[styles.miniCardBadge, { backgroundColor: `${primary}18` }]}>
-                        <Feather name="zap" size={10} color={primary} />
-                        <Text style={[styles.miniCardBadgeText, { color: primary }]}>Vibed</Text>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-          {activeTab === 'gallery' && (
-            <View style={styles.galleryGrid}>
-              {SAMPLE_EVENTS.slice(0, 9).map((ev, i) => {
-                const media = ev.media?.find(m => m.type === 'image');
-                return media ? (
-                  <Image
-                    key={i}
-                    source={{ uri: media.url }}
-                    style={[styles.galleryCell, { borderColor: `${primary}15` }]}
-                    resizeMode="cover"
-                  />
+          {tabLoading ? (
+            <ActivityIndicator color={primary} style={{ marginVertical: 24 }} />
+          ) : (
+            <>
+              {activeTab === 'gruvs' && (
+                myEvents.length === 0 ? (
+                  <TouchableOpacity
+                    style={[styles.emptyTab, { borderColor: `${primary}20` }]}
+                    onPress={() => setPostModalVisible(true)}
+                  >
+                    <Feather name="plus-circle" size={32} color={primary} style={{ opacity: 0.6 }} />
+                    <Text style={[styles.emptyTabText, { color: muted }]}>No events posted yet{'\n'}Tap to drop your first Gruv</Text>
+                  </TouchableOpacity>
                 ) : (
-                  <View key={i} style={[styles.galleryCell, { backgroundColor: `${primary}12`, borderColor: `${primary}15` }]}>
-                    <Feather name="image" size={22} color={`${primary}40`} />
+                  <View style={{ gap: 10 }}>
+                    {myEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={ev.category || 'Gruv'} badgeIcon={null} />)}
                   </View>
-                );
-              })}
-            </View>
+                )
+              )}
+              {activeTab === 'saved' && (
+                mySavedEvents.length === 0 ? (
+                  <View style={[styles.emptyTab, { borderColor: `${primary}20` }]}>
+                    <Feather name="bookmark" size={32} color={primary} style={{ opacity: 0.6 }} />
+                    <Text style={[styles.emptyTabText, { color: muted }]}>No saved events yet{'\n'}Bookmark gruvs from the feed</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 10 }}>
+                    {mySavedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge="Saved" badgeIcon="bookmark" />)}
+                  </View>
+                )
+              )}
+              {activeTab === 'vibed' && (
+                myVibedEvents.length === 0 ? (
+                  <View style={[styles.emptyTab, { borderColor: `${primary}20` }]}>
+                    <Feather name="zap" size={32} color={primary} style={{ opacity: 0.6 }} />
+                    <Text style={[styles.emptyTabText, { color: muted }]}>No vibed events yet{'\n'}Zap events in the feed to vibe</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 10 }}>
+                    {myVibedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={`${ev.vibe_count || 0} vibes`} badgeIcon="zap" />)}
+                  </View>
+                )
+              )}
+              {activeTab === 'gallery' && (
+                <GalleryTab userId={user?.id} primary={primary} muted={muted} myEvents={myEvents} />
+              )}
+            </>
           )}
         </View>
 
@@ -1159,6 +1235,11 @@ export const ProfilePage = ({ onAuthRequired }) => {
 
       </ScrollView>
 
+      <PostEventModal
+        visible={postModalVisible}
+        onClose={() => setPostModalVisible(false)}
+        onPostSuccess={() => { loadTab('gruvs'); setActiveTab('gruvs'); }}
+      />
       <LeaderboardScreen
         visible={leaderboardVisible}
         onClose={() => setLeaderboardVisible(false)}

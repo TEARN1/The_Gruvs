@@ -11,6 +11,7 @@ import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { CalendarManager } from '../services/dataFlow';
+import { PostEventModal } from '../components/PostEventModal';
 import { SAMPLE_EVENTS } from '../constants/SampleData';
 import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
 
@@ -294,6 +295,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 
+  const [postModalVisible, setPostModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date(today));
   const [viewYear, setViewYear]   = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -403,7 +405,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
             )}
             <TouchableOpacity
               style={[styles.addBtn, { backgroundColor: primary }]}
-              onPress={() => user ? null : onAuthRequired()}
+              onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
             >
               <Feather name="plus" size={18} color="#000" />
             </TouchableOpacity>
@@ -506,7 +508,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Text style={[styles.emptyDayText, { color: muted }]}>No gruvs on this day</Text>
               <TouchableOpacity
                 style={[styles.addEventBtn, { borderColor: `${primary}50` }]}
-                onPress={() => user ? null : onAuthRequired()}
+                onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
               >
                 <Feather name="plus" size={14} color={primary} />
                 <Text style={[styles.addEventBtnText, { color: primary }]}>Add a Gruv</Text>
@@ -554,6 +556,12 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
         )}
 
       </ScrollView>
+
+      <PostEventModal
+        visible={postModalVisible}
+        onClose={() => setPostModalVisible(false)}
+        onPostSuccess={() => { loadMonth(viewYear, viewMonth); loadUpcoming(); }}
+      />
     </View>
   );
 };
