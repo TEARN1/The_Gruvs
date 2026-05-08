@@ -12,7 +12,8 @@ import { FadeInView } from '../components/FadeInView';
 import { THEMES, GENDERS } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase } from '../services/supabase';
-import { DiscoveryManager } from '../services/dataFlow';
+import { DiscoveryManager, UserManager } from '../services/dataFlow';
+import { DirectMessageModal } from '../components/DirectMessageModal';
 import { LocationService } from '../services/locationService';
 import * as ImagePicker from 'expo-image-picker';
 import { CategoryPickerModal } from '../components/CategoryPickerModal';
@@ -92,13 +93,13 @@ const AnalyticsChart = ({ primary, muted, textColor, userId }) => {
         const [rsvpRes, vibeRes] = await Promise.all([
           supabase
             .from('event_rsvps')
-            .select('created_at, events!inner(user_id)')
-            .eq('events.user_id', userId)
+            .select('created_at, events!inner(author_id)')
+            .eq('events.author_id', userId)
             .gte('created_at', since),
           supabase
             .from('event_vibes')
-            .select('created_at, events!inner(user_id)')
-            .eq('events.user_id', userId)
+            .select('created_at, events!inner(author_id)')
+            .eq('events.author_id', userId)
             .gte('created_at', since),
         ]);
         const rsvps = rsvpRes.data || [];
@@ -174,7 +175,7 @@ const pAvatarBg = (name) => {
   return colors[(name?.charCodeAt(0) || 0) % colors.length];
 };
 
-const PersonCard = ({ person, primary, muted, textColor, onFollow }) => (
+const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage }) => (
   <View style={[pcard.wrap, { borderColor: `${primary}18` }]}>
     {person.avatar_url
       ? <Image source={{ uri: person.avatar_url }} style={[pcard.avatar, { borderColor: `${primary}50` }]} />
@@ -187,7 +188,7 @@ const PersonCard = ({ person, primary, muted, textColor, onFollow }) => (
       <Text style={[pcard.name, { color: textColor }]}>@{person.username}</Text>
       <Text style={[pcard.meta, { color: muted }]}>{person.distance_km?.toFixed(1) || '?'} km away</Text>
       <View style={pcard.interestRow}>
-        {(person.interests || ['Music', 'Art']).slice(0, 2).map(int => (
+        {(person.interests || []).slice(0, 2).map(int => (
           <Text key={int} style={[pcard.pill, { backgroundColor: `${primary}18`, color: primary }]}>{int}</Text>
         ))}
       </View>
@@ -196,7 +197,7 @@ const PersonCard = ({ person, primary, muted, textColor, onFollow }) => (
       <TouchableOpacity style={[pcard.followBtn, { backgroundColor: primary }]} onPress={onFollow}>
         <Text style={pcard.followText}>Follow</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[pcard.msgBtn, { borderColor: `${primary}40` }]}>
+      <TouchableOpacity style={[pcard.msgBtn, { borderColor: `${primary}40` }]} onPress={onMessage}>
         <Feather name="message-circle" size={16} color={primary} />
       </TouchableOpacity>
     </View>
@@ -457,6 +458,7 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
   const [activeFilter, setActiveFilter] = useState(null);
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [dmTarget, setDmTarget] = useState(null);
 
   const search = async () => {
     if (!user) { onAuthRequired(); return; }
@@ -474,6 +476,7 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
     : people;
 
   return (
+    <>
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
       <GlassView style={fm.section}>
         <Text style={[fm.sectionTitle, { color: primary }]}>Search Radius</Text>
@@ -543,18 +546,25 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
                 textColor={textColor}
                 onFollow={async () => {
                   if (!user) return;
-                  await supabase.from('follows').upsert(
-                    { follower_id: user.id, following_id: person.id },
-                    { onConflict: 'follower_id,following_id', ignoreDuplicates: true }
-                  );
+                  await UserManager.follow(user.id, person.id);
                   toast?.show(`Following @${person.username}`, 'success');
                 }}
+                onMessage={() => setDmTarget(person)}
               />
             </FadeInView>
           ))
         )}
       </View>
     </ScrollView>
+
+    {dmTarget && (
+      <DirectMessageModal
+        visible={!!dmTarget}
+        recipient={dmTarget}
+        onClose={() => setDmTarget(null)}
+      />
+    )}
+    </>
   );
 };
 
@@ -569,8 +579,10 @@ const ft = StyleSheet.create({
 
 // ── Mini event card for profile tabs ─────────────────────────────────────────
 const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon }) => {
-  const img = ev.media?.find(m => m.type === 'image') || (typeof ev.media?.[0] === 'object' ? ev.media[0] : null);
-  const imgUrl = img?.url || (typeof ev.media?.[0] === 'string' ? ev.media[0] : null);
+  // media_urls is a string[] saved by PostEventModal; media is the legacy object[] format
+  const imgUrl = ev.media_urls?.[0] ||
+    ev.media?.find(m => m?.type === 'image')?.url ||
+    (typeof ev.media?.[0] === 'string' ? ev.media[0] : null);
   return (
     <View style={[mec.wrap, { borderColor: `${primary}20` }]}>
       {imgUrl
@@ -603,9 +615,12 @@ const mec = StyleSheet.create({
 
 // ── Gallery tab — pulls real media from user's own events ──────────────────────
 const GalleryTab = ({ userId, primary, muted, myEvents }) => {
-  const allImgs = myEvents.flatMap(ev =>
-    (ev.media || []).filter(m => m?.type === 'image' || typeof m === 'string').map(m => (typeof m === 'string' ? m : m.url))
-  ).filter(Boolean).slice(0, 18);
+  const allImgs = myEvents.flatMap(ev => {
+    if (Array.isArray(ev.media_urls)) return ev.media_urls;
+    return (ev.media || [])
+      .filter(m => m?.type === 'image' || typeof m === 'string')
+      .map(m => (typeof m === 'string' ? m : m.url));
+  }).filter(Boolean).slice(0, 18);
 
   const cellSize = Math.floor((width - 44) / 3);
   if (allImgs.length === 0) {
@@ -733,7 +748,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
     if (!user) return;
     const loadCounts = async () => {
       const [evRes, followRes, saveRes] = await Promise.allSettled([
-        supabase.from('events').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', user.id),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', user.id),
         supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
       ]);
@@ -752,7 +767,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
         const { data } = await supabase
           .from('events')
           .select('*, profiles(username, avatar_url)')
-          .eq('user_id', user.id)
+          .eq('author_id', user.id)
           .order('created_at', { ascending: false })
           .limit(20);
         setMyEvents(data || []);

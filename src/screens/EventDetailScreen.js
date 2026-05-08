@@ -14,7 +14,7 @@ import { EventGallery } from '../components/EventGallery';
 import { MediaViewer } from '../components/MediaViewer';
 import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
-import { RSVPManager, CheckInManager, UserManager, RealtimeManager } from '../services/dataFlow';
+import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, ScoreEngine } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import { EventContextualAds } from '../components/EventContextualAds';
 
@@ -50,6 +50,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [followLoading, setFollowLoading] = useState(false);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [goingCount, setGoingCount] = useState(0);
+  const [vibeCount, setVibeCount] = useState(event?.vibe_count || 0);
+  const [capacityStatus, setCapacityStatus] = useState({ hasLimit: false, isSoldOut: false, spotsLeft: null });
+  const [hasReminder, setHasReminder] = useState(false);
+  const [settingReminder, setSettingReminder] = useState(false);
+  const [whoGoingVisible, setWhoGoingVisible] = useState(false);
+  const [whoGoing, setWhoGoing] = useState([]);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -72,6 +78,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       if (event?.id) {
         fetchUserState();
         fetchGoingCount();
+        setVibeCount(event?.vibe_count || 0);
+        CapacityManager.getStatus(event.id).then(setCapacityStatus);
+        if (user) ReminderManager.hasReminder(user.id, event.id).then(setHasReminder);
       }
     } else {
       slideAnim.setValue(0);
@@ -79,9 +88,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
     if (!visible || !event?.id) return;
 
-    // Real-time: live vibe count
+    // Real-time: live vibe count — wired to state
     const unsubVibe = RealtimeManager.subscribeToVibeCount(event.id, (count) => {
-      // Update vibe count shown somewhere if displayed — no-op for now, going count is RSVP-based
+      setVibeCount(count);
     });
     // Real-time: live Touch Down (attendee) count
     const unsubCheckin = RealtimeManager.subscribeToAttendees(event.id, () => {
@@ -164,11 +173,37 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message: `${event?.title || 'Check out this Gruv'} on The Gruvs${event?.ticket_url ? `\n${event.ticket_url}` : ''}`,
-        title: event?.title,
-      });
+      const eventUrl = `https://thegruvs.com/event/${event?.id}`;
+      const shareText = `🎉 ${event?.title || 'Check out this Gruv'}\n📅 ${formatDate(event?.event_date)}${event?.venue_name ? `\n📍 ${event.venue_name}` : ''}\n\nThe Gruvs — ${eventUrl}`;
+      await Share.share({ message: shareText, title: event?.title });
     } catch {}
+  };
+
+  const handleToggleReminder = async () => {
+    if (!user) { onAuthRequired?.(); return; }
+    setSettingReminder(true);
+    if (hasReminder) {
+      await ReminderManager.cancel(user.id, event.id);
+      setHasReminder(false);
+      showToast('Reminder cancelled', 'info');
+    } else {
+      const ok = await ReminderManager.set(user.id, event.id, event.event_date, event.event_time || event.start_time, 60);
+      setHasReminder(ok);
+      showToast(ok ? 'Reminder set — 1 hour before' : 'Could not set reminder (event may have passed)', ok ? 'success' : 'error');
+    }
+    setSettingReminder(false);
+  };
+
+  const handleWhoGoing = async () => {
+    if (!event?.id) return;
+    const { data } = await supabase
+      .from('event_rsvps')
+      .select('profiles(id, username, avatar_url, vibe_score)')
+      .eq('event_id', event.id)
+      .eq('status', 'going')
+      .limit(50);
+    setWhoGoing((data || []).map(r => r.profiles).filter(Boolean));
+    setWhoGoingVisible(true);
   };
 
   const openMaps = () => {
@@ -202,8 +237,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     }
   };
 
-  const capacity = event?.capacity || 0;
-  const spotsLeft = Math.max(0, capacity - goingCount);
+  const capacity = event?.max_attendees || event?.capacity || 0;
+  const spotsLeft = capacityStatus.spotsLeft ?? Math.max(0, capacity - goingCount);
+  const isSoldOut = capacityStatus.isSoldOut || (capacity > 0 && goingCount >= capacity);
   const capacityPct = capacity > 0 ? Math.min(1, goingCount / capacity) : 0;
 
   const RSVP_OPTIONS = [
@@ -293,18 +329,39 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             <MetaChip icon="tag" label={formatPrice(event?.price)} color={primary} />
           </View>
 
-          {capacity > 0 && (
+          {/* Vibe count + Who's Going */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <View style={[styles.vibePill, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
+              <Feather name="zap" size={13} color={primary} />
+              <Text style={[styles.vibeCountText, { color: primary }]}>{vibeCount} Vibes</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.vibePill, { backgroundColor: `${primary}08`, borderColor: `${primary}20` }]}
+              onPress={handleWhoGoing}
+            >
+              <Feather name="users" size={13} color={primary} />
+              <Text style={[styles.vibeCountText, { color: primary }]}>{goingCount} Vibing</Text>
+            </TouchableOpacity>
+            {isSoldOut && (
+              <View style={[styles.vibePill, { backgroundColor: '#ef444420', borderColor: '#ef444440' }]}>
+                <Feather name="alert-circle" size={13} color="#ef4444" />
+                <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '800' }}>SOLD OUT</Text>
+              </View>
+            )}
+          </View>
+
+          {capacity > 0 && !isSoldOut && (
             <GlassView style={[styles.capacityCard, { backgroundColor: surface }]}>
               <View style={styles.capacityHeader}>
                 <Text style={[styles.capacityLabel, { color: textColor }]}>
                   {goingCount} <Text style={{ color: textMuted }}>/ {capacity} Vibing</Text>
                 </Text>
                 <Text style={[styles.spotsLeft, { color: spotsLeft < 10 ? '#ff6b6b' : primary }]}>
-                  {spotsLeft} Passes left
+                  {spotsLeft} spot{spotsLeft !== 1 ? 's' : ''} left
                 </Text>
               </View>
               <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                <View style={[styles.progressFill, { width: `${capacityPct * 100}%`, backgroundColor: primary }]} />
+                <View style={[styles.progressFill, { width: `${capacityPct * 100}%`, backgroundColor: capacityPct > 0.8 ? '#ef4444' : primary }]} />
               </View>
             </GlassView>
           )}
@@ -353,22 +410,41 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </TouchableOpacity>
           )}
 
-          {/* Check In button — builds user's Digital Footprint */}
+          {/* Reminder + Check In row */}
           {user && (
-            <TouchableOpacity
-              style={[styles.checkInBtn, {
-                backgroundColor: checkedIn ? '#10b981' : primary,
-                opacity: checkingIn ? 0.7 : 1,
-              }]}
-              onPress={handleCheckIn}
-              disabled={checkingIn || checkedIn}
-              activeOpacity={0.85}
-            >
-              <Feather name={checkedIn ? 'check-circle' : 'map-pin'} size={16} color="#000" />
-              <Text style={styles.checkInBtnText}>
-                {checkingIn ? 'Touching Down...' : checkedIn ? "Touched Down ✓" : "Touch Down"}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 0 }}>
+              <TouchableOpacity
+                style={[styles.checkInBtn, {
+                  backgroundColor: checkedIn ? '#10b981' : primary,
+                  opacity: checkingIn ? 0.7 : 1,
+                  flex: 1,
+                }]}
+                onPress={handleCheckIn}
+                disabled={checkingIn || checkedIn}
+                activeOpacity={0.85}
+              >
+                <Feather name={checkedIn ? 'check-circle' : 'map-pin'} size={16} color="#000" />
+                <Text style={styles.checkInBtnText}>
+                  {checkingIn ? 'Touching Down...' : checkedIn ? 'Touched Down ✓' : 'Touch Down'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.checkInBtn, {
+                  backgroundColor: hasReminder ? `${primary}30` : 'transparent',
+                  borderWidth: 1,
+                  borderColor: hasReminder ? primary : 'rgba(255,255,255,0.2)',
+                  opacity: settingReminder ? 0.6 : 1,
+                }]}
+                onPress={handleToggleReminder}
+                disabled={settingReminder}
+                activeOpacity={0.85}
+              >
+                <Feather name={hasReminder ? 'bell-off' : 'bell'} size={16} color={hasReminder ? primary : textMuted} />
+                <Text style={[styles.checkInBtnText, { color: hasReminder ? primary : textMuted }]}>
+                  {hasReminder ? 'Reminder On' : 'Remind Me'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           {/* Contextual ads based on event phase */}
@@ -389,6 +465,37 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           </TouchableOpacity>
 
         </ScrollView>
+
+        {/* Who's Going Modal */}
+        <Modal visible={whoGoingVisible} animationType="slide" transparent onRequestClose={() => setWhoGoingVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
+            <View style={[styles.whoGoingSheet, { backgroundColor: background }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={[styles.whoGoingTitle, { color: textColor }]}>Who's Vibing ({whoGoing.length})</Text>
+                <TouchableOpacity onPress={() => setWhoGoingVisible(false)}>
+                  <Feather name="x" size={22} color={textColor} />
+                </TouchableOpacity>
+              </View>
+              {whoGoing.length === 0
+                ? <Text style={[{ color: textMuted, textAlign: 'center', paddingVertical: 32, fontSize: 14 }]}>No one has Vibed yet — be first!</Text>
+                : whoGoing.map(p => (
+                    <View key={p.id} style={[styles.whoGoingRow, { borderBottomColor: `${primary}15` }]}>
+                      {p.avatar_url
+                        ? <Image source={{ uri: p.avatar_url }} style={styles.whoGoingAvatar} />
+                        : <View style={[styles.whoGoingAvatar, { backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center' }]}>
+                            <Text style={{ color: primary, fontWeight: '900' }}>{(p.username || 'V')[0].toUpperCase()}</Text>
+                          </View>
+                      }
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={[{ color: textColor, fontWeight: '700', fontSize: 14 }]}>@{p.username}</Text>
+                        <Text style={[{ color: primary, fontSize: 11, fontWeight: '600' }]}>⚡ {p.vibe_score || 0} pts</Text>
+                      </View>
+                    </View>
+                  ))
+              }
+            </View>
+          </View>
+        </Modal>
       </View>
     </Modal>
   );
@@ -661,6 +768,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.07)',
     marginVertical: 20,
   },
+  vibePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  vibeCountText: { fontSize: 12, fontWeight: '800' },
+  whoGoingSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '70%' },
+  whoGoingTitle: { fontSize: 17, fontWeight: '900' },
+  whoGoingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
+  whoGoingAvatar: { width: 42, height: 42, borderRadius: 21 },
   reportBtn: {
     flexDirection: 'row',
     alignItems: 'center',

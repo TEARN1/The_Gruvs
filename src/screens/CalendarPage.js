@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, Image, Animated, RefreshControl,
+  Dimensions, Image, Animated, RefreshControl, TextInput,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -13,6 +13,7 @@ import { BrandLogo } from '../components/BrandLogo';
 import { CalendarManager } from '../services/dataFlow';
 import { PostEventModal } from '../components/PostEventModal';
 import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
+import { supabase } from '../services/supabase';
 
 const { width } = Dimensions.get('window');
 const CELL = Math.floor((width - 32) / 7);
@@ -303,17 +304,50 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterMode, setFilterMode] = useState('all'); // 'all' | 'my_rsvps' | 'free'
+  const [myRsvpIds, setMyRsvpIds] = useState(new Set());
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const realtimeRef = useRef(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
+  const surface   = currentTheme?.surface    || '#1a1f21';
 
   useEffect(() => {
     loadMonth(viewYear, viewMonth);
     loadUpcoming();
   }, [viewYear, viewMonth]);
+
+  // Load user's RSVP'd event IDs for filter
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('event_rsvps').select('event_id').eq('user_id', user.id).eq('status', 'going')
+      .then(({ data }) => setMyRsvpIds(new Set((data || []).map(r => r.event_id))));
+  }, [user]);
+
+  // Real-time: new events appear on calendar instantly
+  useEffect(() => {
+    const channel = supabase
+      .channel('calendar_realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, () => {
+        loadMonth(viewYear, viewMonth);
+        loadUpcoming();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events' }, () => {
+        loadMonth(viewYear, viewMonth);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'event_rsvps' }, (p) => {
+        if (p.new.user_id === user?.id) {
+          setMyRsvpIds(prev => new Set([...prev, p.new.event_id]));
+        }
+      })
+      .subscribe();
+    realtimeRef.current = channel;
+    return () => supabase.removeChannel(channel);
+  }, [viewYear, viewMonth, user?.id]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -324,7 +358,15 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const loadMonth = async (y, m) => {
     setLoading(true);
     const fromDB = await CalendarManager.fetchMonthEvents(y, m);
-    setMonthEvents(fromDB);
+    // Hide events that have already ended (auto-expire)
+    const now = new Date();
+    const active = fromDB.filter(ev => {
+      if (!ev.event_date) return true;
+      const evDate = new Date(ev.event_date);
+      // Keep events that are today or future
+      return evDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    });
+    setMonthEvents(active);
     setLoading(false);
   };
 
@@ -355,9 +397,22 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
     return map;
   }, [monthEvents]);
 
-  // Events for selected day
+  // Events for selected day — filtered by search + mode
   const selectedKey = dateKey(selectedDate);
-  const dayEvents = monthEvents.filter(ev => ev.event_date === selectedKey);
+  const dayEvents = useMemo(() => {
+    let evs = monthEvents.filter(ev => ev.event_date === selectedKey);
+    if (filterMode === 'my_rsvps') evs = evs.filter(ev => myRsvpIds.has(ev.id));
+    if (filterMode === 'free') evs = evs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      evs = evs.filter(ev =>
+        ev.title?.toLowerCase().includes(q) ||
+        ev.venue_name?.toLowerCase().includes(q) ||
+        ev.category?.toLowerCase().includes(q)
+      );
+    }
+    return evs;
+  }, [monthEvents, selectedKey, filterMode, myRsvpIds, searchQuery]);
 
   const goToToday = () => {
     setSelectedDate(new Date(today));
@@ -399,6 +454,40 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Search bar */}
+        <View style={[calS.searchWrap, { backgroundColor: surface, borderColor: `${primary}20` }]}>
+          <Feather name="search" size={14} color={muted} />
+          <TextInput
+            style={[calS.searchInput, { color: textColor }]}
+            placeholder="Search gruvs this month..."
+            placeholderTextColor={muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Feather name="x" size={14} color={muted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Filter pills */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 12 }}>
+          {[
+            { key: 'all',      label: 'All Gruvs' },
+            { key: 'my_rsvps', label: '⚡ Vibing' },
+            { key: 'free',     label: '🎫 Free' },
+          ].map(f => (
+            <TouchableOpacity
+              key={f.key}
+              style={[calS.filterPill, { backgroundColor: filterMode === f.key ? primary : `${primary}12`, borderColor: filterMode === f.key ? primary : `${primary}30` }]}
+              onPress={() => setFilterMode(f.key)}
+            >
+              <Text style={[calS.filterText, { color: filterMode === f.key ? '#000' : primary }]}>{f.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         {/* Month navigator */}
         <View style={styles.monthNav}>
@@ -593,4 +682,11 @@ const styles = StyleSheet.create({
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '900' },
   sectionCount: { fontSize: 12, fontWeight: '600' },
+});
+
+const calS = StyleSheet.create({
+  searchWrap:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14, borderWidth: 1 },
+  searchInput: { flex: 1, fontSize: 13 },
+  filterPill:  { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  filterText:  { fontSize: 12, fontWeight: '800' },
 });

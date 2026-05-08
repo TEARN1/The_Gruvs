@@ -1047,3 +1047,422 @@ async function _notify(recipientId, actorId, type, title, body) {
     });
   } catch {}
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MESSAGE MANAGER  (DM inbox, conversations, unread count)
+// ─────────────────────────────────────────────────────────────────────────────
+export const MessageManager = {
+  // Fetch all conversations for user — one row per partner, sorted by latest message
+  async getConversations(userId) {
+    if (!userId) return [];
+    const cacheKey = `convos:${userId}`;
+    const stale    = cache.getStale(cacheKey);
+    try {
+      const { data } = await supabase
+        .from('messages')
+        .select(`
+          id, sender_id, recipient_id, body, created_at, read_at,
+          is_request, request_accepted, deleted_at,
+          sender:profiles!messages_sender_id_fkey(id, username, avatar_url, is_online),
+          recipient:profiles!messages_recipient_id_fkey(id, username, avatar_url, is_online)
+        `)
+        .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(500);
+
+      const rows = data || [];
+      // Deduplicate — keep only latest message per conversation partner
+      const seen  = {};
+      const convos = [];
+      for (const msg of rows) {
+        const partnerId = msg.sender_id === userId ? msg.recipient_id : msg.sender_id;
+        if (!seen[partnerId]) {
+          seen[partnerId] = true;
+          const partner = msg.sender_id === userId ? msg.recipient : msg.sender;
+          convos.push({ ...msg, partner, partnerId });
+        }
+      }
+      cache.set(cacheKey, convos, 30_000);
+      return convos;
+    } catch { return stale || []; }
+  },
+
+  // Count unread DMs for the nav badge
+  async getUnreadCount(userId) {
+    if (!userId) return 0;
+    const cacheKey = `dm_unread:${userId}`;
+    const cached   = cache.get(cacheKey);
+    if (cached !== null) return cached;
+    try {
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient_id', userId)
+        .is('read_at', null)
+        .is('deleted_at', null);
+      const n = count || 0;
+      cache.set(cacheKey, n, 15_000);
+      return n;
+    } catch { return 0; }
+  },
+
+  // Send a message — first message auto-marks as request
+  async send(senderId, recipientId, body) {
+    try {
+      // Check if conversation already accepted
+      const { data: prior } = await supabase
+        .from('messages')
+        .select('id, request_accepted')
+        .or(`and(sender_id.eq.${recipientId},recipient_id.eq.${senderId}),and(sender_id.eq.${senderId},recipient_id.eq.${recipientId})`)
+        .limit(1)
+        .maybeSingle();
+      const accepted = !!prior?.request_accepted;
+
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: senderId, recipient_id: recipientId,
+          body: body.trim(),
+          is_request: !accepted,
+          request_accepted: accepted,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      cache.invalidate(`convos:${senderId}`);
+      cache.invalidate(`convos:${recipientId}`);
+      cache.invalidate(`dm_unread:${recipientId}`);
+
+      // Notify recipient
+      _notify(recipientId, senderId, 'message', 'New Message Request', body.trim().slice(0, 80)).catch(() => {});
+
+      return data;
+    } catch { return null; }
+  },
+
+  // Accept a conversation request
+  async acceptRequest(conversationSenderId, recipientId) {
+    try {
+      await supabase
+        .from('messages')
+        .update({ request_accepted: true, is_request: false })
+        .eq('sender_id', conversationSenderId)
+        .eq('recipient_id', recipientId);
+      cache.invalidate(`convos:${recipientId}`);
+      cache.invalidate(`convos:${conversationSenderId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  // Mark all messages from a sender as read
+  async markRead(senderId, recipientId) {
+    try {
+      await supabase
+        .from('messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('sender_id', senderId)
+        .eq('recipient_id', recipientId)
+        .is('read_at', null);
+      cache.invalidate(`dm_unread:${recipientId}`);
+      cache.invalidate(`convos:${recipientId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  // Fetch messages between two users
+  async fetchThread(userA, userB, limit = 100) {
+    const cacheKey = `thread:${[userA, userB].sort().join('_')}`;
+    const stale    = cache.getStale(cacheKey);
+    try {
+      const { data } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`and(sender_id.eq.${userA},recipient_id.eq.${userB}),and(sender_id.eq.${userB},recipient_id.eq.${userA})`)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true })
+        .limit(limit);
+      const result = data || [];
+      cache.set(cacheKey, result, 20_000);
+      return result;
+    } catch { return stale || []; }
+  },
+
+  // Soft-delete a message
+  async deleteMessage(messageId, userId) {
+    try {
+      await supabase
+        .from('messages')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', messageId)
+        .eq('sender_id', userId);
+      cache.invalidate('thread:');
+      cache.invalidate('convos:');
+      return true;
+    } catch { return false; }
+  },
+
+  // React to a message with an emoji
+  async reactToMessage(messageId, emoji) {
+    try {
+      await supabase.from('messages').update({ reaction: emoji }).eq('id', messageId);
+      return true;
+    } catch { return false; }
+  },
+
+  // Real-time subscription for DM unread badge
+  subscribeUnreadCount(userId, onChange) {
+    const channel = supabase
+      .channel(`dm_unread_${userId}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'messages',
+        filter: `recipient_id=eq.${userId}`,
+      }, () => {
+        cache.invalidate(`dm_unread:${userId}`);
+        cache.invalidate(`convos:${userId}`);
+        this.getUnreadCount(userId).then(onChange);
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCK MANAGER
+// ─────────────────────────────────────────────────────────────────────────────
+export const BlockManager = {
+  async block(blockerId, blockedId) {
+    try {
+      await supabase.from('blocked_users').upsert(
+        { blocker_id: blockerId, blocked_id: blockedId },
+        { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
+      );
+      cache.invalidate(`blocks:${blockerId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  async unblock(blockerId, blockedId) {
+    try {
+      await supabase.from('blocked_users')
+        .delete().eq('blocker_id', blockerId).eq('blocked_id', blockedId);
+      cache.invalidate(`blocks:${blockerId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  async isBlocked(blockerId, blockedId) {
+    try {
+      const { data } = await supabase
+        .from('blocked_users').select('id')
+        .eq('blocker_id', blockerId).eq('blocked_id', blockedId).maybeSingle();
+      return !!data;
+    } catch { return false; }
+  },
+
+  async getBlockedIds(userId) {
+    const cacheKey = `blocks:${userId}`;
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase
+        .from('blocked_users').select('blocked_id').eq('blocker_id', userId);
+      const result = (data || []).map(r => r.blocked_id);
+      cache.set(cacheKey, result);
+      return result;
+    } catch { return []; }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MUTE MANAGER  (hide user's events from feed)
+// ─────────────────────────────────────────────────────────────────────────────
+export const MuteManager = {
+  async mute(muterId, mutedId) {
+    try {
+      await supabase.from('muted_users').upsert(
+        { muter_id: muterId, muted_id: mutedId },
+        { onConflict: 'muter_id,muted_id', ignoreDuplicates: true }
+      );
+      cache.invalidate(`mutes:${muterId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  async unmute(muterId, mutedId) {
+    try {
+      await supabase.from('muted_users').delete().eq('muter_id', muterId).eq('muted_id', mutedId);
+      cache.invalidate(`mutes:${muterId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  async getMutedIds(userId) {
+    const cacheKey = `mutes:${userId}`;
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase.from('muted_users').select('muted_id').eq('muter_id', userId);
+      const result = (data || []).map(r => r.muted_id);
+      cache.set(cacheKey, result);
+      return result;
+    } catch { return []; }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REMINDER MANAGER  (event reminders — stored in DB, fired as local notifs)
+// ─────────────────────────────────────────────────────────────────────────────
+export const ReminderManager = {
+  async set(userId, eventId, eventDate, eventTime, minutesBefore = 60) {
+    try {
+      const eventDateTime = new Date(`${eventDate}T${eventTime || '20:00'}:00`);
+      const remindAt = new Date(eventDateTime.getTime() - minutesBefore * 60 * 1000);
+      if (remindAt <= new Date()) return false; // already past
+
+      const { error } = await supabase.from('event_reminders').upsert(
+        { user_id: userId, event_id: eventId, remind_at: remindAt.toISOString(), minutes_before: minutesBefore },
+        { onConflict: 'user_id,event_id' }
+      );
+      if (error) throw error;
+      cache.invalidate(`reminders:${userId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  async cancel(userId, eventId) {
+    try {
+      await supabase.from('event_reminders').delete().eq('user_id', userId).eq('event_id', eventId);
+      cache.invalidate(`reminders:${userId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  async hasReminder(userId, eventId) {
+    try {
+      const { data } = await supabase
+        .from('event_reminders').select('id').eq('user_id', userId).eq('event_id', eventId).maybeSingle();
+      return !!data;
+    } catch { return false; }
+  },
+
+  async getUserReminders(userId) {
+    const cacheKey = `reminders:${userId}`;
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase
+        .from('event_reminders')
+        .select('*, event:events(id, title, event_date, event_time, venue_name)')
+        .eq('user_id', userId).eq('sent', false)
+        .order('remind_at', { ascending: true });
+      const result = data || [];
+      cache.set(cacheKey, result, 60_000);
+      return result;
+    } catch { return []; }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRESENCE MANAGER  (online/offline status)
+// ─────────────────────────────────────────────────────────────────────────────
+export const PresenceManager = {
+  _channel: null,
+
+  async goOnline(userId) {
+    if (!userId) return;
+    try {
+      await supabase.from('profiles').update({ is_online: true, last_seen: new Date().toISOString() }).eq('id', userId);
+      cache.invalidate(`profile:${userId}`);
+    } catch {}
+  },
+
+  async goOffline(userId) {
+    if (!userId) return;
+    try {
+      await supabase.from('profiles').update({ is_online: false, last_seen: new Date().toISOString() }).eq('id', userId);
+      cache.invalidate(`profile:${userId}`);
+    } catch {}
+  },
+
+  // Subscribe to a specific user's online status changes
+  subscribeToUser(userId, onChange) {
+    const channel = supabase
+      .channel(`presence_${userId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'profiles',
+        filter: `id=eq.${userId}`,
+      }, payload => {
+        onChange?.({ is_online: payload.new.is_online, last_seen: payload.new.last_seen });
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CAPACITY MANAGER  (event max_attendees / sold-out)
+// ─────────────────────────────────────────────────────────────────────────────
+export const CapacityManager = {
+  async getStatus(eventId) {
+    try {
+      const { data: event } = await supabase
+        .from('events').select('max_attendees, is_sold_out').eq('id', eventId).single();
+      if (!event) return { hasLimit: false, isSoldOut: false, spotsLeft: null };
+
+      if (!event.max_attendees) return { hasLimit: false, isSoldOut: false, spotsLeft: null };
+      const { count } = await supabase
+        .from('event_rsvps').select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId).eq('status', 'going');
+      const spotsLeft = Math.max(0, event.max_attendees - (count || 0));
+      return { hasLimit: true, isSoldOut: event.is_sold_out || spotsLeft === 0, spotsLeft, capacity: event.max_attendees };
+    } catch { return { hasLimit: false, isSoldOut: false, spotsLeft: null }; }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FOLLOWING FEED  (events from users you follow)
+// ─────────────────────────────────────────────────────────────────────────────
+export const FollowingFeedManager = {
+  async fetch(userId, page = 0, pageSize = 15) {
+    if (!userId) return { events: [], hasMore: false };
+    const cacheKey = `following_feed:${userId}:${page}`;
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const followedIds = await UserManager.getFollowedIds(userId);
+      if (!followedIds.length) return { events: [], hasMore: false };
+
+      const { data } = await supabase
+        .from('events')
+        .select('*, profiles(id, username, avatar_url, is_verified, vibe_score)')
+        .in('author_id', followedIds)
+        .gte('event_date', new Date().toISOString().split('T')[0])
+        .order('created_at', { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      const result = { events: data || [], hasMore: (data || []).length === pageSize };
+      cache.set(cacheKey, result, 60_000);
+      return result;
+    } catch { return { events: [], hasMore: false }; }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GLOBAL CACHE CLEAR  (call on sign-out)
+// ─────────────────────────────────────────────────────────────────────────────
+export const clearAllCache = () => {
+  cache.clear();
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEBOUNCE UTIL  (reuse across components without a separate import)
+// ─────────────────────────────────────────────────────────────────────────────
+export function debounce(fn, ms = 400) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}

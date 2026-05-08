@@ -14,6 +14,7 @@ import { ExplorePage } from './src/screens/ExplorePage';
 import { ProfilePage } from './src/screens/ProfilePage';
 import { CalendarPage } from './src/screens/CalendarPage';
 import { NotificationsScreen, useUnreadCount } from './src/screens/NotificationsScreen';
+import { ChatsScreen, useUnreadDMCount } from './src/screens/ChatsScreen';
 import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
@@ -39,12 +40,13 @@ class ErrorBoundary extends Component {
 }
 
 const TABS = [
-  { key: 'feed',          label: 'The Drop',  icon: 'home'      },
-  { key: 'explore',       label: 'Scout',     icon: 'compass'   },
-  { key: 'calendar',      label: 'Lineup',    icon: 'calendar'  },
-  { key: 'notifications', label: 'Pings',     icon: 'bell'      },
-  { key: 'business',      label: 'Biz',       icon: 'briefcase' },
-  { key: 'profile',       label: 'Vibe Card', icon: 'user'      },
+  { key: 'feed',          label: 'The Drop',  icon: 'home'            },
+  { key: 'explore',       label: 'Scout',     icon: 'compass'         },
+  { key: 'calendar',      label: 'Lineup',    icon: 'calendar'        },
+  { key: 'chats',         label: 'Linked Up', icon: 'message-circle'  },
+  { key: 'notifications', label: 'Pings',     icon: 'bell'            },
+  { key: 'business',      label: 'Biz',       icon: 'briefcase'       },
+  { key: 'profile',       label: 'Vibe Card', icon: 'user'            },
 ];
 
 const WIDE_BREAKPOINT      = 900;
@@ -52,11 +54,11 @@ const SIDEBAR_OPEN_WIDTH   = 220;
 const SIDEBAR_CLOSED_WIDTH = 56;
 
 // ── Bottom Tab Bar (narrow screens) ──────────────────────────────────────────
-const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0 }) => {
+const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0, unreadDMCount = 0 }) => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const indicatorAnim = useRef(new Animated.Value(0)).current;
-  const tabWidth = width / TABS.length; // auto-scales with 6 tabs
+  const tabWidth = width / TABS.length; // auto-scales with 7 tabs
 
   useEffect(() => {
     const index = TABS.findIndex(t => t.key === currentTab);
@@ -93,6 +95,11 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0 }) =>
               {tab.key === 'notifications' && unreadCount > 0 && (
                 <View style={[styles.unreadBadge, { backgroundColor: '#ef4444' }]}>
                   <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+              {tab.key === 'chats' && unreadDMCount > 0 && (
+                <View style={[styles.unreadBadge, { backgroundColor: primary }]}>
+                  <Text style={[styles.unreadBadgeText, { color: '#000' }]}>{unreadDMCount > 9 ? '9+' : unreadDMCount}</Text>
                 </View>
               )}
             </View>
@@ -220,7 +227,8 @@ const MainNavigator = () => {
   const { currentTheme } = useTheme();
   const { width } = useWindowDimensions();
   useNotifications();
-  const unreadCount = useUnreadCount();
+  const unreadCount   = useUnreadCount();
+  const unreadDMCount = useUnreadDMCount();
   const { hasLaunched, openTutorial, markLaunched } = useTutorial();
   const [currentTab, setCurrentTab] = useState('feed');
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
@@ -286,6 +294,8 @@ const MainNavigator = () => {
         );
       case 'calendar':
         return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
+      case 'chats':
+        return <ChatsScreen onAuthRequired={handleAuthRequired} />;
       case 'notifications':
         return <NotificationsScreen onAuthRequired={handleAuthRequired} />;
       case 'business':
@@ -349,6 +359,7 @@ const MainNavigator = () => {
               primary={primary}
               muted={muted}
               unreadCount={unreadCount}
+              unreadDMCount={unreadDMCount}
             />
           </View>
         )}

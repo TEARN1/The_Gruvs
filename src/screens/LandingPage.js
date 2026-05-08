@@ -39,7 +39,7 @@ import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PathMapScreen } from './PathMapScreen';
 import { EventDetailScreen } from './EventDetailScreen';
 import { supabase } from '../services/supabase';
-import { VibeManager, BookmarkManager } from '../services/dataFlow';
+import { VibeManager, BookmarkManager, FollowingFeedManager } from '../services/dataFlow';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 
 // ── Skeleton card shown while loading ─────────────────────────────────────────
@@ -240,6 +240,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [activeHashtag, setActiveHashtag] = useState(null);
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [feedMode, setFeedMode] = useState('all'); // 'all' | 'following'
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -256,7 +257,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   useEffect(() => {
     loadData(true);
-  }, [selectedCat, debouncedQuery, mode, refreshKey]);
+  }, [selectedCat, debouncedQuery, mode, refreshKey, feedMode]);
 
   useEffect(() => { loadTrending(); }, []);
 
@@ -312,23 +313,40 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const end = start + PAGE_SIZE - 1;
 
     try {
-      let q = supabase
-        .from('events')
-        .select('*, profiles(username, avatar_url, is_verified, is_online, vibe_score)')
-        .order(mode === 'explore' ? 'vibe_count' : 'created_at', { ascending: false });
+      // Auto-expire: only show events from today onwards (or without a date)
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-      if (selectedCat && selectedCat !== 'all') q = q.eq('category', selectedCat);
-      if (debouncedQuery.trim()) {
-        const s = `%${debouncedQuery.trim()}%`;
-        q = q.or(`title.ilike.${s},description.ilike.${s},category.ilike.${s},venue_name.ilike.${s},city.ilike.${s}`);
+      let newEvents = [];
+
+      if (feedMode === 'following' && user) {
+        newEvents = await FollowingFeedManager.fetch(user.id, currentPage, PAGE_SIZE);
+        if (selectedCat && selectedCat !== 'all') newEvents = newEvents.filter(e => e.category === selectedCat);
+        if (debouncedQuery.trim()) {
+          const q = debouncedQuery.toLowerCase();
+          newEvents = newEvents.filter(e =>
+            (e.title || '').toLowerCase().includes(q) ||
+            (e.description || '').toLowerCase().includes(q) ||
+            (e.venue_name || '').toLowerCase().includes(q)
+          );
+        }
+      } else {
+        let q = supabase
+          .from('events')
+          .select('*, profiles(username, avatar_url, is_verified, is_online, vibe_score)')
+          .order(mode === 'explore' ? 'vibe_count' : 'created_at', { ascending: false })
+          .or(`event_date.is.null,event_date.gte.${yesterday}`);
+
+        if (selectedCat && selectedCat !== 'all') q = q.eq('category', selectedCat);
+        if (debouncedQuery.trim()) {
+          const s = `%${debouncedQuery.trim()}%`;
+          q = q.or(`title.ilike.${s},description.ilike.${s},category.ilike.${s},venue_name.ilike.${s},city.ilike.${s}`);
+        }
+
+        const { data, error } = await q.range(start, end);
+        if (error) throw error;
+        newEvents = data || [];
       }
 
-      const { data, error } = await q.range(start, end);
-
-      if (error) throw error;
-
-      const newEvents = data || [];
-      
       if (isRefreshing) {
         setEvents(newEvents);
         setHasMore(newEvents.length === PAGE_SIZE);
@@ -338,11 +356,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       }
 
       const counts = {};
-      [...(isRefreshing ? [] : events), ...newEvents].forEach(e => { 
-        counts[e.id] = e.vibe_count || 0; 
+      [...(isRefreshing ? [] : events), ...newEvents].forEach(e => {
+        counts[e.id] = e.vibe_count || 0;
       });
       setVibeCounts(prev => ({ ...prev, ...counts }));
-      
+
       if (!isRefreshing) setPage(prev => prev + 1);
 
     } catch {
@@ -352,7 +370,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       setLoadingMore(false);
       setRefreshing(false);
     }
-  }, [selectedCat, debouncedQuery, mode, page, hasMore, loadingMore, events]);
+  }, [selectedCat, debouncedQuery, mode, page, hasMore, loadingMore, events, feedMode, user]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -650,6 +668,30 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         }}
         primary={primary}
       />
+
+      {/* Feed mode toggle — All / Following */}
+      {user && (
+        <View style={{ flexDirection: 'row', marginHorizontal: 14, marginBottom: 8, gap: 8 }}>
+          {[{ key: 'all', label: 'For You', icon: 'home' }, { key: 'following', label: 'Following', icon: 'users' }].map(tab => {
+            const active = feedMode === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                onPress={() => setFeedMode(tab.key)}
+                style={{
+                  flexDirection: 'row', alignItems: 'center', gap: 5,
+                  paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+                  backgroundColor: active ? primary : 'rgba(255,255,255,0.06)',
+                  borderWidth: 1, borderColor: active ? primary : 'rgba(255,255,255,0.10)',
+                }}
+              >
+                <Feather name={tab.icon} size={12} color={active ? '#000' : textColor} />
+                <Text style={{ fontSize: 12, fontWeight: '800', color: active ? '#000' : textColor }}>{tab.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
       {/* Category pills */}
       <ScrollView

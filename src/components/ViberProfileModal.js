@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { NotificationService } from '../services/notificationService';
 import { DirectMessageModal } from './DirectMessageModal';
+import { UserManager, PresenceManager } from '../services/dataFlow';
 
 const RANK_LABELS = [
   { min: 0,     max: 100,    name: 'Viber',       color: '#94a3b8' },
@@ -26,7 +27,9 @@ const getRank = (score) => RANK_LABELS.find(r => score >= r.min && score <= r.ma
 
 // ── Mini event card inside the profile sheet ─────────────────────────────────
 const ProfileEventCard = ({ ev, primary, textColor, muted, onPress }) => {
-  const imgUrl = ev.media?.[0]?.url || (typeof ev.media?.[0] === 'string' ? ev.media[0] : null);
+  const imgUrl = ev.media_urls?.[0] ||
+    ev.media?.find(m => m?.type === 'image')?.url ||
+    (typeof ev.media?.[0] === 'string' ? ev.media[0] : null);
   const catColor = ev.category_color || primary;
   return (
     <TouchableOpacity style={[pec.wrap, { borderColor: `${catColor}25` }]} onPress={onPress} activeOpacity={0.85}>
@@ -74,11 +77,18 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isMutual, setIsMutual] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('events');
   const [dmOpen, setDmOpen] = useState(false);
+  const [followersList, setFollowersList] = useState([]);
+  const [followersModalVisible, setFollowersModalVisible] = useState(false);
+  const [followingList, setFollowingList] = useState([]);
+  const [followingModalVisible, setFollowingModalVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(300)).current;
+  const presenceUnsubRef = useRef(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -93,34 +103,52 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     if (visible) {
       Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }).start();
       if (targetId) loadProfile(targetId);
+      // Subscribe to real-time online status
+      if (targetId) {
+        presenceUnsubRef.current = PresenceManager.subscribeToUser(targetId, (online) => setIsOnline(online));
+      }
     } else {
       slideAnim.setValue(300);
       setProfile(null);
       setEvents([]);
       setActiveTab('events');
+      setIsMutual(false);
+      setIsOnline(false);
+      setFollowersList([]);
+      setFollowingList([]);
+      presenceUnsubRef.current?.();
+      presenceUnsubRef.current = null;
     }
+    return () => { presenceUnsubRef.current?.(); presenceUnsubRef.current = null; };
   }, [visible, targetId]);
 
   const loadProfile = useCallback(async (uid) => {
     setLoading(true);
     try {
-      const [profileRes, eventsRes, followersRes, followingRes, isFollowingRes] = await Promise.allSettled([
+      const [profileRes, eventsRes, followersRes, followingRes, isFollowingRes, mutualRes] = await Promise.allSettled([
         supabase.from('profiles').select('*').eq('id', uid).single(),
-        supabase.from('events').select('id,title,media,event_date,venue_name,category,category_color,vibe_count').eq('author_id', uid).order('created_at', { ascending: false }).limit(10),
+        supabase.from('events').select('id,title,media,media_urls,event_date,venue_name,category,category_color,vibe_count').eq('author_id', uid).order('created_at', { ascending: false }).limit(10),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', uid),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', uid),
         currentUser ? supabase.from('follows').select('id').eq('follower_id', currentUser.id).eq('following_id', uid).maybeSingle() : Promise.resolve({ data: null }),
+        currentUser ? supabase.from('follows').select('id').eq('follower_id', uid).eq('following_id', currentUser.id).maybeSingle() : Promise.resolve({ data: null }),
       ]);
 
       if (profileRes.status === 'fulfilled' && profileRes.value.data) {
-        setProfile(profileRes.value.data);
+        const p = profileRes.value.data;
+        setProfile(p);
+        setIsOnline(p.is_online ?? false);
       } else if (propUser) {
         setProfile(propUser);
+        setIsOnline(propUser.is_online ?? false);
       }
       if (eventsRes.status === 'fulfilled') setEvents(eventsRes.value.data || []);
       if (followersRes.status === 'fulfilled') setFollowerCount(followersRes.value.count || 0);
       if (followingRes.status === 'fulfilled') setFollowingCount(followingRes.value.count || 0);
-      if (isFollowingRes.status === 'fulfilled') setIsFollowing(!!isFollowingRes.value.data);
+      const following = isFollowingRes.status === 'fulfilled' && !!isFollowingRes.value.data;
+      const theyFollow = mutualRes.status === 'fulfilled' && !!mutualRes.value.data;
+      setIsFollowing(following);
+      setIsMutual(following && theyFollow);
 
       // Record profile view (don't await — fire and forget)
       if (currentUser && uid !== currentUser.id) {
@@ -172,16 +200,13 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
     try {
       if (wasFollowing) {
-        await supabase.from('follows')
-          .delete()
-          .eq('follower_id', currentUser.id)
-          .eq('following_id', targetId);
+        await UserManager.unfollow(currentUser.id, targetId);
+        setIsMutual(false);
       } else {
-        await supabase.from('follows')
-          .upsert({ follower_id: currentUser.id, following_id: targetId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
-        // Notify the user they were followed
-        const { data: myProfile } = await supabase.from('profiles').select('username').eq('id', currentUser.id).single();
-        await NotificationService.notifyFollow(targetId, myProfile?.username || 'Someone');
+        await UserManager.follow(currentUser.id, targetId);
+        // Check if now mutual
+        const theyFollow = await UserManager.isFollowing(targetId, currentUser.id);
+        setIsMutual(theyFollow);
       }
     } catch {
       // Rollback optimistic update
@@ -191,9 +216,63 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     setFollowLoading(false);
   };
 
+  const loadFollowersList = async () => {
+    if (!targetId) return;
+    const { data } = await supabase
+      .from('follows')
+      .select('profiles!follows_follower_id_fkey(id, username, avatar_url, vibe_score)')
+      .eq('following_id', targetId)
+      .limit(50);
+    setFollowersList((data || []).map(r => r.profiles).filter(Boolean));
+    setFollowersModalVisible(true);
+  };
+
+  const loadFollowingList = async () => {
+    if (!targetId) return;
+    const { data } = await supabase
+      .from('follows')
+      .select('profiles!follows_following_id_fkey(id, username, avatar_url, vibe_score)')
+      .eq('follower_id', targetId)
+      .limit(50);
+    setFollowingList((data || []).map(r => r.profiles).filter(Boolean));
+    setFollowingModalVisible(true);
+  };
+
   const rank = profile ? getRank(profile.vibe_score || 0) : null;
 
+  const UserListModal = ({ visible: v, onClose: oc, title, users }) => (
+    <Modal visible={v} transparent animationType="slide" onRequestClose={oc} statusBarTranslucent>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={oc} activeOpacity={1} />
+        <View style={{ backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%', paddingTop: 12 }}>
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: `${primary}30`, alignSelf: 'center', marginBottom: 12 }} />
+          <Text style={{ color: primary, fontSize: 14, fontWeight: '900', letterSpacing: 1, textAlign: 'center', marginBottom: 12 }}>{title}</Text>
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+            {users.length === 0
+              ? <Text style={{ color: muted, textAlign: 'center', paddingVertical: 24, fontSize: 13 }}>Nobody here yet</Text>
+              : users.map(u => (
+                <View key={u.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: `${primary}10`, gap: 12 }}>
+                  {u.avatar_url
+                    ? <Image source={{ uri: u.avatar_url }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: `${primary}40` }} />
+                    : <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ color: primary, fontWeight: '900', fontSize: 14 }}>{(u.username || '?').slice(0, 2).toUpperCase()}</Text>
+                      </View>
+                  }
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>@{u.username}</Text>
+                    <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>{u.vibe_score || 0} pts</Text>
+                  </View>
+                </View>
+              ))
+            }
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
+    <>
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View style={s.overlay}>
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
@@ -239,7 +318,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                         </Text>
                       </View>
                   }
-                  {profile.is_online && <View style={s.onlineDot} />}
+                  {isOnline && <View style={s.onlineDot} />}
                 </View>
 
                 {!isOwnProfile && currentUser && (
@@ -257,7 +336,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                         : <>
                             <Feather name={isFollowing ? 'user-check' : 'user-plus'} size={13} color={isFollowing ? primary : '#000'} />
                             <Text style={[s.followBtnText, { color: isFollowing ? primary : '#000' }]}>
-                              {isFollowing ? 'Following' : 'Follow'}
+                              {isMutual ? 'Mutual' : isFollowing ? 'Following' : 'Follow'}
                             </Text>
                           </>
                       }
@@ -298,19 +377,19 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
               {/* Stats */}
               <View style={[s.statsRow, { borderColor: `${primary}15` }]}>
                 {[
-                  { label: 'Vibe Score', value: profile.vibe_score || 0, icon: 'zap', color: primary },
-                  { label: 'Followers',  value: followerCount,            icon: 'users', color: '#10b981' },
-                  { label: 'Following',  value: followingCount,           icon: 'user-check', color: '#8b5cf6' },
-                  { label: 'Gruvs',      value: events.length,            icon: 'calendar', color: '#f59e0b' },
+                  { label: 'Vibe Score', value: profile.vibe_score || 0, icon: 'zap', color: primary, onPress: null },
+                  { label: 'Followers',  value: followerCount,            icon: 'users', color: '#10b981', onPress: loadFollowersList },
+                  { label: 'Following',  value: followingCount,           icon: 'user-check', color: '#8b5cf6', onPress: loadFollowingList },
+                  { label: 'Gruvs',      value: events.length,            icon: 'calendar', color: '#f59e0b', onPress: null },
                 ].map((stat, i, arr) => (
                   <React.Fragment key={stat.label}>
-                    <View style={s.stat}>
+                    <TouchableOpacity style={s.stat} onPress={stat.onPress} activeOpacity={stat.onPress ? 0.7 : 1} disabled={!stat.onPress}>
                       <Feather name={stat.icon} size={12} color={stat.color} style={{ marginBottom: 4 }} />
                       <Text style={[s.statVal, { color: stat.color }]}>
                         {stat.value > 999 ? `${(stat.value / 1000).toFixed(1)}k` : stat.value}
                       </Text>
                       <Text style={[s.statLab, { color: muted }]}>{stat.label}</Text>
-                    </View>
+                    </TouchableOpacity>
                     {i < arr.length - 1 && <View style={[s.statDiv, { backgroundColor: `${primary}15` }]} />}
                   </React.Fragment>
                 ))}
@@ -395,6 +474,20 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       onClose={() => setDmOpen(false)}
       recipient={profile}
     />
+
+    <UserListModal
+      visible={followersModalVisible}
+      onClose={() => setFollowersModalVisible(false)}
+      title="FOLLOWERS"
+      users={followersList}
+    />
+    <UserListModal
+      visible={followingModalVisible}
+      onClose={() => setFollowingModalVisible(false)}
+      title="FOLLOWING"
+      users={followingList}
+    />
+    </>
   );
 };
 
