@@ -390,7 +390,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <AuraEffect />
-      <ScrollView showsVerticalScrollIndicator={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
 
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: `${primary}18` }]}>

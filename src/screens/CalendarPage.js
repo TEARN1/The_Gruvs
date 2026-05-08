@@ -382,7 +382,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
       <AuraEffect />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 110 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={primary} />}
       >
 

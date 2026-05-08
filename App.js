@@ -341,7 +341,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, ...(Platform.OS === 'web' && { minHeight: '100vh' }) },
+  root: { flex: 1, ...(Platform.OS === 'web' && { minHeight: '100dvh' }) },
   safeArea: { flex: 1 },
 
   // Wide layout
@@ -352,14 +352,13 @@ const styles = StyleSheet.create({
   narrowLayout: { flex: 1 },
   content:      { flex: 1 },
 
-  // Bottom tab bar
+  // Bottom tab bar — height expands to cover bottom inset (home indicator / nav bar)
   tabBar: {
     flexDirection: 'row',
-    height: 68,
+    minHeight: 62,
     borderTopWidth: 1,
     backgroundColor: 'rgba(0,0,0,0.88)',
     position: 'relative',
-    paddingBottom: 6,
   },
   indicator: {
     position: 'absolute',

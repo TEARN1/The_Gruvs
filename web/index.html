@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <title>The Gruvs</title>
     <style id="expo-reset">
       html, body { height: 100%; margin: 0; padding: 0; }
@@ -16,11 +16,23 @@
         background-color: #0d1112 !important;
         width: 100%;
         max-width: 100%;
+        /* Use dvh so the viewport excludes browser toolbars on mobile */
+        height: 100dvh;
+        max-height: 100dvh;
       }
       #root {
         background-color: #0d1112;
         width: 100%;
         max-width: 100%;
+        /* Fill exactly the visible viewport — no content hidden behind browser UI */
+        height: 100dvh;
+        max-height: 100dvh;
+        /* Respect device safe areas (notch, home indicator, nav bar) */
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+        box-sizing: border-box;
       }
 
       /* Hide all scrollbars globally */

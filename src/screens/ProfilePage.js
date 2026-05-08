@@ -735,7 +735,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
       <AuraEffect />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
