@@ -7,12 +7,14 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-
 import { Feather } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { IdentityProvider } from './src/context/IdentityContext';
 import { ToastProvider } from './src/components/ToastNotification';
 import { LandingPage } from './src/screens/LandingPage';
 import { ExplorePage } from './src/screens/ExplorePage';
 import { ProfilePage } from './src/screens/ProfilePage';
 import { CalendarPage } from './src/screens/CalendarPage';
 import { NotificationsScreen, useUnreadCount } from './src/screens/NotificationsScreen';
+import { ServiceMarketplace } from './src/screens/ServiceMarketplace';
 import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
@@ -21,6 +23,7 @@ const TABS = [
   { key: 'feed',          label: 'The Drop',     icon: 'home'     },
   { key: 'explore',       label: 'Explore',      icon: 'compass'  },
   { key: 'calendar',      label: 'Calendar',     icon: 'calendar' },
+  { key: 'marketplace',   label: 'Services',     icon: 'truck'    },
   { key: 'notifications', label: 'Alerts',       icon: 'bell'     },
   { key: 'profile',       label: 'Profile',      icon: 'user'     },
 ];
@@ -252,6 +255,8 @@ const MainNavigator = () => {
         );
       case 'calendar':
         return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
+      case 'marketplace':
+        return <ServiceMarketplace onAuthRequired={handleAuthRequired} />;
       case 'notifications':
         return <NotificationsScreen onAuthRequired={handleAuthRequired} />;
       case 'profile':
@@ -331,9 +336,11 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <ToastProvider>
-            <MainNavigator />
-          </ToastProvider>
+          <IdentityProvider>
+            <ToastProvider>
+              <MainNavigator />
+            </ToastProvider>
+          </IdentityProvider>
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
