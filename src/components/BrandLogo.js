@@ -2,13 +2,11 @@ import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, Animated } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
-// ── Drop your logo at:  assets/logo.png  ──────────────────────────────────────
-// The metallic H-crown image will auto-load from there.
 let LOCAL_LOGO = null;
 try {
-  LOCAL_LOGO = require('../../assets/logo.png');
+  LOCAL_LOGO = require('../../logo.jpg');
 } catch {
-  // File not present — styled fallback below renders instead
+  try { LOCAL_LOGO = require('../../assets/logo.png'); } catch { /* styled fallback */ }
 }
 
 export const BrandLogo = ({ size = 42, showGlow = false, style }) => {

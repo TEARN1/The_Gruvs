@@ -9,15 +9,15 @@
   "background_color": "#0d1112",
   "icons": [
     {
-      "src": "/assets/icon.png",
+      "src": "/logo.jpg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "/assets/icon.png",
+      "src": "/logo.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ],
