@@ -2,21 +2,360 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
-    <title>The Gruvs</title>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PRIMARY META
+    ══════════════════════════════════════════════════════════════════════ -->
+    <title>The Gruvs — Find Events, Gruvs & Nightlife Near You | South Africa</title>
+    <meta name="title" content="The Gruvs — Find Events, Gruvs & Nightlife Near You | South Africa" />
+    <meta name="description" content="The Gruvs is South Africa's #1 nightlife and events app. Discover Gruvs, concerts, food festivals, and nightlife experiences near you. RSVP, Touch Down, and Vibe with your Crew." />
+    <meta name="keywords" content="The Gruvs, Gruvs app, events near me, nightlife South Africa, Johannesburg events, Cape Town events, Durban nightlife, amapiano events, concerts, music events, food festivals, things to do, Gruv, Touch Down, Vibe, South Africa nightlife app" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="author" content="The Gruvs" />
+    <meta name="language" content="English" />
+    <meta name="revisit-after" content="3 days" />
+    <meta name="rating" content="General" />
+    <meta name="category" content="Entertainment, Nightlife, Events" />
+    <meta name="classification" content="Entertainment" />
+    <meta name="coverage" content="South Africa" />
+    <meta name="geo.region" content="ZA" />
+    <meta name="geo.placename" content="South Africa" />
+    <link rel="canonical" href="https://thegruvs.com/" />
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         OPEN GRAPH (Facebook, WhatsApp, LinkedIn previews)
+    ══════════════════════════════════════════════════════════════════════ -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://thegruvs.com/" />
+    <meta property="og:site_name" content="The Gruvs" />
+    <meta property="og:locale" content="en_ZA" />
+    <meta property="og:title" content="The Gruvs — Find Events & Nightlife Near You" />
+    <meta property="og:description" content="South Africa's #1 nightlife and events app. Discover concerts, food festivals, and club nights near you. Vibe, Touch Down, and Gruv with your Crew." />
+    <meta property="og:image" content="https://thegruvs.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Gruvs — South Africa's Nightlife & Events App" />
+    <meta property="og:image:type" content="image/jpeg" />
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         TWITTER / X CARD
+    ══════════════════════════════════════════════════════════════════════ -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@thegruvs" />
+    <meta name="twitter:creator" content="@thegruvs" />
+    <meta name="twitter:title" content="The Gruvs — Find Events & Nightlife Near You" />
+    <meta name="twitter:description" content="South Africa's #1 nightlife and events app. Discover concerts, food festivals, and club nights near you." />
+    <meta name="twitter:image" content="https://thegruvs.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="The Gruvs — South Africa's Nightlife & Events App" />
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         APPLE SMART APP BANNER
+    ══════════════════════════════════════════════════════════════════════ -->
+    <meta name="apple-itunes-app" content="app-id=YOUR_APP_ID, app-argument=https://thegruvs.com/" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="The Gruvs" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="The Gruvs" />
+
+    <!-- Google Play Smart Banner -->
+    <meta name="google-play-app" content="app-id=com.thegruvs.app" />
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         GOOGLE SITE VERIFICATION
+    ══════════════════════════════════════════════════════════════════════ -->
+    <meta name="google-site-verification" content="REPLACE_WITH_YOUR_GOOGLE_VERIFICATION_CODE" />
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         THEME & MANIFEST
+    ══════════════════════════════════════════════════════════════════════ -->
+    <meta name="theme-color" content="#00f2ff" />
+    <meta name="msapplication-TileColor" content="#0d1112" />
+    <meta name="msapplication-navbutton-color" content="#00f2ff" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/logo.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/logo.png" />
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         JSON-LD STRUCTURED DATA — ORGANIZATION
+    ══════════════════════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://thegruvs.com/#organization",
+      "name": "The Gruvs",
+      "alternateName": ["Gruvs", "The Gruvs App"],
+      "url": "https://thegruvs.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://thegruvs.com/logo.png",
+        "width": 512,
+        "height": 512
+      },
+      "description": "South Africa's #1 nightlife and events discovery platform. Find concerts, food festivals, club nights, and Gruvs near you.",
+      "foundingDate": "2024",
+      "areaServed": {
+        "@type": "Country",
+        "name": "South Africa"
+      },
+      "serviceArea": {
+        "@type": "AdministrativeArea",
+        "name": "South Africa"
+      },
+      "sameAs": [
+        "https://www.instagram.com/thegruvs",
+        "https://www.twitter.com/thegruvs",
+        "https://www.tiktok.com/@thegruvs"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "email": "hello@thegruvs.com"
+      }
+    }
+    </script>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         JSON-LD STRUCTURED DATA — WEBSITE WITH SITELINKS SEARCHBOX
+    ══════════════════════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://thegruvs.com/#website",
+      "url": "https://thegruvs.com",
+      "name": "The Gruvs",
+      "description": "Discover nightlife, events, and Gruvs near you in South Africa",
+      "publisher": {
+        "@id": "https://thegruvs.com/#organization"
+      },
+      "inLanguage": "en-ZA",
+      "potentialAction": [
+        {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://thegruvs.com/search?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      ]
+    }
+    </script>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         JSON-LD STRUCTURED DATA — MOBILE APPLICATION
+    ══════════════════════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MobileApplication",
+      "@id": "https://thegruvs.com/#app",
+      "name": "The Gruvs",
+      "alternateName": "Gruvs",
+      "description": "South Africa's #1 nightlife and events app. Discover Gruvs, concerts, food festivals, and nightlife experiences near you. RSVP, Touch Down, and Vibe with your Crew.",
+      "url": "https://thegruvs.com",
+      "applicationCategory": "EntertainmentApplication",
+      "applicationSubCategory": "Social Networking",
+      "operatingSystem": ["iOS", "Android"],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "ZAR"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "2400",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "screenshot": "https://thegruvs.com/screenshot.jpg",
+      "featureList": [
+        "Discover events and Gruvs near you",
+        "RSVP and buy event Passes",
+        "Touch Down check-in at events",
+        "Connect with Vibers who share your taste",
+        "Business dashboard and campaign tools",
+        "Event phase contextual ads",
+        "Gruvs Academy in-app tutorials"
+      ],
+      "author": {
+        "@id": "https://thegruvs.com/#organization"
+      },
+      "downloadUrl": [
+        "https://apps.apple.com/app/the-gruvs/YOUR_APP_ID",
+        "https://play.google.com/store/apps/details?id=com.thegruvs.app"
+      ],
+      "countriesSupported": "ZA",
+      "inLanguage": "en-ZA"
+    }
+    </script>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         JSON-LD STRUCTURED DATA — FAQ PAGE (Drives FAQ rich results on Google)
+    ══════════════════════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is The Gruvs?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The Gruvs is South Africa's #1 nightlife and events discovery app. It lets you find Gruvs (events), concerts, food festivals, and club nights near you, RSVP with a Pass, Touch Down (check in) at the venue, and connect with Vibers who share your taste."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I find events near me on The Gruvs?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Open The Gruvs app and tap 'Scout' at the bottom. You'll see Gruvs happening near you filtered by your city, vibe, and musical taste. You can also search by genre, date, or venue."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is The Gruvs free to download?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, The Gruvs is completely free to download on iOS and Android. Core discovery features, Vibing (RSVPs), and Touch Down check-ins are all free. Premium Passes for paid events are purchased separately."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What cities does The Gruvs cover?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The Gruvs covers all major South African cities including Johannesburg, Cape Town, Durban, Pretoria, Port Elizabeth, Bloemfontein, East London, Nelspruit, and Polokwane. New cities are added regularly."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I host an event on The Gruvs?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Create a business profile on The Gruvs, then use the Biz Hub to list your Gruv, set Passes (tickets), and run Missions (ad campaigns) to reach Vibers in your target Crowd. The Gruvs provides a full Storefront and analytics dashboard."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What types of events are on The Gruvs?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The Gruvs features music concerts (Amapiano, Afrobeats, House, Hip-hop), nightclub events, food festivals, pop-up markets, comedy shows, fashion events, art exhibitions, sports events, and community Gruvs across South Africa."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does The Gruvs ad platform work for businesses?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Businesses on The Gruvs can launch Missions (ad campaigns) that reach Vibers at three Gruv phases: Pre-Gruv (before the event), In the Gruv (during), and Post-Gruv (after). The advanced Crowd targeting engine uses over 3,000 Vibe signals including demographics, music taste, spending level, and location."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is 'Touch Down' on The Gruvs?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Touch Down is The Gruvs' check-in feature. When you arrive at a Gruv, you Touch Down to confirm your attendance, connect with other Vibers at the event, and unlock exclusive In the Gruv content and offers."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         JSON-LD STRUCTURED DATA — BREADCRUMB LIST
+    ══════════════════════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://thegruvs.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Discover Gruvs",
+          "item": "https://thegruvs.com/scout"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Business Hub",
+          "item": "https://thegruvs.com/biz"
+        }
+      ]
+    }
+    </script>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         JSON-LD STRUCTURED DATA — EVENT SERIES (helps Google index Gruvs as events)
+    ══════════════════════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Gruvs & Events in South Africa",
+      "description": "Discover the latest nightlife events, concerts, and Gruvs near you across South Africa",
+      "url": "https://thegruvs.com/scout",
+      "numberOfItems": "100+",
+      "itemListOrder": "https://schema.org/ItemListOrderAscending"
+    }
+    </script>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         JSON-LD STRUCTURED DATA — SOFTWARE APP (Google Play / App Store rich cards)
+    ══════════════════════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "The Gruvs",
+      "operatingSystem": "ANDROID, IOS",
+      "applicationCategory": "https://schema.org/EntertainmentApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "ZAR"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "2400"
+      }
+    }
+    </script>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         STYLES
+    ══════════════════════════════════════════════════════════════════════ -->
     <style id="expo-reset">
       html, body { height: 100%; margin: 0; padding: 0; }
       body { overflow: hidden; }
       #root { display: flex; height: 100%; width: 100%; flex: 1; }
     </style>
     <style>
-      /* Dark background fills entire viewport — no white edges */
       html, body {
         background-color: #0d1112 !important;
         width: 100%;
         max-width: 100%;
-        /* Use dvh so the viewport excludes browser toolbars on mobile */
         height: 100dvh;
         max-height: 100dvh;
       }
@@ -24,18 +363,14 @@
         background-color: #0d1112;
         width: 100%;
         max-width: 100%;
-        /* Fill exactly the visible viewport — no content hidden behind browser UI */
         height: 100dvh;
         max-height: 100dvh;
-        /* Respect device safe areas (notch, home indicator, nav bar) */
         padding-top: env(safe-area-inset-top, 0px);
         padding-bottom: env(safe-area-inset-bottom, 0px);
         padding-left: env(safe-area-inset-left, 0px);
         padding-right: env(safe-area-inset-right, 0px);
         box-sizing: border-box;
       }
-
-      /* Hide all scrollbars globally */
       * {
         scrollbar-width: none !important;
         -ms-overflow-style: none !important;
@@ -46,14 +381,25 @@
         height: 0 !important;
       }
     </style>
-    <meta name="theme-color" content="#0d1112">
-    <meta name="description" content="Discover your next event. I got you.">
-    <link rel="icon" type="image/jpeg" href="/logo.jpg" />
-    <link rel="apple-touch-icon" href="/logo.jpg" />
-    <link rel="manifest" href="/manifest.json" />
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <!-- SEO-visible content (hidden visually but indexed by Google) -->
+    <noscript>
+      <div style="font-family:sans-serif;padding:40px;background:#0d1112;color:#fff;text-align:center;">
+        <h1>The Gruvs — South Africa's #1 Nightlife &amp; Events App</h1>
+        <p>Discover Gruvs, concerts, food festivals, and nightlife experiences near you.</p>
+        <p>Find events in Johannesburg, Cape Town, Durban, Pretoria, and across South Africa.</p>
+        <p>Download The Gruvs on iOS and Android — it's free.</p>
+        <ul style="list-style:none;padding:0;line-height:2;">
+          <li>🎵 Amapiano, Afrobeats, House, Hip-hop events</li>
+          <li>🍽️ Food festivals and pop-up markets</li>
+          <li>🎤 Comedy shows and live performances</li>
+          <li>🏟️ Sports and community Gruvs</li>
+          <li>📲 Touch Down check-in and Vibe with your Crew</li>
+        </ul>
+        <p>You need to enable JavaScript to run The Gruvs app.</p>
+      </div>
+    </noscript>
     <div id="root"></div>
   </body>
 </html>

@@ -20,46 +20,46 @@ import { supabase } from '../services/supabase';
 // ── Phase definitions ─────────────────────────────────────────────────────────
 const PHASE_CONFIG = {
   pre_event: {
-    label:   'BEFORE YOU GO',
+    label:   'BEFORE THE GRUV',
     icon:    'clock',
     color:   '#8b5cf6',
     categories: [
-      { icon: 'truck',       label: 'Transport',      body: 'Book your ride. Uber, bolt, and charter drivers near the venue.',        cta: 'Book Ride' },
-      { icon: 'shopping-bag',label: 'What to Wear',   body: 'Find outfits perfect for this vibe. Local brands near you.',             cta: 'Shop Looks' },
-      { icon: 'home',        label: 'Accommodation',  body: 'Staying over? Hotels, Airbnbs, and guesthouses close to the venue.',     cta: 'Find a Stay' },
-      { icon: 'music',       label: 'Pre-parties',    body: 'Warm up sessions and pre-drinks happening before the main event.',        cta: 'See Pre-parties' },
-      { icon: 'coffee',      label: 'Dining',         body: 'Top restaurants and bars near the venue. Reserve before it sells out.',   cta: 'Reserve a Table' },
-      { icon: 'camera',      label: 'Photography',    body: 'Book a photographer for personal content. Limited slots available.',      cta: 'Book Photographer' },
-      { icon: 'gift',        label: 'Gifts & Merch',  body: 'Pre-order exclusive event merchandise. Collect at the door.',            cta: 'Pre-order' },
-      { icon: 'shield',      label: 'Travel Insurance', body: 'Protect your night. Cancel cover from R25.',                           cta: 'Get Cover' },
+      { icon: 'truck',       label: 'Lock Your Ride',     body: 'Book your transport. Uber, Bolt, and charter drivers near the Spot.',       cta: 'Book Ride' },
+      { icon: 'shopping-bag',label: 'What to Rock',       body: 'Find outfits perfect for this vibe. Local brands dropping near you.',       cta: 'Shop Looks' },
+      { icon: 'home',        label: 'Stay Sorted',        body: "Staying over? Hotels, Airbnbs, and guesthouses close to the Spot.",          cta: 'Find a Stay' },
+      { icon: 'music',       label: 'Pre-Gruvs',          body: 'Warm-up sessions and pre-drinks dropping before the main Gruv.',            cta: 'See Pre-Gruvs' },
+      { icon: 'coffee',      label: 'Feed Before',        body: 'Top restaurants and bars near the Spot. Reserve before it fills up.',       cta: 'Reserve a Table' },
+      { icon: 'camera',      label: 'Personal Shots',     body: 'Lock in a photographer for content. Limited slots — move fast.',            cta: 'Book Photographer' },
+      { icon: 'gift',        label: 'Pre-order Merch',    body: 'Pre-order exclusive Gruv merch. Collect at the door on arrival.',           cta: 'Pre-order' },
+      { icon: 'shield',      label: 'Cover Yourself',     body: 'Protect your night. Cancel cover from R25.',                                cta: 'Get Cover' },
     ],
   },
   during_event: {
-    label:   'RIGHT NOW',
+    label:   'IN THE GRUV',
     icon:    'zap',
     color:   '#00f2ff',
     categories: [
-      { icon: 'coffee',      label: 'Food & Drinks',  body: 'See what\'s available at the bar and food stalls. Skip the queue.',       cta: 'Order Now' },
-      { icon: 'package',     label: 'Merchandise',    body: 'Limited edition event merch on sale now. T-shirts, caps, prints.',        cta: 'Shop Merch' },
-      { icon: 'camera',      label: 'Photo Booth',    body: 'Professional photo booth on-site. Get your shots done in 5 minutes.',    cta: 'Book Slot' },
-      { icon: 'star',        label: 'VIP Upgrade',    body: 'Upgrade to VIP access — better view, exclusive lounge, free drinks.',     cta: 'Upgrade' },
-      { icon: 'map-pin',     label: 'Event Map',      body: 'Find stages, bathrooms, first aid, and exits. See the full layout.',     cta: 'View Map' },
-      { icon: 'users',       label: 'Meet People',    body: 'See who else is here and connect. Vibers nearby with shared interests.', cta: 'Connect' },
-      { icon: 'gift',        label: 'Lucky Draw',     body: 'Enter the lucky draw happening at 10pm. Prizes worth R5,000+.',          cta: 'Enter Now' },
+      { icon: 'coffee',      label: 'Food & Drinks',      body: "See what's dropping at the bar and food stalls. Skip the queue.",           cta: 'Order Now' },
+      { icon: 'package',     label: 'Merch Drop',         body: 'Limited edition Gruv merch on sale right now. Tees, caps, prints.',         cta: 'Shop Merch' },
+      { icon: 'camera',      label: 'Shot Booth',         body: 'Professional shot booth on-site. Get your shots locked in 5 minutes.',     cta: 'Book Slot' },
+      { icon: 'star',        label: 'Royale Upgrade',     body: 'Upgrade to Royale access — better view, exclusive lounge, free drinks.',    cta: 'Go Royale' },
+      { icon: 'map-pin',     label: 'Gruv Map',           body: 'Find stages, bathrooms, first aid, and exits. See the full layout.',       cta: 'View Map' },
+      { icon: 'users',       label: 'Meet Vibers',        body: 'See who else Touched Down and link up. Vibers nearby with shared taste.',   cta: 'Connect' },
+      { icon: 'gift',        label: 'Lucky Draw',         body: 'Enter the lucky draw happening at 10pm. Prizes worth R5,000+.',            cta: 'Enter Now' },
     ],
   },
   post_event: {
-    label:   'AFTER THE NIGHT',
+    label:   'POST GRUV',
     icon:    'star',
     color:   '#10b981',
     categories: [
-      { icon: 'camera',      label: 'Your Photos',    body: 'Professional event photos are live. Find yourself and download instantly.', cta: 'Find My Photos' },
-      { icon: 'star',        label: 'Leave a Review', body: 'Help the community. Rate the event and share your experience.',            cta: 'Rate Event' },
-      { icon: 'video',       label: 'Highlight Reel', body: 'The official recap video is out. Watch and share the best moments.',       cta: 'Watch Recap' },
-      { icon: 'calendar',    label: 'Next Event',     body: 'The next event from this organiser is announced. Early bird tickets live.', cta: 'Early Bird' },
-      { icon: 'users',       label: 'Join the Group', body: 'Connect with others who attended. The community WhatsApp and Discord.',    cta: 'Join Community' },
-      { icon: 'truck',       label: 'Get Home Safe',  body: 'Late night transport options still available from the venue.',              cta: 'Book Ride Home' },
-      { icon: 'coffee',      label: 'Post-event Eats', body: 'Late-night spots still open near the venue. Keep the night going.',       cta: 'Find Food' },
+      { icon: 'camera',      label: 'Your Shots',         body: 'Professional Gruv shots are live. Find yourself and download instantly.',   cta: 'Find My Shots' },
+      { icon: 'star',        label: 'Rate the Gruv',      body: 'Help the community. Rate the Gruv and Echo your experience.',              cta: 'Rate Gruv' },
+      { icon: 'video',       label: 'Highlight Reel',     body: 'The official recap is out. Watch and Drop the best moments.',              cta: 'Watch Recap' },
+      { icon: 'calendar',    label: 'Next Gruv',          body: "The organiser's next Gruv is live. Early bird Passes dropping now.",        cta: 'Early Bird' },
+      { icon: 'users',       label: 'Lock Into the Crew', body: 'Connect with Vibers who Touched Down. WhatsApp and Discord waiting.',       cta: 'Join Crew' },
+      { icon: 'truck',       label: 'Get Home Safe',      body: 'Late night transport still running from the Spot.',                         cta: 'Book Ride Home' },
+      { icon: 'coffee',      label: 'Post-Gruv Eats',     body: "Late-night Spots still open near the venue. Keep the night alive.",        cta: 'Find Food' },
     ],
   },
 };
@@ -193,7 +193,7 @@ export const EventContextualAds = ({ event, onNavigate }) => {
           <Feather name={phaseConfig.icon} size={14} color={phaseColor} />
         </View>
         <Text style={[eca.phaseLabel, { color: phaseColor }]}>{phaseConfig.label}</Text>
-        <Text style={[eca.phaseCount, { color: muted }]}>{visible.length} offers</Text>
+        <Text style={[eca.phaseCount, { color: muted }]}>{visible.length} drops</Text>
       </View>
 
       {/* Real campaign ads first */}
@@ -229,7 +229,7 @@ export const EventContextualAds = ({ event, onNavigate }) => {
         </TouchableOpacity>
       )}
 
-      <Text style={[eca.disclaimer, { color: muted }]}>Sponsored content · The Gruvs AdEngine</Text>
+      <Text style={[eca.disclaimer, { color: muted }]}>Sponsored Missions · The Gruvs AdEngine</Text>
     </Animated.View>
   );
 };

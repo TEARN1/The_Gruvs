@@ -1,26 +1,76 @@
 {
-  "name": "The Gruvs",
-  "short_name": "Gruvs",
-  "description": "Discover your next event. I got you.",
+  "name": "The Gruvs — Find Events & Nightlife Near You",
+  "short_name": "The Gruvs",
+  "description": "South Africa's #1 nightlife and events app. Discover Gruvs, concerts, food festivals, and nightlife near you. Vibe, Touch Down, and connect with your Crew.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#0d1112",
+  "theme_color": "#00f2ff",
   "background_color": "#0d1112",
+  "lang": "en-ZA",
+  "dir": "ltr",
+  "categories": ["entertainment", "social", "lifestyle", "music", "nightlife"],
+  "screenshots": [
+    {
+      "src": "/screenshot-1.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "label": "Discover Gruvs near you"
+    },
+    {
+      "src": "/screenshot-2.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "label": "Touch Down and Vibe with your Crew"
+    }
+  ],
   "icons": [
     {
-      "src": "/logo.jpg",
+      "src": "/logo.png",
       "sizes": "192x192",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo.jpg",
+      "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["entertainment", "social", "lifestyle"],
-  "lang": "en"
+  "shortcuts": [
+    {
+      "name": "Scout Gruvs",
+      "short_name": "Scout",
+      "description": "Discover Gruvs and events near you",
+      "url": "/scout",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Lineup",
+      "short_name": "Lineup",
+      "description": "View your upcoming Gruvs",
+      "url": "/lineup",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Biz Hub",
+      "short_name": "Biz",
+      "description": "Manage your Gruvs business",
+      "url": "/biz",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.thegruvs.app",
+      "id": "com.thegruvs.app"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/the-gruvs/YOUR_APP_ID"
+    }
+  ],
+  "prefer_related_applications": false
 }

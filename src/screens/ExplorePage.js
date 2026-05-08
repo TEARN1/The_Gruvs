@@ -414,10 +414,10 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </View>
           <TouchableOpacity
             onPress={() => setMarketplaceVisible(true)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: `${primary}40`, backgroundColor: `${primary}12` }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 13, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: primary, backgroundColor: `${primary}18` }}
           >
             <Feather name="truck" size={14} color={primary} />
-            <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Services</Text>
+            <Text style={{ color: primary, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 }}>SERVICES</Text>
           </TouchableOpacity>
         </View>
 
@@ -495,6 +495,25 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </View>
         ) : (
           <>
+            {/* ── Gruv Services Banner ────────────────────────────────────── */}
+            <TouchableOpacity
+              onPress={() => setMarketplaceVisible(true)}
+              activeOpacity={0.82}
+              style={[styles.servBanner, { borderColor: `${primary}35`, backgroundColor: `${primary}0a` }]}
+            >
+              <View style={[styles.servIconWrap, { backgroundColor: `${primary}20` }]}>
+                <Feather name="truck" size={26} color={primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.servTitle, { color: primary }]}>GRUV SERVICES</Text>
+                <Text style={[styles.servSub, { color: muted }]}>Bakkie hire · Moving help · Event logistics — Vibers ready now</Text>
+              </View>
+              <View style={[styles.servCta, { backgroundColor: primary }]}>
+                <Text style={styles.servCtaText}>Open</Text>
+                <Feather name="arrow-right" size={12} color="#000" />
+              </View>
+            </TouchableOpacity>
+
             {/* ── Mood selector ──────────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
               <SectionHeader title="What's your mood?" textColor={textColor} primary={primary} />
@@ -715,4 +734,11 @@ const styles = StyleSheet.create({
   guestCta: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: 16, padding: 18, borderRadius: 20, borderWidth: 1 },
   ctaTitle: { fontSize: 15, fontWeight: '900' },
   ctaSub: { fontSize: 12, marginTop: 3, lineHeight: 16 },
+  // Services banner
+  servBanner: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: 16, marginBottom: 20, padding: 16, borderRadius: 20, borderWidth: 1.5 },
+  servIconWrap: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  servTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 1.5, marginBottom: 4 },
+  servSub: { fontSize: 11, lineHeight: 16 },
+  servCta: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14 },
+  servCtaText: { color: '#000', fontSize: 11, fontWeight: '900' },
 });

@@ -18,6 +18,8 @@ import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
 import { BusinessDashboardScreen } from './src/screens/BusinessDashboardScreen';
+import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
+import { TutorialOverlay } from './src/components/TutorialOverlay';
 
 class ErrorBoundary extends Component {
   state = { hasError: false, error: null };
@@ -38,11 +40,11 @@ class ErrorBoundary extends Component {
 
 const TABS = [
   { key: 'feed',          label: 'The Drop',  icon: 'home'      },
-  { key: 'explore',       label: 'Explore',   icon: 'compass'   },
-  { key: 'calendar',      label: 'Calendar',  icon: 'calendar'  },
-  { key: 'notifications', label: 'Alerts',    icon: 'bell'      },
+  { key: 'explore',       label: 'Scout',     icon: 'compass'   },
+  { key: 'calendar',      label: 'Lineup',    icon: 'calendar'  },
+  { key: 'notifications', label: 'Pings',     icon: 'bell'      },
   { key: 'business',      label: 'Biz',       icon: 'briefcase' },
-  { key: 'profile',       label: 'Profile',   icon: 'user'      },
+  { key: 'profile',       label: 'Vibe Card', icon: 'user'      },
 ];
 
 const WIDE_BREAKPOINT      = 900;
@@ -219,6 +221,7 @@ const MainNavigator = () => {
   const { width } = useWindowDimensions();
   useNotifications();
   const unreadCount = useUnreadCount();
+  const { hasLaunched, openTutorial, markLaunched } = useTutorial();
   const [currentTab, setCurrentTab] = useState('feed');
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [authModalVisible, setAuthModalVisible] = useState(false);
@@ -226,6 +229,17 @@ const MainNavigator = () => {
   const [targetEvent, setTargetEvent] = useState(null);
 
   const isWide = width >= WIDE_BREAKPOINT;
+
+  // Auto-launch welcome tutorial on first app open
+  useEffect(() => {
+    if (!hasLaunched) {
+      const t = setTimeout(() => {
+        openTutorial('welcome');
+        markLaunched();
+      }, 1200);
+      return () => clearTimeout(t);
+    }
+  }, [hasLaunched]);
 
   const bg      = currentTheme?.background || '#0d1112';
   const primary = currentTheme?.primary    || '#00f2ff';
@@ -302,7 +316,7 @@ const MainNavigator = () => {
       {IS_DEMO_MODE && (
         <View style={[styles.offlineBanner, { backgroundColor: primary }]}>
           <Feather name="wifi-off" size={12} color="#000" />
-          <Text style={styles.offlineText}>DEMO MODE: SUPABASE NOT CONNECTED</Text>
+          <Text style={styles.offlineText}>OFFLINE MODE — GRUV DATA NOT CONNECTED</Text>
         </View>
       )}
 
@@ -344,6 +358,9 @@ const MainNavigator = () => {
         visible={authModalVisible}
         onClose={() => setAuthModalVisible(false)}
       />
+
+      {/* Tutorial overlay — rendered on top of everything */}
+      <TutorialOverlay />
     </View>
   );
 };
@@ -355,11 +372,13 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
             <IdentityProvider>
-              <ToastProvider>
-                <ErrorBoundary>
-                  <MainNavigator />
-                </ErrorBoundary>
-              </ToastProvider>
+              <TutorialProvider>
+                <ToastProvider>
+                  <ErrorBoundary>
+                    <MainNavigator />
+                  </ErrorBoundary>
+                </ToastProvider>
+              </TutorialProvider>
             </IdentityProvider>
           </AuthProvider>
         </ThemeProvider>

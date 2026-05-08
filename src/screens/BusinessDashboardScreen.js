@@ -20,13 +20,13 @@ import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 const { width: SW } = Dimensions.get('window');
 
 const TABS = [
-  { key: 'overview',    label: 'Overview',   icon: 'grid'         },
-  { key: 'store',       label: 'Store',      icon: 'layout'       },
-  { key: 'campaigns',   label: 'Campaigns',  icon: 'target'       },
-  { key: 'audience',    label: 'Audience',   icon: 'users'        },
-  { key: 'analytics',   label: 'Analytics',  icon: 'bar-chart-2'  },
-  { key: 'finance',     label: 'Finance',    icon: 'dollar-sign'  },
-  { key: 'ecosystem',   label: 'Ecosystem',  icon: 'globe'        },
+  { key: 'overview',    label: 'Intel',      icon: 'grid'         },
+  { key: 'store',       label: 'Storefront', icon: 'layout'       },
+  { key: 'campaigns',   label: 'Missions',   icon: 'target'       },
+  { key: 'audience',    label: 'The Crowd',  icon: 'users'        },
+  { key: 'analytics',   label: 'Reads',      icon: 'bar-chart-2'  },
+  { key: 'finance',     label: 'Stacks',     icon: 'dollar-sign'  },
+  { key: 'ecosystem',   label: 'Network',    icon: 'globe'        },
 ];
 
 const BUSINESS_TYPES = [
@@ -36,10 +36,10 @@ const BUSINESS_TYPES = [
 ];
 
 const TIERS = {
-  starter:    { label: 'Starter',    color: '#94a3b8', perks: ['5 campaigns/mo', 'Basic analytics', '500 targets/campaign'] },
-  pro:        { label: 'Pro',        color: '#06b6d4', perks: ['Unlimited campaigns', 'Advanced analytics', '10K targets/campaign', 'Store builder'] },
-  royal:      { label: 'Royal',      color: '#8b5cf6', perks: ['Everything in Pro', 'API access', 'Sponsorship marketplace', 'Priority support', 'Custom domain'] },
-  enterprise: { label: 'Enterprise', color: '#f59e0b', perks: ['Everything in Royal', 'Dedicated account manager', 'Custom integrations', 'White-label store', 'Bulk campaign tools'] },
+  starter:    { label: 'Starter',    color: '#94a3b8', perks: ['5 Missions/mo', 'Basic Reads', '500 Crowd targets/Mission'] },
+  pro:        { label: 'Pro',        color: '#06b6d4', perks: ['Unlimited Missions', 'Advanced Reads', '10K Crowd targets/Mission', 'Storefront builder'] },
+  royal:      { label: 'Royal',      color: '#8b5cf6', perks: ['Everything in Pro', 'API access', 'Backing Marketplace', 'Priority support', 'Custom domain'] },
+  enterprise: { label: 'Enterprise', color: '#f59e0b', perks: ['Everything in Royal', 'Dedicated Gruv manager', 'Custom Connects', 'White-label Storefront', 'Bulk Mission tools'] },
 };
 
 // ── Stat Card ────────────────────────────────────────────────────────────────
@@ -282,8 +282,8 @@ export const BusinessDashboardScreen = ({ onClose }) => {
             <View style={[sc.setupIconWrap, { backgroundColor: `${primary}18` }]}>
               <Feather name="briefcase" size={32} color={primary} />
             </View>
-            <Text style={[sc.setupTitle, { color: textColor }]}>Your Business Hub</Text>
-            <Text style={[sc.setupSub, { color: muted }]}>Create your storefront, run campaigns, and reach your perfect audience.</Text>
+            <Text style={[sc.setupTitle, { color: textColor }]}>Your Biz Hub</Text>
+            <Text style={[sc.setupSub, { color: muted }]}>Build your Storefront, run Missions, and reach your perfect Crowd.</Text>
           </GlassView>
 
           {[
@@ -369,7 +369,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           {/* Opportunity notifications */}
           {notifications.length > 0 && (
             <View style={sc.section}>
-              <Text style={[sc.sectionTitle, { color: textColor }]}>💰 Money Opportunities</Text>
+              <Text style={[sc.sectionTitle, { color: textColor }]}>💰 Stacks Incoming</Text>
               {notifications.map(n => (
                 <GlassView key={n.id} style={[sc.notifRow, { borderColor: `${primary}20` }]}>
                   <View style={[sc.notifDot, { backgroundColor: primary }]} />
@@ -384,14 +384,14 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           )}
 
           {/* Key stats */}
-          <Text style={[sc.sectionTitle, { color: textColor }]}>Key Metrics · Last 30 Days</Text>
+          <Text style={[sc.sectionTitle, { color: textColor }]}>Intel Reads · Last 30 Days</Text>
           <View style={sc.statsGrid}>
-            <StatCard label="Revenue" value={`R${(analytics?.totalRevenue || 0).toFixed(0)}`} icon="dollar-sign" color="#10b981" trend={12} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Impressions" value={(analytics?.impressions || 0).toLocaleString()} icon="eye" color={primary} trend={8} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Clicks" value={(analytics?.clicks || 0).toLocaleString()} icon="mouse-pointer" color="#8b5cf6" trend={-3} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Conversions" value={(analytics?.conversions || 0).toLocaleString()} icon="check-circle" color="#f59e0b" trend={22} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Ad Spend" value={`R${(analytics?.totalSpent || 0).toFixed(0)}`} icon="credit-card" color="#ef4444" primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Active Campaigns" value={activeCampaigns.length} icon="target" color="#06b6d4" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Stacks" value={`R${(analytics?.totalRevenue || 0).toFixed(0)}`} icon="dollar-sign" color="#10b981" trend={12} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Eyes On" value={(analytics?.impressions || 0).toLocaleString()} icon="eye" color={primary} trend={8} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Taps" value={(analytics?.clicks || 0).toLocaleString()} icon="mouse-pointer" color="#8b5cf6" trend={-3} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Locks" value={(analytics?.conversions || 0).toLocaleString()} icon="check-circle" color="#f59e0b" trend={22} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="War Chest" value={`R${(analytics?.totalSpent || 0).toFixed(0)}`} icon="credit-card" color="#ef4444" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Live Missions" value={activeCampaigns.length} icon="target" color="#06b6d4" primary={primary} textColor={textColor} muted={muted} />
           </View>
 
           {/* 7-day activity chart */}
@@ -402,13 +402,13 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           )}
 
           {/* Quick actions */}
-          <Text style={[sc.sectionTitle, { color: textColor }]}>Quick Actions</Text>
+          <Text style={[sc.sectionTitle, { color: textColor }]}>Quick Moves</Text>
           <View style={sc.quickActions}>
             {[
-              { label: 'New Campaign',   icon: 'target',    onPress: () => { setEditingCampaign(null); setShowCampaignBuilder(true); } },
-              { label: 'Edit Store',     icon: 'layout',    onPress: () => handleTabPress('store') },
-              { label: 'View Analytics', icon: 'bar-chart-2', onPress: () => handleTabPress('analytics') },
-              { label: 'Add Partner',    icon: 'link-2',    onPress: () => handleTabPress('ecosystem') },
+              { label: 'New Mission',    icon: 'target',    onPress: () => { setEditingCampaign(null); setShowCampaignBuilder(true); } },
+              { label: 'Edit Storefront',icon: 'layout',    onPress: () => handleTabPress('store') },
+              { label: 'View Reads',     icon: 'bar-chart-2', onPress: () => handleTabPress('analytics') },
+              { label: 'Add Connect',    icon: 'link-2',    onPress: () => handleTabPress('ecosystem') },
             ].map(a => (
               <TouchableOpacity key={a.label} onPress={a.onPress} style={[sc.quickAction, { borderColor: `${primary}25`, backgroundColor: `${primary}08` }]} activeOpacity={0.8}>
                 <Feather name={a.icon} size={18} color={primary} />
@@ -445,7 +445,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         <ScrollView contentContainerStyle={sc.tabContent} showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
           <View style={sc.sectionHeaderRow}>
-            <Text style={[sc.sectionTitle, { color: textColor }]}>Campaigns</Text>
+            <Text style={[sc.sectionTitle, { color: textColor }]}>Active Missions</Text>
             <TouchableOpacity onPress={() => { setEditingCampaign(null); setShowCampaignBuilder(true); }}
               style={[sc.newBtn, { backgroundColor: primary }]}>
               <Feather name="plus" size={14} color="#000" />
@@ -456,10 +456,10 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           {campaigns.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Feather name="target" size={36} color={muted} />
-              <Text style={[sc.emptyTitle, { color: textColor }]}>No campaigns yet</Text>
-              <Text style={[sc.emptyBody, { color: muted }]}>Create your first campaign to start reaching your audience.</Text>
+              <Text style={[sc.emptyTitle, { color: textColor }]}>No Missions running</Text>
+              <Text style={[sc.emptyBody, { color: muted }]}>Launch your first Mission to start reaching The Crowd.</Text>
               <TouchableOpacity onPress={() => setShowCampaignBuilder(true)} style={[sc.emptyBtn, { backgroundColor: primary }]}>
-                <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>CREATE CAMPAIGN</Text>
+                <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>LAUNCH MISSION</Text>
               </TouchableOpacity>
             </GlassView>
           ) : campaigns.map(c => (
@@ -472,8 +472,8 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           <GlassView style={[sc.infoCard, { borderColor: `${primary}15` }]}>
             <Feather name="info" size={14} color={primary} />
             <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={[sc.infoTitle, { color: textColor }]}>Event Phase Targeting</Text>
-              <Text style={[sc.infoBody, { color: muted }]}>Target users PRE-EVENT (transport, outfits, hype), DURING EVENT (food, drinks, merch), and POST-EVENT (photos, reviews, next events). Set this when building your campaign.</Text>
+              <Text style={[sc.infoTitle, { color: textColor }]}>Gruv Phase Targeting</Text>
+              <Text style={[sc.infoBody, { color: muted }]}>Reach Vibers PRE-GRUV (transport, outfits, hype), IN THE GRUV (food, drinks, merch), and POST-GRUV (shots, reviews, next Gruv Passes). Set phases when building your Mission.</Text>
             </View>
           </GlassView>
         </ScrollView>
@@ -484,7 +484,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         <ScrollView contentContainerStyle={sc.tabContent} showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
           <View style={sc.sectionHeaderRow}>
-            <Text style={[sc.sectionTitle, { color: textColor }]}>Saved Segments</Text>
+            <Text style={[sc.sectionTitle, { color: textColor }]}>Crowd Segments</Text>
             <TouchableOpacity onPress={() => { setEditingCampaign(null); setShowCampaignBuilder(true); }}
               style={[sc.newBtn, { backgroundColor: primary }]}>
               <Feather name="plus" size={14} color="#000" />
@@ -494,8 +494,8 @@ export const BusinessDashboardScreen = ({ onClose }) => {
 
           {/* Targeting category overview */}
           <GlassView style={[sc.targetingOverview, { borderColor: `${primary}20` }]}>
-            <Text style={[sc.toTitle, { color: textColor }]}>Advanced Targeting Engine</Text>
-            <Text style={[sc.toSub, { color: muted }]}>Reach any combination of 3 000+ audience signals</Text>
+            <Text style={[sc.toTitle, { color: textColor }]}>Advanced Crowd Engine</Text>
+            <Text style={[sc.toSub, { color: muted }]}>Reach any combination of 3 000+ Vibe signals</Text>
             <View style={sc.targetingCats}>
               {[
                 { icon: 'user', label: 'Demographics', count: 24, examples: 'Surname, age, gender, language' },
@@ -521,8 +521,8 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           {segments.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Feather name="users" size={36} color={muted} />
-              <Text style={[sc.emptyTitle, { color: textColor }]}>No saved segments</Text>
-              <Text style={[sc.emptyBody, { color: muted }]}>Build your first audience segment inside the campaign builder.</Text>
+              <Text style={[sc.emptyTitle, { color: textColor }]}>No Crowd segments yet</Text>
+              <Text style={[sc.emptyBody, { color: muted }]}>Build your first Crowd segment inside the Mission builder.</Text>
             </GlassView>
           ) : segments.map(seg => (
             <GlassView key={seg.id} style={[sc.segmentRow, { borderColor: `${primary}15` }]}>
@@ -543,13 +543,13 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       case 'analytics': return (
         <ScrollView contentContainerStyle={sc.tabContent} showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
-          <Text style={[sc.sectionTitle, { color: textColor }]}>Conversion Funnel</Text>
+          <Text style={[sc.sectionTitle, { color: textColor }]}>Vibe Funnel</Text>
           <GlassView style={[sc.funnelCard, { borderColor: `${primary}15` }]}>
             {[
-              { label: 'Impressions',  value: analytics?.impressions  || 0, color: primary },
-              { label: 'Clicks',       value: analytics?.clicks       || 0, color: '#8b5cf6' },
-              { label: 'RSVPs',        value: analytics?.rsvps        || 0, color: '#f59e0b' },
-              { label: 'Conversions',  value: analytics?.conversions  || 0, color: '#10b981' },
+              { label: 'Eyes On',    value: analytics?.impressions  || 0, color: primary },
+              { label: 'Taps',       value: analytics?.clicks       || 0, color: '#8b5cf6' },
+              { label: 'Vibes',      value: analytics?.rsvps        || 0, color: '#f59e0b' },
+              { label: 'Locks',      value: analytics?.conversions  || 0, color: '#10b981' },
             ].map(f => <FunnelBar key={f.label} {...f} max={analytics?.impressions || 1} textColor={textColor} muted={muted} />)}
           </GlassView>
 
@@ -558,7 +558,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
             {analytics?.chart && <MiniBarChart data={analytics.chart} color={primary} label="Events (impressions + clicks)" textColor={textColor} muted={muted} />}
           </GlassView>
 
-          <Text style={[sc.sectionTitle, { color: textColor }]}>Campaign Performance</Text>
+          <Text style={[sc.sectionTitle, { color: textColor }]}>Mission Performance</Text>
           {campaigns.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Text style={[sc.emptyBody, { color: muted }]}>Run campaigns to see performance data.</Text>
@@ -581,16 +581,16 @@ export const BusinessDashboardScreen = ({ onClose }) => {
             </GlassView>
           ))}
 
-          <Text style={[sc.sectionTitle, { color: textColor }]}>Content Performance</Text>
+          <Text style={[sc.sectionTitle, { color: textColor }]}>Content Reads</Text>
           <GlassView style={[sc.infoCard, { borderColor: `${primary}15` }]}>
             <Feather name="bar-chart-2" size={14} color={primary} />
-            <Text style={[sc.infoBody, { color: muted, marginLeft: 10 }]}>Post events and campaigns to start tracking content reach, engagement rate, save rate, and share velocity.</Text>
+            <Text style={[sc.infoBody, { color: muted, marginLeft: 10 }]}>Drop Gruvs and Missions to start tracking reach, Echo rate, Stash rate, and Drop velocity.</Text>
           </GlassView>
 
-          <Text style={[sc.sectionTitle, { color: textColor }]}>Registration & Attendance</Text>
+          <Text style={[sc.sectionTitle, { color: textColor }]}>Vibes & Touch Downs</Text>
           <GlassView style={[sc.infoCard, { borderColor: `${primary}15` }]}>
             <Feather name="users" size={14} color={primary} />
-            <Text style={[sc.infoBody, { color: muted, marginLeft: 10 }]}>RSVP-to-attendance conversion, check-in rates, no-show %, and repeat attendee tracking sync automatically when users check in to your events.</Text>
+            <Text style={[sc.infoBody, { color: muted, marginLeft: 10 }]}>Vibe-to-Touch Down conversion, Touch Down rates, no-show %, and repeat Vibe tracking sync automatically when Vibers Touch Down at your Gruvs.</Text>
           </GlassView>
         </ScrollView>
       );
@@ -600,16 +600,16 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         <ScrollView contentContainerStyle={sc.tabContent} showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
           <View style={sc.statsGrid}>
-            <StatCard label="Total Revenue" value={`R${(analytics?.totalRevenue || 0).toFixed(2)}`} icon="trending-up" color="#10b981" primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Ad Spend" value={`R${(analytics?.totalSpent || 0).toFixed(2)}`} icon="credit-card" color="#ef4444" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Total Stacks" value={`R${(analytics?.totalRevenue || 0).toFixed(2)}`} icon="trending-up" color="#10b981" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="War Chest Spent" value={`R${(analytics?.totalSpent || 0).toFixed(2)}`} icon="credit-card" color="#ef4444" primary={primary} textColor={textColor} muted={muted} />
             <StatCard label="Net ROI" value={analytics?.totalSpent > 0 ? `${(((analytics.totalRevenue - analytics.totalSpent) / analytics.totalSpent) * 100).toFixed(0)}%` : '—'} icon="dollar-sign" color="#f59e0b" primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Partner Revenue" value={`R${partners.reduce((a, p) => a + (p.revenue_earned || 0), 0).toFixed(0)}`} icon="link-2" color="#8b5cf6" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Connect Stacks" value={`R${partners.reduce((a, p) => a + (p.revenue_earned || 0), 0).toFixed(0)}`} icon="link-2" color="#8b5cf6" primary={primary} textColor={textColor} muted={muted} />
           </View>
 
-          <Text style={[sc.sectionTitle, { color: textColor }]}>Budget Allocation</Text>
+          <Text style={[sc.sectionTitle, { color: textColor }]}>War Chest Allocation</Text>
           {campaigns.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
-              <Text style={[sc.emptyBody, { color: muted }]}>No campaign budgets set yet.</Text>
+              <Text style={[sc.emptyBody, { color: muted }]}>No Mission War Chests set yet.</Text>
             </GlassView>
           ) : campaigns.map(c => {
             const pct = c.budget_total > 0 ? Math.min(100, (c.budget_spent / c.budget_total) * 100) : 0;
@@ -628,7 +628,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
 
           <GlassView style={[sc.infoCard, { borderColor: `${primary}15`, marginTop: 12 }]}>
             <Feather name="info" size={14} color={primary} />
-            <Text style={[sc.infoBody, { color: muted, marginLeft: 10 }]}>Payouts, invoices, and financial reports are available on Royal and Enterprise plans. Upgrade to unlock full finance management.</Text>
+            <Text style={[sc.infoBody, { color: muted, marginLeft: 10 }]}>Payouts, invoices, and Stacks reports are available on Royal and Enterprise plans. Upgrade to unlock full Stacks management.</Text>
           </GlassView>
         </ScrollView>
       );
@@ -637,24 +637,24 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       case 'ecosystem': return (
         <ScrollView contentContainerStyle={sc.tabContent} showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
-          <Text style={[sc.sectionTitle, { color: textColor }]}>Partnerships & Ecosystem</Text>
+          <Text style={[sc.sectionTitle, { color: textColor }]}>Connects & The Network</Text>
 
           {partners.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Feather name="globe" size={36} color={muted} />
-              <Text style={[sc.emptyTitle, { color: textColor }]}>No partners yet</Text>
-              <Text style={[sc.emptyBody, { color: muted }]}>Connect with sponsors, co-hosts, and API partners to grow your revenue.</Text>
+              <Text style={[sc.emptyTitle, { color: textColor }]}>No Connects yet</Text>
+              <Text style={[sc.emptyBody, { color: muted }]}>Link up with Backers, co-Gruv hosts, and API Connects to grow your Stacks.</Text>
             </GlassView>
           ) : partners.map(p => <PartnerRow key={p.id} partner={p} primary={primary} textColor={textColor} muted={muted} />)}
 
           {/* Ecosystem categories */}
           {[
-            { icon: 'star', label: 'Sponsorship Marketplace', body: 'Get discovered by brands looking to sponsor events like yours. Set your sponsorship tiers, audience data, and pricing.', color: '#f59e0b' },
-            { icon: 'code', label: 'API Integrations', body: 'Connect Ticketmaster, Eventbrite, WhatsApp Business, Stripe, Yoco, Ozow, and 50+ more to automate your business.', color: '#8b5cf6' },
-            { icon: 'users', label: 'Co-Host Network', body: 'Partner with other organisers to cross-promote, share costs, and expand reach. Revenue split managed automatically.', color: '#10b981' },
-            { icon: 'share-2', label: 'Affiliate Programme', body: 'Invite promoters to sell tickets and promote your events. Track commissions, set payouts, and manage your affiliate army.', color: primary },
-            { icon: 'truck', label: 'Commuting Hub Partner', body: 'Connect with transport providers — Uber, bolt, private charters, and shuttle companies — to offer attendees seamless transport.', color: '#06b6d4' },
-            { icon: 'camera', label: 'Creative Network', body: 'Book photographers, videographers, DJs, and designers directly from the platform. All billing tracked inside your dashboard.', color: '#ec4899' },
+            { icon: 'star', label: 'Backing Marketplace', body: 'Get discovered by brands looking to back Gruvs like yours. Set your Backing tiers, Crowd data, and pricing.', color: '#f59e0b' },
+            { icon: 'code', label: 'API Connects', body: 'Connect Ticketmaster, Eventbrite, WhatsApp Business, Stripe, Yoco, Ozow, and 50+ more to automate your Biz Hub.', color: '#8b5cf6' },
+            { icon: 'users', label: 'Co-Gruv Network', body: 'Link up with other organisers to cross-promote, split costs, and expand reach. Stacks split managed automatically.', color: '#10b981' },
+            { icon: 'share-2', label: 'Affiliate Programme', body: 'Invite promoters to sell Passes and hype your Gruvs. Track commissions, set payouts, and manage your affiliate army.', color: primary },
+            { icon: 'truck', label: 'Commute Hub', body: 'Link with transport providers — Uber, Bolt, private charters, and shuttles — to offer Vibers seamless rides to your Gruvs.', color: '#06b6d4' },
+            { icon: 'camera', label: 'Creative Network', body: 'Book photographers, videographers, DJs, and designers directly. All billing tracked inside your Biz Hub.', color: '#ec4899' },
           ].map(e => (
             <GlassView key={e.label} style={[sc.ecoCard, { borderColor: `${e.color}20` }]}>
               <View style={[sc.ecoIcon, { backgroundColor: `${e.color}15` }]}>

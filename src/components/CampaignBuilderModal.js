@@ -98,7 +98,7 @@ const TARGETING = {
   },
 };
 
-const CAMPAIGN_TYPES = ['awareness', 'engagement', 'conversion', 'event_promo', 'retargeting', 'lookalike'];
+const CAMPAIGN_TYPES = ['awareness', 'engagement', 'lock_in', 'gruv_promo', 'retarget', 'lookalike'];
 const EVENT_PHASES   = ['pre_event', 'during_event', 'post_event'];
 
 // ── Multi-select Chip Field ───────────────────────────────────────────────────
@@ -203,11 +203,11 @@ const TargetingSection = ({ catKey, category, targeting, setTargeting, primary, 
 const CAMPAIGN_TEMPLATES = [
   {
     id: 'nightlife_promo',
-    label: 'Nightlife Event Promo',
+    label: 'Nightlife Gruv Promo',
     icon: 'music',
     color: '#8b5cf6',
-    desc: 'Promote a club night, concert, or music event',
-    form: { name: 'Nightlife Event Promo', campaign_type: 'event_promo', headline: 'Biggest Night of the Year', subline: 'Don\'t miss out. Limited tickets available.', cta_text: 'Get Tickets', budget_total: '500' },
+    desc: 'Promote a club night, concert, or music Gruv',
+    form: { name: 'Nightlife Gruv Promo', campaign_type: 'gruv_promo', headline: 'Biggest Night of the Year', subline: "Don't miss out. Limited Passes available.", cta_text: 'Get Passes', budget_total: '500' },
     targeting: {
       demographics: { age_min: '18', age_max: '35', gender: ['Male', 'Female'] },
       lifestyle: { lifestyle_type: ['Nightlife', 'Social butterfly'] },
@@ -221,8 +221,8 @@ const CAMPAIGN_TEMPLATES = [
     label: 'Food Festival',
     icon: 'coffee',
     color: '#f59e0b',
-    desc: 'Food & drink events, markets, pop-ups',
-    form: { name: 'Food Festival Campaign', campaign_type: 'event_promo', headline: 'A Feast Like No Other', subline: '50+ vendors. Live music. Good vibes.', cta_text: 'RSVP Free', budget_total: '300' },
+    desc: 'Food & drink Gruvs, markets, pop-ups',
+    form: { name: 'Food Festival Mission', campaign_type: 'gruv_promo', headline: 'A Feast Like No Other', subline: '50+ vendors. Live music. Real vibes.', cta_text: 'Vibe Free', budget_total: '300' },
     targeting: {
       demographics: { age_min: '21', age_max: '50', gender: ['Male', 'Female'] },
       lifestyle: { lifestyle_type: ['Foodie', 'Family-oriented'] },
@@ -236,8 +236,8 @@ const CAMPAIGN_TEMPLATES = [
     label: 'Vendor / Brand Awareness',
     icon: 'shopping-bag',
     color: '#10b981',
-    desc: 'Grow brand recognition before, during, and after events',
-    form: { name: 'Brand Awareness Push', campaign_type: 'awareness', headline: 'Find Us at the Event', subline: 'Visit our stall and get an exclusive discount.', cta_text: 'See Our Deals', budget_total: '200' },
+    desc: 'Grow brand recognition before, during, and after Gruvs',
+    form: { name: 'Brand Awareness Push', campaign_type: 'awareness', headline: 'Find Us at the Gruv', subline: 'Pull up to our stall and get an exclusive drop.', cta_text: 'See Our Drops', budget_total: '200' },
     targeting: {
       geographic: { cities: ['Johannesburg', 'Cape Town', 'Durban'] },
       behaviour: { spending_level: ['Mid (R150–R500)', 'Premium (R500–R1500)'], event_phases: ['pre_event', 'during_event'] },
@@ -249,8 +249,8 @@ const CAMPAIGN_TEMPLATES = [
     label: 'Transport Provider',
     icon: 'truck',
     color: '#06b6d4',
-    desc: 'Offer rides, shuttles, or charter services to event-goers',
-    form: { name: 'Event Transport Campaign', campaign_type: 'conversion', headline: 'Need a Ride?', subline: 'Safe, affordable transport to and from the event.', cta_text: 'Book Now', budget_total: '150' },
+    desc: 'Offer rides, shuttles, or charter services to Vibers',
+    form: { name: 'Gruv Transport Mission', campaign_type: 'lock_in', headline: 'Need a Ride?', subline: 'Safe, affordable transport to and from the Gruv.', cta_text: 'Lock In', budget_total: '150' },
     targeting: {
       behaviour: { event_phases: ['pre_event', 'post_event'], rsvp_frequency: ['Regular (4–8/mo)', 'Power user (9+/mo)'] },
       purchase_intent: { searched_for: ['Transport', 'Event tickets'] },
@@ -259,11 +259,11 @@ const CAMPAIGN_TEMPLATES = [
   },
   {
     id: 'post_event_recap',
-    label: 'Post-Event Recap',
+    label: 'Post-Gruv Recap',
     icon: 'camera',
     color: '#ec4899',
-    desc: 'Re-engage attendees after the event with photos, reviews, next dates',
-    form: { name: 'Post-Event Engagement', campaign_type: 'engagement', headline: 'Relive the Night', subline: 'Your photos are live. Next event tickets now on sale.', cta_text: 'See Photos', budget_total: '100' },
+    desc: 'Re-vibe Vibers after the Gruv with shots, reviews, next dates',
+    form: { name: 'Post-Gruv Engagement', campaign_type: 'engagement', headline: 'Relive the Night', subline: 'Your shots are live. Next Gruv Passes now dropping.', cta_text: 'See Shots', budget_total: '100' },
     targeting: {
       behaviour: { event_phases: ['post_event'] },
       purchase_intent: { rsvp_intent: ['Confirmed RSVP'] },
@@ -272,11 +272,11 @@ const CAMPAIGN_TEMPLATES = [
   },
   {
     id: 'vip_retarget',
-    label: 'VIP Retargeting',
+    label: 'Royale Retargeting',
     icon: 'star',
     color: '#f59e0b',
-    desc: 'Re-target high-spending repeat attendees with premium offers',
-    form: { name: 'VIP Retargeting', campaign_type: 'retargeting', headline: 'You\'re Invited — Exclusive VIP Access', subline: 'As one of our top vibers, you get first access.', cta_text: 'Claim VIP', budget_total: '800' },
+    desc: 'Re-target high-spending repeat Vibers with Royale access and exclusive drops',
+    form: { name: 'Royale Retargeting', campaign_type: 'retarget', headline: "You're Invited — Royale Access Only", subline: "As one of our top Vibers, you get the first Drop. Don't sleep on it.", cta_text: 'Claim Royale', budget_total: '800' },
     targeting: {
       behaviour: { spending_level: ['Premium (R500–R1500)', 'Luxury (R1500+)'], rsvp_frequency: ['Regular (4–8/mo)', 'Power user (9+/mo)'], event_phases: ['pre_event'] },
     },
@@ -418,18 +418,18 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
   };
 
   const STEPS = [
-    { label: 'Campaign Details' },
-    { label: 'Creative & Budget' },
-    { label: 'Audience Targeting' },
-    { label: 'Event Phases' },
+    { label: 'Mission Details' },
+    { label: 'Creative & War Chest' },
+    { label: 'Crowd Targeting' },
+    { label: 'Gruv Phases' },
   ];
 
   const renderStep = () => {
     switch (step) {
       case 1: return (
         <View style={{ gap: 4 }}>
-          <Field label="Campaign Name *" value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} primary={primary} textColor={textColor} muted={muted} placeholder="e.g. Summer Festival Push" />
-          <Text style={[cms.fieldLabel, { color: muted }]}>CAMPAIGN TYPE</Text>
+          <Field label="Mission Name *" value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} primary={primary} textColor={textColor} muted={muted} placeholder="e.g. Summer Gruv Push" />
+          <Text style={[cms.fieldLabel, { color: muted }]}>MISSION TYPE</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
             {CAMPAIGN_TYPES.map(t => (
               <TouchableOpacity key={t} onPress={() => setForm(p => ({ ...p, campaign_type: t }))}
@@ -449,7 +449,7 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
           <Field label="Ad Subline" value={form.subline} onChange={v => setForm(p => ({ ...p, subline: v }))} primary={primary} textColor={textColor} muted={muted} placeholder="Supporting copy..." multiline />
           <Field label="CTA Text" value={form.cta_text} onChange={v => setForm(p => ({ ...p, cta_text: v }))} primary={primary} textColor={textColor} muted={muted} placeholder="RSVP Now" />
           <Field label="CTA URL (optional)" value={form.cta_url} onChange={v => setForm(p => ({ ...p, cta_url: v }))} primary={primary} textColor={textColor} muted={muted} placeholder="https://..." />
-          <Field label="Total Budget (R)" value={form.budget_total} onChange={v => setForm(p => ({ ...p, budget_total: v }))} primary={primary} textColor={textColor} muted={muted} placeholder="e.g. 500" keyboardType="numeric" />
+          <Field label="War Chest (R)" value={form.budget_total} onChange={v => setForm(p => ({ ...p, budget_total: v }))} primary={primary} textColor={textColor} muted={muted} placeholder="e.g. 500" keyboardType="numeric" />
 
           {/* Ad preview */}
           {(form.headline || form.subline) && (
@@ -479,9 +479,9 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
             </View>
             <View>
               <Text style={[cms.reachVal, { color: primary }]}>{reach.toLocaleString()}</Text>
-              <Text style={[cms.reachLabel, { color: muted }]}>Estimated Reach</Text>
+              <Text style={[cms.reachLabel, { color: muted }]}>Estimated Crowd Size</Text>
             </View>
-            <Text style={[cms.reachNote, { color: muted }]}>Refine your targeting to narrow or expand reach</Text>
+            <Text style={[cms.reachNote, { color: muted }]}>Tune your targeting to narrow or widen The Crowd</Text>
           </GlassView>
 
           {Object.entries(TARGETING).map(([catKey, category]) => (
@@ -495,14 +495,14 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
           <GlassView style={[cms.phaseInfo, { borderColor: `${primary}20` }]}>
             <Feather name="info" size={14} color={primary} />
             <Text style={[cms.phaseInfoText, { color: muted }]}>
-              Select which event phases this campaign targets. Each phase unlocks different ad placements and audience mindsets.
+              Select which Gruv phases this Mission targets. Each phase unlocks different placement spots and Crowd mindsets.
             </Text>
           </GlassView>
 
           {[
-            { key: 'pre_event',    label: 'PRE-EVENT',    icon: 'clock', color: '#8b5cf6', desc: 'Show ads to users who have RSVPed or viewed an event. Target: Transport, outfits, accommodation, hype content, dining reservations.' },
-            { key: 'during_event', label: 'DURING EVENT', icon: 'zap',   color: primary,   desc: 'Show ads to users checked in at an event. Target: Food & drinks, merchandise, photo booths, tips & upgrades, next event teaser.' },
-            { key: 'post_event',   label: 'POST-EVENT',   icon: 'star',  color: '#10b981', desc: 'Show ads after the event ends. Target: Photos, reviews, highlight reels, next event early access, community groups.' },
+            { key: 'pre_event',    label: 'PRE-GRUV',     icon: 'clock', color: '#8b5cf6', desc: 'Reach Vibers who Vibed or Scouted a Gruv. Target: Transport, outfits, accommodation, hype content, dining reservations.' },
+            { key: 'during_event', label: 'IN THE GRUV',  icon: 'zap',   color: primary,   desc: 'Reach Vibers who Touched Down at a Gruv. Target: Food & drinks, merch, shot booths, Royale upgrades, next Gruv teaser.' },
+            { key: 'post_event',   label: 'POST-GRUV',    icon: 'star',  color: '#10b981', desc: 'Reach Vibers after the Gruv ends. Target: Shots, reviews, highlight reels, next Gruv early Passes, community groups.' },
           ].map(phase => {
             const active = phases.includes(phase.key);
             return (
@@ -531,8 +531,8 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
           {/* Automated notification preview */}
           {phases.length > 0 && (
             <GlassView style={[cms.notifPreview, { borderColor: `${primary}20` }]}>
-              <Text style={[cms.notifPreviewTitle, { color: textColor }]}>Automated Notifications Enabled</Text>
-              <Text style={[cms.notifPreviewBody, { color: muted }]}>Users in your targeted audience will receive push notifications during the selected phases. Notification cadence: max 1 per phase per user per event.</Text>
+              <Text style={[cms.notifPreviewTitle, { color: textColor }]}>Auto Pings Activated</Text>
+              <Text style={[cms.notifPreviewBody, { color: muted }]}>Vibers in your Crowd will receive Pings during the selected Gruv phases. Ping cadence: max 1 per phase per Vibe per Gruv.</Text>
             </GlassView>
           )}
         </View>
@@ -559,7 +559,7 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
             <Feather name={templatePicker ? 'x' : 'arrow-left'} size={20} color={textColor} />
           </TouchableOpacity>
           <Text style={[cms.headerTitle, { color: textColor }]}>
-            {templatePicker ? 'New Campaign' : existing ? 'Edit Campaign' : 'New Campaign'}
+            {templatePicker ? 'New Mission' : existing ? 'Edit Mission' : 'New Mission'}
           </Text>
           <View style={{ width: 36 }} />
         </View>

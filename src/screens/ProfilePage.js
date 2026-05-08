@@ -27,6 +27,8 @@ import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
 import { PathMapScreen } from './PathMapScreen';
 import { useIdentity } from '../context/IdentityContext';
 import { BusinessDashboardScreen } from './BusinessDashboardScreen';
+import { TutorialCenter } from '../components/TutorialCenter';
+import { useTutorial } from '../context/TutorialContext';
 
 const { width } = Dimensions.get('window');
 
@@ -634,6 +636,8 @@ export const ProfilePage = ({ onAuthRequired }) => {
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [bizDashVisible, setBizDashVisible] = useState(false);
+  const [tutorialCenterVisible, setTutorialCenterVisible] = useState(false);
+  const { completed: tutorialsDone } = useTutorial();
   const [postModalVisible, setPostModalVisible] = useState(false);
   const { identityMode, modeConfig, setIdentityMode } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs');
@@ -881,7 +885,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
             <BrandLogo size={32} showGlow />
             <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', letterSpacing: 2 }}>MY ROYALTY</Text>
           </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
               onPress={() => setBizDashVisible(true)}
@@ -895,6 +899,16 @@ export const ProfilePage = ({ onAuthRequired }) => {
             >
               <Feather name="award" size={14} color={primary} />
               <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Leaderboard</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(139,92,246,0.15)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)' }}
+              onPress={() => setTutorialCenterVisible(true)}
+            >
+              <Feather name="book-open" size={14} color="#8b5cf6" />
+              <Text style={{ color: '#8b5cf6', fontSize: 11, fontWeight: '800' }}>Tutorials</Text>
+              {tutorialsDone.length < 3 && (
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#ef4444' }} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -1279,6 +1293,10 @@ export const ProfilePage = ({ onAuthRequired }) => {
           <BusinessDashboardScreen onClose={() => setBizDashVisible(false)} />
         </View>
       )}
+      <TutorialCenter
+        visible={tutorialCenterVisible}
+        onClose={() => setTutorialCenterVisible(false)}
+      />
     </View>
   );
 };

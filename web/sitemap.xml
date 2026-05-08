@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0">
+
+  <!-- ═══════════════════════════════════════════════════
+       CORE PAGES
+  ═══════════════════════════════════════════════════ -->
+  <url>
+    <loc>https://thegruvs.com/</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://thegruvs.com/og-image.jpg</image:loc>
+      <image:title>The Gruvs — South Africa's #1 Nightlife &amp; Events App</image:title>
+      <image:caption>Discover Gruvs, concerts, and nightlife near you</image:caption>
+    </image:image>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.95</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/lineup</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/vibe-card</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/biz</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+    <mobile:mobile/>
+  </url>
+
+  <!-- ═══════════════════════════════════════════════════
+       CITY / LOCATION PAGES
+  ═══════════════════════════════════════════════════ -->
+  <url>
+    <loc>https://thegruvs.com/scout?city=johannesburg</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.90</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?city=cape-town</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.90</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?city=durban</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.88</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?city=pretoria</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.85</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?city=port-elizabeth</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.80</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?city=bloemfontein</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?city=east-london</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.72</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?city=nelspruit</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.70</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?city=polokwane</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.70</priority>
+    <mobile:mobile/>
+  </url>
+
+  <!-- ═══════════════════════════════════════════════════
+       CATEGORY / GENRE PAGES
+  ═══════════════════════════════════════════════════ -->
+  <url>
+    <loc>https://thegruvs.com/scout?genre=amapiano</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.88</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?genre=afrobeats</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.85</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?genre=house</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.85</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?genre=hiphop</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?category=food-festival</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.80</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?category=nightlife</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.88</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?category=comedy</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/scout?category=sport</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+    <mobile:mobile/>
+  </url>
+
+  <!-- ═══════════════════════════════════════════════════
+       BUSINESS / ADVERTISER PAGES
+  ═══════════════════════════════════════════════════ -->
+  <url>
+    <loc>https://thegruvs.com/biz/advertise</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.82</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/biz/host-a-gruv</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.82</priority>
+    <mobile:mobile/>
+  </url>
+
+  <!-- ═══════════════════════════════════════════════════
+       DOWNLOAD / APP STORE PAGES
+  ═══════════════════════════════════════════════════ -->
+  <url>
+    <loc>https://thegruvs.com/download</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+    <mobile:mobile/>
+  </url>
+
+  <!-- ═══════════════════════════════════════════════════
+       STATIC INFO PAGES
+  ═══════════════════════════════════════════════════ -->
+  <url>
+    <loc>https://thegruvs.com/about</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.60</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/privacy</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.40</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://thegruvs.com/terms</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.40</priority>
+    <mobile:mobile/>
+  </url>
+
+</urlset>

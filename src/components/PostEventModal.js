@@ -37,6 +37,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [error, setError] = useState('');
   const [catPickerVisible, setCatPickerVisible] = useState(false);
+  const scrollRef = useRef(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -130,7 +131,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     const primaryCat = selectedCategories[0] || eventType?.toLowerCase() || null;
 
     const payload = {
-      user_id:     user.id,
+      author_id:   user.id,
       title:       title.trim(),
       description: description.trim(),
       address:     address.trim(),
@@ -146,7 +147,32 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
 
     setLoading(false);
     if (dbError) {
-      setError(`Could not post event: ${dbError.message}`);
+      const msg = dbError.message || '';
+      // Map DB column names → which step contains that field, so we jump there
+      const fieldStepMap = {
+        title: 1, description: 1, address: 1, city: 1, event_date: 1,
+        category: 2, media: 2,
+        ticket_url: 3, age_restriction: 3,
+      };
+      let targetStep = null;
+      Object.entries(fieldStepMap).forEach(([col, s]) => {
+        if (msg.includes(`"${col}"`)) targetStep = s;
+      });
+
+      let friendly = msg;
+      if (msg.includes('author_id')) {
+        friendly = 'You must be signed in to post. Tap your Vibe Card to sign in, then try again.';
+      } else if (targetStep) {
+        const fieldNames = { 1: 'title, description or address', 2: 'categories or media', 3: 'ticket link or age setting' };
+        friendly = `Check your ${fieldNames[targetStep] || 'details'} — ${msg}`;
+      }
+
+      setError(friendly);
+      if (targetStep && targetStep !== step) {
+        setStep(targetStep);
+      }
+      // Scroll down to show the error box
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 350);
     } else {
       reset();
       onPostSuccess?.();
@@ -204,7 +230,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
               <View style={[pm.progressFill, { backgroundColor: primary, width: `${(step / 3) * 100}%` }]} />
             </View>
 
-            <ScrollView style={pm.form} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <ScrollView ref={scrollRef} style={pm.form} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
               {/* ── STEP 1: Core info ────────────────────────────────────── */}
               {step === 1 && (
@@ -264,7 +290,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                   <TouchableOpacity
                     style={[pm.nextBtn, { backgroundColor: canProceedStep1 ? primary : `${primary}20` }]}
                     onPress={() => {
-                      if (!canProceedStep1) { setError('Fill in title, description and address first.'); return; }
+                      if (!canProceedStep1) {
+                        setError('Fill in title, description and address first.');
+                        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200);
+                        return;
+                      }
                       setError(''); setStep(2);
                     }}
                   >
