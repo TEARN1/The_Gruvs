@@ -15,6 +15,7 @@ import { LocationService } from '../services/locationService';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
 import { ServiceMarketplace } from './ServiceMarketplace';
+import { RealtimeManager } from '../services/dataFlow';
 
 const { width } = Dimensions.get('window');
 
@@ -316,6 +317,32 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   useEffect(() => {
     loadAll();
+
+    // Real-time: auto-update feed without manual refresh
+    const unsub = RealtimeManager.subscribeToFeed(
+      (newEvent) => {
+        // Prepend new Gruv to the top of "Happening Now"
+        setHappeningNow(prev => {
+          const already = prev.some(e => e.id === newEvent.id);
+          if (already) return prev;
+          return [newEvent, ...prev].slice(0, 8);
+        });
+        // Also set as featured if it has the highest vibe count
+        setFeaturedEvent(prev => {
+          if (!prev) return newEvent;
+          return (newEvent.vibe_count || 0) > (prev.vibe_count || 0) ? newEvent : prev;
+        });
+      },
+      (updatedEvent) => {
+        // Update vibe_count / going count in all lists in-place
+        const patch = (list) => list.map(e => e.id === updatedEvent.id ? { ...e, ...updatedEvent } : e);
+        setHappeningNow(patch);
+        setTrendingEvents(patch);
+        setNearbyEvents(patch);
+        setFeaturedEvent(prev => prev?.id === updatedEvent.id ? { ...prev, ...updatedEvent } : prev);
+      }
+    );
+    return () => unsub();
   }, []);
 
   const loadAll = async () => {

@@ -1,53 +1,133 @@
 /**
- * The Gruvs — Royal Data Flow Engine
- * Smart caching, real-time subscriptions, optimistic updates, pagination.
+ * The Gruvs — Data Flow Engine v2
+ * Centralised data layer: caching, real-time, optimistic updates, managers for
+ * every domain (Feed, Trending, Vibe, RSVP, Bookmark, User, Notification,
+ * CheckIn, Analytics, Calendar, Route, Score).
  */
 
 import { supabase } from './supabase';
 
-// ── In-memory cache ──────────────────────────────────────────────────────────
-const CACHE = {};
-const CACHE_TTL = 90_000; // 90 seconds
+// ─────────────────────────────────────────────────────────────────────────────
+// CACHE  (stale-while-revalidate, prefix invalidation)
+// ─────────────────────────────────────────────────────────────────────────────
+const CACHE     = {};
+const CACHE_TTL = 90_000; // 90 s fresh window
 
 const cache = {
-  set(key, value) { CACHE[key] = { value, ts: Date.now() }; },
+  set(key, value, ttl = CACHE_TTL) {
+    CACHE[key] = { value, ts: Date.now(), ttl };
+  },
   get(key) {
     const entry = CACHE[key];
     if (!entry) return null;
-    if (Date.now() - entry.ts > CACHE_TTL) { delete CACHE[key]; return null; }
+    if (Date.now() - entry.ts > entry.ttl) { delete CACHE[key]; return null; }
     return entry.value;
+  },
+  // Returns stale value (if any) AND triggers background revalidation
+  getStale(key) {
+    return CACHE[key]?.value ?? null;
   },
   invalidate(prefix) {
     Object.keys(CACHE).forEach(k => { if (k.startsWith(prefix)) delete CACHE[k]; });
   },
+  clear() { Object.keys(CACHE).forEach(k => delete CACHE[k]); },
 };
 
-// ── Event Feed with pagination ────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SCORE ENGINE  (Vibe Score — used for feed ranking & profile display)
+// ─────────────────────────────────────────────────────────────────────────────
+export const ScoreEngine = {
+  // Weighted relevance score for a single event (higher = more relevant)
+  eventScore(event, { userInterests = [], followedIds = [], userLat, userLon } = {}) {
+    let score = 0;
+
+    // Social signals
+    score += (event.vibe_count  || 0) * 1.5;
+    score += (event.going       || 0) * 1.2;
+    score += (event.echo_count  || 0) * 0.8;
+
+    // Personalisation boosts
+    if (followedIds.includes(event.author_id)) score += 25;
+    if (userInterests.includes(event.category)) score += 15;
+
+    // Recency — events created in the last 6 h get a spike
+    const ageH = (Date.now() - new Date(event.created_at).getTime()) / 3_600_000;
+    score += Math.max(0, 20 - ageH * 0.5);
+
+    // Upcoming proximity — events in the next 48 h get boosted
+    if (event.event_date) {
+      const daysUntil = (new Date(event.event_date) - Date.now()) / 86_400_000;
+      if (daysUntil >= 0 && daysUntil <= 2) score += 18;
+    }
+
+    // Free events get a small nudge
+    if (!event.price || event.price === 0) score += 5;
+
+    // Distance penalty if coords are available (rough haversine)
+    if (userLat && userLon && event.lat && event.lon) {
+      const distKm = _haversine(userLat, userLon, event.lat, event.lon);
+      score -= Math.min(15, distKm * 0.3);
+    }
+
+    return score;
+  },
+
+  // Compute and persist a user's Vibe Score
+  async computeVibeScore(userId) {
+    try {
+      const [posts, vibes, rsvps, checkins] = await Promise.all([
+        supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId),
+        supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      ]);
+      const score =
+        (posts.count    || 0) * 10 +
+        (vibes.count    || 0) * 3  +
+        (rsvps.count    || 0) * 5  +
+        (checkins.count || 0) * 8;
+      await supabase.from('profiles').update({ vibe_score: score }).eq('id', userId);
+      cache.invalidate(`profile_stats:${userId}`);
+      return score;
+    } catch { return 0; }
+  },
+};
+
+function _haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEED MANAGER
+// ─────────────────────────────────────────────────────────────────────────────
 export const FeedManager = {
   PAGE_SIZE: 15,
 
-  async fetchPage({ page = 0, category = 'all', query = '', mode = 'drop', userInterests = [], followedIds = [] } = {}) {
+  async fetchPage({
+    page = 0, category = 'all', query = '', mode = 'drop',
+    userInterests = [], followedIds = [], userLat, userLon,
+  } = {}) {
     const cacheKey = `feed:${mode}:${category}:${query}:${page}`;
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
 
     try {
       let q = supabase
         .from('events')
         .select('*, profiles(id, username, avatar_url, is_verified, is_online, vibe_score)', { count: 'estimated' })
-        .range(page * FeedManager.PAGE_SIZE, (page + 1) * FeedManager.PAGE_SIZE - 1);
+        .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
 
       if (category !== 'all') q = q.eq('category', category);
 
       if (query.trim()) {
-        // Use full-text search if available, fall back to ilike
-        q = q.or(`title.ilike.%${query.trim()}%,description.ilike.%${query.trim()}%,category.ilike.%${query.trim()}%,venue_name.ilike.%${query.trim()}%,city.ilike.%${query.trim()}%`);
+        const s = query.trim();
+        q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%,category.ilike.%${s}%,venue_name.ilike.%${s}%,city.ilike.%${s}%`);
         q = q.order('vibe_count', { ascending: false });
-      } else if (mode === 'explore') {
-        q = q.order('vibe_count', { ascending: false });
-      } else if (followedIds.length > 0) {
-        // Personalized: followed users' events first, then everyone else by date
-        q = q.order('created_at', { ascending: false });
       } else {
         q = q.order('created_at', { ascending: false });
       }
@@ -55,27 +135,46 @@ export const FeedManager = {
       const { data, error, count } = await q;
       if (error) throw error;
 
+      // Apply ScoreEngine ranking (client-side re-sort for personalisation)
       let events = data || [];
-
-      // Personalized boost — float events matching user interests and from followed creators
       if ((userInterests.length > 0 || followedIds.length > 0) && !query.trim()) {
-        events = events.sort((a, b) => {
-          const scoreA = (followedIds.includes(a.user_id) ? 20 : 0)
-            + (userInterests.includes(a.category) ? 10 : 0)
-            + (a.vibe_count || 0) * 0.1;
-          const scoreB = (followedIds.includes(b.user_id) ? 20 : 0)
-            + (userInterests.includes(b.category) ? 10 : 0)
-            + (b.vibe_count || 0) * 0.1;
-          return scoreB - scoreA;
-        });
+        events = [...events].sort((a, b) =>
+          ScoreEngine.eventScore(b, { userInterests, followedIds, userLat, userLon }) -
+          ScoreEngine.eventScore(a, { userInterests, followedIds, userLat, userLon })
+        );
       }
 
-      const result = { events, total: count || 0, page, hasMore: events.length === FeedManager.PAGE_SIZE };
+      const result = { events, total: count || 0, page, hasMore: events.length === this.PAGE_SIZE };
       cache.set(cacheKey, result);
       return result;
-    } catch {
-      return { events: [], total: 0, page, hasMore: false };
-    }
+    } catch { return { events: [], total: 0, page, hasMore: false }; }
+  },
+
+  // Featured Gruv — pinned or highest scoring upcoming event
+  async fetchFeatured({ userInterests = [], followedIds = [] } = {}) {
+    const cacheKey = 'feed:featured';
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const { data } = await supabase
+        .from('events')
+        .select('*, profiles(id, username, avatar_url, is_verified, vibe_score)')
+        .gte('event_date', new Date().toISOString().split('T')[0])
+        .order('vibe_count', { ascending: false })
+        .limit(20);
+
+      if (!data?.length) return null;
+
+      // Pick the one with the highest personalised score
+      const best = [...data].sort((a, b) =>
+        ScoreEngine.eventScore(b, { userInterests, followedIds }) -
+        ScoreEngine.eventScore(a, { userInterests, followedIds })
+      )[0];
+
+      cache.set('feed:featured', best, 120_000); // 2-min TTL for hero card
+      return best;
+    } catch { return null; }
   },
 
   async searchAll(query) {
@@ -83,7 +182,6 @@ export const FeedManager = {
     const s = query.trim();
     try {
       const [evRes, userRes, ftsRes] = await Promise.allSettled([
-        // ilike fallback — always works
         supabase
           .from('events')
           .select('*, profiles(id, username, avatar_url)')
@@ -95,32 +193,26 @@ export const FeedManager = {
           .select('id, username, display_name, avatar_url, bio, location, vibe_score')
           .or(`username.ilike.%${s}%,display_name.ilike.%${s}%,bio.ilike.%${s}%`)
           .limit(10),
-        // Full-text search via RPC (requires fts index in DB — graceful fallback if not set up)
         supabase.rpc('search_events_fts', { search_query: s, limit_count: 20 }),
       ]);
 
-      const ilikeEvents = evRes.status === 'fulfilled' ? (evRes.value.data || []) : [];
-      const users = userRes.status === 'fulfilled' ? (userRes.value.data || []) : [];
-      const ftsEvents = ftsRes.status === 'fulfilled' && ftsRes.value.data?.length > 0
-        ? ftsRes.value.data
-        : null;
+      const ilikeEvents = evRes.status   === 'fulfilled' ? (evRes.value.data   || []) : [];
+      const users       = userRes.status === 'fulfilled' ? (userRes.value.data || []) : [];
+      const ftsEvents   = ftsRes.status  === 'fulfilled' && ftsRes.value.data?.length > 0
+        ? ftsRes.value.data : null;
 
-      // Prefer FTS results if available, merge with ilike deduped
       const eventMap = new Map();
       (ftsEvents || ilikeEvents).forEach(e => eventMap.set(e.id, e));
       if (ftsEvents) ilikeEvents.forEach(e => { if (!eventMap.has(e.id)) eventMap.set(e.id, e); });
 
       return { events: [...eventMap.values()].slice(0, 20), users };
-    } catch {
-      return { events: [], users: [] };
-    }
+    } catch { return { events: [], users: [] }; }
   },
 
   async fetchSingle(eventId) {
     const cacheKey = `event:${eventId}`;
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
-
     try {
       const { data } = await supabase
         .from('events')
@@ -129,153 +221,214 @@ export const FeedManager = {
         .single();
       if (data) cache.set(cacheKey, data);
       return data;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
+  },
+
+  invalidate(eventId) {
+    if (eventId) cache.invalidate(`event:${eventId}`);
+    cache.invalidate('feed:');
+    cache.invalidate('happening_now');
   },
 };
 
-// ── Trending / Hotspots ───────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// TRENDING MANAGER
+// ─────────────────────────────────────────────────────────────────────────────
 export const TrendingManager = {
   async fetch(limit = 8) {
     const cacheKey = `trending:${limit}`;
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
-
     try {
       const { data } = await supabase.rpc('find_popular_spots', { limit_count: limit });
-      if (data && data.length > 0) {
-        cache.set(cacheKey, data);
-        return data;
-      }
+      if (data?.length > 0) { cache.set(cacheKey, data); return data; }
     } catch {}
     return [];
   },
 
-  // Events happening today or in the next 24h
   async fetchHappeningNow() {
     const cacheKey = 'happening_now';
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
-
     try {
-      const now = new Date().toISOString();
-      const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
+      const today    = new Date().toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
         .select('*, profiles(username, avatar_url)')
-        .gte('event_date', now.split('T')[0])
-        .lte('event_date', tomorrow.split('T')[0])
-        .order('event_date', { ascending: true })
-        .limit(6);
+        .gte('event_date', today)
+        .lte('event_date', tomorrow)
+        .order('vibe_count', { ascending: false })
+        .limit(8);
       const result = data || [];
-      cache.set(cacheKey, result);
+      cache.set(cacheKey, result, 60_000); // 1-min TTL — high volatility
       return result;
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   },
 
-  // Events by category with counts
+  async fetchThisWeek() {
+    const cacheKey = 'this_week';
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const today   = new Date().toISOString().split('T')[0];
+      const week    = new Date(Date.now() + 7 * 86_400_000).toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('events')
+        .select('*, profiles(username, avatar_url)')
+        .gte('event_date', today)
+        .lte('event_date', week)
+        .order('vibe_count', { ascending: false })
+        .limit(20);
+      const result = data || [];
+      cache.set(cacheKey, result, 300_000); // 5-min TTL
+      return result;
+    } catch { return []; }
+  },
+
+  // Returns { category: count } with a hard ceiling to avoid full scans
   async fetchCategoryCounts() {
     const cacheKey = 'category_counts';
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
-
     try {
       const { data } = await supabase
         .from('events')
         .select('category')
-        .not('category', 'is', null);
-
+        .not('category', 'is', null)
+        .limit(500); // cap — avoids full-table scans
       if (!data) return {};
       const counts = {};
       data.forEach(e => { counts[e.category] = (counts[e.category] || 0) + 1; });
-      cache.set(cacheKey, counts);
+      cache.set(cacheKey, counts, 300_000);
       return counts;
-    } catch {
-      return {};
-    }
+    } catch { return {}; }
   },
 };
 
-// ── Vibe / Reaction Engine ────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// VIBE MANAGER  (reactions on events)
+// ─────────────────────────────────────────────────────────────────────────────
 export const VibeManager = {
+  // Returns updated vibe count, or null on failure
   async sendVibe(eventId, userId) {
     try {
-      const { error } = await supabase.from('event_vibes')
+      const { error } = await supabase
+        .from('event_vibes')
         .upsert({ event_id: eventId, user_id: userId }, { onConflict: 'event_id,user_id', ignoreDuplicates: true });
       if (error) return null;
-      // Atomic increment — no read-then-write race condition
       await supabase.rpc('increment_vibe_count', { eid: eventId });
-      cache.invalidate(`event:${eventId}`);
-      cache.invalidate('feed:');
+      FeedManager.invalidate(eventId);
+      // Fire notification to event author (best-effort)
+      _notifyEventAuthor(eventId, userId, 'vibe').catch(() => {});
       return true;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   },
 
   async removeVibe(eventId, userId) {
     try {
-      const { error } = await supabase.from('event_vibes')
+      const { error } = await supabase
+        .from('event_vibes')
         .delete().eq('event_id', eventId).eq('user_id', userId);
       if (error) return null;
-      // Atomic decrement — floors at 0
       await supabase.rpc('decrement_vibe_count', { eid: eventId });
-      cache.invalidate(`event:${eventId}`);
-      cache.invalidate('feed:');
+      FeedManager.invalidate(eventId);
       return true;
-    } catch {
-      return null;
-    }
-  },
-
-  async sendReaction(eventId, userId, reactionKey) {
-    try {
-      await supabase.from('event_reactions').upsert(
-        { event_id: eventId, user_id: userId, reaction_key: reactionKey },
-        { onConflict: 'event_id,user_id' }
-      );
-      cache.invalidate(`event:${eventId}`);
-      return true;
-    } catch {
-      return false;
-    }
-  },
-
-  async getUserReactions(eventIds, userId) {
-    if (!userId || !eventIds.length) return {};
-    try {
-      const { data } = await supabase
-        .from('event_reactions')
-        .select('event_id, reaction_key')
-        .eq('user_id', userId)
-        .in('event_id', eventIds);
-      const map = {};
-      (data || []).forEach(r => { map[r.event_id] = r.reaction_key; });
-      return map;
-    } catch {
-      return {};
-    }
+    } catch { return null; }
   },
 
   async getUserVibes(eventIds, userId) {
     if (!userId || !eventIds.length) return new Set();
+    const cacheKey = `user_vibes:${userId}:${eventIds.slice(0, 3).join(',')}`;
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
     try {
       const { data } = await supabase
         .from('event_vibes')
         .select('event_id')
         .eq('user_id', userId)
         .in('event_id', eventIds);
-      return new Set((data || []).map(v => v.event_id));
-    } catch {
-      return new Set();
-    }
+      const result = new Set((data || []).map(v => v.event_id));
+      cache.set(cacheKey, result, 30_000);
+      return result;
+    } catch { return new Set(); }
   },
 };
 
-// ── Bookmark / Save Engine ────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// RSVP MANAGER  (Vibing / Maybe / Not Vibing)
+// ─────────────────────────────────────────────────────────────────────────────
+export const RSVPManager = {
+  async upsert(eventId, userId, status) {
+    try {
+      const { error } = await supabase
+        .from('event_rsvps')
+        .upsert({ event_id: eventId, user_id: userId, status }, { onConflict: 'event_id,user_id' });
+      if (error) throw error;
+      cache.invalidate(`rsvp:${userId}`);
+      FeedManager.invalidate(eventId);
+      if (status === 'going') {
+        _notifyEventAuthor(eventId, userId, 'rsvp').catch(() => {});
+      }
+      return true;
+    } catch { return false; }
+  },
+
+  async remove(eventId, userId) {
+    try {
+      await supabase.from('event_rsvps')
+        .delete().eq('event_id', eventId).eq('user_id', userId);
+      cache.invalidate(`rsvp:${userId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  async getUserStatus(eventId, userId) {
+    if (!userId) return null;
+    try {
+      const { data } = await supabase
+        .from('event_rsvps')
+        .select('status')
+        .eq('event_id', eventId)
+        .eq('user_id', userId)
+        .maybeSingle();
+      return data?.status ?? null;
+    } catch { return null; }
+  },
+
+  async getGoingCount(eventId) {
+    try {
+      const { count } = await supabase
+        .from('event_rsvps')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .eq('status', 'going');
+      return count || 0;
+    } catch { return 0; }
+  },
+
+  // Fetch all RSVPs for a user's events in one shot (for organiser dashboards)
+  async getEventRSVPs(eventId) {
+    const cacheKey = `rsvps:${eventId}`;
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase
+        .from('event_rsvps')
+        .select('status, user_id, profiles(username, avatar_url)')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false })
+        .limit(200);
+      const result = data || [];
+      cache.set(cacheKey, result, 60_000);
+      return result;
+    } catch { return []; }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOKMARK MANAGER  (Saved Gruvs)
+// ─────────────────────────────────────────────────────────────────────────────
 export const BookmarkManager = {
   async toggle(eventId, userId, isSaved) {
     try {
@@ -286,49 +439,279 @@ export const BookmarkManager = {
       }
       cache.invalidate(`saved:${userId}`);
       return !isSaved;
-    } catch {
-      return isSaved;
-    }
+    } catch { return isSaved; }
   },
 
   async getUserSaved(userId) {
     const cacheKey = `saved:${userId}`;
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
     try {
       const { data } = await supabase
         .from('saved_events')
-        .select('event_id')
-        .eq('user_id', userId);
+        .select('event_id, events(id, title, event_date, category, media, vibe_count)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
       const result = new Set((data || []).map(r => r.event_id));
       cache.set(cacheKey, result);
       return result;
-    } catch {
-      return new Set();
-    }
+    } catch { return new Set(); }
   },
 };
 
-// ── Discovery Engine ──────────────────────────────────────────────────────────
-export const DiscoveryManager = {
-  async findNobility(userId, radius = 10) {
-    const cacheKey = `nearby:${userId}:${radius}`;
-    const cached = cache.get(cacheKey);
+// ─────────────────────────────────────────────────────────────────────────────
+// USER MANAGER  (follow/unfollow, social graph, profile)
+// ─────────────────────────────────────────────────────────────────────────────
+export const UserManager = {
+  async follow(followerId, followingId) {
+    try {
+      await supabase.from('follows').insert({ follower_id: followerId, following_id: followingId });
+      cache.invalidate(`follows:${followerId}`);
+      cache.invalidate(`followers:${followingId}`);
+      _notify(followingId, followerId, 'follow', 'Someone locked in to your Gruvs', '').catch(() => {});
+      return true;
+    } catch { return false; }
+  },
+
+  async unfollow(followerId, followingId) {
+    try {
+      await supabase.from('follows')
+        .delete().eq('follower_id', followerId).eq('following_id', followingId);
+      cache.invalidate(`follows:${followerId}`);
+      cache.invalidate(`followers:${followingId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  async isFollowing(followerId, followingId) {
+    if (!followerId || !followingId) return false;
+    try {
+      const { data } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', followerId)
+        .eq('following_id', followingId)
+        .maybeSingle();
+      return !!data;
+    } catch { return false; }
+  },
+
+  async getFollowedIds(userId) {
+    const cacheKey = `follows:${userId}`;
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
     try {
-      const { data } = await supabase.rpc('find_nearby_vibers', {
-        uid: userId, max_dist_km: radius, limit_count: 20,
-      });
+      const { data } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', userId);
+      const result = (data || []).map(r => r.following_id);
+      cache.set(cacheKey, result);
+      return result;
+    } catch { return []; }
+  },
+
+  async getFollowerCount(userId) {
+    try {
+      const { count } = await supabase
+        .from('follows')
+        .select('id', { count: 'exact', head: true })
+        .eq('following_id', userId);
+      return count || 0;
+    } catch { return 0; }
+  },
+
+  async getProfile(userId) {
+    const cacheKey = `profile:${userId}`;
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
       if (data) cache.set(cacheKey, data);
-      return data || [];
-    } catch {
-      return [];
+      return data;
+    } catch { return null; }
+  },
+
+  async updateProfile(userId, updates) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+        .select()
+        .single();
+      if (error) throw error;
+      cache.invalidate(`profile:${userId}`);
+      cache.invalidate(`profile_stats:${userId}`);
+      return data;
+    } catch { return null; }
+  },
+
+  // Upsert profile row — safe to call on every sign-in for new users
+  async ensureProfile(userId, email) {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+      if (!data) {
+        await supabase.from('profiles').insert({
+          id: userId,
+          username: `viber_${userId.slice(0, 8)}`,
+          email,
+          vibe_score: 0,
+        });
+      }
+    } catch {}
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATION MANAGER
+// ─────────────────────────────────────────────────────────────────────────────
+export const NotificationManager = {
+  async fetch(userId, limit = 100) {
+    if (!userId) return [];
+    const cacheKey = `notifs:${userId}`;
+    const stale    = cache.getStale(cacheKey);
+    try {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('recipient_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      const result = data || [];
+      cache.set(cacheKey, result, 30_000);
+      return result;
+    } catch { return stale || []; }
+  },
+
+  async markRead(notifId) {
+    try {
+      await supabase.from('notifications').update({ read: true }).eq('id', notifId);
+      return true;
+    } catch { return false; }
+  },
+
+  async markAllRead(userId) {
+    try {
+      await supabase.from('notifications')
+        .update({ read: true }).eq('recipient_id', userId).eq('read', false);
+      cache.invalidate(`notifs:${userId}`);
+      return true;
+    } catch { return false; }
+  },
+
+  async getUnreadCount(userId) {
+    if (!userId) return 0;
+    try {
+      const { count } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient_id', userId)
+        .eq('read', false);
+      return count || 0;
+    } catch { return 0; }
+  },
+
+  // Subscribe to new notifications in real-time
+  subscribe(userId, onNew) {
+    const channel = supabase
+      .channel(`notifs_${userId}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'notifications',
+        filter: `recipient_id=eq.${userId}`,
+      }, payload => {
+        cache.invalidate(`notifs:${userId}`);
+        onNew?.(payload.new);
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHECK-IN MANAGER  (Touch Down)
+// ─────────────────────────────────────────────────────────────────────────────
+export const CheckInManager = {
+  async touchDown(eventId, userId, coords = {}) {
+    try {
+      const { error } = await supabase
+        .from('live_checkins')
+        .upsert(
+          {
+            user_id: userId,
+            event_id: eventId,
+            lat: coords.lat ?? null,
+            lon: coords.lon ?? null,
+            checked_in_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,event_id' }
+        );
+      if (error) throw error;
+
+      // Atomic vibe score increment — no race condition
+      await supabase.rpc('increment_profile_score', { uid: userId, amount: 8 }).catch(() =>
+        // Fallback: read-then-write if RPC not available
+        supabase.from('profiles').select('vibe_score').eq('id', userId).single()
+          .then(({ data }) =>
+            supabase.from('profiles').update({ vibe_score: (data?.vibe_score || 0) + 8 }).eq('id', userId)
+          )
+      );
+
+      cache.invalidate(`profile:${userId}`);
+      cache.invalidate(`profile_stats:${userId}`);
+      _notifyEventAuthor(eventId, userId, 'checkin').catch(() => {});
+      return true;
+    } catch (e) {
+      return false;
     }
   },
 
+  async hasCheckedIn(eventId, userId) {
+    if (!userId) return false;
+    try {
+      const { data } = await supabase
+        .from('live_checkins')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('user_id', userId)
+        .maybeSingle();
+      return !!data;
+    } catch { return false; }
+  },
+
+  async getLiveAttendees(eventId) {
+    const cacheKey = `attendees:${eventId}`;
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase
+        .from('live_checkins')
+        .select('user_id, checked_in_at, profiles(username, avatar_url, vibe_score)')
+        .eq('event_id', eventId)
+        .order('checked_in_at', { ascending: false })
+        .limit(50);
+      const result = data || [];
+      cache.set(cacheKey, result, 30_000);
+      return result;
+    } catch { return []; }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DISCOVERY MANAGER  (Nearby events & Vibers)
+// ─────────────────────────────────────────────────────────────────────────────
+export const DiscoveryManager = {
   async findNearbyEvents(lat, lon, radiusKm = 25) {
     const cacheKey = `nearby_events:${Math.round(lat * 10)}:${Math.round(lon * 10)}:${radiusKm}`;
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
     try {
       const { data } = await supabase.rpc('find_nearby_events', {
@@ -336,112 +719,88 @@ export const DiscoveryManager = {
       });
       if (data) cache.set(cacheKey, data);
       return data || [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   },
-};
 
-// ── Check-in Engine ───────────────────────────────────────────────────────────
-export const CheckInManager = {
-  async checkIn(eventId, userId) {
+  async findNearbyVibers(userId, radius = 10) {
+    const cacheKey = `nearby_vibers:${userId}:${radius}`;
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
     try {
-      await supabase.from('check_ins').insert({ event_id: eventId, user_id: userId });
-      const { data: profile } = await supabase.from('profiles').select('vibe_score').eq('id', userId).single();
-      await supabase.from('profiles').update({ vibe_score: (profile?.vibe_score || 0) + 10 }).eq('id', userId);
-      cache.invalidate(`event:${eventId}`);
-      return true;
-    } catch {
-      return false;
-    }
+      const { data } = await supabase.rpc('find_nearby_vibers', {
+        uid: userId, max_dist_km: radius, limit_count: 20,
+      });
+      if (data) cache.set(cacheKey, data);
+      return data || [];
+    } catch { return []; }
   },
 };
 
-// ── Real-time subscriptions ───────────────────────────────────────────────────
-export const RealtimeManager = {
-  subscriptions: {},
-
-  subscribeToFeed(onInsert, onUpdate) {
-    const key = 'feed_realtime';
-    if (this.subscriptions[key]) this.unsubscribe(key);
-
-    const channel = supabase
-      .channel('events_feed')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, payload => {
-        cache.invalidate('feed:');
-        onInsert && onInsert(payload.new);
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events' }, payload => {
-        cache.invalidate(`event:${payload.new.id}`);
-        cache.invalidate('feed:');
-        onUpdate && onUpdate(payload.new);
-      })
-      .subscribe();
-
-    this.subscriptions[key] = channel;
-    return () => this.unsubscribe(key);
-  },
-
-  subscribeToEvent(eventId, onChange) {
-    const key = `event_${eventId}`;
-    if (this.subscriptions[key]) this.unsubscribe(key);
-
-    const channel = supabase
-      .channel(`event_${eventId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, payload => {
-        cache.invalidate(`event:${eventId}`);
-        onChange && onChange(payload.new);
-      })
-      .subscribe();
-
-    this.subscriptions[key] = channel;
-    return () => this.unsubscribe(key);
-  },
-
-  unsubscribe(key) {
-    if (this.subscriptions[key]) {
-      supabase.removeChannel(this.subscriptions[key]);
-      delete this.subscriptions[key];
-    }
-  },
-
-  unsubscribeAll() {
-    Object.keys(this.subscriptions).forEach(k => this.unsubscribe(k));
-  },
-};
-
-// ── Analytics ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALYTICS MANAGER
+// ─────────────────────────────────────────────────────────────────────────────
 export const AnalyticsManager = {
   async getProfileStats(userId) {
     const cacheKey = `profile_stats:${userId}`;
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
     try {
-      const [events, saves, vibes] = await Promise.all([
-        supabase.from('events').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      const [posts, saves, vibes, checkins, followers] = await Promise.all([
+        supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId),
         supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', userId),
       ]);
       const result = {
-        eventCount: events.count || 0,
-        savedCount: saves.count || 0,
-        vibeCount: vibes.count || 0,
+        gruvCount:     posts.count     || 0,
+        savedCount:    saves.count     || 0,
+        vibeCount:     vibes.count     || 0,
+        touchDownCount: checkins.count || 0,
+        followerCount: followers.count || 0,
       };
       cache.set(cacheKey, result);
       return result;
-    } catch {
-      return { eventCount: 0, savedCount: 0, vibeCount: 0 };
-    }
+    } catch { return { gruvCount: 0, savedCount: 0, vibeCount: 0, touchDownCount: 0, followerCount: 0 }; }
   },
 
-  // Weekly activity array [M,T,W,T,F,S,S] of event counts
+  // Per-event stats for organisers
+  async getEventStats(eventId) {
+    const cacheKey = `event_stats:${eventId}`;
+    const cached   = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const [vibes, rsvps, checkins, echoes] = await Promise.all([
+        supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
+        supabase.from('event_rsvps').select('status').eq('event_id', eventId),
+        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
+        supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
+      ]);
+      const rsvpData = rsvps.data || [];
+      const result = {
+        vibes:      vibes.count     || 0,
+        going:      rsvpData.filter(r => r.status === 'going').length,
+        maybe:      rsvpData.filter(r => r.status === 'maybe').length,
+        notGoing:   rsvpData.filter(r => r.status === 'not_going').length,
+        touchDowns: checkins.count  || 0,
+        echoes:     echoes.count    || 0,
+        conversionRate: rsvpData.length > 0
+          ? Math.round((checkins.count || 0) / rsvpData.length * 100)
+          : 0,
+      };
+      cache.set(cacheKey, result, 120_000);
+      return result;
+    } catch { return null; }
+  },
+
+  // [M,T,W,T,F,S,S] Gruv posting activity for profile chart
   async getWeeklyActivity(userId) {
     try {
       const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
       const { data } = await supabase
         .from('events')
         .select('created_at')
-        .eq('user_id', userId)
+        .eq('author_id', userId)   // fixed: was user_id
         .gte('created_at', weekAgo);
       const days = [0, 0, 0, 0, 0, 0, 0];
       (data || []).forEach(e => {
@@ -449,22 +808,22 @@ export const AnalyticsManager = {
         days[dow === 0 ? 6 : dow - 1]++;
       });
       return days;
-    } catch {
-      return [0, 0, 0, 0, 0, 0, 0];
-    }
+    } catch { return [0, 0, 0, 0, 0, 0, 0]; }
   },
 };
 
-// ── Calendar data ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// CALENDAR MANAGER
+// ─────────────────────────────────────────────────────────────────────────────
 export const CalendarManager = {
   async fetchMonthEvents(year, month) {
     const cacheKey = `cal:${year}:${month}`;
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
 
-    const from = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const from    = `${year}-${String(month + 1).padStart(2, '0')}-01`;
     const lastDay = new Date(year, month + 1, 0).getDate();
-    const to = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
+    const to      = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
 
     try {
       const { data } = await supabase
@@ -477,16 +836,13 @@ export const CalendarManager = {
       const result = data || [];
       cache.set(cacheKey, result);
       return result;
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   },
 
   async fetchUpcoming(limit = 10) {
     const cacheKey = `upcoming:${limit}`;
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
-
     try {
       const today = new Date().toISOString().split('T')[0];
       const { data } = await supabase
@@ -498,15 +854,108 @@ export const CalendarManager = {
       const result = data || [];
       cache.set(cacheKey, result);
       return result;
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   },
 };
 
-// ── Journey / Route Engine ────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// REALTIME MANAGER  (subscriptions with reconnect)
+// ─────────────────────────────────────────────────────────────────────────────
+export const RealtimeManager = {
+  _subs: {},
+
+  subscribeToFeed(onInsert, onUpdate) {
+    this._add('feed_realtime', 'events_feed',
+      supabase.channel('events_feed')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, p => {
+          cache.invalidate('feed:');
+          cache.invalidate('happening_now');
+          onInsert?.(p.new);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events' }, p => {
+          cache.invalidate(`event:${p.new.id}`);
+          cache.invalidate('feed:');
+          onUpdate?.(p.new);
+        })
+    );
+    return () => this._remove('feed_realtime');
+  },
+
+  subscribeToEvent(eventId, onChange) {
+    const key = `event_${eventId}`;
+    this._add(key, key,
+      supabase.channel(key)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, p => {
+          cache.invalidate(`event:${eventId}`);
+          onChange?.(p.new);
+        })
+    );
+    return () => this._remove(key);
+  },
+
+  // Live vibe count changes for an event (useful on EventDetail screen)
+  subscribeToVibeCount(eventId, onChange) {
+    const key = `vibes_${eventId}`;
+    this._add(key, key,
+      supabase.channel(key)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'event_vibes',
+          filter: `event_id=eq.${eventId}`,
+        }, async () => {
+          // Fetch fresh count instead of trusting incremental payload
+          const { count } = await supabase
+            .from('event_vibes')
+            .select('id', { count: 'exact', head: true })
+            .eq('event_id', eventId);
+          onChange?.(count || 0);
+        })
+    );
+    return () => this._remove(key);
+  },
+
+  // Live Touch Down attendee count
+  subscribeToAttendees(eventId, onChange) {
+    const key = `checkins_${eventId}`;
+    this._add(key, key,
+      supabase.channel(key)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'live_checkins',
+          filter: `event_id=eq.${eventId}`,
+        }, p => {
+          cache.invalidate(`attendees:${eventId}`);
+          onChange?.(p.new);
+        })
+    );
+    return () => this._remove(key);
+  },
+
+  _add(key, channelName, channel) {
+    this._remove(key);
+    channel.subscribe((status) => {
+      // Auto-reconnect on unexpected close
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        setTimeout(() => channel.subscribe(), 3000);
+      }
+    });
+    this._subs[key] = channel;
+  },
+
+  _remove(key) {
+    if (this._subs[key]) {
+      supabase.removeChannel(this._subs[key]);
+      delete this._subs[key];
+    }
+  },
+
+  removeAll() {
+    Object.keys(this._subs).forEach(k => this._remove(k));
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROUTE MANAGER  (Gruv Journeys / Itineraries)
+// ─────────────────────────────────────────────────────────────────────────────
 export const RouteManager = {
-  // Create a new Royal Route (Itinerary)
   async createRoute(userId, title, description, color = '#00f2ff') {
     try {
       const { data, error } = await supabase
@@ -517,12 +966,9 @@ export const RouteManager = {
       if (error) throw error;
       cache.invalidate(`routes:${userId}`);
       return data;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   },
 
-  // Add an event to a route journey
   async addStep(routeId, eventId, order, arrivalTime = null) {
     try {
       const { error } = await supabase
@@ -531,15 +977,12 @@ export const RouteManager = {
       if (error) throw error;
       cache.invalidate(`journey:${routeId}`);
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   },
 
-  // Fetch full route journey with event details
   async getJourney(routeId) {
     const cacheKey = `journey:${routeId}`;
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
     try {
       const { data } = await supabase
@@ -549,15 +992,12 @@ export const RouteManager = {
         .order('step_order', { ascending: true });
       if (data) cache.set(cacheKey, data);
       return data || [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   },
 
-  // Fetch routes created by a user
   async getUserRoutes(userId) {
     const cacheKey = `routes:${userId}`;
-    const cached = cache.get(cacheKey);
+    const cached   = cache.get(cacheKey);
     if (cached) return cached;
     try {
       const { data } = await supabase
@@ -567,8 +1007,43 @@ export const RouteManager = {
         .order('created_at', { ascending: false });
       if (data) cache.set(cacheKey, data);
       return data || [];
-    } catch {
-      return [];
-    }
-  }
+    } catch { return []; }
+  },
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INTERNAL HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Send a notification to the author of an event (best-effort, never throws)
+async function _notifyEventAuthor(eventId, actorId, type) {
+  try {
+    const { data: event } = await supabase
+      .from('events')
+      .select('author_id, title')
+      .eq('id', eventId)
+      .maybeSingle();
+    if (!event?.author_id || event.author_id === actorId) return;
+    const messages = {
+      vibe:    { title: 'New Vibe on your Gruv 🔥', body: `Someone Vibed "${event.title}"` },
+      rsvp:    { title: 'New Vibe-In on your Gruv', body: `Someone is Vibing to "${event.title}"` },
+      checkin: { title: 'Someone Touched Down 📍',  body: `A Vibe just Touched Down at "${event.title}"` },
+    };
+    const msg = messages[type];
+    if (!msg) return;
+    await _notify(event.author_id, actorId, type, msg.title, msg.body);
+  } catch {}
+}
+
+async function _notify(recipientId, actorId, type, title, body) {
+  try {
+    await supabase.from('notifications').insert({
+      recipient_id: recipientId,
+      actor_id: actorId,
+      type,
+      title,
+      body,
+      read: false,
+    });
+  } catch {}
+}

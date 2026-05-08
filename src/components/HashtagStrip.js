@@ -86,13 +86,8 @@ export const HashtagStrip = ({ onTagSelect }) => {
   const loadTags = useCallback(async () => {
     setLoading(true);
     try {
-      let data;
-      try {
-        data = await fetchFromHashtagsTable();
-      } catch {
-        // hashtags table doesn't exist — fall back to extracting from events
-        data = await fetchFallbackFromEvents();
-      }
+      // Skip the hashtags table (doesn't exist in DB) — extract from events/echoes directly
+      const data = await fetchFallbackFromEvents();
       setTags(data || []);
     } catch {
       setTags([]);

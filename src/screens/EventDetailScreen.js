@@ -14,6 +14,7 @@ import { EventGallery } from '../components/EventGallery';
 import { MediaViewer } from '../components/MediaViewer';
 import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
+import { RSVPManager, CheckInManager, UserManager, RealtimeManager } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import { EventContextualAds } from '../components/EventContextualAds';
 
@@ -75,26 +76,42 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     } else {
       slideAnim.setValue(0);
     }
+
+    if (!visible || !event?.id) return;
+
+    // Real-time: live vibe count
+    const unsubVibe = RealtimeManager.subscribeToVibeCount(event.id, (count) => {
+      // Update vibe count shown somewhere if displayed — no-op for now, going count is RSVP-based
+    });
+    // Real-time: live Touch Down (attendee) count
+    const unsubCheckin = RealtimeManager.subscribeToAttendees(event.id, () => {
+      fetchGoingCount();
+    });
+    // Real-time: RSVP changes → refresh going count
+    const chanKey = `rsvp_${event.id}`;
+    const rsvpChan = supabase.channel(chanKey)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_rsvps', filter: `event_id=eq.${event.id}` }, () => {
+        fetchGoingCount();
+      })
+      .subscribe();
+
+    return () => {
+      unsubVibe();
+      unsubCheckin();
+      supabase.removeChannel(rsvpChan);
+    };
   }, [visible, event?.id]);
 
   const fetchUserState = async () => {
     if (!user || !event?.id) return;
-    const [rsvpRes, followRes] = await Promise.all([
-      supabase
-        .from('event_rsvps')
-        .select('status')
-        .eq('event_id', event.id)
-        .eq('user_id', user.id)
-        .maybeSingle(),
-      supabase
-        .from('follows')
-        .select('id')
-        .eq('follower_id', user.id)
-        .eq('following_id', organizer.id)
-        .maybeSingle(),
+    const [rsvpStatus, isFollowingResult, alreadyCheckedIn] = await Promise.all([
+      RSVPManager.getUserStatus(event.id, user.id),
+      UserManager.isFollowing(user.id, organizer?.id),
+      CheckInManager.hasCheckedIn(event.id, user.id),
     ]);
-    if (rsvpRes.data) setRsvpStatus(rsvpRes.data.status);
-    setIsFollowing(!!followRes.data);
+    if (rsvpStatus) setRsvpStatus(rsvpStatus);
+    setIsFollowing(isFollowingResult);
+    if (alreadyCheckedIn) setCheckedIn(true);
   };
 
   const fetchGoingCount = async () => {
@@ -110,18 +127,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const handleRsvp = async (status) => {
     if (!user) { onAuthRequired?.(); return; }
     if (rsvpLoading) return;
+    // Optimistic update
+    const prev = rsvpStatus;
+    setRsvpStatus(status);
+    if (status === 'going' && prev !== 'going') setGoingCount((c) => c + 1);
+    if (prev === 'going' && status !== 'going') setGoingCount((c) => Math.max(0, c - 1));
     setRsvpLoading(true);
-    const { error } = await supabase.from('event_rsvps').upsert(
-      { event_id: event.id, user_id: user.id, status },
-      { onConflict: 'event_id,user_id' }
-    );
-    if (error) {
+    const ok = await RSVPManager.upsert(event.id, user.id, status);
+    if (!ok) {
+      // Rollback on failure
+      setRsvpStatus(prev);
+      if (status === 'going' && prev !== 'going') setGoingCount((c) => Math.max(0, c - 1));
+      if (prev === 'going' && status !== 'going') setGoingCount((c) => c + 1);
       showToast('Could not Vibe. Try again.', 'error');
     } else {
-      const prev = rsvpStatus;
-      setRsvpStatus(status);
-      if (status === 'going' && prev !== 'going') setGoingCount((c) => c + 1);
-      if (prev === 'going' && status !== 'going') setGoingCount((c) => Math.max(0, c - 1));
       showToast(
         status === 'going' ? "You're Vibing!" : status === 'maybe' ? "Maybe Vibing" : "Vibe removed",
         'success'
@@ -133,14 +152,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const handleFollow = async () => {
     if (!user) { onAuthRequired?.(); return; }
     if (followLoading || !organizer?.id) return;
+    // Optimistic
+    setIsFollowing(!isFollowing);
     setFollowLoading(true);
-    if (isFollowing) {
-      await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', organizer.id);
-      setIsFollowing(false);
-    } else {
-      await supabase.from('follows').insert({ follower_id: user.id, following_id: organizer.id });
-      setIsFollowing(true);
-    }
+    const ok = isFollowing
+      ? await UserManager.unfollow(user.id, organizer.id)
+      : await UserManager.follow(user.id, organizer.id);
+    if (!ok) setIsFollowing(isFollowing); // rollback
     setFollowLoading(false);
   };
 
@@ -173,23 +191,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     setCheckingIn(true);
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
     const coords = await LocationService.requestAndGet();
-    const { error } = await supabase.from('live_checkins').upsert(
-      {
-        user_id: user.id,
-        event_id: event.id,
-        lat: coords?.lat ?? event.lat ?? null,
-        lon: coords?.lon ?? event.lon ?? null,
-        checked_in_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,event_id' }
-    );
+    const ok = await CheckInManager.touchDown(event.id, user.id, coords || {});
     setCheckingIn(false);
-    if (!error) {
+    if (ok) {
       setCheckedIn(true);
       try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
       showToast("Touched Down! Your footprint is lit. 🔥", 'success');
     } else {
-      showToast('Touch Down failed: ' + error.message, 'error');
+      showToast('Touch Down failed. Try again.', 'error');
     }
   };
 

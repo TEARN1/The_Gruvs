@@ -115,7 +115,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       setError('Title, description and address are required.');
       return;
     }
-    if (!user) { setError('You must be signed in to post.'); return; }
+    if (!user?.id) { setError('Sign in required to post a Gruv.'); return; }
 
     setLoading(true);
     setError('');
