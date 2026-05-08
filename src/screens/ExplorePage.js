@@ -14,6 +14,7 @@ import { FeedManager, TrendingManager, DiscoveryManager } from '../services/data
 import { LocationService } from '../services/locationService';
 import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
+import { RouteJourneyCard } from '../components/RouteJourneyCard';
 
 const { width } = Dimensions.get('window');
 
@@ -560,6 +561,17 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 </ScrollView>
               </View>
             )}
+
+            {/* ── Royal Routes (curated multi-stop journeys) ──────────────── */}
+            <View style={{ marginBottom: 20 }}>
+              <SectionHeader title="Royal Routes" textColor={textColor} primary={primary} />
+              {[
+                { title: 'Jozi Nightowl Route', color: '#00f2ff', vibe_score: '2.4k', steps: [{ title: 'Sky Deck', icon: 'glass-wine' }, { title: 'Warehouse IX', icon: 'music' }, { title: 'Newtown Hub', icon: 'map-marker' }] },
+                { title: 'Cape Town Sunset Crawl', color: '#f59e0b', vibe_score: '1.8k', steps: [{ title: 'Signal Hill', icon: 'flag' }, { title: 'De Waterkant', icon: 'glass-wine' }, { title: 'Biscuit Mill', icon: 'music' }] },
+              ].map((route, i) => (
+                <RouteJourneyCard key={i} route={route} onPress={() => {}} />
+              ))}
+            </View>
 
             {/* ── Category discovery ──────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>

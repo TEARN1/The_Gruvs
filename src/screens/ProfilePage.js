@@ -895,6 +895,29 @@ export const ProfilePage = ({ onAuthRequired }) => {
           </TouchableOpacity>
         )}
 
+        {/* Identity Mode Switcher */}
+        {user && (
+          <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+            <Text style={{ color: muted, fontSize: 10, fontWeight: '800', letterSpacing: 1, marginBottom: 8 }}>IDENTITY MODE</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {Object.values({ public: { key: 'public', label: 'Public', icon: 'eye', color: '#10b981', desc: 'Fully visible' }, ghost: { key: 'ghost', label: 'Ghost', icon: 'eye-off', color: '#8b5cf6', desc: 'Alias + fuzzed' }, celebrity: { key: 'celebrity', label: 'Celebrity', icon: 'star', color: '#f59e0b', desc: 'Read-only' } }).map(mode => {
+                const isActive = identityMode === mode.key;
+                return (
+                  <TouchableOpacity
+                    key={mode.key}
+                    onPress={() => setIdentityMode(mode.key)}
+                    style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, borderWidth: isActive ? 2 : 1, borderColor: isActive ? mode.color : `${muted}40`, backgroundColor: isActive ? `${mode.color}20` : 'transparent' }}
+                  >
+                    <Feather name={mode.icon} size={16} color={isActive ? mode.color : muted} />
+                    <Text style={{ color: isActive ? mode.color : muted, fontSize: 10, fontWeight: '800', marginTop: 4 }}>{mode.label}</Text>
+                    <Text style={{ color: muted, fontSize: 8, marginTop: 2, opacity: 0.7 }}>{mode.desc}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/* Find Me / Find Them buttons */}
         <View style={styles.findRow}>
           <TouchableOpacity

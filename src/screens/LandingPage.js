@@ -31,6 +31,7 @@ import { SearchHistoryBar, saveSearch } from '../components/SearchHistoryBar';
 import { DateFilterStrip, dateFilterToRange } from '../components/DateFilterStrip';
 import { TonightAlert } from '../components/TonightAlert';
 import { HashtagStrip } from '../components/HashtagStrip';
+import { useIdentity } from '../context/IdentityContext';
 import { PresenceBar } from '../components/PresenceBar';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PathMapScreen } from './PathMapScreen';
@@ -187,6 +188,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();
+  const { identityMode, modeConfig } = useIdentity();
   const flatListRef = useRef(null);
 
   const [events, setEvents] = useState([]);
@@ -561,7 +563,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <BrandLogo size={36} showGlow />
           <View style={styles.wordmarkMini}>
             <Text style={[styles.brandText, { color: primary }]}>GRUVS</Text>
-            <Text style={[styles.brandSub, { color: muted }]}>{mode === 'drop' ? 'DROP' : 'EXPLORE'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Text style={[styles.brandSub, { color: muted }]}>{mode === 'drop' ? 'DROP' : 'EXPLORE'}</Text>
+              {identityMode !== 'public' && (
+                <View style={{ backgroundColor: `${modeConfig.color}22`, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 }}>
+                  <Text style={{ color: modeConfig.color, fontSize: 7, fontWeight: '900' }}>{modeConfig.label.toUpperCase()}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
@@ -579,11 +588,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </GlassView>
 
         <View style={styles.headerActions}>
+          {user && (
+            <TouchableOpacity style={styles.iconBtn} onPress={() => setPathMapVisible(true)}>
+              <Feather name="map" size={18} color={primary} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.iconBtn} onPress={() => setActivityVisible(true)}>
             <Feather name="bell" size={18} color={primary} />
             {user && <View style={[styles.bellDot, { backgroundColor: '#ef4444' }]} />}
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.postIconBtn, { backgroundColor: `${primary}15`, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
           >
