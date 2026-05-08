@@ -116,14 +116,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       { onConflict: 'event_id,user_id' }
     );
     if (error) {
-      showToast('Could not update RSVP. Try again.', 'error');
+      showToast('Could not Vibe. Try again.', 'error');
     } else {
       const prev = rsvpStatus;
       setRsvpStatus(status);
       if (status === 'going' && prev !== 'going') setGoingCount((c) => c + 1);
       if (prev === 'going' && status !== 'going') setGoingCount((c) => Math.max(0, c - 1));
       showToast(
-        status === 'going' ? "You're going!" : status === 'maybe' ? "Marked as maybe" : "RSVP removed",
+        status === 'going' ? "You're Vibing!" : status === 'maybe' ? "Maybe Vibing" : "Vibe removed",
         'success'
       );
     }
@@ -147,7 +147,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `${event?.title || 'Check out this event'} on The Gruvs${event?.ticket_url ? `\n${event.ticket_url}` : ''}`,
+        message: `${event?.title || 'Check out this Gruv'} on The Gruvs${event?.ticket_url ? `\n${event.ticket_url}` : ''}`,
         title: event?.title,
       });
     } catch {}
@@ -164,7 +164,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   };
 
   const handleReport = () => {
-    showToast('Report submitted. We will review this event.', 'info');
+    showToast('Report submitted. We will review this Gruv.', 'info');
   };
 
   const handleCheckIn = async () => {
@@ -187,9 +187,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     if (!error) {
       setCheckedIn(true);
       try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-      showToast("You're checked in! Your footprint is updated.", 'success');
+      showToast("Touched Down! Your footprint is lit. 🔥", 'success');
     } else {
-      showToast('Check-in failed: ' + error.message, 'error');
+      showToast('Touch Down failed: ' + error.message, 'error');
     }
   };
 
@@ -198,9 +198,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const capacityPct = capacity > 0 ? Math.min(1, goingCount / capacity) : 0;
 
   const RSVP_OPTIONS = [
-    { key: 'going', label: 'Going', icon: 'check-circle' },
-    { key: 'maybe', label: 'Maybe', icon: 'help-circle' },
-    { key: 'not_going', label: 'Not Going', icon: 'x-circle' },
+    { key: 'going',     label: 'Vibe',       icon: 'check-circle' },
+    { key: 'maybe',     label: 'Maybe',       icon: 'help-circle'  },
+    { key: 'not_going', label: 'Not Vibing',  icon: 'x-circle'     },
   ];
 
   return (
@@ -262,12 +262,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               disabled={followLoading}
             >
               <Text style={[styles.followBtnText, { color: isFollowing ? '#000' : primary }]}>
-                {isFollowing ? 'Following' : 'Follow'}
+                {isFollowing ? 'Locked In' : 'Lock In'}
               </Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.title, { color: textColor }]}>{event?.title || 'Untitled Event'}</Text>
+          <Text style={[styles.title, { color: textColor }]}>{event?.title || 'Untitled Gruv'}</Text>
 
           {!!event?.description && (
             <Text style={[styles.description, { color: textMuted }]}>{event.description}</Text>
@@ -288,10 +288,10 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             <GlassView style={[styles.capacityCard, { backgroundColor: surface }]}>
               <View style={styles.capacityHeader}>
                 <Text style={[styles.capacityLabel, { color: textColor }]}>
-                  {goingCount} <Text style={{ color: textMuted }}>/ {capacity} going</Text>
+                  {goingCount} <Text style={{ color: textMuted }}>/ {capacity} Vibing</Text>
                 </Text>
                 <Text style={[styles.spotsLeft, { color: spotsLeft < 10 ? '#ff6b6b' : primary }]}>
-                  {spotsLeft} spots left
+                  {spotsLeft} Passes left
                 </Text>
               </View>
               <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
@@ -301,7 +301,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           )}
 
           <GlassView style={[styles.rsvpCard, { backgroundColor: surface }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>RSVP</Text>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>VIBE</Text>
             <View style={styles.rsvpRow}>
               {RSVP_OPTIONS.map((opt) => {
                 const active = rsvpStatus === opt.key;
@@ -340,7 +340,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               activeOpacity={0.85}
             >
               <Feather name="external-link" size={16} color="#000" />
-              <Text style={styles.ticketBtnText}>Get Tickets</Text>
+              <Text style={styles.ticketBtnText}>Get Passes</Text>
             </TouchableOpacity>
           )}
 
@@ -357,7 +357,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             >
               <Feather name={checkedIn ? 'check-circle' : 'map-pin'} size={16} color="#000" />
               <Text style={styles.checkInBtnText}>
-                {checkingIn ? 'Checking in...' : checkedIn ? "Checked In ✓" : "Check In to This Event"}
+                {checkingIn ? 'Touching Down...' : checkedIn ? "Touched Down ✓" : "Touch Down"}
               </Text>
             </TouchableOpacity>
           )}
@@ -376,7 +376,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
           <TouchableOpacity style={styles.reportBtn} onPress={handleReport}>
             <Feather name="flag" size={12} color={textMuted} />
-            <Text style={[styles.reportText, { color: textMuted }]}>Report Event</Text>
+            <Text style={[styles.reportText, { color: textMuted }]}>Report Gruv</Text>
           </TouchableOpacity>
 
         </ScrollView>

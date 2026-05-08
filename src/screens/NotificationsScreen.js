@@ -187,7 +187,7 @@ export const NotificationsScreen = ({ onAuthRequired }) => {
           <Feather name="lock" size={52} color={muted} />
           <Text style={[ns.unauthTitle, { color: textColor }]}>Sign in required</Text>
           <Text style={[ns.unauthSub, { color: muted }]}>
-            Sign in to see your notifications
+            Sign in to see your Pings
           </Text>
           {onAuthRequired && (
             <TouchableOpacity
@@ -206,7 +206,7 @@ export const NotificationsScreen = ({ onAuthRequired }) => {
     <SafeAreaView style={[ns.screen, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={ns.header}>
-        <Text style={[ns.headerTitle, { color: primary }]}>ACTIVITY</Text>
+        <Text style={[ns.headerTitle, { color: primary }]}>PINGS</Text>
         <TouchableOpacity onPress={markAllRead} disabled={unreadCount === 0}>
           <Text style={[ns.markAll, { color: unreadCount > 0 ? primary : muted }]}>
             Mark all read

@@ -122,7 +122,7 @@ const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onTog
       {isOpen && (
         <View style={{ marginLeft: 10 }}>
           <Text style={[sb.logoName, { color: primary }]}>THE GRUVS</Text>
-          <Text style={[sb.logoSub, { color: muted }]}>Royal Edition</Text>
+          <Text style={[sb.logoSub, { color: muted }]}>Royale Edition</Text>
         </View>
       )}
     </View>

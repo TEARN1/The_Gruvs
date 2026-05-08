@@ -229,10 +229,10 @@ const MonthStats = ({ events, primary, muted }) => {
   return (
     <View style={ms.row}>
       {[
-        { icon: 'calendar', label: 'Events',     value: total  },
-        { icon: 'users',    label: 'Going',      value: going  },
-        { icon: 'grid',     label: 'Categories', value: cats   },
-        { icon: 'tag',      label: 'Free',       value: hasFree ? 'Yes' : 'No' },
+        { icon: 'calendar', label: 'Gruvs',   value: total  },
+        { icon: 'zap',      label: 'Vibing',  value: going  },
+        { icon: 'grid',     label: 'Vibes',   value: cats   },
+        { icon: 'tag',      label: 'Free',    value: hasFree ? 'Yes' : 'No' },
       ].map(s => (
         <View key={s.label} style={ms.item}>
           <Feather name={s.icon} size={14} color={primary} />
@@ -381,7 +381,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
           <View style={styles.brandRow}>
             <BrandLogo size={34} />
             <View style={{ marginLeft: 10 }}>
-              <Text style={[styles.headerTitle, { color: textColor }]}>Calendar</Text>
+              <Text style={[styles.headerTitle, { color: textColor }]}>Lineup</Text>
               <Text style={[styles.headerSub, { color: muted }]}>Your Gruv Schedule</Text>
             </View>
           </View>
