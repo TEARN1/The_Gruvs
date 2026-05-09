@@ -1443,6 +1443,17 @@ CREATE TABLE IF NOT EXISTS messages (
   reaction         TEXT,
   created_at       TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS sender_id        UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS recipient_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS body             TEXT;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN DEFAULT true;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN DEFAULT false;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS reaction         TEXT;
+
 CREATE INDEX IF NOT EXISTS messages_sender    ON messages(sender_id,    created_at DESC);
 CREATE INDEX IF NOT EXISTS messages_recipient ON messages(recipient_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS messages_convo     ON messages(LEAST(sender_id::text, recipient_id::text), GREATEST(sender_id::text, recipient_id::text), created_at DESC);
@@ -1543,15 +1554,15 @@ DECLARE cap INTEGER; cnt INTEGER;
 BEGIN
   SELECT max_attendees INTO cap FROM events WHERE id = NEW.event_id;
   IF cap IS NULL THEN RETURN NEW; END IF;
-  SELECT COUNT(*) INTO cnt FROM event_rsvps WHERE event_id = NEW.event_id AND status = 'going';
+  SELECT COUNT(*) INTO cnt FROM check_ins WHERE event_id = NEW.event_id;
   IF cnt >= cap THEN UPDATE events SET is_sold_out = true WHERE id = NEW.event_id; END IF;
   RETURN NEW;
 END;
 $$;
-DROP TRIGGER IF EXISTS rsvp_capacity_check ON event_rsvps;
-CREATE TRIGGER rsvp_capacity_check AFTER INSERT ON event_rsvps FOR EACH ROW EXECUTE FUNCTION check_event_capacity();
+DROP TRIGGER IF EXISTS rsvp_capacity_check ON check_ins;
+CREATE TRIGGER rsvp_capacity_check AFTER INSERT ON check_ins FOR EACH ROW EXECUTE FUNCTION check_event_capacity();
 
-ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS is_early_bird BOOLEAN DEFAULT false;
+ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS is_early_bird BOOLEAN DEFAULT false;
 
 CREATE OR REPLACE FUNCTION tag_early_bird_rsvp()
 RETURNS trigger LANGUAGE plpgsql AS $$
@@ -1564,8 +1575,8 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-DROP TRIGGER IF EXISTS rsvp_early_bird ON event_rsvps;
-CREATE TRIGGER rsvp_early_bird BEFORE INSERT ON event_rsvps FOR EACH ROW EXECUTE FUNCTION tag_early_bird_rsvp();
+DROP TRIGGER IF EXISTS rsvp_early_bird ON check_ins;
+CREATE TRIGGER rsvp_early_bird BEFORE INSERT ON check_ins FOR EACH ROW EXECUTE FUNCTION tag_early_bird_rsvp();
 
 -- ============================================================
 --  PROFILES — missing columns
@@ -1601,6 +1612,8 @@ $$;
 -- ============================================================
 --  CONVERSATIONS VIEW  (inbox — latest message per user pair)
 -- ============================================================
+DROP TABLE IF EXISTS conversations CASCADE;
+
 CREATE OR REPLACE VIEW conversations AS
 SELECT DISTINCT ON (convo_key)
   LEAST(sender_id::text, recipient_id::text) || '_' || GREATEST(sender_id::text, recipient_id::text) AS convo_key,
