@@ -16,6 +16,7 @@ import { supabase } from '../services/supabase';
 import { GlassView } from '../components/GlassView';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
+import { CampaignManager, EcosystemManager, NotificationManager, AnalyticsManager } from '../services/dataFlow';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -114,15 +115,28 @@ const CampaignRow = ({ campaign, primary, textColor, muted, onEdit, onToggle }) 
           </View>
         ))}
       </View>
-      {campaign.targeting?.event_phases?.length > 0 && (
-        <View style={sc.phasesRow}>
-          {campaign.targeting.event_phases.map(p => (
-            <View key={p} style={[sc.phaseTag, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
-              <Text style={[sc.phaseText, { color: primary }]}>{p.replace('_', ' ').toUpperCase()}</Text>
+      <View style={sc.campFooter}>
+        <View style={{ flex: 1 }}>
+          {campaign.targeting?.event_phases?.length > 0 && (
+            <View style={sc.phasesRow}>
+              {campaign.targeting.event_phases.map(p => (
+                <View key={p} style={[sc.phaseTag, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
+                  <Text style={[sc.phaseText, { color: primary }]}>{p.replace('_', ' ').toUpperCase()}</Text>
+                </View>
+              ))}
             </View>
-          ))}
+          )}
         </View>
-      )}
+        <TouchableOpacity 
+          onPress={() => onToggle(campaign.id, campaign.status === 'active' ? 'paused' : 'active')}
+          style={[sc.toggleBtn, { borderColor: campaign.status === 'active' ? '#f59e0b' : '#10b981' }]}
+        >
+          <Feather name={campaign.status === 'active' ? 'pause' : 'play'} size={12} color={campaign.status === 'active' ? '#f59e0b' : '#10b981'} />
+          <Text style={[sc.toggleBtnText, { color: campaign.status === 'active' ? '#f59e0b' : '#10b981' }]}>
+            {campaign.status === 'active' ? 'PAUSE' : 'RESUME'}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </GlassView>
   );
 };
@@ -202,22 +216,21 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       if (!bizData) { setSetupMode(true); setLoading(false); return; }
       setBiz(bizData);
 
-      // Parallel data fetch
-      const [campRes, partRes, segRes, notifRes, analyticsRes] = await Promise.all([
-        supabase.from('ad_campaigns').select('*').eq('business_id', bizData.id).order('created_at', { ascending: false }).limit(20),
-        supabase.from('business_partnerships').select('*').eq('business_id', bizData.id).order('created_at', { ascending: false }),
+      // Parallel data fetch using centralized managers
+      const [campData, partData, segRes, notifData] = await Promise.all([
+        CampaignManager.fetchForBusiness(bizData.id),
+        EcosystemManager.fetchPartners(bizData.id),
         supabase.from('audience_segments').select('*').eq('business_id', bizData.id).order('created_at', { ascending: false }),
-        supabase.from('business_notifications').select('*').eq('business_id', bizData.id).eq('read', false).order('created_at', { ascending: false }).limit(10),
-        supabase.from('campaign_analytics').select('event_type, created_at').eq('business_id', bizData.id).gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString()),
+        NotificationManager.fetch(user.id, 10), // Notifications are for user (as biz owner)
       ]);
 
-      setCampaigns(campRes.data || []);
-      setPartners(partRes.data || []);
+      setCampaigns(campData);
+      setPartners(partData);
       setSegments(segRes.data || []);
-      setNotifications(notifRes.data || []);
+      setNotifications(notifData);
 
       // Build analytics summary from raw events
-      const raw = analyticsRes.data || [];
+      const raw = await CampaignManager.getPerformance(bizData.id);
       const impressions = raw.filter(e => e.event_type === 'impression').length;
       const clicks      = raw.filter(e => e.event_type === 'click').length;
       const conversions = raw.filter(e => e.event_type === 'conversion').length;
@@ -248,6 +261,17 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   };
 
   const onRefresh = async () => { setRefreshing(true); await loadAll(); setRefreshing(false); };
+
+  const handleToggleCampaign = async (id, newStatus) => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    // Optimistic update
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c));
+    const ok = await CampaignManager.updateStatus(id, newStatus);
+    if (!ok) {
+      Alert.alert('Error', 'Could not update mission status.');
+      loadAll(); // Revert
+    }
+  };
 
   const handleSetupSubmit = async () => {
     if (!setupForm.business_name.trim()) { Alert.alert('Required', 'Please enter a business name.'); return; }
@@ -465,7 +489,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           ) : campaigns.map(c => (
             <CampaignRow key={c.id} campaign={c} primary={primary} textColor={textColor} muted={muted}
               onEdit={() => { setEditingCampaign(c); setShowCampaignBuilder(true); }}
-              onToggle={() => {}} />
+              onToggle={handleToggleCampaign} />
           ))}
 
           {/* Event phase explainer */}
@@ -803,7 +827,10 @@ const sc = StyleSheet.create({
   campStats: { flexDirection: 'row', justifyContent: 'space-between' },
   campStat: { alignItems: 'center' },
   campStatVal: { fontSize: 13, fontWeight: '900' },
-  campStatLbl: { fontSize: 9, marginTop: 2 },
+  campStatLbl: { fontSize: 8, marginTop: 2 },
+  campFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+  toggleBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
+  toggleBtnText: { fontSize: 9, fontWeight: '900' },
   phasesRow: { flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' },
   phaseTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
   phaseText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },

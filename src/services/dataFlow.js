@@ -1421,6 +1421,77 @@ export const CapacityManager = {
   },
 };
 
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CAMPAIGN MANAGER  (Missions)
+// ─────────────────────────────────────────────────────────────────────────────
+export const CampaignManager = {
+  async fetchForBusiness(bizId) {
+    if (!bizId) return [];
+    const cacheKey = `campaigns:${bizId}`;
+    const stale    = cache.getStale(cacheKey);
+    try {
+      const { data } = await supabase
+        .from('ad_campaigns')
+        .select('*')
+        .eq('business_id', bizId)
+        .order('created_at', { ascending: false });
+      const result = data || [];
+      cache.set(cacheKey, result, 60_000);
+      return result;
+    } catch { return stale || []; }
+  },
+
+  async updateStatus(campaignId, status) {
+    try {
+      const { error } = await supabase.from('ad_campaigns').update({ status }).eq('id', campaignId);
+      if (error) throw error;
+      cache.invalidate('campaigns:');
+      return true;
+    } catch { return false; }
+  },
+
+  async getPerformance(campaignId) {
+    try {
+      const { data } = await supabase
+        .from('campaign_analytics')
+        .select('event_type, created_at')
+        .eq('campaign_id', campaignId);
+      return data || [];
+    } catch { return []; }
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ECOSYSTEM MANAGER  (Business Partnerships)
+// ─────────────────────────────────────────────────────────────────────────────
+export const EcosystemManager = {
+  async fetchPartners(bizId) {
+    if (!bizId) return [];
+    try {
+      const { data } = await supabase
+        .from('business_partnerships')
+        .select('*, partner:partner_id(id, business_name, tagline, logo_url)')
+        .eq('business_id', bizId);
+      return data || [];
+    } catch { return []; }
+  },
+
+  async requestPartnership(bizId, targetBizId, type = 'collaboration') {
+    try {
+      const { error } = await supabase.from('business_partnerships').insert({
+        business_id: bizId,
+        partner_id: targetBizId,
+        status: 'pending',
+        partnership_type: type
+      });
+      return !error;
+    } catch { return false; }
+  }
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // FOLLOWING FEED  (events from users you follow)
 // ─────────────────────────────────────────────────────────────────────────────

@@ -182,6 +182,7 @@ CREATE TRIGGER followers_sync AFTER INSERT OR DELETE ON followers
 -- ============================================================
 CREATE TABLE IF NOT EXISTS events (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id       UUID        REFERENCES profiles(id) ON DELETE CASCADE,
   user_id         UUID        REFERENCES profiles(id) ON DELETE CASCADE,
   slug            TEXT        UNIQUE,
   title           TEXT        NOT NULL,
@@ -208,6 +209,7 @@ CREATE TABLE IF NOT EXISTS events (
   save_count      INTEGER     DEFAULT 0,
   ticket_url      TEXT,
   media           JSONB,
+  media_urls      TEXT[],
   coords          geography(Point, 4326),
   is_featured     BOOLEAN     DEFAULT false,
   is_cancelled    BOOLEAN     DEFAULT false,
@@ -220,7 +222,9 @@ CREATE TABLE IF NOT EXISTS events (
   updated_at      TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE events ADD COLUMN IF NOT EXISTS author_id       UUID REFERENCES profiles(id) ON DELETE CASCADE;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS user_id         UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS media_urls      TEXT[];
 ALTER TABLE events ADD COLUMN IF NOT EXISTS title           TEXT;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS description     TEXT;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS category        TEXT;
@@ -283,9 +287,9 @@ DROP POLICY IF EXISTS "Authenticated users insert events" ON events;
 DROP POLICY IF EXISTS "Users update own events"           ON events;
 DROP POLICY IF EXISTS "Users delete own events"           ON events;
 CREATE POLICY "Events readable by all"            ON events FOR SELECT  USING (true);
-CREATE POLICY "Authenticated users insert events" ON events FOR INSERT  WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users update own events"           ON events FOR UPDATE  USING (auth.uid() = user_id);
-CREATE POLICY "Users delete own events"           ON events FOR DELETE  USING (auth.uid() = user_id);
+CREATE POLICY "Authenticated users insert events" ON events FOR INSERT  WITH CHECK (auth.uid() = author_id OR auth.uid() = user_id);
+CREATE POLICY "Users update own events"           ON events FOR UPDATE  USING (auth.uid() = author_id OR auth.uid() = user_id);
+CREATE POLICY "Users delete own events"           ON events FOR DELETE  USING (auth.uid() = author_id OR auth.uid() = user_id);
 
 CREATE OR REPLACE FUNCTION events_set_slug()
 RETURNS trigger LANGUAGE plpgsql AS $$
@@ -329,9 +333,9 @@ CREATE OR REPLACE FUNCTION sync_events_posted()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    UPDATE profiles SET events_posted = events_posted + 1 WHERE id = new.user_id;
+    UPDATE profiles SET events_posted = events_posted + 1 WHERE id = COALESCE(new.author_id, new.user_id);
   ELSIF TG_OP = 'DELETE' THEN
-    UPDATE profiles SET events_posted = greatest(0, events_posted - 1) WHERE id = old.user_id;
+    UPDATE profiles SET events_posted = greatest(0, events_posted - 1) WHERE id = COALESCE(old.author_id, old.user_id);
   END IF;
   RETURN null;
 END;
@@ -343,9 +347,18 @@ CREATE TRIGGER events_posted_sync AFTER INSERT OR DELETE ON events
 
 
 -- ============================================================
---  VIBES  (likes on events)
+--  EVENT VIBES  (likes on events — canonical table name)
 -- ============================================================
-CREATE TABLE IF NOT EXISTS vibes (
+
+-- Rename legacy 'vibes' table to 'event_vibes' if it exists and event_vibes doesn't yet
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='vibes' AND table_type='BASE TABLE')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='event_vibes') THEN
+    ALTER TABLE vibes RENAME TO event_vibes;
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS event_vibes (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id   UUID        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   user_id    UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -353,36 +366,40 @@ CREATE TABLE IF NOT EXISTS vibes (
   UNIQUE (event_id, user_id)
 );
 
-ALTER TABLE vibes ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE vibes ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE event_vibes ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
+ALTER TABLE event_vibes ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
 
-CREATE INDEX IF NOT EXISTS vibes_event_id ON vibes(event_id);
-CREATE INDEX IF NOT EXISTS vibes_user_id  ON vibes(user_id);
+CREATE INDEX IF NOT EXISTS event_vibes_event_id ON event_vibes(event_id);
+CREATE INDEX IF NOT EXISTS event_vibes_user_id  ON event_vibes(user_id);
 
-ALTER TABLE vibes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Vibes readable"          ON vibes;
-DROP POLICY IF EXISTS "Users manage own vibes"  ON vibes;
-CREATE POLICY "Vibes readable"          ON vibes FOR SELECT USING (true);
-CREATE POLICY "Users manage own vibes"  ON vibes FOR ALL    USING (auth.uid() = user_id);
+ALTER TABLE event_vibes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Event vibes readable"          ON event_vibes;
+DROP POLICY IF EXISTS "Users manage own event vibes"  ON event_vibes;
+CREATE POLICY "Event vibes readable"          ON event_vibes FOR SELECT USING (true);
+CREATE POLICY "Users manage own event vibes"  ON event_vibes FOR ALL    USING (auth.uid() = user_id);
 
 CREATE OR REPLACE FUNCTION sync_vibe_counts()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE v_owner UUID;
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    UPDATE events   SET vibe_count = vibe_count + 1             WHERE id = new.event_id RETURNING user_id INTO v_owner;
+    UPDATE events   SET vibe_count = vibe_count + 1             WHERE id = new.event_id RETURNING COALESCE(author_id, user_id) INTO v_owner;
     UPDATE profiles SET vibe_score = vibe_score + 2             WHERE id = v_owner;
   ELSIF TG_OP = 'DELETE' THEN
-    UPDATE events   SET vibe_count = greatest(0, vibe_count-1)  WHERE id = old.event_id RETURNING user_id INTO v_owner;
+    UPDATE events   SET vibe_count = greatest(0, vibe_count-1)  WHERE id = old.event_id RETURNING COALESCE(author_id, user_id) INTO v_owner;
     UPDATE profiles SET vibe_score = greatest(0, vibe_score-2)  WHERE id = v_owner;
   END IF;
   RETURN null;
 END;
 $$;
 
-DROP TRIGGER IF EXISTS vibes_sync ON vibes;
-CREATE TRIGGER vibes_sync AFTER INSERT OR DELETE ON vibes
+DROP TRIGGER IF EXISTS event_vibes_sync ON event_vibes;
+CREATE TRIGGER event_vibes_sync AFTER INSERT OR DELETE ON event_vibes
   FOR EACH ROW EXECUTE FUNCTION sync_vibe_counts();
+
+-- Backward-compat view so any legacy server queries on 'vibes' still work
+DROP VIEW IF EXISTS vibes;
+CREATE OR REPLACE VIEW vibes AS SELECT * FROM event_vibes;
 
 
 -- ============================================================
@@ -680,67 +697,92 @@ CREATE POLICY "Users delete gallery"  ON event_gallery FOR DELETE USING (auth.ui
 -- ============================================================
 --  NOTIFICATIONS
 -- ============================================================
+
+-- Safely rename user_id → recipient_id and is_read → read on existing tables
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='user_id')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='recipient_id') THEN
+    ALTER TABLE notifications RENAME COLUMN user_id TO recipient_id;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='is_read')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='read') THEN
+    ALTER TABLE notifications RENAME COLUMN is_read TO read;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS notifications (
-  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  actor_id   UUID        REFERENCES profiles(id) ON DELETE SET NULL,
-  type       TEXT        NOT NULL CHECK (type IN ('vibe','echo','follow','checkin','reaction','mention','event_soon')),
-  event_id   UUID        REFERENCES events(id) ON DELETE CASCADE,
-  echo_id    UUID        REFERENCES echoes(id) ON DELETE CASCADE,
-  body       TEXT,
-  is_read    BOOLEAN     DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now()
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_id UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  actor_id     UUID        REFERENCES profiles(id) ON DELETE SET NULL,
+  type         TEXT        NOT NULL,
+  title        TEXT,
+  body         TEXT,
+  data         JSONB       DEFAULT '{}',
+  event_id     UUID        REFERENCES events(id) ON DELETE CASCADE,
+  echo_id      UUID        REFERENCES echoes(id) ON DELETE CASCADE,
+  read         BOOLEAN     DEFAULT false,
+  created_at   TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS actor_id UUID REFERENCES profiles(id) ON DELETE SET NULL;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type     TEXT;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)  ON DELETE CASCADE;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS echo_id  UUID REFERENCES echoes(id)  ON DELETE CASCADE;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS body     TEXT;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read  BOOLEAN DEFAULT false;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS actor_id     UUID REFERENCES profiles(id) ON DELETE SET NULL;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type         TEXT;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS title        TEXT;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS body         TEXT;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS data         JSONB DEFAULT '{}';
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES events(id)  ON DELETE CASCADE;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS echo_id      UUID REFERENCES echoes(id)  ON DELETE CASCADE;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS read         BOOLEAN DEFAULT false;
 
-CREATE INDEX IF NOT EXISTS notifications_user_id ON notifications(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS notifications_unread  ON notifications(user_id) WHERE is_read = false;
+DROP INDEX IF EXISTS notifications_user_id;
+DROP INDEX IF EXISTS notifications_unread;
+CREATE INDEX IF NOT EXISTS notifications_recipient_id ON notifications(recipient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS notifications_unread       ON notifications(recipient_id) WHERE read = false;
 
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users read own notifications"  ON notifications;
 DROP POLICY IF EXISTS "System insert notifications"   ON notifications;
 DROP POLICY IF EXISTS "Users mark own as read"        ON notifications;
-CREATE POLICY "Users read own notifications"  ON notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users read own notifications"  ON notifications FOR SELECT USING (auth.uid() = recipient_id);
 CREATE POLICY "System insert notifications"   ON notifications FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users mark own as read"        ON notifications FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users mark own as read"        ON notifications FOR UPDATE USING (auth.uid() = recipient_id);
 
 CREATE OR REPLACE FUNCTION create_notification()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE v_owner UUID;
 BEGIN
-  IF TG_TABLE_NAME = 'vibes' AND TG_OP = 'INSERT' THEN
-    SELECT user_id INTO v_owner FROM events WHERE id = new.event_id;
+  IF TG_TABLE_NAME = 'event_vibes' AND TG_OP = 'INSERT' THEN
+    SELECT COALESCE(author_id, user_id) INTO v_owner FROM events WHERE id = new.event_id;
     IF v_owner IS DISTINCT FROM new.user_id THEN
-      INSERT INTO notifications(user_id, actor_id, type, event_id)
+      INSERT INTO notifications(recipient_id, actor_id, type, event_id)
       VALUES (v_owner, new.user_id, 'vibe', new.event_id) ON CONFLICT DO NOTHING;
     END IF;
   ELSIF TG_TABLE_NAME = 'echoes' AND TG_OP = 'INSERT' THEN
-    SELECT user_id INTO v_owner FROM events WHERE id = new.event_id;
+    SELECT COALESCE(author_id, user_id) INTO v_owner FROM events WHERE id = new.event_id;
     IF v_owner IS DISTINCT FROM new.user_id THEN
-      INSERT INTO notifications(user_id, actor_id, type, event_id, echo_id, body)
+      INSERT INTO notifications(recipient_id, actor_id, type, event_id, echo_id, body)
       VALUES (v_owner, new.user_id, 'echo', new.event_id, new.id, left(new.body, 80));
     END IF;
   ELSIF TG_TABLE_NAME = 'followers' AND TG_OP = 'INSERT' THEN
-    INSERT INTO notifications(user_id, actor_id, type)
+    INSERT INTO notifications(recipient_id, actor_id, type)
+    VALUES (new.following_id, new.follower_id, 'follow');
+  ELSIF TG_TABLE_NAME = 'follows' AND TG_OP = 'INSERT' THEN
+    INSERT INTO notifications(recipient_id, actor_id, type)
     VALUES (new.following_id, new.follower_id, 'follow');
   END IF;
   RETURN null;
 END;
 $$;
 
-DROP TRIGGER IF EXISTS vibes_notify     ON vibes;
-DROP TRIGGER IF EXISTS echoes_notify    ON echoes;
-DROP TRIGGER IF EXISTS followers_notify ON followers;
-CREATE TRIGGER vibes_notify     AFTER INSERT ON vibes     FOR EACH ROW EXECUTE FUNCTION create_notification();
-CREATE TRIGGER echoes_notify    AFTER INSERT ON echoes    FOR EACH ROW EXECUTE FUNCTION create_notification();
-CREATE TRIGGER followers_notify AFTER INSERT ON followers FOR EACH ROW EXECUTE FUNCTION create_notification();
+DROP TRIGGER IF EXISTS event_vibes_notify ON event_vibes;
+DROP TRIGGER IF EXISTS echoes_notify      ON echoes;
+DROP TRIGGER IF EXISTS followers_notify   ON followers;
+DROP TRIGGER IF EXISTS follows_notify     ON follows;
+CREATE TRIGGER event_vibes_notify AFTER INSERT ON event_vibes FOR EACH ROW EXECUTE FUNCTION create_notification();
+CREATE TRIGGER echoes_notify      AFTER INSERT ON echoes      FOR EACH ROW EXECUTE FUNCTION create_notification();
+CREATE TRIGGER followers_notify   AFTER INSERT ON followers   FOR EACH ROW EXECUTE FUNCTION create_notification();
 
 
 -- ============================================================
@@ -1310,7 +1352,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION mark_notifications_read(uid uuid)
 RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
-  UPDATE notifications SET is_read = true WHERE user_id = uid AND is_read = false;
+  UPDATE notifications SET read = true WHERE recipient_id = uid AND read = false;
 $$;
 
 
