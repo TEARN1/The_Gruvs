@@ -1625,3 +1625,118 @@ SELECT DISTINCT ON (convo_key)
 FROM messages
 WHERE deleted_at IS NULL
 ORDER BY convo_key, created_at DESC;
+
+-- ── Advanced Social Matching Logic ──────────────────────────────────────────
+
+-- Helper function to count overlapping items in two text arrays
+CREATE OR REPLACE FUNCTION array_overlap_count(arr1 TEXT[], arr2 TEXT[])
+RETURNS INTEGER AS $$
+DECLARE
+  overlap_count INTEGER := 0;
+  item TEXT;
+BEGIN
+  IF arr1 IS NULL OR arr2 IS NULL THEN RETURN 0; END IF;
+  FOREACH item IN ARRAY arr1 LOOP
+    IF item = ANY(arr2) THEN
+      overlap_count := overlap_count + 1;
+    END IF;
+  END LOOP;
+  RETURN overlap_count;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Trigger function to detect nearby vibe matches
+CREATE OR REPLACE FUNCTION handle_location_match()
+RETURNS TRIGGER AS $$
+DECLARE
+  nearby_user RECORD;
+  shared_count INTEGER;
+BEGIN
+  -- Only run if coords changed and are not null
+  IF (NEW.location_coords IS DISTINCT FROM OLD.location_coords) AND (NEW.location_coords IS NOT NULL) THEN
+    
+    FOR nearby_user IN (
+      SELECT id, username, interests, avatar_url
+      FROM profiles
+      WHERE id <> NEW.id
+        AND is_discoverable = true
+        AND ST_DWithin(location_coords, NEW.location_coords, 5000) -- 5km
+      LIMIT 3
+    ) LOOP
+      
+      shared_count := array_overlap_count(NEW.interests, nearby_user.interests);
+      
+      IF shared_count >= 2 THEN
+        -- Create notification for NEW user about the nearby match
+        INSERT INTO notifications (recipient_id, type, title, body, data)
+        VALUES (
+          NEW.id,
+          'vibe_match',
+          'Vibe Match Nearby!',
+          '@' || nearby_user.username || ' is close and shares ' || shared_count || ' interests with you.',
+          jsonb_build_object(
+            'match_id', nearby_user.id,
+            'match_username', nearby_user.username,
+            'match_avatar', nearby_user.avatar_url,
+            'shared_count', shared_count
+          )
+        );
+      END IF;
+      
+    END LOOP;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS on_location_match ON profiles;
+CREATE TRIGGER on_location_match
+  AFTER UPDATE OF location_coords ON profiles
+  FOR EACH ROW EXECUTE FUNCTION handle_location_match();
+
+
+-- ── Social Integrity System (SIS) Automated Calculation ─────────────────────
+
+CREATE OR REPLACE FUNCTION calculate_sis_score(user_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  base_score INTEGER := 50; -- Start at 50
+  booking_count INTEGER;
+  vibe_received INTEGER;
+  event_hosted INTEGER;
+BEGIN
+  -- Points for successful service completions
+  SELECT COUNT(*) INTO booking_count FROM service_bookings 
+  WHERE provider_id = user_id AND status = 'completed';
+  base_score := base_score + (booking_count * 15);
+
+  -- Points for event hosting
+  SELECT COUNT(*) INTO event_hosted FROM events WHERE author_id = user_id;
+  base_score := base_score + (event_hosted * 5);
+
+  -- Points for vibes received on their events
+  SELECT COALESCE(SUM(vibe_count), 0) INTO vibe_received FROM events WHERE author_id = user_id;
+  base_score := base_score + (vibe_received * 2);
+
+  -- Cap at 100
+  RETURN LEAST(100, base_score);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to update SIS when a booking is completed
+CREATE OR REPLACE FUNCTION on_booking_completed_sis()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'completed' AND OLD.status <> 'completed' THEN
+    UPDATE profiles 
+    SET social_integrity_score = calculate_sis_score(NEW.provider_id)
+    WHERE id = NEW.provider_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS update_sis_on_booking ON service_bookings;
+CREATE TRIGGER update_sis_on_booking
+  AFTER UPDATE ON service_bookings
+  FOR EACH ROW EXECUTE FUNCTION on_booking_completed_sis();

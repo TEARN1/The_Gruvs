@@ -310,6 +310,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [nearbyVibers, setNearbyVibers] = useState([]);
   const [categoryCounts, setCategoryCounts] = useState({});
   const [nearbyEvents, setNearbyEvents] = useState([]);
+  const [vibeMatches, setVibeMatches] = useState([]);
   const [userCoords, setUserCoords] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [selectedViber, setSelectedViber] = useState(null);
@@ -399,6 +400,10 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         LocationService.saveToProfile(user.id, coords.lat, coords.lon);
         const nearby = await DiscoveryManager.findNobility(user.id, 25);
         setNearbyVibers(nearby);
+
+        // Advanced matching logic
+        const matches = await MatchManager.findMatches(user.id, 10);
+        setVibeMatches(matches);
       }
       // Fetch events near the user's physical location
       const eventsNear = await DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 30);
@@ -634,6 +639,53 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     ))}
                   </ScrollView>
                 )}
+              </View>
+            )}
+
+            {/* ── Vibe Matches (Advanced Matching) ───────────────────────── */}
+            {vibeMatches.length > 0 && (
+              <View style={{ marginBottom: 25 }}>
+                <SectionHeader 
+                  title="Vibe Matches" 
+                  actionLabel="Discover" 
+                  onAction={() => setMarketplaceVisible(true)} 
+                  textColor={textColor} 
+                  primary={primary} 
+                />
+                <Text style={{ color: muted, fontSize: 12, paddingHorizontal: 16, marginBottom: 12, marginTop: -8 }}>
+                  People near you with matching careers and interests.
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}>
+                  {vibeMatches.map((m, i) => (
+                    <TouchableOpacity
+                      key={m.id}
+                      onPress={() => { setSelectedViber(m); setViberModalVisible(true); }}
+                      style={{ width: 140, borderRadius: 20, backgroundColor: `${primary}08`, borderWidth: 1, borderColor: `${primary}18`, padding: 12, alignItems: 'center' }}
+                    >
+                      <View style={{ position: 'relative', marginBottom: 10 }}>
+                        {m.avatar_url ? (
+                          <Image source={{ uri: m.avatar_url }} style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: primary }} />
+                        ) : (
+                          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: primary }}>
+                            <Text style={{ color: primary, fontWeight: '900', fontSize: 20 }}>{(m.username || 'V')[0].toUpperCase()}</Text>
+                          </View>
+                        )}
+                        <View style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: '#10b981', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 2, borderColor: bg }}>
+                          <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>{Math.round(m.matchScore)}%</Text>
+                        </View>
+                      </View>
+                      <Text style={{ color: textColor, fontWeight: '900', fontSize: 13 }} numberOfLines={1}>@{m.username}</Text>
+                      <Text style={{ color: primary, fontSize: 10, fontWeight: '700', marginTop: 2 }}>{m.career_title || 'Viber'}</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8, justifyContent: 'center' }}>
+                        {m.overlap?.slice(0, 2).map(tag => (
+                          <View key={tag} style={{ backgroundColor: `${primary}15`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ color: primary, fontSize: 8, fontWeight: '800' }}>{tag}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             )}
 

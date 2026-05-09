@@ -1535,3 +1535,55 @@ export function debounce(fn, ms = 400) {
     timer = setTimeout(() => fn(...args), ms);
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALYTICS & STREAKS (Advanced Retention Logic)
+// ─────────────────────────────────────────────────────────────────────────────
+export const AnalyticsManager = {
+  async logSession(userId) {
+    if (!userId) return;
+    try {
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      
+      // Update streak
+      const { data: prof } = await supabase.from('profiles').select('last_seen, streak_count').eq('id', userId).single();
+      if (prof) {
+        const last = prof.last_seen ? new Date(prof.last_seen).toISOString().split('T')[0] : null;
+        let newStreak = prof.streak_count || 0;
+        
+        if (last === today) {
+          // Already seen today
+        } else {
+          const yesterday = new Date(now);
+          yesterday.setDate(now.getDate() - 1);
+          const yestStr = yesterday.toISOString().split('T')[0];
+          
+          if (last === yestStr) newStreak += 1;
+          else newStreak = 1;
+        }
+        
+        await supabase.from('profiles').update({ 
+          last_seen: now.toISOString(),
+          streak_count: newStreak
+        }).eq('id', userId);
+      }
+    } catch {}
+  },
+
+  async getGlobalStats() {
+    const cacheKey = 'global_stats';
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const [u, e, v] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('events').select('id', { count: 'exact', head: true }),
+        supabase.from('event_vibes').select('id', { count: 'exact', head: true }),
+      ]);
+      const res = { users: u.count, events: e.count, vibes: v.count };
+      cache.set(cacheKey, res, 300_000); // 5 min
+      return res;
+    } catch { return { users: 0, events: 0, vibes: 0 }; }
+  }
+};
