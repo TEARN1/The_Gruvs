@@ -398,7 +398,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       // Save to profile so PostGIS viber-proximity works
       if (user) {
         LocationService.saveToProfile(user.id, coords.lat, coords.lon);
-        const nearby = await DiscoveryManager.findNobility(user.id, 25);
+        const nearby = await DiscoveryManager.findNearbyVibers(user.id, 25);
         setNearbyVibers(nearby);
 
         // Advanced matching logic
@@ -406,12 +406,19 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         setVibeMatches(matches);
       }
       // Fetch events near the user's physical location
-      const eventsNear = await DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 30);
+      const eventsNear = await DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50); // Increased radius to 50km
       setNearbyEvents(eventsNear);
     } else if (user) {
       // No location but user logged in — still try vibers (profile may already have coords)
-      const nearby = await DiscoveryManager.findNobility(user.id, 25);
+      const nearby = await DiscoveryManager.findNearbyVibers(user.id, 25);
       setNearbyVibers(nearby);
+      
+      // Try to fetch events near their last known location
+      const profile = await UserManager.getProfile(user.id);
+      if (profile?.lat && profile?.lon) {
+        const eventsNear = await DiscoveryManager.findNearbyEvents(profile.lat, profile.lon, 50);
+        setNearbyEvents(eventsNear);
+      }
     }
     setLocationLoading(false);
   };
@@ -441,11 +448,34 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   })();
 
   const isSearching = query.trim().length > 0;
+  const renderWelcome = () => {
+    if (!user || !user.created_at) return null;
+    const isNew = new Date() - new Date(user.created_at) < 86400000; // 24 hours
+    if (!isNew) return null;
+
+    return (
+      <FadeInView delay={300} direction="up">
+        <View style={[styles.welcomeCard, { backgroundColor: `${primary}10`, borderColor: `${primary}30` }]}>
+          <View style={styles.welcomeInfo}>
+            <Text style={[styles.welcomeTitle, { color: textColor }]}>Welcome, {user.user_metadata?.display_name || 'Viber'}! 👑</Text>
+            <Text style={[styles.welcomeSub, { color: muted }]}>You've unlocked the vibe economy. Find your first gruv or hire a crew today.</Text>
+          </View>
+          <TouchableOpacity 
+            style={[styles.welcomeCta, { backgroundColor: primary }]}
+            onPress={() => setMarketplaceVisible(true)}
+          >
+            <Text style={styles.welcomeCtaText}>Start Discovery</Text>
+          </TouchableOpacity>
+        </View>
+      </FadeInView>
+    );
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <AuraEffect />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
+        {renderWelcome()}
 
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: `${primary}18` }]}>
@@ -559,8 +589,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 </View>
                 <Text style={[styles.servSub, { color: muted, fontSize: 11, lineHeight: 15 }]}>Bakkie hire · Muscle · Event logistics{'\n'}Reliable Vibers active near you.</Text>
               </View>
-              <View style={[styles.servCta, { backgroundColor: primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14 }]}>
-                <Text style={[styles.servCtaText, { fontWeight: '900' }]}>Hire</Text>
+              <View style={[styles.servCta, { backgroundColor: primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, shadowColor: primary, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }]}>
+                <Text style={[styles.servCtaText, { fontWeight: '900', color: '#000' }]}>Hire</Text>
                 <Feather name="arrow-right" size={14} color="#000" />
               </View>
             </TouchableOpacity>
@@ -624,6 +654,17 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                       <View key={i} style={[et.wrap, { backgroundColor: `${primary}10` }]} />
                     ))}
                   </ScrollView>
+                ) : nearbyEvents.length === 0 ? (
+                  <View style={{ paddingHorizontal: 16 }}>
+                    <TouchableOpacity 
+                      style={[styles.emptyNearby, { borderColor: `${primary}25`, backgroundColor: `${primary}05` }]}
+                      onPress={() => onNavigateToEvent && onNavigateToEvent({ id: 'create' })} // Hint to create one
+                    >
+                      <Feather name="map" size={24} color={primary} />
+                      <Text style={[styles.emptyNearbyText, { color: textColor }]}>No gruvs within 50km yet.</Text>
+                      <Text style={[styles.emptyNearbySub, { color: muted }]}>Be the first to host one in your area! 🚀</Text>
+                    </TouchableOpacity>
+                  </View>
                 ) : (
                   <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
                     {nearbyEvents.slice(0, 8).map((ev, i) => (
@@ -841,4 +882,14 @@ const styles = StyleSheet.create({
   servSub: { fontSize: 11, lineHeight: 16 },
   servCta: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14 },
   servCtaText: { color: '#000', fontSize: 11, fontWeight: '900' },
+  emptyNearby: { padding: 24, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', gap: 8 },
+  emptyNearbyText: { fontSize: 14, fontWeight: '800' },
+  emptyNearbySub: { fontSize: 12, textAlign: 'center' },
+  // Welcome Card
+  welcomeCard: { marginHorizontal: 16, marginTop: 10, marginBottom: 20, padding: 20, borderRadius: 24, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  welcomeInfo: { flex: 1, gap: 4 },
+  welcomeTitle: { fontSize: 16, fontWeight: '900' },
+  welcomeSub: { fontSize: 12, lineHeight: 18 },
+  welcomeCta: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 },
+  welcomeCtaText: { color: '#000', fontSize: 11, fontWeight: '900' },
 });

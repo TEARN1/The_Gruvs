@@ -1814,3 +1814,73 @@ CREATE POLICY "Users can send messages to events they RSVP'd to"
         AND status = 'going'
     )
   );
+
+-- ── Advanced Discovery Logic ──────────────────────────────────────────────
+
+-- Find events within radius using PostGIS
+CREATE OR REPLACE FUNCTION find_nearby_events(lat FLOAT, lon FLOAT, radius_km FLOAT, limit_count INTEGER DEFAULT 20)
+RETURNS SETOF events LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT * FROM events
+  WHERE coords IS NOT NULL
+    AND ST_DWithin(coords, ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography, radius_km * 1000)
+    AND is_cancelled = false
+  ORDER BY ST_Distance(coords, ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography) ASC
+  LIMIT limit_count;
+$$;
+
+-- Find users within radius
+CREATE OR REPLACE FUNCTION find_nearby_vibers(uid UUID, max_dist_km FLOAT DEFAULT 10, limit_count INTEGER DEFAULT 20)
+RETURNS TABLE (
+  id UUID,
+  username TEXT,
+  avatar_url TEXT,
+  vibe_score INTEGER,
+  is_online BOOLEAN,
+  distance_km FLOAT
+) LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
+DECLARE
+  u_coords geography(Point, 4326);
+BEGIN
+  SELECT location_coords INTO u_coords FROM profiles WHERE id = uid;
+  IF u_coords IS NULL THEN RETURN; END IF;
+
+  RETURN QUERY
+  SELECT 
+    p.id, p.username, p.avatar_url, p.vibe_score, p.is_online,
+    ST_Distance(p.location_coords, u_coords) / 1000.0 as distance_km
+  FROM profiles p
+  WHERE p.id <> uid
+    AND p.location_coords IS NOT NULL
+    AND ST_DWithin(p.location_coords, u_coords, max_dist_km * 1000)
+  ORDER BY distance_km ASC
+  LIMIT limit_count;
+END;
+$$;
+
+-- ── Welcome System ──────────────────────────────────────────────────────────
+
+-- Insert a system profile for welcoming users
+INSERT INTO profiles (id, username, display_name, bio, vibe_score, is_online)
+VALUES ('00000000-0000-0000-0000-000000000000', 'gruv_hq', 'The Gruvs HQ 👑', 'Welcome to the vibe economy. We are here to help you find your crew.', 9999, true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Trigger to welcome new users
+CREATE OR REPLACE FUNCTION handle_new_user_welcome()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- 1. Send Welcome Notification
+  INSERT INTO notifications (recipient_id, actor_id, type, title, body)
+  VALUES (NEW.id, '00000000-0000-0000-0000-000000000000', 'system', 'Welcome to The Gruvs! 👑', 'You just joined the most exclusive vibe network. Start discovery now.');
+
+  -- 2. Send Welcome DM
+  INSERT INTO messages (sender_id, recipient_id, body, is_request, request_accepted)
+  VALUES ('00000000-0000-0000-0000-000000000000', NEW.id, 'Yo! Welcome to The Gruvs. 🚀 I am your guide to the city. To see gruvs near you, make sure to enable location in your profile. Let''s get it!', false, true);
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS on_auth_user_welcome ON profiles;
+CREATE TRIGGER on_auth_user_welcome
+  AFTER INSERT ON profiles
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user_welcome();
