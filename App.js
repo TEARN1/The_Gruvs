@@ -45,7 +45,6 @@ const TABS = [
   { key: 'calendar',      label: 'Lineup',    icon: 'calendar'        },
   { key: 'chats',         label: 'Linked Up', icon: 'message-circle'  },
   { key: 'notifications', label: 'Pings',     icon: 'bell'            },
-  { key: 'business',      label: 'Biz',       icon: 'briefcase'       },
   { key: 'profile',       label: 'Vibe Card', icon: 'user'            },
 ];
 

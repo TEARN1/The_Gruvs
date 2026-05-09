@@ -1413,14 +1413,11 @@ export const CapacityManager = {
 
       if (!event.max_attendees) return { hasLimit: false, isSoldOut: false, spotsLeft: null };
       const { count } = await supabase
-        .from('event_rsvps').select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId).eq('status', 'going');
+        .from('check_ins').select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId);
       const spotsLeft = Math.max(0, event.max_attendees - (count || 0));
       return { hasLimit: true, isSoldOut: event.is_sold_out || spotsLeft === 0, spotsLeft, capacity: event.max_attendees };
     } catch { return { hasLimit: false, isSoldOut: false, spotsLeft: null }; }
-  },
-};
-
   },
 };
 

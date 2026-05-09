@@ -1225,7 +1225,11 @@ export const ProfilePage = ({ onAuthRequired }) => {
             <Text style={[styles.sectionTitle, { color: primary }]}>Discover People</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
               {DIST_OPTIONS.map(d => (
-                <TouchableOpacity key={d} style={[ft.distBtn, { backgroundColor: `${primary}15`, borderColor: `${primary}25` }]}>
+                <TouchableOpacity
+                  key={d}
+                  onPress={() => setSubView('findthem')}
+                  style={[ft.distBtn, { backgroundColor: `${primary}15`, borderColor: `${primary}25` }]}
+                >
                   <Text style={[ft.distText, { color: primary }]}>{d}km</Text>
                 </TouchableOpacity>
               ))}

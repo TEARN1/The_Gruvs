@@ -32,9 +32,9 @@ export const TUTORIALS = [
       },
       {
         icon: 'layout',
-        title: 'Six Tabs — One Platform',
-        body: 'Move through The Gruvs using the 6 tabs:\n\n• The Drop — Your live personalised Gruv feed\n• Scout — Full city catalogue and search\n• Lineup — Your stashed Gruvs schedule\n• Pings — Alerts and reminders\n• Biz — Business tools and Missions\n• Vibe Card — Your identity and settings',
-        tip: "Double-tap any tab to jump back to the top of that screen.",
+        title: 'Your Command Center',
+        body: 'Move through The Gruvs using the 5 tabs:\n\n• The Drop — Your live personalised Gruv feed\n• Scout — Full city catalogue and search\n• Lineup — Your stashed Gruvs schedule\n• Pings — Alerts and reminders\n• Vibe Card — Your identity, settings, and Biz Hub',
+        tip: 'Long press on Pings to mark all as read quickly.',
         visual: 'tabs',
       },
     ],
@@ -314,7 +314,7 @@ export const TUTORIALS = [
         icon: 'briefcase',
         title: 'The Gruvs Biz Hub',
         body: "Biz Hub is built for Gruv organisers, Spots, brands, and vendors. Build your storefront, run targeted Missions, track Intel in real time, and connect with The Network — all in one place.",
-        tip: "Access Biz Hub from the 'Biz' tab in the bottom navigation.",
+        tip: "Access Biz Hub from within your 'Vibe Card' tab.",
         visual: 'biz',
       },
       {
