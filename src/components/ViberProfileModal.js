@@ -14,7 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { NotificationService } from '../services/notificationService';
 import { DirectMessageModal } from './DirectMessageModal';
-import { UserManager, PresenceManager } from '../services/dataFlow';
+import { UserManager, PresenceManager, AuraService } from '../services/dataFlow';
 
 const RANK_LABELS = [
   { min: 0,     max: 100,    name: 'Viber',       color: '#94a3b8' },
@@ -299,12 +299,29 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
           ) : (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-              {/* Cover / header area */}
-              <View style={[s.coverArea, { backgroundColor: `${primary}10` }]}>
+              {/* Cover / header area with Dynamic Aura */}
+              <View style={[s.coverArea, { backgroundColor: AuraService.getAura(profile.interests) + '20' }]}>
                 {profile.cover_url
                   ? <Image source={{ uri: profile.cover_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                  : <View style={[s.coverGradient, { backgroundColor: rank?.color ? `${rank.color}20` : `${primary}15` }]} />
+                  : (
+                    <View 
+                      style={[
+                        s.coverGradient, 
+                        { backgroundColor: AuraService.getAura(profile.interests) + '15' }
+                      ]} 
+                    />
+                  )
                 }
+                <View 
+                  style={{ 
+                    position: 'absolute', 
+                    bottom: 0, 
+                    left: 0, 
+                    right: 0, 
+                    height: 50, 
+                    backgroundColor: 'transparent' 
+                  }} 
+                />
               </View>
 
               {/* Avatar + actions row */}

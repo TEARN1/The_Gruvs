@@ -1376,6 +1376,8 @@ export const PresenceManager = {
     try {
       await supabase.from('profiles').update({ is_online: true, last_seen: new Date().toISOString() }).eq('id', userId);
       cache.invalidate(`profile:${userId}`);
+      // Also log session for retention logic
+      RetentionManager.logSession(userId).catch(() => {});
     } catch {}
   },
 
@@ -1390,7 +1392,7 @@ export const PresenceManager = {
   // Subscribe to a specific user's online status changes
   subscribeToUser(userId, onChange) {
     const channel = supabase
-      .channel(`presence_${userId}`)
+      .channel(`presence_${userId}_${Math.random().toString(36).substr(2, 5)}`)
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'profiles',
         filter: `id=eq.${userId}`,
@@ -1536,37 +1538,111 @@ export function debounce(fn, ms = 400) {
   };
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
-// ANALYTICS & STREAKS (Advanced Retention Logic)
+// HOTSPOT MANAGER (PostGIS Heatmap Logic)
 // ─────────────────────────────────────────────────────────────────────────────
-export const AnalyticsManager = {
+export const HotspotManager = {
+  async findHotspots(lat, lon, radiusKm = 10) {
+    try {
+      // RPC to find clusters of events or check-ins
+      const { data } = await supabase.rpc('find_gruv_hotspots', {
+        user_lat: lat, user_lon: lon, radius_m: radiusKm * 1000
+      });
+      return data || [];
+    } catch { return []; }
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LEVEL & AURA ENGINE (Gamification)
+// ─────────────────────────────────────────────────────────────────────────────
+export const LevelManager = {
+  XP_MAP: {
+    EVENT_POST: 100,
+    RSVP: 20,
+    CHECK_IN: 50,
+    VIBE_GIVEN: 10,
+    BOOKING_COMPLETE: 200,
+  },
+
+  calculateLevel(xp) {
+    // Level = floor(sqrt(xp / 100)) + 1
+    return Math.floor(Math.sqrt(xp / 100)) + 1;
+  },
+
+  async addXP(userId, action) {
+    const amount = this.XP_MAP[action] || 10;
+    try {
+      const { data: prof } = await supabase.from('profiles').select('xp').eq('id', userId).single();
+      const newXP = (prof?.xp || 0) + amount;
+      await supabase.from('profiles').update({ xp: newXP }).eq('id', userId);
+      
+      const oldLevel = this.calculateLevel(prof?.xp || 0);
+      const newLevel = this.calculateLevel(newXP);
+      
+      if (newLevel > oldLevel) {
+        // Trigger Level Up Notification
+        _notify(userId, userId, 'level_up', `Reached Level ${newLevel}!`, `You've unlocked new aura colors.`).catch(() => {});
+      }
+      return { xp: newXP, level: newLevel, leveledUp: newLevel > oldLevel };
+    } catch { return null; }
+  }
+};
+
+export const AuraService = {
+  AURA_MAP: {
+    'Music': '#00f2ff', // Cyan
+    'Art': '#8b5cf6',   // Purple
+    'Tech': '#06b6d4',  // Teal
+    'Fashion': '#ec4899', // Pink
+    'Nightlife': '#ef4444', // Red
+    'Business': '#10b981', // Green
+  },
+
+  getAura(interests = []) {
+    const primary = interests[0] || 'Social';
+    return this.AURA_MAP[primary] || '#00f2ff';
+  },
+
+  getAuraGradients(interests = []) {
+    const c1 = this.getAura(interests);
+    const c2 = this.getAura(interests.slice(1)) || `${c1}50`;
+    return [c1, c2];
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RETENTION & STREAKS (Advanced User Logic)
+// ─────────────────────────────────────────────────────────────────────────────
+export const RetentionManager = {
   async logSession(userId) {
     if (!userId) return;
     try {
       const now = new Date();
       const today = now.toISOString().split('T')[0];
       
-      // Update streak
       const { data: prof } = await supabase.from('profiles').select('last_seen, streak_count').eq('id', userId).single();
       if (prof) {
         const last = prof.last_seen ? new Date(prof.last_seen).toISOString().split('T')[0] : null;
         let newStreak = prof.streak_count || 0;
         
-        if (last === today) {
-          // Already seen today
-        } else {
+        if (last !== today) {
           const yesterday = new Date(now);
           yesterday.setDate(now.getDate() - 1);
           const yestStr = yesterday.toISOString().split('T')[0];
           
           if (last === yestStr) newStreak += 1;
           else newStreak = 1;
+
+          await supabase.from('profiles').update({ 
+            last_seen: now.toISOString(),
+            streak_count: newStreak
+          }).eq('id', userId);
+
+          // Check badges on login
+          RewardEngine.checkMilestones(userId).catch(() => {});
         }
-        
-        await supabase.from('profiles').update({ 
-          last_seen: now.toISOString(),
-          streak_count: newStreak
-        }).eq('id', userId);
       }
     } catch {}
   },
@@ -1582,8 +1658,40 @@ export const AnalyticsManager = {
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }),
       ]);
       const res = { users: u.count, events: e.count, vibes: v.count };
-      cache.set(cacheKey, res, 300_000); // 5 min
+      cache.set(cacheKey, res, 300_000);
       return res;
     } catch { return { users: 0, events: 0, vibes: 0 }; }
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REWARDS & BADGE ENGINE
+// ─────────────────────────────────────────────────────────────────────────────
+export const RewardEngine = {
+  BADGES: [
+    { id: 'vibe_starter',  name: 'Vibe Starter', icon: '🔥', desc: 'First 5 vibes given' },
+    { id: 'gruv_master',   name: 'Gruv Master',  icon: '👑', desc: 'Hosted 10+ events' },
+    { id: 'loyal_viber',   name: 'Loyal Viber',  icon: '💎', desc: '7-day login streak' },
+    { id: 'social_elite',  name: 'Social Elite', icon: '✨', desc: 'SIS score of 100' },
+  ],
+
+  async checkMilestones(userId) {
+    try {
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (!prof) return [];
+      
+      const earned = prof.badges || [];
+      const newBadges = [];
+
+      if (!earned.includes('loyal_viber') && (prof.streak_count || 0) >= 7) newBadges.push('loyal_viber');
+      if (!earned.includes('social_elite') && (prof.social_integrity_score || 0) >= 100) newBadges.push('social_elite');
+      
+      if (newBadges.length > 0) {
+        const updated = [...earned, ...newBadges];
+        await supabase.from('profiles').update({ badges: updated }).eq('id', userId);
+        return newBadges;
+      }
+      return [];
+    } catch { return []; }
   }
 };

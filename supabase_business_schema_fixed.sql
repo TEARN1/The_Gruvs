@@ -1740,3 +1740,31 @@ DROP TRIGGER IF EXISTS update_sis_on_booking ON service_bookings;
 CREATE TRIGGER update_sis_on_booking
   AFTER UPDATE ON service_bookings
   FOR EACH ROW EXECUTE FUNCTION on_booking_completed_sis();
+
+-- ── Hotspot Discovery (Spatial Clustering) ──────────────────────────────────
+
+CREATE OR REPLACE FUNCTION find_gruv_hotspots(user_lat FLOAT, user_lon FLOAT, radius_m FLOAT)
+RETURNS TABLE (
+  lat FLOAT,
+  lon FLOAT,
+  venue_name TEXT,
+  vibe_density BIGINT,
+  hotness_score FLOAT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    e.lat, 
+    e.lon, 
+    e.venue_name,
+    COUNT(e.id) AS vibe_density,
+    (COUNT(e.id) * 10 + SUM(e.vibe_count) * 0.5)::FLOAT AS hotness_score
+  FROM events e
+  WHERE ST_DWithin(e.location_coords, ST_SetSRID(ST_MakePoint(user_lon, user_lat), 4326), radius_m)
+    AND e.event_date >= CURRENT_DATE
+  GROUP BY e.lat, e.lon, e.venue_name
+  HAVING COUNT(e.id) >= 2
+  ORDER BY hotness_score DESC
+  LIMIT 5;
+END;
+$$ LANGUAGE plpgsql;
