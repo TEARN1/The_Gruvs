@@ -448,6 +448,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                 {activeTab === 'about' && (
                   <View style={{ gap: 14, paddingVertical: 8 }}>
                     {[
+                      { icon: 'briefcase', label: 'Career', value: profile.career_title ? `${profile.career_title} — ${profile.career_description || ''}` : 'Career not set' },
+                      { icon: 'eye', label: 'Looks & Aura', value: profile.looks_description || 'No aura description' },
                       { icon: 'info', label: 'Bio', value: profile.bio || 'No bio added yet' },
                       { icon: 'map-pin', label: 'Location', value: profile.location || 'Location not set' },
                       { icon: 'zap', label: 'Identity Mode', value: (profile.identity_mode || 'public').charAt(0).toUpperCase() + (profile.identity_mode || 'public').slice(1) },
@@ -460,6 +462,17 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                         </View>
                       </View>
                     ))}
+
+                    {profile.profile_gallery?.length > 0 && (
+                      <View style={{ marginTop: 10 }}>
+                        <Text style={[s.sectionLabel, { color: muted }]}>GALLERY</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                          {profile.profile_gallery.map((url, i) => (
+                            <Image key={i} source={{ uri: url }} style={{ width: 140, height: 180, borderRadius: 14, borderWidth: 1, borderColor: `${primary}20` }} resizeMode="cover" />
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>

@@ -1213,8 +1213,9 @@ export const MessageManager = {
 
   // Real-time subscription for DM unread badge
   subscribeUnreadCount(userId, onChange) {
+    const channelName = `dm_unread_${userId}_${Math.random().toString(36).substr(2, 9)}`;
     const channel = supabase
-      .channel(`dm_unread_${userId}`)
+      .channel(channelName)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'messages',
         filter: `recipient_id=eq.${userId}`,

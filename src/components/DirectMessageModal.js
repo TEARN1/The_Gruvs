@@ -181,7 +181,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
     setLoading(true);
     fetchMessages().finally(() => setLoading(false));
 
-    const chanKey = `dm_${[user.id, recipient.id].sort().join('_')}`;
+    const chanKey = `dm_${[user.id, recipient.id].sort().join('_')}_${Math.random().toString(36).substr(2,9)}`;
     const channel = supabase
       .channel(chanKey)
       .on('postgres_changes', {
@@ -206,7 +206,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
     channelRef.current = channel;
 
     // ── Presence for typing indicator ────────────────────────────────────────
-    const presKey  = `presence_${chanKey}`;
+    const presKey  = `presence_${chanKey}_${Math.random().toString(36).substr(2,9)}`;
     const presence = supabase.channel(presKey, { config: { presence: { key: user.id } } });
     presence
       .on('presence', { event: 'sync' }, () => {

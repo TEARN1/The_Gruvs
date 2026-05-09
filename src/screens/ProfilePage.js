@@ -222,6 +222,25 @@ const pcard = StyleSheet.create({
 const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => {
   const [discoverable, setDiscoverable] = useState(profile?.is_discoverable ?? true);
   const [showOnline, setShowOnline] = useState(profile?.show_online ?? true);
+  const [looksDescription, setLooksDescription] = useState('');
+  const [careerTitle, setCareerTitle] = useState('');
+  const [careerDescription, setCareerDescription] = useState('');
+  const [profileGallery, setProfileGallery] = useState([]);
+
+  const refreshProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    if (data) {
+      setBio(data.bio || '');
+      setLocation(data.location || '');
+      setInterests(data.interests || []);
+      setLooksDescription(data.looks_description || '');
+      setCareerTitle(data.career_title || '');
+      setCareerDescription(data.career_description || '');
+      setProfileGallery(data.profile_gallery || []);
+    }
+  };
+
   const [shareEvents, setShareEvents] = useState(profile?.share_events ?? false);
   const [bio, setBio] = useState(profile?.bio || '');
   const [location, setLocation] = useState(profile?.location || '');
@@ -613,14 +632,16 @@ const mec = StyleSheet.create({
   badgeText: { fontSize: 10, fontWeight: '800' },
 });
 
-// ── Gallery tab — pulls real media from user's own events ──────────────────────
-const GalleryTab = ({ userId, primary, muted, myEvents }) => {
-  const allImgs = myEvents.flatMap(ev => {
-    if (Array.isArray(ev.media_urls)) return ev.media_urls;
-    return (ev.media || [])
-      .filter(m => m?.type === 'image' || typeof m === 'string')
-      .map(m => (typeof m === 'string' ? m : m.url));
-  }).filter(Boolean).slice(0, 18);
+const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
+  const allImgs = [
+    ...(profileGallery || []),
+    ...myEvents.flatMap(ev => {
+      if (Array.isArray(ev.media_urls)) return ev.media_urls;
+      return (ev.media || [])
+        .filter(m => m?.type === 'image' || typeof m === 'string')
+        .map(m => (typeof m === 'string' ? m : m.url));
+    })
+  ].filter(Boolean).slice(0, 24);
 
   const cellSize = Math.floor((width - 44) / 3);
   if (allImgs.length === 0) {
@@ -659,6 +680,30 @@ export const ProfilePage = ({ onAuthRequired }) => {
   const [settingsTab, setSettingsTab] = useState('discover');
   const [eventCount, setEventCount] = useState(0);
   const [followerCount, setFollowerCount] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  // New Profile Extension Fields
+  const [looksDescription,  setLooksDescription]  = useState(profile?.looks_description || '');
+  const [careerTitle,       setCareerTitle]       = useState(profile?.career_title || '');
+  const [careerDescription, setCareerDescription] = useState(profile?.career_description || '');
+  const [profileGallery,    setProfileGallery]    = useState(profile?.profile_gallery || []);
+  const [bio,               setBio]               = useState(profile?.bio || '');
+  const [location,          setLocation]          = useState(profile?.location || '');
+  const [website,           setWebsite]           = useState(profile?.website || '');
+  const [interests,         setInterests]         = useState(profile?.interests || []);
+
+  useEffect(() => {
+    if (profile) {
+      setBio(profile.bio || '');
+      setLocation(profile.location || '');
+      setWebsite(profile.website || '');
+      setInterests(profile.interests || []);
+      setLooksDescription(profile.looks_description || '');
+      setCareerTitle(profile.career_title || '');
+      setCareerDescription(profile.career_description || '');
+      setProfileGallery(profile.profile_gallery || []);
+    }
+  }, [profile]);
   const [savedCount, setSavedCount] = useState(0);
   const [editingUsername, setEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState('');
@@ -722,7 +767,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
     }
   };
 
-  const handleCoverUpload = async () => {
+  const handleGalleryUpload = async () => {
     try {
       if (Platform.OS !== 'web') {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -731,16 +776,35 @@ export const ProfilePage = ({ onAuthRequired }) => {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.85,
+        quality: 0.8,
       });
       if (result.canceled) return;
-      const publicUrl = await uploadImageToStorage(result.assets[0], 'covers');
-      await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', user.id);
-      refreshProfile();
-      toast.show('Cover photo updated!', 'success');
+      toast.show('Uploading to gallery...', 'info');
+      const publicUrl = await uploadImageToStorage(result.assets[0], `gallery/${Date.now()}`);
+      const newGallery = [...profileGallery, publicUrl];
+      await supabase.from('profiles').update({ profile_gallery: newGallery }).eq('id', user.id);
+      setProfileGallery(newGallery);
+      toast.show('Added to gallery!', 'success');
     } catch (e) {
-      toast.show('Cover upload failed: ' + (e.message || 'Unknown error'), 'error');
+      toast.show('Upload failed: ' + (e.message || 'Unknown error'), 'error');
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setSaving(true);
+      const { error } = await supabase.from('profiles').update({
+        bio, location, website, interests,
+        looks_description: looksDescription,
+        career_title: careerTitle,
+        career_description: careerDescription
+      }).eq('id', user.id);
+      if (error) throw error;
+      toast.show('Profile updated!', 'success');
+    } catch (e) {
+      toast.show('Save failed: ' + (e.message || 'Unknown error'), 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -1193,7 +1257,16 @@ export const ProfilePage = ({ onAuthRequired }) => {
                 )
               )}
               {activeTab === 'gallery' && (
-                <GalleryTab userId={user?.id} primary={primary} muted={muted} myEvents={myEvents} />
+                <View>
+                  <TouchableOpacity
+                    onPress={handleGalleryUpload}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: `${primary}40`, marginBottom: 12, justifyContent: 'center' }}
+                  >
+                    <Feather name="plus" size={16} color={primary} />
+                    <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>Add Photo to Profile</Text>
+                  </TouchableOpacity>
+                  <GalleryTab userId={user?.id} primary={primary} muted={muted} myEvents={myEvents} profileGallery={profileGallery} />
+                </View>
               )}
             </>
           )}
@@ -1203,6 +1276,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
         <View style={[styles.settingsTabs, { borderColor: `${primary}20` }]}>
           {[
             { key: 'discover', label: 'Discover', icon: 'compass' },
+            { key: 'career',   label: 'Professional', icon: 'briefcase' },
             { key: 'aura',     label: 'My Aura',  icon: 'droplet' },
           ].map(t => {
             const isActive = settingsTab === t.key;
@@ -1240,6 +1314,57 @@ export const ProfilePage = ({ onAuthRequired }) => {
             >
               <Feather name="users" size={16} color="#000" />
               <Text style={styles.findLargeBtnText}>Open Find Them</Text>
+            </TouchableOpacity>
+          </GlassView>
+        )}
+
+        {/* Career & Looks Settings */}
+        {settingsTab === 'career' && (
+          <GlassView style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: primary }]}>Career & Looks</Text>
+            <Text style={[styles.sectionSub, { color: muted, marginBottom: 12 }]}>Let others know your vibe and profession to get invited to exclusive Gruvs.</Text>
+            
+            <View style={styles.editRow}>
+              <Text style={[styles.editLabel, { color: primary }]}>Career Title</Text>
+              <TextInput
+                style={[styles.editInput, { color: textColor, borderColor: `${primary}20` }]}
+                value={careerTitle}
+                onChangeText={setCareerTitle}
+                placeholder="e.g. Model, DJ, Event Planner..."
+                placeholderTextColor={muted}
+              />
+            </View>
+
+            <View style={styles.editRow}>
+              <Text style={[styles.editLabel, { color: primary }]}>Career Description</Text>
+              <TextInput
+                style={[styles.editInput, { color: textColor, borderColor: `${primary}20`, height: 80 }]}
+                value={careerDescription}
+                onChangeText={setCareerDescription}
+                placeholder="What do you do? Tell the vibers..."
+                placeholderTextColor={muted}
+                multiline
+              />
+            </View>
+
+            <View style={styles.editRow}>
+              <Text style={[styles.editLabel, { color: primary }]}>Looks & Aura</Text>
+              <TextInput
+                style={[styles.editInput, { color: textColor, borderColor: `${primary}20`, height: 80 }]}
+                value={looksDescription}
+                onChangeText={setLooksDescription}
+                placeholder="Style, appearance, or general vibe..."
+                placeholderTextColor={muted}
+                multiline
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveBtn, { backgroundColor: primary, marginTop: 10 }]}
+              onPress={handleSaveProfile}
+              disabled={saving}
+            >
+              {saving ? <ActivityIndicator size="small" color="#000" /> : <Text style={styles.saveBtnText}>Save Career Profile</Text>}
             </TouchableOpacity>
           </GlassView>
         )}

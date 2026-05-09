@@ -103,7 +103,7 @@ export const NotificationsScreen = ({ onAuthRequired }) => {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`notifications_screen_${user.id}`)
+      .channel(`notifications_screen_${user.id}_${Math.random().toString(36).substr(2,9)}`)
       .on(
         'postgres_changes',
         {

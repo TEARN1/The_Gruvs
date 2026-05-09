@@ -190,22 +190,34 @@ const NearbyVibers = ({ vibers, primary, textColor, onPress }) => {
   if (!vibers.length) return null;
   return (
     <View style={{ marginBottom: 6 }}>
-      <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}>
-        {vibers.map(v => (
-          <TouchableOpacity key={v.profile_id || v.id} style={nv.wrap} onPress={() => onPress(v)}>
-            <View style={[nv.ring, { borderColor: primary }]}>
-              {v.avatar_url
-                ? <Image source={{ uri: v.avatar_url }} style={nv.avatar} />
-                : <View style={[nv.avatar, { backgroundColor: ['#0891b2','#7c3aed','#059669'][(v.username?.charCodeAt(0)||0)%3], alignItems:'center', justifyContent:'center' }]}>
-                    <Text style={{ color:'#fff', fontWeight:'900', fontSize:12 }}>{(v.username||'V')[0].toUpperCase()}</Text>
-                  </View>
-              }
-              {v.is_online && <View style={nv.dot} />}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 16 }}>
+        {vibers.map((v, i) => (
+          <TouchableOpacity 
+            key={v.profile_id || v.id} 
+            style={nv.wrap} 
+            onPress={() => onPress(v)}
+            activeOpacity={0.75}
+          >
+            <View style={[nv.ring, { borderColor: `${primary}30` }]}>
+              <View style={{ width: 54, height: 54, borderRadius: 27, overflow: 'hidden' }}>
+                {v.avatar_url
+                  ? <Image source={{ uri: v.avatar_url }} style={nv.avatar} />
+                  : <View style={[nv.avatar, { backgroundColor: ['#0891b2','#7c3aed','#059669'][(v.username?.charCodeAt(0)||0)%3], alignItems:'center', justifyContent:'center' }]}>
+                      <Text style={{ color:'#fff', fontWeight:'900', fontSize:14 }}>{(v.username||'V')[0].toUpperCase()}</Text>
+                    </View>
+                }
+              </View>
+              {v.is_online && <View style={[nv.dot, { backgroundColor: '#10b981', borderColor: '#0d1112', borderWidth: 2 }]} />}
             </View>
-            <Text style={[nv.name, { color: textColor }]} numberOfLines={1}>@{v.username}</Text>
-            <Text style={[nv.dist, { color: primary }]}>
-              {typeof v.distance_km === 'number' ? `${v.distance_km.toFixed(1)}km` : 'Near'}
-            </Text>
+            <View style={{ marginTop: 4, alignItems: 'center' }}>
+              <Text style={[nv.name, { color: textColor, fontWeight: '800' }]} numberOfLines={1}>@{v.username}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                <Feather name="map-pin" size={8} color={primary} />
+                <Text style={[nv.dist, { color: primary, fontSize: 9, fontWeight: '900' }]}>
+                  {typeof v.distance_km === 'number' ? `${v.distance_km.toFixed(1)}km` : 'Near'}
+                </Text>
+              </View>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -522,22 +534,29 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </View>
         ) : (
           <>
-            {/* ── Gruv Services Banner ────────────────────────────────────── */}
+            {/* ── GRUV SERVICES: Advanced Premium Banner ─────────────────────── */}
             <TouchableOpacity
               onPress={() => setMarketplaceVisible(true)}
-              activeOpacity={0.82}
-              style={[styles.servBanner, { borderColor: `${primary}35`, backgroundColor: `${primary}0a` }]}
+              activeOpacity={0.88}
+              style={[styles.servBanner, { borderColor: `${primary}45`, backgroundColor: `${primary}08`, marginTop: 10, marginBottom: 20, padding: 18, overflow: 'hidden' }]}
             >
-              <View style={[styles.servIconWrap, { backgroundColor: `${primary}20` }]}>
-                <Feather name="truck" size={26} color={primary} />
+              {/* Decorative background aura for the banner */}
+              <View style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: `${primary}15`, blurRadius: 20 }} />
+              
+              <View style={[styles.servIconWrap, { backgroundColor: `${primary}25`, width: 54, height: 54, borderRadius: 18 }]}>
+                <Feather name="truck" size={28} color={primary} />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.servTitle, { color: primary }]}>GRUV SERVICES</Text>
-                <Text style={[styles.servSub, { color: muted }]}>Bakkie hire · Moving help · Event logistics — Vibers ready now</Text>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <Text style={[styles.servTitle, { color: primary, fontSize: 15, fontWeight: '900', letterSpacing: 0.5 }]}>GRUV SERVICES</Text>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' }} />
+                  <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '800' }}>LIVE</Text>
+                </View>
+                <Text style={[styles.servSub, { color: muted, fontSize: 11, lineHeight: 15 }]}>Bakkie hire · Muscle · Event logistics{'\n'}Reliable Vibers active near you.</Text>
               </View>
-              <View style={[styles.servCta, { backgroundColor: primary }]}>
-                <Text style={styles.servCtaText}>Open</Text>
-                <Feather name="arrow-right" size={12} color="#000" />
+              <View style={[styles.servCta, { backgroundColor: primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14 }]}>
+                <Text style={[styles.servCtaText, { fontWeight: '900' }]}>Hire</Text>
+                <Feather name="arrow-right" size={14} color="#000" />
               </View>
             </TouchableOpacity>
 
@@ -555,6 +574,14 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             ) : loading ? (
               <View style={[styles.heroSkeleton, { backgroundColor: `${primary}12` }]} />
             ) : null}
+
+            {/* ── Nearby vibers (Prominent discovery) ───────────────────── */}
+            {nearbyVibers.length > 0 && (
+              <View style={{ marginBottom: 20, marginTop: 10 }}>
+                <SectionHeader title="Vibers Near You" actionLabel="Find Them" onAction={() => setMarketplaceVisible(true)} textColor={textColor} primary={primary} />
+                <NearbyVibers vibers={nearbyVibers} primary={primary} textColor={textColor} onPress={(v) => { setSelectedViber(v); setViberModalVisible(true); }} />
+              </View>
+            )}
 
             {/* ── Happening Now ───────────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
@@ -610,13 +637,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               </View>
             )}
 
-            {/* ── Nearby vibers ──────────────────────────────────────────── */}
-            {nearbyVibers.length > 0 && (
-              <View style={{ marginBottom: 20 }}>
-                <SectionHeader title="Vibers Near You" actionLabel="Find Them" onAction={() => { setActiveMood(null); setActiveCat(null); }} textColor={textColor} primary={primary} />
-                <NearbyVibers vibers={nearbyVibers} primary={primary} textColor={textColor} onPress={(v) => { setSelectedViber(v); setViberModalVisible(true); }} />
-              </View>
-            )}
+            {/* ── Happening Now ───────────────────────────────────────────── */}
 
             {/* ── Trending ────────────────────────────────────────────────── */}
             {trendingEvents.length > 0 && (
