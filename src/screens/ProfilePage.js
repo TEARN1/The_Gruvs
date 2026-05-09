@@ -889,6 +889,81 @@ export const ProfilePage = ({ onAuthRequired }) => {
     } catch {}
   };
 
+  const handleAvatarUpload = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        const uri = result.assets[0].uri;
+        const ext = uri.split('.').pop();
+        const path = `${user.id}/avatar_${Date.now()}.${ext}`;
+        const formData = new FormData();
+        formData.append('file', { uri, name: `file.${ext}`, type: `image/${ext}` });
+        const { data, error } = await supabase.storage.from('avatars').upload(path, formData);
+        if (!error) {
+          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+          await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
+          refreshProfile();
+          toast.show('Avatar updated!', 'success');
+        }
+      }
+    } catch { toast.show('Upload failed.', 'error'); }
+  };
+
+  const handleCoverUpload = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        const uri = result.assets[0].uri;
+        const ext = uri.split('.').pop();
+        const path = `${user.id}/cover_${Date.now()}.${ext}`;
+        const formData = new FormData();
+        formData.append('file', { uri, name: `file.${ext}`, type: `image/${ext}` });
+        const { data, error } = await supabase.storage.from('covers').upload(path, formData);
+        if (!error) {
+          const { data: { publicUrl } } = supabase.storage.from('covers').getPublicUrl(path);
+          await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', user.id);
+          refreshProfile();
+          toast.show('Cover updated!', 'success');
+        }
+      }
+    } catch { toast.show('Upload failed.', 'error'); }
+  };
+
+  const handleGalleryUpload = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        const uri = result.assets[0].uri;
+        const ext = uri.split('.').pop();
+        const path = `${user.id}/gallery_${Date.now()}.${ext}`;
+        const formData = new FormData();
+        formData.append('file', { uri, name: `file.${ext}`, type: `image/${ext}` });
+        const { error } = await supabase.storage.from('galleries').upload(path, formData);
+        if (!error) {
+          const { data: { publicUrl } } = supabase.storage.from('galleries').getPublicUrl(path);
+          const updated = [...(profileGallery || []), publicUrl];
+          await supabase.from('profiles').update({ profile_gallery: updated }).eq('id', user.id);
+          setProfileGallery(updated);
+          toast.show('Gallery updated!', 'success');
+        }
+      }
+    } catch { toast.show('Upload failed.', 'error'); }
+  };
+
   // Guest view
   if (!user) {
     return (

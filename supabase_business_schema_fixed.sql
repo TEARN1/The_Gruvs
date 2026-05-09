@@ -1768,3 +1768,49 @@ BEGIN
   LIMIT 5;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ── Advanced Messaging Expansion ──────────────────────────────────────────
+
+-- Update messages for media and read receipts
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS message_type TEXT DEFAULT 'text';
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_url TEXT;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
+
+-- Event Group Messages
+CREATE TABLE IF NOT EXISTS group_messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  body TEXT,
+  message_type TEXT DEFAULT 'text',
+  media_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Enable Realtime for groups
+ALTER PUBLICATION supabase_realtime ADD TABLE group_messages;
+
+-- RLS for group messages (anyone RSVP'd 'going' can read)
+ALTER TABLE group_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read messages of events they RSVP'd to"
+  ON group_messages FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM event_rsvps
+      WHERE event_id = group_messages.event_id
+        AND user_id = auth.uid()
+        AND status = 'going'
+    )
+  );
+
+CREATE POLICY "Users can send messages to events they RSVP'd to"
+  ON group_messages FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM event_rsvps
+      WHERE event_id = event_id
+        AND user_id = auth.uid()
+        AND status = 'going'
+    )
+  );

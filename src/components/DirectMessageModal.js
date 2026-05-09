@@ -13,7 +13,8 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
-import { MessageManager, BlockManager } from '../services/dataFlow';
+import { MessageManager, BlockManager, PresenceManager } from '../services/dataFlow';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -143,6 +144,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
   const [selectedMsgId, setSelectedMsgId] = useState(null);
   const [showReactions, setShowReactions] = useState(false);
   const [reactionMsgId, setReactionMsgId] = useState(null);
+  const [mediaLoading, setMediaLoading] = useState(false);
 
   const flatRef       = useRef(null);
   const channelRef    = useRef(null);
@@ -179,7 +181,13 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
   useEffect(() => {
     if (!visible || !user || !recipient) return;
     setLoading(true);
-    fetchMessages().finally(() => setLoading(false));
+    await fetchMessages();
+    setLoading(false);
+
+    // Typing subscription
+    const unsubTyping = MessageManager.subscribeToTyping(user.id, (p) => {
+      if (p.senderId === recipient.id) setIsTyping(p.isTyping);
+    });
 
     const chanKey = `dm_${[user.id, recipient.id].sort().join('_')}_${Math.random().toString(36).substr(2,9)}`;
     const channel = supabase
@@ -223,10 +231,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
 
     return () => {
       supabase.removeChannel(channel);
-      supabase.removeChannel(presence);
+      unsubTyping();
       clearTimeout(typingTimeout.current);
       channelRef.current  = null;
-      presenceRef.current = null;
     };
   }, [visible, user, recipient, fetchMessages]);
 
@@ -237,9 +244,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
 
   // ── Typing broadcast ──────────────────────────────────────────────────────────
   const broadcastTyping = useCallback(async (isTypingNow) => {
-    if (!presenceRef.current) return;
-    await presenceRef.current.track({ typing: isTypingNow, online: true }).catch(() => {});
-  }, []);
+    if (!user || !recipient) return;
+    MessageManager.sendTypingStatus(user.id, recipient.id, isTypingNow);
+  }, [user, recipient]);
 
   const handleTextChange = useCallback((text) => {
     setBody(text);
@@ -258,11 +265,38 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
 
     const newMsg = await MessageManager.send(user.id, recipient.id, trimmed);
     if (newMsg) {
-      setMessages(prev => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]);
+      setMessages(prev => [...prev, newMsg]);
       if (requestStatus === 'none') setRequestStatus('pending');
     }
     setSending(false);
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+  };
+
+  const handleImageUpload = async () => {
+    if (inputLocked || requestStatus === 'incoming_request') return;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setMediaLoading(true);
+        const uri = result.assets[0].uri;
+        const ext = uri.split('.').pop();
+        const path = `dms/${user.id}_${Date.now()}.${ext}`;
+        const formData = new FormData();
+        formData.append('file', { uri, name: `file.${ext}`, type: `image/${ext}` });
+        
+        const { error } = await supabase.storage.from('chat_media').upload(path, formData);
+        if (!error) {
+          const { data: { publicUrl } } = supabase.storage.from('chat_media').getPublicUrl(path);
+          const newMsg = await MessageManager.send(user.id, recipient.id, '', { type: 'image', mediaUrl: publicUrl });
+          if (newMsg) setMessages(prev => [...prev, newMsg]);
+        }
+        setMediaLoading(false);
+      }
+    } catch { setMediaLoading(false); }
   };
 
   // ── Accept request ────────────────────────────────────────────────────────────
@@ -346,7 +380,10 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
               ? { backgroundColor: primary, borderBottomRightRadius: 4 }
               : { backgroundColor: '#1e2a2d', borderBottomLeftRadius: 4 },
           ]}>
-            <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{item.body}</Text>
+            {item.message_type === 'image' && item.media_url && (
+              <Image source={{ uri: item.media_url }} style={dm.bubbleImage} resizeMode="cover" />
+            )}
+            {item.body ? <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{item.body}</Text> : null}
             {item.reaction && (
               <View style={dm.reactionBubble}>
                 <Text style={{ fontSize: 14 }}>{item.reaction}</Text>
@@ -456,6 +493,16 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
 
         {/* Input */}
         <View style={[dm.inputRow, { borderTopColor: `${primary}18`, paddingBottom: insets.bottom || 12 }]}>
+          <TouchableOpacity 
+            style={[dm.attachBtn, { backgroundColor: `${primary}15` }]}
+            onPress={handleImageUpload}
+            disabled={inputLocked || requestStatus === 'incoming_request' || mediaLoading}
+          >
+            {mediaLoading 
+              ? <ActivityIndicator size="small" color={primary} />
+              : <Feather name="camera" size={18} color={primary} />
+            }
+          </TouchableOpacity>
           <TextInput
             style={[dm.input, { color: textColor, backgroundColor: '#1e2a2d', opacity: inputLocked ? 0.5 : 1 }]}
             placeholder={
@@ -507,6 +554,8 @@ const dm = StyleSheet.create({
   deleteBtn:     { marginTop: 4, padding: 8, borderRadius: 10, alignSelf: 'flex-end' },
   reactionPickerWrap: {},
   inputRow:      { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1 },
+  attachBtn:     { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   input:         { flex: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 120 },
   sendBtn:       { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  bubbleImage:   { width: 220, height: 160, borderRadius: 12, marginBottom: 8 },
 });

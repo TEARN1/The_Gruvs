@@ -1107,8 +1107,8 @@ export const MessageManager = {
     } catch { return 0; }
   },
 
-  // Send a message — first message auto-marks as request
-  async send(senderId, recipientId, body) {
+  // Send a message — supports media and request logic
+  async send(senderId, recipientId, body, { type = 'text', mediaUrl = null } = {}) {
     try {
       // Check if conversation already accepted
       const { data: prior } = await supabase
@@ -1123,9 +1123,11 @@ export const MessageManager = {
         .from('messages')
         .insert({
           sender_id: senderId, recipient_id: recipientId,
-          body: body.trim(),
+          body: (body || '').trim(),
           is_request: !accepted,
           request_accepted: accepted,
+          message_type: type,
+          media_url: mediaUrl,
         })
         .select()
         .single();
@@ -1136,10 +1138,38 @@ export const MessageManager = {
       cache.invalidate(`dm_unread:${recipientId}`);
 
       // Notify recipient
-      _notify(recipientId, senderId, 'message', 'New Message Request', body.trim().slice(0, 80)).catch(() => {});
+      const msgText = type === 'image' ? 'Sent a photo' : (body || '').trim().slice(0, 80);
+      _notify(recipientId, senderId, 'message', 'New Message', msgText).catch(() => {});
 
       return data;
     } catch { return null; }
+  },
+
+  async markAsRead(messageId, userId) {
+    try {
+      await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', messageId).eq('recipient_id', userId).is('read_at', null);
+      cache.invalidate(`dm_unread:${userId}`);
+    } catch {}
+  },
+
+  async sendTypingStatus(senderId, recipientId, isTyping) {
+    try {
+      const channel = supabase.channel(`typing_${recipientId}`);
+      await channel.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { senderId, isTyping }
+      });
+      supabase.removeChannel(channel);
+    } catch {}
+  },
+
+  subscribeToTyping(userId, onTyping) {
+    const channel = supabase
+      .channel(`typing_${userId}`)
+      .on('broadcast', { event: 'typing' }, payload => onTyping(payload.payload))
+      .subscribe();
+    return () => supabase.removeChannel(channel);
   },
 
   // Accept a conversation request
