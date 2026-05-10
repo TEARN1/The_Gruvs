@@ -17,6 +17,7 @@ import { MessageManager, BlockManager, PresenceManager } from '../services/dataF
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { ViberProfileModal } from './ViberProfileModal';
 
 const EMOJI_REACTIONS = ['❤️', '😂', '🔥', '💯', '👀', '🙏'];
 
@@ -145,6 +146,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
   const [showReactions, setShowReactions] = useState(false);
   const [reactionMsgId, setReactionMsgId] = useState(null);
   const [mediaLoading, setMediaLoading] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
 
   const flatRef       = useRef(null);
   const channelRef    = useRef(null);
@@ -441,7 +443,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
           <TouchableOpacity onPress={onClose} style={dm.backBtn}>
             <Feather name="arrow-left" size={22} color={textColor} />
           </TouchableOpacity>
-          <View style={dm.headerInfo}>
+          <TouchableOpacity style={dm.headerInfo} onPress={() => setProfileModalVisible(true)} activeOpacity={0.8}>
             {recipient?.avatar_url
               ? <Image source={{ uri: recipient.avatar_url }} style={dm.headerAvatar} />
               : <View style={[dm.headerAvatar, { backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center' }]}>
@@ -457,7 +459,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
                 : <Text style={[dm.headerSub, { color: muted }]}>Offline</Text>
               }
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Request banner — shown to recipient of a pending request */}
@@ -541,6 +543,12 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      <ViberProfileModal
+        visible={profileModalVisible}
+        user={recipient}
+        userId={recipient?.id}
+        onClose={() => setProfileModalVisible(false)}
+      />
     </Modal>
   );
 };
