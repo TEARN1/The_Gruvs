@@ -247,11 +247,11 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         };
       });
 
-      const totalRevenue   = (campRes.data || []).reduce((a, c) => a + (c.revenue_attributed || 0), 0);
-      const totalSpent     = (campRes.data || []).reduce((a, c) => a + (c.budget_spent || 0), 0);
-      const totalImpressions = (campRes.data || []).reduce((a, c) => a + (c.impressions || 0), 0) || impressions;
-      const totalClicks    = (campRes.data || []).reduce((a, c) => a + (c.clicks || 0), 0) || clicks;
-      const totalConversions = (campRes.data || []).reduce((a, c) => a + (c.conversions || 0), 0) || conversions;
+      const totalRevenue   = (campData || []).reduce((a, c) => a + (c.revenue_attributed || 0), 0);
+      const totalSpent     = (campData || []).reduce((a, c) => a + (c.budget_spent || 0), 0);
+      const totalImpressions = (campData || []).reduce((a, c) => a + (c.impressions || 0), 0) || impressions;
+      const totalClicks    = (campData || []).reduce((a, c) => a + (c.clicks || 0), 0) || clicks;
+      const totalConversions = (campData || []).reduce((a, c) => a + (c.conversions || 0), 0) || conversions;
 
       setAnalytics({ impressions: totalImpressions, clicks: totalClicks, conversions: totalConversions, rsvps, totalRevenue, totalSpent, chart });
     } catch (e) {
