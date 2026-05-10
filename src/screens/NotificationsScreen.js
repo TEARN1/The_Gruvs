@@ -46,7 +46,7 @@ const isInSegment = (dateStr, segment) => {
   return date < weekStart;
 };
 
-export const NotificationsScreen = ({ onAuthRequired }) => {
+export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
@@ -127,6 +127,8 @@ export const NotificationsScreen = ({ onAuthRequired }) => {
     const viewerId = item.data?.viewer_id || item.data?.actor_id;
     if ((item.type === 'profile_view' || item.type === 'follow') && viewerId) {
       setProfileModalUserId(viewerId);
+    } else if (['vibe', 'rsvp', 'echo', 'comment'].includes(item.type) && item.data?.event_id && onNavigateToEvent) {
+      onNavigateToEvent({ id: item.data.event_id });
     }
   };
 
@@ -268,6 +270,7 @@ export const NotificationsScreen = ({ onAuthRequired }) => {
         visible={!!profileModalUserId}
         userId={profileModalUserId}
         onClose={() => setProfileModalUserId(null)}
+        onNavigateToEvent={onNavigateToEvent}
       />
     </SafeAreaView>
   );

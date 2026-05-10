@@ -508,6 +508,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       visible={dmOpen}
       onClose={() => setDmOpen(false)}
       recipient={profile}
+      onNavigateToEvent={onNavigateToEvent}
     />
 
     <UserListModal

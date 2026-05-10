@@ -296,7 +296,7 @@ const MainNavigator = () => {
       case 'chats':
         return <ChatsScreen onAuthRequired={handleAuthRequired} />;
       case 'notifications':
-        return <NotificationsScreen onAuthRequired={handleAuthRequired} />;
+        return <NotificationsScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'business':
         return <BusinessDashboardScreen onClose={() => setCurrentTab('profile')} />;
       case 'profile':

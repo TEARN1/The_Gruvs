@@ -126,7 +126,7 @@ const rp = StyleSheet.create({
 });
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export const DirectMessageModal = ({ visible, onClose, recipient }) => {
+export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user }         = useAuth();
   const insets           = useSafeAreaInsets();
@@ -548,6 +548,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
         user={recipient}
         userId={recipient?.id}
         onClose={() => setProfileModalVisible(false)}
+        onNavigateToEvent={onNavigateToEvent}
       />
     </Modal>
   );
