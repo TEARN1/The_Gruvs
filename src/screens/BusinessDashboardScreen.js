@@ -290,6 +290,54 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     setActiveTab(key);
   };
 
+  const handleUpgradeTier = async () => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    const tierOptions = ['pro', 'royal', 'enterprise'].filter(t => t !== biz?.tier);
+    Alert.alert(
+      'Upgrade Your Plan',
+      'Select a new tier to unlock advanced features.',
+      [
+        { text: 'Pro — R299/mo', onPress: () => upgradeTierAction('pro') },
+        { text: 'Royal — R799/mo', onPress: () => upgradeTierAction('royal') },
+        { text: 'Enterprise', onPress: () => upgradeTierAction('enterprise') },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
+  const upgradeTierAction = async (newTier) => {
+    if (!biz) return;
+    try {
+      const { error } = await supabase
+        .from('business_profiles')
+        .update({ tier: newTier })
+        .eq('id', biz.id);
+      if (ok) {
+        Alert.alert('Success!', `Your account has been upgraded to ${newTier.toUpperCase()}.`);
+        loadAll();
+      } else {
+        Alert.alert('Error', error.message || 'Could not upgrade tier.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Upgrade failed. Please try again.');
+    }
+  };
+
+  const handleJoinEcosystem = async (ecosystem) => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    if (!biz) { Alert.alert('Error', 'No business profile found.'); return; }
+    try {
+      const ok = await EcosystemManager.requestPartnership(biz.id, "ecosystem-partner", "ecosystem");
+      if (ok) { Alert.alert('Request Sent!', `Your request to join ${ecosystem.label}. Check your inbox for updates.`);
+        loadAll();
+      } else {
+        Alert.alert('Error', 'Could not send connection request. Please try again.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Connection failed. Please try again.');
+    }
+  };
+
   // ── Setup Screen ────────────────────────────────────────────────────────────
   if (setupMode) {
     return (
@@ -445,7 +493,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           <GlassView style={[sc.tierCard, { borderColor: `${tier.color}30` }]}>
             <View style={sc.tierHeader}>
               <Text style={[sc.tierCardTitle, { color: tier.color }]}>{tier.label} Plan</Text>
-              <TouchableOpacity style={[sc.upgradeBtn, { borderColor: tier.color }]}>
+              <TouchableOpacity onPress={handleUpgradeTier} style={[sc.upgradeBtn, { borderColor: tier.color }]}>
                 <Text style={[sc.upgradeBtnText, { color: tier.color }]}>UPGRADE</Text>
               </TouchableOpacity>
             </View>
@@ -586,6 +634,9 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           {campaigns.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Text style={[sc.emptyBody, { color: muted }]}>Run campaigns to see performance data.</Text>
+              <TouchableOpacity onPress={() => setShowCampaignBuilder(true)} style={[sc.emptyBtn, { backgroundColor: primary }]}>
+                <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>LAUNCH MISSION</Text>
+              </TouchableOpacity>
             </GlassView>
           ) : campaigns.slice(0, 5).map(c => (
             <GlassView key={c.id} style={[sc.analyticsRow, { borderColor: `${primary}15` }]}>
@@ -634,6 +685,9 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           {campaigns.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Text style={[sc.emptyBody, { color: muted }]}>No Mission War Chests set yet.</Text>
+              <TouchableOpacity onPress={() => setShowCampaignBuilder(true)} style={[sc.emptyBtn, { backgroundColor: primary }]}>
+                <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>LAUNCH MISSION</Text>
+              </TouchableOpacity>
             </GlassView>
           ) : campaigns.map(c => {
             const pct = c.budget_total > 0 ? Math.min(100, (c.budget_spent / c.budget_total) * 100) : 0;
@@ -688,7 +742,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
                 <Text style={[sc.ecoTitle, { color: textColor }]}>{e.label}</Text>
                 <Text style={[sc.ecoBody, { color: muted }]}>{e.body}</Text>
               </View>
-              <TouchableOpacity style={[sc.ecoBtn, { borderColor: `${e.color}40` }]}>
+              <TouchableOpacity onPress={() => handleJoinEcosystem(e)} style={[sc.ecoBtn, { borderColor: `${e.color}40` }]}>
                 <Text style={[sc.ecoBtnText, { color: e.color }]}>JOIN</Text>
               </TouchableOpacity>
             </GlassView>
@@ -717,7 +771,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
             <Text style={sc.notifBadgeText}>{notifications.length}</Text>
           </View>
         )}
-        <TouchableOpacity style={[sc.settingsBtn, { borderColor: `${primary}25` }]}>
+        <TouchableOpacity onPress={() => setSetupMode(true)} style={[sc.settingsBtn, { borderColor: `${primary}25` }]}>
           <Feather name="settings" size={16} color={primary} />
         </TouchableOpacity>
       </Animated.View>
@@ -905,3 +959,7 @@ const sc = StyleSheet.create({
   newBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   newBtnText: { color: '#000', fontSize: 11, fontWeight: '900' },
 });
+
+
+
+

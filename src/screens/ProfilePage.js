@@ -1259,10 +1259,10 @@ export const ProfilePage = ({ onAuthRequired }) => {
               )}
               {activeTab === 'saved' && (
                 mySavedEvents.length === 0 ? (
-                  <View style={[styles.emptyTab, { borderColor: `${primary}20` }]}>
+                  <TouchableOpacity style={[styles.emptyTab, { borderColor: `${primary}20` }]} onPress={() => toast?.show('Head over to Explore to find more Gruvs!', 'info')}>
                     <Feather name="bookmark" size={32} color={primary} style={{ opacity: 0.6 }} />
                     <Text style={[styles.emptyTabText, { color: muted }]}>No saved events yet{'\n'}Bookmark gruvs from the feed</Text>
-                  </View>
+                  </TouchableOpacity>
                 ) : (
                   <View style={{ gap: 10 }}>
                     {mySavedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge="Saved" badgeIcon="bookmark" />)}
@@ -1271,10 +1271,10 @@ export const ProfilePage = ({ onAuthRequired }) => {
               )}
               {activeTab === 'vibed' && (
                 myVibedEvents.length === 0 ? (
-                  <View style={[styles.emptyTab, { borderColor: `${primary}20` }]}>
+                  <TouchableOpacity style={[styles.emptyTab, { borderColor: `${primary}20` }]} onPress={() => toast?.show('Zap events in the feed to vibe!', 'info')}>
                     <Feather name="zap" size={32} color={primary} style={{ opacity: 0.6 }} />
                     <Text style={[styles.emptyTabText, { color: muted }]}>No vibed events yet{'\n'}Zap events in the feed to vibe</Text>
-                  </View>
+                  </TouchableOpacity>
                 ) : (
                   <View style={{ gap: 10 }}>
                     {myVibedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={`${ev.vibe_count || 0} vibes`} badgeIcon="zap" />)}

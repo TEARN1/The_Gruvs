@@ -745,7 +745,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 <SectionHeader title="Trending" textColor={textColor} primary={primary} />
                 <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
                   {trendingEvents.slice(0, 6).map((spot, i) => (
-                    <TrendTile key={spot.event_id || i} spot={spot} rank={i} primary={primary} />
+                    <TrendTile key={spot.event_id || i} spot={spot} rank={i} primary={primary} onPress={() => onNavigateToEvent && onNavigateToEvent(spot)} />
                   ))}
                 </ScrollView>
               </View>
@@ -840,8 +840,8 @@ const src = StyleSheet.create({
 });
 
 // ── Trend tile ────────────────────────────────────────────────────────────────
-const TrendTile = ({ spot, rank, primary }) => (
-  <View style={[tt.wrap, { backgroundColor: rank < 3 ? `${primary}10` : 'rgba(255,255,255,0.04)' }]}>
+const TrendTile = ({ spot, rank, primary, onPress }) => (
+  <TouchableOpacity onPress={onPress} style={[tt.wrap, { backgroundColor: rank < 3 ? `${primary}10` : 'rgba(255,255,255,0.04)' }]} activeOpacity={0.85}>
     <Image source={{ uri: spot.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=200' }} style={tt.img} />
     <View style={[tt.rankBadge, { backgroundColor: rank < 3 ? primary : 'rgba(255,255,255,0.15)' }]}>
       <Text style={[tt.rankText, { color: rank < 3 ? '#000' : '#fff' }]}>#{rank + 1}</Text>
@@ -853,7 +853,7 @@ const TrendTile = ({ spot, rank, primary }) => (
         <Text style={[tt.metaText, { color: primary }]}>{spot.rsvp_count || spot.going || 0}</Text>
       </View>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 const tt = StyleSheet.create({
