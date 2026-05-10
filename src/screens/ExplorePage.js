@@ -398,8 +398,12 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       // Save to profile so PostGIS viber-proximity works
       if (user) {
         LocationService.saveToProfile(user.id, coords.lat, coords.lon);
+        // Fetch nearby vibers AND filter for those who are followed and online
         const nearby = await DiscoveryManager.findNearbyVibers(user.id, 25);
-        setNearbyVibers(nearby);
+        const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
+        const followedIds = new Set((follows || []).map(f => f.following_id));
+        const onlineFollowers = nearby.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
+        setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : nearby);
 
         // Advanced matching logic
         const matches = await MatchManager.findMatches(user.id, 10);
@@ -411,7 +415,10 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     } else if (user) {
       // No location but user logged in — still try vibers (profile may already have coords)
       const nearby = await DiscoveryManager.findNearbyVibers(user.id, 25);
-      setNearbyVibers(nearby);
+      const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
+      const followedIds = new Set((follows || []).map(f => f.following_id));
+      const onlineFollowers = nearby.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
+      setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : nearby);
       
       // Try to fetch events near their last known location
       const profile = await UserManager.getProfile(user.id);

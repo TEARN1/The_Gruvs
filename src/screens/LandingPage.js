@@ -387,6 +387,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     try {
       const { data } = await supabase.rpc('find_popular_spots', { limit_count: 8 });
       setTrending(data || []);
+      // Also add trending events to the main feed if not already present
+      if (data && data.length > 0) {
+        setEvents(prev => {
+          const newTrending = data.filter(t => !prev.some(e => e.id === t.event_id));
+          if (newTrending.length > 0) {
+            return [...newTrending, ...prev];
+          }
+          return prev;
+        });
+      }
     } catch {
       setTrending([]);
     }

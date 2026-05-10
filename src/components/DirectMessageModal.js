@@ -180,9 +180,18 @@ export const DirectMessageModal = ({ visible, onClose, recipient }) => {
   // ── Subscribe to realtime messages + read receipt updates ────────────────────
   useEffect(() => {
     if (!visible || !user || !recipient) return;
-    setLoading(true);
-    await fetchMessages();
-    setLoading(false);
+    let active = true;
+
+    const loadMessages = async () => {
+      setLoading(true);
+      try {
+        await fetchMessages();
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadMessages();
 
     // Typing subscription
     const unsubTyping = MessageManager.subscribeToTyping(user.id, (p) => {

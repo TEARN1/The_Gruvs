@@ -296,11 +296,16 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
               <Feather name="user-x" size={40} color={muted} />
               <Text style={{ color: muted, marginTop: 12, fontSize: 14 }}>Profile not found</Text>
             </View>
+          ) : !profile || !profile.id ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 }}>
+              <Feather name="alert-circle" size={40} color={muted} />
+              <Text style={{ color: muted, marginTop: 12, fontSize: 14 }}>Unable to load profile</Text>
+            </View>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
               {/* Cover / header area with Dynamic Aura */}
-              <View style={[s.coverArea, { backgroundColor: AuraService.getAura(profile.interests) + '20' }]}>
+              <View style={[s.coverArea, { backgroundColor: (profile.interests ? AuraService.getAura(profile.interests) : primary) + '20' }]}>
                 {profile.cover_url
                   ? <Image source={{ uri: profile.cover_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                   : (
