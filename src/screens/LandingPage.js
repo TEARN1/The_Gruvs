@@ -189,7 +189,7 @@ const tm = StyleSheet.create({
 });
 
 // ── Main LandingPage ──────────────────────────────────────────────────────────
-export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey }) => {
+export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();
@@ -1119,7 +1119,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               muted={muted}
               textColor={textColor}
               bg={surface}
-              onDismiss={() => {}}
+              onDismiss={() => toast?.show('Return path dismissed', 'info')}
               onCheckinsFetch={() => fetchEventCheckins(id)}
             />
           )}
@@ -1128,7 +1128,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {showAd && (
         <AdFlywheel
           intentTag="attending"
-          onNavigateToServices={() => {}}
+          onNavigateToServices={onNavigateToServices}
         />
       )}
       </React.Fragment>

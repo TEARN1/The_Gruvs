@@ -56,10 +56,12 @@
       "bundler": "metro",
       "name": "The Gruvs",
       "shortName": "Gruvs",
-      "description": "Discover your next event. I got you.",
+      "description": "Discover your next event. The ultimate event discovery platform — find gruvs, connect with vibers, and ride the vibe economy.",
       "themeColor": "#0d1112",
       "backgroundColor": "#0d1112",
-      "favicon": "./logo.jpg"
+      "favicon": "./logo.jpg",
+      "lang": "en-ZA",
+      "output": "single"
     },
     "plugins": [
       "expo-av",

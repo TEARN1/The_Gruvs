@@ -272,6 +272,10 @@ const MainNavigator = () => {
     setCurrentTab('feed');
   };
 
+  const handleNavigateToServices = () => {
+    setCurrentTab('explore');
+  };
+
   const renderScreen = () => {
     switch (currentTab) {
       case 'feed':
@@ -282,6 +286,7 @@ const MainNavigator = () => {
             targetEvent={targetEvent}
             onTargetHandled={() => setTargetEvent(null)}
             refreshKey={feedRefreshKey}
+            onNavigateToServices={handleNavigateToServices}
           />
         );
       case 'explore':
