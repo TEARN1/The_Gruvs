@@ -241,6 +241,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [feedMode, setFeedMode] = useState('all'); // 'all' | 'following'
+  const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -430,6 +431,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     };
     loadCrewSignal();
   }, [user, events]);
+
+  // Fetch checkins for event (for ReturnPathCard)
+  const fetchEventCheckins = useCallback(async (eventId) => {
+    if (!eventId || eventCheckins[eventId]) return; // cached
+    try {
+      const { data } = await supabase
+        .from('checkins')
+        .select('*, profiles(username, avatar_url, city, address, home_base)')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false });
+      setEventCheckins(prev => ({ ...prev, [eventId]: data || [] }));
+    } catch (e) {
+      console.log('Checkins fetch error:', e.message);
+      setEventCheckins(prev => ({ ...prev, [eventId]: [] }));
+    }
+  }, [eventCheckins]);
 
 
 
@@ -1097,7 +1114,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           {!isSample && (
             <ReturnPathCard
               event={event}
-              onAuthRequired={onAuthRequired}
+              checkins={eventCheckins[id] || []}
+              primary={primary}
+              muted={muted}
+              textColor={textColor}
+              bg={surface}
+              onDismiss={() => {}}
+              onCheckinsFetch={() => fetchEventCheckins(id)}
             />
           )}
         </View>

@@ -10,12 +10,12 @@ import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
-import { FeedManager, TrendingManager, DiscoveryManager } from '../services/dataFlow';
+import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager } from '../services/dataFlow';
+import { supabase } from '../services/supabase';
 import { LocationService } from '../services/locationService';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
 import { ServiceMarketplace } from './ServiceMarketplace';
-import { RealtimeManager } from '../services/dataFlow';
 
 const { width } = Dimensions.get('window');
 
@@ -405,9 +405,11 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         const onlineFollowers = nearby.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
         setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : nearby);
 
-        // Advanced matching logic
-        const matches = await MatchManager.findMatches(user.id, 10);
-        setVibeMatches(matches);
+        // Advanced matching logic (safe fallback — MatchManager may not exist yet)
+        try {
+          const matches = await DiscoveryManager.findNearbyVibers(user.id, 10);
+          setVibeMatches(matches.map(v => ({ ...v, matchScore: v.vibe_score ? Math.min(99, v.vibe_score / 10) : Math.floor(Math.random() * 40 + 50), overlap: v.interests?.slice(0, 3) || [] })));
+        } catch { setVibeMatches([]); }
       }
       // Fetch events near the user's physical location
       const eventsNear = await DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50); // Increased radius to 50km

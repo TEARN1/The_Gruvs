@@ -107,6 +107,7 @@ export const ReturnPathCard = ({
   textColor = '#fff',
   bg = '#0d1112',
   onDismiss,
+  onCheckinsFetch,
 }) => {
   const [visible, setVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(100)).current;
@@ -126,11 +127,14 @@ export const ReturnPathCard = ({
         const dismissed = raw ? JSON.parse(raw) : [];
         if (dismissed.includes(event?.id)) return;
         setVisible(true);
+        // Fetch checkins when card becomes visible
+        onCheckinsFetch?.();
       } catch {
         setVisible(true);
+        onCheckinsFetch?.();
       }
     })();
-  }, [event]);
+  }, [event, onCheckinsFetch]);
 
   // Slide up animation
   useEffect(() => {
