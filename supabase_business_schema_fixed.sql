@@ -1326,6 +1326,7 @@ LANGUAGE sql SECURITY DEFINER AS $$
   LIMIT limit_count;
 $$;
 
+DROP FUNCTION IF EXISTS find_nearby_events(float, float, float, integer);
 CREATE OR REPLACE FUNCTION find_nearby_events(
   lat float, lon float, radius_km float, limit_count integer DEFAULT 20
 )
@@ -1346,17 +1347,25 @@ RETURNS TABLE (
   LIMIT limit_count;
 $$;
 
-CREATE OR REPLACE FUNCTION find_nearby_vibers(uid uuid, max_dist_km float, limit_count integer DEFAULT 20)
-RETURNS TABLE (profile_id uuid, username text, avatar_url text, vibe_score integer, is_online boolean, distance_km float)
-LANGUAGE sql SECURITY DEFINER AS $$
-  WITH my_loc AS (SELECT coords::geometry AS pt FROM profiles WHERE id = uid)
+DROP FUNCTION IF EXISTS find_nearby_vibers(uuid, float, integer);
+CREATE OR REPLACE FUNCTION find_nearby_vibers(uid uuid, max_dist_km float DEFAULT 10, limit_count integer DEFAULT 20)
+RETURNS TABLE (id uuid, username text, avatar_url text, vibe_score integer, is_online boolean, distance_km float)
+LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
+DECLARE
+  u_coords geography(Point, 4326);
+BEGIN
+  SELECT coords INTO u_coords FROM profiles WHERE profiles.id = uid;
+  IF u_coords IS NULL THEN RETURN; END IF;
+  RETURN QUERY
   SELECT p.id, p.username, p.avatar_url, p.vibe_score, p.is_online,
-         round((st_distancesphere(p.coords::geometry, (SELECT pt FROM my_loc)) / 1000)::numeric, 1)::float
-  FROM profiles p, my_loc
-  WHERE p.id <> uid AND p.coords IS NOT NULL AND (SELECT pt FROM my_loc) IS NOT NULL
-    AND st_distancesphere(p.coords::geometry, (SELECT pt FROM my_loc)) <= max_dist_km * 1000
-  ORDER BY 6 ASC
+         ST_Distance(p.coords, u_coords) / 1000.0 AS distance_km
+  FROM profiles p
+  WHERE p.id <> uid
+    AND p.coords IS NOT NULL
+    AND ST_DWithin(p.coords, u_coords, max_dist_km * 1000)
+  ORDER BY distance_km ASC
   LIMIT limit_count;
+END;
 $$;
 
 CREATE OR REPLACE FUNCTION search_events(q text, limit_count integer DEFAULT 20, offset_count integer DEFAULT 0)
@@ -1892,48 +1901,6 @@ CREATE POLICY "Users can send messages to events they RSVP'd to"
         AND status = 'going'
     )
   );
-
--- ── Advanced Discovery Logic ──────────────────────────────────────────────
-
--- Find events within radius using PostGIS
-CREATE OR REPLACE FUNCTION find_nearby_events(lat FLOAT, lon FLOAT, radius_km FLOAT, limit_count INTEGER DEFAULT 20)
-RETURNS SETOF events LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT * FROM events
-  WHERE coords IS NOT NULL
-    AND ST_DWithin(coords, ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography, radius_km * 1000)
-    AND is_cancelled = false
-  ORDER BY ST_Distance(coords, ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography) ASC
-  LIMIT limit_count;
-$$;
-
--- Find users within radius
-CREATE OR REPLACE FUNCTION find_nearby_vibers(uid UUID, max_dist_km FLOAT DEFAULT 10, limit_count INTEGER DEFAULT 20)
-RETURNS TABLE (
-  id UUID,
-  username TEXT,
-  avatar_url TEXT,
-  vibe_score INTEGER,
-  is_online BOOLEAN,
-  distance_km FLOAT
-) LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
-DECLARE
-  u_coords geography(Point, 4326);
-BEGIN
-  SELECT coords INTO u_coords FROM profiles WHERE id = uid;
-  IF u_coords IS NULL THEN RETURN; END IF;
-
-  RETURN QUERY
-  SELECT
-    p.id, p.username, p.avatar_url, p.vibe_score, p.is_online,
-    ST_Distance(p.coords, u_coords) / 1000.0 as distance_km
-  FROM profiles p
-  WHERE p.id <> uid
-    AND p.coords IS NOT NULL
-    AND ST_DWithin(p.coords, u_coords, max_dist_km * 1000)
-  ORDER BY distance_km ASC
-  LIMIT limit_count;
-END;
-$$;
 
 -- ── Welcome System ──────────────────────────────────────────────────────────
 
