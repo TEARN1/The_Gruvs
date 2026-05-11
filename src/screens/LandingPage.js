@@ -831,7 +831,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const isVibed = myVibes.has(id);
     const isSaved = savedEvents.has(id);
     const isSample = event.is_sample === true;
-    const isOwner = user && event.user_id === user.id;
+    const isOwner = user && event.author_id === user.id;
     const userReaction = reactions[id] || null;
     const crewCount = crewRsvpMap[id] || 0;
     const isHighlighted = highlightedId === id;

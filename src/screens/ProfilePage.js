@@ -21,6 +21,7 @@ import { CategoryPickerModal } from '../components/CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { useToast } from '../components/ToastNotification';
 import { PostEventModal } from '../components/PostEventModal';
+import { EditEventModal } from '../components/EditEventModal';
 import { StreakBadge } from '../components/StreakBadge';
 import { AchievementBadges } from '../components/AchievementBadges';
 import { ReferralCard } from '../components/ReferralCard';
@@ -680,7 +681,7 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
 };
 
 // ── Main Profile Page ─────────────────────────────────────────────────────────
-export const ProfilePage = ({ onAuthRequired }) => {
+export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme, gender, themeIndex, changeTheme } = useTheme();
   const { user, profile, signOut, refreshProfile } = useAuth();
   const toast = useToast();
@@ -730,6 +731,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
   const [mySavedEvents, setMySavedEvents] = useState([]);
   const [myVibedEvents, setMyVibedEvents] = useState([]);
   const [tabLoading, setTabLoading] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
 
   const primary = currentTheme?.primary || '#00f2ff';
   const bg = currentTheme?.background || '#0d1112';
@@ -885,6 +887,23 @@ export const ProfilePage = ({ onAuthRequired }) => {
     setSavingUsername(false);
     if (!error) { refreshProfile(); setEditingUsername(false); toast.show('Username updated!', 'success'); }
     else toast.show('Failed to update.', 'error');
+  };
+
+  const handleDeleteEvent = (ev) => {
+    const doDelete = async () => {
+      const { error } = await supabase.from('events').delete().eq('id', ev.id);
+      if (error) { toast.show('Could not delete event.', 'error'); return; }
+      setMyEvents(prev => prev.filter(e => e.id !== ev.id));
+      toast.show('Event deleted.', 'success');
+    };
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`Delete "${ev.title}"? This cannot be undone.`)) doDelete();
+    } else {
+      Alert.alert('Delete Event', `Delete "${ev.title}"? This cannot be undone.`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: doDelete },
+      ]);
+    }
   };
 
   const handleSignOut = () => {
@@ -1284,7 +1303,27 @@ export const ProfilePage = ({ onAuthRequired }) => {
                   </TouchableOpacity>
                 ) : (
                   <View style={{ gap: 10 }}>
-                    {myEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={ev.category || 'Gruv'} badgeIcon={null} onPress={() => onNavigateToEvent?.(ev)} />)}
+                    {myEvents.map((ev) => (
+                      <View key={ev.id}>
+                        <MiniEventCard ev={ev} primary={primary} textColor={textColor} muted={muted} badge={ev.category || 'Gruv'} badgeIcon={null} onPress={() => onNavigateToEvent?.(ev)} />
+                        <View style={{ flexDirection: 'row', gap: 8, marginTop: 6, paddingHorizontal: 4 }}>
+                          <TouchableOpacity
+                            onPress={() => setEditingEvent(ev)}
+                            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: `${primary}40` }}
+                          >
+                            <Feather name="edit-2" size={13} color={primary} />
+                            <Text style={{ color: primary, fontSize: 12, fontWeight: '700' }}>Edit</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => handleDeleteEvent(ev)}
+                            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: '#ef444440' }}
+                          >
+                            <Feather name="trash-2" size={13} color="#ef4444" />
+                            <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '700' }}>Delete</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
                   </View>
                 )
               )}
@@ -1481,6 +1520,12 @@ export const ProfilePage = ({ onAuthRequired }) => {
         visible={postModalVisible}
         onClose={() => setPostModalVisible(false)}
         onPostSuccess={() => { loadTab('gruvs'); setActiveTab('gruvs'); }}
+      />
+      <EditEventModal
+        visible={!!editingEvent}
+        event={editingEvent}
+        onClose={() => setEditingEvent(null)}
+        onSaved={() => { setEditingEvent(null); loadTab('gruvs'); }}
       />
       <LeaderboardScreen
         visible={leaderboardVisible}

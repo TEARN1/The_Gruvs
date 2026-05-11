@@ -174,7 +174,7 @@ export const FeedManager = {
       return result;
     } catch (error) {
       console.error('FeedManager.fetchPage error:', error);
-      throw error;
+      return { events: [], total: 0, page, hasMore: false };
     }
   },
 

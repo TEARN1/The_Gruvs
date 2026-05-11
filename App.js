@@ -22,7 +22,7 @@ import { useNotifications } from './src/hooks/useNotifications';
 import { ProfilePage } from './src/screens/ProfilePage';
 import { CalendarPage } from './src/screens/CalendarPage';
 import { CrewFeedScreen } from './src/screens/CrewFeedScreen';
-import { ScoutScreen } from './src/screens/ScoutScreen';
+import { ExplorePage } from './src/screens/ExplorePage';
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
 import { installGlobalErrorHandler } from './src/utils/errorReporter';
@@ -50,7 +50,7 @@ class ErrorBoundary extends Component {
 
 const TABS = [
   { key: 'feed',          label: 'The Drop',  icon: 'home'            },
-  { key: 'explore',       label: 'Scout',     icon: 'compass'         },
+  { key: 'explore',       label: 'Explore',   icon: 'compass'         },
   { key: 'crew',          label: 'Crew',      icon: 'users'           },
   { key: 'calendar',      label: 'Lineup',    icon: 'calendar'        },
   { key: 'chats',         label: 'Linked Up', icon: 'message-circle'  },
@@ -362,7 +362,7 @@ const MainNavigator = () => {
         );
       case 'explore':
         return (
-          <ScoutScreen
+          <ExplorePage
             onAuthRequired={handleAuthRequired}
             onNavigateToEvent={handleNavigateToEvent}
           />
