@@ -1904,26 +1904,44 @@ CREATE POLICY "Users can send messages to events they RSVP'd to"
 
 -- ── Welcome System ──────────────────────────────────────────────────────────
 
--- Insert a system profile for welcoming users
-INSERT INTO profiles (id, username, display_name, bio, vibe_score, is_online)
-VALUES ('00000000-0000-0000-0000-000000000000', 'gruv_hq', 'The Gruvs HQ 👑', 'Welcome to the vibe economy. We are here to help you find your crew.', 9999, true)
-ON CONFLICT (id) DO NOTHING;
+-- Insert a system profile for welcoming users.
+-- Wrapped in a DO block: auth.users has no row for this UUID on a fresh project,
+-- so the FK insert would fail with 23503. We catch and skip it gracefully.
+-- The welcome trigger below guards against gruv_hq not existing at runtime.
+DO $$ BEGIN
+  INSERT INTO profiles (id, username, display_name, bio, vibe_score, is_online)
+  VALUES ('00000000-0000-0000-0000-000000000000', 'gruv_hq', 'The Gruvs HQ 👑',
+          'Welcome to the vibe economy. We are here to help you find your crew.', 9999, true)
+  ON CONFLICT (id) DO NOTHING;
+EXCEPTION WHEN foreign_key_violation THEN NULL;
+END $$;
 
 -- Trigger to welcome new users
 CREATE OR REPLACE FUNCTION handle_new_user_welcome()
 RETURNS TRIGGER AS $$
+DECLARE
+  system_id UUID := '00000000-0000-0000-0000-000000000000';
 BEGIN
-  -- 1. Send Welcome Notification
-  INSERT INTO notifications (recipient_id, actor_id, type, title, body)
-  VALUES (NEW.id, '00000000-0000-0000-0000-000000000000', 'system', 'Welcome to The Gruvs! 👑', 'You just joined the most exclusive vibe network. Start discovery now.');
+  BEGIN
+    -- 1. Welcome notification (skip if gruv_hq profile was never created)
+    IF EXISTS (SELECT 1 FROM profiles WHERE id = system_id) THEN
+      INSERT INTO notifications (recipient_id, actor_id, type, title, body)
+      VALUES (NEW.id, system_id, 'system', 'Welcome to The Gruvs! 👑',
+              'You just joined the most exclusive vibe network. Start discovery now.')
+      ON CONFLICT DO NOTHING;
 
-  -- 2. Send Welcome DM
-  INSERT INTO messages (sender_id, recipient_id, body, is_request, request_accepted)
-  VALUES ('00000000-0000-0000-0000-000000000000', NEW.id, 'Yo! Welcome to The Gruvs. 🚀 I am your guide to the city. To see gruvs near you, make sure to enable location in your profile. Let''s get it!', false, true);
-
+      -- 2. Welcome DM via direct_messages
+      INSERT INTO direct_messages (sender_id, recipient_id, body, read)
+      VALUES (system_id, NEW.id,
+              'Yo! Welcome to The Gruvs. 🚀 I''m your guide to the city. Enable location in your profile to see Gruvs near you. Let''s get it!',
+              false)
+      ON CONFLICT DO NOTHING;
+    END IF;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_auth_user_welcome ON profiles;
 CREATE TRIGGER on_auth_user_welcome
