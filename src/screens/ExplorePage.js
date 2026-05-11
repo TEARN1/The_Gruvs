@@ -448,13 +448,14 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
           followedIds = new Set((follows || []).map(f => f.following_id));
 
-          const onlineFollowers = nearby.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
-          setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : nearby);
+          const safeNearby = nearby || [];
+          const onlineFollowers = safeNearby.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
+          setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : safeNearby);
 
           // Advanced matching logic
           try {
             const matches = await DiscoveryManager.findNearbyVibers(user.id, 10);
-            setVibeMatches(matches.map(v => ({ ...v, matchScore: v.vibe_score ? Math.min(99, v.vibe_score / 10) : Math.floor(Math.random() * 40 + 50), overlap: v.interests?.slice(0, 3) || [] })));
+            setVibeMatches(matches.map(v => ({ ...v, matchScore: Math.min(99, Math.round((v.vibe_score || 0) / 10)), overlap: v.interests?.slice(0, 3) || [] })));
           } catch { setVibeMatches([]); }
         }
         // Fetch events near the user's physical location
@@ -468,8 +469,9 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
         followedIds = new Set((follows || []).map(f => f.following_id));
 
-        const onlineFollowers = nearby.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
-        setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : nearby);
+        const safeNearby2 = nearby || [];
+        const onlineFollowers = safeNearby2.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
+        setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : safeNearby2);
         
         // Try to fetch events near their last known location
         const profile = await UserManager.getProfile(user.id);

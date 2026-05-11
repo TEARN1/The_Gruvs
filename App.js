@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, Component } from 'react';
+import { useState, useRef, useEffect, useCallback, Component } from 'react';
 import { useFonts } from 'expo-font';
 import {
   View, StyleSheet, TouchableOpacity, Text,
@@ -19,22 +19,10 @@ import { ChatsScreen, useUnreadDMCount } from './src/screens/ChatsScreen';
 import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
-// Heavy screens — lazy-loaded on first navigation, keeping initial bundle small
-const ProfilePage = React.lazy(() =>
-  import('./src/screens/ProfilePage').then(m => ({ default: m.ProfilePage }))
-);
-const CalendarPage = React.lazy(() =>
-  import('./src/screens/CalendarPage').then(m => ({ default: m.CalendarPage }))
-);
-const CrewFeedScreen = React.lazy(() =>
-  import('./src/screens/CrewFeedScreen').then(m => ({ default: m.CrewFeedScreen }))
-);
-const BusinessDashboardScreen = React.lazy(() =>
-  import('./src/screens/BusinessDashboardScreen').then(m => ({ default: m.BusinessDashboardScreen }))
-);
-const ScoutScreen = React.lazy(() =>
-  import('./src/screens/ScoutScreen').then(m => ({ default: m.ScoutScreen }))
-);
+import { ProfilePage } from './src/screens/ProfilePage';
+import { CalendarPage } from './src/screens/CalendarPage';
+import { CrewFeedScreen } from './src/screens/CrewFeedScreen';
+import { ScoutScreen } from './src/screens/ScoutScreen';
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
 import { installGlobalErrorHandler } from './src/utils/errorReporter';
@@ -42,11 +30,6 @@ import { installGlobalErrorHandler } from './src/utils/errorReporter';
 // Install before any component mounts so all boot errors are captured
 installGlobalErrorHandler();
 
-const ScreenFallback = () => (
-  <View style={{ flex: 1, backgroundColor: '#0d1112', alignItems: 'center', justifyContent: 'center' }}>
-    <View style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 3, borderColor: '#00f2ff', borderTopColor: 'transparent', opacity: 0.7 }} />
-  </View>
-);
 
 class ErrorBoundary extends Component {
   state = { hasError: false, error: null };
@@ -276,7 +259,6 @@ const sb = StyleSheet.create({
 const MainNavigator = () => {
   const { currentTheme } = useTheme();
   const { width } = useWindowDimensions();
-  useNotifications();
   const unreadCount   = useUnreadCount();
   const unreadDMCount = useUnreadDMCount();
   const { hasLaunched, openTutorial, markLaunched } = useTutorial();
@@ -289,6 +271,19 @@ const MainNavigator = () => {
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
   const isWide = width >= WIDE_BREAKPOINT;
+
+  const handleNotifNavigate = useCallback((type, data) => {
+    if (type === 'event' && data?.event_id) {
+      setTargetEvent({ id: data.event_id });
+      setCurrentTab('feed');
+    } else if (type === 'chats') {
+      setCurrentTab('chats');
+    } else {
+      setCurrentTab('notifications');
+    }
+  }, []);
+
+  useNotifications({ onNavigate: handleNotifNavigate });
 
   // Auto-launch welcome tutorial on first app open
   useEffect(() => {
@@ -380,8 +375,6 @@ const MainNavigator = () => {
         return <ChatsScreen onAuthRequired={handleAuthRequired} />;
       case 'notifications':
         return <NotificationsScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
-      case 'business':
-        return <BusinessDashboardScreen onClose={() => setCurrentTab('profile')} />;
       case 'profile':
         return <ProfilePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       default:
@@ -447,9 +440,7 @@ const MainNavigator = () => {
             />
             {/* Item 43: nativeID for skip-link anchor */}
             <Animated.View nativeID="main-content" style={[styles.wideContent, { opacity: screenOpacity }]}>
-              <React.Suspense fallback={<ScreenFallback />}>
-                {renderScreen()}
-              </React.Suspense>
+              {renderScreen()}
             </Animated.View>
           </View>
         ) : (
@@ -457,9 +448,7 @@ const MainNavigator = () => {
           <View style={styles.narrowLayout}>
             {/* Item 43: nativeID for skip-link anchor */}
             <Animated.View nativeID="main-content" style={[styles.content, { opacity: screenOpacity }]}>
-              <React.Suspense fallback={<ScreenFallback />}>
-                {renderScreen()}
-              </React.Suspense>
+              {renderScreen()}
             </Animated.View>
             <TabBar
               currentTab={currentTab}

@@ -412,8 +412,10 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
 
     if (userCoords && radiusKm < 50) {
       evts = evts.filter(e => {
-        if (e.lat == null || e.lon == null) return false;
-        return haversine(userCoords.lat, userCoords.lon, Number(e.lat), Number(e.lon)) <= radiusKm;
+        const lat = Number(e.lat);
+        const lon = Number(e.lon);
+        if (e.lat == null || e.lon == null || isNaN(lat) || isNaN(lon)) return false;
+        return haversine(userCoords.lat, userCoords.lon, lat, lon) <= radiusKm;
       });
     }
 

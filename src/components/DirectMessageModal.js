@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, Modal, FlatList, TextInput, TouchableOpacity,
   Image, StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Animated, Alert, ScrollView,
+  ActivityIndicator, Animated, Alert, ScrollView, Linking,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,7 @@ import { MessageManager, BlockManager, PresenceManager } from '../services/dataF
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ToastNotification';
 import { ViberProfileModal } from './ViberProfileModal';
 import { LocationService } from '../services/locationService';
 import { CATEGORY_CONFIG } from '../constants/CategoryConfig';
@@ -48,7 +49,7 @@ const Ticks = ({ msg, userId, primary }) => {
 };
 
 // ── Animated typing dots ───────────────────────────────────────────────────────
-const TypingDots = ({ primary }) => {
+const TypingDots = ({ primary, bg }) => {
   const anims = [useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current];
   useEffect(() => {
     anims.forEach((dot, i) =>
@@ -60,7 +61,7 @@ const TypingDots = ({ primary }) => {
     );
   }, []);
   return (
-    <View style={{ flexDirection: 'row', gap: 4, padding: 10, paddingHorizontal: 14, backgroundColor: '#1e2a2d', borderRadius: 18, alignSelf: 'flex-start', marginBottom: 8 }}>
+    <View style={{ flexDirection: 'row', gap: 4, padding: 10, paddingHorizontal: 14, backgroundColor: bg || '#1e2a2d', borderRadius: 18, alignSelf: 'flex-start', marginBottom: 8 }}>
       {anims.map((d, i) => <Animated.View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: primary, opacity: d }} />)}
     </View>
   );
@@ -123,7 +124,7 @@ const ReactionPicker = ({ onSelect, onClose, primary }) => (
   </View>
 );
 const rp = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a2225', borderRadius: 24, borderWidth: 1, padding: 6, gap: 4 },
+  wrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 24, borderWidth: 1, padding: 6, gap: 4 },
   btn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
 });
 
@@ -131,6 +132,7 @@ const rp = StyleSheet.create({
 export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
+  const { show: showToast } = useToast();
   const insets = useSafeAreaInsets();
 
   const primary = currentTheme?.primary || '#00f2ff';
@@ -298,10 +300,33 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       if (requestStatus === 'none') setRequestStatus('pending');
       setReplyingTo(null);
     } else {
-      Alert.alert('Energy Error', 'Message failed to send. Check your signal.');
+      showToast('Message failed to send. Check your signal.', 'error');
     }
     setSending(false);
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
+  };
+
+  // ── Share Vibe Card ───────────────────────────────────────────────────────────
+  const handleShareVibeCard = async () => {
+    if (!user) return;
+    setShowAttachmentMenu(false);
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, vibe_score, avatar_url, bio')
+        .eq('id', user.id)
+        .single();
+      const cardText = `🎴 Vibe Card\n@${profile?.username || user.email}\n⚡ ${profile?.vibe_score || 0} pts${profile?.bio ? `\n"${profile.bio}"` : ''}`;
+      const newMsg = await MessageManager.send(user.id, recipient.id, cardText, { messageType: 'vibe_card', profile_id: user.id });
+      if (newMsg) {
+        setMessages(prev => [...prev, newMsg]);
+        if (requestStatus === 'none') setRequestStatus('pending');
+      } else {
+        showToast('Could not share Vibe Card.', 'error');
+      }
+    } catch {
+      showToast('Could not share Vibe Card.', 'error');
+    }
   };
 
   // ── Share Event ──────────────────────────────────────────────────────────────
@@ -381,9 +406,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           if (requestStatus === 'none') setRequestStatus('pending');
         }
       } else {
-        Alert.alert('Location Error', 'Could not get your current location. Please ensure location services are enabled.');
+        showToast('Could not get your location. Enable location services.', 'error');
       }
-    } catch (e) { Alert.alert('Location Error', e.message || 'Failed to share location.'); }
+    } catch { showToast('Failed to share location.', 'error'); }
     finally { setMediaLoading(false); }
   };
 
@@ -466,7 +491,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             dm.bubbleInner,
             isMine
               ? { backgroundColor: primary, borderBottomRightRadius: 4 }
-              : { backgroundColor: '#1e2a2d', borderBottomLeftRadius: 4 },
+              : { backgroundColor: bg, borderBottomLeftRadius: 4 },
           ]}>
             {item.parent_id && (
               <View style={[dm.replyQuote, { backgroundColor: isMine ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)' }]}>
@@ -619,7 +644,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         {/* Typing indicator */}
         {isTyping && (
           <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
-            <TypingDots primary={primary} />
+            <TypingDots primary={primary} bg={bg} />
           </View>
         )}
 
@@ -651,8 +676,8 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             {[
               { label: 'Camera', icon: 'camera', onPress: handleImageUpload },
               { label: 'Location', icon: 'map-pin', onPress: handleShareLocation },
-              { label: 'Share Gruv', icon: 'zap', onPress: () => handleShareEvent(null) }, // Open event picker
-              { label: 'Vibe Card', icon: 'user', onPress: () => { } },
+              { label: 'Share Gruv', icon: 'zap', onPress: () => handleShareEvent(null) },
+              { label: 'Vibe Card', icon: 'user', onPress: handleShareVibeCard },
             ].map(item => (
               <TouchableOpacity key={item.label} onPress={item.onPress} style={dm.attachMenuItem}>
                 <View style={[dm.attachMenuIcon, { backgroundColor: `${primary}15` }]}><Feather name={item.icon} size={18} color={primary} /></View>
@@ -674,7 +699,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             }
           </TouchableOpacity>
           <TextInput
-            style={[dm.input, { color: textColor, backgroundColor: '#1e2a2d', opacity: inputLocked ? 0.5 : 1 }]}
+            style={[dm.input, { color: textColor, backgroundColor: `${bg}cc`, borderWidth: 1, borderColor: `${primary}18`, opacity: inputLocked ? 0.5 : 1 }]}
             placeholder={
               inputLocked
                 ? 'Waiting for them to accept...'

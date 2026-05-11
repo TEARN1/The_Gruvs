@@ -775,7 +775,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
         aspect: [1, 1],
         quality: 0.8,
       });
-      if (result.canceled) return;
+      if (result.canceled || !result.assets?.length) return;
       const publicUrl = await uploadImageToStorage(result.assets[0], 'avatars');
       await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
       refreshProfile();
@@ -796,7 +796,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
         allowsEditing: true,
         quality: 0.8,
       });
-      if (result.canceled) return;
+      if (result.canceled || !result.assets?.length) return;
       toast.show('Uploading to gallery...', 'info');
       const publicUrl = await uploadImageToStorage(result.assets[0], `gallery/${Date.now()}`);
       const newGallery = [...profileGallery, publicUrl];

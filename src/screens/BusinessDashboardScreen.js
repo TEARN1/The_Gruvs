@@ -5,8 +5,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Animated,
-  TextInput, ActivityIndicator, RefreshControl, Dimensions, Modal, Switch,
-  Alert, Platform,
+  TextInput, ActivityIndicator, RefreshControl, Dimensions, Modal, Switch, Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -199,6 +198,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const [activeCampaignFilter, setActiveCampaignFilter] = useState('All'); // New state for filtering missions/promotions
   const [setupMode, setSetupMode] = useState(false);
   const [setupForm, setSetupForm] = useState({ business_name: '', business_type: '', tagline: '', description: '', website: '', phone: '' });
+  const [upgradeVisible, setUpgradeVisible] = useState(false);
   const tabScrollRef = useRef(null);
   const headerAnim = useRef(new Animated.Value(0)).current;
 
@@ -290,13 +290,13 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c));
     const ok = await CampaignManager.updateStatus(id, newStatus);
     if (!ok) {
-      Alert.alert('Error', 'Could not update mission status.');
-      loadAll(); // Revert
+      showToast('Could not update mission status.', 'error');
+      loadAll();
     }
   };
 
   const handleSetupSubmit = async () => {
-    if (!setupForm.business_name.trim()) { Alert.alert('Required', 'Please enter a business name.'); return; }
+    if (!setupForm.business_name.trim()) { showToast('Please enter a business name.', 'error'); return; }
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     const { data, error } = await supabase.from('business_profiles').upsert({
       user_id: user.id,
@@ -304,7 +304,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       tier: 'starter',
     }, { onConflict: 'user_id' }).select().single();
     if (!error && data) { setBiz(data); setSetupMode(false); loadAll(); }
-    else Alert.alert('Error', error?.message || 'Could not create business profile.');
+    else showToast(error?.message || 'Could not create business profile.', 'error');
   };
 
   const handleTabPress = (key) => {
@@ -312,52 +312,43 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     setActiveTab(key);
   };
 
-  const handleUpgradeTier = async () => {
+  const handleUpgradeTier = () => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
-    const tierOptions = ['pro', 'royal', 'enterprise'].filter(t => t !== biz?.tier);
-    Alert.alert(
-      'Upgrade Your Plan',
-      'Select a new tier to unlock advanced features.',
-      [
-        { text: 'Pro — R299/mo', onPress: () => upgradeTierAction('pro') },
-        { text: 'Royal — R799/mo', onPress: () => upgradeTierAction('royal') },
-        { text: 'Enterprise', onPress: () => upgradeTierAction('enterprise') },
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    );
+    setUpgradeVisible(true);
   };
 
   const upgradeTierAction = async (newTier) => {
     if (!biz) return;
+    setUpgradeVisible(false);
     try {
       const { error } = await supabase
         .from('business_profiles')
         .update({ tier: newTier })
         .eq('id', biz.id);
       if (!error) {
-        Alert.alert('Success!', `Your account has been upgraded to ${newTier.toUpperCase()}.`);
+        showToast(`Upgraded to ${newTier.toUpperCase()} 🎉`, 'success');
         loadAll();
       } else {
-        Alert.alert('Error', error.message || 'Could not upgrade tier.');
+        showToast(error.message || 'Could not upgrade tier.', 'error');
       }
-    } catch (e) {
-      Alert.alert('Error', 'Upgrade failed. Please try again.');
+    } catch {
+      showToast('Upgrade failed. Please try again.', 'error');
     }
   };
 
   const handleJoinEcosystem = async (ecosystem) => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
-    if (!biz) { Alert.alert('Error', 'No business profile found.'); return; }
+    if (!biz) { showToast('No business profile found.', 'error'); return; }
     try {
-      const ok = await EcosystemManager.requestPartnership(biz.id, "ecosystem-partner", "ecosystem");
+      const ok = await EcosystemManager.requestPartnership(biz.id, 'ecosystem-partner', 'ecosystem');
       if (ok) {
-        Alert.alert('Request Sent!', `Your request to join ${ecosystem.label}. Check your inbox for updates.`);
+        showToast(`Request sent to join ${ecosystem.label}. Check your inbox.`, 'success');
         loadAll();
       } else {
-        Alert.alert('Error', 'Could not send connection request. Please try again.');
+        showToast('Could not send request. Try again.', 'error');
       }
-    } catch (e) {
-      Alert.alert('Error', 'Connection failed. Please try again.');
+    } catch {
+      showToast('Connection failed. Try again.', 'error');
     }
   };
 
@@ -748,7 +739,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
               <Text style={[sc.emptyTitle, { color: textColor }]}>No Connects yet</Text>
               <Text style={[sc.emptyBody, { color: muted }]}>Link up with Backers, co-Gruv hosts, and API Connects to grow your Stacks.</Text>
             </GlassView>
-          ) : partners.map(p => <PartnerRow key={p.id} partner={p} primary={primary} textColor={textColor} muted={muted} onPress={() => Alert.alert('Partner Hub', `Partner tools for ${p.partner_name} coming in v2`)} />)}
+          ) : partners.map(p => <PartnerRow key={p.id} partner={p} primary={primary} textColor={textColor} muted={muted} onPress={() => showToast(`Partner hub for ${p.partner_name} — advanced tools available on Royal+`, 'info')} />)}
 
           {/* Ecosystem categories */}
           {[
@@ -832,6 +823,41 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         muted={muted}
         bg={bg}
       />
+
+      {/* Upgrade Tier Sheet */}
+      <Modal visible={upgradeVisible} transparent animationType="slide" onRequestClose={() => setUpgradeVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>Upgrade Your Plan</Text>
+              <TouchableOpacity onPress={() => setUpgradeVisible(false)}>
+                <Feather name="x" size={22} color={muted} />
+              </TouchableOpacity>
+            </View>
+            {[
+              { key: 'pro', label: 'Pro', price: 'R299/mo', color: '#06b6d4', perks: 'Unlimited Missions · 10K Crowd targets · Storefront' },
+              { key: 'royal', label: 'Royal', price: 'R799/mo', color: '#8b5cf6', perks: 'Everything in Pro · API access · Backing Marketplace' },
+              { key: 'enterprise', label: 'Enterprise', price: 'Custom', color: '#f59e0b', perks: 'Everything in Royal · Dedicated manager · White-label' },
+            ].filter(t => t.key !== biz?.tier).map(t => (
+              <TouchableOpacity
+                key={t.key}
+                onPress={() => upgradeTierAction(t.key)}
+                style={{ borderWidth: 1, borderColor: `${t.color}40`, backgroundColor: `${t.color}10`, borderRadius: 14, padding: 16, marginBottom: 10 }}
+                activeOpacity={0.8}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <Text style={{ color: t.color, fontSize: 15, fontWeight: '900' }}>{t.label}</Text>
+                  <Text style={{ color: t.color, fontSize: 13, fontWeight: '700' }}>{t.price}</Text>
+                </View>
+                <Text style={{ color: muted, fontSize: 11 }}>{t.perks}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={() => setUpgradeVisible(false)} style={{ marginTop: 4, alignItems: 'center', paddingVertical: 12 }}>
+              <Text style={{ color: muted, fontSize: 13 }}>Maybe later</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

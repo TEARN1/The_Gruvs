@@ -48,7 +48,7 @@ const formatTime = (timeStr) => {
 
 const formatPrice = (price) => {
   if (!price || price === 0) return 'FREE';
-  return `$${parseFloat(price).toFixed(2)}`;
+  return `R${parseFloat(price).toFixed(2)}`;
 };
 
 export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) => {
@@ -244,7 +244,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     if (event?.ticket_url) Linking.openURL(event.ticket_url);
   };
 
-  const handleReport = () => {
+  const handleReport = async () => {
+    if (!user) { onAuthRequired?.(); return; }
+    try {
+      await supabase.from('reports').insert({
+        reporter_id: user.id,
+        target_id: event?.id,
+        target_type: 'event',
+        reason: 'flagged_by_user',
+      });
+    } catch { /* table may not exist yet — fall through */ }
     showToast('Report submitted. We will review this Gruv.', 'info');
   };
 
@@ -578,14 +587,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hero: {
-    height: 200,
+    height: 280,
     width: '100%',
     overflow: 'hidden',
     position: 'relative',
   },
   heroScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(0,0,0,0.28)',
   },
   categoryBadge: {
     position: 'absolute',

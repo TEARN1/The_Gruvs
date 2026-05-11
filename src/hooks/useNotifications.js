@@ -4,12 +4,15 @@ import { NotificationService } from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 
-export const useNotifications = () => {
+export const useNotifications = ({ onNavigate } = {}) => {
   const { user } = useAuth();
   const { show: showToast } = useToast();
   const [expoPushToken, setExpoPushToken] = useState(null);
   const receivedListener = useRef(null);
   const responseListener = useRef(null);
+  const onNavigateRef = useRef(onNavigate);
+
+  useEffect(() => { onNavigateRef.current = onNavigate; }, [onNavigate]);
 
   useEffect(() => {
     NotificationService.setupHandler();
@@ -31,12 +34,23 @@ export const useNotifications = () => {
 
       responseListener.current = Notifications.addNotificationResponseReceivedListener(
         (response) => {
-          const data = response.notification.request.content.data;
-          console.log('Notification tapped:', data);
+          const data = response.notification.request.content.data || {};
+          const nav = onNavigateRef.current;
+          if (!nav) return;
+
+          if (data.event_id) {
+            nav('event', { event_id: data.event_id });
+          } else if (data.type === 'message' || data.dm_conversation_id) {
+            nav('chats', data);
+          } else if (data.type === 'follow' || data.type === 'vibe' || data.type === 'echo') {
+            nav('notifications', data);
+          } else {
+            nav('notifications', data);
+          }
         }
       );
     } catch {
-      // expo-notifications listeners not available on web — safe to ignore
+      // expo-notifications not available on web
     }
 
     return () => {

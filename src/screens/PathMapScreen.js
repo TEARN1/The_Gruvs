@@ -6,13 +6,16 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView,
-  Animated, RefreshControl, Dimensions, Image, Platform,
+  Animated, RefreshControl, Dimensions, Image, Platform, TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { GlassView } from '../components/GlassView';
+import { useToast } from '../components/ToastNotification';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const MAP_W = SW;
@@ -369,6 +372,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { show: showToast } = useToast();
 
   const primary = currentTheme?.primary || '#00f2ff';
   const bg = currentTheme?.background || '#0d1112';
@@ -376,14 +380,29 @@ export const PathMapScreen = ({ visible, onClose }) => {
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.45)';
 
-  const [tab, setTab] = useState('paths'); // 'paths' | 'crossings'
+  const [tab, setTab] = useState('paths');
   const [checkins, setCheckins] = useState([]);
   const [savedPaths, setSavedPaths] = useState([]);
   const [crossings, setCrossings] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedIntersection, setSelectedIntersection] = useState(null); // New state for intersection details
-  const [showTraceCreator, setShowTraceCreator] = useState(null); // {x, y, lat, lon}
+  const [selectedIntersection, setSelectedIntersection] = useState(null);
+  const [showTraceCreator, setShowTraceCreator] = useState(null);
+  const [traceNote, setTraceNote] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Bounds computed here so handleCanvasTap can use them
+  const bounds = useMemo(() => {
+    const pts = checkins
+      .filter(c => c.lat != null && c.lon != null)
+      .map(c => ({ lat: +c.lat, lon: +c.lon }));
+    if (pts.length === 0) return { minLat: 0, maxLat: 1, minLon: 0, maxLon: 1 };
+    return {
+      minLat: Math.min(...pts.map(p => p.lat)),
+      maxLat: Math.max(...pts.map(p => p.lat)),
+      minLon: Math.min(...pts.map(p => p.lon)),
+      maxLon: Math.max(...pts.map(p => p.lon)),
+    };
+  }, [checkins]);
 
   // ------------------------------------------------------------------
   // Stats derived from data
@@ -455,7 +474,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
         .order('cross_count', { ascending: false });
       setCrossings(crossData || []);
     } catch (e) {
-      console.log('PathMapScreen fetch error:', e.message);
+      showToast('Could not load footprint data.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -482,12 +501,30 @@ export const PathMapScreen = ({ visible, onClose }) => {
 
   const handleCanvasTap = (evt) => {
     const { locationX, locationY } = evt.nativeEvent;
-    // Inverse projection to get lat/lon (simplified)
+    const { minLat, maxLat, minLon, maxLon } = bounds;
     const lat = maxLat - ((locationY - PAD) / (MAP_H - PAD * 2)) * (maxLat - minLat);
     const lon = minLon + ((locationX - PAD) / (MAP_W - PAD * 2)) * (maxLon - minLon);
-
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
+    setTraceNote('');
     setShowTraceCreator({ x: locationX, y: locationY, lat, lon });
+  };
+
+  const handleDropTrace = async () => {
+    if (!user?.id || !showTraceCreator) return;
+    const note = traceNote.trim();
+    try {
+      await supabase.from('path_traces').insert({
+        user_id: user.id,
+        lat: showTraceCreator.lat,
+        lon: showTraceCreator.lon,
+        note: note || null,
+      });
+      showToast('Trace dropped! Vibers crossing this path will see it.', 'success');
+    } catch {
+      showToast('Could not drop trace. Try again.', 'error');
+    }
+    setShowTraceCreator(null);
+    setTraceNote('');
   };
 
   // ------------------------------------------------------------------
@@ -673,27 +710,31 @@ export const PathMapScreen = ({ visible, onClose }) => {
           </View>
         </ScrollView>
 
-        {/* Movement Trace Creator (Conceptual) */}
+        {/* Movement Trace Creator */}
         {showTraceCreator && (
-          <GlassView style={[s.traceCreator, { top: showTraceCreator.y + 40, left: Math.max(10, Math.min(SW - 210, showTraceCreator.x - 100)) }]}>
-            <Text style={{ color: primary, fontSize: 10, fontWeight: '900' }}>📍 DROP A TRACE</Text>
+          <GlassView style={[s.traceCreator, { top: showTraceCreator.y + 40, left: Math.max(10, Math.min(SW - 210, showTraceCreator.x - 100)), borderColor: `${primary}30`, backgroundColor: bg }]}>
+            <Text style={{ color: primary, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>📍 DROP A TRACE</Text>
             <TextInput
-              style={{ color: '#fff', fontSize: 12, paddingVertical: 8 }}
+              style={{ color: textColor, fontSize: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: `${primary}30` }}
               placeholder="Leave a message here..."
               placeholderTextColor={muted}
+              value={traceNote}
+              onChangeText={setTraceNote}
               autoFocus
+              maxLength={120}
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
-              <TouchableOpacity onPress={() => setShowTraceCreator(null)}><Text style={{ color: muted, fontSize: 11 }}>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => {
-                Alert.alert("Trace Dropped", "Other Vibers will see your Echo when they cross this path!");
-                setShowTraceCreator(null);
-              }}><Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Drop</Text></TouchableOpacity>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+              <TouchableOpacity onPress={() => setShowTraceCreator(null)}>
+                <Text style={{ color: muted, fontSize: 11 }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDropTrace}>
+                <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Drop</Text>
+              </TouchableOpacity>
             </View>
           </GlassView>
         )}
 
-        {/* Cross Path Detail Modal (Conceptual) */}
+        {/* Cross Path Intersection Detail */}
         {selectedIntersection && (
           <Modal
             visible={!!selectedIntersection}
@@ -704,27 +745,49 @@ export const PathMapScreen = ({ visible, onClose }) => {
             <View style={[s.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
               <View style={[s.modalContent, { backgroundColor: bg, borderColor: `${primary}20` }]}>
                 <View style={s.modalHeader}>
-                  <Text style={[s.modalTitle, { color: textColor }]}>Cross Path Details</Text>
+                  <Text style={[s.modalTitle, { color: textColor }]}>Intersection Point</Text>
                   <TouchableOpacity onPress={() => setSelectedIntersection(null)}>
                     <Feather name="x" size={20} color={textColor} />
                   </TouchableOpacity>
                 </View>
                 <ScrollView contentContainerStyle={s.modalBody}>
                   <Text style={[s.modalBodyText, { color: muted }]}>
-                    You crossed paths with 3 Vibers at this location today.
-                    {'\n\n'}
-                    <Text style={{ color: primary, fontWeight: 'bold' }}>Location:</Text> Lat {selectedIntersection.y.toFixed(4)}, Lon {selectedIntersection.x.toFixed(4)}
-                    {'\n\n'}
-                    <Text style={{ color: primary, fontWeight: 'bold' }}>Potential Vibers:</Text>
-                    {/* This would dynamically load profiles of users who crossed paths here */}
-                    {crossings.slice(0, 3).map((c, i) => (
-                      <Text key={i} style={{ color: textColor }}>{'\n'}@{c.profiles?.username || 'Anonymous Viber'}</Text>
-                    ))}
+                    Your path has crossed this point more than once.
+                    {crossings.length > 0 && '\n\nVibers you may have crossed here:'}
                   </Text>
-                  <TouchableOpacity style={[s.sparkBtn, { backgroundColor: primary }]} onPress={() => {
-                    Alert.alert("Spark Sent!", "A 'Spark' has been sent to the Vibers you crossed paths with. If they accept, you can connect!");
-                    setSelectedIntersection(null);
-                  }}>
+                  {crossings.slice(0, 3).map((c, i) => (
+                    <Text key={i} style={{ color: textColor, marginTop: 6, fontSize: 13, fontWeight: '700' }}>
+                      @{c.profiles?.username || 'Anonymous Viber'}
+                    </Text>
+                  ))}
+                  <TouchableOpacity
+                    style={[s.sparkBtn, { backgroundColor: primary, marginTop: 20 }]}
+                    onPress={async () => {
+                      if (!user?.id || crossings.length === 0) {
+                        showToast('No vibers to spark at this intersection.', 'info');
+                        setSelectedIntersection(null);
+                        return;
+                      }
+                      try {
+                        await Promise.all(
+                          crossings.slice(0, 3).map(c =>
+                            supabase.from('notifications').insert({
+                              user_id: c.other_user_id,
+                              type: 'spark',
+                              title: 'Someone sent you a Spark!',
+                              body: 'You crossed paths — they want to connect.',
+                              data: { sender_id: user.id },
+                              read: false,
+                            })
+                          )
+                        );
+                        showToast('Spark sent to Vibers you crossed paths with!', 'success');
+                      } catch {
+                        showToast('Could not send Spark. Try again.', 'error');
+                      }
+                      setSelectedIntersection(null);
+                    }}
+                  >
                     <Feather name="zap" size={16} color="#000" />
                     <Text style={s.sparkBtnText}>Send a Spark</Text>
                   </TouchableOpacity>

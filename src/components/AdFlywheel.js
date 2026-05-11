@@ -4,18 +4,14 @@
  * Celebrity mode: ads suppressed (read-only gallery users don't see promotions).
  * Ghost mode: ads shown but not personalized (no userId passed to impression tracker).
  */
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Animated, Image,
+  View, Text, TouchableOpacity, StyleSheet, Animated,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useIdentity } from '../context/IdentityContext';
 import { supabase } from '../services/supabase';
-
-const SAMPLE_ADS = [];
-
-
 
 const intentToAdType = (intent) => {
   if (!intent) return null;
@@ -30,7 +26,6 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
   const { currentTheme } = useTheme();
   const { identityMode } = useIdentity();
   const primary    = currentTheme?.primary   || '#00f2ff';
-  const bg         = currentTheme?.background || '#0d1112';
   const textColor  = currentTheme?.text       || '#ffffff';
   const muted      = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -38,12 +33,10 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
   const [dismissed, setDismissed] = useState(false);
   const fadeAnim              = useRef(new Animated.Value(0)).current;
 
-  // Celebrity mode: no ads
-  if (identityMode === 'celebrity') return null;
-
   useEffect(() => {
+    if (identityMode === 'celebrity') return;
     selectAd();
-  }, [intentTag, eventId]);
+  }, [intentTag, eventId, identityMode]);
 
   const selectAd = async () => {
     // Removed demo mode fallback. Real ads required.
@@ -96,7 +89,7 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
     }
   };
 
-  if (dismissed || !ad) return null;
+  if (dismissed || !ad || identityMode === 'celebrity') return null;
 
   const adColor = ad.color || primary;
 
