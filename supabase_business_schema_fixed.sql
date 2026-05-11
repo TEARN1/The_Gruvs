@@ -1930,11 +1930,11 @@ BEGIN
               'You just joined the most exclusive vibe network. Start discovery now.')
       ON CONFLICT DO NOTHING;
 
-      -- 2. Welcome DM via direct_messages
-      INSERT INTO direct_messages (sender_id, recipient_id, body, read)
+      -- 2. Welcome DM via messages (full-featured table used by MessageManager)
+      INSERT INTO messages (sender_id, recipient_id, body, is_request, request_accepted)
       VALUES (system_id, NEW.id,
               'Yo! Welcome to The Gruvs. 🚀 I''m your guide to the city. Enable location in your profile to see Gruvs near you. Let''s get it!',
-              false)
+              false, true)
       ON CONFLICT DO NOTHING;
     END IF;
   EXCEPTION WHEN OTHERS THEN NULL;
