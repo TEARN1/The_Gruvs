@@ -17,6 +17,13 @@ const VIDS = {
 
 // ── Helper to build Unsplash image objects ────────────────────────────────────
 const img = (id, w = 1000) => ({ url: `https://images.unsplash.com/${id}?w=${w}&q=90`, type: 'image' });
+const ASSETS = {
+  food: require('../../assets/events/food.png'),
+  jazz: require('../../assets/events/jazz.png'),
+  pixel: require('../../assets/events/pixel.png'),
+  rave: require('../../assets/events/rave.png'),
+  yoga: require('../../assets/events/yoga.png'),
+};
 
 export const SAMPLE_VIBERS = [
   { id: 'v1', username: 'TheOracle',     avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&q=80',  distance_km: 1.2, interests: ['Tech', 'Music'],     rank: 'Grand Viber',  vibe_score: 8420,  is_online: true,  is_verified: true  },
@@ -39,7 +46,7 @@ export const SAMPLE_EVENTS = [
     event_date: daysFromNow(2),
     event_time: '22:00 – 10:00',
     media: [
-      img('photo-1514525253161-7a46d19cd819'),
+      { source: ASSETS.rave, type: 'image' },
       img('photo-1470225620780-dba8ba36b745'),
       VIDS.v1,
     ],
@@ -63,7 +70,7 @@ export const SAMPLE_EVENTS = [
     event_date: daysFromNow(7),
     event_time: '12:00 – 19:00',
     media: [
-      img('photo-1533174072545-7a4b6ad7a6c3'),
+      { source: ASSETS.yoga, type: 'image' },
       img('photo-1516450360452-9312f5e86fc7'),
       img('photo-1511795409834-ef04bbd61622'),
       VIDS.v2,
@@ -88,7 +95,7 @@ export const SAMPLE_EVENTS = [
     event_date: daysFromNow(12),
     event_time: '10:00 – 17:00',
     media: [
-      img('photo-1518998053502-5190a3915a25'),
+      { source: ASSETS.food, type: 'image' },
       img('photo-1549490349-8643362247b5'),
       img('photo-1579783902614-a3fb3927b6a5'),
     ],
@@ -112,7 +119,7 @@ export const SAMPLE_EVENTS = [
     event_date: daysFromNow(5),
     event_time: '20:00 – 04:00',
     media: [
-      img('photo-1493225457124-a3eb161ffa5f'),
+      { source: ASSETS.jazz, type: 'image' },
       img('photo-1566737236500-c8ac43014a67'),
       img('photo-1429962714451-bb934ecdc4ec'),
       VIDS.v3,
@@ -137,7 +144,7 @@ export const SAMPLE_EVENTS = [
     event_date: daysFromNow(14),
     event_time: '11:00 – 20:00',
     media: [
-      img('photo-1558618666-fcd25c85cd64'),
+      { source: ASSETS.food, type: 'image' },
       img('photo-1414235077428-338989a2e8c0'),
       img('photo-1517248135467-4c7edcad34c4'),
     ],
@@ -161,7 +168,7 @@ export const SAMPLE_EVENTS = [
     event_date: daysFromNow(9),
     event_time: '06:00 – 16:00',
     media: [
-      img('photo-1571019614242-c5c5dee9f50b'),
+      { source: ASSETS.pixel, type: 'image' },
       img('photo-1534438327276-14e5300c3a48'),
       VIDS.v4,
     ],
@@ -423,7 +430,7 @@ export const SAMPLE_TRENDING = [
     description: 'Afro Beach Carnival',
     category: 'party',
     rsvp_count: 7800,
-    image: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=400&q=80',
+    image: ASSETS.yoga,
   },
   {
     event_id: 's-4',
@@ -431,7 +438,7 @@ export const SAMPLE_TRENDING = [
     description: 'Amapiano All-Stars Night',
     category: 'music',
     rsvp_count: 11200,
-    image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&q=80',
+    image: ASSETS.rave,
   },
   {
     event_id: 's-2',
@@ -439,7 +446,7 @@ export const SAMPLE_TRENDING = [
     description: 'Rooftop Solstice Brunch',
     category: 'party',
     rsvp_count: 185,
-    image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&q=80',
+    image: ASSETS.yoga,
   },
   {
     event_id: 's-15',

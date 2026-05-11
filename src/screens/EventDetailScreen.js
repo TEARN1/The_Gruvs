@@ -465,10 +465,10 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {event && <EventContextualAds event={event} />}
 
           <View style={styles.sectionDivider} />
-          {event?.id && <EchoSection eventId={event.id} />}
+          {event?.id && <EchoSection eventId={event.id} onAuthRequired={onAuthRequired} />}
 
           <View style={styles.sectionDivider} />
-          {event?.id && <RatingSection eventId={event.id} />}
+          {event?.id && <RatingSection eventId={event.id} onAuthRequired={onAuthRequired} />}
 
           <View style={styles.sectionDivider} />
           {event?.id && <EventGallery eventId={event.id} />}

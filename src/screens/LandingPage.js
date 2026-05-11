@@ -38,10 +38,10 @@ import { AdFlywheel } from '../components/AdFlywheel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PathMapScreen } from './PathMapScreen';
 import { EventDetailScreen } from './EventDetailScreen';
-import { supabase } from '../services/supabase';
+import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine } from '../services/dataFlow';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
-import { SAMPLE_EVENTS } from '../constants/SampleData';
+import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
 
 // Safe haptic wrapper for web compatibility
 const safeHaptic = (fn) => {
@@ -149,7 +149,7 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
             activeOpacity={0.75}
           >
             <Image
-              source={{ uri: spot.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=300' }}
+              source={typeof spot.image === 'string' ? { uri: spot.image } : (spot.image || require('../../assets/events/pixel.png'))}
               style={tm.thumb}
             />
             <View style={{ flex: 1 }}>
@@ -292,6 +292,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // Real-time updates
   useEffect(() => {
+    if (!isSupabaseEnabled) return;
+
     const channel = supabase.channel('public:events')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events' }, payload => {
         const updatedEvent = payload.new;
@@ -321,7 +323,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   }, [events.length, loading, refreshing, profile?.interests]);
 
   const loadData = useCallback(async (isRefreshing = false) => {
-    if (loadingMore || (!hasMore && !isRefreshing)) return;
+    if (loadingMore || (!hasMore && !isRefreshing)) {
+      if (isRefreshing) setLoading(false);
+      return;
+    }
 
     if (isRefreshing) {
       setPage(0);
@@ -389,9 +394,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   };
 
   const loadTrending = useCallback(async () => {
+    if (!isSupabaseEnabled) {
+      setTrending(SAMPLE_TRENDING);
+      return;
+    }
+
     try {
       const { data } = await supabase.rpc('find_popular_spots', { limit_count: 8 });
-      setTrending(data || []);
+      setTrending(data || SAMPLE_TRENDING);
       // Also add trending events to the main feed if not already present
       if (data && data.length > 0) {
         setEvents(prev => {
@@ -403,13 +413,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         });
       }
     } catch {
-      setTrending([]);
+      setTrending(SAMPLE_TRENDING);
     }
   }, []);
 
   // Crew signal — who among followed users has RSVP'd to events in the feed
   useEffect(() => {
-    if (!user || events.length === 0) return;
+    if (!isSupabaseEnabled || !user || events.length === 0) return;
     const loadCrewSignal = async () => {
       try {
         const { data: follows } = await supabase
@@ -438,7 +448,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // Fetch checkins for event (for ReturnPathCard)
   const fetchEventCheckins = useCallback(async (eventId) => {
-    if (!eventId || eventCheckins[eventId]) return; // cached
+    if (!isSupabaseEnabled || !eventId || eventCheckins[eventId]) return; // cached
     try {
       const { data } = await supabase
         .from('checkins')
@@ -1115,7 +1125,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               <ReactPicker visible onReact={key => handleReact(id, key)} userReaction={userReaction} />
             )}
             {openEcho[id] && (
-              <EchoSection eventId={id} isSample={isSample} onAuthRequired={onAuthRequired} />
+              <EchoSection eventId={id} onAuthRequired={onAuthRequired} />
             )}
             {openGallery[id] && (
               <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
@@ -1123,7 +1133,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               </View>
             )}
             {openRate[id] && (
-              <RatingSection eventId={id} isSample={isSample} onAuthRequired={onAuthRequired} />
+              <RatingSection eventId={id} onAuthRequired={onAuthRequired} />
             )}
             {!isSample && (
               <PresenceBar

@@ -25,7 +25,7 @@ const RANK_STYLES = [
   { bg: 'rgba(16,185,129,0.2)', color: '#34d399', label: '3rd' },
 ];
 
-export const EchoSection = ({ eventId, isSample, onAuthRequired }) => {
+export const EchoSection = ({ eventId, onAuthRequired }) => {
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
   const [echoes, setEchoes] = useState([]);
@@ -41,7 +41,6 @@ export const EchoSection = ({ eventId, isSample, onAuthRequired }) => {
   const surface = currentTheme?.surface || '#1a1a1a';
 
   const fetchEchoes = useCallback(async () => {
-    if (isSample) return; // sample events use static echoes
     try {
       const { data } = await supabase
         .from('echoes')
@@ -53,7 +52,7 @@ export const EchoSection = ({ eventId, isSample, onAuthRequired }) => {
     } catch (e) {
       console.log('Echo fetch error:', e.message);
     }
-  }, [eventId, sort, isSample]);
+  }, [eventId, sort]);
 
   useEffect(() => {
     fetchEchoes();
@@ -109,12 +108,7 @@ export const EchoSection = ({ eventId, isSample, onAuthRequired }) => {
     return colors[(name?.charCodeAt(0) || 0) % colors.length];
   };
 
-  const displayEchoes = isSample
-    ? [
-        { id: 's1', profiles: { username: 'Nandi K', avatar_url: null }, body: 'Already counting down for this one!', created_at: new Date(Date.now() - 7200000).toISOString(), likes: 18 },
-        { id: 's2', profiles: { username: 'Sipho Z', avatar_url: null }, body: 'Best night of the year every time 🔥', created_at: new Date(Date.now() - 3600000).toISOString(), likes: 9 },
-      ]
-    : echoes;
+  const displayEchoes = echoes;
 
   const myAvatar = profile?.avatar_url;
   const myInitials = avatarInitials(profile?.username || user?.email);

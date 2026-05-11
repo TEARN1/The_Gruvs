@@ -27,7 +27,7 @@ const StarRow = ({ value, onChange, color }) => (
   </View>
 );
 
-export const RatingSection = ({ eventId, isSample, onAuthRequired }) => {
+export const RatingSection = ({ eventId, onAuthRequired }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();
@@ -44,11 +44,6 @@ export const RatingSection = ({ eventId, isSample, onAuthRequired }) => {
     if (!user) { onAuthRequired(); return; }
     if (stars.overall === 0) {
       toast.show('Give an overall rating first!', 'info');
-      return;
-    }
-    if (isSample) {
-      setSubmitted(true);
-      toast.show('Gruv rated! Thanks for the feedback 🌟', 'success');
       return;
     }
     setSubmitting(true);
