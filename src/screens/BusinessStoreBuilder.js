@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { supabase } from '../services/supabase';
+import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { GlassView } from '../components/GlassView';
 
 const { width: SW } = Dimensions.get('window');
@@ -436,6 +436,7 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg, surfa
   useEffect(() => { if (biz?.id) loadBlocks(); }, [biz?.id]);
 
   const loadBlocks = async () => {
+    // Removed demo mode fallback. Real data required.
     setLoading(true);
     const { data } = await supabase
       .from('business_page_blocks')

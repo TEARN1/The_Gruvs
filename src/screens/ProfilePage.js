@@ -12,8 +12,8 @@ import { GlassView } from '../components/GlassView';
 import { FadeInView } from '../components/FadeInView';
 import { THEMES, GENDERS } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
-import { supabase } from '../services/supabase';
-import { DiscoveryManager, UserManager } from '../services/dataFlow';
+import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { DiscoveryManager, UserManager, AnalyticsManager } from '../services/dataFlow';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { LocationService } from '../services/locationService';
 import * as ImagePicker from 'expo-image-picker';
@@ -59,7 +59,12 @@ const VibeLevel = ({ score, primary, muted, textColor }) => {
         <Text style={[lvl.name, { color: textColor }]}>{current.name}</Text>
         <Text style={[lvl.score, { color: primary }]}>{score} pts</Text>
       </View>
-      <View style={[lvl.track, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
+      <View
+        style={[lvl.track, { backgroundColor: 'rgba(255,255,255,0.08)' }]}
+        accessibilityRole="progressbar"
+        accessibilityLabel={`Vibe level progress: ${score} points, ${Math.round(progress)}% to ${next ? next.name : 'max level'}`}
+        {...(Platform.OS === 'web' ? { role: 'progressbar', 'aria-valuenow': Math.round(progress), 'aria-valuemin': 0, 'aria-valuemax': 100 } : {})}
+      >
         <Animated.View style={[lvl.fill, { width: `${progress}%`, backgroundColor: primary }]} />
       </View>
       {next && (
@@ -89,6 +94,7 @@ const AnalyticsChart = ({ primary, muted, textColor, userId }) => {
   useEffect(() => {
     if (!userId) return;
     const load = async () => {
+      // Removed demo mode fallback. Real data required.
       try {
         const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
         const [rsvpRes, vibeRes] = await Promise.all([
@@ -228,24 +234,30 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   const [careerDescription, setCareerDescription] = useState('');
   const [profileGallery, setProfileGallery] = useState([]);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    if (data) {
-      setBio(data.bio || '');
-      setLocation(data.location || '');
-      setInterests(data.interests || []);
-      setLooksDescription(data.looks_description || '');
-      setCareerTitle(data.career_title || '');
-      setCareerDescription(data.career_description || '');
-      setProfileGallery(data.profile_gallery || []);
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (data) {
+        setBio(data.bio || '');
+        setLocation(data.location || '');
+        setInterests(data.interests || []);
+        setLooksDescription(data.looks_description || '');
+        setCareerTitle(data.career_title || '');
+        setCareerDescription(data.career_description || '');
+        setProfileGallery(data.profile_gallery || []);
+      }
+    } catch (err) {
+      console.error('Refresh profile error:', err);
+      toast?.show('Failed to refresh profile', 'error');
     }
-  };
+  }, [user]);
 
   const [shareEvents, setShareEvents] = useState(profile?.share_events ?? false);
   const [bio, setBio] = useState(profile?.bio || '');
   const [location, setLocation] = useState(profile?.location || '');
   const [selectedInterests, setSelectedInterests] = useState(profile?.interests || []);
+  const [interests, setInterests] = useState(profile?.interests || []);
   const [catPickerVisible, setCatPickerVisible] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -490,7 +502,7 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
     setLoading(true);
     const coords = await LocationService.requestAndGet();
     if (coords) LocationService.saveToProfile(user.id, coords.lat, coords.lon);
-    const data = await DiscoveryManager.findNobility(user.id, distance);
+    const data = await DiscoveryManager.findNearbyVibers(user.id, distance);
     setLoading(false);
     setPeople(data || []);
     if (!data || data.length === 0) toast.show('No vibers found nearby — try a wider range', 'info');

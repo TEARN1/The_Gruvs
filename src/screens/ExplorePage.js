@@ -12,11 +12,12 @@ import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager } from '../services/dataFlow';
-import { supabase } from '../services/supabase';
+import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { LocationService } from '../services/locationService';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
 import { ServiceMarketplace } from './ServiceMarketplace';
+import { BREAKPOINT } from '../constants/DesignTokens';
 
 const { width } = Dimensions.get('window');
 
@@ -53,14 +54,22 @@ const HeroCard = ({ event, primary, onPress }) => {
 
   const isWeb = Platform.OS === 'web';
 
+  const eventDate = event.event_date
+    ? new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '';
+
   return (
-    <TouchableOpacity 
+    // Items 63-64: hero-card CSS hover class + accessibility
+    <TouchableOpacity
       style={[
-        hero.wrap, 
-        isWeb && { boxShadow: '0 15px 45px rgba(0,0,0,0.6)' }
-      ]} 
-      onPress={onPress} 
+        hero.wrap,
+        isWeb && { boxShadow: '0 15px 45px rgba(0,0,0,0.6)', cursor: 'pointer' }
+      ]}
+      onPress={onPress}
       activeOpacity={0.92}
+      accessibilityRole="button"
+      accessibilityLabel={`Featured event: ${event.title}${eventDate ? ', ' + eventDate : ''}${event.venue_name ? ', at ' + event.venue_name : ''}`}
+      {...(isWeb ? { className: 'hero-card' } : {})}
     >
       <Animated.Image
         source={{ uri: typeof thumb === 'string' ? thumb : thumb }}
@@ -125,29 +134,41 @@ const hero = StyleSheet.create({
 });
 
 // ── Mood selector ─────────────────────────────────────────────────────────────
+// Items 65-66: radiogroup semantics + scale transition on active mood
 const MoodRow = ({ activeMood, onSelect, primary }) => (
-  <ScrollView showsVerticalScrollIndicator={false}
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingVertical: 4 }}
-  >
-    {MOODS.map(m => {
-      const isActive = activeMood === m.key;
-      return (
-        <TouchableOpacity
-          key={m.key}
-          style={[mr.btn, {
-            backgroundColor: isActive ? m.color : `${m.color}15`,
-            borderColor: isActive ? m.color : `${m.color}30`,
-          }]}
-          onPress={() => onSelect(isActive ? null : m.key)}
-        >
-          <Feather name={m.icon} size={14} color={isActive ? '#000' : m.color} />
-          <Text style={[mr.text, { color: isActive ? '#000' : m.color }]}>{m.label}</Text>
-        </TouchableOpacity>
-      );
-    })}
-  </ScrollView>
+  <View accessibilityRole="radiogroup" accessibilityLabel="Select your mood">
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingVertical: 4 }}
+    >
+      {MOODS.map(m => {
+        const isActive = activeMood === m.key;
+        return (
+          <TouchableOpacity
+            key={m.key}
+            style={[
+              mr.btn,
+              {
+                backgroundColor: isActive ? m.color : `${m.color}15`,
+                borderColor: isActive ? m.color : `${m.color}30`,
+                transform: [{ scale: isActive ? 1.05 : 1 }],
+              },
+              Platform.OS === 'web' && { transition: 'transform 180ms cubic-bezier(0.34,1.56,0.64,1), background-color 150ms ease' },
+            ]}
+            onPress={() => onSelect(isActive ? null : m.key)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: isActive }}
+            accessibilityLabel={m.label}
+          >
+            <Feather name={m.icon} size={14} color={isActive ? '#000' : m.color} />
+            <Text style={[mr.text, { color: isActive ? '#000' : m.color }]}>{m.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  </View>
 );
 
 const mr = StyleSheet.create({
@@ -164,10 +185,14 @@ const CategoryGrid = ({ onSelect, primary, textColor, muted, categoryCounts }) =
         const cfg = CATEGORY_CONFIG[key];
         const count = categoryCounts[key] || 0;
         return (
+          // Items 67-68: accessible label + web hover via className
           <TouchableOpacity
             key={key}
             style={[cg.cell, { backgroundColor: `${cfg.color}12`, borderColor: `${cfg.color}25` }]}
             onPress={() => onSelect(key)}
+            accessibilityRole="button"
+            accessibilityLabel={`${cfg.label} category${count > 0 ? ', ' + count + ' events' : ''}`}
+            {...(Platform.OS === 'web' ? { className: 'category-cell', style: [cg.cell, { backgroundColor: `${cfg.color}12`, borderColor: `${cfg.color}25`, cursor: 'pointer', transition: 'transform 150ms ease, box-shadow 150ms ease' }] } : {})}
           >
             <Text style={{ fontSize: 22 }}>{cfg.icon}</Text>
             <Text style={[cg.label, { color: textColor }]}>{cfg.label}</Text>
@@ -242,14 +267,17 @@ const EventTile = ({ event, primary, textColor, muted, onPress }) => {
     'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400';
     const isWeb = Platform.OS === 'web';
     return (
-      <TouchableOpacity 
+      // Items 69-70: accessible label + aspect-ratio on web prevents CLS
+      <TouchableOpacity
         style={[
-          et.wrap, 
+          et.wrap,
           { borderColor: `${catColor}35` },
-          isWeb && { boxShadow: '0 8px 25px rgba(0,0,0,0.45)' }
-        ]} 
-        onPress={onPress} 
+          isWeb && { boxShadow: '0 8px 25px rgba(0,0,0,0.45)', aspectRatio: 165 / 210 }
+        ]}
+        onPress={onPress}
         activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={`Event: ${event.title}, ${event.vibe_count || event.going || 0} vibing`}
       >
         <Image source={{ uri: typeof thumb === 'string' ? thumb : thumb }} style={et.img} />
         <View style={[et.overlay, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
@@ -284,7 +312,11 @@ const SectionHeader = ({ title, actionLabel, onAction, textColor, primary }) => 
   <View style={sh.row}>
     <Text style={[sh.title, { color: textColor }]}>{title}</Text>
     {actionLabel && (
-      <TouchableOpacity onPress={onAction}>
+      <TouchableOpacity
+        onPress={onAction}
+        accessibilityRole="button"
+        accessibilityLabel={`${actionLabel} — ${title}`}
+      >
         <Text style={[sh.action, { color: primary }]}>{actionLabel}</Text>
       </TouchableOpacity>
     )}
@@ -322,6 +354,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [loading, setLoading] = useState(true);
   const [marketplaceVisible, setMarketplaceVisible] = useState(false);
   const [routes, setRoutes] = useState([]);
+  const [scrollY, setScrollY] = useState(0);
+  const scrollRef = useRef(null);
   const searchTimer = useRef(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
@@ -361,7 +395,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const loadAll = async () => {
     setLoading(true);
-
+    // Removed demo mode fallback. Real data required.
     const [trending, happening, counts] = await Promise.all([
       TrendingManager.fetch(8),
       TrendingManager.fetchHappeningNow(),
@@ -394,50 +428,61 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     // ── Location: runs after initial render so UI isn't blocked ──────────────
     setLocationLoading(true);
     
-    let coords = null;
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status === 'granted') {
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.BestForNavigation,
-      });
-      coords = { lat: loc.coords.latitude, lon: loc.coords.longitude };
+    try {
+      let coords = null;
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.BestForNavigation,
+        });
+        coords = { lat: loc.coords.latitude, lon: loc.coords.longitude };
 
-      setUserCoords(coords);
-      // Save to profile so PostGIS viber-proximity works
-      if (user) {
-        LocationService.saveToProfile(user.id, coords.lat, coords.lon);
-        // Fetch nearby vibers AND filter for those who are followed and online
+        setUserCoords(coords);
+        // Save to profile so PostGIS viber-proximity works
+        if (user) {
+          LocationService.saveToProfile(user.id, coords.lat, coords.lon);
+          // Fetch nearby vibers AND filter for those who are followed and online
+          const nearby = await DiscoveryManager.findNearbyVibers(user.id, 25);
+          
+          let followedIds = new Set();
+          const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
+          followedIds = new Set((follows || []).map(f => f.following_id));
+
+          const onlineFollowers = nearby.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
+          setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : nearby);
+
+          // Advanced matching logic
+          try {
+            const matches = await DiscoveryManager.findNearbyVibers(user.id, 10);
+            setVibeMatches(matches.map(v => ({ ...v, matchScore: v.vibe_score ? Math.min(99, v.vibe_score / 10) : Math.floor(Math.random() * 40 + 50), overlap: v.interests?.slice(0, 3) || [] })));
+          } catch { setVibeMatches([]); }
+        }
+        // Fetch events near the user's physical location
+        const eventsNear = await DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50); 
+        setNearbyEvents(eventsNear);
+      } else if (user) {
+        // No location but user logged in — still try vibers (profile may already have coords)
         const nearby = await DiscoveryManager.findNearbyVibers(user.id, 25);
+        
+        let followedIds = new Set();
         const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
-        const followedIds = new Set((follows || []).map(f => f.following_id));
+        followedIds = new Set((follows || []).map(f => f.following_id));
+
         const onlineFollowers = nearby.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
         setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : nearby);
-
-        // Advanced matching logic (safe fallback — MatchManager may not exist yet)
-        try {
-          const matches = await DiscoveryManager.findNearbyVibers(user.id, 10);
-          setVibeMatches(matches.map(v => ({ ...v, matchScore: v.vibe_score ? Math.min(99, v.vibe_score / 10) : Math.floor(Math.random() * 40 + 50), overlap: v.interests?.slice(0, 3) || [] })));
-        } catch { setVibeMatches([]); }
+        
+        // Try to fetch events near their last known location
+        const profile = await UserManager.getProfile(user.id);
+        if (profile?.lat && profile?.lon) {
+          const eventsNear = await DiscoveryManager.findNearbyEvents(profile.lat, profile.lon, 50);
+          setNearbyEvents(eventsNear);
+        }
       }
-      // Fetch events near the user's physical location
-      const eventsNear = await DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50); // Increased radius to 50km
-      setNearbyEvents(eventsNear);
-    } else if (user) {
-      // No location but user logged in — still try vibers (profile may already have coords)
-      const nearby = await DiscoveryManager.findNearbyVibers(user.id, 25);
-      const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
-      const followedIds = new Set((follows || []).map(f => f.following_id));
-      const onlineFollowers = nearby.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
-      setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : nearby);
-      
-      // Try to fetch events near their last known location
-      const profile = await UserManager.getProfile(user.id);
-      if (profile?.lat && profile?.lon) {
-        const eventsNear = await DiscoveryManager.findNearbyEvents(profile.lat, profile.lon, 50);
-        setNearbyEvents(eventsNear);
-      }
+    } catch {
+      // Location failed
+    } finally {
+      setLocationLoading(false);
     }
-    setLocationLoading(false);
   };
 
   // Debounced search
@@ -491,7 +536,13 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <AuraEffect />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 140 }}
+        onScroll={Platform.OS === 'web' ? (e) => setScrollY(e.nativeEvent.contentOffset.y) : undefined}
+        scrollEventThrottle={Platform.OS === 'web' ? 100 : undefined}
+      >
         {renderWelcome()}
 
         {/* Header */}
@@ -521,6 +572,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             placeholderTextColor={muted}
             value={query}
             onChangeText={setQuery}
+            accessibilityLabel="Search events, artists, and venues"
+            accessibilityHint="Results appear below as you type"
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery('')}>
@@ -813,6 +866,31 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           onAuthRequired={onAuthRequired}
           onClose={() => setMarketplaceVisible(false)}
         />
+      )}
+      {Platform.OS === 'web' && scrollY > 400 && (
+        <TouchableOpacity
+          onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+          accessibilityRole="button"
+          accessibilityLabel="Scroll to top"
+          style={{
+            position: 'absolute',
+            bottom: 100,
+            right: 20,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: primary,
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 600,
+            shadowColor: primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.5,
+            shadowRadius: 12,
+          }}
+        >
+          <Feather name="chevron-up" size={22} color="#000" />
+        </TouchableOpacity>
       )}
     </View>
   );

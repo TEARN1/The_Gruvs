@@ -57,6 +57,14 @@ const WeekStrip = ({ selectedDate, onSelect, primary, bg, textColor, muted, even
         const isSelected = key === dateKey(selectedDate);
         const isToday = key === dateKey(today);
         const hasDot = !!eventDots[key];
+        const DAY_NAMES_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const cellLabel = [
+          DAY_NAMES_FULL[d.getDay()],
+          FULL_MONTH[d.getMonth()],
+          d.getDate(),
+          isToday ? ', today' : '',
+          hasDot ? ', has events' : '',
+        ].join('');
         return (
           <TouchableOpacity
             key={i}
@@ -66,6 +74,9 @@ const WeekStrip = ({ selectedDate, onSelect, primary, bg, textColor, muted, even
               !isSelected && isToday && { borderColor: primary, borderWidth: 1.5 },
             ]}
             onPress={() => onSelect(d)}
+            accessibilityLabel={cellLabel}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
           >
             <Text style={[ws.dow, { color: isSelected ? '#000' : muted }]}>
               {DAY_SHORT[d.getDay()]}

@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
-import { supabase } from '../services/supabase';
+import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { EscrowService } from '../services/escrowService';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -416,6 +416,7 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
 
   const fetchProviders = useCallback(async () => {
+    // Removed demo mode fallback. Real data required.
     try {
       const { data } = await supabase
         .from('service_nodes')
@@ -423,12 +424,15 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
         .eq('available', true)
         .order('created_at', { ascending: false });
       setProviders(data || []);
-    } catch {
+    } catch (err) {
+      console.error('Fetch providers error:', err);
+      showToast('Failed to load service providers.', 'error');
       setProviders([]);
     }
   }, []);
 
   const fetchGigs = useCallback(async () => {
+    // Removed demo mode fallback. Real data required.
     try {
       const { data } = await supabase
         .from('gig_posts')
@@ -436,7 +440,9 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
         .eq('active', true)
         .order('created_at', { ascending: false });
       setGigs(data || []);
-    } catch {
+    } catch (err) {
+      console.error('Fetch gigs error:', err);
+      showToast('Failed to load active gigs.', 'error');
       setGigs([]);
     }
   }, []);
@@ -445,10 +451,12 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
-    await Promise.all([fetchProviders(), fetchGigs()]);
-
-    if (isRefresh) setRefreshing(false);
-    else setLoading(false);
+    try {
+      await Promise.all([fetchProviders(), fetchGigs()]);
+    } finally {
+      if (isRefresh) setRefreshing(false);
+      else setLoading(false);
+    }
   }, [fetchProviders, fetchGigs]);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
-import { supabase } from './supabase';
+import { supabase, isSupabaseEnabled } from './supabase';
 
 let _cachedCoords = null;
 

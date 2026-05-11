@@ -13,6 +13,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useIdentity } from '../context/IdentityContext';
 import { supabase } from '../services/supabase';
 
+const SAMPLE_ADS = [];
+
 
 
 const intentToAdType = (intent) => {
@@ -44,6 +46,8 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
   }, [intentTag, eventId]);
 
   const selectAd = async () => {
+    // Removed demo mode fallback. Real ads required.
+
     // Try to fetch a contextual ad from Supabase
     try {
       const preferredType = intentToAdType(intentTag);

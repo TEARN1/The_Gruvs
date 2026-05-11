@@ -39,9 +39,11 @@ import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PathMapScreen } from './PathMapScreen';
 import { EventDetailScreen } from './EventDetailScreen';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
-import { VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine } from '../services/dataFlow';
+import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine } from '../services/dataFlow';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
+import { FONT, RADIUS } from '../constants/DesignTokens';
+import { SkeletonCard as SkeletonCardImported } from '../components/SkeletonCard';
 
 // Safe haptic wrapper for web compatibility
 const safeHaptic = (fn) => {
@@ -111,11 +113,14 @@ const skStyles = StyleSheet.create({
 });
 
 // ── Visitor banner ─────────────────────────────────────────────────────────────
+// Item 57: accessible sign-in prompt
 const VisitorBanner = ({ onSignIn, primary, muted }) => (
   <TouchableOpacity
     style={[vb.wrap, { backgroundColor: `${primary}10`, borderColor: `${primary}30` }]}
     onPress={onSignIn}
     activeOpacity={0.8}
+    accessibilityRole="button"
+    accessibilityLabel="Sign in to RSVP, react and post events"
   >
     <Feather name="user" size={15} color={primary} />
     <Text style={[vb.text, { color: muted }]}>
@@ -142,11 +147,14 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, paddingTop: 10 }}>
         {trending.map((spot, i) => (
+          // Item 59: accessible trending row
           <TouchableOpacity
             key={spot.event_id || i}
             style={[tm.row, { borderColor: `${primary}18` }]}
             onPress={() => { onClose(); onSelectEvent && onSelectEvent(spot); }}
             activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={`Trending #${i + 1}: ${spot.description || spot.title || 'Trending Gruv'}, ${spot.rsvp_count || spot.going || 0} vibing`}
           >
             <Image
               source={typeof spot.image === 'string' ? { uri: spot.image } : (spot.image || require('../../assets/events/pixel.png'))}
@@ -292,7 +300,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // Real-time updates
   useEffect(() => {
-    if (!isSupabaseEnabled) return;
+    // Real-time updates required for production.
 
     const channel = supabase.channel('public:events')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events' }, payload => {
@@ -339,42 +347,31 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const currentPage = isRefreshing ? 0 : page;
 
     try {
-      // For demo purposes, use sample data for demo mode
-      console.log('Using sample data for demo');
-      let fallbackEvents = SAMPLE_EVENTS;
-
-      if (selectedCat && selectedCat !== 'all') {
-        fallbackEvents = fallbackEvents.filter(e => e.category === selectedCat);
-      }
-      if (debouncedQuery.trim()) {
-        const q = debouncedQuery.toLowerCase();
-        fallbackEvents = fallbackEvents.filter(e =>
-          (e.title || '').toLowerCase().includes(q) ||
-          (e.description || '').toLowerCase().includes(q) ||
-          (e.venue_name || '').toLowerCase().includes(q)
-        );
-      }
-
-      const start = currentPage * PAGE_SIZE;
-      const end = start + PAGE_SIZE;
-      const paginatedEvents = fallbackEvents.slice(start, end);
+      const { events: newEvents, hasMore: moreAvailable } = await FeedManager.fetchPage({
+        page: currentPage,
+        category: selectedCat,
+        query: debouncedQuery,
+        userInterests: profile?.interests || [],
+        mode: feedMode
+      });
 
       if (isRefreshing) {
-        setEvents(paginatedEvents);
-        setHasMore(paginatedEvents.length === PAGE_SIZE);
+        setEvents(newEvents);
       } else {
-        setEvents(prev => [...prev, ...paginatedEvents]);
-        setHasMore(paginatedEvents.length === PAGE_SIZE);
+        setEvents(prev => [...prev, ...newEvents]);
       }
+      setHasMore(moreAvailable);
 
       const counts = {};
-      [...(isRefreshing ? [] : events), ...paginatedEvents].forEach(e => {
+      newEvents.forEach(e => {
         counts[e.id] = e.vibe_count || 0;
       });
       setVibeCounts(prev => ({ ...prev, ...counts }));
 
-      if (!isRefreshing) setPage(prev => prev + 1);
-      setHasMore(false); // Sample data doesn't support infinite scroll
+      if (!isRefreshing && newEvents.length > 0) setPage(prev => prev + 1);
+    } catch (err) {
+      console.error('LandingPage load error:', err);
+      toast.show('Failed to load gruvs. Check your connection.', 'error');
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -394,32 +391,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   };
 
   const loadTrending = useCallback(async () => {
-    if (!isSupabaseEnabled) {
-      setTrending(SAMPLE_TRENDING);
-      return;
-    }
-
     try {
-      const { data } = await supabase.rpc('find_popular_spots', { limit_count: 8 });
-      setTrending(data || SAMPLE_TRENDING);
-      // Also add trending events to the main feed if not already present
-      if (data && data.length > 0) {
-        setEvents(prev => {
-          const newTrending = data.filter(t => !prev.some(e => e.id === t.event_id));
-          if (newTrending.length > 0) {
-            return [...newTrending, ...prev];
-          }
-          return prev;
-        });
-      }
-    } catch {
-      setTrending(SAMPLE_TRENDING);
+      const data = await TrendingManager.fetch(8);
+      setTrending(data || []);
+    } catch (err) {
+      console.error('Trending load error:', err);
     }
   }, []);
 
   // Crew signal — who among followed users has RSVP'd to events in the feed
   useEffect(() => {
-    if (!isSupabaseEnabled || !user || events.length === 0) return;
+    if (!user || events.length === 0) return;
     const loadCrewSignal = async () => {
       try {
         const { data: follows } = await supabase
@@ -448,7 +430,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // Fetch checkins for event (for ReturnPathCard)
   const fetchEventCheckins = useCallback(async (eventId) => {
-    if (!isSupabaseEnabled || !eventId || eventCheckins[eventId]) return; // cached
+    if (!eventId || eventCheckins[eventId]) return; // cached
     try {
       const { data } = await supabase
         .from('checkins')
@@ -749,12 +731,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </View>
       )}
 
-      {/* Category pills */}
+      {/* Category pills — Item 54: sticky-filter-bar class for glassmorphic sticky on web */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.catBar}
         contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingBottom: 8 }}
+        {...(Platform.OS === 'web' ? { className: 'sticky-filter-bar' } : {})}
       >
         {CATEGORY_KEYS.map(key => {
           const cfg = CATEGORY_CONFIG[key];
@@ -871,42 +854,71 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
     const flashColor = reactionFlash[id];
 
+    const cardDate = event.event_date
+      ? new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '';
+
     return (
       <React.Fragment>
-        <FadeInView delay={index * 60} direction="up">
-          <View style={[
-            styles.eventCard,
-            {
-              backgroundColor: flashColor ? `${flashColor}12` : surface,
-              borderColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
-              borderTopColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
-              borderTopWidth: flashColor ? 2 : 1,
-            },
-            (isHighlighted || flashColor) && {
-              borderWidth: 2,
-              ...(isWeb ? { boxShadow: `0 0 25px ${(flashColor || primary)}80` } : { shadowColor: flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
-            },
-            isWeb && !flashColor && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
-            isWeb && flashColor && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
-          ]}>
+        {/* Item 53: cap stagger so cards 7+ appear instantly */}
+        <FadeInView delay={Math.min(index, 5) * 60} direction="up">
+          {/* Items 46-47-58-61: accessible card with web-specific class, cursor, keyboard */}
+          <View
+            style={[
+              styles.eventCard,
+              {
+                backgroundColor: flashColor ? `${flashColor}12` : surface,
+                borderColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
+                borderTopColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
+                borderTopWidth: flashColor ? 2 : 1,
+              },
+              (isHighlighted || flashColor) && {
+                borderWidth: 2,
+                ...(isWeb ? { boxShadow: `0 0 25px ${(flashColor || primary)}80` } : { shadowColor: flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
+              },
+              isWeb && !flashColor && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
+              isWeb && flashColor && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
+              isWeb && { cursor: 'pointer' },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`${title}${cardDate ? ', ' + cardDate : ''}${event.venue_name ? ', at ' + event.venue_name : ''}`}
+            {...(isWeb ? {
+              className: 'event-card',
+              tabIndex: 0,
+              onKeyPress: (e) => e.nativeEvent?.key === 'Enter' && setSelectedEvent(event),
+            } : {})}
+          >
 
             {/* Media */}
-            <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }]}>
+            {/* Item 49: aspect-ratio reserves space before image loads (prevents CLS) */}
+            <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }, isWeb && { aspectRatio: '16/9' }]}>
               <MediaViewer media={event.media && event.media.length > 0 ? event.media : [{ url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800', type: 'image' }]} />
-              {/* Scrim for readability */}
-              <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)' }} />
-              {/* Category badge */}
+              {/* Item 48: vignette gradient instead of flat scrim */}
+              <View style={{
+                ...StyleSheet.absoluteFillObject,
+                ...(isWeb
+                  ? { backgroundImage: 'linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.65) 100%)' }
+                  : { backgroundColor: 'rgba(0,0,0,0.15)' }
+                ),
+              }} />
+              {/* Item 52: glassmorphic category badge */}
               {event.category && (
-                <View style={[styles.catBadge, { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` }]}>
+                <View style={[
+                  styles.catBadge,
+                  { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` },
+                  isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
+                ]}>
                   <Text style={[styles.catBadgeText, { color: catColor }]}>
                     {(CATEGORY_CONFIG[event.category]?.label || event.category).toUpperCase()}
                   </Text>
                 </View>
               )}
-              {/* Bookmark */}
+              {/* Item 50: accessible bookmark button */}
               <TouchableOpacity
                 style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
                 onPress={() => handleBookmark(id)}
+                accessibilityRole="button"
+                accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
               >
                 <Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} />
               </TouchableOpacity>
@@ -971,7 +983,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               )}
 
               {/* Title + description — tap to open full detail */}
-              <TouchableOpacity activeOpacity={0.8} onPress={() => setSelectedEvent(event)}>
+              {/* Item 55: accessibilityHint communicates the action */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setSelectedEvent(event)}
+                accessibilityHint="Double-tap to open event details"
+              >
                 <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
                 <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>
               </TouchableOpacity>
@@ -1013,15 +1030,20 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 </View>
               ) : null}
 
-              {/* RSVP progress bar */}
+              {/* Item 62: RSVP progress bar with progressbar role */}
               {event.capacity > 0 ? (
                 <View style={styles.rsvpWrap}>
                   <View style={[styles.rsvpTrack, { backgroundColor: `${catColor}15` }]}>
-                    <View style={[
-                      styles.rsvpFill,
-                      { width: `${goingPct}%`, backgroundColor: catColor },
-                      isWeb && { boxShadow: `0 0 10px ${catColor}80` }
-                    ]} />
+                    <View
+                      style={[
+                        styles.rsvpFill,
+                        { width: `${goingPct}%`, backgroundColor: catColor },
+                        isWeb && { boxShadow: `0 0 10px ${catColor}80` }
+                      ]}
+                      accessibilityRole="progressbar"
+                      accessibilityLabel={`${goingPct}% capacity filled`}
+                      {...(isWeb ? { role: 'progressbar', 'aria-valuenow': goingPct, 'aria-valuemin': 0, 'aria-valuemax': 100 } : {})}
+                    />
                   </View>
                   <View style={styles.rsvpLabels}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -1057,15 +1079,25 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               </View>
             ) : null}
 
-            {/* Action bar */}
+            {/* Action bar — Item 51: accessible labels on all action buttons */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
               <View style={styles.actionBar}>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => handleVibe(id)}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => handleVibe(id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
+                >
                   <Feather name="zap" size={19} color={isVibed ? '#ef4444' : muted} />
                   <Text style={[styles.actionCount, { color: isVibed ? '#ef4444' : muted }]}>{vibeCounts[id] || 0}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenReact(p => ({ ...p, [id]: !p[id] })))}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => startTransition(() => setOpenReact(p => ({ ...p, [id]: !p[id] })))}
+                  accessibilityRole="button"
+                  accessibilityLabel="React to this event"
+                >
                   {userReaction
                     ? <Text style={{ fontSize: 19 }}>{REACTION_LIST.find(r => r.key === userReaction)?.emoji || '😊'}</Text>
                     : <Feather name="smile" size={19} color={muted} />
@@ -1073,22 +1105,42 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenEcho(p => ({ ...p, [id]: !p[id] })))}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => startTransition(() => setOpenEcho(p => ({ ...p, [id]: !p[id] })))}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
+                >
                   <Feather name="message-circle" size={19} color={openEcho[id] ? primary : muted} />
                   <Text style={[styles.actionCount, { color: openEcho[id] ? primary : muted }]}>{event.echo_count || 0}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenGallery(p => ({ ...p, [id]: !p[id] })))}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => startTransition(() => setOpenGallery(p => ({ ...p, [id]: !p[id] })))}
+                  accessibilityRole="button"
+                  accessibilityLabel="View event gallery"
+                >
                   <Feather name="camera" size={19} color={openGallery[id] ? primary : muted} />
                   <Text style={[styles.actionLabel, { color: openGallery[id] ? primary : muted }]}>Gallery</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenRate(p => ({ ...p, [id]: !p[id] })))}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => startTransition(() => setOpenRate(p => ({ ...p, [id]: !p[id] })))}
+                  accessibilityRole="button"
+                  accessibilityLabel="Rate this event"
+                >
                   <Feather name="star" size={19} color={openRate[id] ? primary : muted} />
                   <Text style={[styles.actionLabel, { color: openRate[id] ? primary : muted }]}>Rate</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionBtn} onPress={() => handleShare(event)}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => handleShare(event)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Share event: ${title}`}
+                >
                   <Feather name="share-2" size={19} color={muted} />
                   <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
                 </TouchableOpacity>
@@ -1358,7 +1410,7 @@ const styles = StyleSheet.create({
   eventCard: { marginHorizontal: 16, marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
   imgSection: { position: 'relative' },
   catBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
-  catBadgeText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
+  catBadgeText: { fontSize: 9, ...FONT.badge, letterSpacing: 0.8 }, // item 60: 0.8 improves 9px legibility
   bookmarkBtn: { position: 'absolute', top: 12, right: 12, padding: 8, borderRadius: 20 },
   cardBody: { padding: 14 },
 

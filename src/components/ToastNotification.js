@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
 import { Animated, Text, StyleSheet, View, TouchableOpacity, Platform } from 'react-native';
+import { Z_INDEX, RADIUS } from '../constants/DesignTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -43,7 +44,12 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
-      <View style={[s.container, { top: (insets.top || 0) + 8 }]} pointerEvents="box-none">
+      {/* Item 74: role="status" + aria-live for screen reader announcements */}
+      <View
+        style={[s.container, { top: (insets.top || 0) + 8 }]}
+        pointerEvents="box-none"
+        {...(Platform.OS === 'web' ? { role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' } : {})}
+      >
         {current && <ToastItem key={current.id} toast={current} onDone={onDone} />}
       </View>
     </ToastContext.Provider>
@@ -75,8 +81,13 @@ const ToastItem = ({ toast, onDone }) => {
     ]).start(onDone);
   };
 
+  // Item 75: appropriate live region role per toast type
+  const isAlert = toast.type === 'error' || toast.type === 'warning';
+
   return (
     <Animated.View
+      accessibilityLiveRegion={isAlert ? 'assertive' : 'polite'}
+      accessibilityRole={isAlert ? 'alert' : 'status'}
       style={[
         s.toast,
         {
@@ -109,7 +120,7 @@ const s = StyleSheet.create({
     top: 0, // overridden dynamically via insets
     left: 14,
     right: 14,
-    zIndex: 99999,
+    zIndex: Z_INDEX.toast,
     alignItems: 'stretch',
     pointerEvents: 'box-none',
   },
@@ -118,7 +129,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderLeftWidth: 3,
-    borderRadius: 14,
+    borderRadius: RADIUS.input,
     paddingHorizontal: 14,
     paddingVertical: 13,
     shadowColor: '#000',

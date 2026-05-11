@@ -62,7 +62,11 @@ export const ReferralCard = ({ userId }) => {
     setCopying(true);
     try {
       if (Platform.OS === 'web') {
-        await navigator.clipboard.writeText(referralCode);
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+          await navigator.clipboard.writeText(referralCode);
+        } else {
+          throw new Error('Clipboard API not available');
+        }
       } else {
         Clipboard.setString(referralCode);
       }

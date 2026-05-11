@@ -33,11 +33,19 @@ const ConvoRow = ({ item, userId, primary, textColor, muted, surface, onPress })
   const isPending    = item.is_request && !item.request_accepted && item.recipient_id === userId;
   const lastMsg      = item.body || '';
 
+  const unreadLabel = isUnread ? ', unread' : '';
+  const previewLabel = isPending ? 'wants to link up' : (item.sender_id === userId ? `You: ${lastMsg}` : lastMsg);
+  const timeLabel = item.last_message_at ? `, ${fmtAge(item.last_message_at)}` : '';
+  const rowLabel = `@${partner?.username || 'Unknown'}${unreadLabel}, ${previewLabel}${timeLabel}`;
+
   return (
     <TouchableOpacity
       style={[cs.row, { borderBottomColor: `${primary}12` }]}
       onPress={onPress}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={rowLabel}
+      accessibilityHint="Double-tap to open conversation"
     >
       {/* Avatar */}
       <View style={{ position: 'relative' }}>

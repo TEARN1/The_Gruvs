@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, Dimensions } from 'react-native';
+import { View, Animated, StyleSheet, Dimensions, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -49,7 +49,17 @@ export const SkeletonCard = ({ primary: primaryProp }) => {
   const surface = currentTheme?.surface || '#131a1c';
 
   return (
-    <View style={[styles.card, { backgroundColor: surface }]}>
+    // Items 78-79: contain layout, accessible loading state
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: surface },
+        Platform.OS === 'web' ? { contain: 'layout style' } : {},
+      ]}
+      accessibilityLabel="Loading event"
+      accessibilityRole="progressbar"
+      {...(Platform.OS === 'web' ? { 'aria-busy': 'true' } : {})}
+    >
       {/* Cover image area */}
       <Block primary={primary} style={styles.cardImage} />
       <View style={styles.cardBody}>

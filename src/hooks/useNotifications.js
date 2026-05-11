@@ -6,7 +6,7 @@ import { useToast } from '../components/ToastNotification';
 
 export const useNotifications = () => {
   const { user } = useAuth();
-  const { showToast } = useToast();
+  const { show: showToast } = useToast();
   const [expoPushToken, setExpoPushToken] = useState(null);
   const receivedListener = useRef(null);
   const responseListener = useRef(null);

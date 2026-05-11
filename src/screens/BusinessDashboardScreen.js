@@ -12,11 +12,12 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../services/supabase';
+import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { GlassView } from '../components/GlassView';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 import { CampaignManager, EcosystemManager, NotificationManager, AnalyticsManager } from '../services/dataFlow';
+import { useToast } from '../components/ToastNotification';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -177,6 +178,7 @@ const FunnelBar = ({ label, value, max, color, textColor, muted, isPercentage })
 export const BusinessDashboardScreen = ({ onClose }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
+  const { show: showToast } = useToast();
   const primary = currentTheme?.primary || '#00f2ff';
   const bg = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text || '#ffffff';
@@ -209,6 +211,22 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     if (!user) return;
     setLoading(true);
     try {
+      // Removed demo mode fallback. Real data required.
+      try {
+        const { data: bizData } = await supabase
+          .from('business_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!bizData) { setSetupMode(true); return; }
+        setBiz(bizData);
+      } catch (err) {
+        console.error('Business load error:', err);
+        showToast('Failed to load business profile.', 'error');
+        return;
+      }
+
       // Load or create business profile
       const { data: bizData } = await supabase
         .from('business_profiles')
@@ -216,7 +234,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         .eq('user_id', user.id)
         .single();
 
-      if (!bizData) { setSetupMode(true); setLoading(false); return; }
+      if (!bizData) { setSetupMode(true); return; }
       setBiz(bizData);
 
       // Parallel data fetch using centralized managers
@@ -259,8 +277,9 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       setAnalytics({ impressions: totalImpressions, clicks: totalClicks, conversions: totalConversions, rsvps, totalRevenue, totalSpent, chart });
     } catch (e) {
       console.error('[BusinessDashboard] loadAll error', e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const onRefresh = async () => { setRefreshing(true); await loadAll(); setRefreshing(false); };

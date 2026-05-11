@@ -40,7 +40,10 @@ export const BrandLogo = ({ size = 42, showGlow = false, style }) => {
 
   if (LOCAL_LOGO) {
     return (
+      // Item 80: accessible logo label
       <Animated.View
+        accessibilityLabel="The Gruvs logo"
+        accessibilityRole="image"
         style={[
           glowStyle,
           { borderRadius: size * 0.2, overflow: 'hidden' },
@@ -58,7 +61,10 @@ export const BrandLogo = ({ size = 42, showGlow = false, style }) => {
 
   // ── Fallback: metallic H + crown ──────────────────────────────────────────
   return (
+    // Item 80: accessible logo label on fallback too
     <Animated.View
+      accessibilityLabel="The Gruvs logo"
+      accessibilityRole="image"
       style={[
         s.box,
         {

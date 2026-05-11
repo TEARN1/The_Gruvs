@@ -217,7 +217,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       </View>
 
       {/* Segment control */}
-      <View style={[ns.segmentRow, { backgroundColor: surface }]}>
+      <View style={[ns.segmentRow, { backgroundColor: surface }]} accessibilityRole="tablist">
         {SEGMENTS.map(seg => {
           const isActive = segment === seg;
           return (
@@ -225,6 +225,9 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               key={seg}
               style={[ns.segBtn, isActive && { backgroundColor: primary }]}
               onPress={() => setSegment(seg)}
+              accessibilityRole="tab"
+              accessibilityLabel={seg}
+              accessibilityState={{ selected: isActive }}
             >
               <Text style={[ns.segText, { color: isActive ? '#000' : muted }]}>
                 {seg}

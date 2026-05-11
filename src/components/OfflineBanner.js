@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Text, StyleSheet, Animated, Platform } from 'react-native';
+import { Z_INDEX } from '../constants/DesignTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
@@ -91,7 +92,10 @@ export const OfflineBanner = () => {
   const isBack = !isOffline && justCameBack;
 
   return (
+    // Item 81: role="alert" + assertive live region — announced immediately
     <Animated.View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="assertive"
       style={[
         styles.banner,
         { backgroundColor: isBack ? '#10b981' : '#ef4444', paddingTop: (insets.top || 0) + 10 },
@@ -113,7 +117,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 9999,
+    zIndex: Z_INDEX.modal - 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

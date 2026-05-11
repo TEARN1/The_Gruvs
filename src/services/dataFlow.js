@@ -5,7 +5,7 @@
  * CheckIn, Analytics, Calendar, Route, Score).
  */
 
-import { supabase } from './supabase';
+import { supabase, isSupabaseEnabled } from './supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CACHE  (stale-while-revalidate, prefix invalidation)
@@ -140,6 +140,7 @@ export const FeedManager = {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
+    // Removed demo mode fallback. Real data required.
     try {
       let q = supabase
         .from('events')
@@ -171,7 +172,10 @@ export const FeedManager = {
       const result = { events, total: count || 0, page, hasMore: events.length === this.PAGE_SIZE };
       cache.set(cacheKey, result);
       return result;
-    } catch { return { events: [], total: 0, page, hasMore: false }; }
+    } catch (error) {
+      console.error('FeedManager.fetchPage error:', error);
+      throw error;
+    }
   },
 
   // Featured Gruv — pinned or highest scoring upcoming event
@@ -180,6 +184,7 @@ export const FeedManager = {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
+    // Removed demo mode fallback.
     try {
       const { data } = await supabase
         .from('events')
@@ -198,12 +203,16 @@ export const FeedManager = {
 
       cache.set('feed:featured', best, 120_000); // 2-min TTL for hero card
       return best;
-    } catch { return null; }
+    } catch (error) {
+      console.error('FeedManager.fetchFeatured error:', error);
+      return null;
+    }
   },
 
   async searchAll(query) {
     if (!query.trim()) return { events: [], users: [] };
     const s = query.trim();
+    // Removed demo mode fallback.
     try {
       const [evRes, userRes, ftsRes] = await Promise.allSettled([
         supabase
@@ -230,13 +239,17 @@ export const FeedManager = {
       if (ftsEvents) ilikeEvents.forEach(e => { if (!eventMap.has(e.id)) eventMap.set(e.id, e); });
 
       return { events: [...eventMap.values()].slice(0, 20), users };
-    } catch { return { events: [], users: [] }; }
+    } catch (error) {
+      console.error('FeedManager.searchAll error:', error);
+      throw error;
+    }
   },
 
   async fetchSingle(eventId) {
     const cacheKey = `event:${eventId}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
+    // Removed demo mode fallback.
     try {
       const { data } = await supabase
         .from('events')
@@ -245,7 +258,10 @@ export const FeedManager = {
         .single();
       if (data) cache.set(cacheKey, data);
       return data;
-    } catch { return null; }
+    } catch (error) {
+      console.error('FeedManager.fetchSingle error:', error);
+      return null;
+    }
   },
 
   invalidate(eventId) {
@@ -336,6 +352,10 @@ export const TrendingManager = {
 export const VibeManager = {
   // Returns updated vibe count, or null on failure
   async sendVibe(eventId, userId) {
+    if (!isSupabaseEnabled) {
+      FeedManager.invalidate(eventId);
+      return true;
+    }
     try {
       const { error } = await supabase
         .from('event_vibes')
@@ -350,6 +370,10 @@ export const VibeManager = {
   },
 
   async removeVibe(eventId, userId) {
+    if (!isSupabaseEnabled) {
+      FeedManager.invalidate(eventId);
+      return true;
+    }
     try {
       const { error } = await supabase
         .from('event_vibes')
@@ -384,6 +408,10 @@ export const VibeManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const RSVPManager = {
   async upsert(eventId, userId, status) {
+    if (!isSupabaseEnabled) {
+      FeedManager.invalidate(eventId);
+      return true;
+    }
     try {
       const { error } = await supabase
         .from('event_rsvps')
@@ -455,6 +483,7 @@ export const RSVPManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const BookmarkManager = {
   async toggle(eventId, userId, isSaved) {
+    if (!isSupabaseEnabled) return !isSaved;
     try {
       if (isSaved) {
         await supabase.from('saved_events').delete().eq('event_id', eventId).eq('user_id', userId);
@@ -488,6 +517,7 @@ export const BookmarkManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const UserManager = {
   async follow(followerId, followingId) {
+    if (!isSupabaseEnabled) return true;
     try {
       await supabase.from('follows').insert({ follower_id: followerId, following_id: followingId });
       cache.invalidate(`follows:${followerId}`);
@@ -498,6 +528,7 @@ export const UserManager = {
   },
 
   async unfollow(followerId, followingId) {
+    if (!isSupabaseEnabled) return true;
     try {
       await supabase.from('follows')
         .delete().eq('follower_id', followerId).eq('following_id', followingId);
@@ -665,6 +696,10 @@ export const NotificationManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const CheckInManager = {
   async touchDown(eventId, userId, coords = {}) {
+    if (!isSupabaseEnabled) {
+      FeedManager.invalidate(eventId);
+      return true;
+    }
     try {
       const { error } = await supabase
         .from('live_checkins')
@@ -734,6 +769,7 @@ export const CheckInManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const DiscoveryManager = {
   async findNearbyEvents(lat, lon, radiusKm = 25) {
+    // Removed demo mode fallback.
     const cacheKey = `nearby_events:${Math.round(lat * 10)}:${Math.round(lon * 10)}:${radiusKm}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
@@ -743,10 +779,19 @@ export const DiscoveryManager = {
       });
       if (data) cache.set(cacheKey, data);
       return data || [];
-    } catch { return []; }
+    } catch (error) {
+      console.error('DiscoveryManager.findNearbyEvents error:', error);
+      return [];
+    }
   },
 
   async findNearbyVibers(userId, radius = 10) {
+    if (!isSupabaseEnabled) {
+      return [
+        { id: 'v1', username: 'local_viber', vibe_score: 300, avatar_url: 'https://i.pravatar.cc/150?u=v1', dist_km: 1.2 },
+        { id: 'v2', username: 'gruv_neighbor', vibe_score: 150, avatar_url: 'https://i.pravatar.cc/150?u=v2', dist_km: 2.5 },
+      ];
+    }
     const cacheKey = `nearby_vibers:${userId}:${radius}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
@@ -756,7 +801,10 @@ export const DiscoveryManager = {
       });
       if (data) cache.set(cacheKey, data);
       return data || [];
-    } catch { return []; }
+    } catch (error) {
+      console.error('DiscoveryManager.findNearbyVibers error:', error);
+      return [];
+    }
   },
 };
 
@@ -768,6 +816,7 @@ export const AnalyticsManager = {
     const cacheKey = `profile_stats:${userId}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
+    // Removed demo mode fallback.
     try {
       const [posts, saves, vibes, checkins, followers] = await Promise.all([
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId),
@@ -785,7 +834,10 @@ export const AnalyticsManager = {
       };
       cache.set(cacheKey, result);
       return result;
-    } catch { return { gruvCount: 0, savedCount: 0, vibeCount: 0, touchDownCount: 0, followerCount: 0 }; }
+    } catch (error) {
+      console.error('AnalyticsManager.getProfileStats error:', error);
+      return { gruvCount: 0, savedCount: 0, vibeCount: 0, touchDownCount: 0, followerCount: 0 };
+    }
   },
 
   // Per-event stats for organisers
@@ -849,6 +901,7 @@ export const CalendarManager = {
     const lastDay = new Date(year, month + 1, 0).getDate();
     const to = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
 
+    // Removed demo mode fallback.
     try {
       const { data } = await supabase
         .from('events')
@@ -860,7 +913,10 @@ export const CalendarManager = {
       const result = data || [];
       cache.set(cacheKey, result);
       return result;
-    } catch { return []; }
+    } catch (error) {
+      console.error('CalendarManager.fetchMonthEvents error:', error);
+      return [];
+    }
   },
 
   async fetchUpcoming(limit = 10) {
@@ -888,7 +944,12 @@ export const CalendarManager = {
 export const RealtimeManager = {
   _subs: {},
 
+  _isAvailable() {
+    return isSupabaseEnabled && !!supabase;
+  },
+
   subscribeToFeed(onInsert, onUpdate) {
+    if (!this._isAvailable()) return () => {};
     this._add('feed_realtime', 'events_feed',
       supabase.channel('events_feed')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, p => {
@@ -906,6 +967,7 @@ export const RealtimeManager = {
   },
 
   subscribeToEvent(eventId, onChange) {
+    if (!this._isAvailable()) return () => {};
     const key = `event_${eventId}`;
     this._add(key, key,
       supabase.channel(key)
@@ -919,6 +981,7 @@ export const RealtimeManager = {
 
   // Live vibe count changes for an event (useful on EventDetail screen)
   subscribeToVibeCount(eventId, onChange) {
+    if (!this._isAvailable()) return () => {};
     const key = `vibes_${eventId}`;
     this._add(key, key,
       supabase.channel(key)
@@ -939,6 +1002,7 @@ export const RealtimeManager = {
 
   // Live Touch Down attendee count
   subscribeToAttendees(eventId, onChange) {
+    if (!this._isAvailable()) return () => {};
     const key = `checkins_${eventId}`;
     this._add(key, key,
       supabase.channel(key)
@@ -1571,6 +1635,66 @@ export const FollowingFeedManager = {
       cache.set(cacheKey, result, 60_000);
       return result;
     } catch { return { events: [], hasMore: false }; }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTIVITY FEED MANAGER  (what your followed users are doing)
+// ─────────────────────────────────────────────────────────────────────────────
+export const ActivityFeedManager = {
+  async fetchActivity(userId, limit = 40) {
+    if (!userId) return { liveNow: [], activity: [] };
+    const followedIds = await UserManager.getFollowedIds(userId);
+    if (!followedIds.length) return { liveNow: [], activity: [] };
+
+    try {
+      const [rsvpRes, checkinRes, vibeRes] = await Promise.all([
+        supabase
+          .from('event_rsvps')
+          .select('user_id, event_id, status, created_at, profiles(username, avatar_url, is_online), events(id, title, event_date, media, venue_name, category, going)')
+          .in('user_id', followedIds)
+          .eq('status', 'going')
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        supabase
+          .from('live_checkins')
+          .select('user_id, event_id, checked_in_at, profiles(username, avatar_url, is_online), events(id, title, event_date, media, venue_name, category, going)')
+          .in('user_id', followedIds)
+          .order('checked_in_at', { ascending: false })
+          .limit(20),
+        supabase
+          .from('event_vibes')
+          .select('user_id, event_id, created_at, profiles(username, avatar_url, is_online), events(id, title, event_date, media, venue_name, category, going)')
+          .in('user_id', followedIds)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+      ]);
+
+      const toRow = (type, row, ts) => ({
+        id: `${type}-${row.user_id}-${row.event_id}-${ts}`,
+        type,
+        actor: row.profiles,
+        event: row.events,
+        timestamp: ts,
+      });
+
+      const activity = [
+        ...(rsvpRes.data || []).map(r => toRow('rsvp', r, r.created_at)),
+        ...(checkinRes.data || []).map(r => toRow('checkin', r, r.checked_in_at)),
+        ...(vibeRes.data || []).map(r => toRow('vibe', r, r.created_at)),
+      ]
+        .filter(r => r.actor && r.event)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, limit);
+
+      const liveNow = (checkinRes.data || [])
+        .filter(r => r.profiles?.is_online && r.events)
+        .map(r => ({ actor: r.profiles, event: r.events, checkedInAt: r.checked_in_at }));
+
+      return { liveNow, activity };
+    } catch {
+      return { liveNow: [], activity: [] };
+    }
   },
 };
 

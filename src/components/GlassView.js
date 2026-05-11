@@ -1,5 +1,6 @@
 import { View, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { DURATION } from '../constants/DesignTokens';
 
 export const GlassView = ({ children, style, intensity = 1, glow = false }) => {
   const { currentTheme } = useTheme();
@@ -26,6 +27,7 @@ export const GlassView = ({ children, style, intensity = 1, glow = false }) => {
       };
 
   return (
+    // Items 76-77: will-change + className for GPU promotion and CSS transparency rule
     <View
       style={[
         styles.glass,
@@ -35,9 +37,14 @@ export const GlassView = ({ children, style, intensity = 1, glow = false }) => {
           borderRadius: currentTheme.borderRadius || 18,
           borderWidth: currentTheme.borderWidth || 1,
           ...glowStyle,
+          ...(isWeb ? {
+            willChange: 'transform',
+            transition: `box-shadow ${DURATION.fast}ms ease`,
+          } : {}),
         },
         style,
       ]}
+      {...(isWeb ? { className: 'glass-view' } : {})}
     >
       {children}
     </View>

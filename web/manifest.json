@@ -2,8 +2,10 @@
   "name": "The Gruvs — Find Events & Nightlife Near You",
   "short_name": "The Gruvs",
   "description": "South Africa's #1 nightlife and events app. Discover Gruvs, concerts, food festivals, and nightlife near you. Vibe, Touch Down, and connect with your Crew.",
+  "id": "/",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "portrait",
   "theme_color": "#00f2ff",
   "background_color": "#0d1112",
@@ -15,13 +17,22 @@
       "src": "/screenshot-1.jpg",
       "sizes": "1080x1920",
       "type": "image/jpeg",
-      "label": "Discover Gruvs near you"
+      "label": "Discover Gruvs near you",
+      "form_factor": "narrow"
     },
     {
       "src": "/screenshot-2.jpg",
       "sizes": "1080x1920",
       "type": "image/jpeg",
-      "label": "Touch Down and Vibe with your Crew"
+      "label": "Touch Down and Vibe with your Crew",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-wide.jpg",
+      "sizes": "1920x1080",
+      "type": "image/jpeg",
+      "label": "The Gruvs — Desktop Experience",
+      "form_factor": "wide"
     }
   ],
   "icons": [
@@ -59,8 +70,18 @@
       "description": "Manage your Gruvs business",
       "url": "/biz",
       "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "The Drop",
+      "short_name": "Drop",
+      "description": "See what's dropping tonight — last-minute Gruvs and flash events",
+      "url": "/drop",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
     }
   ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
   "related_applications": [
     {
       "platform": "play",

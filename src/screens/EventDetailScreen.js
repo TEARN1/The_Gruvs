@@ -14,7 +14,7 @@ import { RatingSection } from '../components/RatingSection';
 import { EventGallery } from '../components/EventGallery';
 import { MediaViewer } from '../components/MediaViewer';
 import { useToast } from '../components/ToastNotification';
-import { supabase } from '../services/supabase';
+import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, ScoreEngine } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import { EventContextualAds } from '../components/EventContextualAds';
@@ -54,7 +54,7 @@ const formatPrice = (price) => {
 export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) => {
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
-  const { showToast } = useToast();
+  const { show: showToast } = useToast();
 
   const [rsvpStatus, setRsvpStatus] = useState(null);
   const [checkedIn, setCheckedIn] = useState(false);
@@ -102,17 +102,21 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
     if (!visible || !event?.id) return;
 
+    let unsubVibe = () => {};
+    let unsubCheckin = () => {};
+    let rsvpChan = null;
+
     // Real-time: live vibe count — wired to state
-    const unsubVibe = RealtimeManager.subscribeToVibeCount(event.id, (count) => {
+    unsubVibe = RealtimeManager.subscribeToVibeCount(event.id, (count) => {
       setVibeCount(count);
     });
     // Real-time: live Touch Down (attendee) count
-    const unsubCheckin = RealtimeManager.subscribeToAttendees(event.id, () => {
+    unsubCheckin = RealtimeManager.subscribeToAttendees(event.id, () => {
       fetchGoingCount();
     });
     // Real-time: RSVP changes → refresh going count
     const chanKey = `rsvp_${event.id}`;
-    const rsvpChan = supabase.channel(chanKey)
+    rsvpChan = supabase.channel(chanKey)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_rsvps', filter: `event_id=eq.${event.id}` }, () => {
         fetchGoingCount();
       })
@@ -121,29 +125,29 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     return () => {
       unsubVibe();
       unsubCheckin();
-      supabase.removeChannel(rsvpChan);
+      if (rsvpChan) supabase.removeChannel(rsvpChan);
     };
   }, [visible, event?.id]);
 
   const fetchUserState = async () => {
     if (!user || !event?.id) return;
-    const [rsvpStatus, isFollowingResult, alreadyCheckedIn] = await Promise.all([
-      RSVPManager.getUserStatus(event.id, user.id),
-      UserManager.isFollowing(user.id, organizer?.id),
-      CheckInManager.hasCheckedIn(event.id, user.id),
-    ]);
-    if (rsvpStatus) setRsvpStatus(rsvpStatus);
-    setIsFollowing(isFollowingResult);
-    if (alreadyCheckedIn) setCheckedIn(true);
+    try {
+      const [rsvpStatus, isFollowingResult, alreadyCheckedIn] = await Promise.all([
+        RSVPManager.getUserStatus(event.id, user.id),
+        UserManager.isFollowing(user.id, organizer?.id),
+        CheckInManager.hasCheckedIn(event.id, user.id),
+      ]);
+      if (rsvpStatus) setRsvpStatus(rsvpStatus);
+      setIsFollowing(isFollowingResult);
+      if (alreadyCheckedIn) setCheckedIn(true);
+    } catch (err) {
+      console.error('Fetch user state error:', err);
+    }
   };
 
   const fetchGoingCount = async () => {
     if (!event?.id) return;
-    const { count } = await supabase
-      .from('event_rsvps')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', event.id)
-      .eq('status', 'going');
+    const count = await RSVPManager.getGoingCount(event.id);
     setGoingCount(count || 0);
   };
 
@@ -156,20 +160,24 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     if (status === 'going' && prev !== 'going') setGoingCount((c) => c + 1);
     if (prev === 'going' && status !== 'going') setGoingCount((c) => Math.max(0, c - 1));
     setRsvpLoading(true);
-    const ok = await RSVPManager.upsert(event.id, user.id, status);
-    if (!ok) {
+    try {
+      const ok = await RSVPManager.upsert(event.id, user.id, status);
+      if (!ok) throw new Error('RSVP update failed');
+      
+      showToast(
+        status === 'going' ? "You're Vibing!" : status === 'maybe' ? "Maybe Vibing" : "Vibe removed",
+        'success'
+      );
+    } catch (err) {
+      console.error('RSVP error:', err);
       // Rollback on failure
       setRsvpStatus(prev);
       if (status === 'going' && prev !== 'going') setGoingCount((c) => Math.max(0, c - 1));
       if (prev === 'going' && status !== 'going') setGoingCount((c) => c + 1);
       showToast('Could not Vibe. Try again.', 'error');
-    } else {
-      showToast(
-        status === 'going' ? "You're Vibing!" : status === 'maybe' ? "Maybe Vibing" : "Vibe removed",
-        'success'
-      );
+    } finally {
+      setRsvpLoading(false);
     }
-    setRsvpLoading(false);
   };
 
   const handleFollow = async () => {
@@ -210,14 +218,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   const handleWhoGoing = async () => {
     if (!event?.id) return;
-    const { data } = await supabase
-      .from('event_rsvps')
-      .select('profiles(id, username, avatar_url, vibe_score)')
-      .eq('event_id', event.id)
-      .eq('status', 'going')
-      .limit(50);
-    setWhoGoing((data || []).map(r => r.profiles).filter(Boolean));
-    setWhoGoingVisible(true);
+    try {
+      const { data, error } = await supabase
+        .from('event_rsvps')
+        .select('profiles(id, username, avatar_url, vibe_score)')
+        .eq('event_id', event.id)
+        .eq('status', 'going')
+        .limit(50);
+      if (error) throw error;
+      setWhoGoing((data || []).map(r => r.profiles).filter(Boolean));
+      setWhoGoingVisible(true);
+    } catch (err) {
+      console.error('WhoGoing error:', err);
+      showToast('Could not load vibers list.', 'error');
+    }
   };
 
   const openMaps = () => {
@@ -264,7 +278,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose} statusBarTranslucent>
-      <View style={[styles.root, { backgroundColor: background }]}>
+      <View
+        style={[styles.root, { backgroundColor: background }]}
+        accessibilityViewIsModal
+        accessibilityLabel={event?.title ? `Event details: ${event.title}` : 'Event details'}
+        {...(Platform.OS === 'web' ? { 'aria-modal': true } : {})}
+      >
 
         <View style={styles.hero}>
           <MediaViewer media={media} containerWidth={undefined} />
@@ -276,7 +295,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </View>
           )}
 
-          <TouchableOpacity style={[styles.heroBtn, styles.closeBtn]} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity
+            style={[styles.heroBtn, styles.closeBtn]}
+            onPress={onClose}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Close event details"
+          >
             <Feather name="x" size={20} color="#fff" />
           </TouchableOpacity>
 
@@ -319,11 +344,24 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               style={[styles.followBtn, { borderColor: primary, backgroundColor: isFollowing ? primary : 'transparent' }]}
               onPress={handleFollow}
               disabled={followLoading}
+              accessibilityRole="button"
+              accessibilityLabel={isFollowing ? `Unfollow ${organizer.username}` : `Follow ${organizer.username}`}
             >
               <Text style={[styles.followBtnText, { color: isFollowing ? '#000' : primary }]}>
                 {isFollowing ? 'Locked In' : 'Lock In'}
               </Text>
             </TouchableOpacity>
+
+            {user && organizer?.id && user.id !== organizer.id && (
+              <TouchableOpacity
+                style={[styles.messageOrganizerBtn, { borderColor: `${primary}50`, backgroundColor: `${primary}12` }]}
+                onPress={() => setDmOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`Message ${organizer.username || 'organizer'}`}
+              >
+                <Feather name="message-circle" size={16} color={primary} />
+              </TouchableOpacity>
+            )}
           </View>
 
           <Text style={[styles.title, { color: textColor }]}>{event?.title || 'Untitled Gruv'}</Text>

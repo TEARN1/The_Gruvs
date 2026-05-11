@@ -67,7 +67,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
 
   const handleDelete = () => {
     if (Platform.OS === 'web') {
-      if (window.confirm(`Delete "${event?.title}"? This cannot be undone.`)) confirmDelete();
+      if (typeof window !== 'undefined' && window.confirm(`Delete "${event?.title}"? This cannot be undone.`)) confirmDelete();
     } else {
       Alert.alert(
         'Delete Event',

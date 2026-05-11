@@ -3,24 +3,49 @@ import {
   View, StyleSheet, TouchableOpacity, Text,
   StatusBar, Animated, Platform, useWindowDimensions,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { BREAKPOINT } from './src/constants/DesignTokens';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
-import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { AuthProvider } from './src/context/AuthContext';
 import { IdentityProvider } from './src/context/IdentityContext';
 import { ToastProvider } from './src/components/ToastNotification';
 import { LandingPage } from './src/screens/LandingPage';
-import { ExplorePage } from './src/screens/ExplorePage';
-import { ProfilePage } from './src/screens/ProfilePage';
-import { CalendarPage } from './src/screens/CalendarPage';
+// Hooks from these modules are used at shell level — keep eager
 import { NotificationsScreen, useUnreadCount } from './src/screens/NotificationsScreen';
 import { ChatsScreen, useUnreadDMCount } from './src/screens/ChatsScreen';
 import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
-import { BusinessDashboardScreen } from './src/screens/BusinessDashboardScreen';
+// Heavy screens — lazy-loaded on first navigation, keeping initial bundle small
+const ProfilePage = React.lazy(() =>
+  import('./src/screens/ProfilePage').then(m => ({ default: m.ProfilePage }))
+);
+const CalendarPage = React.lazy(() =>
+  import('./src/screens/CalendarPage').then(m => ({ default: m.CalendarPage }))
+);
+const CrewFeedScreen = React.lazy(() =>
+  import('./src/screens/CrewFeedScreen').then(m => ({ default: m.CrewFeedScreen }))
+);
+const BusinessDashboardScreen = React.lazy(() =>
+  import('./src/screens/BusinessDashboardScreen').then(m => ({ default: m.BusinessDashboardScreen }))
+);
+const ScoutScreen = React.lazy(() =>
+  import('./src/screens/ScoutScreen').then(m => ({ default: m.ScoutScreen }))
+);
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
+import { installGlobalErrorHandler } from './src/utils/errorReporter';
+
+// Install before any component mounts so all boot errors are captured
+installGlobalErrorHandler();
+
+const ScreenFallback = () => (
+  <View style={{ flex: 1, backgroundColor: '#0d1112', alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 3, borderColor: '#00f2ff', borderTopColor: 'transparent', opacity: 0.7 }} />
+  </View>
+);
 
 class ErrorBoundary extends Component {
   state = { hasError: false, error: null };
@@ -42,13 +67,14 @@ class ErrorBoundary extends Component {
 const TABS = [
   { key: 'feed',          label: 'The Drop',  icon: 'home'            },
   { key: 'explore',       label: 'Scout',     icon: 'compass'         },
+  { key: 'crew',          label: 'Crew',      icon: 'users'           },
   { key: 'calendar',      label: 'Lineup',    icon: 'calendar'        },
   { key: 'chats',         label: 'Linked Up', icon: 'message-circle'  },
   { key: 'notifications', label: 'Pings',     icon: 'bell'            },
   { key: 'profile',       label: 'Vibe Card', icon: 'user'            },
 ];
 
-const WIDE_BREAKPOINT      = 900;
+const WIDE_BREAKPOINT      = BREAKPOINT.wide;
 const SIDEBAR_OPEN_WIDTH   = 220;
 const SIDEBAR_CLOSED_WIDTH = 56;
 
@@ -83,21 +109,32 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0, unre
       {TABS.map(tab => {
         const isActive = currentTab === tab.key;
         return (
+          // Items 31-32: accessibilityRole="tab", label, and selected state
           <TouchableOpacity
             key={tab.key}
             style={styles.tab}
             onPress={() => onTabChange(tab.key)}
             activeOpacity={0.75}
+            accessibilityRole="tab"
+            accessibilityLabel={tab.label}
+            accessibilityState={{ selected: isActive }}
           >
             <View style={{ position: 'relative' }}>
               <Feather name={tab.icon} size={20} color={isActive ? primary : `${muted}`} style={{ opacity: isActive ? 1 : 0.5 }} />
+              {/* Item 38: accessible unread badge labels */}
               {tab.key === 'notifications' && unreadCount > 0 && (
-                <View style={[styles.unreadBadge, { backgroundColor: '#ef4444' }]}>
+                <View
+                  style={[styles.unreadBadge, { backgroundColor: '#ef4444' }]}
+                  accessibilityLabel={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`}
+                >
                   <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
                 </View>
               )}
               {tab.key === 'chats' && unreadDMCount > 0 && (
-                <View style={[styles.unreadBadge, { backgroundColor: primary }]}>
+                <View
+                  style={[styles.unreadBadge, { backgroundColor: primary }]}
+                  accessibilityLabel={`${unreadDMCount} unread message${unreadDMCount !== 1 ? 's' : ''}`}
+                >
                   <Text style={[styles.unreadBadgeText, { color: '#000' }]}>{unreadDMCount > 9 ? '9+' : unreadDMCount}</Text>
                 </View>
               )}
@@ -112,16 +149,21 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0, unre
 };
 
 // ── Left Sidebar (wide screens) ───────────────────────────────────────────────
+// Item 33: accessibilityRole="navigation" on root
 const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onToggle }) => (
-  <View style={[
-    sb.root,
-    {
-      width: isOpen ? SIDEBAR_OPEN_WIDTH : SIDEBAR_CLOSED_WIDTH,
-      backgroundColor: bg,
-      borderRightColor: `${primary}15`,
-    },
-    Platform.OS === 'web' && { transition: 'width 0.2s ease' },
-  ]}>
+  <View
+    accessibilityRole="navigation"
+    accessibilityLabel="Main navigation"
+    style={[
+      sb.root,
+      {
+        width: isOpen ? SIDEBAR_OPEN_WIDTH : SIDEBAR_CLOSED_WIDTH,
+        backgroundColor: bg,
+        borderRightColor: `${primary}15`,
+      },
+      Platform.OS === 'web' && { transition: 'width 0.2s ease' },
+    ]}
+  >
     {/* Logo */}
     <View style={[sb.logoRow, { justifyContent: isOpen ? 'flex-start' : 'center' }]}>
       <BrandLogo size={24} showGlow={isOpen} />
@@ -140,6 +182,8 @@ const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onTog
       {TABS.map(tab => {
         const isActive = currentTab === tab.key;
         return (
+          // Item 33: accessibilityRole="tab", label, state on sidebar items
+          // Item 39: data-tooltip for collapsed state CSS tooltip
           <TouchableOpacity
             key={tab.key}
             style={[
@@ -153,6 +197,10 @@ const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onTog
             ]}
             onPress={() => onTabChange(tab.key)}
             activeOpacity={0.75}
+            accessibilityRole="tab"
+            accessibilityLabel={tab.label}
+            accessibilityState={{ selected: isActive }}
+            {...(!isOpen && Platform.OS === 'web' ? { 'data-tooltip': tab.label } : {})}
           >
             <Feather
               name={tab.icon}
@@ -170,10 +218,12 @@ const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onTog
       })}
     </View>
 
-    {/* Toggle button */}
+    {/* Toggle button — Item 44: accessibility role + label */}
     <TouchableOpacity
       style={[sb.toggleBtn, { justifyContent: isOpen ? 'flex-start' : 'center' }]}
       onPress={onToggle}
+      accessibilityRole="button"
+      accessibilityLabel={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
     >
       <Feather
         name={isOpen ? 'sidebar' : 'menu'}
@@ -234,6 +284,8 @@ const MainNavigator = () => {
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [targetEvent, setTargetEvent] = useState(null);
+  // Item 41: cross-fade between screens
+  const screenOpacity = useRef(new Animated.Value(1)).current;
 
   const isWide = width >= WIDE_BREAKPOINT;
 
@@ -253,14 +305,52 @@ const MainNavigator = () => {
   const muted   = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
   const isDark  = !bg.startsWith('#f') && !bg.startsWith('#e');
 
-  const IS_DEMO_MODE = !process.env.EXPO_PUBLIC_SUPABASE_URL ||
-    process.env.EXPO_PUBLIC_SUPABASE_URL.includes('your-project-id');
+  // Item 35: keyboard navigation 1-6 on web desktop
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handler = (e) => {
+      const idx = parseInt(e.key, 10);
+      if (idx >= 1 && idx <= TABS.length && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const target = e.target?.tagName;
+        if (target === 'INPUT' || target === 'TEXTAREA') return;
+        handleTabChange(TABS[idx - 1].key);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [currentTab]);
+
+  // Item 36: update document.title on tab change
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const tabLabel = TABS.find(t => t.key === currentTab)?.label || 'The Drop';
+    document.title = `${tabLabel} — The Gruvs`;
+  }, [currentTab]);
 
   const handleTabChange = (tab) => {
-    if (tab === currentTab && tab === 'feed') {
-      setFeedRefreshKey(k => k + 1);
+    // Item 34: haptic feedback on native
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+
+    const doSwitch = () => {
+      if (tab === currentTab && tab === 'feed') {
+        setFeedRefreshKey(k => k + 1);
+      } else {
+        // Item 41: cross-fade animation
+        Animated.sequence([
+          Animated.timing(screenOpacity, { toValue: 0, duration: 80, useNativeDriver: true }),
+          Animated.timing(screenOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+        ]).start();
+        setCurrentTab(tab);
+      }
+    };
+
+    // Item 45: View Transitions API on web
+    if (Platform.OS === 'web' && typeof document !== 'undefined' && document.startViewTransition) {
+      document.startViewTransition(doSwitch);
     } else {
-      setCurrentTab(tab);
+      doSwitch();
     }
   };
 
@@ -291,11 +381,13 @@ const MainNavigator = () => {
         );
       case 'explore':
         return (
-          <ExplorePage
+          <ScoutScreen
             onAuthRequired={handleAuthRequired}
             onNavigateToEvent={handleNavigateToEvent}
           />
         );
+      case 'crew':
+        return <CrewFeedScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'calendar':
         return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'chats':
@@ -327,11 +419,31 @@ const MainNavigator = () => {
         translucent={false}
       />
 
-      {IS_DEMO_MODE && (
-        <View style={[styles.offlineBanner, { backgroundColor: primary }]}>
-          <Feather name="wifi-off" size={12} color="#000" />
-          <Text style={styles.offlineText}>OFFLINE MODE — GRUV DATA NOT CONNECTED</Text>
-        </View>
+      {/* Item 37: Hidden ARIA live region announces current tab to screen readers */}
+      <View
+        accessible
+        importantForAccessibility="yes"
+        aria-live="polite"
+        aria-atomic="true"
+        style={styles.srOnly}
+      >
+        <Text>{TABS.find(t => t.key === currentTab)?.label || ''}</Text>
+      </View>
+
+      {/* Item 40: Skip-to-content link */}
+      {Platform.OS === 'web' && (
+        <TouchableOpacity
+          nativeID="skip-to-content"
+          accessibilityRole="link"
+          accessibilityLabel="Skip to main content"
+          onPress={() => {
+            const el = document.getElementById('main-content');
+            if (el) { el.setAttribute('tabindex', '-1'); el.focus(); }
+          }}
+          style={styles.skipLink}
+        >
+          <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Skip to content</Text>
+        </TouchableOpacity>
       )}
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -347,16 +459,22 @@ const MainNavigator = () => {
               isOpen={sidebarOpen}
               onToggle={() => setSidebarOpen(p => !p)}
             />
-            <View style={styles.wideContent}>
-              {renderScreen()}
-            </View>
+            {/* Item 43: nativeID for skip-link anchor */}
+            <Animated.View nativeID="main-content" style={[styles.wideContent, { opacity: screenOpacity }]}>
+              <React.Suspense fallback={<ScreenFallback />}>
+                {renderScreen()}
+              </React.Suspense>
+            </Animated.View>
           </View>
         ) : (
           // ── Narrow screen: bottom tab bar ──────────────────────────────
           <View style={styles.narrowLayout}>
-            <View style={styles.content}>
-              {renderScreen()}
-            </View>
+            {/* Item 43: nativeID for skip-link anchor */}
+            <Animated.View nativeID="main-content" style={[styles.content, { opacity: screenOpacity }]}>
+              <React.Suspense fallback={<ScreenFallback />}>
+                {renderScreen()}
+              </React.Suspense>
+            </Animated.View>
             <TabBar
               currentTab={currentTab}
               onTabChange={handleTabChange}
@@ -369,9 +487,11 @@ const MainNavigator = () => {
         )}
       </SafeAreaView>
 
+      {/* Item 42: accessibilityViewIsModal on AuthModal */}
       <AuthModal
         visible={authModalVisible}
         onClose={() => setAuthModalVisible(false)}
+        accessibilityViewIsModal={true}
       />
 
       {/* Tutorial overlay — rendered on top of everything */}
@@ -440,6 +560,26 @@ const styles = StyleSheet.create({
   tabDot:   { width: 4, height: 4, borderRadius: 2, marginTop: 1 },
   unreadBadge: { position: 'absolute', top: -4, right: -6, minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
   unreadBadgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
+
+  // Item 37: visually hidden ARIA live region
+  srOnly: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    overflow: 'hidden',
+    opacity: 0,
+  },
+  // Item 40: skip-to-content (positioned via CSS id="skip-to-content")
+  skipLink: {
+    position: 'absolute',
+    top: -100,
+    left: 8,
+    zIndex: 99999,
+    backgroundColor: '#00f2ff',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
 
   offlineBanner: {
     height: 30,
