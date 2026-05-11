@@ -1653,14 +1653,14 @@ DECLARE
   shared_count INTEGER;
 BEGIN
   -- Only run if coords changed and are not null
-  IF (NEW.location_coords IS DISTINCT FROM OLD.location_coords) AND (NEW.location_coords IS NOT NULL) THEN
-    
+  IF (NEW.coords IS DISTINCT FROM OLD.coords) AND (NEW.coords IS NOT NULL) THEN
+
     FOR nearby_user IN (
       SELECT id, username, interests, avatar_url
       FROM profiles
       WHERE id <> NEW.id
         AND is_discoverable = true
-        AND ST_DWithin(location_coords, NEW.location_coords, 5000) -- 5km
+        AND ST_DWithin(coords, NEW.coords, 5000) -- 5km
       LIMIT 3
     ) LOOP
       
@@ -1691,7 +1691,7 @@ $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS on_location_match ON profiles;
 CREATE TRIGGER on_location_match
-  AFTER UPDATE OF location_coords ON profiles
+  AFTER UPDATE OF coords ON profiles
   FOR EACH ROW EXECUTE FUNCTION handle_location_match();
 
 
@@ -1760,7 +1760,7 @@ BEGIN
     COUNT(e.id) AS vibe_density,
     (COUNT(e.id) * 10 + SUM(e.vibe_count) * 0.5)::FLOAT AS hotness_score
   FROM events e
-  WHERE ST_DWithin(e.location_coords, ST_SetSRID(ST_MakePoint(user_lon, user_lat), 4326), radius_m)
+  WHERE ST_DWithin(e.coords, ST_SetSRID(ST_MakePoint(user_lon, user_lat), 4326), radius_m)
     AND e.event_date >= CURRENT_DATE
   GROUP BY e.lat, e.lon, e.venue_name
   HAVING COUNT(e.id) >= 2
@@ -1845,17 +1845,17 @@ RETURNS TABLE (
 DECLARE
   u_coords geography(Point, 4326);
 BEGIN
-  SELECT location_coords INTO u_coords FROM profiles WHERE id = uid;
+  SELECT coords INTO u_coords FROM profiles WHERE id = uid;
   IF u_coords IS NULL THEN RETURN; END IF;
 
   RETURN QUERY
-  SELECT 
+  SELECT
     p.id, p.username, p.avatar_url, p.vibe_score, p.is_online,
-    ST_Distance(p.location_coords, u_coords) / 1000.0 as distance_km
+    ST_Distance(p.coords, u_coords) / 1000.0 as distance_km
   FROM profiles p
   WHERE p.id <> uid
-    AND p.location_coords IS NOT NULL
-    AND ST_DWithin(p.location_coords, u_coords, max_dist_km * 1000)
+    AND p.coords IS NOT NULL
+    AND ST_DWithin(p.coords, u_coords, max_dist_km * 1000)
   ORDER BY distance_km ASC
   LIMIT limit_count;
 END;
