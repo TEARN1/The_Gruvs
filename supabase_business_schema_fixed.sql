@@ -933,6 +933,80 @@ CREATE POLICY "Users manage own gigs"  ON gig_posts FOR ALL    USING (auth.uid()
 
 
 -- ============================================================
+--  SERVICE BOOKINGS  (Escrow)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS service_bookings (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  service_node_id UUID        NOT NULL REFERENCES service_nodes(id) ON DELETE CASCADE,
+  client_id       UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  provider_id     UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  cargo_type      TEXT,
+  pickup_address  TEXT,
+  dropoff_address TEXT,
+  scheduled_at    TIMESTAMPTZ,
+  estimated_price NUMERIC(10,2),
+  status          TEXT        NOT NULL DEFAULT 'escrow_held'
+                    CHECK (status IN ('escrow_held','in_progress','completed','disputed','cancelled')),
+  escrow_held_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at    TIMESTAMPTZ,
+  disputed_at     TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS service_node_id UUID REFERENCES service_nodes(id) ON DELETE CASCADE;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS client_id       UUID REFERENCES profiles(id)      ON DELETE CASCADE;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS provider_id     UUID REFERENCES profiles(id)      ON DELETE CASCADE;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS cargo_type      TEXT;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS pickup_address  TEXT;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS dropoff_address TEXT;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS scheduled_at    TIMESTAMPTZ;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS estimated_price NUMERIC(10,2);
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS status          TEXT DEFAULT 'escrow_held';
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS escrow_held_at  TIMESTAMPTZ DEFAULT now();
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS completed_at    TIMESTAMPTZ;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS disputed_at     TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS bookings_client_idx   ON service_bookings(client_id);
+CREATE INDEX IF NOT EXISTS bookings_provider_idx ON service_bookings(provider_id);
+CREATE INDEX IF NOT EXISTS bookings_status_idx   ON service_bookings(status);
+
+ALTER TABLE service_bookings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Bookings readable by parties" ON service_bookings;
+DROP POLICY IF EXISTS "Clients create bookings"      ON service_bookings;
+DROP POLICY IF EXISTS "Parties update bookings"      ON service_bookings;
+CREATE POLICY "Bookings readable by parties" ON service_bookings FOR SELECT USING (auth.uid() = client_id OR auth.uid() = provider_id);
+CREATE POLICY "Clients create bookings"      ON service_bookings FOR INSERT WITH CHECK (auth.uid() = client_id);
+CREATE POLICY "Parties update bookings"      ON service_bookings FOR UPDATE USING (auth.uid() = client_id OR auth.uid() = provider_id);
+
+
+-- ============================================================
+--  DISPUTES
+-- ============================================================
+CREATE TABLE IF NOT EXISTS disputes (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id UUID        NOT NULL REFERENCES service_bookings(id) ON DELETE CASCADE,
+  raised_by  UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  reason     TEXT,
+  status     TEXT        NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved','dismissed')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE disputes ADD COLUMN IF NOT EXISTS booking_id UUID REFERENCES service_bookings(id) ON DELETE CASCADE;
+ALTER TABLE disputes ADD COLUMN IF NOT EXISTS raised_by  UUID REFERENCES profiles(id)         ON DELETE CASCADE;
+ALTER TABLE disputes ADD COLUMN IF NOT EXISTS reason     TEXT;
+ALTER TABLE disputes ADD COLUMN IF NOT EXISTS status     TEXT DEFAULT 'open';
+
+CREATE INDEX IF NOT EXISTS disputes_booking_idx ON disputes(booking_id);
+CREATE INDEX IF NOT EXISTS disputes_status_idx  ON disputes(status);
+
+ALTER TABLE disputes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Disputes readable by parties" ON disputes;
+DROP POLICY IF EXISTS "Users raise own disputes"     ON disputes;
+CREATE POLICY "Disputes readable by parties" ON disputes FOR SELECT USING (auth.uid() = raised_by);
+CREATE POLICY "Users raise own disputes"     ON disputes FOR INSERT WITH CHECK (auth.uid() = raised_by);
+
+
+-- ============================================================
 --  REFERRALS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS referrals (
