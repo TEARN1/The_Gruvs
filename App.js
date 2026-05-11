@@ -502,9 +502,11 @@ const MainNavigator = () => {
 };
 
 export default function App() {
+  // 'feather' must be lowercase — Font.isLoaded() does a case-sensitive JS comparison against this key
   const [fontsLoaded, fontError] = useFonts({
-    // Explicit TTF require — Metro resolves package paths correctly; Feather.font is undefined in v14
-    Feather: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
+    feather: Platform.OS === 'web'
+      ? 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'
+      : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
   });
 
   // On web: hold render until font is ready — prevents blank icon flash
