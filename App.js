@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, Component } from 'react';
+import { useFonts } from 'expo-font';
 import {
   View, StyleSheet, TouchableOpacity, Text,
   StatusBar, Animated, Platform, useWindowDimensions,
@@ -501,6 +502,17 @@ const MainNavigator = () => {
 };
 
 export default function App() {
+  const [fontsLoaded, fontError] = useFonts({
+    // Preload Feather so tab icons render on first paint (critical on web)
+    Feather: require('./node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
+  });
+
+  // On web: hold render until font is ready — prevents blank icon flash
+  // On native: skip wait; Metro bundles the font automatically
+  if (Platform.OS === 'web' && !fontsLoaded && !fontError) {
+    return <View style={{ flex: 1, backgroundColor: '#0d1112' }} />;
+  }
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
