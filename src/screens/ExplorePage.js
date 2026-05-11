@@ -4,6 +4,7 @@ import {
   TextInput, Dimensions, Animated, Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { FadeInView } from '../components/FadeInView';
@@ -392,8 +393,15 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
     // ── Location: runs after initial render so UI isn't blocked ──────────────
     setLocationLoading(true);
-    const coords = await LocationService.requestAndGet();
-    if (coords) {
+    
+    let coords = null;
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status === 'granted') {
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+      });
+      coords = { lat: loc.coords.latitude, lon: loc.coords.longitude };
+
       setUserCoords(coords);
       // Save to profile so PostGIS viber-proximity works
       if (user) {

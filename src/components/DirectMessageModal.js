@@ -18,6 +18,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { ViberProfileModal } from './ViberProfileModal';
+import { LocationService } from '../services/locationService';
+import { CATEGORY_CONFIG } from '../constants/CategoryConfig';
 
 const EMOJI_REACTIONS = ['❤️', '😂', '🔥', '💯', '👀', '🙏'];
 
@@ -40,7 +42,7 @@ const fmtDate = (ts) => {
 // ── Read receipt ticks ─────────────────────────────────────────────────────────
 const Ticks = ({ msg, userId, primary }) => {
   if (msg.sender_id !== userId) return null;
-  if (msg.read_at)      return <Text style={{ fontSize: 11, color: primary, marginLeft: 4 }}>✓✓</Text>;
+  if (msg.read_at) return <Text style={{ fontSize: 11, color: primary, marginLeft: 4 }}>✓✓</Text>;
   if (msg.delivered_at) return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginLeft: 4 }}>✓✓</Text>;
   return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>✓</Text>;
 };
@@ -70,8 +72,8 @@ const RequestBanner = ({ sender, onAccept, onDecline, primary, textColor, muted 
     {sender?.avatar_url
       ? <Image source={{ uri: sender.avatar_url }} style={rb.avatar} />
       : <View style={[rb.avatar, { backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center' }]}>
-          <Feather name="user" size={22} color={primary} />
-        </View>
+        <Feather name="user" size={22} color={primary} />
+      </View>
     }
     <Text style={[rb.name, { color: textColor }]}>@{sender?.username || 'Viber'} wants to link up</Text>
     <Text style={[rb.sub, { color: muted }]}>Accept to reply and start the conversation.</Text>
@@ -88,14 +90,14 @@ const RequestBanner = ({ sender, onAccept, onDecline, primary, textColor, muted 
   </View>
 );
 const rb = StyleSheet.create({
-  wrap:       { margin: 14, padding: 18, borderRadius: 18, borderWidth: 1, alignItems: 'center', gap: 8 },
-  avatar:     { width: 60, height: 60, borderRadius: 30 },
-  name:       { fontSize: 15, fontWeight: '900' },
-  sub:        { fontSize: 12, lineHeight: 17, textAlign: 'center' },
-  actions:    { flexDirection: 'row', gap: 12, width: '100%', marginTop: 4 },
-  btn:        { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 14 },
+  wrap: { margin: 14, padding: 18, borderRadius: 18, borderWidth: 1, alignItems: 'center', gap: 8 },
+  avatar: { width: 60, height: 60, borderRadius: 30 },
+  name: { fontSize: 15, fontWeight: '900' },
+  sub: { fontSize: 12, lineHeight: 17, textAlign: 'center' },
+  actions: { flexDirection: 'row', gap: 12, width: '100%', marginTop: 4 },
+  btn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 14 },
   declineBtn: { borderWidth: 1, borderColor: '#ef444450' },
-  acceptBtn:  {},
+  acceptBtn: {},
 });
 
 // ── Date separator ─────────────────────────────────────────────────────────────
@@ -122,35 +124,38 @@ const ReactionPicker = ({ onSelect, onClose, primary }) => (
 );
 const rp = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a2225', borderRadius: 24, borderWidth: 1, padding: 6, gap: 4 },
-  btn:  { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
+  btn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
 });
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
-  const { user }         = useAuth();
-  const insets           = useSafeAreaInsets();
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text       || '#fff';
-  const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
+  const primary = currentTheme?.primary || '#00f2ff';
+  const bg = currentTheme?.background || '#0d1112';
+  const textColor = currentTheme?.text || '#fff';
+  const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
-  const [messages,      setMessages]      = useState([]);
-  const [body,          setBody]          = useState('');
-  const [loading,       setLoading]       = useState(false);
-  const [sending,       setSending]       = useState(false);
-  const [isTyping,      setIsTyping]      = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [body, setBody] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [requestStatus, setRequestStatus] = useState('none'); // 'none'|'pending'|'accepted'|'declined'
   const [selectedMsgId, setSelectedMsgId] = useState(null);
   const [showReactions, setShowReactions] = useState(false);
   const [reactionMsgId, setReactionMsgId] = useState(null);
   const [mediaLoading, setMediaLoading] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [crossPathCount, setCrossPathCount] = useState(0);
 
-  const flatRef       = useRef(null);
-  const channelRef    = useRef(null);
-  const presenceRef   = useRef(null);
+  const flatRef = useRef(null);
+  const channelRef = useRef(null);
+  const presenceRef = useRef(null);
   const typingTimeout = useRef(null);
 
   // ── Fetch messages + determine request status ────────────────────────────────
@@ -160,7 +165,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     setMessages(msgs.filter(m => !m.deleted_at));
 
     // Determine request status from DB fields
-    const myMsg      = msgs.find(m => m.sender_id === user.id);
+    const myMsg = msgs.find(m => m.sender_id === user.id);
     const theirReply = msgs.find(m => m.sender_id === recipient.id);
 
     if (!myMsg && !theirReply) {
@@ -177,6 +182,17 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 
     // Mark their messages as read
     await MessageManager.markRead(recipient.id, user.id);
+
+    // Fetch Cross Path context
+    if (user && recipient) {
+      const { data } = await supabase
+        .from('path_crossings')
+        .select('cross_count')
+        .eq('user_id', user.id)
+        .eq('other_user_id', recipient.id)
+        .maybeSingle();
+      if (data) setCrossPathCount(data.cross_count);
+    }
   }, [user, recipient]);
 
   // ── Subscribe to realtime messages + read receipt updates ────────────────────
@@ -200,7 +216,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       if (p.senderId === recipient.id) setIsTyping(p.isTyping);
     });
 
-    const chanKey = `dm_${[user.id, recipient.id].sort().join('_')}_${Math.random().toString(36).substr(2,9)}`;
+    const chanKey = `dm_${[user.id, recipient.id].sort().join('_')}_${Math.random().toString(36).substr(2, 9)}`;
     const channel = supabase
       .channel(chanKey)
       .on('postgres_changes', {
@@ -213,7 +229,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         setRequestStatus('accepted');
         // Mark as read instantly since modal is open
         await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', payload.new.id);
-        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
       })
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'messages',
@@ -225,7 +241,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     channelRef.current = channel;
 
     // ── Presence for typing indicator ────────────────────────────────────────
-    const presKey  = `presence_${chanKey}_${Math.random().toString(36).substr(2,9)}`;
+    const presKey = `presence_${chanKey}_${Math.random().toString(36).substr(2, 9)}`;
     const presence = supabase.channel(presKey, { config: { presence: { key: user.id } } });
     presence
       .on('presence', { event: 'sync' }, () => {
@@ -244,7 +260,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       supabase.removeChannel(channel);
       unsubTyping();
       clearTimeout(typingTimeout.current);
-      channelRef.current  = null;
+      channelRef.current = null;
     };
   }, [visible, user, recipient, fetchMessages]);
 
@@ -274,13 +290,46 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     setBody('');
     broadcastTyping(false);
 
-    const newMsg = await MessageManager.send(user.id, recipient.id, trimmed);
+    const options = { parent_id: replyingTo?.id || null };
+    const newMsg = await MessageManager.send(user.id, recipient.id, trimmed, options);
+
+    if (newMsg) {
+      setMessages(prev => [...prev, newMsg]);
+      if (requestStatus === 'none') setRequestStatus('pending');
+      setReplyingTo(null);
+    } else {
+      Alert.alert('Energy Error', 'Message failed to send. Check your signal.');
+    }
+    setSending(false);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
+  };
+
+  // ── Share Event ──────────────────────────────────────────────────────────────
+  const handleShareEvent = async (evId) => {
+    setShowAttachmentMenu(false);
+    setMediaLoading(true); // This should probably be a separate state for event sharing
+    const newMsg = await MessageManager.send(user.id, recipient.id, 'Check out this Gruv!', { event_id: evId });
     if (newMsg) {
       setMessages(prev => [...prev, newMsg]);
       if (requestStatus === 'none') setRequestStatus('pending');
     }
-    setSending(false);
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    setMediaLoading(false);
+  };
+
+  // ── Render Shared Event ──────────────────────────────────────────────────────
+  const renderEventShare = (evId) => {
+    // Conceptually, you'd fetch the event data if not cached
+    // For now, render a placeholder card style
+    return (
+      <TouchableOpacity onPress={() => onNavigateToEvent?.({ id: evId })} style={dm.eventCard}>
+        <View style={[dm.eventBar, { backgroundColor: primary }]} />
+        <View style={{ flex: 1, padding: 8 }}>
+          <Text style={[dm.eventTitle, { color: textColor }]}>View Shared Gruv</Text>
+          <Text style={[dm.eventSub, { color: muted }]}>Tap to see passes and vibes</Text>
+        </View>
+        <Feather name="chevron-right" size={14} color={muted} />
+      </TouchableOpacity>
+    );
   };
 
   const handleImageUpload = async () => {
@@ -298,11 +347,11 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         const path = `dms/${user.id}_${Date.now()}.${ext}`;
         const formData = new FormData();
         formData.append('file', { uri, name: `file.${ext}`, type: `image/${ext}` });
-        
+
         const { error } = await supabase.storage.from('chat_media').upload(path, formData);
         if (!error) {
           const { data: { publicUrl } } = supabase.storage.from('chat_media').getPublicUrl(path);
-          const newMsg = await MessageManager.send(user.id, recipient.id, '', { type: 'image', mediaUrl: publicUrl });
+          const newMsg = await MessageManager.send(user.id, recipient.id, '', { messageType: 'image', mediaUrl: publicUrl });
           if (newMsg) setMessages(prev => [...prev, newMsg]);
         }
         setMediaLoading(false);
@@ -310,10 +359,38 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     } catch { setMediaLoading(false); }
   };
 
+  // ── Share Location ───────────────────────────────────────────────────────────
+  const handleShareLocation = async () => {
+    if (inputLocked || requestStatus === 'incoming_request') return;
+    setMediaLoading(true); // Use mediaLoading for any attachment type
+    try {
+      const coords = await LocationService.requestAndGet();
+      if (coords && user && recipient) {
+        // Apply fuzzing based on identity mode, or offer an explicit option
+        // For now, let's assume we send the raw location and let the recipient's app decide to fuzz if they are in ghost mode.
+        // Or, we can explicitly fuzz here if the sender is in ghost mode.
+        // For this example, we'll send the raw coordinates and let the display logic handle fuzzing if needed.
+        const newMsg = await MessageManager.send(
+          user.id,
+          recipient.id,
+          'Shared location', // Default body for location message
+          { messageType: 'location', latitude: coords.latitude, longitude: coords.longitude }
+        );
+        if (newMsg) {
+          setMessages(prev => [...prev, newMsg]);
+          if (requestStatus === 'none') setRequestStatus('pending');
+        }
+      } else {
+        Alert.alert('Location Error', 'Could not get your current location. Please ensure location services are enabled.');
+      }
+    } catch (e) { Alert.alert('Location Error', e.message || 'Failed to share location.'); }
+    finally { setMediaLoading(false); }
+  };
+
   // ── Accept request ────────────────────────────────────────────────────────────
   const handleAccept = async () => {
     setRequestStatus('accepted');
-    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
     await MessageManager.acceptRequest(recipient.id, user.id);
     const welcomeMsg = await MessageManager.send(user.id, recipient.id, "🔒 Locked in! Let's talk.");
     if (welcomeMsg) setMessages(prev => [...prev, welcomeMsg]);
@@ -364,8 +441,8 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 
   // ── Render message bubble ─────────────────────────────────────────────────────
   const renderItem = ({ item, index }) => {
-    const isMine    = item.sender_id === user?.id;
-    const showDate  = index === 0 || fmtDate(item.created_at) !== fmtDate(messages[index - 1]?.created_at);
+    const isMine = item.sender_id === user?.id;
+    const showDate = index === 0 || fmtDate(item.created_at) !== fmtDate(messages[index - 1]?.created_at);
     const isSelected = selectedMsgId === item.id;
 
     return (
@@ -380,7 +457,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
               setReactionMsgId(item.id);
               setShowReactions(true);
             }
-            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
           }}
           activeOpacity={0.85}
           style={[dm.bubble, isMine ? dm.bubbleMine : dm.bubbleTheirs]}
@@ -391,10 +468,36 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
               ? { backgroundColor: primary, borderBottomRightRadius: 4 }
               : { backgroundColor: '#1e2a2d', borderBottomLeftRadius: 4 },
           ]}>
+            {item.parent_id && (
+              <View style={[dm.replyQuote, { backgroundColor: isMine ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)' }]}>
+                <Text style={{ color: isMine ? 'rgba(0,0,0,0.6)' : primary, fontSize: 10, fontWeight: '900' }}>REPLYING TO</Text>
+                <Text style={{ color: isMine ? '#000' : muted, fontSize: 12 }} numberOfLines={1}>
+                  {messages.find(m => m.id === item.parent_id)?.body || 'Original message...'}
+                </Text>
+              </View>
+            )}
             {item.message_type === 'image' && item.media_url && (
               <Image source={{ uri: item.media_url }} style={dm.bubbleImage} resizeMode="cover" />
             )}
-            {item.body ? <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{item.body}</Text> : null}
+            {item.event_id && renderEventShare(item.event_id)}
+            {item.message_type === 'location' && item.latitude && item.longitude ? (
+              <TouchableOpacity
+                onPress={() => {
+                  const url = Platform.select({
+                    ios: `http://maps.apple.com/?ll=${item.latitude},${item.longitude}`,
+                    android: `geo:${item.latitude},${item.longitude}?q=${item.latitude},${item.longitude}`,
+                  });
+                  if (url) Linking.openURL(url);
+                }}
+                style={dm.locationBubble}
+              >
+                <Feather name="map-pin" size={16} color={isMine ? '#000' : primary} />
+                <Text style={[dm.bodyText, { color: isMine ? '#000' : primary, marginLeft: 5 }]}>Shared Location</Text>
+                <Text style={[dm.timeText, { color: isMine ? 'rgba(0,0,0,0.5)' : muted, marginLeft: 10 }]}>Tap to view</Text>
+              </TouchableOpacity>
+            ) : item.body ? (
+              <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{item.body}</Text>
+            ) : null}
             {item.reaction && (
               <View style={dm.reactionBubble}>
                 <Text style={{ fontSize: 14 }}>{item.reaction}</Text>
@@ -428,7 +531,11 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     );
   };
 
-  const isIAmRecipient = messages.length > 0 && messages[0]?.recipient_id === user?.id && requestStatus !== 'accepted';
+  // Determine if the current user is the recipient of the *first* message in the thread
+  // and if that message is a request that hasn't been accepted yet.
+  const firstMessage = messages[0];
+  const isIAmRecipientOfPendingRequest = firstMessage && firstMessage.recipient_id === user?.id && firstMessage.is_request && !firstMessage.request_accepted;
+
   const inputLocked = requestStatus === 'pending' || requestStatus === 'declined';
 
   return (
@@ -447,23 +554,28 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             {recipient?.avatar_url
               ? <Image source={{ uri: recipient.avatar_url }} style={dm.headerAvatar} />
               : <View style={[dm.headerAvatar, { backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center' }]}>
-                  <Feather name="user" size={16} color={primary} />
-                </View>
+                <Feather name="user" size={16} color={primary} />
+              </View>
             }
             <View>
               <Text style={[dm.headerName, { color: textColor }]}>@{recipient?.username || 'Viber'}</Text>
               {isTyping
                 ? <Text style={[dm.headerSub, { color: primary }]}>typing...</Text>
                 : recipient?.is_online
-                ? <Text style={[dm.headerSub, { color: '#10b981' }]}>● Online</Text>
-                : <Text style={[dm.headerSub, { color: muted }]}>Offline</Text>
+                  ? <Text style={[dm.headerSub, { color: '#10b981' }]}>● Online</Text>
+                  : <Text style={[dm.headerSub, { color: muted }]}>Offline</Text>
               }
+              {crossPathCount > 0 && (
+                <View style={[dm.pathBadge, { backgroundColor: `${primary}20` }]}>
+                  <Text style={{ color: primary, fontSize: 8, fontWeight: '900' }}>{crossPathCount} CROSSINGS</Text>
+                </View>
+              )}
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Request banner — shown to recipient of a pending request */}
-        {isIAmRecipient && requestStatus === 'incoming_request' && (
+        {isIAmRecipientOfPendingRequest && (
           <RequestBanner
             sender={recipient}
             onAccept={handleAccept}
@@ -474,25 +586,34 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           />
         )}
 
+        {/* Sender's pending request status */}
+        {requestStatus === 'pending' && !isIAmRecipientOfPendingRequest && (
+          <View style={[dm.pendingSenderBanner, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
+            <Feather name="clock" size={14} color={primary} />
+            <Text style={[dm.pendingSenderText, { color: primary }]}>Waiting for @{recipient?.username} to accept your request...</Text>
+            {/* Optional: Add a button to cancel the request */}
+          </View>
+        )}
+
         {/* Message list */}
         {loading
           ? <ActivityIndicator color={primary} size="large" style={{ flex: 1 }} />
           : <FlatList
-              ref={flatRef}
-              data={messages}
-              keyExtractor={m => m.id}
-              renderItem={renderItem}
-              contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={
-                <View style={{ alignItems: 'center', paddingVertical: 40, gap: 12 }}>
-                  <Feather name="message-circle" size={44} color={muted} style={{ opacity: 0.4 }} />
-                  <Text style={{ color: muted, fontSize: 14, fontWeight: '700' }}>
-                    {requestStatus === 'pending' ? 'Waiting for them to accept...' : 'Start the conversation'}
-                  </Text>
-                </View>
-              }
-            />
+            ref={flatRef}
+            data={messages}
+            keyExtractor={m => m.id}
+            renderItem={renderItem}
+            contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', paddingVertical: 40, gap: 12 }}>
+                <Feather name="message-circle" size={44} color={muted} style={{ opacity: 0.4 }} />
+                <Text style={{ color: muted, fontSize: 14, fontWeight: '700' }}>
+                  {requestStatus === 'pending' ? 'Message sent. Waiting for them to accept...' : 'Start the conversation'}
+                </Text>
+              </View>
+            }
+          />
         }
 
         {/* Typing indicator */}
@@ -503,15 +624,53 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         )}
 
         {/* Input */}
+        {inputLocked && !isIAmRecipientOfPendingRequest && (
+          <View style={[dm.inputLockedOverlay, { backgroundColor: bg }]}>
+            <Feather name="lock" size={20} color={muted} />
+            <Text style={[dm.inputLockedText, { color: muted }]}>
+              {requestStatus === 'pending' ? 'Waiting for acceptance...' : 'Conversation blocked.'}
+            </Text>
+          </View>
+        )}
+
+        {/* Reply Preview */}
+        {replyingTo && (
+          <View style={[dm.replyPreview, { backgroundColor: bg, borderTopColor: `${primary}18` }]}>
+            <View style={[dm.replyBar, { backgroundColor: primary }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: primary, fontSize: 11, fontWeight: '900' }}>Replying to @{replyingTo.sender_id === user?.id ? 'yourself' : recipient.username}</Text>
+              <Text style={{ color: muted, fontSize: 12 }} numberOfLines={1}>{replyingTo.body}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setReplyingTo(null)}><Feather name="x" size={16} color={muted} /></TouchableOpacity>
+          </View>
+        )}
+
+        {/* Attachment Menu */}
+        {showAttachmentMenu && (
+          <View style={[dm.attachMenu, { backgroundColor: bg, borderTopColor: `${primary}18` }]}>
+            {[
+              { label: 'Camera', icon: 'camera', onPress: handleImageUpload },
+              { label: 'Location', icon: 'map-pin', onPress: handleShareLocation },
+              { label: 'Share Gruv', icon: 'zap', onPress: () => handleShareEvent(null) }, // Open event picker
+              { label: 'Vibe Card', icon: 'user', onPress: () => { } },
+            ].map(item => (
+              <TouchableOpacity key={item.label} onPress={item.onPress} style={dm.attachMenuItem}>
+                <View style={[dm.attachMenuIcon, { backgroundColor: `${primary}15` }]}><Feather name={item.icon} size={18} color={primary} /></View>
+                <Text style={[dm.attachMenuLabel, { color: textColor }]}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         <View style={[dm.inputRow, { borderTopColor: `${primary}18`, paddingBottom: insets.bottom || 12 }]}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[dm.attachBtn, { backgroundColor: `${primary}15` }]}
-            onPress={handleImageUpload}
+            onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
             disabled={inputLocked || requestStatus === 'incoming_request' || mediaLoading}
           >
-            {mediaLoading 
+            {mediaLoading
               ? <ActivityIndicator size="small" color={primary} />
-              : <Feather name="camera" size={18} color={primary} />
+              : <Feather name={showAttachmentMenu ? "x" : "plus"} size={18} color={primary} />
             }
           </TouchableOpacity>
           <TextInput
@@ -520,8 +679,8 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
               inputLocked
                 ? 'Waiting for them to accept...'
                 : requestStatus === 'incoming_request'
-                ? 'Accept to reply...'
-                : 'Message...'
+                  ? 'Accept to reply...'
+                  : 'Message...'
             }
             placeholderTextColor={muted}
             value={body}
@@ -555,25 +714,37 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 };
 
 const dm = StyleSheet.create({
-  root:          { flex: 1 },
-  header:        { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
-  backBtn:       { padding: 4 },
-  headerInfo:    { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerAvatar:  { width: 38, height: 38, borderRadius: 19 },
-  headerName:    { fontSize: 15, fontWeight: '800' },
-  headerSub:     { fontSize: 11, fontWeight: '600', marginTop: 2 },
-  bubble:        { marginBottom: 6 },
-  bubbleMine:    { alignItems: 'flex-end', paddingRight: 16 },
-  bubbleTheirs:  { alignItems: 'flex-start', paddingLeft: 16 },
-  bubbleInner:   { maxWidth: '78%', borderRadius: 18, padding: 12 },
-  bodyText:      { fontSize: 14, lineHeight: 20 },
-  timeText:      { fontSize: 10, marginTop: 2 },
-  reactionBubble:{ position: 'absolute', bottom: -10, right: 6, backgroundColor: '#1a2225', borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2 },
-  deleteBtn:     { marginTop: 4, padding: 8, borderRadius: 10, alignSelf: 'flex-end' },
+  root: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
+  backBtn: { padding: 4 },
+  headerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerAvatar: { width: 38, height: 38, borderRadius: 19 },
+  headerName: { fontSize: 15, fontWeight: '800' },
+  headerSub: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+  bubble: { marginBottom: 6 },
+  bubbleMine: { alignItems: 'flex-end', paddingRight: 16 },
+  bubbleTheirs: { alignItems: 'flex-start', paddingLeft: 16 },
+  bubbleInner: { maxWidth: '78%', borderRadius: 18, padding: 12 },
+  bodyText: { fontSize: 14, lineHeight: 20 },
+  timeText: { fontSize: 10, marginTop: 2 },
+  reactionBubble: { position: 'absolute', bottom: -10, right: 6, backgroundColor: '#1a2225', borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2 },
+  deleteBtn: { marginTop: 4, padding: 8, borderRadius: 10, alignSelf: 'flex-end' },
   reactionPickerWrap: {},
-  inputRow:      { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1 },
-  attachBtn:     { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  input:         { flex: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 120 },
-  sendBtn:       { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  bubbleImage:   { width: 220, height: 160, borderRadius: 12, marginBottom: 8 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1 },
+  attachBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  input: { flex: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 120 },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  bubbleImage: { width: 220, height: 160, borderRadius: 12, marginBottom: 8 },
+  eventCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 10, overflow: 'hidden', marginBottom: 6 },
+  eventBar: { width: 4, height: '100%' },
+  eventTitle: { fontSize: 13, fontWeight: '800' },
+  eventSub: { fontSize: 10 },
+  replyQuote: { padding: 8, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: 'rgba(0,0,0,0.2)', marginBottom: 8 },
+  replyPreview: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10, borderTopWidth: 1 },
+  replyBar: { width: 3, height: '80%', borderRadius: 2 },
+  locationBubble: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.2)' },
+  pendingSenderBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, margin: 14, padding: 12, borderRadius: 12, borderWidth: 1 },
+  pendingSenderText: { flex: 1, fontSize: 13, fontWeight: '700' },
+  inputLockedOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, top: 0, alignItems: 'center', justifyContent: 'center', gap: 10, zIndex: 10, paddingBottom: 20 },
+  inputLockedText: { fontSize: 15, fontWeight: '700' },
 });

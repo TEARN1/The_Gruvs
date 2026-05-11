@@ -16,56 +16,58 @@ import { GlassView } from '../components/GlassView';
 const { width: SW } = Dimensions.get('window');
 
 const BLOCK_TYPES = [
-  { type: 'hero',         label: 'Hero Banner',     icon: 'image',       desc: 'Big headline, tagline, and CTA button' },
-  { type: 'text',         label: 'Text Block',       icon: 'file-text',   desc: 'Rich formatted text section' },
-  { type: 'gallery',      label: 'Photo Gallery',    icon: 'grid',        desc: 'Image grid or carousel' },
-  { type: 'cta',          label: 'Call to Action',   icon: 'zap',         desc: 'Bold action button with subtext' },
-  { type: 'countdown',    label: 'Countdown Timer',  icon: 'clock',       desc: 'Live countdown to your event' },
-  { type: 'testimonials', label: 'Testimonials',     icon: 'star',        desc: 'Reviews and quotes from attendees' },
-  { type: 'services',     label: 'Services / Pricing', icon: 'package',  desc: 'Service cards with prices' },
-  { type: 'contact',      label: 'Contact Form',     icon: 'mail',        desc: 'Lead capture form' },
-  { type: 'socials',      label: 'Social Links',     icon: 'share-2',     desc: 'Instagram, TikTok, WhatsApp, etc.' },
-  { type: 'stats',        label: 'Stats Bar',        icon: 'bar-chart-2', desc: 'Key numbers — events, attendees, etc.' },
-  { type: 'map',          label: 'Map / Location',   icon: 'map-pin',     desc: 'Embedded map or address block' },
-  { type: 'faq',          label: 'FAQ',              icon: 'help-circle', desc: 'Collapsible questions and answers' },
-  { type: 'video',        label: 'Video Embed',      icon: 'video',       desc: 'YouTube or direct video link' },
-  { type: 'team',         label: 'Team Members',     icon: 'users',       desc: 'Introduce your crew' },
-  { type: 'sponsors',     label: 'Sponsors Wall',    icon: 'award',       desc: 'Display sponsor logos and tiers' },
+  { type: 'hero', label: 'Hero Banner', icon: 'image', desc: 'Big headline, tagline, and CTA button' },
+  { type: 'text', label: 'Text Block', icon: 'file-text', desc: 'Rich formatted text section' },
+  { type: 'gallery', label: 'Photo Gallery', icon: 'grid', desc: 'Image grid or carousel' },
+  { type: 'cta', label: 'Call to Action', icon: 'zap', desc: 'Bold action button with subtext' },
+  { type: 'countdown', label: 'Countdown Timer', icon: 'clock', desc: 'Live countdown to your event' },
+  { type: 'testimonials', label: 'Testimonials', icon: 'star', desc: 'Reviews and quotes from attendees' },
+  { type: 'services', label: 'Services / Pricing', icon: 'package', desc: 'Service cards with prices' },
+  { type: 'contact', label: 'Contact Form', icon: 'mail', desc: 'Lead capture form' },
+  { type: 'promotions', label: 'Deals & Promos', icon: 'tag', desc: 'Showcase active discounts or vouchers' },
+  { type: 'socials', label: 'Social Links', icon: 'share-2', desc: 'Instagram, TikTok, WhatsApp, etc.' },
+  { type: 'stats', label: 'Stats Bar', icon: 'bar-chart-2', desc: 'Key numbers — events, attendees, etc.' },
+  { type: 'map', label: 'Map / Location', icon: 'map-pin', desc: 'Embedded map or address block' },
+  { type: 'faq', label: 'FAQ', icon: 'help-circle', desc: 'Collapsible questions and answers' },
+  { type: 'video', label: 'Video Embed', icon: 'video', desc: 'YouTube or direct video link' },
+  { type: 'team', label: 'Team Members', icon: 'users', desc: 'Introduce your crew' },
+  { type: 'sponsors', label: 'Sponsors Wall', icon: 'award', desc: 'Display sponsor logos and tiers' },
 ];
 
 const THEME_PRESETS = [
-  { id: 'midnight', label: 'Midnight',   bg: '#0d1112', primary: '#00f2ff', text: '#ffffff' },
-  { id: 'royal',    label: 'Royal',      bg: '#0a0a1a', primary: '#8b5cf6', text: '#e8e8ff' },
-  { id: 'ember',    label: 'Ember',      bg: '#1a0a00', primary: '#f59e0b', text: '#fff8e8' },
-  { id: 'forest',   label: 'Forest',     bg: '#040d0a', primary: '#10b981', text: '#e8fff5' },
-  { id: 'crimson',  label: 'Crimson',    bg: '#1a0505', primary: '#ef4444', text: '#ffe8e8' },
-  { id: 'pearl',    label: 'Pearl',      bg: '#f8f9fa', primary: '#1e293b', text: '#1e293b' },
-  { id: 'slate',    label: 'Slate',      bg: '#1e293b', primary: '#38bdf8', text: '#e2e8f0' },
-  { id: 'gold',     label: 'Gold Rush',  bg: '#111108', primary: '#eab308', text: '#fefce8' },
+  { id: 'midnight', label: 'Midnight', bg: '#0d1112', primary: '#00f2ff', text: '#ffffff' },
+  { id: 'royal', label: 'Royal', bg: '#0a0a1a', primary: '#8b5cf6', text: '#e8e8ff' },
+  { id: 'ember', label: 'Ember', bg: '#1a0a00', primary: '#f59e0b', text: '#fff8e8' },
+  { id: 'forest', label: 'Forest', bg: '#040d0a', primary: '#10b981', text: '#e8fff5' },
+  { id: 'crimson', label: 'Crimson', bg: '#1a0505', primary: '#ef4444', text: '#ffe8e8' },
+  { id: 'pearl', label: 'Pearl', bg: '#f8f9fa', primary: '#1e293b', text: '#1e293b' },
+  { id: 'slate', label: 'Slate', bg: '#1e293b', primary: '#38bdf8', text: '#e2e8f0' },
+  { id: 'gold', label: 'Gold Rush', bg: '#111108', primary: '#eab308', text: '#fefce8' },
 ];
 
 const defaultConfig = {
-  hero:         { headline: '', tagline: '', cta_text: 'Learn More', cta_url: '', bg_color: '' },
-  text:         { content: '', align: 'left' },
-  gallery:      { urls: [], layout: 'grid' },
-  cta:          { headline: '', subtext: '', button_text: 'Get Started', button_url: '', color: '' },
-  countdown:    { target_date: '', label: '' },
+  hero: { headline: '', tagline: '', cta_text: 'Learn More', cta_url: '', bg_color: '' },
+  text: { content: '', align: 'left' },
+  gallery: { urls: [], layout: 'grid' },
+  cta: { headline: '', subtext: '', button_text: 'Get Started', button_url: '', color: '' },
+  countdown: { target_date: '', label: '' },
   testimonials: { items: [] },
-  services:     { items: [], currency: 'R' },
-  contact:      { email: '', fields: ['name', 'email', 'message'] },
-  socials:      { instagram: '', tiktok: '', whatsapp: '', twitter: '', youtube: '' },
-  stats:        { items: [] },
-  map:          { address: '', embed_url: '' },
-  faq:          { items: [] },
-  video:        { url: '', title: '' },
-  team:         { members: [] },
-  sponsors:     { tiers: [] },
+  services: { items: [], currency: 'R' },
+  contact: { email: '', fields: ['name', 'email', 'message'] },
+  socials: { instagram: '', tiktok: '', whatsapp: '', twitter: '', youtube: '' },
+  stats: { items: [] },
+  map: { address: '', embed_url: '' },
+  faq: { items: [] },
+  promotions: { items: [], currency: 'R' },
+  video: { url: '', title: '' },
+  team: { members: [] },
+  sponsors: { tiers: [] },
 };
 
 // ── Block Preview Card ────────────────────────────────────────────────────────
 const BlockPreviewCard = ({ block, primary, textColor, muted, onEdit, onDelete, onMoveUp, onMoveDown, isFirst, isLast }) => {
   const btype = BLOCK_TYPES.find(b => b.type === block.block_type) || {};
-  const cfg   = block.config || {};
+  const cfg = block.config || {};
 
   const renderPreview = () => {
     switch (block.block_type) {
@@ -112,6 +114,17 @@ const BlockPreviewCard = ({ block, primary, textColor, muted, onEdit, onDelete, 
           ))}
         </View>
       );
+      case 'promotions': return (
+        <View style={{ gap: 6 }}>
+          {(cfg.items || [{ title: '20% Off Drinks', value: '20%', req: '50' }]).slice(0, 2).map((item, i) => (
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: `${primary}10`, padding: 8, borderRadius: 10, borderWidth: 1, borderColor: `${primary}20` }}>
+              <Text style={{ color: primary, fontWeight: '900', fontSize: 14 }}>{item.value}</Text>
+              <Text style={{ color: textColor, fontSize: 11, flex: 1 }}>{item.title}</Text>
+              <View style={{ backgroundColor: primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}><Text style={{ color: '#000', fontSize: 8, fontWeight: '900' }}>⚡ {item.req}+</Text></View>
+            </View>
+          ))}
+        </View>
+      );
       case 'stats': return (
         <View style={bps.statsRow}>
           {(cfg.items || [{ label: 'Events', value: '0' }, { label: 'Vibers', value: '0' }]).slice(0, 3).map((s, i) => (
@@ -135,7 +148,7 @@ const BlockPreviewCard = ({ block, primary, textColor, muted, onEdit, onDelete, 
         </View>
         <View style={bps.blockActions}>
           {!isFirst && <TouchableOpacity onPress={onMoveUp} style={bps.actionBtn}><Feather name="chevron-up" size={14} color={muted} /></TouchableOpacity>}
-          {!isLast  && <TouchableOpacity onPress={onMoveDown} style={bps.actionBtn}><Feather name="chevron-down" size={14} color={muted} /></TouchableOpacity>}
+          {!isLast && <TouchableOpacity onPress={onMoveDown} style={bps.actionBtn}><Feather name="chevron-down" size={14} color={muted} /></TouchableOpacity>}
           <TouchableOpacity onPress={onEdit} style={bps.actionBtn}><Feather name="edit-2" size={14} color={primary} /></TouchableOpacity>
           <TouchableOpacity onPress={onDelete} style={bps.actionBtn}><Feather name="trash-2" size={14} color="#ef4444" /></TouchableOpacity>
         </View>
@@ -220,6 +233,31 @@ const BlockEditorModal = ({ visible, block, onClose, onSave, primary, textColor,
               <TouchableOpacity onPress={() => set('items', config.items.filter((_, j) => j !== i))}>
                 <Feather name="x" size={14} color="#ef4444" />
               </TouchableOpacity>
+            </View>
+          ))}
+        </>
+      );
+      case 'promotions': return (
+        <>
+          <Field label="Currency Symbol" value={config.currency} onChange={v => set('currency', v)} placeholder="R" textColor={textColor} muted={muted} primary={primary} />
+          <Text style={[bem.label, { color: muted }]}>ADD PROMOTION</Text>
+          <View style={{ gap: 8, marginBottom: 10 }}>
+            {[['title', 'Promo Title (e.g. Early Bird)'], ['value', 'Discount (e.g. 15% or R50)'], ['req', 'Min Vibe Score']].map(([k, pl]) => (
+              <TextInput key={k} style={[bem.miniInput, { color: textColor, borderColor: `${primary}25` }]} placeholder={pl} placeholderTextColor={muted} value={itemInput[k]} onChangeText={v => setItemInput(p => ({ ...p, [k]: v }))} keyboardType={k === 'req' ? 'numeric' : 'default'} />
+            ))}
+            <TouchableOpacity onPress={() => {
+              if (!itemInput.title) return;
+              set('items', [...(config.items || []), { title: itemInput.title, value: itemInput.value, req: itemInput.req }]);
+              setItemInput(p => ({ ...p, title: '', value: '', req: '' }));
+            }} style={[bem.addBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}10` }]}>
+              <Feather name="plus" size={14} color={primary} />
+              <Text style={[bem.addBtnText, { color: primary }]}>ADD DEAL</Text>
+            </TouchableOpacity>
+          </View>
+          {(config.items || []).map((item, i) => (
+            <View key={i} style={[bem.listItem, { borderColor: `${primary}15` }]}>
+              <Text style={{ color: textColor, fontSize: 12, flex: 1 }}>{item.value} — {item.title} (Score: {item.req}+)</Text>
+              <TouchableOpacity onPress={() => set('items', config.items.filter((_, j) => j !== i))}><Feather name="x" size={14} color="#ef4444" /></TouchableOpacity>
             </View>
           ))}
         </>
@@ -366,7 +404,7 @@ const AddBlockModal = ({ visible, onClose, onAdd, primary, textColor, muted, bg 
       </View>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
         {BLOCK_TYPES.map(bt => (
-          <TouchableOpacity key={bt.type} onPress={() => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {} onAdd(bt.type); onClose(); }}
+          <TouchableOpacity key={bt.type} onPress={() => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { } onAdd(bt.type); onClose(); }}
             style={[abm.blockOption, { borderColor: `${primary}20` }]} activeOpacity={0.8}>
             <View style={[abm.blockOptionIcon, { backgroundColor: `${primary}15` }]}>
               <Feather name={bt.icon} size={18} color={primary} />
@@ -385,15 +423,15 @@ const AddBlockModal = ({ visible, onClose, onAdd, primary, textColor, muted, bg 
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg, surface }) => {
-  const [blocks, setBlocks]             = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [saving, setSaving]             = useState(false);
+  const [blocks, setBlocks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showAddBlock, setShowAddBlock] = useState(false);
-  const [editBlock, setEditBlock]       = useState(null);
-  const [previewMode, setPreviewMode]   = useState(false);
+  const [editBlock, setEditBlock] = useState(null);
+  const [previewMode, setPreviewMode] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState(THEME_PRESETS[0]);
   const [storeEnabled, setStoreEnabled] = useState(biz?.store_enabled || false);
-  const [slug, setSlug]                 = useState(biz?.store_slug || '');
+  const [slug, setSlug] = useState(biz?.store_slug || '');
 
   useEffect(() => { if (biz?.id) loadBlocks(); }, [biz?.id]);
 
@@ -421,7 +459,7 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg, surfa
   };
 
   const saveBlock = async (blockId, config) => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     await supabase.from('business_page_blocks').update({ config }).eq('id', blockId);
     setBlocks(p => p.map(b => b.id === blockId ? { ...b, config } : b));
     setEditBlock(null);
@@ -430,10 +468,12 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg, surfa
   const deleteBlock = async (blockId) => {
     Alert.alert('Delete Block', 'Remove this block from your store?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        await supabase.from('business_page_blocks').delete().eq('id', blockId);
-        setBlocks(p => p.filter(b => b.id !== blockId));
-      }},
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          await supabase.from('business_page_blocks').delete().eq('id', blockId);
+          setBlocks(p => p.filter(b => b.id !== blockId));
+        }
+      },
     ]);
   };
 
@@ -452,7 +492,7 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg, surfa
   const publishStore = async () => {
     if (!slug.trim()) { Alert.alert('Store URL', 'Please set a store URL slug first.'); return; }
     setSaving(true);
-    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
     await supabase.from('business_profiles').update({ store_enabled: true, store_slug: slug.trim().toLowerCase().replace(/\s+/g, '-') }).eq('id', biz.id);
     setSaving(false);
     setStoreEnabled(true);

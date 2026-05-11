@@ -305,7 +305,7 @@ const MainNavigator = () => {
       case 'business':
         return <BusinessDashboardScreen onClose={() => setCurrentTab('profile')} />;
       case 'profile':
-        return <ProfilePage onAuthRequired={handleAuthRequired} />;
+        return <ProfilePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       default:
         return (
           <LandingPage

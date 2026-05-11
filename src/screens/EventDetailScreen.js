@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
@@ -17,6 +18,18 @@ import { supabase } from '../services/supabase';
 import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, ScoreEngine } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import { EventContextualAds } from '../components/EventContextualAds';
+import { DirectMessageModal } from '../components/DirectMessageModal';
+
+const haversine = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
 
 const formatDate = (dateStr) => {
   if (!dateStr) return 'TBD';
@@ -56,6 +69,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [settingReminder, setSettingReminder] = useState(false);
   const [whoGoingVisible, setWhoGoingVisible] = useState(false);
   const [whoGoing, setWhoGoing] = useState([]);
+  const [dmOpen, setDmOpen] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -69,8 +83,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const media = event?.media_urls?.length
     ? event.media_urls.map((u) => ({ type: 'image', url: u }))
     : event?.image_url
-    ? [{ type: 'image', url: event.image_url }]
-    : [];
+      ? [{ type: 'image', url: event.image_url }]
+      : [];
 
   useEffect(() => {
     if (visible) {
@@ -176,7 +190,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       const eventUrl = `https://thegruvs.com/event/${event?.id}`;
       const shareText = `🎉 ${event?.title || 'Check out this Gruv'}\n📅 ${formatDate(event?.event_date)}${event?.venue_name ? `\n📍 ${event.venue_name}` : ''}\n\nThe Gruvs — ${eventUrl}`;
       await Share.share({ message: shareText, title: event?.title });
-    } catch {}
+    } catch { }
   };
 
   const handleToggleReminder = async () => {
@@ -224,13 +238,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     if (!user) { onAuthRequired?.(); return; }
     if (checkingIn || checkedIn) return;
     setCheckingIn(true);
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch { }
     const coords = await LocationService.requestAndGet();
     const ok = await CheckInManager.touchDown(event.id, user.id, coords || {});
     setCheckingIn(false);
     if (ok) {
       setCheckedIn(true);
-      try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+      try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
       showToast("Touched Down! Your footprint is lit. 🔥", 'success');
     } else {
       showToast('Touch Down failed. Try again.', 'error');
@@ -243,9 +257,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const capacityPct = capacity > 0 ? Math.min(1, goingCount / capacity) : 0;
 
   const RSVP_OPTIONS = [
-    { key: 'going',     label: 'Vibe',       icon: 'check-circle' },
-    { key: 'maybe',     label: 'Maybe',       icon: 'help-circle'  },
-    { key: 'not_going', label: 'Not Vibing',  icon: 'x-circle'     },
+    { key: 'going', label: 'Vibe', icon: 'check-circle' },
+    { key: 'maybe', label: 'Maybe', icon: 'help-circle' },
+    { key: 'not_going', label: 'Not Vibing', icon: 'x-circle' },
   ];
 
   return (
@@ -277,9 +291,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             <View style={styles.avatarWrap}>
               {organizer.avatar_url
                 ? <Image source={{ uri: organizer.avatar_url }} style={styles.avatar} />
-                : <View style={[styles.avatar, { backgroundColor: ['#0891b2','#7c3aed','#059669','#dc2626'][(organizer.username?.charCodeAt(0)||0)%4], alignItems:'center', justifyContent:'center' }]}>
-                    <Text style={{ color:'#fff', fontWeight:'900', fontSize:18 }}>{(organizer.username||'V')[0].toUpperCase()}</Text>
-                  </View>
+                : <View style={[styles.avatar, { backgroundColor: ['#0891b2', '#7c3aed', '#059669', '#dc2626'][(organizer.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
+                  <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>{(organizer.username || 'V')[0].toUpperCase()}</Text>
+                </View>
               }
               <View style={[styles.onlineDot, { backgroundColor: primary }]} />
               {organizer.is_verified && (
@@ -479,24 +493,37 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               {whoGoing.length === 0
                 ? <Text style={[{ color: textMuted, textAlign: 'center', paddingVertical: 32, fontSize: 14 }]}>No one has Vibed yet — be first!</Text>
                 : whoGoing.map(p => (
-                    <View key={p.id} style={[styles.whoGoingRow, { borderBottomColor: `${primary}15` }]}>
-                      {p.avatar_url
-                        ? <Image source={{ uri: p.avatar_url }} style={styles.whoGoingAvatar} />
-                        : <View style={[styles.whoGoingAvatar, { backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center' }]}>
-                            <Text style={{ color: primary, fontWeight: '900' }}>{(p.username || 'V')[0].toUpperCase()}</Text>
-                          </View>
-                      }
-                      <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={[{ color: textColor, fontWeight: '700', fontSize: 14 }]}>@{p.username}</Text>
+                  <View key={p.id} style={[styles.whoGoingRow, { borderBottomColor: `${primary}15` }]}>
+                    {p.avatar_url
+                      ? <Image source={{ uri: p.avatar_url }} style={styles.whoGoingAvatar} />
+                      : <View style={[styles.whoGoingAvatar, { backgroundColor: ['#0891b2', '#7c3aed', '#059669', '#dc2626'][(p.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
+                        <Text style={{ color: '#fff', fontWeight: '900' }}>{(p.username || 'V')[0].toUpperCase()}</Text>
+                      </View>
+                    }
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={[{ color: textColor, fontWeight: '700', fontSize: 14 }]}>@{p.username}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
                         <Text style={[{ color: primary, fontSize: 11, fontWeight: '600' }]}>⚡ {p.vibe_score || 0} pts</Text>
+                        {p.social_integrity_score != null && (
+                          <View style={[styles.sisBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
+                            <Text style={{ color: primary, fontSize: 9, fontWeight: '700' }}>SIS {p.social_integrity_score}</Text>
+                          </View>
+                        )}
                       </View>
                     </View>
-                  ))
+                  </View>
+                ))
               }
             </View>
           </View>
         </Modal>
       </View>
+      {dmOpen && (
+        <DirectMessageModal
+          visible={dmOpen}
+          recipient={organizer}
+          onClose={() => setDmOpen(false)}
+        />)}
     </Modal>
   );
 };
@@ -629,6 +656,15 @@ const styles = StyleSheet.create({
   followBtnText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  messageOrganizerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   title: {
     fontSize: 24,
@@ -774,6 +810,12 @@ const styles = StyleSheet.create({
   whoGoingTitle: { fontSize: 17, fontWeight: '900' },
   whoGoingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
   whoGoingAvatar: { width: 42, height: 42, borderRadius: 21 },
+  sisBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
   reportBtn: {
     flexDirection: 'row',
     alignItems: 'center',

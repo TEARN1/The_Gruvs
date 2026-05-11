@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform, Image, FlatList,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
@@ -22,13 +23,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const { user } = useAuth();
 
   // Form fields
-  const [title, setTitle]         = useState('');
+  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [address, setAddress]     = useState('');
-  const [city, setCity]           = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [ticketUrl, setTicketUrl] = useState('');
   const [eventType, setEventType] = useState('');
+  const [lat, setLat] = useState(null);
+  const [lon, setLon] = useState(null);
   const [ageRestriction, setAgeRestriction] = useState(0);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [mediaItems, setMediaItems] = useState([]); // { uri, type, name }
@@ -39,19 +42,37 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const [catPickerVisible, setCatPickerVisible] = useState(false);
   const scrollRef = useRef(null);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text       || '#fff';
-  const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
+  const primary = currentTheme?.primary || '#00f2ff';
+  const bg = currentTheme?.background || '#0d1112';
+  const textColor = currentTheme?.text || '#fff';
+  const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
   const reset = () => {
     setTitle(''); setDescription(''); setAddress(''); setCity('');
     setEventDate(''); setTicketUrl(''); setEventType('');
+    setLat(null); setLon(null);
     setAgeRestriction(0); setSelectedCategories([]); setMediaItems([]);
     setStep(1); setLoading(false); setUploadingMedia(false); setError('');
   };
 
   const handleClose = () => { reset(); onClose(); };
+
+  const pinLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setError('Location permission is required to pin the Spot.');
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+      });
+      setLat(loc.coords.latitude);
+      setLon(loc.coords.longitude);
+    } catch (e) {
+      setError('Could not get precise location fix.');
+    }
+  };
 
   // ── Media picker ─────────────────────────────────────────────────────────
   const pickMedia = async () => {
@@ -131,17 +152,22 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     const primaryCat = selectedCategories[0] || eventType?.toLowerCase() || null;
 
     const payload = {
-      author_id:   user.id,
-      title:       title.trim(),
+      author_id: user.id,
+      title: title.trim(),
       description: description.trim(),
-      address:     address.trim(),
+      address: address.trim(),
+      lat,
+      lon,
+      coords: lat && lon
+        ? `POINT(${lon} ${lat})`
+        : null,
     };
-    if (city.trim())               payload.city            = city.trim();
-    if (eventDate.trim())          payload.event_date      = eventDate.trim();
-    if (mediaUrls.length > 0)     payload.media           = mediaUrls;
-    if (ageRestriction)           payload.age_restriction = ageRestriction;
-    if (primaryCat)               payload.category        = primaryCat;
-    if (ticketUrl.trim())         payload.ticket_url      = ticketUrl.trim();
+    if (city.trim()) payload.city = city.trim();
+    if (eventDate.trim()) payload.event_date = eventDate.trim();
+    if (mediaUrls.length > 0) payload.media = mediaUrls;
+    if (ageRestriction) payload.age_restriction = ageRestriction;
+    if (primaryCat) payload.category = primaryCat;
+    if (ticketUrl.trim()) payload.ticket_url = ticketUrl.trim();
 
     const { error: dbError } = await supabase.from('events').insert(payload);
 
@@ -266,6 +292,19 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                     value={address}
                     onChangeText={setAddress}
                   />
+
+                  <TouchableOpacity
+                    onPress={pinLocation}
+                    style={[pm.catBtn, { marginBottom: 18, borderColor: lat ? '#10b981' : `${primary}40`, backgroundColor: lat ? '#10b98115' : `${primary}08` }]}
+                  >
+                    <Feather name={lat ? "check-circle" : "map-pin"} size={16} color={lat ? '#10b981' : primary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[{ color: lat ? '#10b981' : primary, fontWeight: '800', fontSize: 13 }]}>
+                        {lat ? 'Spot Pinned Successfully' : 'Pin Exact Spot (GPS)'}
+                      </Text>
+                      {lat && <Text style={{ color: '#10b981', fontSize: 10 }}>{lat.toFixed(5)}, {lon.toFixed(5)}</Text>}
+                    </View>
+                  </TouchableOpacity>
 
                   <Text style={[pm.label, { color: muted }]}>City</Text>
                   <TextInput

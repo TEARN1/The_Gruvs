@@ -13,22 +13,9 @@ import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
+import { UserManager, GeoUtils } from '../services/dataFlow';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
-
-// ---------------------------------------------------------------------------
-// Haversine distance in km
-// ---------------------------------------------------------------------------
-const haversine = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
 
 // ---------------------------------------------------------------------------
 // Initials avatar fallback
@@ -61,6 +48,8 @@ const av = StyleSheet.create({
 export const PresenceBar = ({
   eventId,
   eventEndTime,
+  eventLat,
+  eventLon,
   primary = '#00f2ff',
   muted = 'rgba(255,255,255,0.45)',
   textColor = '#fff',
@@ -92,15 +81,16 @@ export const PresenceBar = ({
   const sortCheckins = useCallback((rows, loc) => {
     return [...rows].sort((a, b) => {
       // proximity first (if location available)
-      if (loc && a.profiles?.lat != null && b.profiles?.lat != null) {
-        const dA = haversine(loc.latitude, loc.longitude, a.profiles.lat, a.profiles.lon);
-        const dB = haversine(loc.latitude, loc.longitude, b.profiles.lat, b.profiles.lon);
+      if (loc && a.lat != null && b.lat != null) {
+        const dA = GeoUtils.getDistance(loc.latitude, loc.longitude, a.lat, a.lon);
+        const dB = GeoUtils.getDistance(loc.latitude, loc.longitude, b.lat, b.lon);
         if (Math.abs(dA - dB) > 0.1) return dA - dB;
       }
+
       // compatibility — matching interest tags count
-      const myTags = new Set(profile?.interest_tags || []);
-      const tagsA = (a.profiles?.interest_tags || []).filter(t => myTags.has(t)).length;
-      const tagsB = (b.profiles?.interest_tags || []).filter(t => myTags.has(t)).length;
+      const myTags = new Set(profile?.interests || []);
+      const tagsA = (a.profiles?.interests || []).filter(t => myTags.has(t)).length;
+      const tagsB = (b.profiles?.interests || []).filter(t => myTags.has(t)).length;
       return tagsB - tagsA;
     });
   }, [profile]);
@@ -108,7 +98,7 @@ export const PresenceBar = ({
   // ------------------------------------------------------------------
   // Fetch checkins
   // ------------------------------------------------------------------
-  const fetchCheckins = useCallback(async () => {
+  const fetchCheckins = useCallback(async (loc = userLocation) => {
     if (!eventId) return;
     const now = new Date().toISOString();
     const { data, error } = await supabase
@@ -123,7 +113,7 @@ export const PresenceBar = ({
       return;
     }
 
-    const sorted = sortCheckins(data || [], userLocation);
+    const sorted = sortCheckins(data || [], loc);
     setCheckins(sorted);
 
     if (user?.id) {
@@ -158,6 +148,11 @@ export const PresenceBar = ({
     setMatchIds(mutual);
   }, [user?.id, eventId]);
 
+  const getCommonTags = (checkin) => {
+    const myTags = new Set(profile?.interests || []);
+    return (checkin.profiles?.interests || []).filter(t => myTags.has(t));
+  };
+
   // ------------------------------------------------------------------
   // Mount: get location + fetch data + subscribe realtime
   // ------------------------------------------------------------------
@@ -166,18 +161,17 @@ export const PresenceBar = ({
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({});
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.BestForNavigation,
+          });
           setUserLocation(loc.coords);
+          await fetchCheckins(loc.coords);
         }
-      } catch (_) {}
-
-      await fetchCheckins();
-      await fetchStars();
+      } catch (_) { }
     })();
 
-    // Realtime subscription
-    const channel = supabase
-      .channel(`live_checkins_${eventId}`)
+    // Realtime subcription
+    const channel = supabase.channel(`live_checkins_${eventId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'live_checkins', filter: `event_id=eq.${eventId}` },
@@ -200,7 +194,7 @@ export const PresenceBar = ({
   // Re-sort when location changes
   useEffect(() => {
     if (userLocation && checkins.length > 0) {
-      setCheckins(prev => sortCheckins(prev, userLocation));
+      fetchCheckins(userLocation);
     }
   }, [userLocation]);
 
@@ -216,8 +210,26 @@ export const PresenceBar = ({
       showToast('You are already checked in', 'info');
       return;
     }
+
     setCheckingIn(true);
     try {
+      // Request a fresh, high-accuracy location fix
+      const { status: currentStatus } = await Location.requestForegroundPermissionsAsync();
+      if (currentStatus !== 'granted') throw new Error('Location permission required');
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+        mayShowUserSettingsDialog: true,
+      });
+
+      setUserLocation(loc.coords);
+
+      // Strict proximity check
+      if (eventLat && eventLon) {
+        const dist = GeoUtils.getDistance(loc.coords.latitude, loc.coords.longitude, Number(eventLat), Number(eventLon));
+        if (dist > 2.0) throw new Error(`You're too far (${dist.toFixed(1)}km). Must be within 2km to Touch Down.`);
+      }
+
       const identityMode = (await AsyncStorage.getItem('gruv_identity_mode')) || 'public';
       const { error } = await supabase.from('live_checkins').insert({
         event_id: eventId,
@@ -225,6 +237,8 @@ export const PresenceBar = ({
         checked_in_at: new Date().toISOString(),
         identity_mode: identityMode,
         expires_at: expiresAt(),
+        lat: loc.coords.latitude,
+        lon: loc.coords.longitude,
       });
       if (error) throw error;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -365,7 +379,8 @@ export const PresenceBar = ({
             const isMe = checkin.user_id === user?.id;
             const starred = starredIds.has(checkin.user_id);
             const matched = matchIds.has(checkin.user_id);
-            const tags = mutualTagCount(checkin);
+            const commonTags = getCommonTags(checkin);
+            const tags = commonTags.length;
             const username = checkin.profiles?.username || 'Anon';
             const avatar = checkin.profiles?.avatar_url;
             const checkedTime = new Date(checkin.checked_in_at).toLocaleTimeString([], {
@@ -382,14 +397,13 @@ export const PresenceBar = ({
                     borderColor: matched
                       ? `${primary}80`
                       : isGhost
-                      ? 'rgba(255,255,255,0.08)'
-                      : `${primary}22`,
+                        ? 'rgba(255,255,255,0.08)'
+                        : `${primary}22`,
                   },
                 ]}
               >
-                {/* Avatar */}
                 {isGhost ? (
-                  <View style={[s.ghostAvatar, { borderColor: 'rgba(255,255,255,0.15)' }]}>
+                  <View style={[s.avatar, { borderColor: 'rgba(255,255,255,0.15)' }]}> 
                     <Text style={s.ghostEmoji}>👻</Text>
                   </View>
                 ) : avatar ? (
@@ -398,53 +412,53 @@ export const PresenceBar = ({
                   <InitialsAvatar name={username} size={48} color={primary} />
                 )}
 
-                {/* Name */}
-                <Text style={[s.username, { color: isGhost ? muted : textColor }]} numberOfLines={1}>
-                  {isGhost ? '👻 Ghost' : username}
-                  {isMe ? ' (you)' : ''}
-                </Text>
+          {/* Name */}
+          <Text style={[s.username, { color: isGhost ? muted : textColor }]} numberOfLines={1}>
+            {isGhost ? '👻 Ghost' : username}
+            {isMe ? ' (you)' : ''}
+          </Text>
 
-                {/* Check-in time */}
-                <Text style={[s.time, { color: muted }]}>{checkedTime}</Text>
+          {/* Check-in time */}
+          <Text style={[s.time, { color: muted }]}>{checkedTime}</Text>
 
-                {/* Mutual tags badge */}
-                {!isGhost && !isMe && tags > 0 && (
-                  <View style={[s.tagBadge, { backgroundColor: `${primary}20`, borderColor: `${primary}40` }]}>
-                    <Text style={[s.tagBadgeText, { color: primary }]}>
-                      {tags} mutual {tags === 1 ? 'interest' : 'interests'}
-                    </Text>
-                  </View>
-                )}
+          {/* Mutual tags badge */}
+          {!isGhost && !isMe && tags > 0 && (
+            <View style={[s.tagBadge, { backgroundColor: `${primary}20`, borderColor: `${primary}40` }]}>
+              <Text style={[s.tagBadgeText, { color: primary }]}>
+                {tags} mutual {tags === 1 ? 'interest' : 'interests'}
+              </Text>
+            </View>
+          )}
 
-                {/* Match pill */}
-                {matched && (
-                  <View style={[s.matchPill, { backgroundColor: `${primary}25`, borderColor: primary }]}>
-                    <Text style={[s.matchText, { color: primary }]}>💬 Match!</Text>
-                  </View>
-                )}
+          {/* Match pill */}
+          {matched && (
+            <View style={[s.matchPill, { backgroundColor: `${primary}25`, borderColor: primary }]}>
+              <Text style={[s.matchText, { color: primary }]}>💬 Match!</Text>
+            </View>
+          )}
 
-                {/* Star button */}
-                {!isMe && !isGhost && (
-                  <TouchableOpacity
-                    style={[
-                      s.starBtn,
-                      {
-                        backgroundColor: starred ? `${primary}25` : 'rgba(255,255,255,0.06)',
-                        borderColor: starred ? primary : 'rgba(255,255,255,0.15)',
-                      },
-                    ]}
-                    onPress={() => handleStar(checkin.user_id)}
-                    disabled={starred}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={s.starEmoji}>{starred ? '⭐' : '☆'}</Text>
-                    <Text style={[s.starLabel, { color: starred ? primary : muted }]}>
-                      {starred ? 'Starred' : 'Star'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            );
+          {/* Star button */}
+          {!isMe && !isGhost && (
+            <TouchableOpacity
+              style={[
+                s.starBtn,
+                {
+                  backgroundColor: starred ? `${primary}25` : 'rgba(255,255,255,0.06)',
+                  borderColor: starred ? primary : 'rgba(255,255,255,0.15)',
+                },
+              ]}
+              onPress={() => handleStar(checkin.user_id)}
+              disabled={starred}
+              activeOpacity={0.75}
+            >
+              <Text style={s.starEmoji}>{starred ? '⭐' : '☆'}</Text>
+              <Text style={[s.starLabel, { color: starred ? primary : muted }]}>
+                {starred ? 'Starred' : 'Star'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
           })}
         </ScrollView>
       )}

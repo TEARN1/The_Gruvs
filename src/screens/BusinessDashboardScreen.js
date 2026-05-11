@@ -21,13 +21,13 @@ import { CampaignManager, EcosystemManager, NotificationManager, AnalyticsManage
 const { width: SW } = Dimensions.get('window');
 
 const TABS = [
-  { key: 'overview',    label: 'Intel',      icon: 'grid'         },
-  { key: 'store',       label: 'Storefront', icon: 'layout'       },
-  { key: 'campaigns',   label: 'Missions',   icon: 'target'       },
-  { key: 'audience',    label: 'The Crowd',  icon: 'users'        },
-  { key: 'analytics',   label: 'Reads',      icon: 'bar-chart-2'  },
-  { key: 'finance',     label: 'Stacks',     icon: 'dollar-sign'  },
-  { key: 'ecosystem',   label: 'Network',    icon: 'globe'        },
+  { key: 'overview', label: 'Intel', icon: 'grid' },
+  { key: 'store', label: 'Storefront', icon: 'layout' },
+  { key: 'campaigns', label: 'Missions & Promos', icon: 'target' },
+  { key: 'audience', label: 'The Crowd', icon: 'users' },
+  { key: 'analytics', label: 'Reads', icon: 'bar-chart-2' },
+  { key: 'finance', label: 'Stacks', icon: 'dollar-sign' },
+  { key: 'ecosystem', label: 'Network', icon: 'globe' },
 ];
 
 const BUSINESS_TYPES = [
@@ -37,9 +37,9 @@ const BUSINESS_TYPES = [
 ];
 
 const TIERS = {
-  starter:    { label: 'Starter',    color: '#94a3b8', perks: ['5 Missions/mo', 'Basic Reads', '500 Crowd targets/Mission'] },
-  pro:        { label: 'Pro',        color: '#06b6d4', perks: ['Unlimited Missions', 'Advanced Reads', '10K Crowd targets/Mission', 'Storefront builder'] },
-  royal:      { label: 'Royal',      color: '#8b5cf6', perks: ['Everything in Pro', 'API access', 'Backing Marketplace', 'Priority support', 'Custom domain'] },
+  starter: { label: 'Starter', color: '#94a3b8', perks: ['5 Missions/mo', 'Basic Reads', '500 Crowd targets/Mission'] },
+  pro: { label: 'Pro', color: '#06b6d4', perks: ['Unlimited Missions', 'Advanced Reads', '10K Crowd targets/Mission', 'Storefront builder'] },
+  royal: { label: 'Royal', color: '#8b5cf6', perks: ['Everything in Pro', 'API access', 'Backing Marketplace', 'Priority support', 'Custom domain'] },
   enterprise: { label: 'Enterprise', color: '#f59e0b', perks: ['Everything in Royal', 'Dedicated Gruv manager', 'Custom Connects', 'White-label Storefront', 'Bulk Mission tools'] },
 };
 
@@ -127,7 +127,7 @@ const CampaignRow = ({ campaign, primary, textColor, muted, onEdit, onToggle }) 
             </View>
           )}
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => onToggle(campaign.id, campaign.status === 'active' ? 'paused' : 'active')}
           style={[sc.toggleBtn, { borderColor: campaign.status === 'active' ? '#f59e0b' : '#10b981' }]}
         >
@@ -142,32 +142,34 @@ const CampaignRow = ({ campaign, primary, textColor, muted, onEdit, onToggle }) 
 };
 
 // ── Partner Row ───────────────────────────────────────────────────────────────
-const PartnerRow = ({ partner, primary, textColor, muted }) => {
+const PartnerRow = ({ partner, primary, textColor, muted, onPress }) => {
   const statusColor = { active: '#10b981', pending: '#f59e0b', ended: '#94a3b8' }[partner.status] || '#94a3b8';
   return (
-    <GlassView style={[sc.partnerRow, { borderColor: `${primary}15` }]}>
-      <View style={[sc.partnerIcon, { backgroundColor: `${primary}15` }]}>
-        <Feather name="link-2" size={16} color={primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[sc.partnerName, { color: textColor }]}>{partner.partner_name}</Text>
-        <Text style={[sc.partnerType, { color: muted }]}>{partner.partner_type} · Rev share {partner.revenue_share || 0}%</Text>
-      </View>
-      <View style={[sc.partnerStatus, { backgroundColor: `${statusColor}18` }]}>
-        <Text style={[sc.partnerStatusText, { color: statusColor }]}>{partner.status?.toUpperCase()}</Text>
-      </View>
-    </GlassView>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+      <GlassView style={[sc.partnerRow, { borderColor: `${primary}15` }]}>
+        <View style={[sc.partnerIcon, { backgroundColor: `${primary}15` }]}>
+          <Feather name="link-2" size={16} color={primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[sc.partnerName, { color: textColor }]}>{partner.partner_name}</Text>
+          <Text style={[sc.partnerType, { color: muted }]}>{partner.partner_type} · Rev share {partner.revenue_share || 0}%</Text>
+        </View>
+        <View style={[sc.partnerStatus, { backgroundColor: `${statusColor}18` }]}>
+          <Text style={[sc.partnerStatusText, { color: statusColor }]}>{partner.status?.toUpperCase()}</Text>
+        </View>
+      </GlassView>
+    </TouchableOpacity>
   );
 };
 
 // ── Funnel Bar ────────────────────────────────────────────────────────────────
-const FunnelBar = ({ label, value, max, color, textColor, muted }) => (
+const FunnelBar = ({ label, value, max, color, textColor, muted, isPercentage }) => (
   <View style={sc.funnelRow}>
     <Text style={[sc.funnelLabel, { color: muted }]}>{label}</Text>
     <View style={sc.funnelTrack}>
       <View style={[sc.funnelFill, { width: `${Math.min(100, (value / Math.max(max, 1)) * 100)}%`, backgroundColor: color }]} />
     </View>
-    <Text style={[sc.funnelVal, { color: textColor }]}>{value?.toLocaleString()}</Text>
+    <Text style={[sc.funnelVal, { color: textColor }]}>{isPercentage ? `${value?.toFixed(1)}%` : value?.toLocaleString()}</Text>
   </View>
 );
 
@@ -175,27 +177,28 @@ const FunnelBar = ({ label, value, max, color, textColor, muted }) => (
 export const BusinessDashboardScreen = ({ onClose }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text       || '#ffffff';
-  const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || 'rgba(255,255,255,0.05)';
+  const primary = currentTheme?.primary || '#00f2ff';
+  const bg = currentTheme?.background || '#0d1112';
+  const textColor = currentTheme?.text || '#ffffff';
+  const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
+  const surface = currentTheme?.surface || 'rgba(255,255,255,0.05)';
 
-  const [activeTab, setActiveTab]         = useState('overview');
-  const [biz, setBiz]                     = useState(null);
-  const [campaigns, setCampaigns]         = useState([]);
-  const [partners, setPartners]           = useState([]);
-  const [segments, setSegments]           = useState([]);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [biz, setBiz] = useState(null);
+  const [campaigns, setCampaigns] = useState([]);
+  const [partners, setPartners] = useState([]);
+  const [segments, setSegments] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [analytics, setAnalytics]         = useState(null);
-  const [loading, setLoading]             = useState(true);
-  const [refreshing, setRefreshing]       = useState(false);
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showCampaignBuilder, setShowCampaignBuilder] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
-  const [setupMode, setSetupMode]         = useState(false);
-  const [setupForm, setSetupForm]         = useState({ business_name: '', business_type: '', tagline: '', description: '', website: '', phone: '' });
+  const [activeCampaignFilter, setActiveCampaignFilter] = useState('All'); // New state for filtering missions/promotions
+  const [setupMode, setSetupMode] = useState(false);
+  const [setupForm, setSetupForm] = useState({ business_name: '', business_type: '', tagline: '', description: '', website: '', phone: '' });
   const tabScrollRef = useRef(null);
-  const headerAnim  = useRef(new Animated.Value(0)).current;
+  const headerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadAll();
@@ -232,9 +235,9 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       // Build analytics summary from raw events
       const raw = await CampaignManager.getPerformance(bizData.id);
       const impressions = raw.filter(e => e.event_type === 'impression').length;
-      const clicks      = raw.filter(e => e.event_type === 'click').length;
+      const clicks = raw.filter(e => e.event_type === 'click').length;
       const conversions = raw.filter(e => e.event_type === 'conversion').length;
-      const rsvps       = raw.filter(e => e.event_type === 'rsvp').length;
+      const rsvps = raw.filter(e => e.event_type === 'rsvp').length;
 
       // Build 7-day chart from campaigns
       const today = new Date();
@@ -247,10 +250,10 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         };
       });
 
-      const totalRevenue   = (campData || []).reduce((a, c) => a + (c.revenue_attributed || 0), 0);
-      const totalSpent     = (campData || []).reduce((a, c) => a + (c.budget_spent || 0), 0);
+      const totalRevenue = (campData || []).reduce((a, c) => a + (c.revenue_attributed || 0), 0);
+      const totalSpent = (campData || []).reduce((a, c) => a + (c.budget_spent || 0), 0);
       const totalImpressions = (campData || []).reduce((a, c) => a + (c.impressions || 0), 0) || impressions;
-      const totalClicks    = (campData || []).reduce((a, c) => a + (c.clicks || 0), 0) || clicks;
+      const totalClicks = (campData || []).reduce((a, c) => a + (c.clicks || 0), 0) || clicks;
       const totalConversions = (campData || []).reduce((a, c) => a + (c.conversions || 0), 0) || conversions;
 
       setAnalytics({ impressions: totalImpressions, clicks: totalClicks, conversions: totalConversions, rsvps, totalRevenue, totalSpent, chart });
@@ -263,7 +266,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const onRefresh = async () => { setRefreshing(true); await loadAll(); setRefreshing(false); };
 
   const handleToggleCampaign = async (id, newStatus) => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     // Optimistic update
     setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c));
     const ok = await CampaignManager.updateStatus(id, newStatus);
@@ -275,7 +278,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
 
   const handleSetupSubmit = async () => {
     if (!setupForm.business_name.trim()) { Alert.alert('Required', 'Please enter a business name.'); return; }
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     const { data, error } = await supabase.from('business_profiles').upsert({
       user_id: user.id,
       ...setupForm,
@@ -286,12 +289,12 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   };
 
   const handleTabPress = (key) => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
     setActiveTab(key);
   };
 
   const handleUpgradeTier = async () => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     const tierOptions = ['pro', 'royal', 'enterprise'].filter(t => t !== biz?.tier);
     Alert.alert(
       'Upgrade Your Plan',
@@ -312,7 +315,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         .from('business_profiles')
         .update({ tier: newTier })
         .eq('id', biz.id);
-      if (ok) {
+      if (!error) {
         Alert.alert('Success!', `Your account has been upgraded to ${newTier.toUpperCase()}.`);
         loadAll();
       } else {
@@ -324,11 +327,12 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   };
 
   const handleJoinEcosystem = async (ecosystem) => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     if (!biz) { Alert.alert('Error', 'No business profile found.'); return; }
     try {
       const ok = await EcosystemManager.requestPartnership(biz.id, "ecosystem-partner", "ecosystem");
-      if (ok) { Alert.alert('Request Sent!', `Your request to join ${ecosystem.label}. Check your inbox for updates.`);
+      if (ok) {
+        Alert.alert('Request Sent!', `Your request to join ${ecosystem.label}. Check your inbox for updates.`);
         loadAll();
       } else {
         Alert.alert('Error', 'Could not send connection request. Please try again.');
@@ -460,11 +464,12 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           <View style={sc.statsGrid}>
             <StatCard label="Stacks" value={`R${(analytics?.totalRevenue || 0).toFixed(0)}`} icon="dollar-sign" color="#10b981" trend={12} primary={primary} textColor={textColor} muted={muted} />
             <StatCard label="Eyes On" value={(analytics?.impressions || 0).toLocaleString()} icon="eye" color={primary} trend={8} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Taps" value={(analytics?.clicks || 0).toLocaleString()} icon="mouse-pointer" color="#8b5cf6" trend={-3} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Promo Taps" value={(analytics?.clicks || 0).toLocaleString()} icon="tag" color="#8b5cf6" trend={-3} primary={primary} textColor={textColor} muted={muted} />
             <StatCard label="Locks" value={(analytics?.conversions || 0).toLocaleString()} icon="check-circle" color="#f59e0b" trend={22} primary={primary} textColor={textColor} muted={muted} />
             <StatCard label="War Chest" value={`R${(analytics?.totalSpent || 0).toFixed(0)}`} icon="credit-card" color="#ef4444" primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Live Missions" value={activeCampaigns.length} icon="target" color="#06b6d4" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Voucher Claims" value={(analytics?.voucherClaims || 0).toLocaleString()} icon="gift" color="#06b6d4" primary={primary} textColor={textColor} muted={muted} />
           </View>
+          <StatCard label="Redemption Rate" value={`${(analytics?.redemptionRate || 0).toFixed(1)}%`} icon="percent" color="#10b981" primary={primary} textColor={textColor} muted={muted} />
 
           {/* 7-day activity chart */}
           {analytics?.chart && (
@@ -477,10 +482,11 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           <Text style={[sc.sectionTitle, { color: textColor }]}>Quick Moves</Text>
           <View style={sc.quickActions}>
             {[
-              { label: 'New Mission',    icon: 'target',    onPress: () => { setEditingCampaign(null); setShowCampaignBuilder(true); } },
-              { label: 'Edit Storefront',icon: 'layout',    onPress: () => handleTabPress('store') },
-              { label: 'View Reads',     icon: 'bar-chart-2', onPress: () => handleTabPress('analytics') },
-              { label: 'Add Connect',    icon: 'link-2',    onPress: () => handleTabPress('ecosystem') },
+              { label: 'New Mission', icon: 'target', onPress: () => { setEditingCampaign(null); setShowCampaignBuilder(true); } },
+              { label: 'Drop Discount', icon: 'percent', onPress: () => { setEditingCampaign(null); setShowCampaignBuilder(true); } },
+              { label: 'Edit Storefront', icon: 'layout', onPress: () => handleTabPress('store') },
+              { label: 'View Reads', icon: 'bar-chart-2', onPress: () => handleTabPress('analytics') },
+              { label: 'Add Connect', icon: 'link-2', onPress: () => handleTabPress('ecosystem') },
             ].map(a => (
               <TouchableOpacity key={a.label} onPress={a.onPress} style={[sc.quickAction, { borderColor: `${primary}25`, backgroundColor: `${primary}08` }]} activeOpacity={0.8}>
                 <Feather name={a.icon} size={18} color={primary} />
@@ -571,12 +577,12 @@ export const BusinessDashboardScreen = ({ onClose }) => {
             <View style={sc.targetingCats}>
               {[
                 { icon: 'user', label: 'Demographics', count: 24, examples: 'Surname, age, gender, language' },
-                { icon: 'heart', label: 'Lifestyle',   count: 18, examples: 'Religion, sport, car, colour' },
+                { icon: 'heart', label: 'Lifestyle', count: 18, examples: 'Religion, sport, car, colour' },
                 { icon: 'activity', label: 'Behaviour', count: 31, examples: 'RSVP history, spend level, categories' },
                 { icon: 'map-pin', label: 'Geographic', count: 12, examples: 'City, neighbourhood, radius' },
                 { icon: 'briefcase', label: 'Professional', count: 15, examples: 'Industry, job type, income band' },
-                { icon: 'clock', label: 'Time-based', count: 9,  examples: 'Time of day, day of week, season' },
-                { icon: 'music', label: 'Interests',  count: 42, examples: 'Music genres, food, art, tech' },
+                { icon: 'clock', label: 'Time-based', count: 9, examples: 'Time of day, day of week, season' },
+                { icon: 'music', label: 'Interests', count: 42, examples: 'Music genres, food, art, tech' },
                 { icon: 'trending-up', label: 'Purchase Intent', count: 28, examples: 'Searched transport, viewed outfits' },
               ].map(cat => (
                 <View key={cat.label} style={[sc.targetCat, { borderColor: `${primary}15` }]}>
@@ -618,10 +624,10 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           <Text style={[sc.sectionTitle, { color: textColor }]}>Vibe Funnel</Text>
           <GlassView style={[sc.funnelCard, { borderColor: `${primary}15` }]}>
             {[
-              { label: 'Eyes On',    value: analytics?.impressions  || 0, color: primary },
-              { label: 'Taps',       value: analytics?.clicks       || 0, color: '#8b5cf6' },
-              { label: 'Vibes',      value: analytics?.rsvps        || 0, color: '#f59e0b' },
-              { label: 'Locks',      value: analytics?.conversions  || 0, color: '#10b981' },
+              { label: 'Eyes On', value: analytics?.impressions || 0, color: primary },
+              { label: 'Taps', value: analytics?.clicks || 0, color: '#8b5cf6' },
+              { label: 'Vibes', value: analytics?.rsvps || 0, color: '#f59e0b' },
+              { label: 'Locks', value: analytics?.conversions || 0, color: '#10b981' },
             ].map(f => <FunnelBar key={f.label} {...f} max={analytics?.impressions || 1} textColor={textColor} muted={muted} />)}
           </GlassView>
 
@@ -644,8 +650,8 @@ export const BusinessDashboardScreen = ({ onClose }) => {
               <View style={sc.analyticsMetrics}>
                 {[
                   { l: 'Reach', v: (c.impressions || 0).toLocaleString() },
-                  { l: 'CTR',   v: c.impressions > 0 ? `${((c.clicks / c.impressions) * 100).toFixed(1)}%` : '—' },
-                  { l: 'ROI',   v: c.budget_spent > 0 ? `${((c.revenue_attributed / c.budget_spent - 1) * 100).toFixed(0)}%` : '—' },
+                  { l: 'CTR', v: c.impressions > 0 ? `${((c.clicks / c.impressions) * 100).toFixed(1)}%` : '—' },
+                  { l: 'ROI', v: c.budget_spent > 0 ? `${((c.revenue_attributed / c.budget_spent - 1) * 100).toFixed(0)}%` : '—' },
                 ].map(m => (
                   <View key={m.l} style={sc.analyticsMetric}>
                     <Text style={[sc.analyticsMetricVal, { color: primary }]}>{m.v}</Text>
@@ -723,7 +729,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
               <Text style={[sc.emptyTitle, { color: textColor }]}>No Connects yet</Text>
               <Text style={[sc.emptyBody, { color: muted }]}>Link up with Backers, co-Gruv hosts, and API Connects to grow your Stacks.</Text>
             </GlassView>
-          ) : partners.map(p => <PartnerRow key={p.id} partner={p} primary={primary} textColor={textColor} muted={muted} />)}
+          ) : partners.map(p => <PartnerRow key={p.id} partner={p} primary={primary} textColor={textColor} muted={muted} onPress={() => Alert.alert('Partner Hub', `Partner tools for ${p.partner_name} coming in v2`)} />)}
 
           {/* Ecosystem categories */}
           {[
@@ -959,7 +965,3 @@ const sc = StyleSheet.create({
   newBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   newBtnText: { color: '#000', fontSize: 11, fontWeight: '900' },
 });
-
-
-
-

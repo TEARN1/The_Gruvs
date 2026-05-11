@@ -39,11 +39,18 @@ import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PathMapScreen } from './PathMapScreen';
 import { EventDetailScreen } from './EventDetailScreen';
 import { supabase } from '../services/supabase';
-import { VibeManager, BookmarkManager, FollowingFeedManager } from '../services/dataFlow';
+import { VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine } from '../services/dataFlow';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
+import { SAMPLE_EVENTS } from '../constants/SampleData';
+
+// Safe haptic wrapper for web compatibility
+const safeHaptic = (fn) => {
+  if (Platform.OS === 'web') return;
+  try { fn(); } catch {}
+};
 
 // ── Skeleton card shown while loading ─────────────────────────────────────────
-const AVATAR_COLORS = ['#0891b2','#7c3aed','#dc2626','#059669','#d97706','#db2777'];
+const AVATAR_COLORS = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706', '#db2777'];
 const AvatarStack = ({ count, size = 20 }) => {
   if (!count || count === 0) return null;
   const displayCount = Math.min(3, count);
@@ -191,7 +198,7 @@ const tm = StyleSheet.create({
 // ── Main LandingPage ──────────────────────────────────────────────────────────
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices }) => {
   const { currentTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const toast = useToast();
   const { identityMode, modeConfig } = useIdentity();
   const flatListRef = useRef(null);
@@ -243,11 +250,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [feedMode, setFeedMode] = useState('all'); // 'all' | 'following'
   const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text       || '#fff';
-  const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#131a1c';
+  const primary = currentTheme?.primary || '#00f2ff';
+  const bg = currentTheme?.background || '#0d1112';
+  const textColor = currentTheme?.text || '#fff';
+  const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
+  const surface = currentTheme?.surface || '#131a1c';
 
   // Debounce search — avoids a network hit on every keystroke
   useEffect(() => {
@@ -258,7 +265,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   useEffect(() => {
     loadData(true);
-  }, [selectedCat, debouncedQuery, mode, refreshKey, feedMode]);
+  }, [selectedCat, debouncedQuery, mode, refreshKey, feedMode, user?.id]);
 
   useEffect(() => { loadTrending(); }, []);
 
@@ -292,11 +299,26 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         setVibeCounts(prev => ({ ...prev, [updatedEvent.id]: updatedEvent.vibe_count }));
       })
       .subscribe();
-    
+
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Pattern: Passive Background Re-ranking
+  // Keeps the feed order fresh based on real-time stat changes (velocity/score)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (events.length > 0 && !loading && !refreshing) {
+        setEvents(prev => ScoreEngine.reRank(prev, {
+          userInterests: profile?.interests || [],
+          followedIds: Array.from(new Set(events.map(e => e.author_id))), // approximate followed from current visible authors
+        }));
+      }
+    }, 60000); // Re-rank every minute
+
+    return () => clearInterval(interval);
+  }, [events.length, loading, refreshing, profile?.interests]);
 
   const loadData = useCallback(async (isRefreshing = false) => {
     if (loadingMore || (!hasMore && !isRefreshing)) return;
@@ -314,58 +336,42 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const end = start + PAGE_SIZE - 1;
 
     try {
-      // Auto-expire: only show events from today onwards (or without a date)
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      // For demo purposes, use sample data instead of Supabase
+      console.log('Using sample data for demo');
+      let fallbackEvents = SAMPLE_EVENTS;
 
-      let newEvents = [];
-
-      if (feedMode === 'following' && user) {
-        newEvents = await FollowingFeedManager.fetch(user.id, currentPage, PAGE_SIZE);
-        if (selectedCat && selectedCat !== 'all') newEvents = newEvents.filter(e => e.category === selectedCat);
-        if (debouncedQuery.trim()) {
-          const q = debouncedQuery.toLowerCase();
-          newEvents = newEvents.filter(e =>
-            (e.title || '').toLowerCase().includes(q) ||
-            (e.description || '').toLowerCase().includes(q) ||
-            (e.venue_name || '').toLowerCase().includes(q)
-          );
-        }
-      } else {
-        let q = supabase
-          .from('events')
-          .select('*, profiles(username, avatar_url, is_verified, is_online, vibe_score)')
-          .order(mode === 'explore' ? 'vibe_count' : 'created_at', { ascending: false })
-          .or(`event_date.is.null,event_date.gte.${yesterday}`);
-
-        if (selectedCat && selectedCat !== 'all') q = q.eq('category', selectedCat);
-        if (debouncedQuery.trim()) {
-          const s = `%${debouncedQuery.trim()}%`;
-          q = q.or(`title.ilike.${s},description.ilike.${s},category.ilike.${s},venue_name.ilike.${s},city.ilike.${s}`);
-        }
-
-        const { data, error } = await q.range(start, end);
-        if (error) throw error;
-        newEvents = data || [];
+      if (selectedCat && selectedCat !== 'all') {
+        fallbackEvents = fallbackEvents.filter(e => e.category === selectedCat);
+      }
+      if (debouncedQuery.trim()) {
+        const q = debouncedQuery.toLowerCase();
+        fallbackEvents = fallbackEvents.filter(e =>
+          (e.title || '').toLowerCase().includes(q) ||
+          (e.description || '').toLowerCase().includes(q) ||
+          (e.venue_name || '').toLowerCase().includes(q)
+        );
       }
 
+      const start = currentPage * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+      const paginatedEvents = fallbackEvents.slice(start, end);
+
       if (isRefreshing) {
-        setEvents(newEvents);
-        setHasMore(newEvents.length === PAGE_SIZE);
+        setEvents(paginatedEvents);
+        setHasMore(paginatedEvents.length === PAGE_SIZE);
       } else {
-        setEvents(prev => [...prev, ...newEvents]);
-        setHasMore(newEvents.length === PAGE_SIZE);
+        setEvents(prev => [...prev, ...paginatedEvents]);
+        setHasMore(paginatedEvents.length === PAGE_SIZE);
       }
 
       const counts = {};
-      [...(isRefreshing ? [] : events), ...newEvents].forEach(e => {
+      [...(isRefreshing ? [] : events), ...paginatedEvents].forEach(e => {
         counts[e.id] = e.vibe_count || 0;
       });
       setVibeCounts(prev => ({ ...prev, ...counts }));
 
       if (!isRefreshing) setPage(prev => prev + 1);
-
-    } catch {
-      setHasMore(false);
+      setHasMore(false); // Sample data doesn't support infinite scroll
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -427,7 +433,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           map[r.event_id] = (map[r.event_id] || 0) + 1;
         });
         setCrewRsvpMap(map);
-      } catch {}
+      } catch { }
     };
     loadCrewSignal();
   }, [user, events]);
@@ -477,10 +483,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     if (!user) { onAuthRequired(); return; }
     if (isVibing[eventId]) return;
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
 
     const isCurrentVibed = myVibes.has(eventId);
-    
+
     // Optimistic Update
     setMyVibes(prev => {
       const next = new Set(prev);
@@ -556,10 +562,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const handleBookmark = async (eventId) => {
     if (!user) { onAuthRequired(); return; }
 
-    Haptics.selectionAsync().catch(() => {});
+    safeHaptic(() => Haptics.selectionAsync());
 
     const isSaved = savedEvents.has(eventId);
-    
+
     // Optimistic Update
     setSavedEvents(prev => {
       const next = new Set(prev);
@@ -595,7 +601,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   };
 
   const handleShare = (event) => {
-    Share.share({ message: `Check out "${event.title}" on The Gruvs — I got you!` }).catch(() => {});
+    Share.share({ message: `Check out "${event.title}" on The Gruvs — I got you!` }).catch(() => { });
   };
 
   const openViberProfile = (profile) => {
@@ -704,7 +710,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             return (
               <TouchableOpacity
                 key={tab.key}
-                onPress={() => setFeedMode(tab.key)}
+                onPress={() => {
+                  if (feedMode === tab.key) {
+                    handleRefresh();
+                  } else {
+                    setFeedMode(tab.key);
+                  }
+                  safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+                }}
                 style={{
                   flexDirection: 'row', alignItems: 'center', gap: 5,
                   paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
@@ -817,23 +830,23 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const id = event.id;
     // Insert AdFlywheel every 5 cards (index 4, 9, 14…)
     const showAd = index > 0 && index % 5 === 4;
-    const isVibed   = myVibes.has(id);
-    const isSaved   = savedEvents.has(id);
-    const isSample  = event.is_sample === true;
-    const isOwner   = user && event.user_id === user.id;
+    const isVibed = myVibes.has(id);
+    const isSaved = savedEvents.has(id);
+    const isSample = event.is_sample === true;
+    const isOwner = user && event.user_id === user.id;
     const userReaction = reactions[id] || null;
     const crewCount = crewRsvpMap[id] || 0;
     const isHighlighted = highlightedId === id;
-    const catColor  = event.category_color || getCategoryColor(event.category) || primary;
-    const title     = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
-    const goingPct  = event.capacity ? Math.min(100, Math.round(((event.going || 0) / event.capacity) * 100)) : 0;
+    const catColor = event.category_color || getCategoryColor(event.category) || primary;
+    const title = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
+    const goingPct = event.capacity ? Math.min(100, Math.round(((event.going || 0) / event.capacity) * 100)) : 0;
 
     const getCountdown = (dateStr) => {
       if (!dateStr) return null;
       const diff = new Date(dateStr).getTime() - Date.now();
       if (diff <= 0) return null;
       const days = Math.floor(diff / 86400000);
-      const hrs  = Math.floor((diff % 86400000) / 3600000);
+      const hrs = Math.floor((diff % 86400000) / 3600000);
       return days > 0 ? `${days}d ${hrs}h` : `${hrs}h away`;
     };
     const countdown = getCountdown(event.event_date);
@@ -844,293 +857,297 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
     return (
       <React.Fragment>
-      <FadeInView delay={index * 60} direction="up">
-        <View style={[
-          styles.eventCard,
-          {
-            backgroundColor: flashColor ? `${flashColor}12` : surface,
-            borderColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
-            borderTopColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
-            borderTopWidth: flashColor ? 2 : 1,
-          },
-          (isHighlighted || flashColor) && {
-            borderWidth: 2,
-            ...(isWeb ? { boxShadow: `0 0 25px ${(flashColor || primary)}80` } : { shadowColor: flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
-          },
-          isWeb && !flashColor && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
-          isWeb && flashColor && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
-        ]}>
+        <FadeInView delay={index * 60} direction="up">
+          <View style={[
+            styles.eventCard,
+            {
+              backgroundColor: flashColor ? `${flashColor}12` : surface,
+              borderColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
+              borderTopColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
+              borderTopWidth: flashColor ? 2 : 1,
+            },
+            (isHighlighted || flashColor) && {
+              borderWidth: 2,
+              ...(isWeb ? { boxShadow: `0 0 25px ${(flashColor || primary)}80` } : { shadowColor: flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
+            },
+            isWeb && !flashColor && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
+            isWeb && flashColor && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
+          ]}>
 
-          {/* Media */}
-          <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }]}>
-            <MediaViewer media={event.media && event.media.length > 0 ? event.media : [{ url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800', type: 'image' }]} />
-            {/* Scrim for readability */}
-            <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)' }} />
-            {/* Category badge */}
-            {event.category && (
-              <View style={[styles.catBadge, { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` }]}>
-                <Text style={[styles.catBadgeText, { color: catColor }]}>
-                  {(CATEGORY_CONFIG[event.category]?.label || event.category).toUpperCase()}
-                </Text>
-              </View>
-            )}
-            {/* Bookmark */}
-            <TouchableOpacity
-              style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
-              onPress={() => handleBookmark(id)}
-            >
-              <Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Body */}
-          <View style={styles.cardBody}>
-            {/* User row */}
-            <View style={styles.userRow}>
-              <TouchableOpacity onPress={() => openViberProfile(event.profiles)}>
-                <View style={styles.avatarWrap}>
-                  {event.profiles?.avatar_url
-                    ? <Image source={{ uri: event.profiles.avatar_url }} style={[styles.avatar, { borderColor: primary }]} />
-                    : <View style={[styles.avatar, { borderColor: primary, backgroundColor: AVATAR_COLORS[(event.profiles?.username?.charCodeAt(0) || 0) % AVATAR_COLORS.length], alignItems: 'center', justifyContent: 'center' }]}>
-                        <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>{(event.profiles?.username || 'V')[0].toUpperCase()}</Text>
-                      </View>
-                  }
-                  {event.profiles?.is_online && <View style={[styles.onlineDot, { backgroundColor: '#10b981' }]} />}
-                </View>
-              </TouchableOpacity>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <Text style={[styles.username, { color: textColor }]}>
-                    {event.profiles?.username || 'Viber'}
+            {/* Media */}
+            <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }]}>
+              <MediaViewer media={event.media && event.media.length > 0 ? event.media : [{ url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800', type: 'image' }]} />
+              {/* Scrim for readability */}
+              <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)' }} />
+              {/* Category badge */}
+              {event.category && (
+                <View style={[styles.catBadge, { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` }]}>
+                  <Text style={[styles.catBadgeText, { color: catColor }]}>
+                    {(CATEGORY_CONFIG[event.category]?.label || event.category).toUpperCase()}
                   </Text>
-                  {event.profiles?.vibe_score && (
-                    <View style={[styles.vibeScoreBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
-                      <Feather name="zap" size={8} color={primary} />
-                      <Text style={[styles.vibeScoreText, { color: primary }]}>{event.profiles.vibe_score}</Text>
-                    </View>
-                  )}
-                  {event.profiles?.is_verified && (
-                    <View style={[styles.verifiedBadge, { backgroundColor: primary }]}>
-                      <Feather name="check" size={8} color="#000" />
-                    </View>
-                  )}
                 </View>
-                <Text style={[styles.handle, { color: muted }]}>
-                  @{(event.profiles?.username || 'viber').toLowerCase().replace(/\s+/g, '')}
-                </Text>
-              </View>
-              <View style={[styles.priceBadge, {
-                backgroundColor: (!event.price || event.price === 'FREE' || event.price === 0) ? 'rgba(16,185,129,0.15)' : `${catColor}22`,
-                borderColor:     (!event.price || event.price === 'FREE' || event.price === 0) ? '#10b981' : catColor,
-              }]}>
-                <Text style={[styles.priceText, {
-                  color: (!event.price || event.price === 'FREE' || event.price === 0) ? '#10b981' : catColor,
-                }]}>
-                  {(!event.price || event.price === 0) ? 'FREE' : event.price}
-                </Text>
-              </View>
+              )}
+              {/* Bookmark */}
+              <TouchableOpacity
+                style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
+                onPress={() => handleBookmark(id)}
+              >
+                <Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} />
+              </TouchableOpacity>
             </View>
 
-            {/* Crew signal badge */}
-            {crewCount >= 1 && (
-              <View style={[styles.crewBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}35` }]}>
-                <Feather name="users" size={11} color={primary} />
-                <Text style={[styles.crewBadgeText, { color: primary }]}>
-                  {crewCount} {crewCount === 1 ? 'person' : 'people'} you follow {crewCount === 1 ? 'is' : 'are'} going
-                </Text>
+            {/* Body */}
+            <View style={styles.cardBody}>
+              {/* User row */}
+              <View style={styles.userRow}>
+                <TouchableOpacity onPress={() => openViberProfile(event.profiles)}>
+                  <View style={styles.avatarWrap}>
+                    {event.profiles?.avatar_url
+                      ? <Image source={{ uri: event.profiles.avatar_url }} style={[styles.avatar, { borderColor: primary }]} />
+                      : <View style={[styles.avatar, { borderColor: primary, backgroundColor: AVATAR_COLORS[(event.profiles?.username?.charCodeAt(0) || 0) % AVATAR_COLORS.length], alignItems: 'center', justifyContent: 'center' }]}>
+                        <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>{(event.profiles?.username || 'V')[0].toUpperCase()}</Text>
+                      </View>
+                    }
+                    {event.profiles?.is_online && <View style={[styles.onlineDot, { backgroundColor: '#10b981' }]} />}
+                  </View>
+                </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <Text style={[styles.username, { color: textColor }]}>
+                      {event.profiles?.username || 'Viber'}
+                    </Text>
+                    {event.profiles?.vibe_score && (
+                      <View style={[styles.vibeScoreBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
+                        <Feather name="zap" size={8} color={primary} />
+                        <Text style={[styles.vibeScoreText, { color: primary }]}>{event.profiles.vibe_score}</Text>
+                      </View>
+                    )}
+                    {event.profiles?.is_verified && (
+                      <View style={[styles.verifiedBadge, { backgroundColor: primary }]}>
+                        <Feather name="check" size={8} color="#000" />
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.handle, { color: muted }]}>
+                    @{(event.profiles?.username || 'viber').toLowerCase().replace(/\s+/g, '')}
+                  </Text>
+                </View>
+                <View style={[styles.priceBadge, {
+                  backgroundColor: (!event.price || event.price === 'FREE' || event.price === 0) ? 'rgba(16,185,129,0.15)' : `${catColor}22`,
+                  borderColor: (!event.price || event.price === 'FREE' || event.price === 0) ? '#10b981' : catColor,
+                }]}>
+                  <Text style={[styles.priceText, {
+                    color: (!event.price || event.price === 'FREE' || event.price === 0) ? '#10b981' : catColor,
+                  }]}>
+                    {(!event.price || event.price === 0) ? 'FREE' : event.price}
+                  </Text>
+                </View>
               </View>
-            )}
 
-            {/* Title + description — tap to open full detail */}
-            <TouchableOpacity activeOpacity={0.8} onPress={() => setSelectedEvent(event)}>
-              <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
-              <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>
-            </TouchableOpacity>
-
-            {/* Meta row */}
-            <View style={styles.metaRow}>
-              {event.event_date ? (
-                <View style={styles.metaItem}>
-                  <Feather name="calendar" size={11} color={muted} />
-                  <Text style={[styles.metaText, { color: muted }]}>
-                    {new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}
+              {/* Crew signal badge */}
+              {crewCount >= 1 && (
+                <View style={[styles.crewBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}35` }]}>
+                  <Feather name="users" size={11} color={primary} />
+                  <Text style={[styles.crewBadgeText, { color: primary }]}>
+                    {crewCount} {crewCount === 1 ? 'person' : 'people'} you follow {crewCount === 1 ? 'is' : 'are'} going
                   </Text>
                 </View>
-              ) : null}
-              {event.event_time ? (
-                <View style={styles.metaItem}>
-                  <Feather name="clock" size={11} color={muted} />
-                  <Text style={[styles.metaText, { color: muted }]}>{event.event_time}</Text>
+              )}
+
+              {/* Title + description — tap to open full detail */}
+              <TouchableOpacity activeOpacity={0.8} onPress={() => setSelectedEvent(event)}>
+                <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
+                <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>
+              </TouchableOpacity>
+
+              {/* Meta row */}
+              <View style={styles.metaRow}>
+                {event.event_date ? (
+                  <View style={styles.metaItem}>
+                    <Feather name="calendar" size={11} color={muted} />
+                    <Text style={[styles.metaText, { color: muted }]}>
+                      {new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}
+                    </Text>
+                  </View>
+                ) : null}
+                {event.event_time ? (
+                  <View style={styles.metaItem}>
+                    <Feather name="clock" size={11} color={muted} />
+                    <Text style={[styles.metaText, { color: muted }]}>{event.event_time}</Text>
+                  </View>
+                ) : null}
+                {(event.venue_name || event.address) ? (
+                  <TouchableOpacity
+                    style={styles.metaItem}
+                    onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
+                  >
+                    <Feather name="map-pin" size={11} color={primary} />
+                    <Text style={[styles.metaText, { color: primary }]} numberOfLines={1}>
+                      {event.venue_name || event.address}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {/* Countdown pill */}
+              {countdown ? (
+                <View style={[styles.countdown, { backgroundColor: `${primary}12`, borderColor: `${primary}28` }]}>
+                  <Feather name="clock" size={11} color={primary} />
+                  <Text style={[styles.countdownText, { color: primary }]}>{countdown}</Text>
                 </View>
               ) : null}
-              {(event.venue_name || event.address) ? (
+
+              {/* RSVP progress bar */}
+              {event.capacity > 0 ? (
+                <View style={styles.rsvpWrap}>
+                  <View style={[styles.rsvpTrack, { backgroundColor: `${catColor}15` }]}>
+                    <View style={[
+                      styles.rsvpFill,
+                      { width: `${goingPct}%`, backgroundColor: catColor },
+                      isWeb && { boxShadow: `0 0 10px ${catColor}80` }
+                    ]} />
+                  </View>
+                  <View style={styles.rsvpLabels}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <AvatarStack count={event.going || 0} primary={primary} />
+                      <Text style={[styles.rsvpText, { color: textColor }]}>{event.going || 0} going</Text>
+                    </View>
+                    {event.capacity - (event.going || 0) > 0 && (
+                      <Text style={[styles.rsvpText, { color: muted }]}>
+                        {event.capacity - (event.going || 0)} spots left
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              ) : null}
+
+              {/* Ticket */}
+              {event.ticket_url ? (
                 <TouchableOpacity
-                  style={styles.metaItem}
-                  onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
+                  style={[styles.ticketBtn, { borderColor: catColor }]}
+                  onPress={() => Linking.openURL(event.ticket_url)}
                 >
-                  <Feather name="map-pin" size={11} color={primary} />
-                  <Text style={[styles.metaText, { color: primary }]} numberOfLines={1}>
-                    {event.venue_name || event.address}
-                  </Text>
+                  <Feather name="tag" size={13} color={catColor} />
+                  <Text style={[styles.ticketText, { color: catColor }]}>Get Tickets / RSVP</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
 
-            {/* Countdown pill */}
-            {countdown ? (
-              <View style={[styles.countdown, { backgroundColor: `${primary}12`, borderColor: `${primary}28` }]}>
-                <Feather name="clock" size={11} color={primary} />
-                <Text style={[styles.countdownText, { color: primary }]}>{countdown}</Text>
+            {/* Reaction summary */}
+            {event.reaction_count > 0 ? (
+              <View style={[styles.reactionSummary, { borderTopColor: `${primary}12`, borderBottomColor: `${primary}12` }]}>
+                <Text style={styles.reactionEmojis}>{event.reactions_summary || '🔥❤️🙌'}</Text>
+                <Text style={[styles.reactionCount, { color: muted }]}>{event.reaction_count} reactions</Text>
               </View>
             ) : null}
 
-            {/* RSVP progress bar */}
-            {event.capacity > 0 ? (
-              <View style={styles.rsvpWrap}>
-                <View style={[styles.rsvpTrack, { backgroundColor: `${catColor}15` }]}>
-                  <View style={[
-                    styles.rsvpFill, 
-                    { width: `${goingPct}%`, backgroundColor: catColor },
-                    isWeb && { boxShadow: `0 0 10px ${catColor}80` }
-                  ]} />
-                </View>
-                <View style={styles.rsvpLabels}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <AvatarStack count={event.going || 0} primary={primary} />
-                    <Text style={[styles.rsvpText, { color: textColor }]}>{event.going || 0} going</Text>
-                  </View>
-                  {event.capacity - (event.going || 0) > 0 && (
-                    <Text style={[styles.rsvpText, { color: muted }]}>
-                      {event.capacity - (event.going || 0)} spots left
-                    </Text>
-                  )}
-                </View>
+            {/* Action bar */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
+              <View style={styles.actionBar}>
+                <TouchableOpacity style={styles.actionBtn} onPress={() => handleVibe(id)}>
+                  <Feather name="zap" size={19} color={isVibed ? '#ef4444' : muted} />
+                  <Text style={[styles.actionCount, { color: isVibed ? '#ef4444' : muted }]}>{vibeCounts[id] || 0}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenReact(p => ({ ...p, [id]: !p[id] })))}>
+                  {userReaction
+                    ? <Text style={{ fontSize: 19 }}>{REACTION_LIST.find(r => r.key === userReaction)?.emoji || '😊'}</Text>
+                    : <Feather name="smile" size={19} color={muted} />
+                  }
+                  <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenEcho(p => ({ ...p, [id]: !p[id] })))}>
+                  <Feather name="message-circle" size={19} color={openEcho[id] ? primary : muted} />
+                  <Text style={[styles.actionCount, { color: openEcho[id] ? primary : muted }]}>{event.echo_count || 0}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenGallery(p => ({ ...p, [id]: !p[id] })))}>
+                  <Feather name="camera" size={19} color={openGallery[id] ? primary : muted} />
+                  <Text style={[styles.actionLabel, { color: openGallery[id] ? primary : muted }]}>Gallery</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenRate(p => ({ ...p, [id]: !p[id] })))}>
+                  <Feather name="star" size={19} color={openRate[id] ? primary : muted} />
+                  <Text style={[styles.actionLabel, { color: openRate[id] ? primary : muted }]}>Rate</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionBtn} onPress={() => handleShare(event)}>
+                  <Feather name="share-2" size={19} color={muted} />
+                  <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionBtn} onPress={() => {
+                  safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+                  user ? setRsvpEvent(event) : onAuthRequired();
+                }}>
+                  <Feather name="check-circle" size={19} color={muted} />
+                  <Text style={[styles.actionLabel, { color: muted }]}>RSVP</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionBtn} onPress={() => setReportTarget({ id, type: 'event' })}>
+                  <Feather name="flag" size={19} color={muted} />
+                </TouchableOpacity>
+
+                {isOwner && (
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => setEditEvent(event)}>
+                    <Feather name="edit-2" size={19} color={primary} />
+                  </TouchableOpacity>
+                )}
+
+                {isOwner && (
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => setAdminEvent(event)}>
+                    <Feather name="bar-chart-2" size={19} color={primary} />
+                    <Text style={[styles.actionLabel, { color: primary }]}>Admin</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            ) : null}
+            </ScrollView>
 
-            {/* Ticket */}
-            {event.ticket_url ? (
-              <TouchableOpacity
-                style={[styles.ticketBtn, { borderColor: catColor }]}
-                onPress={() => Linking.openURL(event.ticket_url)}
-              >
-                <Feather name="tag" size={13} color={catColor} />
-                <Text style={[styles.ticketText, { color: catColor }]}>Get Tickets / RSVP</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {/* Reaction summary */}
-          {event.reaction_count > 0 ? (
-            <View style={[styles.reactionSummary, { borderTopColor: `${primary}12`, borderBottomColor: `${primary}12` }]}>
-              <Text style={styles.reactionEmojis}>{event.reactions_summary || '🔥❤️🙌'}</Text>
-              <Text style={[styles.reactionCount, { color: muted }]}>{event.reaction_count} reactions</Text>
-            </View>
-          ) : null}
-
-          {/* Action bar */}
-          <View style={[styles.actionBar, { borderTopColor: `${primary}15` }]}>
-            <TouchableOpacity style={styles.actionBtn} onPress={() => handleVibe(id)}>
-              <Feather name="zap" size={19} color={isVibed ? '#ef4444' : muted} />
-              <Text style={[styles.actionCount, { color: isVibed ? '#ef4444' : muted }]}>{vibeCounts[id] || 0}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenReact(p => ({ ...p, [id]: !p[id] })))}>
-              {userReaction
-                ? <Text style={{ fontSize: 19 }}>{REACTION_LIST.find(r => r.key === userReaction)?.emoji || '😊'}</Text>
-                : <Feather name="smile" size={19} color={muted} />
-              }
-              <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenEcho(p => ({ ...p, [id]: !p[id] })))}>
-              <Feather name="message-circle" size={19} color={openEcho[id] ? primary : muted} />
-              <Text style={[styles.actionCount, { color: openEcho[id] ? primary : muted }]}>{event.echo_count || 0}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenGallery(p => ({ ...p, [id]: !p[id] })))}>
-              <Feather name="camera" size={19} color={openGallery[id] ? primary : muted} />
-              <Text style={[styles.actionLabel, { color: openGallery[id] ? primary : muted }]}>Gallery</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionBtn} onPress={() => startTransition(() => setOpenRate(p => ({ ...p, [id]: !p[id] })))}>
-              <Feather name="star" size={19} color={openRate[id] ? primary : muted} />
-              <Text style={[styles.actionLabel, { color: openRate[id] ? primary : muted }]}>Rate</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionBtn} onPress={() => handleShare(event)}>
-              <Feather name="share-2" size={19} color={muted} />
-              <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionBtn} onPress={() => {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-              user ? setRsvpEvent(event) : onAuthRequired();
-            }}>
-              <Feather name="check-circle" size={19} color={muted} />
-              <Text style={[styles.actionLabel, { color: muted }]}>RSVP</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionBtn} onPress={() => setReportTarget({ id, type: 'event' })}>
-              <Feather name="flag" size={19} color={muted} />
-            </TouchableOpacity>
-
-            {isOwner && (
-              <TouchableOpacity style={styles.actionBtn} onPress={() => setEditEvent(event)}>
-                <Feather name="edit-2" size={19} color={primary} />
-              </TouchableOpacity>
+            {/* Collapsible sections */}
+            {openReact[id] && (
+              <ReactPicker visible onReact={key => handleReact(id, key)} userReaction={userReaction} />
             )}
-
-            {isOwner && (
-              <TouchableOpacity style={styles.actionBtn} onPress={() => setAdminEvent(event)}>
-                <Feather name="bar-chart-2" size={19} color={primary} />
-                <Text style={[styles.actionLabel, { color: primary }]}>Admin</Text>
-              </TouchableOpacity>
+            {openEcho[id] && (
+              <EchoSection eventId={id} isSample={isSample} onAuthRequired={onAuthRequired} />
+            )}
+            {openGallery[id] && (
+              <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+                <EventGallery eventId={id} />
+              </View>
+            )}
+            {openRate[id] && (
+              <RatingSection eventId={id} isSample={isSample} onAuthRequired={onAuthRequired} />
+            )}
+            {!isSample && (
+              <PresenceBar
+                eventId={id}
+                eventEndTime={event.end_time}
+                eventLat={event.lat}
+                eventLon={event.lon}
+                onAuthRequired={onAuthRequired}
+              />
+            )}
+            {!isSample && (
+              <ReturnPathCard
+                event={event}
+                checkins={eventCheckins[id] || []}
+                primary={primary}
+                muted={muted}
+                textColor={textColor}
+                bg={surface}
+                onDismiss={() => toast?.show('Return path dismissed', 'info')}
+                onCheckinsFetch={() => fetchEventCheckins(id)}
+              />
             )}
           </View>
-
-          {/* Collapsible sections */}
-          {openReact[id] && (
-            <ReactPicker visible onReact={key => handleReact(id, key)} userReaction={userReaction} />
-          )}
-          {openEcho[id] && (
-            <EchoSection eventId={id} isSample={isSample} onAuthRequired={onAuthRequired} />
-          )}
-          {openGallery[id] && (
-            <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
-              <EventGallery eventId={id} />
-            </View>
-          )}
-          {openRate[id] && (
-            <RatingSection eventId={id} isSample={isSample} onAuthRequired={onAuthRequired} />
-          )}
-          {!isSample && (
-            <PresenceBar
-              eventId={id}
-              eventEndTime={event.end_time}
-              onAuthRequired={onAuthRequired}
-            />
-          )}
-          {!isSample && (
-            <ReturnPathCard
-              event={event}
-              checkins={eventCheckins[id] || []}
-              primary={primary}
-              muted={muted}
-              textColor={textColor}
-              bg={surface}
-              onDismiss={() => toast?.show('Return path dismissed', 'info')}
-              onCheckinsFetch={() => fetchEventCheckins(id)}
-            />
-          )}
-        </View>
-      </FadeInView>
-      {showAd && (
-        <AdFlywheel
-          intentTag="attending"
-          onNavigateToServices={onNavigateToServices}
-        />
-      )}
+        </FadeInView>
+        {showAd && (
+          <AdFlywheel
+            intentTag="attending"
+            onNavigateToServices={onNavigateToServices}
+          />
+        )}
       </React.Fragment>
     );
   };
@@ -1145,7 +1162,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         data={loading ? [] : events}
         keyExtractor={item => String(item.id)}
         showsVerticalScrollIndicator={false}
-        onScrollToIndexFailed={() => {}}
+        onScrollToIndexFailed={() => { }}
         ListHeaderComponent={
           <>
             {renderHeader()}
@@ -1180,20 +1197,33 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           ) : (
             <View style={styles.emptyWrap}>
               <View style={[styles.emptyIconCircle, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}>
-                <Feather name="compass" size={48} color={primary} />
+                <Feather name={feedMode === 'following' ? 'users' : 'compass'} size={48} color={primary} />
                 <View style={[styles.emptyIconGlow, { backgroundColor: primary }]} />
               </View>
-              <Text style={[styles.emptyTitle, { color: textColor }]}>The Kingdom is Quiet</Text>
-              <Text style={[styles.emptyText, { color: muted }]}>
-                No gruvs found in this sector. Be the one to start the vibe!
+              <Text style={[styles.emptyTitle, { color: textColor }]}>
+                {feedMode === 'following' ? 'Your Crew is Quiet' : 'The Kingdom is Quiet'}
               </Text>
-              <TouchableOpacity
-                style={[styles.emptyBtn, { backgroundColor: `${primary}15`, borderColor: primary }]}
-                onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
-              >
-                <Feather name="plus" size={16} color={primary} />
-                <Text style={[styles.emptyBtnText, { color: primary }]}>Drop the first Gruv</Text>
-              </TouchableOpacity>
+              <Text style={[styles.emptyText, { color: muted }]}>
+                {feedMode === 'following'
+                  ? "You aren't following anyone who has posted recently, or they haven't dropped any Gruvs yet."
+                  : "No gruvs found in this sector. Be the one to start the vibe!"}
+              </Text>
+              {feedMode === 'following' ? (
+                <TouchableOpacity
+                  style={[styles.emptyBtn, { backgroundColor: primary }]}
+                  onPress={() => setFeedMode('all')}
+                >
+                  <Text style={[styles.emptyBtnText, { color: '#000' }]}>Explore All Gruvs</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.emptyBtn, { backgroundColor: `${primary}15`, borderColor: primary }]}
+                  onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
+                >
+                  <Feather name="plus" size={16} color={primary} />
+                  <Text style={[styles.emptyBtnText, { color: primary }]}>Drop the first Gruv</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )
         }
@@ -1275,7 +1305,7 @@ const styles = StyleSheet.create({
   wordmarkMini: { justifyContent: 'center' },
   brandText: { fontSize: 14, fontWeight: '900', letterSpacing: 1 },
   brandSub: { fontSize: 7, fontWeight: '800', letterSpacing: 1, marginTop: -1, opacity: 0.6 },
-  
+
   compactSearch: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 36, borderRadius: 18, borderAlpha: 0.1 },
   searchInput: { flex: 1, fontSize: 12, paddingLeft: 6, height: '100%' },
 
@@ -1356,8 +1386,9 @@ const styles = StyleSheet.create({
   reactionEmojis: { fontSize: 14 },
   reactionCount: { fontSize: 11 },
 
-  actionBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  actionBarWrapper: { borderTopWidth: 1 },
+  actionBar: { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 12, gap: 20 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 50 },
   actionCount: { fontSize: 13, fontWeight: '800' },
   actionLabel: { fontSize: 10, fontWeight: '700' },
 

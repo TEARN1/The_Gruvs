@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 let AsyncStorage = null;
-try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch {}
+try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch { }
 
 const STORAGE_KEY = '@gruvs_tutorials_done_v1';
 
@@ -379,6 +379,89 @@ export const TUTORIALS = [
     ],
   },
   {
+    id: 'biz_promotions',
+    title: 'Promotions & Discounts',
+    category: 'Biz Hub & Missions',
+    icon: 'gift',
+    color: '#10b981',
+    duration: '3 min',
+    steps: [
+      {
+        icon: 'percent',
+        title: 'Creating Offers',
+        body: "Inside the Mission Builder, select the 'Promotion' type. You can choose from various offer types: percentage discounts (e.g., 15% off), fixed amount discounts (e.g., R50 off), Buy One Get One (BOGO) deals, or free item vouchers (e.g., 'First Drink Free').",
+        tip: 'Experiment with different offer types to see what resonates best with your target audience.',
+        visual: 'promo_create',
+      },
+      {
+        icon: 'qr-code',
+        title: 'Voucher Codes & Redemption',
+        body: "For in-person redemptions, generate unique QR codes or alphanumeric voucher codes. Vibers can 'Stash' these vouchers in their Lineup and present them at your venue. Redemption is confirmed via a 'Touch Down' or a quick scan by your staff.",
+        tip: 'Integrating voucher redemption with Touch Downs ensures accurate tracking and prevents fraud.',
+        visual: 'voucher_redeem',
+      },
+      {
+        icon: 'trending-up',
+        title: 'Vibe-Gated Discounts',
+        body: 'Reward loyal Vibers by setting Vibe Score requirements for exclusive discounts. Offer deeper discounts to high-score Vibers to attract the elite crowd to your Spot and encourage community engagement.',
+        tip: 'This builds loyalty and encourages Vibers to keep engaging with the app to unlock your best deals.',
+        visual: 'vibe_gate',
+      },
+      {
+        icon: 'check-square',
+        title: 'Tracking Redemptions',
+        body: 'Monitor your Stacks tab to see exactly how many promotions were stashed and how many were redeemed via Touch Down in real-time.',
+        tip: 'Track voucher claims, redemption rates, and average discount value to calculate the precise ROI for each promotion.',
+        visual: 'promo_stats',
+      },
+    ],
+  },
+  {
+    id: 'movement_os',
+    title: 'Movement & Crossings',
+    category: 'Scout & Discover',
+    icon: 'map',
+    color: '#FFD700',
+    duration: '2 min',
+    steps: [
+      {
+        icon: 'navigation',
+        title: 'Your Digital Footprint',
+        body: "Every time you Touch Down at a Gruv, you leave a trail. This builds your unique Footprint, visible on your Path Map.",
+        tip: 'Check your Path Map on your Vibe Card to see where the kingdom takes you.',
+        visual: 'footprint_view',
+      },
+      {
+        icon: 'git-commit',
+        title: 'Crossing Paths',
+        body: "When your path overlaps with another Viber's, a 'Crossing' is born. These gold dots on your map represent shared energy and moments.",
+        tip: "Tap a gold intersection on your map to see who you've been vibing with lately.",
+        visual: 'crossing_dots',
+      },
+      {
+        icon: 'zap',
+        title: 'Sparking a Connection',
+        body: "Found someone you cross paths with often? That's a high-vibe match. Send them a 'Spark' or follow them to keep the rhythm going.",
+        tip: 'Frequent crossings often unlock exclusive co-Gruv invites.',
+        visual: 'spark_action',
+      },
+      {
+        icon: 'award',
+        title: 'Pathfinder Status',
+        body: "Regularly traversing specific routes or visiting certain types of Gruvs can earn you 'Pathfinder' badges. These badges are displayed on your Vibe Card and can unlock special perks.",
+        tip: 'Look out for businesses offering rewards to Pathfinders on their frequently used routes.',
+        visual: 'pathfinder_badge',
+      },
+      {
+        icon: 'ghost',
+        title: 'Ghost Trace',
+        body: "In Ghost Mode, your path crossings leave an anonymous 'Trace' at intersections. Other Vibers (especially other Ghosts) might discover your anonymous Echoes or Sparks.",
+        tip: 'Ghost Trace allows for mysterious connections without revealing your identity.',
+        visual: 'ghost_trace',
+      },
+    ],
+  },
+  {
     id: 'contextual_ads',
     title: 'Contextual Missions',
     category: 'Biz Hub & Missions',
@@ -488,8 +571,8 @@ export const TUTORIAL_CATEGORIES = [
 const TutorialContext = createContext(null);
 
 export const TutorialProvider = ({ children }) => {
-  const [completed, setCompleted]     = useState([]);
-  const [activeTutorial, setActive]   = useState(null);
+  const [completed, setCompleted] = useState([]);
+  const [activeTutorial, setActive] = useState(null);
   const [hasLaunched, setHasLaunched] = useState(false);
 
   useEffect(() => {
@@ -502,14 +585,14 @@ export const TutorialProvider = ({ children }) => {
           setCompleted(parsed.completed || []);
           setHasLaunched(parsed.hasLaunched || false);
         }
-      } catch {}
+      } catch { }
     })();
   }, []);
 
   const persist = useCallback(async (completedList, launched) => {
     try {
       if (AsyncStorage) await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ completed: completedList, hasLaunched: launched }));
-    } catch {}
+    } catch { }
   }, []);
 
   const openTutorial = useCallback((id, startStep = 0) => {
@@ -537,7 +620,7 @@ export const TutorialProvider = ({ children }) => {
   const resetAll = useCallback(async () => {
     setCompleted([]);
     setHasLaunched(false);
-    try { if (AsyncStorage) await AsyncStorage.removeItem(STORAGE_KEY); } catch {}
+    try { if (AsyncStorage) await AsyncStorage.removeItem(STORAGE_KEY); } catch { }
   }, []);
 
   const isCompleted = useCallback((id) => completed.includes(id), [completed]);

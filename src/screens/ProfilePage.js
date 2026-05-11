@@ -5,6 +5,7 @@ import {
   Switch, Dimensions, Share, Platform, RefreshControl,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
@@ -115,7 +116,7 @@ const AnalyticsChart = ({ primary, muted, textColor, userId }) => {
         const avgVibes = vibes.length > 0 ? (vibes.length / 7).toFixed(1) : '0';
         const rsvpRate = total > 0 ? Math.round((rsvps.length / total) * 100) : 0;
         setStats({ views: total, visits: rsvps.length, avgVibes, rsvpRate: `${rsvpRate}%` });
-      } catch {}
+      } catch { }
     };
     load();
   }, [userId]);
@@ -180,8 +181,8 @@ const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage }) 
     {person.avatar_url
       ? <Image source={{ uri: person.avatar_url }} style={[pcard.avatar, { borderColor: `${primary}50` }]} />
       : <View style={[pcard.avatar, { borderColor: `${primary}50`, backgroundColor: pAvatarBg(person.username), alignItems: 'center', justifyContent: 'center' }]}>
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{pAvatarInitials(person.username)}</Text>
-        </View>
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{pAvatarInitials(person.username)}</Text>
+      </View>
     }
     {person.is_online && <View style={pcard.onlineDot} />}
     <View style={{ flex: 1, marginLeft: 12 }}>
@@ -261,7 +262,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
     const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
     if (!error) {
       // Best-effort: update discoverable (column may not exist yet)
-      await supabase.from('profiles').update({ is_discoverable: discoverable }).eq('id', user.id).then(() => {});
+      await supabase.from('profiles').update({ is_discoverable: discoverable }).eq('id', user.id).then(() => { });
       toast?.show('Profile saved!', 'success');
     } else {
       toast?.show('Save failed: ' + error.message, 'error');
@@ -367,10 +368,15 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
           />
           <TouchableOpacity
             onPress={async () => {
-              const coords = await LocationService.requestAndGet();
-              if (coords?.city) setLocation(coords.city);
-              else if (coords) setLocation(`${coords.lat.toFixed(3)}, ${coords.lon.toFixed(3)}`);
-              else toast?.show('Could not get location', 'error');
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              if (status !== 'granted') { toast?.show('Location permission required', 'error'); return; }
+
+              const loc = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.BestForNavigation,
+              });
+
+              const coords = loc.coords;
+              setLocation(`${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`);
             }}
             style={{ padding: 4 }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -407,8 +413,8 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
           {profile?.avatar_url
             ? <Image source={{ uri: profile.avatar_url }} style={[fm.previewAvatar, { borderColor: primary }]} />
             : <View style={[fm.previewAvatar, { borderColor: primary, backgroundColor: pAvatarBg(profile?.username), alignItems: 'center', justifyContent: 'center' }]}>
-                <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900' }}>{pAvatarInitials(profile?.username)}</Text>
-              </View>
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900' }}>{pAvatarInitials(profile?.username)}</Text>
+            </View>
           }
           <View style={fm.previewInfo}>
             <Text style={[fm.previewName, { color: textColor }]}>@{profile?.username || 'you'}</Text>
@@ -432,9 +438,9 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         {saving
           ? <ActivityIndicator color="#000" size="small" />
           : <>
-              <Feather name="save" size={16} color="#000" />
-              <Text style={fm.saveBtnText}>Save Profile</Text>
-            </>
+            <Feather name="save" size={16} color="#000" />
+            <Text style={fm.saveBtnText}>Save Profile</Text>
+          </>
         }
       </TouchableOpacity>
     </ScrollView>
@@ -496,93 +502,93 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
 
   return (
     <>
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-      <GlassView style={fm.section}>
-        <Text style={[fm.sectionTitle, { color: primary }]}>Search Radius</Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-          {DIST_OPTIONS.map(d => (
-            <TouchableOpacity
-              key={d}
-              onPress={() => setDistance(d)}
-              style={[ft.distBtn, { backgroundColor: distance === d ? primary : `${primary}15`, borderColor: distance === d ? primary : `${primary}30` }]}
-            >
-              <Text style={[ft.distText, { color: distance === d ? '#000' : primary }]}>{d}km</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={[fm.sectionTitle, { color: primary }]}>Filter by Interest</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-          {INTEREST_OPTIONS.slice(0, 8).map(int => {
-            const sel = activeFilter === int;
-            return (
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        <GlassView style={fm.section}>
+          <Text style={[fm.sectionTitle, { color: primary }]}>Search Radius</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+            {DIST_OPTIONS.map(d => (
               <TouchableOpacity
-                key={int}
-                style={[ft.filterPill, { backgroundColor: sel ? primary : `${primary}15`, borderColor: sel ? primary : `${primary}30` }]}
-                onPress={() => setActiveFilter(sel ? null : int)}
+                key={d}
+                onPress={() => setDistance(d)}
+                style={[ft.distBtn, { backgroundColor: distance === d ? primary : `${primary}15`, borderColor: distance === d ? primary : `${primary}30` }]}
               >
-                <Text style={[ft.filterText, { color: sel ? '#000' : primary }]}>{int}</Text>
+                <Text style={[ft.distText, { color: distance === d ? '#000' : primary }]}>{d}km</Text>
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        <TouchableOpacity
-          style={[ft.searchBtn, { backgroundColor: primary }]}
-          onPress={search}
-          disabled={loading}
-        >
-          {loading
-            ? <ActivityIndicator color="#000" size="small" />
-            : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Feather name="search" size={16} color="#000" />
-                <Text style={ft.searchText}>Find People Nearby</Text>
-              </View>
-            )
-          }
-        </TouchableOpacity>
-      </GlassView>
-
-      <View style={{ paddingHorizontal: 16 }}>
-        {displayed.length === 0 && !loading ? (
-          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-            <Text style={{ fontSize: 36 }}>📍</Text>
-            <Text style={{ color: textColor, fontSize: 15, fontWeight: '800', marginTop: 12 }}>
-              No one found nearby
-            </Text>
-            <Text style={{ color: muted, fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 20 }}>
-              Try increasing your search radius or adjusting your interests filter. Make sure your location is enabled.
-            </Text>
+            ))}
           </View>
-        ) : (
-          displayed.map(person => (
-            <FadeInView key={person.id} delay={50} direction="up">
-              <PersonCard
-                person={person}
-                primary={primary}
-                muted={muted}
-                textColor={textColor}
-                onFollow={async () => {
-                  if (!user) return;
-                  await UserManager.follow(user.id, person.id);
-                  toast?.show(`Following @${person.username}`, 'success');
-                }}
-                onMessage={() => setDmTarget(person)}
-              />
-            </FadeInView>
-          ))
-        )}
-      </View>
-    </ScrollView>
 
-    {dmTarget && (
-      <DirectMessageModal
-        visible={!!dmTarget}
-        recipient={dmTarget}
-        onClose={() => setDmTarget(null)}
-      />
-    )}
+          <Text style={[fm.sectionTitle, { color: primary }]}>Filter by Interest</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+            {INTEREST_OPTIONS.slice(0, 8).map(int => {
+              const sel = activeFilter === int;
+              return (
+                <TouchableOpacity
+                  key={int}
+                  style={[ft.filterPill, { backgroundColor: sel ? primary : `${primary}15`, borderColor: sel ? primary : `${primary}30` }]}
+                  onPress={() => setActiveFilter(sel ? null : int)}
+                >
+                  <Text style={[ft.filterText, { color: sel ? '#000' : primary }]}>{int}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <TouchableOpacity
+            style={[ft.searchBtn, { backgroundColor: primary }]}
+            onPress={search}
+            disabled={loading}
+          >
+            {loading
+              ? <ActivityIndicator color="#000" size="small" />
+              : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Feather name="search" size={16} color="#000" />
+                  <Text style={ft.searchText}>Find People Nearby</Text>
+                </View>
+              )
+            }
+          </TouchableOpacity>
+        </GlassView>
+
+        <View style={{ paddingHorizontal: 16 }}>
+          {displayed.length === 0 && !loading ? (
+            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+              <Text style={{ fontSize: 36 }}>📍</Text>
+              <Text style={{ color: textColor, fontSize: 15, fontWeight: '800', marginTop: 12 }}>
+                No one found nearby
+              </Text>
+              <Text style={{ color: muted, fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 20 }}>
+                Try increasing your search radius or adjusting your interests filter. Make sure your location is enabled.
+              </Text>
+            </View>
+          ) : (
+            displayed.map(person => (
+              <FadeInView key={person.id} delay={50} direction="up">
+                <PersonCard
+                  person={person}
+                  primary={primary}
+                  muted={muted}
+                  textColor={textColor}
+                  onFollow={async () => {
+                    if (!user) return;
+                    await UserManager.follow(user.id, person.id);
+                    toast?.show(`Following @${person.username}`, 'success');
+                  }}
+                  onMessage={() => setDmTarget(person)}
+                />
+              </FadeInView>
+            ))
+          )}
+        </View>
+      </ScrollView>
+
+      {dmTarget && (
+        <DirectMessageModal
+          visible={!!dmTarget}
+          recipient={dmTarget}
+          onClose={() => setDmTarget(null)}
+        />
+      )}
     </>
   );
 };
@@ -597,13 +603,13 @@ const ft = StyleSheet.create({
 });
 
 // ── Mini event card for profile tabs ─────────────────────────────────────────
-const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon }) => {
+const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPress }) => {
   // media_urls is a string[] saved by PostEventModal; media is the legacy object[] format
   const imgUrl = ev.media_urls?.[0] ||
     ev.media?.find(m => m?.type === 'image')?.url ||
     (typeof ev.media?.[0] === 'string' ? ev.media[0] : null);
   return (
-    <View style={[mec.wrap, { borderColor: `${primary}20` }]}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[mec.wrap, { borderColor: `${primary}20` }]}>
       {imgUrl
         ? <Image source={{ uri: imgUrl }} style={mec.img} resizeMode="cover" />
         : <View style={[mec.img, { backgroundColor: `${primary}12`, alignItems: 'center', justifyContent: 'center' }]}><Feather name="image" size={18} color={`${primary}40`} /></View>
@@ -618,7 +624,7 @@ const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon }) => {
           <Text style={[mec.badgeText, { color: primary }]}>{badge}</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -683,14 +689,14 @@ export const ProfilePage = ({ onAuthRequired }) => {
   const [saving, setSaving] = useState(false);
 
   // New Profile Extension Fields
-  const [looksDescription,  setLooksDescription]  = useState(profile?.looks_description || '');
-  const [careerTitle,       setCareerTitle]       = useState(profile?.career_title || '');
+  const [looksDescription, setLooksDescription] = useState(profile?.looks_description || '');
+  const [careerTitle, setCareerTitle] = useState(profile?.career_title || '');
   const [careerDescription, setCareerDescription] = useState(profile?.career_description || '');
-  const [profileGallery,    setProfileGallery]    = useState(profile?.profile_gallery || []);
-  const [bio,               setBio]               = useState(profile?.bio || '');
-  const [location,          setLocation]          = useState(profile?.location || '');
-  const [website,           setWebsite]           = useState(profile?.website || '');
-  const [interests,         setInterests]         = useState(profile?.interests || []);
+  const [profileGallery, setProfileGallery] = useState(profile?.profile_gallery || []);
+  const [bio, setBio] = useState(profile?.bio || '');
+  const [location, setLocation] = useState(profile?.location || '');
+  const [website, setWebsite] = useState(profile?.website || '');
+  const [interests, setInterests] = useState(profile?.interests || []);
 
   useEffect(() => {
     if (profile) {
@@ -713,12 +719,12 @@ export const ProfilePage = ({ onAuthRequired }) => {
   const [myVibedEvents, setMyVibedEvents] = useState([]);
   const [tabLoading, setTabLoading] = useState(false);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text       || '#fff';
-  const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
+  const primary = currentTheme?.primary || '#00f2ff';
+  const bg = currentTheme?.background || '#0d1112';
+  const textColor = currentTheme?.text || '#fff';
+  const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
-  const username  = profile?.username   || user?.user_metadata?.username || 'Viber';
+  const username = profile?.username || user?.user_metadata?.username || 'Viber';
   const avatarUrl = profile?.avatar_url || null;
   const vibeScore = profile?.vibe_score || 0;
 
@@ -852,7 +858,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
           .limit(20);
         setMyVibedEvents((data || []).map(r => r.events).filter(Boolean));
       }
-    } catch {}
+    } catch { }
     setTabLoading(false);
   }, [user]);
 
@@ -886,7 +892,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
         message: `Check out my vibe on The Gruvs! @${username} 👑`,
         url: 'https://thegruvs.com/profile/' + username,
       });
-    } catch {}
+    } catch { }
   };
 
   const handleCoverUpload = async () => {
@@ -1022,9 +1028,9 @@ export const ProfilePage = ({ onAuthRequired }) => {
           {profile?.cover_url
             ? <Image source={{ uri: profile.cover_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
             : <>
-                <View style={[styles.coverPattern, { borderColor: `${primary}12` }]} />
-                <View style={[styles.coverPatternAlt, { borderColor: `${primary}10` }]} />
-              </>
+              <View style={[styles.coverPattern, { borderColor: `${primary}12` }]} />
+              <View style={[styles.coverPatternAlt, { borderColor: `${primary}10` }]} />
+            </>
           }
           <TouchableOpacity style={styles.coverEditBtn} onPress={handleCoverUpload}>
             <Feather name="camera" size={14} color="rgba(255,255,255,0.7)" />
@@ -1037,8 +1043,8 @@ export const ProfilePage = ({ onAuthRequired }) => {
             {avatarUrl
               ? <Image source={{ uri: avatarUrl }} style={[styles.avatar, { borderColor: primary }]} />
               : <View style={[styles.avatar, { borderColor: primary, backgroundColor: avatarBgColor(username), alignItems: 'center', justifyContent: 'center' }]}>
-                  <Text style={{ color: '#fff', fontSize: 28, fontWeight: '900' }}>{avatarInitials(username)}</Text>
-                </View>
+                <Text style={{ color: '#fff', fontSize: 28, fontWeight: '900' }}>{avatarInitials(username)}</Text>
+              </View>
             }
             <View style={[styles.onlineDot, { backgroundColor: '#10b981' }]} />
             <View style={[styles.avatarEditBadge, { backgroundColor: primary }]}>
@@ -1110,7 +1116,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
 
         {/* Vibe Level */}
         <View style={{ paddingHorizontal: 16 }}>
-            <VibeLevel score={vibeScore} primary={primary} muted={muted} textColor={textColor} />
+          <VibeLevel score={vibeScore} primary={primary} muted={muted} textColor={textColor} />
         </View>
 
         {/* Streak + Referral */}
@@ -1145,6 +1151,19 @@ export const ProfilePage = ({ onAuthRequired }) => {
             <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>My Path Map</Text>
             <Text style={{ color: muted, fontSize: 11, marginLeft: 'auto' }}>Digital footprint →</Text>
           </TouchableOpacity>
+        )}
+
+        {/* Pathfinder Badges (New Section) */}
+        {user && (
+          <GlassView style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: primary }]}>Pathfinder Badges</Text>
+            <Text style={[styles.sectionSub, { color: muted }]}>Recognitions for your movement patterns</Text>
+            <View style={styles.badgeGrid}>
+              {/* Placeholder for actual badges */}
+              <Text style={{ color: muted, fontSize: 12 }}>No Pathfinder badges earned yet. Keep exploring!</Text>
+              {/* Example: <Feather name="award" size={30} color={primary} /> */}
+            </View>
+          </GlassView>
         )}
 
         {/* Identity Mode Switcher */}
@@ -1197,30 +1216,30 @@ export const ProfilePage = ({ onAuthRequired }) => {
 
         {/* Royal Pass Benefits */}
         <GlassView style={[styles.section, { backgroundColor: primary + '08' }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <MaterialCommunityIcons name="crown" size={24} color={primary} />
-                <Text style={[styles.sectionTitle, { color: primary, marginBottom: 0 }]}>ROYAL PASS BENEFITS</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <MaterialCommunityIcons name="crown" size={24} color={primary} />
+            <Text style={[styles.sectionTitle, { color: primary, marginBottom: 0 }]}>ROYAL PASS BENEFITS</Text>
+          </View>
+          {[
+            { icon: 'check-decagram', text: 'Priority Feed Placement' },
+            { icon: 'map-marker-star', text: 'Unlimited Proximity Search' },
+            { icon: 'camera-burst', text: 'HD Community Gallery Uploads' },
+            { icon: 'shield-check', text: 'Exclusive "Royal" Aura Themes' },
+          ].map((b, i) => (
+            <View key={i} style={styles.benefitRow}>
+              <MaterialCommunityIcons name={b.icon} size={16} color={primary} />
+              <Text style={[styles.benefitText, { color: textColor }]}>{b.text}</Text>
             </View>
-            {[
-                { icon: 'check-decagram', text: 'Priority Feed Placement' },
-                { icon: 'map-marker-star', text: 'Unlimited Proximity Search' },
-                { icon: 'camera-burst', text: 'HD Community Gallery Uploads' },
-                { icon: 'shield-check', text: 'Exclusive "Royal" Aura Themes' },
-            ].map((b, i) => (
-                <View key={i} style={styles.benefitRow}>
-                    <MaterialCommunityIcons name={b.icon} size={16} color={primary} />
-                    <Text style={[styles.benefitText, { color: textColor }]}>{b.text}</Text>
-                </View>
-            ))}
+          ))}
         </GlassView>
 
         {/* Profile Content Tabs */}
         <View style={[styles.contentTabRow, { borderColor: `${primary}20` }]}>
           {[
-            { key: 'gruvs',   label: 'My Gruvs',  icon: 'calendar' },
-            { key: 'saved',   label: 'Saved',      icon: 'bookmark' },
-            { key: 'vibed',   label: 'Vibed',      icon: 'zap' },
-            { key: 'gallery', label: 'Gallery',    icon: 'image' },
+            { key: 'gruvs', label: 'My Gruvs', icon: 'calendar' },
+            { key: 'saved', label: 'Saved', icon: 'bookmark' },
+            { key: 'vibed', label: 'Vibed', icon: 'zap' },
+            { key: 'gallery', label: 'Gallery', icon: 'image' },
           ].map(t => {
             const isActive = activeTab === t.key;
             return (
@@ -1253,7 +1272,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
                   </TouchableOpacity>
                 ) : (
                   <View style={{ gap: 10 }}>
-                    {myEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={ev.category || 'Gruv'} badgeIcon={null} />)}
+                    {myEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={ev.category || 'Gruv'} badgeIcon={null} onPress={() => onNavigateToEvent?.(ev)} />)}
                   </View>
                 )
               )}
@@ -1265,7 +1284,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
                   </TouchableOpacity>
                 ) : (
                   <View style={{ gap: 10 }}>
-                    {mySavedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge="Saved" badgeIcon="bookmark" />)}
+                    {mySavedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge="Saved" badgeIcon="bookmark" onPress={() => onNavigateToEvent?.(ev)} />)}
                   </View>
                 )
               )}
@@ -1277,7 +1296,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
                   </TouchableOpacity>
                 ) : (
                   <View style={{ gap: 10 }}>
-                    {myVibedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={`${ev.vibe_count || 0} vibes`} badgeIcon="zap" />)}
+                    {myVibedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={`${ev.vibe_count || 0} vibes`} badgeIcon="zap" onPress={() => onNavigateToEvent?.(ev)} />)}
                   </View>
                 )
               )}
@@ -1301,8 +1320,8 @@ export const ProfilePage = ({ onAuthRequired }) => {
         <View style={[styles.settingsTabs, { borderColor: `${primary}20` }]}>
           {[
             { key: 'discover', label: 'Discover', icon: 'compass' },
-            { key: 'career',   label: 'Professional', icon: 'briefcase' },
-            { key: 'aura',     label: 'My Aura',  icon: 'droplet' },
+            { key: 'career', label: 'Professional', icon: 'briefcase' },
+            { key: 'aura', label: 'My Aura', icon: 'droplet' },
           ].map(t => {
             const isActive = settingsTab === t.key;
             return (
@@ -1348,7 +1367,7 @@ export const ProfilePage = ({ onAuthRequired }) => {
           <GlassView style={styles.section}>
             <Text style={[styles.sectionTitle, { color: primary }]}>Career & Looks</Text>
             <Text style={[styles.sectionSub, { color: muted, marginBottom: 12 }]}>Let others know your vibe and profession to get invited to exclusive Gruvs.</Text>
-            
+
             <View style={styles.editRow}>
               <Text style={[styles.editLabel, { color: primary }]}>Career Title</Text>
               <TextInput
@@ -1525,6 +1544,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 },
   sectionSub: { fontSize: 11, marginBottom: 14 },
 
+  badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 },
   benefitRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
   benefitText: { fontSize: 12, fontWeight: '600', opacity: 0.9 },
 

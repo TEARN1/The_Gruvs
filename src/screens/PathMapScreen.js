@@ -63,7 +63,7 @@ const segmentsIntersect = (p1, p2, p3, p4) => {
 // ---------------------------------------------------------------------------
 // Animated glowing dot
 // ---------------------------------------------------------------------------
-const GlowDot = ({ x, y, color, size = 12, gold = false }) => {
+const GlowDot = ({ x, y, color, size = 12, gold = false, onPress }) => {
   const glowOpacity = useRef(new Animated.Value(0.4)).current;
   const pulseScale = useRef(new Animated.Value(1)).current;
 
@@ -85,26 +85,31 @@ const GlowDot = ({ x, y, color, size = 12, gold = false }) => {
   }, []);
 
   return (
-    <Animated.View
-      style={[
-        dot.outer,
-        {
-          left: x - size,
-          top: y - size,
-          width: size * 2,
-          height: size * 2,
-          borderRadius: size,
-          borderColor: color,
-          shadowColor: color,
-          shadowOpacity: glowOpacity,
-          shadowRadius: gold ? 14 : 8,
-          elevation: gold ? 10 : 6,
-          transform: [{ scale: pulseScale }],
-        },
-      ]}
-    >
-      <View style={[dot.inner, { backgroundColor: color, width: size, height: size, borderRadius: size / 2 }]} />
-    </Animated.View>
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={!onPress}
+      style={{ position: 'absolute', left: x - size, top: y - size, zIndex: gold ? 10 : 5 }}>
+      <Animated.View
+        style={[
+          dot.outer,
+          {
+            left: 0,
+            top: 0,
+            width: size * 2,
+            height: size * 2,
+            borderRadius: size,
+            borderColor: color,
+            shadowColor: color,
+            shadowOpacity: glowOpacity,
+            shadowRadius: gold ? 14 : 8,
+            elevation: gold ? 10 : 6,
+            transform: [{ scale: pulseScale }],
+          },
+        ]}
+      >
+        <View style={[dot.inner, { backgroundColor: color, width: size, height: size, borderRadius: size / 2 }]} />
+      </Animated.View>
+    </TouchableOpacity>
   );
 };
 
@@ -165,7 +170,7 @@ const DashedPath = ({ x1, y1, x2, y2, color }) => {
 // ---------------------------------------------------------------------------
 // The Canvas map
 // ---------------------------------------------------------------------------
-const FootprintCanvas = ({ checkins, paths, primary }) => {
+const FootprintCanvas = ({ checkins, paths, primary, onIntersectionPress }) => {
   const GOLD = '#FFD700';
 
   // Collect all coordinates to determine bounds
@@ -262,7 +267,13 @@ const FootprintCanvas = ({ checkins, paths, primary }) => {
 
       {/* Intersection gold circles */}
       {intersections.map((pt, i) => (
-        <GlowDot key={`int-${i}`} x={pt.x} y={pt.y} color={GOLD} size={10} gold />
+        <GlowDot
+          key={`int-${i}`}
+          x={pt.x} y={pt.y}
+          color={GOLD}
+          size={10}
+          gold
+          onPress={() => onIntersectionPress?.(pt)} />
       ))}
 
       {/* Checkin dots */}
@@ -370,6 +381,8 @@ export const PathMapScreen = ({ visible, onClose }) => {
   const [savedPaths, setSavedPaths] = useState([]);
   const [crossings, setCrossings] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedIntersection, setSelectedIntersection] = useState(null); // New state for intersection details
+  const [showTraceCreator, setShowTraceCreator] = useState(null); // {x, y, lat, lon}
   const [loading, setLoading] = useState(true);
 
   // ------------------------------------------------------------------
@@ -467,6 +480,16 @@ export const PathMapScreen = ({ visible, onClose }) => {
     });
   };
 
+  const handleCanvasTap = (evt) => {
+    const { locationX, locationY } = evt.nativeEvent;
+    // Inverse projection to get lat/lon (simplified)
+    const lat = maxLat - ((locationY - PAD) / (MAP_H - PAD * 2)) * (maxLat - minLat);
+    const lon = minLon + ((locationX - PAD) / (MAP_W - PAD * 2)) * (maxLon - minLon);
+
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
+    setShowTraceCreator({ x: locationX, y: locationY, lat, lon });
+  };
+
   // ------------------------------------------------------------------
   // Render
   // ------------------------------------------------------------------
@@ -514,7 +537,12 @@ export const PathMapScreen = ({ visible, onClose }) => {
           contentContainerStyle={{ paddingBottom: (insets.bottom || 0) + 32 }}
         >
           {/* Canvas map */}
-          <FootprintCanvas checkins={checkins} paths={savedPaths} primary={primary} />
+          <FootprintCanvas
+            checkins={checkins}
+            paths={savedPaths}
+            primary={primary} // Pass primary color
+            onIntersectionPress={(pt) => setSelectedIntersection(pt)} // Set selected intersection
+          />
 
           {/* Legend */}
           <View style={[s.legend, { borderColor: `${primary}12` }]}>
@@ -644,6 +672,67 @@ export const PathMapScreen = ({ visible, onClose }) => {
             )}
           </View>
         </ScrollView>
+
+        {/* Movement Trace Creator (Conceptual) */}
+        {showTraceCreator && (
+          <GlassView style={[s.traceCreator, { top: showTraceCreator.y + 40, left: Math.max(10, Math.min(SW - 210, showTraceCreator.x - 100)) }]}>
+            <Text style={{ color: primary, fontSize: 10, fontWeight: '900' }}>📍 DROP A TRACE</Text>
+            <TextInput
+              style={{ color: '#fff', fontSize: 12, paddingVertical: 8 }}
+              placeholder="Leave a message here..."
+              placeholderTextColor={muted}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+              <TouchableOpacity onPress={() => setShowTraceCreator(null)}><Text style={{ color: muted, fontSize: 11 }}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => {
+                Alert.alert("Trace Dropped", "Other Vibers will see your Echo when they cross this path!");
+                setShowTraceCreator(null);
+              }}><Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Drop</Text></TouchableOpacity>
+            </View>
+          </GlassView>
+        )}
+
+        {/* Cross Path Detail Modal (Conceptual) */}
+        {selectedIntersection && (
+          <Modal
+            visible={!!selectedIntersection}
+            animationType="slide"
+            transparent
+            onRequestClose={() => setSelectedIntersection(null)}
+          >
+            <View style={[s.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+              <View style={[s.modalContent, { backgroundColor: bg, borderColor: `${primary}20` }]}>
+                <View style={s.modalHeader}>
+                  <Text style={[s.modalTitle, { color: textColor }]}>Cross Path Details</Text>
+                  <TouchableOpacity onPress={() => setSelectedIntersection(null)}>
+                    <Feather name="x" size={20} color={textColor} />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView contentContainerStyle={s.modalBody}>
+                  <Text style={[s.modalBodyText, { color: muted }]}>
+                    You crossed paths with 3 Vibers at this location today.
+                    {'\n\n'}
+                    <Text style={{ color: primary, fontWeight: 'bold' }}>Location:</Text> Lat {selectedIntersection.y.toFixed(4)}, Lon {selectedIntersection.x.toFixed(4)}
+                    {'\n\n'}
+                    <Text style={{ color: primary, fontWeight: 'bold' }}>Potential Vibers:</Text>
+                    {/* This would dynamically load profiles of users who crossed paths here */}
+                    {crossings.slice(0, 3).map((c, i) => (
+                      <Text key={i} style={{ color: textColor }}>{'\n'}@{c.profiles?.username || 'Anonymous Viber'}</Text>
+                    ))}
+                  </Text>
+                  <TouchableOpacity style={[s.sparkBtn, { backgroundColor: primary }]} onPress={() => {
+                    Alert.alert("Spark Sent!", "A 'Spark' has been sent to the Vibers you crossed paths with. If they accept, you can connect!");
+                    setSelectedIntersection(null);
+                  }}>
+                    <Feather name="zap" size={16} color="#000" />
+                    <Text style={s.sparkBtnText}>Send a Spark</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+        )}
       </View>
     </Modal>
   );
