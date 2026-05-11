@@ -329,29 +329,14 @@ const MainNavigator = () => {
   }, [currentTab]);
 
   const handleTabChange = (tab) => {
-    // Item 34: haptic feedback on native
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
 
-    const doSwitch = () => {
-      if (tab === currentTab && tab === 'feed') {
-        setFeedRefreshKey(k => k + 1);
-      } else {
-        // Item 41: cross-fade animation
-        Animated.sequence([
-          Animated.timing(screenOpacity, { toValue: 0, duration: 80, useNativeDriver: true }),
-          Animated.timing(screenOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-        ]).start();
-        setCurrentTab(tab);
-      }
-    };
-
-    // Item 45: View Transitions API on web
-    if (Platform.OS === 'web' && typeof document !== 'undefined' && document.startViewTransition) {
-      document.startViewTransition(doSwitch);
+    if (tab === currentTab && tab === 'feed') {
+      setFeedRefreshKey(k => k + 1);
     } else {
-      doSwitch();
+      setCurrentTab(tab);
     }
   };
 
@@ -502,18 +487,13 @@ const MainNavigator = () => {
 };
 
 export default function App() {
-  // 'feather' must be lowercase — Font.isLoaded() does a case-sensitive JS comparison against this key
-  const [fontsLoaded, fontError] = useFonts({
+  // Kick off font load in background. Never block rendering — if the load
+  // stalls, the app would be permanently blank. Icons self-load in componentDidMount.
+  useFonts({
     feather: Platform.OS === 'web'
       ? 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'
       : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
   });
-
-  // On web: hold render until font is ready — prevents blank icon flash
-  // On native: skip wait; Metro bundles the font automatically
-  if (Platform.OS === 'web' && !fontsLoaded && !fontError) {
-    return <View style={{ flex: 1, backgroundColor: '#0d1112' }} />;
-  }
 
   return (
     <ErrorBoundary>
