@@ -503,8 +503,8 @@ const MainNavigator = () => {
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    // Preload Feather so tab icons render on first paint (critical on web)
-    Feather: require('./node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
+    // Feather.font is the canonical Expo reference — Metro resolves it correctly
+    ...Feather.font,
   });
 
   // On web: hold render until font is ready — prevents blank icon flash
