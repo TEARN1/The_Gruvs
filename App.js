@@ -503,8 +503,8 @@ const MainNavigator = () => {
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    // Feather.font is the canonical Expo reference — Metro resolves it correctly
-    ...Feather.font,
+    // Explicit TTF require — Metro resolves package paths correctly; Feather.font is undefined in v14
+    Feather: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
   });
 
   // On web: hold render until font is ready — prevents blank icon flash
