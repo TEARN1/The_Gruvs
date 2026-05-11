@@ -6,12 +6,46 @@ import {
 import { Video, ResizeMode } from 'expo-av';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const placeholderSource = require('../../assets/events/pixel.png');
+
+const MediaItem = ({ item, isActive }) => {
+  const [loadFailed, setLoadFailed] = useState(false);
+  const source = loadFailed
+    ? placeholderSource
+    : item.source
+      ? item.source
+      : item.url
+        ? { uri: item.url }
+        : placeholderSource;
+
+  if (item.type === 'video' && !loadFailed) {
+    return (
+      <Video
+        source={{ uri: item.url }}
+        style={styles.media}
+        resizeMode={ResizeMode.COVER}
+        isLooping
+        shouldPlay={isActive}
+        isMuted={!isActive}
+        onError={() => setLoadFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <Image
+      source={source}
+      style={styles.media}
+      resizeMode="cover"
+      onError={() => setLoadFailed(true)}
+    />
+  );
+};
 
 export const MediaViewer = ({ media, containerWidth }) => {
   const width = containerWidth || SCREEN_WIDTH - 32;
   const MEDIA_WIDTH = width;
   const [activeIndex, setActiveIndex] = useState(0);
-  const [videoStates, setVideoStates] = useState({});
 
   if (!media || media.length === 0) {
     return (
@@ -37,31 +71,14 @@ export const MediaViewer = ({ media, containerWidth }) => {
   const renderItem = ({ item, index }) => {
     const isActive = index === activeIndex;
 
-    if (item.type === 'video') {
-      return (
-        <View style={styles.mediaWrapper}>
-          <Video
-            source={{ uri: item.url }}
-            style={styles.media}
-            resizeMode={ResizeMode.COVER}
-            isLooping
-            shouldPlay={isActive}
-            isMuted={!isActive}
-          />
+    return (
+      <View style={styles.mediaWrapper}>
+        <MediaItem item={item} isActive={isActive} />
+        {item.type === 'video' && (
           <View style={styles.videoLabel}>
             <Text style={styles.videoLabelText}>▶ VIDEO</Text>
           </View>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.mediaWrapper}>
-        <Image
-          source={{ uri: item.url }}
-          style={styles.media}
-          resizeMode="cover"
-        />
+        )}
       </View>
     );
   };

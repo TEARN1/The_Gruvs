@@ -332,11 +332,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
 
     const currentPage = isRefreshing ? 0 : page;
-    const start = currentPage * PAGE_SIZE;
-    const end = start + PAGE_SIZE - 1;
 
     try {
-      // For demo purposes, use sample data instead of Supabase
+      // For demo purposes, use sample data for demo mode
       console.log('Using sample data for demo');
       let fallbackEvents = SAMPLE_EVENTS;
 
@@ -601,7 +599,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   };
 
   const handleShare = (event) => {
-    Share.share({ message: `Check out "${event.title}" on The Gruvs — I got you!` }).catch(() => { });
+    if (!Share?.share) {
+      toast.show('Share is not available on this platform', 'info');
+      return;
+    }
+
+    Share.share({ message: `Check out "${event.title}" on The Gruvs — I got you!` })
+      .catch(() => {
+        toast.show('Unable to share this Gruv right now', 'error');
+      });
   };
 
   const openViberProfile = (profile) => {
