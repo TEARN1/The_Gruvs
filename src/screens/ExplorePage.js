@@ -188,11 +188,15 @@ const CategoryGrid = ({ onSelect, primary, textColor, muted, categoryCounts }) =
           // Items 67-68: accessible label + web hover via className
           <TouchableOpacity
             key={key}
-            style={[cg.cell, { backgroundColor: `${cfg.color}12`, borderColor: `${cfg.color}25` }]}
+            style={[
+              cg.cell,
+              { backgroundColor: `${cfg.color}12`, borderColor: `${cfg.color}25` },
+              Platform.OS === 'web' && { cursor: 'pointer', transition: 'transform 150ms ease, box-shadow 150ms ease' },
+            ]}
             onPress={() => onSelect(key)}
             accessibilityRole="button"
             accessibilityLabel={`${cfg.label} category${count > 0 ? ', ' + count + ' events' : ''}`}
-            {...(Platform.OS === 'web' ? { className: 'category-cell', style: [cg.cell, { backgroundColor: `${cfg.color}12`, borderColor: `${cfg.color}25`, cursor: 'pointer', transition: 'transform 150ms ease, box-shadow 150ms ease' }] } : {})}
+            {...(Platform.OS === 'web' ? { className: 'category-cell' } : {})}
           >
             <Text style={{ fontSize: 22 }}>{cfg.icon}</Text>
             <Text style={[cg.label, { color: textColor }]}>{cfg.label}</Text>

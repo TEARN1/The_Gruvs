@@ -41,7 +41,6 @@ import { EventDetailScreen } from './EventDetailScreen';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine } from '../services/dataFlow';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
-import { SAMPLE_EVENTS, SAMPLE_TRENDING } from '../constants/SampleData';
 import { FONT, RADIUS } from '../constants/DesignTokens';
 import { SkeletonCard as SkeletonCardImported } from '../components/SkeletonCard';
 

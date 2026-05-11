@@ -10,11 +10,14 @@ const pingSupabase = async () => {
   try {
     const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
     if (!url || url.includes('your-project-id')) return true; // demo mode — always online
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(`${url}/rest/v1/`, {
       method: 'HEAD',
       headers: { apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '' },
-      signal: AbortSignal.timeout(5000),
+      signal: controller.signal,
     });
+    clearTimeout(timer);
     return res.ok || res.status === 400; // 400 means server replied — we're online
   } catch {
     return false;
