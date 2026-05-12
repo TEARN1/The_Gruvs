@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
       if (session?.user) {
         fetchProfile(session.user.id);
         // Ensure profile row exists for new users
-        UserManager.ensureProfile(session.user.id, session.user.email).catch(() => {});
+        UserManager.ensureProfile(session.user.id).catch(() => {});
         // Mark online
         PresenceManager.goOnline(session.user.id).catch(() => {});
       } else {
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
-        UserManager.ensureProfile(session.user.id, session.user.email).catch(() => {});
+        UserManager.ensureProfile(session.user.id).catch(() => {});
         PresenceManager.goOnline(session.user.id).catch(() => {});
       } else {
         setProfile(null);

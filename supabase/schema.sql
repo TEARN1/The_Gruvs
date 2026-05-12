@@ -55,6 +55,10 @@ CREATE TABLE IF NOT EXISTS profiles (
   current_streak         INTEGER     DEFAULT 0,
   wallet_balance         NUMERIC     DEFAULT 0,
   social_integrity_score INTEGER     DEFAULT 0,
+  last_active            DATE,
+  gender                 TEXT,
+  birth_year             INTEGER,
+  is_discoverable        BOOLEAN     DEFAULT true,
   created_at             TIMESTAMPTZ DEFAULT now(),
   updated_at             TIMESTAMPTZ DEFAULT now()
 );
@@ -87,7 +91,11 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS looks_description  TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_gallery    TEXT[];
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak          INTEGER DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wallet_balance          NUMERIC DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_integrity_score  INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_integrity_score  INTEGER     DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active             DATE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gender                  TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS birth_year              INTEGER;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_discoverable         BOOLEAN     DEFAULT true;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at              TIMESTAMPTZ DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS profiles_coords_gist   ON profiles USING gist(coords);
@@ -304,6 +312,10 @@ CREATE TABLE IF NOT EXISTS events (
   date_time       TIMESTAMPTZ,
   is_featured     BOOLEAN     DEFAULT false,
   is_cancelled    BOOLEAN     DEFAULT false,
+  is_sold_out     BOOLEAN     DEFAULT false,
+  max_attendees   INTEGER,
+  image_url       TEXT,
+  cover_image     TEXT,
   age_restriction INTEGER     DEFAULT 0,
   search_vector   TSVECTOR,
   created_at      TIMESTAMPTZ DEFAULT now(),
@@ -345,6 +357,10 @@ ALTER TABLE events ADD COLUMN IF NOT EXISTS is_featured     BOOLEAN DEFAULT fals
 ALTER TABLE events ADD COLUMN IF NOT EXISTS is_cancelled    BOOLEAN DEFAULT false;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS age_restriction INTEGER DEFAULT 0;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS search_vector   TSVECTOR;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS max_attendees   INTEGER;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS is_sold_out     BOOLEAN     DEFAULT false;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url       TEXT;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_image     TEXT;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ DEFAULT now();
 
 DO $$ BEGIN
@@ -951,6 +967,7 @@ CREATE TABLE IF NOT EXISTS messages (
   longitude        DOUBLE PRECISION,
   is_request       BOOLEAN     DEFAULT false,
   request_accepted BOOLEAN     DEFAULT false,
+  reaction         TEXT,
   read_at          TIMESTAMPTZ,
   deleted_at       TIMESTAMPTZ,
   created_at       TIMESTAMPTZ DEFAULT now()
@@ -969,6 +986,7 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN DEFAULT f
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN DEFAULT false;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS reaction         TEXT;
 
 CREATE INDEX IF NOT EXISTS messages_sender      ON messages(sender_id,    created_at DESC);
 CREATE INDEX IF NOT EXISTS messages_recipient   ON messages(recipient_id, created_at DESC);

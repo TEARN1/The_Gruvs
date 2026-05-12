@@ -607,7 +607,7 @@ export const UserManager = {
   },
 
   // Upsert profile row — safe to call on every sign-in for new users
-  async ensureProfile(userId, email) {
+  async ensureProfile(userId) {
     try {
       const { data } = await supabase
         .from('profiles')
@@ -618,7 +618,6 @@ export const UserManager = {
         await supabase.from('profiles').insert({
           id: userId,
           username: `viber_${userId.slice(0, 8)}`,
-          email,
           vibe_score: 0,
         });
       }
@@ -1820,10 +1819,10 @@ export const RetentionManager = {
       const now = new Date();
       const today = now.toISOString().split('T')[0];
 
-      const { data: prof } = await supabase.from('profiles').select('last_seen, streak_count').eq('id', userId).single();
+      const { data: prof } = await supabase.from('profiles').select('last_seen, current_streak').eq('id', userId).single();
       if (prof) {
         const last = prof.last_seen ? new Date(prof.last_seen).toISOString().split('T')[0] : null;
-        let newStreak = prof.streak_count || 0;
+        let newStreak = prof.current_streak || 0;
 
         if (last !== today) {
           const yesterday = new Date(now);
@@ -1835,7 +1834,7 @@ export const RetentionManager = {
 
           await supabase.from('profiles').update({
             last_seen: now.toISOString(),
-            streak_count: newStreak
+            current_streak: newStreak
           }).eq('id', userId);
 
           // Check badges on login
@@ -1881,7 +1880,7 @@ export const RewardEngine = {
       const earned = prof.badges || [];
       const newBadges = [];
 
-      if (!earned.includes('loyal_viber') && (prof.streak_count || 0) >= 7) newBadges.push('loyal_viber');
+      if (!earned.includes('loyal_viber') && (prof.current_streak || 0) >= 7) newBadges.push('loyal_viber');
       if (!earned.includes('social_elite') && (prof.social_integrity_score || 0) >= 100) newBadges.push('social_elite');
 
       if (newBadges.length > 0) {
