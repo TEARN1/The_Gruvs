@@ -52,9 +52,11 @@ CREATE TABLE IF NOT EXISTS profiles (
   career_description  TEXT,
   looks_description   TEXT,
   profile_gallery     TEXT[],
-  current_streak      INTEGER     DEFAULT 0,
-  created_at          TIMESTAMPTZ DEFAULT now(),
-  updated_at          TIMESTAMPTZ DEFAULT now()
+  current_streak         INTEGER     DEFAULT 0,
+  wallet_balance         NUMERIC     DEFAULT 0,
+  social_integrity_score INTEGER     DEFAULT 0,
+  created_at             TIMESTAMPTZ DEFAULT now(),
+  updated_at             TIMESTAMPTZ DEFAULT now()
 );
 
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS username           TEXT;
@@ -83,8 +85,10 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_title       TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_description TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS looks_description  TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_gallery    TEXT[];
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak     INTEGER DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at         TIMESTAMPTZ DEFAULT now();
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak          INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wallet_balance          NUMERIC DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_integrity_score  INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at              TIMESTAMPTZ DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS profiles_coords_gist   ON profiles USING gist(coords);
 CREATE INDEX IF NOT EXISTS profiles_username_trgm ON profiles USING gin(username gin_trgm_ops);
@@ -1248,9 +1252,13 @@ CREATE TABLE IF NOT EXISTS service_nodes (
   user_id      UUID        REFERENCES profiles(id) ON DELETE CASCADE,
   name         TEXT        NOT NULL,
   category     TEXT,
+  service_type TEXT,
   description  TEXT,
   price        NUMERIC,
+  price_min    NUMERIC,
+  price_max    NUMERIC,
   price_unit   TEXT        DEFAULT 'trip',
+  tab          TEXT        DEFAULT 'Moving Help',
   location     TEXT,
   coords       geography(Point, 4326),
   rating       FLOAT       DEFAULT 0,
@@ -1263,9 +1271,13 @@ CREATE TABLE IF NOT EXISTS service_nodes (
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS name         TEXT;
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS category     TEXT;
+ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS service_type TEXT;
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS description  TEXT;
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price        NUMERIC;
+ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_min    NUMERIC;
+ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_max    NUMERIC;
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_unit   TEXT DEFAULT 'trip';
+ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS tab          TEXT DEFAULT 'Moving Help';
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS location     TEXT;
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS coords       geography(Point, 4326);
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS rating       FLOAT DEFAULT 0;
@@ -1280,28 +1292,40 @@ CREATE POLICY "Services readable"         ON service_nodes FOR SELECT USING (tru
 CREATE POLICY "Users manage own services" ON service_nodes FOR ALL    USING (auth.uid() = user_id);
 
 CREATE TABLE IF NOT EXISTS service_bookings (
-  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  service_id   UUID        NOT NULL REFERENCES service_nodes(id) ON DELETE CASCADE,
-  client_id    UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  provider_id  UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  event_id     UUID        REFERENCES events(id) ON DELETE SET NULL,
-  status       TEXT        DEFAULT 'pending' CHECK (status IN ('pending','confirmed','in_progress','completed','cancelled')),
-  price        NUMERIC,
-  notes        TEXT,
-  scheduled_at TIMESTAMPTZ,
-  created_at   TIMESTAMPTZ DEFAULT now(),
-  updated_at   TIMESTAMPTZ DEFAULT now()
+  id                   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  service_id           UUID        REFERENCES service_nodes(id) ON DELETE SET NULL,
+  client_id            UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  provider_id          UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  event_id             UUID        REFERENCES events(id) ON DELETE SET NULL,
+  status               TEXT        DEFAULT 'pending' CHECK (status IN ('pending','confirmed','in_progress','escrow_held','completed','cancelled','disputed')),
+  service_type         TEXT,
+  cargo_type           TEXT,
+  origin_address       TEXT,
+  destination_address  TEXT,
+  amount_cents         INTEGER     DEFAULT 0,
+  price                NUMERIC,
+  notes                TEXT,
+  scheduled_at         TIMESTAMPTZ,
+  completed_at         TIMESTAMPTZ,
+  created_at           TIMESTAMPTZ DEFAULT now(),
+  updated_at           TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS service_id   UUID REFERENCES service_nodes(id) ON DELETE CASCADE;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS client_id    UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS provider_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES events(id)   ON DELETE SET NULL;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS status       TEXT DEFAULT 'pending';
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS price        NUMERIC;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS notes        TEXT;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS updated_at   TIMESTAMPTZ DEFAULT now();
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS service_id          UUID REFERENCES service_nodes(id) ON DELETE SET NULL;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS client_id           UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS provider_id         UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS event_id            UUID REFERENCES events(id) ON DELETE SET NULL;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS status              TEXT DEFAULT 'pending';
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS service_type        TEXT;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS cargo_type          TEXT;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS origin_address      TEXT;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS destination_address TEXT;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS amount_cents        INTEGER DEFAULT 0;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS price               NUMERIC;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS notes               TEXT;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS scheduled_at        TIMESTAMPTZ;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS completed_at        TIMESTAMPTZ;
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS updated_at          TIMESTAMPTZ DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS service_bookings_client   ON service_bookings(client_id);
 CREATE INDEX IF NOT EXISTS service_bookings_provider ON service_bookings(provider_id);
@@ -1327,27 +1351,39 @@ CREATE TRIGGER service_bookings_touch BEFORE UPDATE ON service_bookings
 --  GIG POSTS + ACCEPTANCES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS gig_posts (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     UUID        REFERENCES profiles(id) ON DELETE CASCADE,
-  title       TEXT        NOT NULL,
-  description TEXT,
-  pay         NUMERIC,
-  location    TEXT,
-  event_id    UUID        REFERENCES events(id) ON DELETE SET NULL,
-  slots       INTEGER     DEFAULT 1,
-  filled      INTEGER     DEFAULT 0,
-  active      BOOLEAN     DEFAULT true,
+  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID        REFERENCES profiles(id) ON DELETE CASCADE,
+  title          TEXT        NOT NULL,
+  description    TEXT,
+  pay            NUMERIC,
+  pay_rands      NUMERIC,
+  category       TEXT        DEFAULT 'moving',
+  tab            TEXT        DEFAULT 'Moving Help',
+  time_window    TEXT        DEFAULT 'Flexible',
+  poster_username TEXT,
+  distance_km    FLOAT,
+  location       TEXT,
+  event_id       UUID        REFERENCES events(id) ON DELETE SET NULL,
+  slots          INTEGER     DEFAULT 1,
+  filled         INTEGER     DEFAULT 0,
+  active         BOOLEAN     DEFAULT true,
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
 ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS description  TEXT;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS pay          NUMERIC;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS location     TEXT;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES events(id) ON DELETE SET NULL;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS slots        INTEGER DEFAULT 1;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS filled       INTEGER DEFAULT 0;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS active       BOOLEAN DEFAULT true;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS description     TEXT;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS pay             NUMERIC;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS pay_rands       NUMERIC;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS category        TEXT DEFAULT 'moving';
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS tab             TEXT DEFAULT 'Moving Help';
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS time_window     TEXT DEFAULT 'Flexible';
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS poster_username TEXT;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS distance_km     FLOAT;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS location        TEXT;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS event_id        UUID REFERENCES events(id) ON DELETE SET NULL;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS slots           INTEGER DEFAULT 1;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS filled          INTEGER DEFAULT 0;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS active          BOOLEAN DEFAULT true;
 
 ALTER TABLE gig_posts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Gigs readable"         ON gig_posts;
@@ -1369,6 +1405,7 @@ ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS gig_id    UUID REFERENCES g
 ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS worker_id UUID REFERENCES profiles(id)  ON DELETE CASCADE;
 ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS status    TEXT DEFAULT 'applied';
 ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS message   TEXT;
+ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS gig_acceptances_gig    ON gig_acceptances(gig_id);
 CREATE INDEX IF NOT EXISTS gig_acceptances_worker ON gig_acceptances(worker_id);
@@ -1875,6 +1912,12 @@ $$;
 CREATE OR REPLACE FUNCTION increment_profile_score(uid UUID, amount INT DEFAULT 1)
 RETURNS void LANGUAGE sql AS $$
   UPDATE profiles SET vibe_score = vibe_score + amount WHERE id = uid;
+$$;
+
+-- Increment wallet balance (used by EscrowService after release)
+CREATE OR REPLACE FUNCTION increment_wallet_balance(user_id UUID, amount NUMERIC)
+RETURNS void LANGUAGE sql AS $$
+  UPDATE profiles SET wallet_balance = COALESCE(wallet_balance, 0) + amount WHERE id = user_id;
 $$;
 
 

@@ -54,7 +54,10 @@ function starRating(score) {
 // ---------------------------------------------------------------------------
 
 function ServiceCard({ provider, onBook, primary, muted, textColor, bg }) {
-  const sis = provider.social_integrity_score ?? 0;
+  const profile = provider.profiles || {};
+  const displayName = provider.display_name || profile.display_name || profile.username || provider.name || 'Provider';
+  const username = provider.username || profile.username || '';
+  const sis = provider.social_integrity_score ?? profile.social_integrity_score ?? 0;
   const stars = starRating(sis);
 
   return (
@@ -64,15 +67,15 @@ function ServiceCard({ provider, onBook, primary, muted, textColor, bg }) {
         <View style={styles.avatarRow}>
           <View style={[styles.avatar, { backgroundColor: primary }]}>
             <Text style={styles.avatarText}>
-              {getInitials(provider.display_name || provider.username)}
+              {getInitials(displayName)}
             </Text>
           </View>
           <View style={{ gap: 2, flex: 1 }}>
             <Text style={[styles.providerName, { color: textColor }]} numberOfLines={1}>
-              {provider.display_name || provider.username}
+              {displayName}
             </Text>
             <Text style={[styles.providerHandle, { color: muted }]} numberOfLines={1}>
-              @{provider.username}
+              @{username}
             </Text>
           </View>
           {/* Online dot */}
@@ -491,15 +494,15 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
       await supabase.from('gig_acceptances').insert([
         {
           gig_id: gig.id,
-          acceptor_id: user?.id,
-          accepted_at: new Date().toISOString(),
+          worker_id: user?.id,
           status: 'accepted',
         },
       ]);
     } catch {
       // silently ignore — card already shows accepted state
     }
-    showToast(`Gig accepted! Contact ${gig.poster_username}`, 'success');
+    const posterName = gig.poster_username || gig.profiles?.username || 'poster';
+    showToast(`Gig accepted! Contact ${posterName}`, 'success');
   };
 
   const EmptyState = ({ icon, message }) => (

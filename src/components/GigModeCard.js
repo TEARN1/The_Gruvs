@@ -56,17 +56,16 @@ export function GigModeCard({ gig, onAccept, primary, muted, textColor, bg }) {
   const accentColor = CATEGORY_COLORS[category] ?? primary ?? '#f97316';
   const iconName = CATEGORY_ICONS[category] ?? 'truck';
 
-  const payRands = typeof gig?.pay_rands === 'number'
-    ? `R${gig.pay_rands.toFixed(0)}`
-    : gig?.pay_rands ?? 'R0';
+  const rawPay = gig?.pay_rands ?? gig?.pay ?? 0;
+  const payRands = typeof rawPay === 'number' ? `R${rawPay.toFixed(0)}` : String(rawPay || 'R0');
 
   const distance = gig?.distance_km != null
     ? `${gig.distance_km} km`
     : gig?.distance ?? '? km';
 
   const timeWindow = gig?.time_window ?? 'Flexible';
-  const posterName = gig?.poster_username ?? 'Unknown';
-  const sisScore = gig?.sis_score ?? gig?.social_integrity_score ?? 0;
+  const posterName = gig?.poster_username ?? gig?.profiles?.username ?? 'Unknown';
+  const sisScore = gig?.sis_score ?? gig?.social_integrity_score ?? gig?.profiles?.social_integrity_score ?? 0;
 
   const handleAccept = async () => {
     if (accepted) return;

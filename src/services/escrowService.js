@@ -22,7 +22,7 @@ export const EscrowService = {
         .from('service_bookings')
         .insert([
           {
-            requester_id,
+            client_id: requester_id,
             provider_id,
             service_type,
             cargo_type,
