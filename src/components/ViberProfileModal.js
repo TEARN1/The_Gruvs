@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { NotificationService } from '../services/notificationService';
 import { DirectMessageModal } from './DirectMessageModal';
+import { EditEventModal } from './EditEventModal';
 import { UserManager, PresenceManager, AuraService } from '../services/dataFlow';
 
 const RANK_LABELS = [
@@ -24,6 +25,19 @@ const RANK_LABELS = [
   { min: 10001, max: Infinity, name: 'Grand Viber', color: '#ef4444' },
 ];
 const getRank = (score) => RANK_LABELS.find(r => score >= r.min && score <= r.max) || RANK_LABELS[0];
+
+const fmtLastSeen = (ts) => {
+  if (!ts) return null;
+  const diff = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 2) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(ts).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
+};
 
 // ── Mini event card inside the profile sheet ─────────────────────────────────
 const ProfileEventCard = ({ ev, primary, textColor, muted, onPress }) => {
@@ -87,6 +101,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [followersModalVisible, setFollowersModalVisible] = useState(false);
   const [followingList, setFollowingList] = useState([]);
   const [followingModalVisible, setFollowingModalVisible] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [platformStats, setPlatformStats] = useState({ vibers: 0, gruvs: 0 });
   const slideAnim = useRef(new Animated.Value(300)).current;
   const presenceUnsubRef = useRef(null);
 
@@ -133,6 +149,17 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         currentUser ? supabase.from('follows').select('id').eq('follower_id', currentUser.id).eq('following_id', uid).maybeSingle() : Promise.resolve({ data: null }),
         currentUser ? supabase.from('follows').select('id').eq('follower_id', uid).eq('following_id', currentUser.id).maybeSingle() : Promise.resolve({ data: null }),
       ]);
+
+      // Platform-wide stats (fire in background, non-blocking)
+      Promise.allSettled([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('events').select('id', { count: 'exact', head: true }),
+      ]).then(([vRes, gRes]) => {
+        setPlatformStats({
+          vibers: vRes.status === 'fulfilled' ? (vRes.value.count || 0) : 0,
+          gruvs:  gRes.status === 'fulfilled' ? (gRes.value.count || 0) : 0,
+        });
+      });
 
       if (profileRes.status === 'fulfilled' && profileRes.value.data) {
         const p = profileRes.value.data;
@@ -394,6 +421,15 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                     <Text style={[s.locationText, { color: muted }]}>{profile.location}</Text>
                   </View>
                 ) : null}
+                {/* Last seen — only shown on other people's profiles */}
+                {!isOwnProfile && (
+                  <View style={s.locationRow}>
+                    <Feather name="clock" size={11} color={muted} />
+                    <Text style={[s.locationText, { color: muted }]}>
+                      {isOnline ? 'Online now' : (profile.last_seen ? `Last seen ${fmtLastSeen(profile.last_seen)}` : 'Offline')}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Stats */}
@@ -455,14 +491,32 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                     </View>
                   ) : (
                     events.map(ev => (
-                      <ProfileEventCard
-                        key={ev.id}
-                        ev={ev}
-                        primary={primary}
-                        textColor={textColor}
-                        muted={muted}
-                        onPress={() => { onClose(); onNavigateToEvent?.(ev); }}
-                      />
+                      <View key={ev.id} style={{ position: 'relative' }}>
+                        <ProfileEventCard
+                          ev={ev}
+                          primary={ev.is_cancelled ? '#ef4444' : primary}
+                          textColor={ev.is_cancelled ? 'rgba(255,255,255,0.4)' : textColor}
+                          muted={muted}
+                          onPress={() => { if (!ev.is_cancelled) { onClose(); onNavigateToEvent?.(ev); } }}
+                        />
+                        {/* Cancelled strikethrough overlay */}
+                        {ev.is_cancelled && (
+                          <View style={s.cancelledOverlay} pointerEvents="none">
+                            <View style={s.cancelledLine} />
+                            <Text style={s.cancelledLabel}>CANCELLED</Text>
+                          </View>
+                        )}
+                        {/* Edit button — only on own profile */}
+                        {isOwnProfile && !ev.is_cancelled && (
+                          <TouchableOpacity
+                            style={[s.editEventBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+                            onPress={() => setEditingEvent(ev)}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                          >
+                            <Feather name="edit-2" size={12} color={primary} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     ))
                   )
                 )}
@@ -495,6 +549,26 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                         </ScrollView>
                       </View>
                     )}
+
+                    {/* Platform community stats */}
+                    {(platformStats.vibers > 0 || platformStats.gruvs > 0) && (
+                      <View style={[s.communityBox, { borderColor: `${primary}15`, backgroundColor: `${primary}06` }]}>
+                        <Text style={[s.sectionLabel, { color: muted, marginBottom: 10 }]}>COMMUNITY</Text>
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                          {[
+                            { label: 'Vibers', value: platformStats.vibers, icon: 'users', color: primary },
+                            { label: 'Gruvs',  value: platformStats.gruvs,  icon: 'calendar', color: '#f59e0b' },
+                          ].map(s2 => (
+                            <View key={s2.label} style={[s.communityPill, { borderColor: `${s2.color}25`, backgroundColor: `${s2.color}10` }]}>
+                              <Text style={[{ color: s2.color, fontSize: 18, fontWeight: '900' }]}>
+                                {s2.value >= 1000 ? `${(s2.value / 1000).toFixed(1)}k` : s2.value}
+                              </Text>
+                              <Text style={[{ color: muted, fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }]}>{s2.label.toUpperCase()}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
@@ -523,6 +597,17 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       title="FOLLOWING"
       users={followingList}
     />
+
+    {/* Edit / Cancel / Delete own event */}
+    <EditEventModal
+      visible={!!editingEvent}
+      event={editingEvent}
+      onClose={() => setEditingEvent(null)}
+      onSaved={() => {
+        setEditingEvent(null);
+        if (targetId) loadProfile(targetId);
+      }}
+    />
     </>
   );
 };
@@ -546,6 +631,10 @@ const s = StyleSheet.create({
   followBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, minWidth: 100, justifyContent: 'center' },
   followBtnText: { fontWeight: '900', fontSize: 12 },
   msgBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+  editEventBtn: { position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  cancelledOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', borderRadius: 14, overflow: 'hidden' },
+  cancelledLine: { position: 'absolute', top: '50%', left: 0, right: 0, height: 1.5, backgroundColor: '#ef4444', opacity: 0.7, transform: [{ rotate: '-8deg' }] },
+  cancelledLabel: { color: '#ef4444', fontWeight: '900', fontSize: 11, letterSpacing: 2, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
 
   nameSection: { paddingHorizontal: 16, marginBottom: 14, gap: 4 },
   username: { fontSize: 20, fontWeight: '900', letterSpacing: 0.3 },
@@ -576,4 +665,6 @@ const s = StyleSheet.create({
   emptyText: { fontSize: 13 },
 
   aboutRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, borderBottomWidth: 1 },
+  communityBox: { marginTop: 14, borderRadius: 16, borderWidth: 1, padding: 14 },
+  communityPill: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 14, borderWidth: 1, gap: 4 },
 });

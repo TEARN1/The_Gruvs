@@ -1249,10 +1249,13 @@ CREATE POLICY "Ads readable" ON contextual_ads FOR SELECT USING (active = true);
 -- ============================================================
 --  ENABLE REALTIME  (tables that need live subscriptions)
 -- ============================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE events;
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE direct_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
-ALTER PUBLICATION supabase_realtime ADD TABLE live_checkins;
-ALTER PUBLICATION supabase_realtime ADD TABLE event_vibes;
-ALTER PUBLICATION supabase_realtime ADD TABLE echoes;
+DO $$ DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['events','notifications','direct_messages','conversations','live_checkins','event_vibes','echoes'] LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = t
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', t);
+    END IF;
+  END LOOP;
+END $$;

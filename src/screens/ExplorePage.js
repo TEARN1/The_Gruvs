@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
-  TextInput, Dimensions, Animated, Platform,
+  TextInput, Dimensions, Animated, Platform, Modal,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -17,6 +17,7 @@ import { LocationService } from '../services/locationService';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
 import { ServiceMarketplace } from './ServiceMarketplace';
+import { ScoutScreen } from './ScoutScreen';
 import { BREAKPOINT } from '../constants/DesignTokens';
 
 const { width } = Dimensions.get('window');
@@ -357,6 +358,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [marketplaceVisible, setMarketplaceVisible] = useState(false);
+  const [scoutVisible, setScoutVisible] = useState(false);
   const [routes, setRoutes] = useState([]);
   const [scrollY, setScrollY] = useState(0);
   const scrollRef = useRef(null);
@@ -830,6 +832,24 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               </View>
             )}
 
+            {/* ── Scout Map ───────────────────────────────────────────────── */}
+            <TouchableOpacity
+              onPress={() => setScoutVisible(true)}
+              activeOpacity={0.88}
+              style={[styles.scoutBanner, { borderColor: `${primary}35`, backgroundColor: `${primary}07` }]}
+            >
+              <View style={[styles.scoutIconWrap, { backgroundColor: `${primary}20`, borderColor: `${primary}35` }]}>
+                <Feather name="map" size={26} color={primary} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={[styles.scoutTitle, { color: primary }]}>SCOUT THE MAP</Text>
+                <Text style={[styles.scoutSub, { color: muted }]}>Browse events on a live map · Find Gruvs near you</Text>
+              </View>
+              <View style={[styles.scoutCta, { backgroundColor: primary }]}>
+                <Feather name="navigation" size={14} color="#000" />
+              </View>
+            </TouchableOpacity>
+
             {/* ── Category discovery ──────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
               <SectionHeader title="Browse by Category" textColor={textColor} primary={primary} />
@@ -873,6 +893,38 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           onClose={() => setMarketplaceVisible(false)}
         />
       )}
+      <Modal
+        visible={scoutVisible}
+        animationType="slide"
+        onRequestClose={() => setScoutVisible(false)}
+        statusBarTranslucent
+      >
+        <View style={{ flex: 1, backgroundColor: bg }}>
+          <ScoutScreen
+            onNavigateToEvent={(ev) => { setScoutVisible(false); onNavigateToEvent?.(ev); }}
+            onAuthRequired={onAuthRequired}
+          />
+          <TouchableOpacity
+            onPress={() => setScoutVisible(false)}
+            style={{
+              position: 'absolute',
+              top: Platform.OS === 'ios' ? 54 : 16,
+              left: 16,
+              zIndex: 999,
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: `${primary}40`,
+            }}
+          >
+            <Feather name="x" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </Modal>
       {Platform.OS === 'web' && scrollY > 400 && (
         <TouchableOpacity
           onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
@@ -993,4 +1045,10 @@ const styles = StyleSheet.create({
   welcomeSub: { fontSize: 12, lineHeight: 18 },
   welcomeCta: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 },
   welcomeCtaText: { color: '#000', fontSize: 11, fontWeight: '900' },
+  // Scout banner
+  scoutBanner: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginBottom: 20, padding: 16, borderRadius: 20, borderWidth: 1.5 },
+  scoutIconWrap: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  scoutTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 1.5, marginBottom: 3 },
+  scoutSub: { fontSize: 11, lineHeight: 16 },
+  scoutCta: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
 });

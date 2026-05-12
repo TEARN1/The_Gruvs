@@ -35,7 +35,7 @@ const ConvoRow = ({ item, userId, primary, textColor, muted, surface, onPress })
 
   const unreadLabel = isUnread ? ', unread' : '';
   const previewLabel = isPending ? 'wants to link up' : (item.sender_id === userId ? `You: ${lastMsg}` : lastMsg);
-  const timeLabel = item.last_message_at ? `, ${fmtAge(item.last_message_at)}` : '';
+  const timeLabel = item.created_at ? `, ${fmtAge(item.created_at)}` : '';
   const rowLabel = `@${partner?.username || 'Unknown'}${unreadLabel}, ${previewLabel}${timeLabel}`;
 
   return (
@@ -68,7 +68,7 @@ const ConvoRow = ({ item, userId, primary, textColor, muted, surface, onPress })
           <Text style={[cs.name, { color: textColor }, isUnread && { fontWeight: '900' }]} numberOfLines={1}>
             @{partner?.username || 'Unknown'}
           </Text>
-          <Text style={[cs.time, { color: muted }]}>{fmtAge(item.last_message_at)}</Text>
+          <Text style={[cs.time, { color: muted }]}>{fmtAge(item.created_at)}</Text>
         </View>
         <View style={cs.bottomRow}>
           {isPending
@@ -197,7 +197,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={item => item.last_message_id || item.convo_key || String(Math.random())}
+          keyExtractor={item => item.id}
           renderItem={({ item }) => (
             <ConvoRow
               item={item}

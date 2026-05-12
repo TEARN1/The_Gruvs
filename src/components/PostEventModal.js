@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Image, FlatList,
+  KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { CategoryPickerModal } from './CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
+import { CalendarPicker, TimePicker } from './DateTimePickers';
 
 const MAX_MEDIA = 30;
 const EVENT_TYPES = ['Social', 'Concert', 'Workshop', 'Festival', 'Meetup', 'Party', 'Conference', 'Pop-Up', 'Rave', 'Market', 'Retreat', 'Competition'];
@@ -27,7 +28,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
-  const [eventDate, setEventDate] = useState('');
+  const [pickedDate, setPickedDate] = useState(null);      // Date object
+  const [pickedHour, setPickedHour] = useState(20);
+  const [pickedMinute, setPickedMinute] = useState(0);
+  const [timeSet, setTimeSet] = useState(false);
   const [ticketUrl, setTicketUrl] = useState('');
   const [eventType, setEventType] = useState('');
   const [lat, setLat] = useState(null);
@@ -40,6 +44,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [error, setError] = useState('');
   const [catPickerVisible, setCatPickerVisible] = useState(false);
+  const [calendarVisible, setCalendarVisible] = useState(false);
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
   const scrollRef = useRef(null);
 
   const primary = currentTheme?.primary || '#00f2ff';
@@ -49,10 +55,12 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
 
   const reset = () => {
     setTitle(''); setDescription(''); setAddress(''); setCity('');
-    setEventDate(''); setTicketUrl(''); setEventType('');
+    setPickedDate(null); setPickedHour(20); setPickedMinute(0); setTimeSet(false);
+    setTicketUrl(''); setEventType('');
     setLat(null); setLon(null);
     setAgeRestriction(0); setSelectedCategories([]); setMediaItems([]);
     setStep(1); setLoading(false); setUploadingMedia(false); setError('');
+    setCalendarVisible(false); setTimePickerVisible(false);
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -163,7 +171,16 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
         : null,
     };
     if (city.trim()) payload.city = city.trim();
-    if (eventDate.trim()) payload.event_date = eventDate.trim();
+    if (pickedDate) {
+      // Store date as YYYY-MM-DD and time as HH:MM separately
+      const y = pickedDate.getFullYear();
+      const mo = String(pickedDate.getMonth() + 1).padStart(2, '0');
+      const d = String(pickedDate.getDate()).padStart(2, '0');
+      payload.event_date = `${y}-${mo}-${d}`;
+    }
+    if (timeSet) {
+      payload.event_time = `${String(pickedHour).padStart(2, '0')}:${String(pickedMinute).padStart(2, '0')}`;
+    }
     if (mediaUrls.length > 0) payload.media = mediaUrls;
     if (ageRestriction) payload.age_restriction = ageRestriction;
     if (primaryCat) payload.category = primaryCat;
@@ -316,13 +333,33 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                   />
 
                   <Text style={[pm.label, { color: muted }]}>Date & Time</Text>
-                  <TextInput
-                    style={[pm.input, { color: textColor, borderColor: `${primary}35` }]}
-                    placeholder="e.g. 2025-12-25 or Sat 14 Dec 8pm..."
-                    placeholderTextColor={muted}
-                    value={eventDate}
-                    onChangeText={setEventDate}
-                  />
+                  <View style={pm.pickerRow}>
+                    {/* Date picker button */}
+                    <TouchableOpacity
+                      style={[pm.pickerBtn, { borderColor: pickedDate ? primary : `${primary}35`, backgroundColor: pickedDate ? `${primary}12` : 'rgba(255,255,255,0.05)', flex: 1.4 }]}
+                      onPress={() => setCalendarVisible(true)}
+                    >
+                      <Feather name="calendar" size={15} color={pickedDate ? primary : muted} />
+                      <Text style={[pm.pickerBtnText, { color: pickedDate ? primary : muted }]} numberOfLines={1}>
+                        {pickedDate
+                          ? pickedDate.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : 'Pick date'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Time picker button */}
+                    <TouchableOpacity
+                      style={[pm.pickerBtn, { borderColor: timeSet ? primary : `${primary}35`, backgroundColor: timeSet ? `${primary}12` : 'rgba(255,255,255,0.05)', flex: 1 }]}
+                      onPress={() => setTimePickerVisible(true)}
+                    >
+                      <Feather name="clock" size={15} color={timeSet ? primary : muted} />
+                      <Text style={[pm.pickerBtnText, { color: timeSet ? primary : muted }]}>
+                        {timeSet
+                          ? `${String(pickedHour).padStart(2, '0')}:${String(pickedMinute).padStart(2, '0')}`
+                          : 'Pick time'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
                   {!!error && <View style={pm.errorBox}><Text style={pm.errorText}>⚠️ {error}</Text></View>}
 
@@ -471,7 +508,12 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                     <Text style={[pm.summaryTitle, { color: primary }]}>Event Summary</Text>
                     <Text style={[pm.summaryLine, { color: textColor }]}>📛 {title}</Text>
                     <Text style={[pm.summaryLine, { color: muted }]}>📍 {address}{city ? `, ${city}` : ''}</Text>
-                    {eventDate ? <Text style={[pm.summaryLine, { color: muted }]}>📅 {eventDate}</Text> : null}
+                    {pickedDate ? (
+                      <Text style={[pm.summaryLine, { color: muted }]}>
+                        📅 {pickedDate.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                        {timeSet ? ` at ${String(pickedHour).padStart(2, '0')}:${String(pickedMinute).padStart(2, '0')}` : ''}
+                      </Text>
+                    ) : null}
                     {selectedCategories.length > 0 && (
                       <Text style={[pm.summaryLine, { color: muted }]}>
                         🏷️ {selectedCategories.slice(0, 5).map(k => ALL_CATEGORIES_MAP[k]?.label || k).join(', ')}
@@ -524,6 +566,25 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
         selected={selectedCategories}
         onConfirm={setSelectedCategories}
         title="Event Categories"
+      />
+
+      {/* Date picker */}
+      <CalendarPicker
+        visible={calendarVisible}
+        onClose={() => setCalendarVisible(false)}
+        onConfirm={(date) => { setPickedDate(date); setCalendarVisible(false); }}
+        value={pickedDate}
+        primary={primary} bg={bg} textColor={textColor} muted={muted}
+      />
+
+      {/* Time picker */}
+      <TimePicker
+        visible={timePickerVisible}
+        onClose={() => setTimePickerVisible(false)}
+        onConfirm={(h, m) => { setPickedHour(h); setPickedMinute(m); setTimeSet(true); setTimePickerVisible(false); }}
+        initialHour={pickedHour}
+        initialMinute={pickedMinute}
+        primary={primary} bg={bg} textColor={textColor} muted={muted}
       />
     </>
   );
@@ -594,6 +655,14 @@ const pm = StyleSheet.create({
 
   uploadProgress: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
 
+  pickerRow: { flexDirection: 'row', gap: 10, marginBottom: 18 },
+  pickerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderRadius: 14,
+    paddingHorizontal: 12, paddingVertical: 13,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  pickerBtnText: { fontSize: 13, fontWeight: '700', flexShrink: 1 },
   nextBtn: { paddingVertical: 16, borderRadius: 30, alignItems: 'center', marginTop: 10, marginBottom: 10 },
   bottomRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 16, paddingHorizontal: 10 },

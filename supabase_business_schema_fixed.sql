@@ -1517,7 +1517,13 @@ CREATE TABLE IF NOT EXISTS messages (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   sender_id        UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   recipient_id     UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  body             TEXT        NOT NULL CHECK (length(body) BETWEEN 1 AND 4000),
+  body             TEXT        CHECK (body IS NULL OR length(body) <= 4000),
+  message_type     TEXT        DEFAULT 'text',
+  media_url        TEXT,
+  parent_id        UUID        REFERENCES messages(id) ON DELETE SET NULL,
+  event_id         UUID,
+  latitude         DOUBLE PRECISION,
+  longitude        DOUBLE PRECISION,
   is_request       BOOLEAN     DEFAULT true,
   request_accepted BOOLEAN     DEFAULT false,
   delivered_at     TIMESTAMPTZ,
@@ -1530,6 +1536,12 @@ CREATE TABLE IF NOT EXISTS messages (
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS sender_id        UUID REFERENCES profiles(id) ON DELETE CASCADE;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS recipient_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS body             TEXT;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS message_type     TEXT DEFAULT 'text';
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_url        TEXT;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_id        UUID REFERENCES messages(id) ON DELETE SET NULL;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS event_id         UUID;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS latitude         DOUBLE PRECISION;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS longitude        DOUBLE PRECISION;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN DEFAULT true;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN DEFAULT false;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
@@ -1695,7 +1707,16 @@ $$;
 -- ============================================================
 --  CONVERSATIONS VIEW  (inbox — latest message per user pair)
 -- ============================================================
-DROP TABLE IF EXISTS conversations CASCADE;
+-- Drop whatever 'conversations' is (table OR view) before recreating as a view.
+-- DROP TABLE IF EXISTS fails with 42809 when the object is a view, so we
+-- inspect information_schema first and issue the correct DROP command.
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.views       WHERE table_schema='public' AND table_name='conversations') THEN
+    EXECUTE 'DROP VIEW conversations CASCADE';
+  ELSIF EXISTS (SELECT 1 FROM information_schema.tables   WHERE table_schema='public' AND table_name='conversations' AND table_type='BASE TABLE') THEN
+    EXECUTE 'DROP TABLE conversations CASCADE';
+  END IF;
+END $$;
 
 CREATE OR REPLACE VIEW conversations AS
 SELECT DISTINCT ON (convo_key)
@@ -1875,11 +1896,19 @@ CREATE TABLE IF NOT EXISTS group_messages (
 );
 
 -- Enable Realtime for groups
-ALTER PUBLICATION supabase_realtime ADD TABLE group_messages;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'group_messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE group_messages;
+  END IF;
+END $$;
 
 -- RLS for group messages (anyone RSVP'd 'going' can read)
 ALTER TABLE group_messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can read messages of events they RSVP'd to" ON group_messages;
 CREATE POLICY "Users can read messages of events they RSVP'd to"
   ON group_messages FOR SELECT
   USING (
@@ -1891,6 +1920,7 @@ CREATE POLICY "Users can read messages of events they RSVP'd to"
     )
   );
 
+DROP POLICY IF EXISTS "Users can send messages to events they RSVP'd to" ON group_messages;
 CREATE POLICY "Users can send messages to events they RSVP'd to"
   ON group_messages FOR INSERT
   WITH CHECK (

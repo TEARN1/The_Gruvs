@@ -1195,8 +1195,19 @@ export const MessageManager = {
     } catch { return 0; }
   },
 
-  // Send a message — supports media and request logic
-  async send(senderId, recipientId, body, { type = 'text', mediaUrl = null } = {}) {
+  // Send a message — supports media, location, event shares, replies, and request logic.
+  // Pass _pregenId to use a client-generated UUID as the DB row ID (enables optimistic + broadcast sync).
+  async send(senderId, recipientId, body, options = {}) {
+    const {
+      messageType, type,
+      mediaUrl = null,
+      parent_id = null,
+      event_id = null,
+      latitude = null,
+      longitude = null,
+      _pregenId,
+    } = options;
+    const msgType = messageType || type || 'text';
     try {
       // Check if conversation already accepted
       const { data: prior } = await supabase
@@ -1207,15 +1218,22 @@ export const MessageManager = {
         .maybeSingle();
       const accepted = !!prior?.request_accepted;
 
+      const trimmedBody = (body || '').trim() || null;
+
       const { data, error } = await supabase
         .from('messages')
         .insert({
+          ...(_pregenId ? { id: _pregenId } : {}),
           sender_id: senderId, recipient_id: recipientId,
-          body: (body || '').trim(),
+          body: trimmedBody,
           is_request: !accepted,
           request_accepted: accepted,
-          message_type: type,
+          message_type: msgType,
           media_url: mediaUrl,
+          parent_id,
+          event_id,
+          latitude,
+          longitude,
         })
         .select()
         .single();
@@ -1225,9 +1243,11 @@ export const MessageManager = {
       cache.invalidate(`convos:${recipientId}`);
       cache.invalidate(`dm_unread:${recipientId}`);
 
-      // Notify recipient
-      const msgText = type === 'image' ? 'Sent a photo' : (body || '').trim().slice(0, 80);
-      _notify(recipientId, senderId, 'message', 'New Message', msgText).catch(() => { });
+      const notifyText = msgType === 'image' ? 'Sent a photo'
+        : msgType === 'location' ? 'Shared a location'
+        : msgType === 'vibe_card' ? 'Sent a Vibe Card'
+        : (trimmedBody || '').slice(0, 80);
+      _notify(recipientId, senderId, 'message', 'New Message', notifyText).catch(() => { });
 
       return data;
     } catch { return null; }

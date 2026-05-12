@@ -7,20 +7,19 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, Modal, FlatList, TextInput, TouchableOpacity,
   Image, StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Animated, Alert, ScrollView, Linking,
+  ActivityIndicator, Animated, Alert, Linking,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
-import { MessageManager, BlockManager, PresenceManager } from '../services/dataFlow';
+import { MessageManager, BlockManager } from '../services/dataFlow';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { ViberProfileModal } from './ViberProfileModal';
 import { LocationService } from '../services/locationService';
-import { CATEGORY_CONFIG } from '../constants/CategoryConfig';
 
 const EMOJI_REACTIONS = ['❤️', '😂', '🔥', '💯', '👀', '🙏'];
 
@@ -43,6 +42,8 @@ const fmtDate = (ts) => {
 // ── Read receipt ticks ─────────────────────────────────────────────────────────
 const Ticks = ({ msg, userId, primary }) => {
   if (msg.sender_id !== userId) return null;
+  if (msg._failed) return <Text style={{ fontSize: 11, color: '#ef4444', marginLeft: 4 }}>!</Text>;
+  if (msg._optimistic) return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>○</Text>;
   if (msg.read_at) return <Text style={{ fontSize: 11, color: primary, marginLeft: 4 }}>✓✓</Text>;
   if (msg.delivered_at) return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginLeft: 4 }}>✓✓</Text>;
   return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>✓</Text>;
@@ -158,7 +159,13 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const flatRef = useRef(null);
   const channelRef = useRef(null);
   const presenceRef = useRef(null);
+  const broadcastRef = useRef(null);
   const typingTimeout = useRef(null);
+
+  // Deterministic broadcast channel key shared by both conversation participants
+  const broadcastKey = user && recipient
+    ? `dm_fast_${[user.id, recipient.id].sort().join('_')}`
+    : null;
 
   // ── Fetch messages + determine request status ────────────────────────────────
   const fetchMessages = useCallback(async () => {
@@ -213,12 +220,33 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 
     loadMessages();
 
+    // ── Fast broadcast channel (shared by both participants, bypass WAL pipeline) ──
+    // Recipient receives messages here in ~50-100ms; sender uses it to push instantly.
+    const broadcast = supabase
+      .channel(broadcastKey)
+      .on('broadcast', { event: 'msg' }, ({ payload }) => {
+        if (!active) return;
+        if (payload.sender_id === user.id) return; // own message already shown optimistically
+        // Merge if already present (postgres_changes may fire later with same ID)
+        setMessages(prev =>
+          prev.some(m => m.id === payload.id)
+            ? prev.map(m => m.id === payload.id ? { ...m, ...payload } : m)
+            : [...prev, payload]
+        );
+        setRequestStatus('accepted');
+        supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', payload.id).catch(() => {});
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
+      })
+      .subscribe();
+    broadcastRef.current = broadcast;
+
     // Typing subscription
     const unsubTyping = MessageManager.subscribeToTyping(user.id, (p) => {
       if (p.senderId === recipient.id) setIsTyping(p.isTyping);
     });
 
-    const chanKey = `dm_${[user.id, recipient.id].sort().join('_')}_${Math.random().toString(36).substr(2, 9)}`;
+    // ── postgres_changes: fallback + read-receipt sync ───────────────────────
+    const chanKey = `dm_${[user.id, recipient.id].sort().join('_')}_${Date.now()}`;
     const channel = supabase
       .channel(chanKey)
       .on('postgres_changes', {
@@ -227,9 +255,13 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       }, async (payload) => {
         if (payload.new.sender_id !== recipient.id) return;
         if (payload.new.deleted_at) return;
-        setMessages(prev => prev.some(m => m.id === payload.new.id) ? prev : [...prev, payload.new]);
+        // Merge: broadcast may have already added this message
+        setMessages(prev =>
+          prev.some(m => m.id === payload.new.id)
+            ? prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m)
+            : [...prev, payload.new]
+        );
         setRequestStatus('accepted');
-        // Mark as read instantly since modal is open
         await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', payload.new.id);
         try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
       })
@@ -237,13 +269,14 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         event: 'UPDATE', schema: 'public', table: 'messages',
         filter: `sender_id=eq.${user.id}`,
       }, (payload) => {
-        setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
+        // Sync read receipts and delivered_at back onto our optimistic messages
+        setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new, _optimistic: false } : m));
       })
       .subscribe();
     channelRef.current = channel;
 
     // ── Presence for typing indicator ────────────────────────────────────────
-    const presKey = `presence_${chanKey}_${Math.random().toString(36).substr(2, 9)}`;
+    const presKey = `presence_dm_${[user.id, recipient.id].sort().join('_')}_${Date.now()}`;
     const presence = supabase.channel(presKey, { config: { presence: { key: user.id } } });
     presence
       .on('presence', { event: 'sync' }, () => {
@@ -259,10 +292,17 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     presenceRef.current = presence;
 
     return () => {
+      active = false;
+      supabase.removeChannel(broadcast);
       supabase.removeChannel(channel);
+      if (presenceRef.current) {
+        supabase.removeChannel(presenceRef.current);
+        presenceRef.current = null;
+      }
+      broadcastRef.current = null;
+      channelRef.current = null;
       unsubTyping();
       clearTimeout(typingTimeout.current);
-      channelRef.current = null;
     };
   }, [visible, user, recipient, fetchMessages]);
 
@@ -284,26 +324,68 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     typingTimeout.current = setTimeout(() => broadcastTyping(false), 1500);
   }, [broadcastTyping]);
 
-  // ── Send message ──────────────────────────────────────────────────────────────
+  // ── Send message — optimistic + broadcast for near-instant delivery ──────────
   const handleSend = async () => {
     const trimmed = body.trim();
     if (!trimmed || !user || !recipient || sending) return;
+
+    const parentId = replyingTo?.id || null;
     setSending(true);
     setBody('');
+    setReplyingTo(null);
     broadcastTyping(false);
 
-    const options = { parent_id: replyingTo?.id || null };
-    const newMsg = await MessageManager.send(user.id, recipient.id, trimmed, options);
+    // Pre-generate a UUID so the broadcast and DB row share the same ID.
+    // This lets the recipient deduplicate when postgres_changes fires later.
+    const msgId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+
+    const now = new Date().toISOString();
+    const optimistic = {
+      id: msgId,
+      sender_id: user.id,
+      recipient_id: recipient.id,
+      body: trimmed,
+      message_type: 'text',
+      parent_id: parentId,
+      created_at: now,
+      delivered_at: now,
+      is_request: requestStatus === 'none',
+      request_accepted: requestStatus !== 'none',
+      _optimistic: true,
+    };
+
+    // 1. Render immediately for the sender (0 ms)
+    setMessages(prev => [...prev, optimistic]);
+    if (requestStatus === 'none') setRequestStatus('pending');
+
+    // 2. Push via broadcast channel — recipient sees it in ~50-100 ms
+    //    (broadcast bypasses the WAL pipeline entirely)
+    broadcastRef.current?.send({
+      type: 'broadcast',
+      event: 'msg',
+      payload: optimistic,
+    }).catch(() => {});
+
+    // 3. Persist to DB in the background — same ID so deduplication is automatic
+    const newMsg = await MessageManager.send(user.id, recipient.id, trimmed, {
+      parent_id: parentId,
+      _pregenId: msgId,
+    });
+
+    setSending(false);
 
     if (newMsg) {
-      setMessages(prev => [...prev, newMsg]);
-      if (requestStatus === 'none') setRequestStatus('pending');
-      setReplyingTo(null);
+      // Swap the optimistic placeholder with the DB-confirmed row
+      // (picks up delivered_at from the DB trigger, real request_accepted, etc.)
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...newMsg, _optimistic: false } : m));
+      try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     } else {
+      // Mark as failed so the user knows to retry
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, _failed: true, _optimistic: false } : m));
       showToast('Message failed to send. Check your signal.', 'error');
     }
-    setSending(false);
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
   };
 
   // ── Share Vibe Card ───────────────────────────────────────────────────────────
@@ -534,8 +616,21 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             </View>
           </View>
 
+          {/* Failed message retry */}
+          {item._failed && isMine && (
+            <TouchableOpacity
+              style={[dm.deleteBtn, { backgroundColor: '#ef444420' }]}
+              onPress={() => {
+                setMessages(prev => prev.filter(m => m.id !== item.id));
+                setBody(item.body || '');
+              }}
+            >
+              <Feather name="refresh-cw" size={14} color="#ef4444" />
+            </TouchableOpacity>
+          )}
+
           {/* Long-press actions for own messages */}
-          {isSelected && isMine && (
+          {isSelected && isMine && !item._failed && (
             <TouchableOpacity style={[dm.deleteBtn, { backgroundColor: '#ef444420' }]} onPress={() => handleDelete(item.id)}>
               <Feather name="trash-2" size={14} color="#ef4444" />
             </TouchableOpacity>
