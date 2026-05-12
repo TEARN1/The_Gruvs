@@ -1,23 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Share,
-  ActivityIndicator, Image, Platform,
+  ActivityIndicator, Platform, Clipboard, Linking,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
 import { GlassView } from './GlassView';
 import { supabase } from '../services/supabase';
 
-const APP_URL_BASE = 'https://thegruvs.com/join';
+// When the app is published to stores, swap this to the App Store / Play Store URL.
+// For now this points to the Expo Go project page so new users can install and open the app.
+const APP_BASE_URL = 'https://expo.dev/@tearn/the-gruvs';
 
 const generateReferralCode = (userId) => {
   if (!userId) return 'GRUV0000';
   return userId.replace(/-/g, '').slice(0, 8).toUpperCase();
 };
-
-const qrUrl = (code) =>
-  `https://api.qrserver.com/v1/create-qr-code/?size=200x200&bgcolor=0d1112&color=00f2ff&qzone=1&margin=0&format=png&data=${encodeURIComponent(`${APP_URL_BASE}?ref=${code}`)}`;
 
 const PLATFORMS = [
   { id: 'whatsapp', label: 'WhatsApp', icon: 'message-square', color: '#25D366' },
@@ -39,7 +39,7 @@ export const ReferralCard = ({ userId }) => {
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
   const referralCode = generateReferralCode(userId);
-  const inviteLink   = `${APP_URL_BASE}?ref=${referralCode}`;
+  const inviteLink   = `${APP_BASE_URL}?ref=${referralCode}`;
   const inviteMsg    = `@${username || 'me'} invited you to The Gruvs 🎉\n\nJoin the app where South Africa gruvs — discover events, connect with Vibers & live the culture.\n\n${inviteLink}`;
 
   const fetchReferralData = useCallback(async () => {
@@ -65,37 +65,41 @@ export const ReferralCard = ({ userId }) => {
 
   useEffect(() => { fetchReferralData(); }, [fetchReferralData]);
 
+  const copyLink = useCallback(async () => {
+    try {
+      if (Platform.OS === 'web' && navigator?.clipboard) {
+        await navigator.clipboard.writeText(inviteLink);
+      } else {
+        Clipboard.setString(inviteLink);
+      }
+      toast?.show('Link copied!', 'success');
+    } catch {
+      toast?.show('Could not copy — share it manually.', 'error');
+    }
+  }, [inviteLink, toast]);
+
   const handlePlatform = useCallback(async (id) => {
     try {
-      if (id === 'copy') {
-        if (Platform.OS === 'web' && navigator?.clipboard) {
-          await navigator.clipboard.writeText(inviteLink);
-        } else {
-          const Clipboard = require('react-native').Clipboard;
-          Clipboard.setString(inviteLink);
-        }
-        toast?.show('Link copied!', 'success');
-        return;
-      }
+      if (id === 'copy') { await copyLink(); return; }
+
       if (id === 'whatsapp') {
-        const { Linking } = require('react-native');
         const url = `whatsapp://send?text=${encodeURIComponent(inviteMsg)}`;
         const supported = await Linking.canOpenURL(url);
         if (supported) { await Linking.openURL(url); return; }
       }
+
       if (id === 'twitter') {
-        const { Linking } = require('react-native');
         await Linking.openURL(`https://twitter.com/intent/tweet?text=${encodeURIComponent(inviteMsg)}`);
         return;
       }
-      // Fallback — native share sheet
+
       await Share.share({ message: inviteMsg, title: 'Join The Gruvs' });
     } catch (e) {
       if (e?.message !== 'User did not share') {
         await Share.share({ message: inviteMsg, title: 'Join The Gruvs' });
       }
     }
-  }, [inviteMsg, inviteLink, toast]);
+  }, [inviteMsg, copyLink]);
 
   return (
     <GlassView style={rc.card}>
@@ -115,15 +119,17 @@ export const ReferralCard = ({ userId }) => {
         <ActivityIndicator color={primary} style={{ marginVertical: 20 }} />
       ) : (
         <>
-          {/* QR Code */}
-          <View style={[rc.qrWrap, { backgroundColor: '#0d1112', borderColor: `${primary}30` }]}>
-            <Image
-              source={{ uri: qrUrl(referralCode) }}
-              style={rc.qrImage}
-              resizeMode="contain"
+          {/* QR Code — generated natively, works offline */}
+          <View style={[rc.qrWrap, { backgroundColor: '#ffffff', borderColor: `${primary}40` }]}>
+            <QRCode
+              value={inviteLink}
+              size={180}
+              color="#0d1112"
+              backgroundColor="#ffffff"
+              ecl="M"
             />
-            <Text style={[rc.qrLabel, { color: muted }]}>Scan to join with your code</Text>
-            <View style={[rc.codeRow, { backgroundColor: `${primary}12`, borderColor: `${primary}30` }]}>
+            <Text style={rc.qrLabel}>Scan to join The Gruvs</Text>
+            <View style={[rc.codeRow, { backgroundColor: `${primary}15`, borderColor: `${primary}35` }]}>
               <Text style={[rc.code, { color: primary }]}>{referralCode}</Text>
             </View>
           </View>
@@ -147,7 +153,7 @@ export const ReferralCard = ({ userId }) => {
           {/* Link preview */}
           <TouchableOpacity
             style={[rc.linkBox, { backgroundColor: `${primary}06`, borderColor: `${primary}20` }]}
-            onPress={() => handlePlatform('copy')}
+            onPress={copyLink}
             activeOpacity={0.8}
           >
             <Feather name="link-2" size={13} color={muted} />
@@ -166,9 +172,8 @@ const rc = StyleSheet.create({
   cardTitle: { fontSize: 15, fontWeight: '900', flex: 1 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   badgeText: { fontSize: 10, fontWeight: '800' },
-  qrWrap: { alignItems: 'center', borderRadius: 20, borderWidth: 1, padding: 20, gap: 10 },
-  qrImage: { width: 160, height: 160, borderRadius: 12 },
-  qrLabel: { fontSize: 11, fontWeight: '600' },
+  qrWrap: { alignItems: 'center', borderRadius: 20, borderWidth: 1, padding: 20, gap: 12 },
+  qrLabel: { fontSize: 12, fontWeight: '700', color: '#0d1112' },
   codeRow: { paddingHorizontal: 20, paddingVertical: 6, borderRadius: 10, borderWidth: 1 },
   code: { fontSize: 18, fontWeight: '900', letterSpacing: 4 },
   shareTitle: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
