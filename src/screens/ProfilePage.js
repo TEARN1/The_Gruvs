@@ -784,10 +784,11 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [tabLoading, setTabLoading] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text || '#fff';
-  const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
+  const primary   = currentTheme?.primary    || '#00f2ff';
+  const bg        = currentTheme?.background || '#0d1112';
+  const surface   = currentTheme?.surface    || '#1a1f21';
+  const textColor = currentTheme?.text       || '#fff';
+  const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
   const username = profile?.username || user?.user_metadata?.username || 'Viber';
   const avatarUrl = profile?.avatar_url || null;

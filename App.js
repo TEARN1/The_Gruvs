@@ -26,6 +26,7 @@ import { ExplorePage } from './src/screens/ExplorePage';
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
 import { installGlobalErrorHandler } from './src/utils/errorReporter';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 // Install before any component mounts so all boot errors are captured
 installGlobalErrorHandler();
@@ -348,9 +349,14 @@ const MainNavigator = () => {
   };
 
   const renderScreen = () => {
+    const wrap = (label, node) => (
+      <ErrorBoundary key={label} label={label}>
+        {node}
+      </ErrorBoundary>
+    );
     switch (currentTab) {
       case 'feed':
-        return (
+        return wrap('The Drop', (
           <LandingPage
             mode="drop"
             onAuthRequired={handleAuthRequired}
@@ -359,26 +365,26 @@ const MainNavigator = () => {
             refreshKey={feedRefreshKey}
             onNavigateToServices={handleNavigateToServices}
           />
-        );
+        ));
       case 'explore':
-        return (
+        return wrap('Explore', (
           <ExplorePage
             onAuthRequired={handleAuthRequired}
             onNavigateToEvent={handleNavigateToEvent}
           />
-        );
+        ));
       case 'crew':
-        return <CrewFeedScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
+        return wrap('Crew Feed', <CrewFeedScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />);
       case 'calendar':
-        return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
+        return wrap('Lineup', <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />);
       case 'chats':
-        return <ChatsScreen onAuthRequired={handleAuthRequired} />;
+        return wrap('Chats', <ChatsScreen onAuthRequired={handleAuthRequired} />);
       case 'notifications':
-        return <NotificationsScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
+        return wrap('Pings', <NotificationsScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />);
       case 'profile':
-        return <ProfilePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
+        return wrap('Vibe Card', <ProfilePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />);
       default:
-        return (
+        return wrap('The Drop', (
           <LandingPage
             mode="drop"
             onAuthRequired={handleAuthRequired}
@@ -386,7 +392,7 @@ const MainNavigator = () => {
             onTargetHandled={() => setTargetEvent(null)}
             refreshKey={feedRefreshKey}
           />
-        );
+        ));
     }
   };
 

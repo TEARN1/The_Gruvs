@@ -13,7 +13,8 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    console.log('[ErrorBoundary]', error.message, info.componentStack?.slice(0, 200));
+    console.error('[ErrorBoundary] Caught in:', this.props.label || 'unknown');
+    console.error(error?.message || error);
   }
 
   reset = () => this.setState({ hasError: false, error: null });
@@ -21,15 +22,28 @@ export class ErrorBoundary extends React.Component {
   render() {
     if (!this.state.hasError) return this.props.children;
 
-    const primary = this.props.primary || '#00f2ff';
-    const label   = this.props.label   || 'This section';
+    const primary  = this.props.primary  || '#00f2ff';
+    const label    = this.props.label    || 'This section';
+    const inline   = this.props.inline   || false;
+
+    if (inline) {
+      return (
+        <View style={[s.inlineWrap, this.props.style]}>
+          <Feather name="alert-circle" size={13} color="#f59e0b" />
+          <Text style={s.inlineText}>{label} unavailable</Text>
+          <TouchableOpacity onPress={this.reset} style={s.inlineBtn}>
+            <Text style={s.inlineBtnText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
     return (
       <View style={[s.wrap, this.props.style]}>
-        <Feather name="alert-triangle" size={28} color={primary} />
+        <Feather name="alert-triangle" size={28} color="#f59e0b" />
         <Text style={[s.title, { color: '#fff' }]}>{label} hit a snag</Text>
         <Text style={[s.sub, { color: 'rgba(255,255,255,0.45)' }]}>
-          {this.state.error?.message || 'Something went wrong'}
+          Something went wrong here. The rest of the app is still working.
         </Text>
         <TouchableOpacity style={[s.btn, { borderColor: primary }]} onPress={this.reset}>
           <Feather name="refresh-cw" size={13} color={primary} />
@@ -46,4 +60,8 @@ const s = StyleSheet.create({
   sub: { fontSize: 12, textAlign: 'center', lineHeight: 18 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, borderWidth: 1, marginTop: 6 },
   btnText: { fontSize: 13, fontWeight: '700' },
+  inlineWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 10, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)', margin: 6 },
+  inlineText: { color: 'rgba(255,255,255,0.6)', fontSize: 11, flex: 1 },
+  inlineBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(245,158,11,0.2)' },
+  inlineBtnText: { color: '#f59e0b', fontSize: 10, fontWeight: '800' },
 });
