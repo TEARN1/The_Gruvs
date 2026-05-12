@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
+import { useToast } from './ToastNotification';
 
 const QUICK_INTERESTS = [
   { label: 'Music', icon: '🎵' },
@@ -27,6 +28,7 @@ const GENDERS = ['Man', 'Woman', 'Non-binary', 'Prefer not to say'];
 
 export const AuthModal = ({ visible, onClose }) => {
   const { currentTheme } = useTheme();
+  const toast = useToast();
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,6 +78,7 @@ export const AuthModal = ({ visible, onClose }) => {
       setError(error.message);
     } else {
       onClose();
+      setTimeout(() => toast?.show('Welcome back! 👑', 'success'), 300);
     }
   };
 
@@ -103,22 +106,28 @@ export const AuthModal = ({ visible, onClose }) => {
     setLoading(false);
     if (error) {
       setError(error.message);
-    } else {
-      if (data.user) {
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          username: username.trim(),
-          display_name: displayName.trim() || username.trim(),
-          city: city.trim() || null,
-          gender: gender || null,
-          birth_year: year || null,
-          interests: selectedInterests,
-          vibe_score: 0,
-          is_discoverable: true,
-        });
-      }
-      setSuccess('Check your email to confirm your account!');
+      return;
     }
+    if (data.user) {
+      // Fire-and-forget profile upsert — don't block the user
+      supabase.from('profiles').upsert({
+        id: data.user.id,
+        username: username.trim(),
+        display_name: displayName.trim() || username.trim(),
+        city: city.trim() || null,
+        gender: gender || null,
+        birth_year: year || null,
+        interests: selectedInterests,
+        vibe_score: 0,
+        is_discoverable: true,
+      }).then(() => {});
+    }
+    // Close the modal immediately — take user straight to The Drop
+    handleClose();
+    // Show confirmation toast so they know to check email but aren't blocked
+    setTimeout(() => {
+      toast?.show('Welcome to The Gruvs! 🎉 A confirmation email has been sent — check your inbox to fully activate your account.', 'success');
+    }, 300);
   };
 
   const reset = () => {

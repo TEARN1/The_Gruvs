@@ -97,6 +97,11 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gender                  TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS birth_year              INTEGER;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_discoverable         BOOLEAN     DEFAULT true;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at              TIMESTAMPTZ DEFAULT now();
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS city                    TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_online             BOOLEAN     DEFAULT true;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS share_events            BOOLEAN     DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_code           TEXT        UNIQUE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_count          INTEGER     DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS profiles_coords_gist   ON profiles USING gist(coords);
 CREATE INDEX IF NOT EXISTS profiles_username_trgm ON profiles USING gin(username gin_trgm_ops);
@@ -612,6 +617,7 @@ ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS event_id      UUID REFERENCES
 ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS lat           FLOAT;
 ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS lon           FLOAT;
 ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS venue_name    TEXT;
 
 CREATE INDEX IF NOT EXISTS live_checkins_user_id  ON live_checkins(user_id);
 CREATE INDEX IF NOT EXISTS live_checkins_event_id ON live_checkins(event_id);
@@ -969,6 +975,7 @@ CREATE TABLE IF NOT EXISTS messages (
   request_accepted BOOLEAN     DEFAULT false,
   reaction         TEXT,
   read_at          TIMESTAMPTZ,
+  delivered_at     TIMESTAMPTZ,
   deleted_at       TIMESTAMPTZ,
   created_at       TIMESTAMPTZ DEFAULT now()
 );
@@ -985,6 +992,7 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS longitude        DOUBLE PRECISION;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN DEFAULT false;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN DEFAULT false;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS reaction         TEXT;
 

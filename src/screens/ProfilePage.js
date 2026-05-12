@@ -22,8 +22,9 @@ import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { useToast } from '../components/ToastNotification';
 import { PostEventModal } from '../components/PostEventModal';
 import { EditEventModal } from '../components/EditEventModal';
-import { StreakBadge } from '../components/StreakBadge';
+import { StreakBadge, useStreak } from '../components/StreakBadge';
 import { AchievementBadges } from '../components/AchievementBadges';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ReferralCard } from '../components/ReferralCard';
 import { LeaderboardScreen } from './LeaderboardScreen';
 import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
@@ -744,6 +745,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [bizDashVisible, setBizDashVisible] = useState(false);
   const [tutorialCenterVisible, setTutorialCenterVisible] = useState(false);
   const { completed: tutorialsDone } = useTutorial();
+  const streak = useStreak();
   const [postModalVisible, setPostModalVisible] = useState(false);
   const { identityMode, modeConfig, setIdentityMode } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs');
@@ -1202,19 +1204,27 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <VibeLevel score={vibeScore} primary={primary} muted={muted} textColor={textColor} />
         </View>
 
-        {/* Streak + Referral */}
+        {/* Streak Badge */}
         {user && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 12 }}>
-            <StreakBadge userId={user.id} primary={primary} muted={muted} />
-            <ReferralCard userId={user.id} primary={primary} muted={muted} textColor={textColor} bg={bg} />
+          <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
+            <StreakBadge streak={streak} />
           </View>
+        )}
+
+        {/* Referral / Invite Card */}
+        {user && (
+          <ErrorBoundary inline label="Invite Friends" primary={primary}>
+            <ReferralCard userId={user.id} />
+          </ErrorBoundary>
         )}
 
         {/* Achievement badges */}
         {user && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-            <AchievementBadges userId={user.id} primary={primary} muted={muted} textColor={textColor} />
-          </View>
+          <ErrorBoundary inline label="Achievements" primary={primary}>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+              <AchievementBadges userId={user.id} primary={primary} muted={muted} textColor={textColor} />
+            </View>
+          </ErrorBoundary>
         )}
 
         {/* Social Integrity Score */}
@@ -1318,14 +1328,18 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         </TouchableOpacity>
 
         {/* App Updates (changelog) */}
-        <AppUpdatesSection primary={primary} muted={muted} textColor={textColor} surface={surface} />
+        <ErrorBoundary inline label="App Updates" primary={primary}>
+          <AppUpdatesSection primary={primary} muted={muted} textColor={textColor} surface={surface} />
+        </ErrorBoundary>
 
         {/* Gruv Analytics */}
-        <GlassView style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: primary }]}>Gruv Analytics</Text>
-          <Text style={[styles.sectionSub, { color: muted }]}>This week's activity</Text>
-          <AnalyticsChart primary={primary} muted={muted} textColor={textColor} userId={user?.id} />
-        </GlassView>
+        <ErrorBoundary inline label="Gruv Analytics" primary={primary}>
+          <GlassView style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: primary }]}>Gruv Analytics</Text>
+            <Text style={[styles.sectionSub, { color: muted }]}>This week's activity</Text>
+            <AnalyticsChart primary={primary} muted={muted} textColor={textColor} userId={user?.id} />
+          </GlassView>
+        </ErrorBoundary>
 
         {/* Royal Pass Benefits */}
         <GlassView style={[styles.section, { backgroundColor: primary + '08' }]}>
@@ -1733,4 +1747,9 @@ const styles = StyleSheet.create({
   // Sign out
   signOutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginTop: 8, marginBottom: 20, paddingVertical: 14, borderRadius: 30, borderWidth: 1.5, borderColor: '#ef4444' },
   signOutText: { color: '#ef4444', fontWeight: '800', fontSize: 14, letterSpacing: 0.5 },
+
+  // Career / Looks edit fields
+  editRow: { marginBottom: 14 },
+  editLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6, opacity: 0.7 },
+  editInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 13, backgroundColor: 'rgba(255,255,255,0.04)', textAlignVertical: 'top' },
 });

@@ -100,12 +100,11 @@ export const PresenceBar = ({
   // ------------------------------------------------------------------
   const fetchCheckins = useCallback(async (loc = userLocation) => {
     if (!eventId) return;
-    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('live_checkins')
-      .select('*, profiles(id, username, avatar_url, interest_tags, lat, lon)')
+      .select('*, profiles(id, username, avatar_url, interests, lat, lon)')
       .eq('event_id', eventId)
-      .gt('expires_at', now);
+      .gte('checked_in_at', new Date(Date.now() - 6 * 3600 * 1000).toISOString());
 
     if (error) {
       console.log('PresenceBar fetch error:', error.message);
@@ -306,8 +305,8 @@ export const PresenceBar = ({
   // Render
   // ------------------------------------------------------------------
   const mutualTagCount = (checkin) => {
-    const myTags = new Set(profile?.interest_tags || []);
-    return (checkin.profiles?.interest_tags || []).filter(t => myTags.has(t)).length;
+    const myTags = new Set(profile?.interests || []);
+    return (checkin.profiles?.interests || []).filter(t => myTags.has(t)).length;
   };
 
   if (loading) {

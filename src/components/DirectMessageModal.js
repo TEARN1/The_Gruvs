@@ -192,15 +192,23 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     // Mark their messages as read
     await MessageManager.markRead(recipient.id, user.id);
 
-    // Fetch Cross Path context
+    // Fetch Cross Path context — count shared path crossings via paths.user_id
     if (user && recipient) {
-      const { data } = await supabase
-        .from('path_crossings')
-        .select('cross_count')
-        .eq('user_id', user.id)
-        .eq('other_user_id', recipient.id)
-        .maybeSingle();
-      if (data) setCrossPathCount(data.cross_count);
+      const [{ data: myPaths }, { data: theirPaths }] = await Promise.all([
+        supabase.from('paths').select('id').eq('user_id', user.id),
+        supabase.from('paths').select('id').eq('user_id', recipient.id),
+      ]);
+      const myIds = (myPaths || []).map(p => p.id);
+      const theirIds = (theirPaths || []).map(p => p.id);
+      if (myIds.length && theirIds.length) {
+        const [{ count: fwd }, { count: rev }] = await Promise.all([
+          supabase.from('path_crossings').select('*', { count: 'exact', head: true })
+            .in('path_id_a', myIds).in('path_id_b', theirIds),
+          supabase.from('path_crossings').select('*', { count: 'exact', head: true })
+            .in('path_id_a', theirIds).in('path_id_b', myIds),
+        ]);
+        setCrossPathCount((fwd || 0) + (rev || 0));
+      }
     }
   }, [user, recipient]);
 
@@ -656,7 +664,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const firstMessage = messages[0];
   const isIAmRecipientOfPendingRequest = firstMessage && firstMessage.recipient_id === user?.id && firstMessage.is_request && !firstMessage.request_accepted;
 
-  const inputLocked = requestStatus === 'pending' || requestStatus === 'declined';
+  // Allow up to 3 messages while a request is pending; lock after the 3rd
+  const myPendingCount = messages.filter(m => m.sender_id === user?.id).length;
+  const inputLocked = (requestStatus === 'pending' && myPendingCount >= 3) || requestStatus === 'declined';
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -743,13 +753,19 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           </View>
         )}
 
-        {/* Input */}
-        {inputLocked && !isIAmRecipientOfPendingRequest && (
-          <View style={[dm.inputLockedOverlay, { backgroundColor: bg }]}>
-            <Feather name="lock" size={20} color={muted} />
-            <Text style={[dm.inputLockedText, { color: muted }]}>
-              {requestStatus === 'pending' ? 'Waiting for acceptance...' : 'Conversation blocked.'}
+        {/* Pending request limit notice — slim bar above input, never hides messages */}
+        {requestStatus === 'pending' && !isIAmRecipientOfPendingRequest && myPendingCount >= 3 && (
+          <View style={[dm.pendingLimitBar, { backgroundColor: `${primary}10`, borderColor: `${primary}25` }]}>
+            <Feather name="lock" size={13} color={muted} />
+            <Text style={[dm.pendingLimitText, { color: muted }]}>
+              3 messages sent — waiting for @{recipient?.username} to accept before you can send more.
             </Text>
+          </View>
+        )}
+        {requestStatus === 'declined' && !isIAmRecipientOfPendingRequest && (
+          <View style={[dm.pendingLimitBar, { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)' }]}>
+            <Feather name="x-circle" size={13} color="#ef4444" />
+            <Text style={[dm.pendingLimitText, { color: '#ef4444' }]}>Request declined — messaging blocked.</Text>
           </View>
         )}
 
@@ -865,6 +881,6 @@ const dm = StyleSheet.create({
   locationBubble: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.2)' },
   pendingSenderBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, margin: 14, padding: 12, borderRadius: 12, borderWidth: 1 },
   pendingSenderText: { flex: 1, fontSize: 13, fontWeight: '700' },
-  inputLockedOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, top: 0, alignItems: 'center', justifyContent: 'center', gap: 10, zIndex: 10, paddingBottom: 20 },
-  inputLockedText: { fontSize: 15, fontWeight: '700' },
+  pendingLimitBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
+  pendingLimitText: { flex: 1, fontSize: 12, fontWeight: '600', lineHeight: 17 },
 });

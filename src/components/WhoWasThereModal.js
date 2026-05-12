@@ -57,12 +57,12 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
           user_id,
           venue_name,
           event_id,
-          created_at,
+          checked_in_at,
           profiles:user_id (id, username, avatar_url, bio, vibe_score, is_online, is_verified)
         `)
-        .gte('created_at', since)
+        .gte('checked_in_at', since)
         .neq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .order('checked_in_at', { ascending: false })
         .limit(60);
 
       if (venue.trim()) {
@@ -81,7 +81,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
           unique.push({
             ...row.profiles,
             venue_name: row.venue_name,
-            checkin_at: row.created_at,
+            checkin_at: row.checked_in_at,
           });
         }
       }
