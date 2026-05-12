@@ -12,7 +12,7 @@ import { supabase } from '../services/supabase';
 
 // When the app is published to stores, swap this to the App Store / Play Store URL.
 // For now this points to the Expo Go project page so new users can install and open the app.
-const APP_BASE_URL = 'https://expo.dev/@tearn/the-gruvs';
+const APP_BASE_URL = 'https://thegruvs.com/join';
 
 const generateReferralCode = (userId) => {
   if (!userId) return 'GRUV0000';
