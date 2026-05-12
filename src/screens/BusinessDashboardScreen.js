@@ -31,9 +31,52 @@ const TABS = [
 ];
 
 const BUSINESS_TYPES = [
-  'Event Organiser', 'Music Venue', 'Restaurant/Bar', 'Fashion Brand',
-  'Transport Provider', 'Photography', 'Catering', 'DJ / Artist',
-  'Sponsor', 'Retail', 'Tech/App', 'Fitness', 'Education', 'Other',
+  // Nightlife & Entertainment
+  'Event Organiser', 'Music Venue', 'Night Club', 'Tavern', 'Shisanyama', 'Bar & Lounge',
+  'Cocktail Bar', 'Karaoke Bar', 'Comedy Club', 'Jazz Club', 'After Party Venue',
+  // Food & Drink
+  'Restaurant', 'Fast Food', 'Kota Shop', 'Braai Spot', 'Food Truck', 'Catering',
+  'Bakery', 'Confectionery', 'Butchery', 'Spaza Shop', 'Bottle Store', 'Coffee Shop',
+  'Juice Bar', 'Ice Cream Parlour', 'Tuck Shop',
+  // Arts & Media
+  'DJ / Artist', 'Music Producer', 'Recording Studio', 'Photography', 'Videography',
+  'Graphic Design', 'Content Creator', 'Podcast Studio', 'Film Production', 'Gallery',
+  'Street Artist', 'Illustrator', 'Animation Studio',
+  // Fashion & Beauty
+  'Fashion Brand', 'Clothing Store', 'Thrift Shop', 'Tailor / Seamstress', 'Sneaker Store',
+  'Barber Shop', 'Hair Salon', 'Nail Salon', 'Beauty Parlour', 'Tattoo Studio',
+  'Piercing Studio', 'Makeup Artist', 'Skincare Brand',
+  // Transport & Logistics
+  'Transport Provider', 'Bakkie Hire', 'Moving Company', 'Courier / Delivery',
+  'Chauffeur / Driver', 'Minibus Taxi', 'Car Rental', 'Motorcycle Delivery',
+  'Event Shuttle', 'Logistics Company',
+  // Services & Trades
+  'Electrician', 'Plumber', 'Builder / Contractor', 'Welder / Fabricator',
+  'Painter', 'Tiler', 'Handyman', 'Cleaning Service', 'Pest Control',
+  'Security Company', 'Locksmith', 'Gardener / Landscaper', 'Pool Service',
+  // Events & Hospitality
+  'Decor & Styling', 'Sound & AV Equipment', 'Event Security', 'Bouncy Castle Hire',
+  'Tent & Marquee Hire', 'Chair & Table Hire', 'Generator Hire', 'Lighting Rental',
+  'Photo Booth Hire', 'Event Staffing',
+  // Health & Wellness
+  'Gym / Fitness Centre', 'Personal Trainer', 'Yoga Studio', 'Pilates Studio',
+  'Nutritionist / Dietitian', 'Physiotherapist', 'Massage Therapist', 'Pharmacy',
+  'Traditional Healer / Herbalist', 'Mental Health Practitioner',
+  // Education & Professional
+  'Tutoring / Academic', 'Driving School', 'Coding Bootcamp', 'Language School',
+  'Music School', 'Dance Academy', 'Skills Training', 'Life Coaching',
+  'Legal Services', 'Accounting / Tax', 'Financial Advisor',
+  // Tech & Digital
+  'Tech / App Development', 'IT Support', 'Web Design', 'Social Media Management',
+  'Digital Marketing Agency', 'E-Commerce Store', 'Crypto / Fintech',
+  // Retail & Shopping
+  'General Retail', 'Electronics Store', 'Hardware Store', 'Furniture Store',
+  'Book Store', 'Gift Shop', 'Pet Shop', 'Toy Store', 'Sports Equipment',
+  // Community & Religious
+  'Community Organisation', 'Church / Religious Org', 'NPO / Charity',
+  'Sports Club / Team', 'Stokvel', 'Cultural Association',
+  // Other
+  'Sponsor / Brand', 'Influencer', 'Model Agency', 'PR Agency', 'Other',
 ];
 
 const TIERS = {

@@ -680,6 +680,57 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
   );
 };
 
+// ── App Updates Section ───────────────────────────────────────────────────────
+const UPDATE_TYPE_COLOR = { feature: '#00f2ff', fix: '#10b981', improvement: '#8b5cf6', security: '#ef4444' };
+const UPDATE_TYPE_ICON  = { feature: 'star', fix: 'tool', improvement: 'trending-up', security: 'shield' };
+
+const AppUpdatesSection = ({ primary, muted, textColor, surface }) => {
+  const [updates, setUpdates] = React.useState([]);
+
+  React.useEffect(() => {
+    supabase
+      .from('app_updates')
+      .select('*')
+      .order('released_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => setUpdates(data || []));
+  }, []);
+
+  if (!updates.length) return null;
+
+  const fmtDate = (ts) => new Date(ts).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  return (
+    <GlassView style={[{ marginHorizontal: 16, marginBottom: 14, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: `${primary}18` }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <Feather name="zap" size={16} color={primary} />
+        <Text style={{ color: primary, fontSize: 14, fontWeight: '900' }}>App Updates</Text>
+      </View>
+      {updates.map((u, i) => {
+        const color = UPDATE_TYPE_COLOR[u.type] || primary;
+        const icon  = UPDATE_TYPE_ICON[u.type]  || 'zap';
+        return (
+          <View key={u.id} style={{ flexDirection: 'row', gap: 12, paddingVertical: 10, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: 'rgba(255,255,255,0.06)' }}>
+            <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: `${color}18`, alignItems: 'center', justifyContent: 'center' }}>
+              <Feather name={icon} size={14} color={color} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ color: textColor, fontSize: 13, fontWeight: '800' }}>{u.title}</Text>
+                <View style={{ backgroundColor: `${color}20`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ color, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' }}>{u.type}</Text>
+                </View>
+              </View>
+              {u.description ? <Text style={{ color: muted, fontSize: 11, lineHeight: 16 }}>{u.description}</Text> : null}
+              <Text style={{ color: muted, fontSize: 10, marginTop: 2 }}>v{u.version} · {fmtDate(u.released_at)}</Text>
+            </View>
+          </View>
+        );
+      })}
+    </GlassView>
+  );
+};
+
 // ── Main Profile Page ─────────────────────────────────────────────────────────
 export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme, gender, themeIndex, changeTheme } = useTheme();
@@ -1237,6 +1288,36 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             <Text style={[styles.findBtnText, { color: primary }]}>Find Them</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Tutorials — Prominent Card */}
+        <TouchableOpacity
+          onPress={() => setTutorialCenterVisible(true)}
+          activeOpacity={0.85}
+          style={{ marginHorizontal: 16, marginBottom: 14, borderRadius: 20, borderWidth: 1.5, borderColor: 'rgba(139,92,246,0.35)', backgroundColor: 'rgba(139,92,246,0.08)', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}
+        >
+          <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(139,92,246,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name="book-open" size={22} color="#8b5cf6" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+              <Text style={{ color: '#8b5cf6', fontSize: 14, fontWeight: '900' }}>Tutorials</Text>
+              {tutorialsDone.length < 3 && (
+                <View style={{ backgroundColor: '#ef4444', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 }}>
+                  <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>NEW</Text>
+                </View>
+              )}
+            </View>
+            <Text style={{ color: muted, fontSize: 11, lineHeight: 15 }}>
+              {tutorialsDone.length >= 3
+                ? 'All done! Tap to review how The Gruvs works.'
+                : `${tutorialsDone.length}/3 completed — finish to unlock your first badge.`}
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={16} color="rgba(139,92,246,0.6)" />
+        </TouchableOpacity>
+
+        {/* App Updates (changelog) */}
+        <AppUpdatesSection primary={primary} muted={muted} textColor={textColor} surface={surface} />
 
         {/* Gruv Analytics */}
         <GlassView style={styles.section}>

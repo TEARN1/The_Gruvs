@@ -18,6 +18,8 @@ import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/C
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
 import { ServiceMarketplace } from './ServiceMarketplace';
 import { ScoutScreen } from './ScoutScreen';
+import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
+import { WhoWasThereModal } from '../components/WhoWasThereModal';
 import { BREAKPOINT } from '../constants/DesignTokens';
 
 const { width } = Dimensions.get('window');
@@ -357,8 +359,10 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [userResults, setUserResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [marketplaceVisible, setMarketplaceVisible] = useState(false);
-  const [scoutVisible, setScoutVisible] = useState(false);
+  const [marketplaceVisible,  setMarketplaceVisible]  = useState(false);
+  const [scoutVisible,        setScoutVisible]        = useState(false);
+  const [discoverVisible,     setDiscoverVisible]     = useState(false);
+  const [whoWasThereVisible,  setWhoWasThereVisible]  = useState(false);
   const [routes, setRoutes] = useState([]);
   const [scrollY, setScrollY] = useState(0);
   const scrollRef = useRef(null);
@@ -673,6 +677,36 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               </View>
             </TouchableOpacity>
 
+            {/* ── Find Vibers + Who Was There ────────────────────────────── */}
+            <View style={{ flexDirection: 'row', gap: 10, marginHorizontal: 16, marginBottom: 20 }}>
+              <TouchableOpacity
+                onPress={() => setDiscoverVisible(true)}
+                activeOpacity={0.85}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 18, borderWidth: 1.5, borderColor: `${primary}35`, backgroundColor: `${primary}08` }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                  <Feather name="users" size={18} color={primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: primary, fontSize: 12, fontWeight: '900', letterSpacing: 0.3 }}>Find Vibers</Text>
+                  <Text style={{ color: muted, fontSize: 10, marginTop: 1 }}>Search & connect</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setWhoWasThereVisible(true)}
+                activeOpacity={0.85}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 18, borderWidth: 1.5, borderColor: 'rgba(249,115,22,0.35)', backgroundColor: 'rgba(249,115,22,0.06)' }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(249,115,22,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Feather name="clock" size={18} color="#f97316" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#f97316', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 }}>Who Was There</Text>
+                  <Text style={{ color: muted, fontSize: 10, marginTop: 1 }}>Find by time & place</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
             {/* ── Mood selector ──────────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
               <SectionHeader title="What's your mood?" textColor={textColor} primary={primary} />
@@ -691,7 +725,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {/* ── Nearby vibers (Prominent discovery) ───────────────────── */}
             {nearbyVibers.length > 0 && (
               <View style={{ marginBottom: 20, marginTop: 10 }}>
-                <SectionHeader title="Vibers Near You" actionLabel="Find Them" onAction={() => setMarketplaceVisible(true)} textColor={textColor} primary={primary} />
+                <SectionHeader title="Vibers Near You" actionLabel="Find Them" onAction={() => setDiscoverVisible(true)} textColor={textColor} primary={primary} />
                 <NearbyVibers vibers={nearbyVibers} primary={primary} textColor={textColor} onPress={(v) => { setSelectedViber(v); setViberModalVisible(true); }} />
               </View>
             )}
@@ -925,6 +959,24 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </TouchableOpacity>
         </View>
       </Modal>
+      <Modal
+        visible={discoverVisible}
+        animationType="slide"
+        onRequestClose={() => setDiscoverVisible(false)}
+        statusBarTranslucent
+      >
+        <DiscoverPeopleScreen
+          onClose={() => setDiscoverVisible(false)}
+          onAuthRequired={onAuthRequired}
+        />
+      </Modal>
+
+      <WhoWasThereModal
+        visible={whoWasThereVisible}
+        onClose={() => setWhoWasThereVisible(false)}
+        onAuthRequired={onAuthRequired}
+      />
+
       {Platform.OS === 'web' && scrollY > 400 && (
         <TouchableOpacity
           onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}

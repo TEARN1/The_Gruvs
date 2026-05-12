@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, RefreshControl, Platform,
+  Image, RefreshControl, Platform, Modal,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -12,6 +12,7 @@ import { BrandLogo } from '../components/BrandLogo';
 import { SkeletonCard } from '../components/SkeletonCard';
 import { FollowingFeedManager, ActivityFeedManager } from '../services/dataFlow';
 import { SPACING, RADIUS, FONT } from '../constants/DesignTokens';
+import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 
 // ── Relative time helper ───────────────────────────────────────────────────────
 const fmtAge = (ts) => {
@@ -220,11 +221,12 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 
-  const [followingEvents, setFollowingEvents] = useState([]);
-  const [liveNow, setLiveNow] = useState([]);
-  const [activity, setActivity] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [followingEvents,  setFollowingEvents]  = useState([]);
+  const [liveNow,          setLiveNow]          = useState([]);
+  const [activity,         setActivity]         = useState([]);
+  const [loading,          setLoading]          = useState(true);
+  const [refreshing,       setRefreshing]       = useState(false);
+  const [discoverVisible,  setDiscoverVisible]  = useState(false);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -264,10 +266,17 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: `${primary}18` }]}>
           <BrandLogo size={34} />
-          <View style={{ marginLeft: 10 }}>
+          <View style={{ marginLeft: 10, flex: 1 }}>
             <Text style={[styles.headerTitle, { color: primary }]}>Crew Feed</Text>
             <Text style={[styles.headerSub, { color: muted }]}>See what your crew's on</Text>
           </View>
+          <TouchableOpacity
+            onPress={() => setDiscoverVisible(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 13, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: primary, backgroundColor: `${primary}18` }}
+          >
+            <Feather name="users" size={13} color={primary} />
+            <Text style={{ color: primary, fontSize: 11, fontWeight: '900', letterSpacing: 0.4 }}>FIND</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
@@ -354,6 +363,18 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           )}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={discoverVisible}
+        animationType="slide"
+        onRequestClose={() => setDiscoverVisible(false)}
+        statusBarTranslucent
+      >
+        <DiscoverPeopleScreen
+          onClose={() => setDiscoverVisible(false)}
+          onAuthRequired={onAuthRequired}
+        />
+      </Modal>
     </View>
   );
 };

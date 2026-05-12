@@ -1940,6 +1940,23 @@ $$;
 
 
 -- ============================================================
+--  APP UPDATES (changelog — admin inserts, all users can read)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS app_updates (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  version      TEXT        NOT NULL,
+  title        TEXT        NOT NULL,
+  description  TEXT,
+  type         TEXT        NOT NULL DEFAULT 'feature' CHECK (type IN ('feature','fix','improvement','security')),
+  released_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE app_updates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can read app_updates" ON app_updates;
+CREATE POLICY "Anyone can read app_updates"
+  ON app_updates FOR SELECT USING (true);
+
+-- ============================================================
 --  ENABLE REALTIME
 -- ============================================================
 DO $$ DECLARE t TEXT;
