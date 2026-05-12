@@ -123,7 +123,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const fetchAll = useCallback(async (q = '') => {
     let qb = supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url, bio, is_online, is_verified, vibe_score, lat, lon, interests')
+      .select('id, username, display_name, avatar_url, bio, is_online, is_verified, vibe_score, interests')
       .order('vibe_score', { ascending: false })
       .limit(100);
 
