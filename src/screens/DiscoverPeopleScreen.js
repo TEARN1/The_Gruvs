@@ -105,6 +105,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const [vibers, setVibers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
   const [selectedViber, setSelectedViber] = useState(null);
   const [profileVisible, setProfileVisible] = useState(false);
   const [msgTarget, setMsgTarget] = useState(null);
@@ -120,47 +121,49 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   }, [user]);
 
   const fetchAll = useCallback(async (q = '') => {
-    try {
-      let qb = supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url, bio, is_online, is_verified, vibe_score, lat, lon, interests')
-        .order('is_online', { ascending: false })
-        .order('vibe_score', { ascending: false })
-        .limit(80);
+    let qb = supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url, bio, is_online, is_verified, vibe_score, lat, lon, interests')
+      .order('vibe_score', { ascending: false })
+      .limit(100);
 
-      if (user?.id) qb = qb.neq('id', user.id);
-      if (q.trim()) qb = qb.ilike('username', `%${q.trim()}%`);
-      if (filter === 'online') qb = qb.eq('is_online', true);
+    if (user?.id) qb = qb.neq('id', user.id);
+    if (q.trim()) qb = qb.or(`username.ilike.%${q.trim()}%,display_name.ilike.%${q.trim()}%`);
+    if (filter === 'online') qb = qb.eq('is_online', true);
 
-      const { data } = await qb;
-      return data || [];
-    } catch { return []; }
+    const { data, error } = await qb;
+    if (error) throw new Error(error.message);
+    return data || [];
   }, [filter, user]);
 
   const fetchNearby = useCallback(async () => {
     if (!user) return [];
-    try {
-      const results = await DiscoveryManager.findNearbyVibers(user.id, 25);
-      return (results || []).filter(v => v.id !== user.id);
-    } catch { return []; }
+    const results = await DiscoveryManager.findNearbyVibers(user.id, 25);
+    return (results || []).filter(v => v.id !== user.id);
   }, [user]);
 
   const load = useCallback(async (isRefresh = false, q = '') => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
+    setFetchError(null);
     try {
       const results = filter === 'nearby' ? await fetchNearby() : await fetchAll(q);
-      setVibers(results);
+      // Sort online users to the top
+      setVibers(results.sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0)));
+    } catch (e) {
+      setFetchError(e.message || 'Could not load Vibers');
+      setVibers([]);
     } finally {
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
     }
   }, [filter, fetchAll, fetchNearby]);
 
+  // Re-run when filter changes OR when auth resolves (user goes from null → logged in)
   useEffect(() => {
     load();
     loadFollowing();
-  }, [filter]);
+  }, [filter, user?.id]);
 
   useEffect(() => {
     if (!query.trim()) { load(); return; }
@@ -231,6 +234,19 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color={primary} />
+          <Text style={[{ color: muted, marginTop: 12, fontSize: 13 }]}>Loading Vibers...</Text>
+        </View>
+      ) : fetchError ? (
+        <View style={s.empty}>
+          <Feather name="alert-circle" size={44} color="#ef4444" style={{ opacity: 0.7 }} />
+          <Text style={[s.emptyTitle, { color: '#ef4444' }]}>Could not load Vibers</Text>
+          <Text style={[s.emptySub, { color: muted }]}>{fetchError}</Text>
+          <TouchableOpacity
+            style={[s.retryBtn, { backgroundColor: primary }]}
+            onPress={() => load()}
+          >
+            <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Try Again</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -239,6 +255,15 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, paddingTop: 8 }}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={primary} colors={[primary]} />}
+          ListHeaderComponent={vibers.length > 0 ? (
+            <Text style={[s.countHeader, { color: muted }]}>
+              {vibers.length} Viber{vibers.length !== 1 ? 's' : ''}
+              {filter === 'online' ? ' online now' : filter === 'nearby' ? ' near you' : ' in the kingdom'}
+              {vibers.filter(v => v.is_online).length > 0 && filter !== 'online'
+                ? ` · ${vibers.filter(v => v.is_online).length} online`
+                : ''}
+            </Text>
+          ) : null}
           renderItem={({ item }) => (
             <ViberRow
               viber={item}
@@ -256,7 +281,13 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
               <Feather name="users" size={44} color={muted} style={{ opacity: 0.4 }} />
               <Text style={[s.emptyTitle, { color: textColor }]}>No Vibers found</Text>
               <Text style={[s.emptySub, { color: muted }]}>
-                {filter === 'nearby' ? 'No one nearby yet — try expanding your range.' : 'Try a different search or filter.'}
+                {filter === 'nearby'
+                  ? 'No one nearby yet — enable location and check back.'
+                  : filter === 'online'
+                  ? 'No one is online right now — check back later.'
+                  : query
+                  ? `No Vibers matching "${query}"`
+                  : 'No Vibers found — pull down to refresh.'}
               </Text>
             </View>
           }
@@ -309,4 +340,6 @@ const s = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 80, gap: 12, paddingHorizontal: 32 },
   emptyTitle: { fontSize: 16, fontWeight: '800' },
   emptySub: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  retryBtn: { marginTop: 8, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 },
+  countHeader: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 10, textTransform: 'uppercase' },
 });
