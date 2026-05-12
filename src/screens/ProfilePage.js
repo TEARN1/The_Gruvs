@@ -33,6 +33,7 @@ import { useIdentity } from '../context/IdentityContext';
 import { BusinessDashboardScreen } from './BusinessDashboardScreen';
 import { TutorialCenter } from '../components/TutorialCenter';
 import { useTutorial } from '../context/TutorialContext';
+import { uploadToStorage } from '../services/storageService';
 
 const { width } = Dimensions.get('window');
 
@@ -803,36 +804,26 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     return colors[(name?.charCodeAt(0) || 0) % colors.length];
   };
 
-  const uploadImageToStorage = async (asset, storagePath) => {
-    // On web, asset.uri is a blob: URL — fetch it directly
-    // On native, same fetch approach works
-    const response = await fetch(asset.uri);
-    const blob = await response.blob();
-    const mimeType = blob.type || `image/jpeg`;
-    const ext = mimeType.split('/')[1]?.split('+')[0] || 'jpg';
-    const fileName = `${storagePath}/${user.id}.${ext}`;
-    const { error } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, blob, { contentType: mimeType, upsert: true });
-    if (error) throw error;
-    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-    return urlData.publicUrl;
+  const pickImage = async (opts = {}) => {
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') { toast.show('Photo library permission needed', 'error'); return null; }
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      ...opts,
+    });
+    return result.canceled || !result.assets?.length ? null : result.assets[0];
   };
 
   const handleAvatarUpload = async () => {
     try {
-      if (Platform.OS !== 'web') {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') { toast.show('Photo library permission needed', 'error'); return; }
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (result.canceled || !result.assets?.length) return;
-      const publicUrl = await uploadImageToStorage(result.assets[0], 'avatars');
+      const asset = await pickImage({ allowsEditing: true, aspect: [1, 1] });
+      if (!asset) return;
+      toast.show('Uploading profile picture...', 'info');
+      const ext = (asset.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
+      const publicUrl = await uploadToStorage(asset.uri, 'avatars', `avatars/${user.id}.${ext}`);
       await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
       refreshProfile();
       toast.show('Profile picture updated!', 'success');
@@ -843,18 +834,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const handleGalleryUpload = async () => {
     try {
-      if (Platform.OS !== 'web') {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') { toast.show('Photo library permission needed', 'error'); return; }
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
-      });
-      if (result.canceled || !result.assets?.length) return;
+      const asset = await pickImage({ allowsEditing: false });
+      if (!asset) return;
       toast.show('Uploading to gallery...', 'info');
-      const publicUrl = await uploadImageToStorage(result.assets[0], `gallery/${Date.now()}`);
+      const ext = (asset.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
+      const path = `gallery/${user.id}/${Date.now()}.${ext}`;
+      const publicUrl = await uploadToStorage(asset.uri, 'avatars', path);
       const newGallery = [...profileGallery, publicUrl];
       await supabase.from('profiles').update({ profile_gallery: newGallery }).eq('id', user.id);
       setProfileGallery(newGallery);
@@ -982,27 +967,18 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const handleCoverUpload = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        const uri = result.assets[0].uri;
-        const ext = uri.split('.').pop();
-        const path = `${user.id}/cover_${Date.now()}.${ext}`;
-        const formData = new FormData();
-        formData.append('file', { uri, name: `file.${ext}`, type: `image/${ext}` });
-        const { data, error } = await supabase.storage.from('covers').upload(path, formData);
-        if (!error) {
-          const { data: { publicUrl } } = supabase.storage.from('covers').getPublicUrl(path);
-          await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', user.id);
-          refreshProfile();
-          toast.show('Cover updated!', 'success');
-        }
-      }
-    } catch { toast.show('Upload failed.', 'error'); }
+      const asset = await pickImage({ allowsEditing: true, aspect: [16, 9] });
+      if (!asset) return;
+      toast.show('Uploading cover photo...', 'info');
+      const ext = (asset.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
+      const path = `${user.id}/cover_${Date.now()}.${ext}`;
+      const publicUrl = await uploadToStorage(asset.uri, 'covers', path);
+      await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', user.id);
+      refreshProfile();
+      toast.show('Cover updated!', 'success');
+    } catch (e) {
+      toast.show('Upload failed: ' + (e.message || 'Unknown error'), 'error');
+    }
   };
 
   // Guest view

@@ -11,6 +11,7 @@ import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { uploadToStorage } from '../services/storageService';
 import { CategoryPickerModal } from './CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
@@ -120,17 +121,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     const uploaded = [];
     for (const item of mediaItems) {
       try {
-        const ext = item.uri.split('.').pop()?.toLowerCase() || 'jpg';
+        const ext = (item.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
         const fileName = `events/${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const resp = await fetch(item.uri);
-        const blob = await resp.blob();
         const mimeType = item.type === 'video' ? `video/${ext}` : `image/${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from('event-media')
-          .upload(fileName, blob, { contentType: mimeType, upsert: false });
-        if (upErr) throw upErr;
-        const { data: urlData } = supabase.storage.from('event-media').getPublicUrl(fileName);
-        uploaded.push({ url: urlData.publicUrl, type: item.type });
+        const publicUrl = await uploadToStorage(item.uri, 'event-media', fileName, { mimeType });
+        uploaded.push({ url: publicUrl, type: item.type });
       } catch (e) {
         console.log('Media upload error:', e.message);
       }

@@ -1983,3 +1983,67 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+
+
+-- ============================================================
+--  STORAGE BUCKETS  (photos, covers, event media, chat media)
+--  Run this block in Supabase → SQL Editor after the main schema.
+-- ============================================================
+
+-- Create buckets (idempotent)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES
+  ('avatars',     'avatars',     true, 5242880,
+   ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']),
+  ('covers',      'covers',      true, 10485760,
+   ARRAY['image/jpeg','image/png','image/webp']),
+  ('event-media', 'event-media', true, 104857600,
+   ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/quicktime','video/x-m4v']),
+  ('chat_media',  'chat_media',  true, 10485760,
+   ARRAY['image/jpeg','image/png','image/webp','image/gif'])
+ON CONFLICT (id) DO UPDATE SET
+  public            = EXCLUDED.public,
+  file_size_limit   = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- Storage RLS: public read, authenticated write
+DROP POLICY IF EXISTS "Public read avatars"     ON storage.objects;
+DROP POLICY IF EXISTS "Auth upload avatars"     ON storage.objects;
+DROP POLICY IF EXISTS "Auth update avatars"     ON storage.objects;
+DROP POLICY IF EXISTS "Auth delete avatars"     ON storage.objects;
+DROP POLICY IF EXISTS "Public read covers"      ON storage.objects;
+DROP POLICY IF EXISTS "Auth upload covers"      ON storage.objects;
+DROP POLICY IF EXISTS "Auth update covers"      ON storage.objects;
+DROP POLICY IF EXISTS "Public read event-media" ON storage.objects;
+DROP POLICY IF EXISTS "Auth upload event-media" ON storage.objects;
+DROP POLICY IF EXISTS "Public read chat_media"  ON storage.objects;
+DROP POLICY IF EXISTS "Auth upload chat_media"  ON storage.objects;
+DROP POLICY IF EXISTS "Auth delete chat_media"  ON storage.objects;
+
+CREATE POLICY "Public read avatars"
+  ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+CREATE POLICY "Auth upload avatars"
+  ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+CREATE POLICY "Auth update avatars"
+  ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+CREATE POLICY "Auth delete avatars"
+  ON storage.objects FOR DELETE USING (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Public read covers"
+  ON storage.objects FOR SELECT USING (bucket_id = 'covers');
+CREATE POLICY "Auth upload covers"
+  ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'covers' AND auth.role() = 'authenticated');
+CREATE POLICY "Auth update covers"
+  ON storage.objects FOR UPDATE USING (bucket_id = 'covers' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Public read event-media"
+  ON storage.objects FOR SELECT USING (bucket_id = 'event-media');
+CREATE POLICY "Auth upload event-media"
+  ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'event-media' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Public read chat_media"
+  ON storage.objects FOR SELECT USING (bucket_id = 'chat_media');
+CREATE POLICY "Auth upload chat_media"
+  ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'chat_media' AND auth.role() = 'authenticated');
+CREATE POLICY "Auth delete chat_media"
+  ON storage.objects FOR DELETE USING (bucket_id = 'chat_media' AND auth.role() = 'authenticated');

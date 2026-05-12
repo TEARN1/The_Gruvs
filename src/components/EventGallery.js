@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { uploadToStorage } from '../services/storageService';
 import { GlassView } from './GlassView';
 import { useToast } from './ToastNotification';
 
@@ -71,19 +72,13 @@ export const EventGallery = ({ eventId }) => {
     const asset = result.assets[0];
     setUploading(true);
     try {
-      const ext = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const ext = (asset.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
       const fileName = `gallery/${eventId}/${user.id}_${Date.now()}.${ext}`;
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
-      const { error: uploadError } = await supabase.storage
-        .from('event-media')
-        .upload(fileName, blob, { contentType: `image/${ext}`, upsert: false });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from('event-media').getPublicUrl(fileName);
+      const publicUrl = await uploadToStorage(asset.uri, 'event-media', fileName);
       const { error: dbError } = await supabase.from('event_gallery').insert({
         event_id: eventId,
         user_id: user.id,
-        url: urlData.publicUrl,
+        url: publicUrl,
         media_type: 'image',
       });
       // If table doesn't exist, the photo still uploaded to storage — inform user

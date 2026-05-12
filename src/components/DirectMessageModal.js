@@ -20,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { ViberProfileModal } from './ViberProfileModal';
 import { LocationService } from '../services/locationService';
+import { uploadToStorage } from '../services/storageService';
 
 const EMOJI_REACTIONS = ['❤️', '😂', '🔥', '💯', '👀', '🙏'];
 
@@ -457,21 +458,18 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
         setMediaLoading(true);
-        const uri = result.assets[0].uri;
-        const ext = uri.split('.').pop();
+        const { uri } = result.assets[0];
+        const ext = (uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
         const path = `dms/${user.id}_${Date.now()}.${ext}`;
-        const formData = new FormData();
-        formData.append('file', { uri, name: `file.${ext}`, type: `image/${ext}` });
-
-        const { error } = await supabase.storage.from('chat_media').upload(path, formData);
-        if (!error) {
-          const { data: { publicUrl } } = supabase.storage.from('chat_media').getPublicUrl(path);
-          const newMsg = await MessageManager.send(user.id, recipient.id, '', { messageType: 'image', mediaUrl: publicUrl });
-          if (newMsg) setMessages(prev => [...prev, newMsg]);
-        }
+        const publicUrl = await uploadToStorage(uri, 'chat_media', path);
+        const newMsg = await MessageManager.send(user.id, recipient.id, '', { messageType: 'image', mediaUrl: publicUrl });
+        if (newMsg) setMessages(prev => [...prev, newMsg]);
         setMediaLoading(false);
       }
-    } catch { setMediaLoading(false); }
+    } catch (e) {
+      setMediaLoading(false);
+      console.log('Image upload error:', e.message);
+    }
   };
 
   // ── Share Location ───────────────────────────────────────────────────────────
