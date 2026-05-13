@@ -25,6 +25,7 @@ import { CrewFeedScreen } from './src/screens/CrewFeedScreen';
 import { ExplorePage } from './src/screens/ExplorePage';
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
+import { AIAssistant } from './src/components/AIAssistant';
 import { installGlobalErrorHandler } from './src/utils/errorReporter';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 
@@ -456,6 +457,9 @@ const MainNavigator = () => {
         onClose={() => setAuthModalVisible(false)}
         accessibilityViewIsModal={true}
       />
+
+      {/* AI Assistant — floating button above TabBar */}
+      <AIAssistant bottomOffset={80} />
 
       {/* Tutorial overlay — rendered on top of everything */}
       <TutorialOverlay />

@@ -392,3 +392,74 @@ REVOKE EXECUTE ON FUNCTION public.verify_pop()                            FROM a
 REVOKE EXECUTE ON FUNCTION public.feed_for_user(uuid, integer, integer)   FROM anon;
 REVOKE EXECUTE ON FUNCTION public.find_nearby_vibers(uuid, double precision, integer) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.refresh_trending_events()               FROM anon;
+
+
+-- ══════════════════════════════════════════════════════════════
+--  18. AI LAYER — tables for memory, recommendations, logging
+-- ══════════════════════════════════════════════════════════════
+
+-- Per-user AI memory: preferences + behaviour Claude learns over time
+CREATE TABLE IF NOT EXISTS ai_user_memory (
+  user_id        UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  preferences    JSONB        DEFAULT '{}',
+  behaviour      JSONB        DEFAULT '{}',
+  summary        TEXT,
+  updated_at     TIMESTAMPTZ  DEFAULT now()
+);
+ALTER TABLE ai_user_memory ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "User reads own ai memory"    ON ai_user_memory;
+DROP POLICY IF EXISTS "Service manages ai memory"   ON ai_user_memory;
+CREATE POLICY "User reads own ai memory"  ON ai_user_memory FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Service manages ai memory" ON ai_user_memory FOR ALL   USING (auth.role() IN ('service_role','postgres'));
+
+-- Cached recommendations refreshed daily by the AI agent
+CREATE TABLE IF NOT EXISTS ai_recommendations_cache (
+  user_id        UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  event_ids      UUID[]       DEFAULT '{}',
+  viber_ids      UUID[]       DEFAULT '{}',
+  reasoning      TEXT,
+  generated_at   TIMESTAMPTZ  DEFAULT now()
+);
+ALTER TABLE ai_recommendations_cache ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "User reads own recs"   ON ai_recommendations_cache;
+DROP POLICY IF EXISTS "Service manages recs"  ON ai_recommendations_cache;
+CREATE POLICY "User reads own recs"  ON ai_recommendations_cache FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Service manages recs" ON ai_recommendations_cache FOR ALL   USING (auth.role() IN ('service_role','postgres'));
+
+-- Every AI call logged for learning + feedback loop
+CREATE TABLE IF NOT EXISTS ai_interactions (
+  id             UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID         REFERENCES profiles(id) ON DELETE SET NULL,
+  feature        TEXT         NOT NULL,
+  input          TEXT,
+  output         TEXT,
+  model          TEXT,
+  tokens_used    INTEGER,
+  feedback       INTEGER,
+  created_at     TIMESTAMPTZ  DEFAULT now()
+);
+ALTER TABLE ai_interactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "User reads own interactions"    ON ai_interactions;
+DROP POLICY IF EXISTS "Service inserts interactions"   ON ai_interactions;
+CREATE POLICY "User reads own interactions"  ON ai_interactions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Service inserts interactions" ON ai_interactions FOR INSERT WITH CHECK (true);
+
+-- Auto-purge interactions older than 90 days
+CREATE INDEX IF NOT EXISTS ai_interactions_created ON ai_interactions(created_at);
+
+-- Content moderation queue
+CREATE TABLE IF NOT EXISTS ai_moderation_queue (
+  id             UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_type   TEXT         NOT NULL,
+  content_id     UUID         NOT NULL,
+  content_text   TEXT         NOT NULL,
+  author_id      UUID         REFERENCES profiles(id) ON DELETE SET NULL,
+  status         TEXT         DEFAULT 'pending',
+  ai_verdict     TEXT,
+  ai_reason      TEXT,
+  reviewed_at    TIMESTAMPTZ,
+  created_at     TIMESTAMPTZ  DEFAULT now()
+);
+ALTER TABLE ai_moderation_queue ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Service manages moderation" ON ai_moderation_queue;
+CREATE POLICY "Service manages moderation" ON ai_moderation_queue FOR ALL USING (auth.role() IN ('service_role','postgres'));

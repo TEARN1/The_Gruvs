@@ -351,7 +351,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         category: selectedCat,
         query: debouncedQuery,
         userInterests: profile?.interests || [],
-        mode: feedMode
+        mode: feedMode,
+        userId: user?.id || null,
       });
 
       if (isRefreshing) {
@@ -1020,6 +1021,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   </TouchableOpacity>
                 ) : null}
               </View>
+
+              {/* AI Pick badge */}
+              {event._aiRecommended && (
+                <View style={[styles.countdown, { backgroundColor: '#7c3aed18', borderColor: '#7c3aed50', marginBottom: 6 }]}>
+                  <Text style={{ fontSize: 10 }}>✦</Text>
+                  <Text style={[styles.countdownText, { color: '#a78bfa' }]}>AI Pick for You</Text>
+                </View>
+              )}
 
               {/* Countdown pill */}
               {countdown ? (

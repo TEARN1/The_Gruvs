@@ -31,9 +31,11 @@ import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
 import { PathMapScreen } from './PathMapScreen';
 import { useIdentity } from '../context/IdentityContext';
 import { BusinessDashboardScreen } from './BusinessDashboardScreen';
+import { AdminAIScreen } from './AdminAIScreen';
 import { TutorialCenter } from '../components/TutorialCenter';
 import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
+import { generateBio, vibeCoach } from '../services/claudeService';
 
 const { width } = Dimensions.get('window');
 
@@ -257,6 +259,24 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   }, [user]);
 
   const [shareEvents, setShareEvents] = useState(profile?.share_events ?? false);
+  const [aiBioOptions, setAiBioOptions]     = useState([]);
+  const [aiBioLoading, setAiBioLoading]     = useState(false);
+  const [aiBioVisible, setAiBioVisible]     = useState(false);
+
+  const handleGenerateBio = async () => {
+    setAiBioLoading(true);
+    setAiBioVisible(false);
+    const { bios, error } = await generateBio({
+      interests: selectedInterests,
+      career:    careerTitle,
+      location,
+      vibeScore: profile?.vibe_score || 0,
+      userId:    user?.id,
+    });
+    setAiBioLoading(false);
+    if (bios?.length) { setAiBioOptions(bios); setAiBioVisible(true); }
+    else toast?.show(error || 'AI bio generation failed', 'error');
+  };
   const [bio, setBio] = useState(profile?.bio || '');
   const [location, setLocation] = useState(profile?.location || '');
   const [selectedInterests, setSelectedInterests] = useState(profile?.interests || []);
@@ -361,7 +381,40 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
       />
 
       <GlassView style={fm.section}>
-        <Text style={[fm.sectionTitle, { color: primary }]}>Bio & Location</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <Text style={[fm.sectionTitle, { color: primary, marginBottom: 0 }]}>Bio & Location</Text>
+          <TouchableOpacity
+            onPress={handleGenerateBio}
+            disabled={aiBioLoading}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: `${primary}50`, backgroundColor: `${primary}10` }}
+          >
+            {aiBioLoading
+              ? <ActivityIndicator size="small" color={primary} />
+              : <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>✦ AI Write</Text>
+            }
+          </TouchableOpacity>
+        </View>
+
+        {/* AI bio options picker */}
+        {aiBioVisible && aiBioOptions.length > 0 && (
+          <View style={{ marginBottom: 10, gap: 6 }}>
+            <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 2 }}>Pick one or edit:</Text>
+            {aiBioOptions.map((option, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => { setBio(option); setAiBioVisible(false); toast?.show('Bio applied!', 'success'); }}
+                style={{ padding: 10, borderRadius: 10, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}08` }}
+              >
+                <Text style={{ color: textColor, fontSize: 12, lineHeight: 17 }}>{option}</Text>
+                <Text style={{ color: primary, fontSize: 10, fontWeight: '800', marginTop: 4 }}>TAP TO USE</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={() => setAiBioVisible(false)}>
+              <Text style={{ color: muted, fontSize: 11, textAlign: 'center', marginTop: 2 }}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <TextInput
           style={[fm.input, { color: textColor, borderColor: `${primary}30` }]}
           placeholder="Tell others about yourself..."
@@ -744,6 +797,30 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [bizDashVisible, setBizDashVisible] = useState(false);
+  const [adminAIVisible, setAdminAIVisible] = useState(false);
+  const [vibeCoachData, setVibeCoachData]   = useState(null);
+  const [vibeCoachLoading, setVibeCoachLoading] = useState(false);
+
+  const loadVibeCoach = async () => {
+    if (vibeCoachLoading) return;
+    setVibeCoachLoading(true);
+    try {
+      const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
+      const [{ count: rsvps }, { count: vibes }, { count: echoes }, { count: checkins }] = await Promise.all([
+        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', user?.id).gte('created_at', since7d),
+        supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', user?.id).gte('created_at', since7d),
+        supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', user?.id).gte('created_at', since7d),
+        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', user?.id).gte('created_at', since7d),
+      ]);
+      const result = await vibeCoach({
+        profile,
+        recentActivity: { rsvps: rsvps || 0, vibes: vibes || 0, echoes: echoes || 0, checkins: checkins || 0 },
+        userId: user?.id,
+      });
+      setVibeCoachData(result);
+    } catch {}
+    setVibeCoachLoading(false);
+  };
   const [tutorialCenterVisible, setTutorialCenterVisible] = useState(false);
   const { completed: tutorialsDone } = useTutorial();
   const streak = useStreak();
@@ -1071,6 +1148,16 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Feather name="award" size={14} color={primary} />
               <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Leaderboard</Text>
             </TouchableOpacity>
+            {/* Admin AI — owner only */}
+            {user?.email === 'asemahlenkwali@gmail.com' && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)' }}
+                onPress={() => setAdminAIVisible(true)}
+              >
+                <Text style={{ fontSize: 12 }}>✦</Text>
+                <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '800' }}>Admin AI</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(139,92,246,0.15)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)' }}
               onPress={() => setTutorialCenterVisible(true)}
@@ -1334,6 +1421,46 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Text style={[styles.benefitText, { color: textColor }]}>{b.text}</Text>
             </View>
           ))}
+        </GlassView>
+
+        {/* ── AI Vibe Coach ──────────────────────────────────────── */}
+        <GlassView style={[styles.section, { borderColor: `${primary}30` }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 16 }}>✦</Text>
+              <Text style={[styles.sectionTitle, { color: primary, marginBottom: 0 }]}>AI Vibe Coach</Text>
+            </View>
+            <TouchableOpacity
+              onPress={loadVibeCoach}
+              disabled={vibeCoachLoading}
+              style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: `${primary}40`, backgroundColor: `${primary}10` }}
+            >
+              {vibeCoachLoading
+                ? <ActivityIndicator size="small" color={primary} />
+                : <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>{vibeCoachData ? 'Refresh' : 'Get Tips'}</Text>
+              }
+            </TouchableOpacity>
+          </View>
+          {vibeCoachData ? (
+            <>
+              {!!vibeCoachData.insight && (
+                <Text style={{ color: textColor, fontSize: 13, lineHeight: 19, marginBottom: 10 }}>{vibeCoachData.insight}</Text>
+              )}
+              {(vibeCoachData.tips || []).map((tip, i) => (
+                <View key={i} style={{ flexDirection: 'row', gap: 10, marginBottom: 8, padding: 10, borderRadius: 10, backgroundColor: `${primary}08`, borderWidth: 1, borderColor: `${primary}15` }}>
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: primary, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#000', fontSize: 11, fontWeight: '900' }}>{i + 1}</Text>
+                  </View>
+                  <Text style={{ color: textColor, fontSize: 12, lineHeight: 17, flex: 1 }}>{tip}</Text>
+                </View>
+              ))}
+              {!!vibeCoachData.next_milestone && (
+                <Text style={{ color: primary, fontSize: 11, fontWeight: '700', marginTop: 4 }}>🎯 {vibeCoachData.next_milestone}</Text>
+              )}
+            </>
+          ) : (
+            <Text style={{ color: muted, fontSize: 13 }}>Tap "Get Tips" for personalised coaching from your AI.</Text>
+          )}
         </GlassView>
 
         {/* Profile Content Tabs */}
@@ -1608,6 +1735,11 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       {bizDashVisible && (
         <View style={StyleSheet.absoluteFill}>
           <BusinessDashboardScreen onClose={() => setBizDashVisible(false)} />
+        </View>
+      )}
+      {adminAIVisible && (
+        <View style={StyleSheet.absoluteFill}>
+          <AdminAIScreen onClose={() => setAdminAIVisible(false)} />
         </View>
       )}
       <TutorialCenter

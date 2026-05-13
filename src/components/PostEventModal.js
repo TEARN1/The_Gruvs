@@ -15,6 +15,7 @@ import { uploadToStorage } from '../services/storageService';
 import { CategoryPickerModal } from './CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
+import { fillEvent } from '../services/claudeService';
 
 const MAX_MEDIA = 30;
 const EVENT_TYPES = ['Social', 'Concert', 'Workshop', 'Festival', 'Meetup', 'Party', 'Conference', 'Pop-Up', 'Rave', 'Market', 'Retreat', 'Competition'];
@@ -40,7 +41,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const [ageRestriction, setAgeRestriction] = useState(0);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [mediaItems, setMediaItems] = useState([]); // { uri, type, name }
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
+  const [aiDescription, setAiDescription] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [error, setError] = useState('');
@@ -60,7 +63,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     setTicketUrl(''); setEventType('');
     setLat(null); setLon(null);
     setAgeRestriction(0); setSelectedCategories([]); setMediaItems([]);
-    setStep(1); setLoading(false); setUploadingMedia(false); setError('');
+    setStep(0); setAiDescription(''); setAiLoading(false);
+    setLoading(false); setUploadingMedia(false); setError('');
     setCalendarVisible(false); setTimePickerVisible(false);
   };
 
@@ -218,6 +222,40 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     }
   };
 
+  const handleAIFill = async () => {
+    if (!aiDescription.trim() || aiLoading) return;
+    setAiLoading(true);
+    setError('');
+    try {
+      const filled = await fillEvent({ roughDescription: aiDescription.trim(), city, userId: user?.id });
+      if (filled.title)          setTitle(filled.title);
+      if (filled.description)    setDescription(filled.description);
+      if (filled.city)           setCity(filled.city);
+      if (filled.address)        setAddress(filled.address);
+      if (filled.age_restriction != null) setAgeRestriction(filled.age_restriction);
+      if (filled.category) {
+        const catKey = filled.category.toLowerCase().replace(/\s+/g, '_');
+        setSelectedCategories([catKey]);
+        setEventType(filled.category);
+      }
+      if (filled.event_time) {
+        const parts = filled.event_time.split(':');
+        if (parts.length >= 2) {
+          setPickedHour(parseInt(parts[0], 10) || 20);
+          setPickedMinute(parseInt(parts[1], 10) || 0);
+          setTimeSet(true);
+        }
+      }
+      if (filled.price_min != null) {/* stored via ticket_url or ignore — not a form field */}
+      setStep(1);
+    } catch {
+      setError('AI fill failed — fill in the details manually.');
+      setStep(1);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const canProceedStep1 = title.trim().length > 2 && description.trim().length > 5 && address.trim().length > 3;
 
   const renderCategoryChips = () => {
@@ -256,7 +294,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
             <View style={pm.headerRow}>
               <View>
                 <Text style={[pm.title, { color: primary }]}>NEW ROYAL VIBE</Text>
-                <Text style={[pm.stepLabel, { color: muted }]}>Step {step} of 3</Text>
+                <Text style={[pm.stepLabel, { color: muted }]}>{step === 0 ? 'AI Fill · Optional' : `Step ${step} of 3`}</Text>
               </View>
               <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Feather name="x" size={22} color={textColor} />
@@ -265,10 +303,59 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
 
             {/* Progress */}
             <View style={pm.progressBar}>
-              <View style={[pm.progressFill, { backgroundColor: primary, width: `${(step / 3) * 100}%` }]} />
+              <View style={[pm.progressFill, { backgroundColor: primary, width: step === 0 ? '8%' : `${(step / 3) * 100}%` }]} />
             </View>
 
             <ScrollView ref={scrollRef} style={pm.form} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+              {/* ── STEP 0: AI Fill ─────────────────────────────────────── */}
+              {step === 0 && (
+                <>
+                  <View style={{ alignItems: 'center', marginBottom: 20, marginTop: 4 }}>
+                    <Text style={{ fontSize: 28 }}>✦</Text>
+                    <Text style={[pm.label, { color: primary, textAlign: 'center', fontSize: 15, marginTop: 6, marginBottom: 4 }]}>
+                      Describe your Gruv in plain language
+                    </Text>
+                    <Text style={{ color: muted, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
+                      Claude will fill in your event details automatically.{'\n'}You can review and edit before posting.
+                    </Text>
+                  </View>
+
+                  <TextInput
+                    style={[pm.input, pm.textarea, { color: textColor, borderColor: `${primary}50`, minHeight: 110 }]}
+                    placeholder={`e.g. "Rooftop sunset session in Sandton on Saturday, R150 entry, strictly 21+, techno vibes"`}
+                    placeholderTextColor={muted}
+                    multiline
+                    numberOfLines={5}
+                    value={aiDescription}
+                    onChangeText={setAiDescription}
+                    maxLength={400}
+                    autoFocus
+                  />
+                  <Text style={[pm.charCount, { color: muted }]}>{aiDescription.length}/400</Text>
+
+                  <TouchableOpacity
+                    style={[pm.catBtn, { borderColor: aiDescription.trim() ? primary : `${primary}30`, backgroundColor: `${primary}12`, marginTop: 6, opacity: aiLoading ? 0.6 : 1 }]}
+                    onPress={handleAIFill}
+                    disabled={!aiDescription.trim() || aiLoading}
+                  >
+                    {aiLoading
+                      ? <ActivityIndicator size="small" color={primary} />
+                      : <Text style={{ fontSize: 16 }}>✦</Text>
+                    }
+                    <Text style={{ color: primary, fontWeight: '800', fontSize: 14 }}>
+                      {aiLoading ? 'Filling your event...' : 'Let AI Fill This'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={{ alignItems: 'center', paddingVertical: 16 }}
+                    onPress={() => setStep(1)}
+                  >
+                    <Text style={{ color: muted, fontSize: 13 }}>Skip — fill in manually →</Text>
+                  </TouchableOpacity>
+                </>
+              )}
 
               {/* ── STEP 1: Core info ────────────────────────────────────── */}
               {step === 1 && (

@@ -53,8 +53,11 @@ export const GeoUtils = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const ScoreEngine = {
   // Weighted relevance score for a single event (higher = more relevant)
-  eventScore(event, { userInterests = [], followedIds = [], userLat, userLon } = {}) {
+  eventScore(event, { userInterests = [], followedIds = [], userLat, userLon, aiRecommendedIds = new Set() } = {}) {
     let score = 0;
+
+    // AI recommendation boost
+    if (aiRecommendedIds.has(event.id)) score += 30;
 
     // Social signals
     score += (event.vibe_count || 0) * 1.5;
@@ -134,11 +137,24 @@ export const FeedManager = {
 
   async fetchPage({
     page = 0, category = 'all', query = '', mode = 'drop',
-    userInterests = [], followedIds = [], userLat, userLon,
+    userInterests = [], followedIds = [], userLat, userLon, userId = null,
   } = {}) {
-    const cacheKey = `feed:${mode}:${category}:${query}:${page}`;
+    const cacheKey = `feed:${mode}:${category}:${query}:${page}:${userId || 'anon'}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
+
+    // Load AI recommendations for this user (non-blocking, best-effort)
+    let aiRecommendedIds = new Set();
+    if (userId) {
+      try {
+        const { data: rec } = await supabase
+          .from('ai_recommendations_cache')
+          .select('event_ids')
+          .eq('user_id', userId)
+          .single();
+        if (rec?.event_ids?.length) aiRecommendedIds = new Set(rec.event_ids);
+      } catch { /* ignore */ }
+    }
 
     // Removed demo mode fallback. Real data required.
     try {
@@ -162,11 +178,16 @@ export const FeedManager = {
 
       // Apply ScoreEngine ranking (client-side re-sort for personalisation)
       let events = data || [];
-      if ((userInterests.length > 0 || followedIds.length > 0) && !query.trim()) {
+      if (!query.trim()) {
         events = [...events].sort((a, b) =>
-          ScoreEngine.eventScore(b, { userInterests, followedIds, userLat, userLon }) -
-          ScoreEngine.eventScore(a, { userInterests, followedIds, userLat, userLon })
+          ScoreEngine.eventScore(b, { userInterests, followedIds, userLat, userLon, aiRecommendedIds }) -
+          ScoreEngine.eventScore(a, { userInterests, followedIds, userLat, userLon, aiRecommendedIds })
         );
+      }
+
+      // Mark AI-recommended events
+      if (aiRecommendedIds.size > 0) {
+        events = events.map(e => aiRecommendedIds.has(e.id) ? { ...e, _aiRecommended: true } : e);
       }
 
       const result = { events, total: count || 0, page, hasMore: events.length === this.PAGE_SIZE };
