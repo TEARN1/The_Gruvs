@@ -518,24 +518,25 @@ export const BookmarkManager = {
 export const UserManager = {
   async follow(followerId, followingId) {
     if (!isSupabaseEnabled) return true;
-    try {
-      await supabase.from('follows').insert({ follower_id: followerId, following_id: followingId });
-      cache.invalidate(`follows:${followerId}`);
-      cache.invalidate(`followers:${followingId}`);
-      _notify(followingId, followerId, 'follow', 'Someone locked in to your Gruvs', '').catch(() => { });
-      return true;
-    } catch { return false; }
+    const { error } = await supabase
+      .from('follows')
+      .insert({ follower_id: followerId, following_id: followingId });
+    if (error) throw new Error(error.message);
+    cache.invalidate(`follows:${followerId}`);
+    cache.invalidate(`followers:${followingId}`);
+    _notify(followingId, followerId, 'follow', 'Someone locked in to your Gruvs', '').catch(() => { });
+    return true;
   },
 
   async unfollow(followerId, followingId) {
     if (!isSupabaseEnabled) return true;
-    try {
-      await supabase.from('follows')
-        .delete().eq('follower_id', followerId).eq('following_id', followingId);
-      cache.invalidate(`follows:${followerId}`);
-      cache.invalidate(`followers:${followingId}`);
-      return true;
-    } catch { return false; }
+    const { error } = await supabase
+      .from('follows')
+      .delete().eq('follower_id', followerId).eq('following_id', followingId);
+    if (error) throw new Error(error.message);
+    cache.invalidate(`follows:${followerId}`);
+    cache.invalidate(`followers:${followingId}`);
+    return true;
   },
 
   async isFollowing(followerId, followingId) {
@@ -1249,7 +1250,7 @@ export const MessageManager = {
       _notify(recipientId, senderId, 'message', 'New Message', notifyText).catch(() => { });
 
       return data;
-    } catch { return null; }
+    } catch (e) { throw e; }
   },
 
   async markAsRead(messageId, userId) {

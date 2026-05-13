@@ -16,6 +16,7 @@ import { NotificationService } from '../services/notificationService';
 import { DirectMessageModal } from './DirectMessageModal';
 import { EditEventModal } from './EditEventModal';
 import { UserManager, PresenceManager, AuraService } from '../services/dataFlow';
+import { useToast } from './ToastNotification';
 
 const RANK_LABELS = [
   { min: 0,     max: 100,    name: 'Viber',       color: '#94a3b8' },
@@ -85,6 +86,7 @@ const pec = StyleSheet.create({
 export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId, onClose, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user: currentUser } = useAuth();
+  const toast = useToast();
 
   const [profile, setProfile] = useState(null);
   const [events, setEvents] = useState([]);
@@ -231,14 +233,17 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         setIsMutual(false);
       } else {
         await UserManager.follow(currentUser.id, targetId);
-        // Check if now mutual
         const theyFollow = await UserManager.isFollowing(targetId, currentUser.id);
         setIsMutual(theyFollow);
       }
-    } catch {
+    } catch (e) {
       // Rollback optimistic update
       setIsFollowing(wasFollowing);
       setFollowerCount(c => wasFollowing ? c + 1 : Math.max(0, c - 1));
+      const msg = e?.message?.includes('row-level security')
+        ? 'Follow could not save — database not configured yet.'
+        : 'Could not save follow — ' + (e?.message || 'check your connection.');
+      toast?.show(msg, 'error');
     }
     setFollowLoading(false);
   };

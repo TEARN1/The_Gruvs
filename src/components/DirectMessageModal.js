@@ -378,22 +378,21 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     }).catch(() => {});
 
     // 3. Persist to DB in the background — same ID so deduplication is automatic
-    const newMsg = await MessageManager.send(user.id, recipient.id, trimmed, {
-      parent_id: parentId,
-      _pregenId: msgId,
-    });
-
-    setSending(false);
-
-    if (newMsg) {
+    try {
+      const newMsg = await MessageManager.send(user.id, recipient.id, trimmed, {
+        parent_id: parentId,
+        _pregenId: msgId,
+      });
+      setSending(false);
       // Swap the optimistic placeholder with the DB-confirmed row
-      // (picks up delivered_at from the DB trigger, real request_accepted, etc.)
       setMessages(prev => prev.map(m => m.id === msgId ? { ...newMsg, _optimistic: false } : m));
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
-    } else {
-      // Mark as failed so the user knows to retry
+    } catch (e) {
+      setSending(false);
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, _failed: true, _optimistic: false } : m));
-      showToast('Message failed to send. Check your signal.', 'error');
+      showToast(e?.message?.includes('row-level security')
+        ? 'Message blocked — run the SQL patch in Supabase to enable messaging.'
+        : 'Message failed: ' + (e?.message || 'Unknown error'), 'error');
     }
   };
 
