@@ -172,8 +172,10 @@ CREATE POLICY "Users manage own checkins" ON live_checkins FOR ALL    USING (aut
 
 
 -- ══════════════════════════════════════════════════════════════
---  11. APP UPDATES — RLS
+--  11. APP UPDATES — columns + RLS
 -- ══════════════════════════════════════════════════════════════
+ALTER TABLE app_updates ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE app_updates ADD COLUMN IF NOT EXISTS type        TEXT DEFAULT 'feature';
 ALTER TABLE app_updates ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Anyone can read app_updates" ON app_updates;
 CREATE POLICY "Anyone can read app_updates" ON app_updates FOR SELECT USING (true);

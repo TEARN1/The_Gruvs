@@ -20,6 +20,7 @@ import { ServiceMarketplace } from './ServiceMarketplace';
 import { ScoutScreen } from './ScoutScreen';
 import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 import { WhoWasThereModal } from '../components/WhoWasThereModal';
+import { TutorialCenter } from '../components/TutorialCenter';
 import { BREAKPOINT } from '../constants/DesignTokens';
 
 const { width } = Dimensions.get('window');
@@ -362,6 +363,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [marketplaceVisible,  setMarketplaceVisible]  = useState(false);
   const [scoutVisible,        setScoutVisible]        = useState(false);
   const [discoverVisible,     setDiscoverVisible]     = useState(false);
+  const [tutorialVisible,     setTutorialVisible]     = useState(false);
+  const [appUpdates,          setAppUpdates]          = useState([]);
   const [whoWasThereVisible,  setWhoWasThereVisible]  = useState(false);
   const [routes, setRoutes] = useState([]);
   const [scrollY, setScrollY] = useState(0);
@@ -372,6 +375,14 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const bg        = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
+
+  useEffect(() => {
+    supabase.from('app_updates')
+      .select('id, title, description, version, released_at, type')
+      .order('released_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => setAppUpdates(data || []));
+  }, []);
 
   useEffect(() => {
     loadAll();
@@ -896,6 +907,50 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               />
             </View>
 
+            {/* ── App Updates (Upgrades) ──────────────────────────────────── */}
+            <View style={{ marginBottom: 20 }}>
+              <SectionHeader title="App Upgrades" textColor={textColor} primary={primary} />
+              {appUpdates.length === 0 ? (
+                <View style={{ paddingHorizontal: 20, paddingVertical: 14 }}>
+                  <Text style={{ color: muted, fontSize: 13 }}>No updates recorded yet.</Text>
+                </View>
+              ) : (
+                appUpdates.map((u) => (
+                  <View key={u.id} style={{ marginHorizontal: 20, marginBottom: 10, padding: 14, borderRadius: 14, backgroundColor: `${primary}08`, borderWidth: 1, borderColor: `${primary}20` }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: `${primary}25` }}>
+                        <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>{u.type?.toUpperCase() || 'UPDATE'}</Text>
+                      </View>
+                      {u.version ? <Text style={{ color: muted, fontSize: 10, fontWeight: '700' }}>v{u.version}</Text> : null}
+                      <Text style={{ color: muted, fontSize: 10, marginLeft: 'auto' }}>
+                        {u.released_at ? new Date(u.released_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                      </Text>
+                    </View>
+                    <Text style={{ color: textColor, fontSize: 13, fontWeight: '800', marginBottom: 2 }}>{u.title}</Text>
+                    {!!u.description && <Text style={{ color: muted, fontSize: 12, lineHeight: 17 }}>{u.description}</Text>}
+                  </View>
+                ))
+              )}
+            </View>
+
+            {/* ── Tutorials ───────────────────────────────────────────────── */}
+            <TouchableOpacity
+              onPress={() => setTutorialVisible(true)}
+              activeOpacity={0.88}
+              style={{ marginHorizontal: 20, marginBottom: 20, padding: 18, borderRadius: 16, borderWidth: 1.5, borderColor: `${primary}35`, backgroundColor: `${primary}07`, flexDirection: 'row', alignItems: 'center', gap: 14 }}
+            >
+              <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: `${primary}20`, borderWidth: 1, borderColor: `${primary}35`, alignItems: 'center', justifyContent: 'center' }}>
+                <Feather name="book-open" size={22} color={primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: primary, fontSize: 14, fontWeight: '900', letterSpacing: 0.5 }}>APP TUTORIALS</Text>
+                <Text style={{ color: muted, fontSize: 12, marginTop: 2 }}>Learn every feature · Master The Gruvs</Text>
+              </View>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: primary, alignItems: 'center', justifyContent: 'center' }}>
+                <Feather name="chevron-right" size={16} color="#000" />
+              </View>
+            </TouchableOpacity>
+
             {/* ── Guest CTA ───────────────────────────────────────────────── */}
             {!user && (
               <TouchableOpacity
@@ -921,12 +976,22 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         onClose={() => setViberModalVisible(false)}
         onNavigateToEvent={(ev) => { setViberModalVisible(false); onNavigateToEvent?.(ev); }}
       />
-      {marketplaceVisible && (
+      <Modal
+        visible={marketplaceVisible}
+        animationType="slide"
+        onRequestClose={() => setMarketplaceVisible(false)}
+        statusBarTranslucent
+      >
         <ServiceMarketplace
           onAuthRequired={onAuthRequired}
           onClose={() => setMarketplaceVisible(false)}
         />
-      )}
+      </Modal>
+
+      <TutorialCenter
+        visible={tutorialVisible}
+        onClose={() => setTutorialVisible(false)}
+      />
       <Modal
         visible={scoutVisible}
         animationType="slide"
