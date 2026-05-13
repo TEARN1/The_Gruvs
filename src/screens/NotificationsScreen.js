@@ -98,7 +98,9 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   useEffect(() => {
     fetchNotifications();
-  }, [fetchNotifications]);
+    // Auto-clear the badge as soon as the screen opens
+    markAllRead();
+  }, [fetchNotifications, markAllRead]);
 
   useEffect(() => {
     if (!user) return;
