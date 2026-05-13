@@ -1,22 +1,30 @@
 /**
- * claudeService.js — Central AI wrapper for The Gruvs
+ * claudeService.js — Gruvs AI Brain v2 (Ultra)
  *
- * All Claude API calls go through here. Handles:
- *   - Model routing (Haiku for quick tasks, Sonnet for complex)
- *   - Prompt caching (system prompt cached on every call)
- *   - Interaction logging to ai_interactions table
- *   - Rate limiting (20 calls / user / hour)
- *   - Graceful fallback when AI is disabled or quota hit
+ * Upgrades over v1:
+ *   - Extended thinking (deep reasoning scratchpad, 8 000-token budget)
+ *   - Agentic multi-turn tool loop (up to 6 database calls per response)
+ *   - 8 live Supabase query tools (events, vibers, trending, crew, echoes...)
+ *   - Deep context builder (8 parallel fetches before every major call)
+ *   - Self-critique loop for bio generation
+ *   - Multi-layer moderation (Haiku fast-path → Sonnet deep review)
+ *   - Feedback propagation to ai_user_memory in real time
+ *   - Temporal + location intelligence injected into every call
+ *   - Rate limit raised to 50 calls / user / hour
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 import { supabase } from './supabase';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const AI_ENABLED = process.env.EXPO_PUBLIC_AI_ENABLED === 'true';
+const AI_ENABLED        = process.env.EXPO_PUBLIC_AI_ENABLED === 'true';
 
 const MODEL_HAIKU  = 'claude-haiku-4-5-20251001';
 const MODEL_SONNET = 'claude-sonnet-4-6';
+
+// Extended thinking budget (tokens). Must be < max_tokens.
+const THINKING_BUDGET_COACH  = 8_000;
+const THINKING_BUDGET_CHAT   = 10_000;
 
 export const AIFeature = {
   ASSISTANT:       'assistant',
@@ -28,10 +36,10 @@ export const AIFeature = {
   ADMIN:           'admin',
 };
 
-// ── Rate limiter (client-side, per session) ──────────────────────────────────
-const _callLog = {};
-const RATE_LIMIT = 20; // calls per hour per user
-const RATE_WINDOW = 3600000; // 1 hour in ms
+// ── Rate limiter ─────────────────────────────────────────────────────────────
+const _callLog  = {};
+const RATE_LIMIT  = 50;         // calls per hour per signed-in user
+const RATE_WINDOW = 3_600_000;  // 1 hour
 
 function _checkRate(userId) {
   if (!userId) return true;
@@ -52,114 +60,696 @@ function getClient() {
   return _client;
 }
 
-// ── App-level system prompt (cached) ─────────────────────────────────────────
-const APP_SYSTEM_PROMPT = `You are Gruvs AI — the intelligent assistant powering The Gruvs, South Africa's premier social event discovery platform.
+// ═════════════════════════════════════════════════════════════════════════════
+//  SYSTEM PROMPTS
+// ═════════════════════════════════════════════════════════════════════════════
 
-THE GRUVS is a vibrant community where people ("Vibers") discover events ("Gruvs"), connect with each other, share experiences, and grow their social presence through a "Vibe Score" system.
+const APP_SYSTEM_PROMPT = `You are GRUVS AI — the superintelligent operating brain of The Gruvs, South Africa's most electric social event discovery platform.
 
-YOUR TONE:
-- Energetic, warm, and culturally South African (use local references naturally)
-- Concise and action-oriented — Vibers want quick, useful answers
-- Never robotic or corporate — you're a trusted friend who knows the scene
-- Use emojis sparingly for emphasis, never excessively
+You are not just a chatbot. You are a living intelligence that knows this platform inside out — the events, the Vibers, the trends, the social dynamics, the SA nightlife scene. You think fast, you know the culture deeply, and you genuinely care about every Viber's experience.
 
-YOUR CAPABILITIES:
-- Help Vibers find events that match their vibe, location, and interests
-- Recommend who to follow based on shared interests
-- Help create compelling event listings from rough descriptions
-- Coach Vibers on growing their Vibe Score and following
-- Write authentic profile bios that capture personality
-- Moderate content to keep the community safe and real
+━━━ WHO YOU ARE ━━━
+You speak like a sharp, culturally fluent South African — you know Cape Town's club scene, Joburg's energy, Durban's flavour, Pretoria's vibe. You're warm but never fake, real but never harsh. You use local slang naturally when it fits: "lekker", "sharp", "jol", "choon", "hectic", "eish" — but you don't force it. You have opinions. You recommend with conviction. You don't hedge everything with "it depends" — you pick the best option and tell them why.
 
-IMPORTANT RULES:
-- Never make up events, users, or data — only reference what's provided to you
-- Always be helpful even when you can't fulfil a request exactly
-- Keep responses under 3 paragraphs unless the user asks for more detail
-- For event/user suggestions, return structured data so the app can render cards`;
+━━━ THE PLATFORM ━━━
+• Events = "Gruvs". Attendees = "Vibers". Likes = "Vibes". Comments = "Echoes". RSVPs = "Going".
+• Vibe Score measures a Viber's social presence — earned through engagement, hosting, attendance, follows.
+• Gruvs is about real connection, not clout farming.
+• SA context matters: load shedding affects outdoor events, there are cultural differences across Cape Town / Joburg / Durban / Pretoria, adult events (18+/21+) are mainstream, alcohol references are normal.
 
-// ── Log interaction to Supabase ──────────────────────────────────────────────
+━━━ YOUR TOOLS (USE THEM — NEVER GUESS) ━━━
+You have live access to the database via tools. These are the rules:
+• Asked about events? → Call search_events or get_trending. Never invent event names.
+• Asked about people? → Call find_vibers. Never fabricate usernames.
+• Asked what user has coming up? → Call check_my_upcoming.
+• Asked what their crew is doing? → Call get_social_activity.
+• Want more detail on an event? → Call get_event_details.
+• Want to know what people are saying? → Call search_echoes.
+• Asked about score / engagement? → Call get_vibe_breakdown.
+• Chain tools when it gives a better answer. E.g.: search events → get echoes → give recommendation.
+• NEVER say "I cannot access real-time data" — you have tools. Use them every time you need real data.
+
+━━━ RESPONSE RULES ━━━
+• Be specific. Give names, dates, prices — not vague descriptions.
+• Under 3 paragraphs unless the user explicitly wants more.
+• End with a concrete question or call-to-action to keep the conversation alive.
+• Structure responses cleanly — line breaks, short lists, no walls of text.
+• If a user asks for "tonight" and there's nothing in the DB, say so honestly and suggest alternatives.
+• Always respect privacy — don't share personal details of other Vibers beyond what they've made public.
+
+━━━ EMOTIONAL INTELLIGENCE ━━━
+• Read the mood. If someone seems excited about an event, match their energy.
+• If they're frustrated (couldn't get tickets, missed an event), acknowledge it before pivoting.
+• For personal questions (social anxiety, meeting new people), be warm and genuine — not clinical.
+• Never be dismissive about someone's interests, even if they're niche.`;
+
+const ADMIN_SYSTEM_PROMPT = `You are the admin AI for The Gruvs platform, operating under direct command of the platform owner (TEARN).
+
+You have elevated access and can execute tools that modify platform state. Your role:
+• Analyse platform health, user growth, engagement, churn
+• Take administrative actions: feature events, send notifications, moderate users, publish announcements
+• Give honest, data-backed assessments — never sugarcoat metrics
+• Always confirm before destructive actions (mass bans, platform-wide notifications)
+• Think like a growth hacker + community manager hybrid
+
+When the owner asks a question, use tools to get real numbers first, then interpret them. Don't state metrics without pulling the actual data.`;
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  TEMPORAL + LOCATION INTELLIGENCE
+// ═════════════════════════════════════════════════════════════════════════════
+
+function buildTemporalContext() {
+  // SA is UTC+2 (SAST)
+  const now     = new Date();
+  const saNow   = new Date(now.getTime() + 2 * 3600_000);
+  const hour    = saNow.getUTCHours();
+  const dow     = saNow.getUTCDay(); // 0=Sun, 6=Sat
+  const today   = saNow.toISOString().split('T')[0];
+
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const timeOfDay = hour < 6 ? 'late night / early morning'
+    : hour < 12 ? 'morning'
+    : hour < 17 ? 'afternoon'
+    : hour < 21 ? 'evening'
+    : 'night';
+
+  // Days until weekend
+  const daysToFri = (5 - dow + 7) % 7;
+  const daysToSat = (6 - dow + 7) % 7;
+  const isWeekend = dow === 0 || dow === 5 || dow === 6;
+
+  const satDate = new Date(Date.now() + daysToSat * 86_400_000).toISOString().split('T')[0];
+  const sunDate = new Date(Date.now() + (daysToSat + 1) * 86_400_000).toISOString().split('T')[0];
+  const tomDate = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+
+  return `TEMPORAL CONTEXT (SA Time):
+• Current time: ${dayNames[dow]} ${timeOfDay} (${hour}:00 SAST)
+• Today: ${today} | Tomorrow: ${tomDate}
+• This weekend: ${satDate} (Sat) & ${sunDate} (Sun)
+• ${isWeekend ? '🎉 It is the weekend — nightlife is peaking' : `📅 ${daysToFri === 0 ? 'It is Friday — pre-weekend energy' : `${daysToFri} day(s) until Friday`}`}`;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  DEEP CONTEXT BUILDER
+// ═════════════════════════════════════════════════════════════════════════════
+
+async function buildDeepContext(userId) {
+  if (!userId) return buildTemporalContext();
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const week7 = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    const week30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
+
+    const [
+      { data: profile },
+      { data: memory },
+      { data: rsvps },
+      { data: vibes },
+      { data: saves },
+      { data: following },
+      { data: topInteractions },
+      { data: nearbyEvents },
+    ] = await Promise.all([
+      supabase.from('profiles')
+        .select('display_name, username, city, vibe_score, interests, followers_count, following_count, events_posted, current_streak, social_integrity_score')
+        .eq('id', userId).single(),
+      supabase.from('ai_user_memory')
+        .select('summary, preferences, behaviour')
+        .eq('user_id', userId).single(),
+      supabase.from('event_rsvps')
+        .select('status, events(title, category, city)')
+        .eq('user_id', userId)
+        .gte('created_at', week30)
+        .limit(15),
+      supabase.from('event_vibes')
+        .select('events(title, category)')
+        .eq('user_id', userId)
+        .gte('created_at', week30)
+        .limit(20),
+      supabase.from('saved_events')
+        .select('events(title, category)')
+        .eq('user_id', userId)
+        .limit(10),
+      supabase.from('follows')
+        .select('profiles!following_id(username, interests, city)')
+        .eq('follower_id', userId)
+        .limit(20),
+      supabase.from('ai_interactions')
+        .select('feature, input, output')
+        .eq('user_id', userId)
+        .eq('feedback', 1)
+        .order('created_at', { ascending: false })
+        .limit(3),
+      supabase.from('events')
+        .select('title, category, event_date, city, trending_score')
+        .eq('is_cancelled', false)
+        .gte('event_date', today)
+        .ilike('city', `%${profile?.city || 'Cape Town'}%`)
+        .order('trending_score', { ascending: false })
+        .limit(8),
+    ]);
+
+    const lines = [];
+
+    // Profile
+    if (profile) {
+      lines.push(`USER PROFILE: ${profile.display_name || profile.username} | City: ${profile.city || 'unknown'} | Vibe Score: ${profile.vibe_score || 0} | Streak: ${profile.current_streak || 0} days`);
+      lines.push(`Interests: ${(profile.interests || []).join(', ') || 'not set'} | Followers: ${profile.followers_count || 0} | Events Posted: ${profile.events_posted || 0}`);
+    }
+
+    // AI memory
+    if (memory?.summary) {
+      lines.push(`\nLEARNED PREFERENCES: ${memory.summary}`);
+      if (memory.behaviour) {
+        const b = memory.behaviour;
+        lines.push(`Engagement: ${b.engagement_level || '?'} | Churn Risk: ${b.churn_risk || '?'} | Avg RSVP Rate: ${b.avg_rsvp_rate || 0}`);
+      }
+    }
+
+    // Recent RSVPs
+    const rsvpList = (rsvps || []).filter(r => r.events);
+    if (rsvpList.length) {
+      const going = rsvpList.filter(r => r.status === 'going').map(r => r.events.title);
+      lines.push(`\nRECENT RSVPs (going): ${going.slice(0, 5).join(', ') || 'none'}`);
+    }
+
+    // Vibes given
+    const vibeCategories = [...new Set((vibes || []).filter(v => v.events?.category).map(v => v.events.category))];
+    if (vibeCategories.length) {
+      lines.push(`Categories they vibe to: ${vibeCategories.slice(0, 5).join(', ')}`);
+    }
+
+    // Who they follow
+    const followedCities = [...new Set((following || []).filter(f => f.profiles?.city).map(f => f.profiles.city))];
+    const followedInterests = [...new Set((following || []).flatMap(f => f.profiles?.interests || []))].slice(0, 6);
+    if (following?.length) {
+      lines.push(`\nSOCIAL GRAPH: Follows ${following.length} Vibers | Their crews are spread across: ${followedCities.slice(0, 3).join(', ')} | Shared interests in crew: ${followedInterests.join(', ')}`);
+    }
+
+    // What AI responses they liked
+    if (topInteractions?.length) {
+      const liked = topInteractions.map(i => i.feature).join(', ');
+      lines.push(`\nAI HISTORY: Previously enjoyed help with: ${liked}`);
+    }
+
+    // Nearby trending events
+    if (nearbyEvents?.length) {
+      lines.push(`\nTRENDING IN ${profile?.city?.toUpperCase() || 'THEIR CITY'}:`);
+      nearbyEvents.slice(0, 5).forEach(e => {
+        lines.push(`  • ${e.title} (${e.category}, ${e.event_date})`);
+      });
+    }
+
+    // Temporal context
+    lines.push('\n' + buildTemporalContext());
+
+    return lines.join('\n');
+  } catch {
+    return buildTemporalContext();
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  INTERACTION LOGGER
+// ═════════════════════════════════════════════════════════════════════════════
+
 async function _logInteraction({ userId, feature, input, output, model, tokensUsed }) {
   try {
-    await supabase.from('ai_interactions').insert({
+    const { data } = await supabase.from('ai_interactions').insert({
       user_id:     userId || null,
       feature,
       input:       input  ? String(input).slice(0, 2000)  : null,
-      output:      output ? String(output).slice(0, 4000) : null,
+      output:      output ? String(output).slice(0, 5000) : null,
       model,
       tokens_used: tokensUsed || null,
-    });
-  } catch {}
+    }).select('id').single();
+    return data?.id || null;
+  } catch { return null; }
 }
 
-// ── Submit feedback on an interaction ────────────────────────────────────────
-export async function submitFeedback(interactionId, thumbs) {
-  try {
-    await supabase.from('ai_interactions')
-      .update({ feedback: thumbs }) // 1 = thumbs up, -1 = thumbs down
-      .eq('id', interactionId);
-  } catch {}
-}
+// ═════════════════════════════════════════════════════════════════════════════
+//  CORE CALL WRAPPERS
+// ═════════════════════════════════════════════════════════════════════════════
 
-// ── Core call wrapper ─────────────────────────────────────────────────────────
-async function _call({ messages, feature, userId, model = MODEL_HAIKU, systemExtra = '', tools = null }) {
+async function _call({ messages, feature, userId, model = MODEL_HAIKU, systemExtra = '', tools = null, maxTokens = 1024 }) {
   if (!AI_ENABLED) return { text: null, id: null, error: 'AI disabled' };
-
   const client = getClient();
   if (!client) return { text: null, id: null, error: 'No API key configured' };
-
-  if (!_checkRate(userId)) return { text: null, id: null, error: 'Rate limit reached — try again later.' };
+  if (!_checkRate(userId)) return { text: null, id: null, error: 'Rate limit reached — try again in an hour.' };
 
   const systemBlocks = [
-    // Cached static block — counts toward prompt cache savings
     { type: 'text', text: APP_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
   ];
-  if (systemExtra) {
-    systemBlocks.push({ type: 'text', text: systemExtra });
-  }
+  if (systemExtra) systemBlocks.push({ type: 'text', text: systemExtra });
 
   try {
-    const params = {
-      model,
-      max_tokens: 1024,
-      system: systemBlocks,
-      messages,
-    };
+    const params = { model, max_tokens: maxTokens, system: systemBlocks, messages };
     if (tools) params.tools = tools;
-
     const response = await client.messages.create(params);
 
-    const text       = response.content.find(b => b.type === 'text')?.text || '';
-    const toolUse    = response.content.find(b => b.type === 'tool_use');
-    const tokensUsed = response.usage?.input_tokens + response.usage?.output_tokens;
+    const text     = response.content.find(b => b.type === 'text')?.text || '';
+    const toolUse  = response.content.find(b => b.type === 'tool_use');
+    const tokens   = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
 
-    // Log async — don't await to keep UX fast
-    _logInteraction({ userId, feature, input: messages.at(-1)?.content, output: text, model, tokensUsed });
+    _logInteraction({ userId, feature, input: messages.at(-1)?.content, output: text, model, tokensUsed: tokens });
 
-    return { text, toolUse, id: response.id, usage: response.usage };
+    return { text, toolUse, id: response.id, stopReason: response.stop_reason, content: response.content, usage: response.usage };
   } catch (e) {
-    console.warn('Claude API error:', e?.message);
+    console.warn('[claudeService] API error:', e?.message);
     return { text: null, id: null, error: e?.message || 'AI unavailable' };
   }
 }
 
+// Extended thinking — for deep reasoning tasks (no tool_use in same call)
+async function _callWithThinking({ messages, feature, userId, systemExtra = '', thinkingBudget = 8_000 }) {
+  if (!AI_ENABLED) return { text: null, id: null, error: 'AI disabled' };
+  const client = getClient();
+  if (!client) return { text: null, id: null, error: 'No API key configured' };
+  if (!_checkRate(userId)) return { text: null, id: null, error: 'Rate limit reached.' };
+
+  const systemBlocks = [
+    { type: 'text', text: APP_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+  ];
+  if (systemExtra) systemBlocks.push({ type: 'text', text: systemExtra });
+
+  try {
+    const response = await client.messages.create({
+      model:      MODEL_SONNET,
+      max_tokens: thinkingBudget + 4_096,
+      thinking:   { type: 'enabled', budget_tokens: thinkingBudget },
+      system:     systemBlocks,
+      messages,
+    });
+
+    // Extract only text blocks — thinking blocks are internal
+    const text   = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const tokens = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+
+    _logInteraction({ userId, feature, input: messages.at(-1)?.content, output: text, model: MODEL_SONNET, tokensUsed: tokens });
+
+    return { text, id: response.id, usage: response.usage };
+  } catch (e) {
+    // Fall back to standard call if thinking fails (quota/region issue)
+    console.warn('[claudeService] Extended thinking unavailable, falling back:', e?.message);
+    return _call({ messages, feature, userId, model: MODEL_SONNET, systemExtra, maxTokens: 2048 });
+  }
+}
+
+// Agentic multi-turn loop — Claude calls tools until it has enough data to answer
+async function _agenticLoop({ messages, feature, userId, systemExtra = '', tools, maxTurns = 6 }) {
+  if (!AI_ENABLED) return { text: null, id: null, error: 'AI disabled' };
+  const client = getClient();
+  if (!client) return { text: null, id: null, error: 'No API key configured' };
+  if (!_checkRate(userId)) return { text: null, id: null, error: 'Rate limit reached.' };
+
+  const systemBlocks = [
+    { type: 'text', text: APP_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+  ];
+  if (systemExtra) systemBlocks.push({ type: 'text', text: systemExtra });
+
+  let history = [...messages];
+  let turns   = 0;
+  let finalText = '';
+  let firstId   = null;
+
+  try {
+    while (turns < maxTurns) {
+      const response = await client.messages.create({
+        model:      MODEL_SONNET,
+        max_tokens: 2048,
+        system:     systemBlocks,
+        messages:   history,
+        tools,
+      });
+
+      if (!firstId) firstId = response.id;
+
+      const hasToolUse = response.content.some(b => b.type === 'tool_use');
+
+      if (response.stop_reason === 'end_turn' || !hasToolUse) {
+        finalText = response.content.find(b => b.type === 'text')?.text || '';
+        break;
+      }
+
+      // Execute all tool calls in this turn
+      const toolResults = [];
+      for (const block of response.content) {
+        if (block.type === 'tool_use') {
+          const result = await _executeAssistantTool(block.name, block.input, userId);
+          toolResults.push({
+            type:        'tool_result',
+            tool_use_id: block.id,
+            content:     result,
+          });
+        }
+      }
+
+      // Add assistant turn + tool results to history
+      history.push({ role: 'assistant', content: response.content });
+      history.push({ role: 'user',      content: toolResults });
+      turns++;
+    }
+
+    if (!finalText) {
+      // Max turns hit — get final answer without tools
+      const final = await client.messages.create({
+        model:      MODEL_SONNET,
+        max_tokens: 1024,
+        system:     systemBlocks,
+        messages:   history,
+      });
+      finalText = final.content.find(b => b.type === 'text')?.text || '';
+    }
+
+    _logInteraction({ userId, feature, input: messages.at(-1)?.content, output: finalText, model: MODEL_SONNET });
+
+    return { text: finalText, id: firstId };
+  } catch (e) {
+    console.warn('[claudeService] Agentic loop error:', e?.message);
+    // Fall back to non-agentic call
+    return _call({ messages, feature, userId, model: MODEL_SONNET, systemExtra, maxTokens: 1024 });
+  }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
-//  Public API
+//  ASSISTANT TOOLS — 8 live Supabase queries Claude can call
+// ═════════════════════════════════════════════════════════════════════════════
+
+const ASSISTANT_TOOLS = [
+  {
+    name: 'search_events',
+    description: 'Search for real events in the database. Use this EVERY TIME the user asks about events, what is happening, or what to attend. Never guess event names — always call this tool.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query:     { type: 'string',  description: 'Search text (event name, vibe, artist, venue — optional)' },
+        city:      { type: 'string',  description: 'City to search in (optional)' },
+        category:  { type: 'string',  description: 'Category: music, party, nightlife, food, art, sport, festival, workshop (optional)' },
+        date:      { type: 'string',  description: '"today", "tomorrow", "this_weekend", or YYYY-MM-DD (optional)' },
+        free_only: { type: 'boolean', description: 'Only return free events' },
+        limit:     { type: 'number',  description: 'Max results (default 6, max 12)' },
+      },
+    },
+  },
+  {
+    name: 'get_event_details',
+    description: 'Get full details about a specific event — host, description, tickets, age restriction, exact location. Use when a user asks for more info about a specific event.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        event_id: { type: 'string', description: 'Event UUID from a previous search_events result' },
+        title:    { type: 'string', description: 'Event title to search for if no ID is known' },
+      },
+    },
+  },
+  {
+    name: 'find_vibers',
+    description: 'Find real Vibers (users) to follow based on interests, city, or engagement. Use when the user asks who to follow, who else is into X, or who is active in their area.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        interests: { type: 'array',  items: { type: 'string' }, description: 'Filter by shared interests' },
+        city:      { type: 'string', description: 'Filter by city' },
+        min_score: { type: 'number', description: 'Minimum Vibe Score filter' },
+        limit:     { type: 'number', description: 'Max results (default 5)' },
+      },
+    },
+  },
+  {
+    name: 'get_trending',
+    description: 'Get what is currently trending on The Gruvs — top events by vibe count, top Vibers by score, hot categories. Use when asked about trending, most popular, or what everyone is talking about.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        city:     { type: 'string', description: 'Filter trending by city (optional)' },
+        category: { type: 'string', description: 'Filter by category (optional)' },
+      },
+    },
+  },
+  {
+    name: 'check_my_upcoming',
+    description: "Get the events the signed-in user has RSVPed to that are coming up. Use when they ask about their plans, schedule, upcoming events, or what they are going to.",
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'get_social_activity',
+    description: "See what events the people the user follows are attending. Use when they ask what their crew or friends are up to, or where the squad is going.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max results (default 8)' },
+      },
+    },
+  },
+  {
+    name: 'get_vibe_breakdown',
+    description: "Get a detailed breakdown of the user's Vibe Score, engagement stats, and AI-learned behaviour profile. Use when they ask about their score, how to improve, or their engagement stats.",
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'search_echoes',
+    description: 'Get what Vibers are saying (echo comments) about a specific event. Use when the user wants to know the vibe, reviews, or community reaction to an event.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        event_id:    { type: 'string', description: 'Event UUID' },
+        event_title: { type: 'string', description: 'Event title to find echoes for' },
+        limit:       { type: 'number', description: 'Max echoes (default 8)' },
+      },
+    },
+  },
+];
+
+async function _executeAssistantTool(name, input, userId) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    switch (name) {
+
+      case 'search_events': {
+        let q = supabase.from('events')
+          .select('id, title, city, category, event_date, event_time, price_min, going, vibe_count, address, age_restriction')
+          .eq('is_cancelled', false)
+          .gte('event_date', today)
+          .order('trending_score', { ascending: false })
+          .limit(Math.min(input.limit || 6, 12));
+
+        if (input.query)     q = q.or(`title.ilike.%${input.query}%,description.ilike.%${input.query}%`);
+        if (input.city)      q = q.ilike('city', `%${input.city}%`);
+        if (input.category)  q = q.ilike('category', `%${input.category}%`);
+
+        if (input.date === 'today') {
+          q = q.eq('event_date', today);
+        } else if (input.date === 'tomorrow') {
+          q = q.eq('event_date', new Date(Date.now() + 86_400_000).toISOString().split('T')[0]);
+        } else if (input.date === 'this_weekend') {
+          const dow  = new Date().getDay();
+          const dSat = (6 - dow + 7) % 7 || 7;
+          const sat  = new Date(Date.now() + dSat * 86_400_000).toISOString().split('T')[0];
+          const sun  = new Date(Date.now() + (dSat + 1) * 86_400_000).toISOString().split('T')[0];
+          q = q.gte('event_date', sat).lte('event_date', sun);
+        } else if (input.date && input.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          q = q.eq('event_date', input.date);
+        }
+
+        if (input.free_only) q = q.or('price_min.is.null,price_min.eq.0');
+
+        const { data } = await q;
+        if (!data?.length) return 'No events found matching those criteria. Try broadening the search.';
+        return data.map(e =>
+          `📍 ${e.title} | ${e.city} | ${e.category} | ${e.event_date}${e.event_time ? ' @ ' + e.event_time : ''} | ${e.price_min ? 'R' + e.price_min : 'Free'} | ${e.going || 0} going | ${e.vibe_count || 0} vibes${e.age_restriction ? ' | ' + e.age_restriction + '+' : ''} | ID: ${e.id}`
+        ).join('\n');
+      }
+
+      case 'get_event_details': {
+        let q = supabase.from('events')
+          .select('*, profiles!author_id(display_name, username, vibe_score, social_integrity_score)');
+        if (input.event_id)  q = q.eq('id', input.event_id);
+        else if (input.title) q = q.ilike('title', `%${input.title}%`);
+        const { data } = await q.limit(1).maybeSingle();
+        if (!data) return 'Event not found. Try searching with search_events first.';
+        const host = data.profiles;
+        return `EVENT DETAILS: ${data.title}
+Host: ${host?.display_name || host?.username || 'Unknown'} (Score: ${host?.vibe_score || 0}, Integrity: ${host?.social_integrity_score || 0}/100)
+Date: ${data.event_date}${data.event_time ? ' @ ' + data.event_time : ''} | Ends: ${data.end_time || 'TBA'}
+Venue: ${data.venue_name || data.address || 'TBA'} | City: ${data.city || 'TBA'}
+Category: ${data.category} | Price: ${data.price_min != null ? 'R' + data.price_min + (data.price_max ? '–R' + data.price_max : '') : 'Free'}
+Age: ${data.age_restriction ? data.age_restriction + '+' : 'All ages'} | Capacity: ${data.capacity || 'Unlimited'}
+Going: ${data.going || 0} | Vibes: ${data.vibe_count || 0} | Echoes: ${data.echo_count || 0}
+Description: ${data.description || 'No description provided'}
+${data.ticket_url ? 'Tickets: ' + data.ticket_url : 'No ticket link'}
+${data.is_featured ? '⭐ FEATURED EVENT' : ''}`;
+      }
+
+      case 'find_vibers': {
+        let q = supabase.from('profiles')
+          .select('display_name, username, city, vibe_score, interests, followers_count, events_posted')
+          .eq('is_discoverable', true)
+          .order('vibe_score', { ascending: false })
+          .limit(input.limit || 5);
+        if (userId) q = q.neq('id', userId);
+        if (input.city)      q = q.ilike('city', `%${input.city}%`);
+        if (input.min_score) q = q.gte('vibe_score', input.min_score);
+        if (input.interests?.length) {
+          q = q.overlaps('interests', input.interests);
+        }
+        const { data } = await q;
+        if (!data?.length) return 'No Vibers found matching those criteria.';
+        return data.map(v =>
+          `👤 @${v.username} (${v.display_name || v.username}) | ${v.city || 'SA'} | Score: ${v.vibe_score || 0} | ${v.followers_count || 0} followers | ${v.events_posted || 0} events | Interests: ${(v.interests || []).slice(0, 4).join(', ')}`
+        ).join('\n');
+      }
+
+      case 'get_trending': {
+        const [{ data: events }, { data: vibers }, { data: cats }] = await Promise.all([
+          supabase.from('events')
+            .select('title, city, category, vibe_count, going, trending_score, event_date')
+            .eq('is_cancelled', false)
+            .gte('event_date', today)
+            .order('trending_score', { ascending: false })
+            .limit(6),
+          supabase.from('profiles')
+            .select('display_name, username, vibe_score, city')
+            .order('vibe_score', { ascending: false })
+            .limit(5),
+          supabase.from('events')
+            .select('category')
+            .eq('is_cancelled', false)
+            .gte('event_date', today)
+            .limit(100),
+        ]);
+
+        // Count category frequency
+        const catCount = {};
+        (cats || []).forEach(e => { if (e.category) catCount[e.category] = (catCount[e.category] || 0) + 1; });
+        const topCats = Object.entries(catCount).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([c]) => c);
+
+        return `🔥 TOP TRENDING EVENTS:
+${(events || []).map((e, i) => `${i + 1}. ${e.title} (${e.city}) — ${e.vibe_count || 0} vibes, ${e.going || 0} going, ${e.event_date}`).join('\n')}
+
+⚡ TOP VIBERS:
+${(vibers || []).map((v, i) => `${i + 1}. @${v.username} (${v.city || 'SA'}) — ${v.vibe_score || 0} score`).join('\n')}
+
+📂 HOTTEST CATEGORIES: ${topCats.join(', ')}`;
+      }
+
+      case 'check_my_upcoming': {
+        if (!userId) return 'User is not signed in.';
+        const { data } = await supabase.from('event_rsvps')
+          .select('status, events(id, title, city, event_date, event_time, address, category)')
+          .eq('user_id', userId)
+          .in('status', ['going', 'interested'])
+          .limit(10);
+        const valid = (data || []).filter(r => r.events && r.events.event_date >= today);
+        if (!valid.length) return 'No upcoming RSVPs found. Browse events and tap Going!';
+        return `YOUR UPCOMING PLANS:\n${valid.map(r => `${r.status === 'going' ? '✅' : '👀'} ${r.events.title} | ${r.events.city} | ${r.events.event_date}${r.events.event_time ? ' @ ' + r.events.event_time : ''} | ${r.events.category}`).join('\n')}`;
+      }
+
+      case 'get_social_activity': {
+        if (!userId) return 'User is not signed in.';
+        const { data: following } = await supabase.from('follows')
+          .select('following_id')
+          .eq('follower_id', userId)
+          .limit(100);
+        if (!following?.length) return 'You are not following anyone yet. Follow some Vibers to see their activity!';
+        const ids = following.map(f => f.following_id);
+        const { data: rsvps } = await supabase.from('event_rsvps')
+          .select('user_id, status, profiles(username, display_name), events(title, city, event_date, category)')
+          .in('user_id', ids)
+          .eq('status', 'going')
+          .gte('events.event_date', today)
+          .limit(input.limit || 10);
+        const valid = (rsvps || []).filter(r => r.events && r.profiles);
+        if (!valid.length) return 'Nobody in your crew has RSVPed to upcoming events yet.';
+        return `YOUR CREW IS GOING TO:\n${valid.map(r => `🎉 @${r.profiles.username || r.profiles.display_name} → ${r.events.title} (${r.events.city}, ${r.events.event_date})`).join('\n')}`;
+      }
+
+      case 'get_vibe_breakdown': {
+        if (!userId) return 'User is not signed in.';
+        const [{ data: p }, { data: mem }, { data: rsvpCount }, { data: vibeCount }] = await Promise.all([
+          supabase.from('profiles').select('vibe_score, followers_count, following_count, events_posted, social_integrity_score, current_streak, city').eq('id', userId).single(),
+          supabase.from('ai_user_memory').select('behaviour, preferences').eq('user_id', userId).single(),
+          supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+          supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        ]);
+        return `VIBE SCORE BREAKDOWN:
+Total Score: ${p?.vibe_score || 0}
+Followers: ${p?.followers_count || 0} | Following: ${p?.following_count || 0}
+Events Posted: ${p?.events_posted || 0}
+Total RSVPs ever: ${rsvpCount?.count || 0} | Total Vibes given: ${vibeCount?.count || 0}
+Current Streak: ${p?.current_streak || 0} days
+Social Integrity: ${p?.social_integrity_score || 0}/100
+Engagement Level: ${mem?.behaviour?.engagement_level || 'not assessed'}
+Churn Risk: ${mem?.behaviour?.churn_risk || 'not assessed'}
+Preferred Categories: ${JSON.stringify(mem?.preferences?.categories || [])}
+Time Preference: ${mem?.preferences?.time_preference || 'unknown'}
+Price Sensitivity: ${mem?.preferences?.price_sensitivity || 'unknown'}`;
+      }
+
+      case 'search_echoes': {
+        let q = supabase.from('echoes').select('body, created_at, profiles(username, display_name), event_id');
+        if (input.event_id)    q = q.eq('event_id', input.event_id);
+        else if (input.event_title) {
+          const { data: ev } = await supabase.from('events').select('id').ilike('title', `%${input.event_title}%`).limit(1).single();
+          if (ev?.id) q = q.eq('event_id', ev.id);
+        }
+        const { data } = await q.order('created_at', { ascending: false }).limit(input.limit || 8);
+        if (!data?.length) return 'No echoes found for this event. Be the first to drop one!';
+        return `WHAT VIBERS ARE SAYING:\n${data.map(e => `💬 @${e.profiles?.username || 'Viber'}: "${e.body}"`).join('\n')}`;
+      }
+
+      default:
+        return `Tool "${name}" is not implemented.`;
+    }
+  } catch (e) {
+    return `Tool error: ${e.message}`;
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  PUBLIC API
 // ═════════════════════════════════════════════════════════════════════════════
 
 /**
- * Open-ended chat — used by the AI Assistant modal.
- * Returns { text, id, error }
+ * Agentic chat — can chain up to 6 live database queries before answering.
+ * Extended thinking enabled for conversations > 3 turns.
  */
 export async function chat(messages, { feature = AIFeature.ASSISTANT, userId, systemExtra = '' } = {}) {
-  return _call({ messages, feature, userId, model: MODEL_SONNET, systemExtra });
+  const context = await buildDeepContext(userId);
+  const enrichedExtra = [systemExtra, context].filter(Boolean).join('\n\n');
+
+  // Use extended thinking for complex / long conversations
+  const isComplex = messages.length > 6 || (messages.at(-1)?.content?.length || 0) > 200;
+  if (isComplex && !messages.some(m => Array.isArray(m.content))) {
+    return _callWithThinking({
+      messages,
+      feature,
+      userId,
+      systemExtra: enrichedExtra,
+      thinkingBudget: THINKING_BUDGET_CHAT,
+    });
+  }
+
+  return _agenticLoop({
+    messages,
+    feature,
+    userId,
+    systemExtra: enrichedExtra,
+    tools: ASSISTANT_TOOLS,
+  });
 }
 
 /**
- * Generate 3 bio options from user profile data.
- * Returns { bios: string[], id, error }
+ * Generate bios with self-critique loop.
+ * Step 1: Haiku generates 5 candidates.
+ * Step 2: Sonnet reviews all 5 and picks the best 3, polishes them.
  */
 export async function generateBio({ interests = [], career = '', location = '', vibeScore = 0, userId } = {}) {
-  const prompt = `Generate 3 distinct bio options for a Gruvs Viber profile.
+  const context = await buildDeepContext(userId);
+
+  // Step 1: Generate candidates
+  const genPrompt = `Generate 5 distinct, authentic bio options for a Gruvs Viber.
 
 USER DATA:
 - Interests: ${interests.join(', ') || 'not specified'}
@@ -167,273 +757,675 @@ USER DATA:
 - Location: ${location || 'South Africa'}
 - Vibe Score: ${vibeScore}
 
-Return ONLY a JSON object in this exact format:
+Write bios that feel real — like something this person would actually say, not corporate copy.
+SA slang welcome if it fits the interests/vibe.
+Vary the lengths: short punchy, medium personality, long full story.
+
+${context}
+
+Return ONLY a JSON object:
 {
-  "bios": [
-    "Short bio (max 60 chars) — punchy and memorable",
-    "Medium bio (max 120 chars) — personality + what they're about",
-    "Long bio (max 200 chars) — full story with vibe and what they're looking for"
+  "candidates": [
+    "Bio option 1",
+    "Bio option 2",
+    "Bio option 3",
+    "Bio option 4",
+    "Bio option 5"
   ]
 }`;
 
-  const result = await _call({
-    messages: [{ role: 'user', content: prompt }],
-    feature: AIFeature.PROFILE_BUILDER,
+  const gen = await _call({
+    messages:  [{ role: 'user', content: genPrompt }],
+    feature:   AIFeature.PROFILE_BUILDER,
     userId,
-    model: MODEL_HAIKU,
+    model:     MODEL_HAIKU,
+    maxTokens: 800,
+  });
+
+  let candidates = [];
+  try { candidates = JSON.parse(gen.text || '{}').candidates || []; } catch {}
+  if (!candidates.length) return { bios: [], id: gen.id, error: 'Generation failed' };
+
+  // Step 2: Critique + pick best 3 with Sonnet
+  const critiquePrompt = `You are reviewing bio options for a Gruvs Viber. Critique these 5 candidates and select the 3 best, lightly polishing each for maximum impact. Consider: authenticity, memorability, personality, SA cultural fit.
+
+CANDIDATES:
+${candidates.map((b, i) => `${i + 1}. "${b}"`).join('\n')}
+
+USER CONTEXT: interests=[${interests.join(', ')}], career=${career}, location=${location}
+
+Return ONLY a JSON object:
+{
+  "bios": [
+    "Best bio (most punchy, under 80 chars)",
+    "Second bio (personality-forward, 80-150 chars)",
+    "Third bio (full story, 150-220 chars)"
+  ],
+  "reasoning": "One sentence on what made these the strongest choices"
+}`;
+
+  const critique = await _callWithThinking({
+    messages:       [{ role: 'user', content: critiquePrompt }],
+    feature:        AIFeature.PROFILE_BUILDER,
+    userId,
+    thinkingBudget: 3_000,
   });
 
   try {
-    const parsed = JSON.parse(result.text || '{}');
-    return { bios: parsed.bios || [], id: result.id, error: result.error };
+    const parsed = JSON.parse(critique.text || '{}');
+    return { bios: parsed.bios || [], reasoning: parsed.reasoning || '', id: critique.id };
   } catch {
-    return { bios: [], id: result.id, error: 'Could not parse bio options' };
+    return { bios: candidates.slice(0, 3), id: gen.id };
   }
 }
 
 /**
- * Parse a rough event description into structured event fields.
- * Returns { event: {...}, id, error }
+ * Parse rough description into structured event fields.
+ * Trend-aware — knows what categories are hot right now.
  */
 export async function fillEvent({ roughDescription = '', city = '', userId } = {}) {
+  // Pull trending categories for smart suggestions
+  let trendingCats = '';
+  try {
+    const { data } = await supabase.from('events')
+      .select('category')
+      .eq('is_cancelled', false)
+      .gte('event_date', new Date().toISOString().split('T')[0])
+      .limit(50);
+    const counts = {};
+    (data || []).forEach(e => { if (e.category) counts[e.category] = (counts[e.category] || 0) + 1; });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c);
+    trendingCats = sorted.join(', ');
+  } catch {}
+
   const prompt = `Parse this rough event description into structured fields for a South African event platform.
 
 DESCRIPTION: "${roughDescription}"
 CITY HINT: "${city || 'not specified'}"
+TRENDING CATEGORIES RIGHT NOW: ${trendingCats || 'party, music, nightlife, art, food'}
+TIME NOW: ${buildTemporalContext()}
+
+Extract every detail you can infer. Be specific with the title — make it compelling and marketable.
+For city: normalise to proper South African city names (Johannesburg, Cape Town, Durban, Pretoria, etc.)
+For category: pick the most fitting from the trending list if it applies, otherwise choose the most accurate.
 
 Return ONLY a JSON object:
 {
-  "title": "Event title (max 60 chars, compelling)",
-  "description": "Full description (max 300 chars, exciting but factual)",
-  "venue_name": "Venue name if mentioned, else null",
-  "city": "City name",
-  "category": "One of: music, party, nightlife, food, art, sport, fitness, wellness, tech, business, family, comedy, film, festival, market, workshop",
-  "event_time": "HH:MM (24h format) if mentioned, else null",
-  "price_min": number or null,
-  "price_max": number or null,
-  "age_restriction": 0 or 16 or 18 or 21,
-  "tags": ["tag1", "tag2", "tag3"]
+  "title":           "Event title (max 60 chars, compelling — not generic)",
+  "description":     "Full event description (max 300 chars, exciting but factual, SA vibe)",
+  "venue_name":      "Venue name if mentioned, else null",
+  "address":         "Address if mentioned, else null",
+  "city":            "City (proper SA city name)",
+  "category":        "Best matching category",
+  "event_time":      "HH:MM in 24h format if mentioned, else null",
+  "price_min":       "Number or null",
+  "price_max":       "Number or null",
+  "age_restriction": "0 or 16 or 18 or 21 — infer from context if not stated",
+  "tags":            ["tag1", "tag2", "tag3", "tag4"]
 }`;
 
   const result = await _call({
-    messages: [{ role: 'user', content: prompt }],
-    feature: AIFeature.EVENT_CREATOR,
+    messages:  [{ role: 'user', content: prompt }],
+    feature:   AIFeature.EVENT_CREATOR,
     userId,
-    model: MODEL_HAIKU,
+    model:     MODEL_HAIKU,
+    maxTokens: 600,
   });
 
   try {
-    const parsed = JSON.parse(result.text || '{}');
-    return { event: parsed, id: result.id, error: result.error };
+    return { ...JSON.parse(result.text || '{}'), id: result.id };
   } catch {
-    return { event: {}, id: result.id, error: 'Could not parse event data' };
+    return { id: result.id, error: 'Could not parse event data' };
   }
 }
 
 /**
- * Generate personalised vibe coaching tips.
- * Returns { tips: string[], insight: string, id, error }
+ * Vibe coach with extended thinking + 30-day activity history.
+ * The most intelligence-intensive call in the app.
  */
 export async function vibeCoach({ profile = {}, recentActivity = {}, userId } = {}) {
-  const prompt = `You are a vibe growth coach for The Gruvs. Give this Viber personalised, actionable tips.
+  const context = await buildDeepContext(userId);
 
-PROFILE:
+  // Pull 30-day detailed history
+  let historyBlock = '';
+  if (userId) {
+    try {
+      const month30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
+      const [{ data: rsvps }, { data: vibes }, { data: echoes }, { data: checkins }, { data: peers }] = await Promise.all([
+        supabase.from('event_rsvps').select('status, created_at').eq('user_id', userId).gte('created_at', month30),
+        supabase.from('event_vibes').select('id').eq('user_id', userId).gte('created_at', month30),
+        supabase.from('echoes').select('id').eq('user_id', userId).gte('created_at', month30),
+        supabase.from('event_checkins').select('id').eq('user_id', userId).gte('created_at', month30),
+        // Compare to similar-score Vibers
+        supabase.from('profiles')
+          .select('vibe_score, followers_count')
+          .gte('vibe_score', (profile.vibe_score || 0) - 50)
+          .lte('vibe_score', (profile.vibe_score || 0) + 100)
+          .limit(20),
+      ]);
+      const peerAvgFollowers = peers?.length
+        ? Math.round(peers.reduce((s, p) => s + (p.followers_count || 0), 0) / peers.length)
+        : 0;
+      historyBlock = `
+30-DAY DETAILED ACTIVITY:
+• RSVPs total: ${rsvps?.length || 0} (going: ${rsvps?.filter(r => r.status === 'going').length || 0})
+• Vibes given: ${vibes?.length || 0}
+• Echoes written: ${echoes?.length || 0}
+• Check-ins: ${checkins?.length || 0}
+
+PEER BENCHMARK (similar Vibe Score range):
+• Average followers in peer group: ${peerAvgFollowers}
+• This user's followers: ${profile.followers_count || 0} (${(profile.followers_count || 0) >= peerAvgFollowers ? 'above' : 'below'} peer average)`;
+    } catch {}
+  }
+
+  const prompt = `You are an elite growth coach for The Gruvs platform. Analyse this Viber's full profile and activity, identify exactly what's holding them back and what's working, and give them a hyper-personalised coaching plan.
+
+VIBER PROFILE:
 - Vibe Score: ${profile.vibe_score || 0}
-- Followers: ${profile.followers_count || 0}
-- Following: ${profile.following_count || 0}
+- Followers: ${profile.followers_count || 0} | Following: ${profile.following_count || 0}
 - Events Posted: ${profile.events_posted || 0}
 - Current Streak: ${profile.current_streak || 0} days
-- Social Integrity Score: ${profile.social_integrity_score || 0}
+- Social Integrity: ${profile.social_integrity_score || 0}/100
 - Interests: ${(profile.interests || []).join(', ') || 'not set'}
 
 RECENT 7-DAY ACTIVITY:
-- RSVPs given: ${recentActivity.rsvps || 0}
+- RSVPs: ${recentActivity.rsvps || 0}
 - Vibes given: ${recentActivity.vibes || 0}
 - Echoes written: ${recentActivity.echoes || 0}
-- Events attended: ${recentActivity.checkins || 0}
+- Events attended (check-ins): ${recentActivity.checkins || 0}
+${historyBlock}
+
+${context}
+
+COACHING REQUIREMENTS:
+1. Be specific — reference their actual numbers, not generic advice
+2. Identify the single biggest lever they can pull right now
+3. Give time-sensitive tips based on the current day/time
+4. Reference what's trending on the platform to give relevant advice
+5. Be warm but honest — if their numbers are low, say it kindly but clearly
 
 Return ONLY a JSON object:
 {
-  "insight": "One sentence explaining their current vibe status (warm, encouraging)",
+  "score_analysis": "2-sentence diagnosis of where their score stands and why",
+  "biggest_lever":  "The single most impactful action they should take TODAY (be specific)",
   "tips": [
-    "Specific action tip 1 — reference their actual data",
-    "Specific action tip 2 — reference their actual data",
-    "Specific action tip 3 — reference their actual data"
+    "Tip 1 — reference their actual data",
+    "Tip 2 — reference their actual data",
+    "Tip 3 — time-sensitive based on current day/weekend proximity"
   ],
-  "next_milestone": "What they're working towards (e.g. 'Elite Viber at 500 score')"
+  "next_milestone": "Specific next target (e.g. 'Hit 400 Vibe Score by attending 2 events this weekend')",
+  "peer_insight":   "One sentence comparing them to similar Vibers (encouraging but honest)"
 }`;
 
-  const result = await _call({
-    messages: [{ role: 'user', content: prompt }],
-    feature: AIFeature.VIBE_COACH,
+  const result = await _callWithThinking({
+    messages:       [{ role: 'user', content: prompt }],
+    feature:        AIFeature.VIBE_COACH,
     userId,
-    model: MODEL_SONNET,
+    thinkingBudget: THINKING_BUDGET_COACH,
   });
 
   try {
-    const parsed = JSON.parse(result.text || '{}');
-    return { ...parsed, id: result.id, error: result.error };
+    return { ...JSON.parse(result.text || '{}'), id: result.id };
   } catch {
-    return { tips: [], insight: '', next_milestone: '', id: result.id, error: 'Could not parse coaching tips' };
+    return { tips: [], insight: '', next_milestone: '', id: result.id, error: 'Could not parse coaching response' };
   }
 }
 
 /**
- * Moderate a piece of content.
- * Returns { verdict: 'approved'|'flagged'|'removed', reason: string, id, error }
+ * Multi-layer content moderation.
+ * Haiku does a fast first pass. If verdict is borderline ('flagged'), Sonnet does
+ * a deep review with full context reasoning before final verdict.
  */
 export async function moderateContent({ text = '', type = 'event', userId } = {}) {
-  const prompt = `Moderate this ${type} content for The Gruvs, a South African social event platform.
+  const fastPrompt = `Moderate this ${type} content for a South African event platform.
 
-CONTENT: "${text}"
+CONTENT: "${text.slice(0, 1000)}"
 
-Rules — flag or remove if content contains:
-- Hate speech, racism, discrimination, slurs
-- Explicit sexual content (not suggestive, but explicit)
-- Violence threats or incitement
-- Spam, fake promotions, scams
-- Personal contact details in event descriptions (phone/email/address)
+SA CONTEXT: Party/nightlife/adult event language, alcohol references, club culture, slang — all NORMAL.
+Flag or remove ONLY: hate speech, slurs, explicit sexual content, violence threats, scams, spam, personal contact details in event descriptions.
 
-South African context: Party content, adult events (18+/21+), alcohol references, club/nightlife language is all NORMAL and fine.
+Return ONLY valid JSON:
+{"verdict":"approved"|"flagged"|"removed","confidence":0.0-1.0,"reason":"one sentence","borderline":true|false}`;
 
-Return ONLY a JSON object:
-{
-  "verdict": "approved" | "flagged" | "removed",
-  "reason": "One sentence explaining the decision (or 'Content is appropriate' for approved)"
-}`;
-
-  const result = await _call({
-    messages: [{ role: 'user', content: prompt }],
-    feature: AIFeature.MODERATION,
-    userId,
-    model: MODEL_HAIKU,
+  const fast = await _call({
+    messages:  [{ role: 'user', content: fastPrompt }],
+    feature:   AIFeature.MODERATION,
+    userId:    null,
+    model:     MODEL_HAIKU,
+    maxTokens: 150,
   });
 
-  try {
-    const parsed = JSON.parse(result.text || '{}');
-    return { verdict: parsed.verdict || 'approved', reason: parsed.reason || '', id: result.id, error: result.error };
-  } catch {
-    return { verdict: 'approved', reason: '', id: result.id, error: 'Moderation parse error' };
+  let fastResult = { verdict: 'approved', confidence: 1.0, borderline: false };
+  try { fastResult = JSON.parse(fast.text || '{}'); } catch {}
+
+  // If borderline or low confidence, escalate to Sonnet with deeper analysis
+  if (fastResult.borderline || (fastResult.confidence || 1) < 0.75) {
+    const deepPrompt = `You are a senior content moderator for The Gruvs, a South African social event platform. A piece of content has been flagged as borderline by the first moderation pass. Perform a thorough analysis.
+
+CONTENT TYPE: ${type}
+CONTENT: "${text.slice(0, 1500)}"
+FAST PASS RESULT: ${fastResult.verdict} (confidence: ${fastResult.confidence}, reason: ${fastResult.reason})
+
+SOUTH AFRICAN CONTEXT:
+• This is a nightlife/events platform — adult themes are normal and expected
+• "18+ event", "alcohol served", "after-party", "explicit music" = NORMAL
+• Genuine hate speech is rare but must be caught
+• Scam red flags: external payment links, "whatsapp only", too-good prices
+
+Analyse carefully considering SA cultural context. Give a definitive final verdict.
+
+Return ONLY valid JSON:
+{
+  "verdict": "approved"|"flagged"|"removed",
+  "reason": "Specific explanation referencing the actual content",
+  "escalate_to_human": true|false
+}`;
+
+    const deep = await _callWithThinking({
+      messages:       [{ role: 'user', content: deepPrompt }],
+      feature:        AIFeature.MODERATION,
+      userId:         null,
+      thinkingBudget: 3_000,
+    });
+
+    try {
+      const deepResult = JSON.parse(deep.text || '{}');
+      return { verdict: deepResult.verdict || fastResult.verdict, reason: deepResult.reason || fastResult.reason, escalateToHuman: deepResult.escalate_to_human || false, id: deep.id };
+    } catch {}
   }
+
+  return {
+    verdict: fastResult.verdict || 'approved',
+    reason:  fastResult.reason  || '',
+    id:      fast.id,
+  };
 }
 
 /**
- * Generate a smart re-engagement notification for a user.
- * Returns { title: string, body: string, id, error }
+ * Smart re-engagement notification — personalized with full memory context.
  */
-export async function smartNotification({ userName = 'Viber', topEvent = null, userId } = {}) {
-  const eventHint = topEvent
-    ? `Top recommended event: "${topEvent.title}" on ${topEvent.event_date} in ${topEvent.city}`
-    : 'No specific event — general re-engagement';
+export async function smartNotification({ userName = 'Viber', topEvent = null, userId, city = '' } = {}) {
+  let memSummary = '';
+  let recentInterests = '';
+  if (userId) {
+    try {
+      const [{ data: mem }, { data: recentVibes }] = await Promise.all([
+        supabase.from('ai_user_memory').select('summary, preferences').eq('user_id', userId).single(),
+        supabase.from('event_vibes').select('events(category)').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
+      ]);
+      memSummary = mem?.summary || '';
+      recentInterests = [...new Set((recentVibes || []).filter(v => v.events?.category).map(v => v.events.category))].join(', ');
+    } catch {}
+  }
 
-  const prompt = `Write a short, punchy re-engagement push notification for a Gruvs Viber who hasn't opened the app in 24+ hours.
+  const temporal = buildTemporalContext();
+
+  const prompt = `Write a hyper-personalised push notification to re-engage a Gruvs Viber who hasn't opened the app in 24+ hours.
 
 USER: ${userName}
-${eventHint}
+${topEvent ? `Top recommended event: "${topEvent.title}" on ${topEvent.event_date} in ${topEvent.city || city}` : `City: ${city || 'South Africa'}`}
+LEARNED PREFERENCES: ${memSummary || 'general nightlife fan'}
+RECENTLY VIBED: ${recentInterests || 'various categories'}
+${temporal}
 
-The notification should feel personal and exciting — make them want to open the app NOW.
+Rules:
+• Make it feel personal, not mass-broadcast
+• Create FOMO based on what's actually happening
+• Match energy to time of day (morning = anticipatory, evening = urgent, weekend = electric)
+• Under 50 chars for title, under 100 for body
 
-Return ONLY a JSON object:
-{
-  "title": "Notification title (max 50 chars, with emoji)",
-  "body": "Notification body (max 100 chars, action-oriented)"
-}`;
+Return ONLY valid JSON:
+{"title":"title with emoji","body":"action-oriented body text"}`;
 
   const result = await _call({
-    messages: [{ role: 'user', content: prompt }],
-    feature: AIFeature.NOTIFICATION,
-    userId,
-    model: MODEL_HAIKU,
+    messages:  [{ role: 'user', content: prompt }],
+    feature:   AIFeature.NOTIFICATION,
+    userId:    null,
+    model:     MODEL_HAIKU,
+    maxTokens: 200,
   });
 
   try {
     const parsed = JSON.parse(result.text || '{}');
-    return { title: parsed.title || 'Your Gruvs are waiting 🔥', body: parsed.body || 'See what\'s happening near you tonight.', id: result.id };
+    return {
+      title: parsed.title || '🔥 Your Gruvs are waiting!',
+      body:  parsed.body  || 'Something hot is happening near you tonight.',
+      id:    result.id,
+    };
   } catch {
-    return { title: 'Your Gruvs are waiting 🔥', body: 'See what\'s happening near you tonight.', id: result.id };
+    return { title: '🔥 Your Gruvs are waiting!', body: 'Something hot is happening near you tonight.', id: result.id };
   }
 }
 
-/**
- * Admin tool-use call — owner can issue commands via natural language.
- * Returns { text, toolUse, id, error }
- */
+// ═════════════════════════════════════════════════════════════════════════════
+//  ADMIN CHAT
+// ═════════════════════════════════════════════════════════════════════════════
+
 export async function adminChat(messages, { userId, systemExtra = '' } = {}) {
-  const adminTools = [
+  const ADMIN_TOOLS = [
     {
       name: 'query_stats',
-      description: 'Query app statistics from the database (user counts, event counts, engagement metrics)',
+      description: 'Run analytics queries. Always use this before stating any platform metric.',
       input_schema: {
         type: 'object',
         properties: {
-          metric: { type: 'string', description: 'What to query: users_today, active_users, top_events, churn_risk, new_signups' },
-          period: { type: 'string', description: 'Time period: today, week, month' },
+          metric: { type: 'string', description: 'users_today, new_signups, active_users, top_events, churn_risk, event_count, revenue_estimate, engagement_rate' },
+          period: { type: 'string', description: 'today, week, month, all_time' },
+          city:   { type: 'string', description: 'Filter by city (optional)' },
         },
         required: ['metric'],
       },
     },
     {
       name: 'send_notification',
-      description: 'Send a push notification to a segment of users',
+      description: 'Send push notification to a user segment. Confirm count before sending.',
       input_schema: {
         type: 'object',
         properties: {
-          segment: { type: 'string', description: 'Who to notify: all, city:CityName, inactive_24h, top_vibers' },
-          title:   { type: 'string', description: 'Notification title' },
-          body:    { type: 'string', description: 'Notification body' },
+          segment: { type: 'string', description: 'all, city:CityName, inactive_24h, inactive_7d, top_vibers, new_signups_7d' },
+          title:   { type: 'string' },
+          body:    { type: 'string' },
+          dry_run: { type: 'boolean', description: 'If true, return count without sending' },
         },
         required: ['segment', 'title', 'body'],
       },
     },
     {
       name: 'feature_event',
-      description: 'Mark an event as featured so it appears at the top of the feed',
+      description: 'Feature or unfeature an event. Search for event first if no ID.',
       input_schema: {
         type: 'object',
         properties: {
-          event_id: { type: 'string', description: 'UUID of the event to feature' },
-          featured:  { type: 'boolean', description: 'true to feature, false to unfeature' },
+          event_id: { type: 'string' },
+          title:    { type: 'string', description: 'Search for event by title if no ID' },
+          featured: { type: 'boolean' },
         },
-        required: ['event_id', 'featured'],
+        required: ['featured'],
       },
     },
     {
       name: 'moderate_user',
-      description: 'Flag or suspend a user account for review',
+      description: 'Flag, suspend, or unsuspend a user. Requires username.',
       input_schema: {
         type: 'object',
         properties: {
-          username: { type: 'string', description: 'Username to moderate' },
-          action:   { type: 'string', description: 'flag or suspend' },
-          reason:   { type: 'string', description: 'Reason for moderation action' },
+          username: { type: 'string' },
+          action:   { type: 'string', description: 'flag, suspend, unsuspend' },
+          reason:   { type: 'string' },
         },
         required: ['username', 'action'],
       },
     },
     {
       name: 'generate_announcement',
-      description: 'Draft and publish an app update announcement to the Upgrades section',
+      description: 'Draft and publish an app update announcement to the Upgrades section.',
       input_schema: {
         type: 'object',
         properties: {
-          title:       { type: 'string', description: 'Announcement title' },
-          description: { type: 'string', description: 'Full announcement text' },
-          type:        { type: 'string', description: 'feature, fix, improvement, or security' },
-          version:     { type: 'string', description: 'Version string like v1.2.3' },
+          title:       { type: 'string' },
+          description: { type: 'string' },
+          type:        { type: 'string', description: 'feature, fix, improvement, security' },
+          version:     { type: 'string' },
         },
         required: ['title', 'description', 'type'],
       },
     },
+    {
+      name: 'search_events',
+      description: 'Search events — useful for finding event IDs to feature or moderate.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          query:    { type: 'string' },
+          city:     { type: 'string' },
+          category: { type: 'string' },
+          limit:    { type: 'number' },
+        },
+      },
+    },
+    {
+      name: 'find_vibers',
+      description: 'Find users — useful before moderating or targeting segments.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          city:      { type: 'string' },
+          min_score: { type: 'number' },
+          limit:     { type: 'number' },
+        },
+      },
+    },
   ];
 
-  return _call({
-    messages,
-    feature: AIFeature.ADMIN,
-    userId,
-    model: MODEL_SONNET,
-    systemExtra: `You are the admin AI for The Gruvs. You have access to tools to manage the platform. The owner is asking you for help. Use tools when you need real data — don't make up numbers. Always confirm before taking destructive actions (suspending users, mass notifications).\n\n${systemExtra}`,
-    tools: adminTools,
-  });
+  const systemBlocks = [
+    { type: 'text', text: ADMIN_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: buildTemporalContext() },
+  ];
+  if (systemExtra) systemBlocks.push({ type: 'text', text: systemExtra });
+
+  const client = getClient();
+  if (!client) return { text: 'No API key configured', id: null };
+
+  let history = [...messages];
+  const MAX_TURNS = 5;
+  let turns = 0;
+  let finalText = '';
+  let finalId = null;
+  let finalToolUse = null;
+
+  try {
+    while (turns < MAX_TURNS) {
+      const response = await client.messages.create({
+        model:      MODEL_SONNET,
+        max_tokens: 3000,
+        system:     systemBlocks,
+        messages:   history,
+        tools:      ADMIN_TOOLS,
+      });
+
+      if (!finalId) finalId = response.id;
+      const hasToolUse = response.content.some(b => b.type === 'tool_use');
+
+      if (response.stop_reason === 'end_turn' || !hasToolUse) {
+        finalText    = response.content.find(b => b.type === 'text')?.text || '';
+        finalToolUse = response.content.find(b => b.type === 'tool_use');
+        break;
+      }
+
+      // If tool_use and no further loop (caller will handle) — return it
+      finalToolUse = response.content.find(b => b.type === 'tool_use');
+      if (finalToolUse && turns === 0 && response.stop_reason === 'tool_use') {
+        // Return to caller for execution (AdminAIScreen.executeTool pattern)
+        return { text: '', toolUse: finalToolUse, id: finalId };
+      }
+
+      // Execute tool internally and continue
+      const toolResults = [];
+      for (const block of response.content) {
+        if (block.type === 'tool_use') {
+          const result = await _executeAdminTool(block.name, block.input);
+          toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: result });
+        }
+      }
+
+      history.push({ role: 'assistant', content: response.content });
+      history.push({ role: 'user',      content: toolResults });
+      turns++;
+    }
+
+    _logInteraction({ userId, feature: AIFeature.ADMIN, input: messages.at(-1)?.content, output: finalText, model: MODEL_SONNET });
+    return { text: finalText, toolUse: finalToolUse, id: finalId };
+  } catch (e) {
+    return { text: null, id: null, error: e?.message };
+  }
 }
 
-export default { chat, generateBio, fillEvent, vibeCoach, moderateContent, smartNotification, adminChat, submitFeedback, AIFeature };
+async function _executeAdminTool(name, input) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    switch (name) {
+      case 'query_stats': {
+        const period = input.period || 'today';
+        const since  = period === 'all_time' ? '2020-01-01T00:00:00Z'
+          : period === 'month' ? new Date(Date.now() - 30 * 86_400_000).toISOString()
+          : period === 'week'  ? new Date(Date.now() -  7 * 86_400_000).toISOString()
+          :                      new Date(Date.now() -     86_400_000).toISOString();
+
+        const metric = input.metric;
+        if (metric === 'users_today' || metric === 'new_signups') {
+          const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', since);
+          return `New signups (${period}): ${count || 0}`;
+        }
+        if (metric === 'active_users') {
+          const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('last_seen', since);
+          return `Active users (${period}): ${count || 0}`;
+        }
+        if (metric === 'event_count') {
+          const { count } = await supabase.from('events').select('id', { count: 'exact', head: true }).gte('created_at', since);
+          return `Events created (${period}): ${count || 0}`;
+        }
+        if (metric === 'top_events') {
+          const { data } = await supabase.from('events').select('title, vibe_count, going, city, is_featured').order('trending_score', { ascending: false }).limit(8);
+          return `Top events:\n${(data || []).map((e, i) => `${i + 1}. ${e.title} (${e.city}) — ${e.vibe_count || 0} vibes, ${e.going || 0} going${e.is_featured ? ' ⭐' : ''}`).join('\n')}`;
+        }
+        if (metric === 'churn_risk') {
+          const cutoff = new Date(Date.now() - 7 * 86_400_000).toISOString();
+          const { data } = await supabase.from('profiles').select('username, last_seen, vibe_score, city').lt('last_seen', cutoff).order('last_seen', { ascending: true }).limit(10);
+          return `Churn-risk users (inactive 7+ days):\n${(data || []).map(u => `- @${u.username} (${u.city || 'SA'}) last seen: ${u.last_seen?.split('T')[0]}, score: ${u.vibe_score || 0}`).join('\n')}`;
+        }
+        if (metric === 'engagement_rate') {
+          const [{ count: total }, { count: active }] = await Promise.all([
+            supabase.from('profiles').select('id', { count: 'exact', head: true }),
+            supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('last_seen', since),
+          ]);
+          const rate = total ? Math.round(((active || 0) / total) * 100) : 0;
+          return `Engagement rate (${period}): ${rate}% (${active || 0} active out of ${total || 0} total users)`;
+        }
+        return 'Unknown metric.';
+      }
+      case 'send_notification': {
+        const { segment, title, body, dry_run } = input;
+        let q = supabase.from('profiles').select('id', { count: 'exact' }).not('push_token', 'is', null);
+        if (segment?.startsWith('city:'))   q = q.ilike('city', `%${segment.replace('city:', '')}%`);
+        if (segment === 'inactive_24h')      q = q.lt('last_seen', new Date(Date.now() - 86_400_000).toISOString());
+        if (segment === 'inactive_7d')       q = q.lt('last_seen', new Date(Date.now() - 7 * 86_400_000).toISOString());
+        if (segment === 'top_vibers')        q = q.gte('vibe_score', 200);
+        if (segment === 'new_signups_7d')    q = q.gte('created_at', new Date(Date.now() - 7 * 86_400_000).toISOString());
+        const { data: users, count } = await q.limit(1000);
+        if (dry_run) return `DRY RUN: Would send to ${count || 0} users in segment "${segment}".`;
+        if (users?.length) {
+          const rows = users.map(u => ({ recipient_id: u.id, type: 'admin_broadcast', title, body, data: { segment } }));
+          await supabase.from('notifications').insert(rows);
+        }
+        return `Notification sent to ${users?.length || 0} users (segment: ${segment}).`;
+      }
+      case 'feature_event': {
+        let eventId = input.event_id;
+        if (!eventId && input.title) {
+          const { data } = await supabase.from('events').select('id, title').ilike('title', `%${input.title}%`).limit(1).single();
+          eventId = data?.id;
+          if (!eventId) return `Event not found matching "${input.title}".`;
+        }
+        const { data } = await supabase.from('events').update({ is_featured: input.featured }).eq('id', eventId).select('title').single();
+        return `Event "${data?.title || eventId}" is now ${input.featured ? 'FEATURED ⭐' : 'unfeatured'}.`;
+      }
+      case 'moderate_user': {
+        const { data: u } = await supabase.from('profiles').select('id, display_name').eq('username', input.username).single();
+        if (!u) return `User @${input.username} not found.`;
+        if (input.action === 'flag') {
+          await supabase.from('reports').insert({ reported_id: u.id, reporter_id: u.id, reason: input.reason || 'Admin flagged', status: 'flagged' });
+          return `User @${input.username} flagged for review.`;
+        }
+        if (input.action === 'suspend') {
+          await supabase.from('profiles').update({ is_discoverable: false, is_online: false }).eq('id', u.id);
+          return `User @${input.username} suspended (hidden from discovery).`;
+        }
+        if (input.action === 'unsuspend') {
+          await supabase.from('profiles').update({ is_discoverable: true }).eq('id', u.id);
+          return `User @${input.username} reinstated.`;
+        }
+        return `Unknown action: ${input.action}`;
+      }
+      case 'generate_announcement': {
+        const { data } = await supabase.from('app_updates').insert({
+          title:       input.title,
+          description: input.description,
+          type:        input.type,
+          version:     input.version || `v${today}`,
+          released_at: new Date().toISOString(),
+        }).select().single();
+        return `Announcement published! ID: ${data?.id}. Title: "${input.title}". Live in Upgrades section now.`;
+      }
+      // Delegate to assistant tools for shared queries
+      case 'search_events': return _executeAssistantTool('search_events', input, null);
+      case 'find_vibers':   return _executeAssistantTool('find_vibers',   input, null);
+      default: return `Admin tool "${name}" not implemented.`;
+    }
+  } catch (e) {
+    return `Admin tool error: ${e.message}`;
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  FEEDBACK + MEMORY PROPAGATION
+// ═════════════════════════════════════════════════════════════════════════════
+
+export async function submitFeedback(interactionId, thumbs) {
+  try {
+    await supabase.from('ai_interactions')
+      .update({ feedback: thumbs })
+      .eq('id', interactionId);
+  } catch {}
+}
+
+/**
+ * Call after thumbs up/down to propagate signal into user memory.
+ * If user liked (thumbs=1), boost the features/categories in that response.
+ * If user disliked (thumbs=-1), note it so daily agent can down-weight.
+ */
+export async function propagateFeedback(interactionId, thumbs, userId) {
+  if (!userId || !interactionId) return;
+  try {
+    // Mark the interaction
+    await supabase.from('ai_interactions').update({ feedback: thumbs }).eq('id', interactionId);
+
+    // Fetch the interaction to understand what was in the response
+    const { data: interaction } = await supabase.from('ai_interactions')
+      .select('feature, output, input')
+      .eq('id', interactionId).single();
+    if (!interaction) return;
+
+    // Get existing memory
+    const { data: mem } = await supabase.from('ai_user_memory')
+      .select('preferences, behaviour, summary')
+      .eq('user_id', userId).maybeSingle();
+
+    const prefs    = mem?.preferences || {};
+    const behaviour = mem?.behaviour  || {};
+
+    // Record feedback signal for the daily agent to act on
+    const signal = {
+      feature:    interaction.feature,
+      sentiment:  thumbs > 0 ? 'positive' : 'negative',
+      timestamp:  new Date().toISOString(),
+    };
+
+    const feedbackHistory = behaviour.feedback_signals || [];
+    feedbackHistory.push(signal);
+    // Keep last 20 signals
+    if (feedbackHistory.length > 20) feedbackHistory.splice(0, feedbackHistory.length - 20);
+
+    await supabase.from('ai_user_memory').upsert({
+      user_id:     userId,
+      preferences: prefs,
+      behaviour:   { ...behaviour, feedback_signals: feedbackHistory },
+      updated_at:  new Date().toISOString(),
+    });
+  } catch {}
+}
+
+export default {
+  chat, generateBio, fillEvent, vibeCoach, moderateContent,
+  smartNotification, adminChat, submitFeedback, propagateFeedback, AIFeature,
+};

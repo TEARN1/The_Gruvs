@@ -13,13 +13,15 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
-import { chat, submitFeedback, AIFeature } from '../services/claudeService';
+import { chat, propagateFeedback, AIFeature } from '../services/claudeService';
 
 const QUICK_PROMPTS = [
-  { label: "What's on tonight? 🔥", query: "What events are happening tonight near me?" },
-  { label: 'Who to follow? 👥', query: 'Who should I follow based on my interests?' },
-  { label: "Trending this week 📈", query: "What are the most trending events this week?" },
-  { label: 'Help me grow 🚀', query: 'Give me tips to grow my Vibe Score quickly.' },
+  { label: "What's on tonight? 🔥",  query: "What events are happening tonight near me?" },
+  { label: "This weekend 🎉",         query: "What are the best events happening this weekend?" },
+  { label: 'Who to follow? 👥',       query: 'Who should I follow based on my interests and city?' },
+  { label: "Trending now 📈",         query: "What is trending on The Gruvs right now?" },
+  { label: "What's my crew doing? 👀", query: "What events are people I follow going to?" },
+  { label: 'Grow my score 🚀',        query: 'Analyse my vibe score and give me specific tips to grow it fast.' },
 ];
 
 const MSG_ROLE = { USER: 'user', AI: 'assistant' };
@@ -31,6 +33,7 @@ export const AIAssistantModal = ({ visible, onClose }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionContext, setSessionContext] = useState('');
+  const [thinkingPhase, setThinkingPhase] = useState('');  // 'querying' | 'reasoning' | ''
   const flatRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -97,11 +100,16 @@ export const AIAssistantModal = ({ visible, onClose }) => {
       .slice(-10)
       .map(m => ({ role: m.role, content: m.text }));
 
+    // Show phase hints for UX
+    const isComplex = history.length > 6 || trimmed.length > 200;
+    setThinkingPhase(isComplex ? 'reasoning' : 'querying');
+
     const result = await chat(history, {
       feature: AIFeature.ASSISTANT,
       userId: user?.id,
       systemExtra: sessionContext,
     });
+    setThinkingPhase('');
 
     const aiMsg = {
       id: (Date.now() + 1).toString(),
@@ -117,7 +125,7 @@ export const AIAssistantModal = ({ visible, onClose }) => {
 
   const handleFeedback = async (msg, thumbs) => {
     if (!msg.interactionId) return;
-    await submitFeedback(msg.interactionId, thumbs);
+    await propagateFeedback(msg.interactionId, thumbs, user?.id);
     setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, feedback: thumbs } : m));
   };
 
@@ -176,7 +184,7 @@ export const AIAssistantModal = ({ visible, onClose }) => {
 
         {/* Quick prompts */}
         {messages.length <= 1 && (
-          <View style={styles.quickRow}>
+          <View style={[styles.quickRow, { flexWrap: 'wrap' }]}>
             {QUICK_PROMPTS.map(q => (
               <TouchableOpacity
                 key={q.label}
@@ -205,7 +213,13 @@ export const AIAssistantModal = ({ visible, onClose }) => {
           <View style={[styles.typingRow, { backgroundColor: surface, borderColor: `${primary}20` }]}>
             <Text style={{ fontSize: 12 }}>✦</Text>
             <ActivityIndicator size="small" color={primary} style={{ marginLeft: 8 }} />
-            <Text style={[styles.typingText, { color: muted }]}>Gruvs AI is thinking...</Text>
+            <Text style={[styles.typingText, { color: muted }]}>
+              {thinkingPhase === 'reasoning'
+                ? 'Deep reasoning...'
+                : thinkingPhase === 'querying'
+                ? 'Querying live data...'
+                : 'Gruvs AI is thinking...'}
+            </Text>
           </View>
         )}
 
