@@ -504,7 +504,9 @@ CREATE POLICY "Event vibes readable"         ON event_vibes FOR SELECT USING (tr
 CREATE POLICY "Users manage own event vibes" ON event_vibes FOR ALL    USING (auth.uid() = user_id);
 
 DROP VIEW IF EXISTS vibes;
-CREATE OR REPLACE VIEW vibes AS SELECT * FROM event_vibes;
+CREATE OR REPLACE VIEW vibes
+  WITH (security_invoker = true)
+AS SELECT * FROM event_vibes;
 
 CREATE OR REPLACE FUNCTION sync_vibe_counts()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
@@ -1063,7 +1065,9 @@ DO $$ BEGIN
     DROP VIEW conversations CASCADE;
   END IF;
 END $$;
-CREATE OR REPLACE VIEW conversations AS SELECT * FROM dm_rooms;
+CREATE OR REPLACE VIEW conversations
+  WITH (security_invoker = true)
+AS SELECT * FROM dm_rooms;
 
 
 -- ============================================================
