@@ -10,7 +10,7 @@ import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { SkeletonCard } from '../components/SkeletonCard';
-import { FollowingFeedManager, ActivityFeedManager } from '../services/dataFlow';
+import { FollowingFeedManager, ActivityFeedManager, TrendingManager } from '../services/dataFlow';
 import { SPACING, RADIUS, FONT } from '../constants/DesignTokens';
 import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 
@@ -222,6 +222,7 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const { user } = useAuth();
 
   const [followingEvents,  setFollowingEvents]  = useState([]);
+  const [trendingEvents,   setTrendingEvents]   = useState([]);
   const [liveNow,          setLiveNow]          = useState([]);
   const [activity,         setActivity]         = useState([]);
   const [loading,          setLoading]          = useState(true);
@@ -236,11 +237,13 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const loadAll = useCallback(async () => {
     if (!user) { setLoading(false); return; }
-    const [feedResult, activityResult] = await Promise.all([
+    const [feedResult, activityResult, trendingResult] = await Promise.all([
       FollowingFeedManager.fetch(user.id, 0),
       ActivityFeedManager.fetchActivity(user.id),
+      TrendingManager.fetch(10),
     ]);
     setFollowingEvents(feedResult.events || []);
+    setTrendingEvents(trendingResult || []);
     setLiveNow(activityResult.liveNow);
     setActivity(activityResult.activity);
     setLoading(false);
@@ -331,7 +334,25 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                   onPress={() => goToEvent(ev)}
                 />
               </FadeInView>
-            ))
+            ))Trending Events */}
+          {trendingEvents.length > 0 && (
+            <FadeInView direction="up" delay={120}>
+              <SectionLabel label="TRENDING" color={muted} style={{ marginTop: 8 }} />
+              {trendingEvents.map((ev, i) => (
+                <FadeInView key={`trend-${ev.id}`} delay={Math.min(i, 3) * 50} direction="up">
+                  <CrewEventCard
+                    ev={ev}
+                    primary={primary}
+                    textColor={textColor}
+                    muted={muted}
+                    onPress={() => goToEvent(ev)}
+                  />
+                </FadeInView>
+              ))}
+            </FadeInView>
+          )}
+
+          {/* 
           )}
 
           {/* Activity */}

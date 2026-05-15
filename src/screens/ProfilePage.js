@@ -259,24 +259,11 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   }, [user]);
 
   const [shareEvents, setShareEvents] = useState(profile?.share_events ?? false);
-  const [aiBioOptions, setAiBioOptions]     = useState([]);
-  const [aiBioLoading, setAiBioLoading]     = useState(false);
-  const [aiBioVisible, setAiBioVisible]     = useState(false);
-
-  const handleGenerateBio = async () => {
-    setAiBioLoading(true);
-    setAiBioVisible(false);
-    const { bios, error } = await generateBio({
-      interests: selectedInterests,
-      career:    careerTitle,
-      location,
-      vibeScore: profile?.vibe_score || 0,
-      userId:    user?.id,
-    });
-    setAiBioLoading(false);
-    if (bios?.length) { setAiBioOptions(bios); setAiBioVisible(true); }
-    else toast?.show(error || 'AI bio generation failed', 'error');
-  };
+  // AI bio generation — HIDDEN under development
+  // const [aiBioOptions, setAiBioOptions]     = useState([]);
+  // const [aiBioLoading, setAiBioLoading]     = useState(false);
+  // const [aiBioVisible, setAiBioVisible]     = useState(false);
+  // const handleGenerateBio = async () => { /* disabled */ };
   const [bio, setBio] = useState(profile?.bio || '');
   const [location, setLocation] = useState(profile?.location || '');
   const [selectedInterests, setSelectedInterests] = useState(profile?.interests || []);
@@ -383,37 +370,9 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
       <GlassView style={fm.section}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <Text style={[fm.sectionTitle, { color: primary, marginBottom: 0 }]}>Bio & Location</Text>
-          <TouchableOpacity
-            onPress={handleGenerateBio}
-            disabled={aiBioLoading}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: `${primary}50`, backgroundColor: `${primary}10` }}
-          >
-            {aiBioLoading
-              ? <ActivityIndicator size="small" color={primary} />
-              : <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>✦ AI Write</Text>
-            }
-          </TouchableOpacity>
+          {/* AI Write button — HIDDEN under development */}
         </View>
-
-        {/* AI bio options picker */}
-        {aiBioVisible && aiBioOptions.length > 0 && (
-          <View style={{ marginBottom: 10, gap: 6 }}>
-            <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 2 }}>Pick one or edit:</Text>
-            {aiBioOptions.map((option, i) => (
-              <TouchableOpacity
-                key={i}
-                onPress={() => { setBio(option); setAiBioVisible(false); toast?.show('Bio applied!', 'success'); }}
-                style={{ padding: 10, borderRadius: 10, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}08` }}
-              >
-                <Text style={{ color: textColor, fontSize: 12, lineHeight: 17 }}>{option}</Text>
-                <Text style={{ color: primary, fontSize: 10, fontWeight: '800', marginTop: 4 }}>TAP TO USE</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity onPress={() => setAiBioVisible(false)}>
-              <Text style={{ color: muted, fontSize: 11, textAlign: 'center', marginTop: 2 }}>Dismiss</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* AI bio options picker — HIDDEN under development */}
 
         <TextInput
           style={[fm.input, { color: textColor, borderColor: `${primary}30` }]}

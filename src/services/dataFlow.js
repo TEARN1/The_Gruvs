@@ -6,6 +6,7 @@
  */
 
 import { supabase, isSupabaseEnabled } from './supabase';
+import { LocationService } from './locationService';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CACHE  (stale-while-revalidate, prefix invalidation)
@@ -817,9 +818,16 @@ export const DiscoveryManager = {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
     try {
-      const { data } = await supabase.rpc('find_nearby_vibers', {
-        uid: userId, max_dist_km: radius, limit_count: 20,
+      const coords = LocationService.getCached();
+      if (!coords) return [];
+
+      // Use the safe, fuzzed version of the nearby function
+      const { data } = await supabase.rpc('get_safe_nearby_vibers', {
+        u_lat: coords.lat,
+        u_lon: coords.lon,
+        radius_km: radius
       });
+
       if (data) cache.set(cacheKey, data);
       return data || [];
     } catch (error) {
