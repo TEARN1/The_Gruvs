@@ -2384,3 +2384,50 @@ CREATE TABLE IF NOT EXISTS app_updates (
 ALTER TABLE app_updates ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Anyone can read app_updates" ON app_updates;
 CREATE POLICY "Anyone can read app_updates" ON app_updates FOR SELECT USING (true);
+
+-- ============================================================
+--  DM ROOMS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS dm_rooms (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  participant_1   UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  participant_2   UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  last_message    TEXT,
+  last_message_at TIMESTAMPTZ,
+  unread_count_1  INTEGER     DEFAULT 0,
+  unread_count_2  INTEGER     DEFAULT 0,
+  created_at      TIMESTAMPTZ DEFAULT now(),
+  updated_at      TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (LEAST(participant_1, participant_2), GREATEST(participant_1, participant_2))
+);
+CREATE INDEX IF NOT EXISTS dm_rooms_p1 ON dm_rooms(participant_1, last_message_at DESC);
+CREATE INDEX IF NOT EXISTS dm_rooms_p2 ON dm_rooms(participant_2, last_message_at DESC);
+ALTER TABLE dm_rooms ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "DM room participants can read"   ON dm_rooms;
+DROP POLICY IF EXISTS "DM room participants can update" ON dm_rooms;
+CREATE POLICY "DM room participants can read"   ON dm_rooms FOR SELECT USING (auth.uid() = participant_1 OR auth.uid() = participant_2);
+CREATE POLICY "DM room participants can update" ON dm_rooms FOR ALL    USING (auth.uid() = participant_1 OR auth.uid() = participant_2);
+DROP TRIGGER IF EXISTS dm_rooms_touch ON dm_rooms;
+CREATE TRIGGER dm_rooms_touch BEFORE UPDATE ON dm_rooms FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
+-- Conversations view alias (backward compat)
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.views WHERE table_schema='public' AND table_name='conversations') THEN DROP VIEW conversations CASCADE; END IF; END $$;
+CREATE OR REPLACE VIEW conversations WITH (security_invoker = true) AS SELECT * FROM dm_rooms;
+
+-- ============================================================
+--  EVENT RSVPS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS event_rsvps (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id   UUID        NOT NULL REFERENCES events(id)   ON DELETE CASCADE,
+  user_id    UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  status     TEXT        DEFAULT 'going' CHECK (status IN ('going','interested','not_going')),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (event_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS event_rsvps_event_id ON event_rsvps(event_id);
+CREATE INDEX IF NOT EXISTS event_rsvps_user_id  ON event_rsvps(user_id);
+ALTER TABLE event_rsvps ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "RSVPs readable"         ON event_rsvps;
+DROP POLICY IF EXISTS "Users manage own RSVPs" ON event_rsvps;
+CREATE POLICY "RSVPs readable"         ON event_rsvps FOR SELECT USING (true);
+CREATE POLICY "Users manage own RSVPs" ON event_rsvps FOR ALL    USING (auth.uid() = user_id);
