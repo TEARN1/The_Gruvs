@@ -39,6 +39,7 @@ import { TutorialCenter } from '../components/TutorialCenter';
 import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
 import { generateBio, vibeCoach } from '../services/claudeService';
+import { WhoWasThereModal } from '../components/WhoWasThereModal';
 
 const { width } = Dimensions.get('window');
 
