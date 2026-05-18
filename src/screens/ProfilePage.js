@@ -1057,6 +1057,34 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   };
 
+  const handleReelUpload = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: true,
+        quality: 0.85,
+        videoMaxDuration: 60,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const asset = result.assets[0];
+      const isVideo = asset.type === 'video';
+      toast.show(`Uploading ${isVideo ? 'video' : 'photo'} reel...`, 'info');
+      const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
+      const storagePath = `${user.id}/reel_${Date.now()}.${ext}`;
+      const publicUrl = await uploadToStorage(asset.uri, 'reels', storagePath, { mimeType: asset.mimeType });
+      const { error } = await supabase.from('reels').insert({
+        user_id: user.id,
+        media_url: publicUrl,
+        media_type: isVideo ? 'video' : 'image',
+        caption: '',
+      });
+      if (error) throw new Error(error.message);
+      toast.show('Reel posted! 🎬', 'success');
+    } catch (e) {
+      toast.show('Reel upload failed: ' + (e.message || 'Unknown error'), 'error');
+    }
+  };
+
   const handleSaveProfile = async () => {
     try {
       setSaving(true);
@@ -1785,13 +1813,22 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               )}
               {activeTab === 'gallery' && (
                 <View>
-                  <TouchableOpacity
-                    onPress={handleGalleryUpload}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: `${primary}40`, marginBottom: 12, justifyContent: 'center' }}
-                  >
-                    <Feather name="plus" size={16} color={primary} />
-                    <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>Add Photo to Profile</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                    <TouchableOpacity
+                      onPress={handleGalleryUpload}
+                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, padding: 11, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: `${primary}40`, justifyContent: 'center' }}
+                    >
+                      <Feather name="image" size={15} color={primary} />
+                      <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>Add Photo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleReelUpload}
+                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, padding: 11, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: `${primary}40`, justifyContent: 'center' }}
+                    >
+                      <Feather name="film" size={15} color={primary} />
+                      <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>Post Reel</Text>
+                    </TouchableOpacity>
+                  </View>
                   <GalleryTab userId={user?.id} primary={primary} muted={muted} myEvents={myEvents} profileGallery={profileGallery} />
                 </View>
               )}
