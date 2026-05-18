@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  Image, ActivityIndicator, Linking,
+  Image, ActivityIndicator, Linking, Dimensions,
 } from 'react-native';
+
+const SCREEN_W = Dimensions.get('window').width;
 import { Feather } from '@expo/vector-icons';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { useToast } from './ToastNotification';
+import { SecurityService } from '../services/securityService';
 
 const OPTIONS = [
   { status: 'going',     label: 'Going',     icon: 'check-circle', color: '#10b981' },
@@ -85,7 +88,7 @@ export const RSVPConfirmModal = ({ visible, onClose, event }) => {
               {event.ticket_url && selected === 'going' && (
                 <TouchableOpacity
                   style={[s.ticketBtn, { backgroundColor: primary }]}
-                  onPress={() => Linking.openURL(event.ticket_url)}
+                  onPress={() => SecurityService.safeOpenURL(event.ticket_url)}
                 >
                   <Feather name="tag" size={15} color="#000" />
                   <Text style={s.ticketText}>Get Tickets</Text>
@@ -182,7 +185,7 @@ const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 36 },
   pill: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 16 },
-  eventThumb: { width: '100%', height: 140, borderRadius: 16, marginBottom: 14 },
+  eventThumb: { width: '100%', height: Math.min(140, SCREEN_W * 0.35), borderRadius: 16, marginBottom: 14 },
   eventTitle: { fontSize: 20, fontWeight: '900', marginBottom: 10 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   metaChip: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -201,6 +204,6 @@ const s = StyleSheet.create({
   doneSub: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
   ticketBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 30 },
   ticketText: { color: '#000', fontWeight: '900', fontSize: 15 },
-  closeBtn: { paddingHorizontal: 40, paddingVertical: 10, borderRadius: 20, borderWidth: 1, marginTop: 4 },
+  closeBtn: { paddingHorizontal: SCREEN_W < 375 ? 20 : 40, paddingVertical: 10, borderRadius: 20, borderWidth: 1, marginTop: 4 },
   closeBtnText: { fontSize: 14, fontWeight: '700' },
 });

@@ -10,6 +10,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { supabase } from '../services/supabase';
+import { useAuth } from './AuthContext';
 
 const STORAGE_KEY = 'gruv_identity_mode';
 
@@ -61,15 +63,27 @@ export const getGhostAlias = (userId = '') => {
 const IdentityContext = createContext(null);
 
 export const IdentityProvider = ({ children }) => {
+  const { user } = useAuth();
   const [identityMode, setIdentityModeState] = useState('public');
   const [beaconActive, setBeaconActive]       = useState(false); // celebrity "Drop a Beacon"
   const [loading, setLoading]                 = useState(true);
 
+  // Load from local storage on boot
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then(val => { if (val && MODES[val]) setIdentityModeState(val); })
       .finally(() => setLoading(false));
   }, []);
+
+  // Sync to Supabase when user/mode changes
+  useEffect(() => {
+    if (user?.id && !loading) {
+      supabase.from('profiles')
+        .update({ identity_mode: identityMode, is_beacon_active: beaconActive })
+        .eq('id', user.id)
+        .catch(() => {}); // Best effort sync
+    }
+  }, [user?.id, identityMode, beaconActive, loading]);
 
   const setIdentityMode = useCallback(async (mode) => {
     if (!MODES[mode]) return;
@@ -88,26 +102,39 @@ export const IdentityProvider = ({ children }) => {
   // Middleware: apply identity rules to a location before exposing it
   const applyLocationPrivacy = useCallback((lat, lon) => {
     if (identityMode === 'ghost') return fuzzLocation(lat, lon, 500);
-    if (identityMode === 'celebrity') return null; // never expose celebrity location
+    if (identityMode === 'celebrity' && !beaconActive) return null; // never expose celebrity location unless beacon dropped
     return { lat, lon };
-  }, [identityMode]);
+  }, [identityMode, beaconActive]);
 
-  // Middleware: apply identity rules to a profile object before rendering
+  // Middleware: apply identity rules to a profile object before rendering.
+  // Uses the identity_mode property on the profile itself if present (for others),
+  // otherwise falls back to the current user's identity mode (for self).
   const applyProfilePrivacy = useCallback((profile, userId) => {
-    if (identityMode === 'ghost') {
+    if (!profile) return null;
+
+    const mode = profile.identity_mode || (userId === user?.id ? identityMode : 'public');
+    const isBeacon = profile.is_beacon_active || (userId === user?.id ? beaconActive : false);
+
+    if (mode === 'ghost') {
       return {
         ...profile,
-        username: getGhostAlias(userId),
+        username: getGhostAlias(userId || profile.id),
         avatar_url: null,
+        display_name: getGhostAlias(userId || profile.id),
         real_name: null,
         _isGhost: true,
       };
     }
-    if (identityMode === 'celebrity' && !beaconActive) {
-      return null; // don't render celebrity in social lists unless beacon dropped
+
+    if (mode === 'celebrity' && !isBeacon) {
+      // Don't hide completely if we are the user looking at ourselves,
+      // otherwise we disappear from our own profile page.
+      if (userId === user?.id) return profile;
+      return null;
     }
+
     return profile;
-  }, [identityMode, beaconActive]);
+  }, [user?.id, identityMode, beaconActive]);
 
   // Can this user be seen in social lists?
   const isVisible = useCallback(() => {

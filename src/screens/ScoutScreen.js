@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   useState, useEffect, useRef, useCallback, useMemo,
 } from 'react';
 import {
@@ -301,7 +301,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
       const cached = await AsyncStorage.getItem(CACHE_KEY);
       if (cached) {
         const { events: cachedEvents, ts } = JSON.parse(cached);
-        if (Date.now() - ts < 600_000) {
+        if (Date.now() - ts < 600000) {
           setEvents(cachedEvents);
           setLoading(false);
         }

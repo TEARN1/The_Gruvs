@@ -1,0 +1,50 @@
+{
+  "version": "2.0.0",
+  "neural_weights": {
+    "royale_aesthetic": 1.0,
+    "security_zero_trust": 1.0,
+    "sa_cultural_relevance": 0.95,
+    "computational_rigor": 1.0,
+    "game_theory_stability": 0.98,
+    "behavioral_economic_balance": 1.0
+  },
+  "academic_constraints": {
+    "logic_depth_multiplier": 50,
+    "min_token_density": 30000000,
+    "reasoning_standard": "Doctoral / Post-Doc",
+    "computational_rigor_level": "Formal Verification / Calculus-Verified"
+  },
+  "mathematical_standards": {
+    "reputation_decay": "Exponential Time-Decay (Halflife-based)",
+    "economic_minting": "Logarithmic Scarcity Modeling",
+    "social_graph": "Eigenvector Centrality Analysis",
+    "precision_limit": 8
+  },
+  "sovereign_mint_params": {
+    "global_supply_cap": 21000000,
+    "halving_interval_equity": 2100000,
+    "current_mint_phase": 1,
+    "vibe_burn_rate": 0.05
+  },
+  "oracle_cache": {
+    "pre_computed_scenarios": [],
+    "last_dream_cycle": null,
+    "prediction_horizon_days": 7
+  },
+  "resilience_protocols": {
+    "limbic_system_active": true,
+    "simplicity_constant_min": 0.9
+  },
+  "topology": {
+    "core": ["App.js", "src/services/dataFlow.js"],
+    "economy": ["src/services/trustLedger.js", "src/services/vibeEconomyEngine.js", "src/services/vibeEquityLedger.js", "src/screens/WalletScreen.js"],
+    "intelligence": ["src/services/claudeService.js", "src/services/architectAI.js", "src/services/vibePredictor.js", "src/services/neuralMesh.js", "src/services/hyperReasoning.js"]
+  },
+  "learned_optimizations": [],
+  "adversarial_fixes": [],
+  "ceo_directives": [
+    "30X Recursive Reasoning Depth",
+    "Non-monetary Economy (Vibe-based)",
+    "Autonomous CEO-Level Execution"
+  ]
+}

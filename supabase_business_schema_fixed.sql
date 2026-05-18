@@ -48,6 +48,11 @@ CREATE TABLE IF NOT EXISTS profiles (
   interests        TEXT[],
   coords           geography(Point, 4326),
   push_token       TEXT,
+  vibe_equity      NUMERIC     DEFAULT 0,
+  social_integrity_score INTEGER DEFAULT 50,
+  identity_mode    TEXT        DEFAULT 'public' CHECK (identity_mode IN ('public','ghost','celebrity')),
+  is_beacon_active BOOLEAN     DEFAULT false,
+  is_discoverable  BOOLEAN     DEFAULT true,
   created_at       TIMESTAMPTZ DEFAULT now(),
   updated_at       TIMESTAMPTZ DEFAULT now()
 );
@@ -71,6 +76,11 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS events_posted    INTEGER     DEFAU
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS interests        TEXT[];
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS push_token       TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS coords           geography(Point, 4326);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vibe_equity      NUMERIC     DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_integrity_score INTEGER DEFAULT 50;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS identity_mode    TEXT        DEFAULT 'public';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_beacon_active BOOLEAN     DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_discoverable  BOOLEAN     DEFAULT true;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at       TIMESTAMPTZ DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS profiles_coords_gist   ON profiles USING gist(coords);
@@ -786,40 +796,6 @@ CREATE TRIGGER followers_notify   AFTER INSERT ON followers   FOR EACH ROW EXECU
 
 
 -- ============================================================
---  DIRECT MESSAGES
--- ============================================================
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='direct_messages' AND column_name='user_id')
-     AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='direct_messages' AND column_name='recipient_id') THEN
-    ALTER TABLE direct_messages RENAME COLUMN user_id TO recipient_id;
-  END IF;
-END $$;
-
-CREATE TABLE IF NOT EXISTS direct_messages (
-  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  sender_id    UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  recipient_id UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  body         TEXT        NOT NULL CHECK (length(body) BETWEEN 1 AND 2000),
-  read         BOOLEAN     DEFAULT false,
-  created_at   TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS sender_id    UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS body         TEXT;
-ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS read         BOOLEAN DEFAULT false;
-
-CREATE INDEX IF NOT EXISTS dm_sender    ON direct_messages(sender_id,    created_at DESC);
-CREATE INDEX IF NOT EXISTS dm_recipient ON direct_messages(recipient_id, created_at DESC);
-
-ALTER TABLE direct_messages ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "DM participants can read"   ON direct_messages;
-DROP POLICY IF EXISTS "Users send own messages"    ON direct_messages;
-CREATE POLICY "DM participants can read"   ON direct_messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = recipient_id);
-CREATE POLICY "Users send own messages"    ON direct_messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
-
-
--- ============================================================
 --  ROUTES  (Royal Routes)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS routes (
@@ -1362,8 +1338,9 @@ BEGIN
   FROM profiles p
   WHERE p.id <> uid
     AND p.coords IS NOT NULL
+    AND p.identity_mode = 'public' -- Strictly hide Ghost/Celebrity modes from nearby radar
     AND ST_DWithin(p.coords, u_coords, max_dist_km * 1000)
-  ORDER BY distance_km ASC
+  ORDER BY p.social_integrity_score DESC, distance_km ASC -- Prioritize high-integrity users
   LIMIT limit_count;
 END;
 $$;
@@ -1449,24 +1426,32 @@ $$;
 -- ============================================================
 --  STORAGE BUCKET
 -- ============================================================
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'event-media', 'event-media', true, 52428800,
-  ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/quicktime']
-)
-ON CONFLICT (id) DO NOTHING;
+-- Create all required buckets: avatars (5MB), covers (5MB), chat_media (10MB), event-media (100MB)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) VALUES 
+  ('avatars', 'avatars', true, 5242880, ARRAY['image/jpeg','image/png','image/webp']),
+  ('covers', 'covers', true, 5242880, ARRAY['image/jpeg','image/png','image/webp']),
+  ('chat_media', 'chat_media', true, 10485760, ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/quicktime']),
+  ('event-media', 'event-media', true, 104857600, ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/quicktime'])
+ON CONFLICT (id) DO UPDATE SET 
+  public = EXCLUDED.public, 
+  file_size_limit = EXCLUDED.file_size_limit, 
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
 
-DROP POLICY IF EXISTS "Anyone can view media"        ON storage.objects;
-DROP POLICY IF EXISTS "Auth users upload media"      ON storage.objects;
-DROP POLICY IF EXISTS "Auth users delete own media"  ON storage.objects;
-CREATE POLICY "Anyone can view media"
-  ON storage.objects FOR SELECT USING (bucket_id = 'event-media');
-CREATE POLICY "Auth users upload media"
+-- Global Storage Policies
+DROP POLICY IF EXISTS "Public access to media" ON storage.objects;
+CREATE POLICY "Public access to media"
+  ON storage.objects FOR SELECT USING (bucket_id IN ('avatars', 'covers', 'event-media', 'chat_media'));
+
+DROP POLICY IF EXISTS "Authenticated users can upload" ON storage.objects;
+CREATE POLICY "Authenticated users can upload"
   ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'event-media' AND auth.role() = 'authenticated');
-CREATE POLICY "Auth users delete own media"
+  WITH CHECK (bucket_id IN ('avatars', 'covers', 'event-media', 'chat_media') AND auth.role() = 'authenticated');
+
+-- Ownership check based on folder name (expects paths like 'avatars/USER_ID/...')
+DROP POLICY IF EXISTS "Users can delete own files" ON storage.objects;
+CREATE POLICY "Users can delete own files"
   ON storage.objects FOR DELETE
-  USING (bucket_id = 'event-media' AND auth.uid()::text = (storage.foldername(name))[1]);
+  USING (bucket_id IN ('avatars', 'covers', 'event-media', 'chat_media') AND auth.uid()::text = (storage.foldername(name))[1]);
 
 -- ============================================================
 --  FOLLOWS  (canonical table — all code queries 'follows')
@@ -1553,11 +1538,11 @@ CREATE INDEX IF NOT EXISTS messages_sender    ON messages(sender_id,    created_
 CREATE INDEX IF NOT EXISTS messages_recipient ON messages(recipient_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS messages_convo     ON messages(LEAST(sender_id::text, recipient_id::text), GREATEST(sender_id::text, recipient_id::text), created_at DESC);
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "DM participants can read messages" ON messages;
+DROP POLICY IF EXISTS "Message participants can read" ON messages;
 DROP POLICY IF EXISTS "Users send own messages"           ON messages;
 DROP POLICY IF EXISTS "Users update own messages"         ON messages;
 DROP POLICY IF EXISTS "Users delete own messages"         ON messages;
-CREATE POLICY "DM participants can read messages" ON messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = recipient_id);
+CREATE POLICY "Message participants can read" ON messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = recipient_id);
 CREATE POLICY "Users send own messages"           ON messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
 CREATE POLICY "Users update own messages"         ON messages FOR UPDATE USING (auth.uid() = sender_id OR auth.uid() = recipient_id);
 CREATE POLICY "Users delete own messages"         ON messages FOR DELETE USING (auth.uid() = sender_id);
@@ -1707,9 +1692,6 @@ $$;
 -- ============================================================
 --  CONVERSATIONS VIEW  (inbox — latest message per user pair)
 -- ============================================================
--- Drop whatever 'conversations' is (table OR view) before recreating as a view.
--- DROP TABLE IF EXISTS fails with 42809 when the object is a view, so we
--- inspect information_schema first and issue the correct DROP command.
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.views       WHERE table_schema='public' AND table_name='conversations') THEN
     EXECUTE 'DROP VIEW conversations CASCADE';
@@ -1719,16 +1701,102 @@ DO $$ BEGIN
 END $$;
 
 CREATE OR REPLACE VIEW conversations AS
-SELECT DISTINCT ON (convo_key)
-  LEAST(sender_id::text, recipient_id::text) || '_' || GREATEST(sender_id::text, recipient_id::text) AS convo_key,
-  sender_id, recipient_id,
-  body         AS last_message,
-  created_at   AS last_message_at,
-  read_at, is_request, request_accepted,
-  id           AS last_message_id
-FROM messages
-WHERE deleted_at IS NULL
-ORDER BY convo_key, created_at DESC;
+WITH latest_messages AS (
+  SELECT DISTINCT ON (
+    LEAST(sender_id::text, recipient_id::text) || '_' || GREATEST(sender_id::text, recipient_id::text)
+  )
+    LEAST(sender_id::text, recipient_id::text) || '_' || GREATEST(sender_id::text, recipient_id::text) AS convo_key,
+    id, sender_id, recipient_id, body, created_at, read_at, is_request, request_accepted
+  FROM messages
+  WHERE deleted_at IS NULL
+  ORDER BY 1, created_at DESC
+)
+SELECT 
+  lm.*,
+  -- Logic for Sender Privacy
+  CASE 
+    WHEN sp.identity_mode = 'ghost' THEN 'Ghost'
+    ELSE sp.username 
+  END as sender_username,
+  CASE 
+    WHEN sp.identity_mode = 'ghost' THEN NULL
+    ELSE sp.avatar_url 
+  END as sender_avatar,
+  -- Logic for Recipient Privacy
+  CASE 
+    WHEN rp.identity_mode = 'ghost' THEN 'Ghost'
+    ELSE rp.username 
+  END as recipient_username,
+  CASE 
+    WHEN rp.identity_mode = 'ghost' THEN NULL
+    ELSE rp.avatar_url 
+  END as recipient_avatar
+FROM latest_messages lm
+JOIN profiles sp ON lm.sender_id = sp.id
+JOIN profiles rp ON lm.recipient_id = rp.id;
+
+-- ============================================================
+--  DM SAFETY TRIGGER (The "Anti-Spam" Valve)
+-- ============================================================
+CREATE OR REPLACE FUNCTION enforce_message_limits()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  msg_count INTEGER;
+  is_accepted BOOLEAN;
+BEGIN
+  -- Check if there is an existing conversation that was accepted
+  SELECT request_accepted INTO is_accepted
+  FROM messages
+  WHERE (sender_id = NEW.sender_id AND recipient_id = NEW.recipient_id)
+     OR (sender_id = NEW.recipient_id AND recipient_id = NEW.sender_id)
+     AND request_accepted = true
+  LIMIT 1;
+
+  -- If not accepted yet, count how many messages the sender has sent
+  IF is_accepted IS NOT TRUE THEN
+    SELECT count(*) INTO msg_count
+    FROM messages
+    WHERE sender_id = NEW.sender_id AND recipient_id = NEW.recipient_id AND request_accepted = false;
+
+    IF msg_count >= 3 THEN
+      RAISE EXCEPTION 'Message limit reached. Wait for the recipient to accept your request.';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS dm_limit_trigger ON messages;
+CREATE TRIGGER dm_limit_trigger
+  BEFORE INSERT ON messages
+  FOR EACH ROW EXECUTE FUNCTION enforce_message_limits();
+
+-- ============================================================
+--  RECIPROCITY LOGIC (Reward Connection Acceptance)
+-- ============================================================
+CREATE OR REPLACE FUNCTION handle_message_acceptance()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  -- Logic: If a request transitions from false to true, it's a "Handshake"
+  IF NEW.request_accepted = true AND OLD.request_accepted = false THEN
+    -- Reward the recipient for being welcoming
+    UPDATE profiles SET vibe_score = vibe_score + 10 WHERE id = NEW.recipient_id;
+    -- Reward the sender for a successful high-vibe match
+    UPDATE profiles SET vibe_score = vibe_score + 5 WHERE id = NEW.sender_id;
+    
+    -- Create a system notification for the handshake
+    INSERT INTO notifications (recipient_id, type, title, body)
+    VALUES (NEW.sender_id, 'system', 'Connection Locked! 🤝', 'Your request was accepted. Your Vibe Score just went up.');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_dm_accepted ON messages;
+CREATE TRIGGER on_dm_accepted
+  AFTER UPDATE OF request_accepted ON messages
+  FOR EACH ROW EXECUTE FUNCTION handle_message_acceptance();
 
 -- ── Advanced Social Matching Logic ──────────────────────────────────────────
 
@@ -1977,3 +2045,47 @@ DROP TRIGGER IF EXISTS on_auth_user_welcome ON profiles;
 CREATE TRIGGER on_auth_user_welcome
   AFTER INSERT ON profiles
   FOR EACH ROW EXECUTE FUNCTION handle_new_user_welcome();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- EVENT SCHEDULE & POLLS (added for schedule builder + community voting)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Add schedule column to events (JSONB array of time-slot objects)
+ALTER TABLE events ADD COLUMN IF NOT EXISTS schedule JSONB DEFAULT '[]'::jsonb;
+
+-- Community polls tied to event schedule slots
+CREATE TABLE IF NOT EXISTS event_polls (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id      UUID        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  author_id     UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  question      TEXT        NOT NULL,
+  options       JSONB       NOT NULL DEFAULT '[]'::jsonb,
+  votes         JSONB       NOT NULL DEFAULT '{}'::jsonb,
+  schedule_slot JSONB,
+  created_at    TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS event_polls_event_id ON event_polls(event_id);
+CREATE INDEX IF NOT EXISTS event_polls_author   ON event_polls(author_id);
+
+ALTER TABLE event_polls ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read polls
+DROP POLICY IF EXISTS "event_polls_read" ON event_polls;
+CREATE POLICY "event_polls_read" ON event_polls
+  FOR SELECT USING (true);
+
+-- Authenticated users can create polls for events they own
+DROP POLICY IF EXISTS "event_polls_insert" ON event_polls;
+CREATE POLICY "event_polls_insert" ON event_polls
+  FOR INSERT WITH CHECK (auth.uid() = author_id);
+
+-- Poll author can update (e.g. record votes) — anyone authenticated can vote
+DROP POLICY IF EXISTS "event_polls_update" ON event_polls;
+CREATE POLICY "event_polls_update" ON event_polls
+  FOR UPDATE USING (auth.uid() IS NOT NULL);
+
+-- Only author can delete
+DROP POLICY IF EXISTS "event_polls_delete" ON event_polls;
+CREATE POLICY "event_polls_delete" ON event_polls
+  FOR DELETE USING (auth.uid() = author_id);

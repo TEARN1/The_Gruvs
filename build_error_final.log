@@ -1,0 +1,75 @@
+
+> the-gruvs-simple@1.0.0 build
+> npx expo export --platform web
+
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY ANTHROPIC_API_KEY EXPO_PUBLIC_AI_ENABLED
+Starting Metro Bundler
+SyntaxError: SyntaxError: C:\Users\ACER\Desktop\The Gruvs Simple\src\services\claudeService.js: Invalid left-hand side in postfix operation. (795:16)
+
+[0m [90m 793 |[39m [32m[39m
+ [90m 794 |[39m [32m      case 'find_vibers': {[39m
+[31m[1m>[22m[39m[90m 795 |[39m [32m        let q = supabase.from('profiles')[39m
+ [90m     |[39m                 [31m[1m^[22m[39m
+ [90m 796 |[39m [32m          .select('display_name, username, city, vibe_score, social_integrity_score, interests, followers_count, events_posted')[39m
+ [90m 797 |[39m [32m          .eq('is_discoverable', true)[39m
+ [90m 798 |[39m [32m          .eq('is_online', true) // Prioritize online users for real-time connection[39m[0m
+SyntaxError: C:\Users\ACER\Desktop\The Gruvs Simple\src\services\claudeService.js: Invalid left-hand side in postfix operation. (795:16)
+
+[0m [90m 793 |[39m [32m[39m
+ [90m 794 |[39m [32m      case 'find_vibers': {[39m
+[31m[1m>[22m[39m[90m 795 |[39m [32m        let q = supabase.from('profiles')[39m
+ [90m     |[39m                 [31m[1m^[22m[39m
+ [90m 796 |[39m [32m          .select('display_name, username, city, vibe_score, social_integrity_score, interests, followers_count, events_posted')[39m
+ [90m 797 |[39m [32m          .eq('is_discoverable', true)[39m
+ [90m 798 |[39m [32m          .eq('is_online', true) // Prioritize online users for real-time connection[39m[0m
+    at constructor (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:365:19)
+    at FlowParserMixin.raise (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:6616:19)
+    at FlowParserMixin.checkLVal (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:7538:12)
+    at FlowParserMixin.parseUpdate (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:11091:12)
+    at FlowParserMixin.parseMaybeUnary (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:11063:23)
+    at FlowParserMixin.parseMaybeUnaryOrPrivate (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:10916:61)
+    at FlowParserMixin.parseExprOps (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:10921:23)
+    at FlowParserMixin.parseMaybeConditional (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:10898:23)
+    at FlowParserMixin.parseMaybeAssign (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:10848:21)
+    at FlowParserMixin.parseMaybeAssign (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:3561:18)
+    at C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:10817:39
+    at FlowParserMixin.allowInAnd (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12438:16)
+    at FlowParserMixin.parseMaybeAssignAllowIn (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:10817:17)
+    at FlowParserMixin.parseVar (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13401:91)
+    at FlowParserMixin.parseVarStatement (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13247:10)
+    at FlowParserMixin.parseStatementContent (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12868:23)
+    at FlowParserMixin.parseStatementLike (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12784:17)
+    at FlowParserMixin.parseStatementLike (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:2930:24)
+    at FlowParserMixin.parseStatementListItem (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12764:17)
+    at FlowParserMixin.parseBlockOrModuleBlockBody (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13333:61)
+    at FlowParserMixin.parseBlockBody (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13326:10)
+    at FlowParserMixin.parseBlock (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13314:10)
+    at FlowParserMixin.parseStatementContent (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12875:21)
+    at FlowParserMixin.parseStatementLike (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12784:17)
+    at FlowParserMixin.parseStatementLike (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:2930:24)
+    at FlowParserMixin.parseStatementListItem (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12764:17)
+    at FlowParserMixin.parseSwitchStatement (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13191:36)
+    at FlowParserMixin.parseStatementContent (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12817:21)
+    at FlowParserMixin.parseStatementLike (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12784:17)
+    at FlowParserMixin.parseStatementLike (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:2930:24)
+    at FlowParserMixin.parseStatementListItem (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12764:17)
+    at FlowParserMixin.parseBlockOrModuleBlockBody (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13333:61)
+    at FlowParserMixin.parseBlockBody (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13326:10)
+    at FlowParserMixin.parseBlock (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13314:10)
+    at FlowParserMixin.parseTryStatement (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13222:23)
+    at FlowParserMixin.parseStatementContent (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12821:21)
+    at FlowParserMixin.parseStatementLike (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12784:17)
+    at FlowParserMixin.parseStatementLike (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:2930:24)
+    at FlowParserMixin.parseStatementListItem (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12764:17)
+    at FlowParserMixin.parseBlockOrModuleBlockBody (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13333:61)
+    at FlowParserMixin.parseBlockBody (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13326:10)
+    at FlowParserMixin.parseBlock (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13314:10)
+    at FlowParserMixin.parseFunctionBody (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12117:24)
+    at FlowParserMixin.parseFunctionBody (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:2907:11)
+    at FlowParserMixin.parseFunctionBodyAndFinish (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12103:10)
+    at FlowParserMixin.parseFunctionBodyAndFinish (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:2915:18)
+    at C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13462:12
+    at FlowParserMixin.withSmartMixTopicForbiddingContext (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:12420:14)
+    at FlowParserMixin.parseFunction (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13461:10)
+    at FlowParserMixin.parseFunctionStatement (C:\Users\ACER\Desktop\The Gruvs Simple\node_modules\@babel\parser\lib\index.js:13142:17)

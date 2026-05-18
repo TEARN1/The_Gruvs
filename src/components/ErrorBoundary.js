@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { SecurityService } from '../services/securityService';
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -15,6 +16,10 @@ export class ErrorBoundary extends React.Component {
   componentDidCatch(error, info) {
     console.error('[ErrorBoundary] Caught in:', this.props.label || 'unknown');
     console.error(error?.message || error);
+    SecurityService.logSecurityEvent(null, 'UI_CRASH', {
+      label: this.props.label || 'unknown',
+      message: error?.message || String(error)
+    });
   }
 
   reset = () => this.setState({ hasError: false, error: null });
@@ -44,6 +49,9 @@ export class ErrorBoundary extends React.Component {
         <Text style={[s.title, { color: '#fff' }]}>{label} hit a snag</Text>
         <Text style={[s.sub, { color: 'rgba(255,255,255,0.45)' }]}>
           Something went wrong here. The rest of the app is still working.
+        </Text>
+        <Text style={[s.sub, { color: '#f59e0b' }]} selectable>
+          {this.state.error?.message || String(this.state.error || '')}
         </Text>
         <TouchableOpacity style={[s.btn, { borderColor: primary }]} onPress={this.reset}>
           <Feather name="refresh-cw" size={13} color={primary} />

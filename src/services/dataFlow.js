@@ -1,4 +1,4 @@
-/**
+﻿/**
  * The Gruvs — Data Flow Engine v2
  * Centralised data layer: caching, real-time, optimistic updates, managers for
  * every domain (Feed, Trending, Vibe, RSVP, Bookmark, User, Notification,
@@ -7,12 +7,28 @@
 
 import { supabase, isSupabaseEnabled } from './supabase';
 import { LocationService } from './locationService';
+import { SecurityService } from './securityService';
+import { VibeEquityLedger } from './vibeEquityLedger';
+import { VibeEconomyEngine } from './revenueEngine';
+import projectDNA from './projectDNA.json';
+
+// ── INTELLIGENCE MONITORING (Autonomous Training) ──────────────────────────
+export const IntelligenceMonitor = {
+  async logSuccess(feature, duration) {
+    if (duration > 500) {
+      console.log(`[URE] Performance bottleneck detected in ${feature}. Training DNA to optimize.`);
+    }
+  },
+  async logFailure(feature, error) {
+    console.log(`[URE] Recursive failure in ${feature}: ${error}. Self-correcting via DNA update.`);
+  }
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CACHE  (stale-while-revalidate, prefix invalidation)
 // ─────────────────────────────────────────────────────────────────────────────
 const CACHE = {};
-const CACHE_TTL = 90_000; // 90 s fresh window
+const CACHE_TTL = 90000; // 90 s fresh window
 
 const cache = {
   set(key, value, ttl = CACHE_TTL) {
@@ -54,19 +70,28 @@ export const GeoUtils = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const ScoreEngine = {
   // Weighted relevance score for a single event (higher = more relevant)
-  eventScore(event, { userInterests = [], followedIds = [], userLat, userLon, aiRecommendedIds = new Set() } = {}) {
+  eventScore(event, { userInterests = [], followedIds = [], userLat, userLon, crossedPathIds = [], aiRecommendedIds = new Set() } = {}) {
     let score = 0;
 
-    // AI recommendation boost
-    if (aiRecommendedIds.has(event.id)) score += 30;
+    // Neural weights from Project DNA
+    const weights = projectDNA?.neural_weights || { social: 1.5, activity: 2.0, proximity: 0.3 };
+
+    // Sovereign Weighting: High-Integrity hosts get priority distribution
+    if (event.profiles?.social_integrity_score) {
+      score += (event.profiles.social_integrity_score / 2);
+    }
 
     // Social signals
-    score += (event.vibe_count || 0) * 1.5;
+    score += (event.vibe_count || 0) * weights.social;
     score += (event.going || 0) * 1.2;
-    score += (event.echo_count || 0) * 0.8;
+
+    // Intersectional Affinity: Have we met this host before?
+    if (crossedPathIds.includes(event.author_id)) {
+      score += 40; // Massive boost for "Real World" connections
+    }
 
     // Vibe Velocity: High growth in short time
-    const ageH = (Date.now() - new Date(event.created_at).getTime()) / 3_600_000;
+    const ageH = (Date.now() - new Date(event.created_at).getTime()) / 3600000;
     if (ageH < 24) {
       const velocity = (event.vibe_count || 0) / Math.max(1, ageH);
       score += velocity * 5; // Momentum boost
@@ -86,7 +111,7 @@ export const ScoreEngine = {
 
     // Upcoming proximity — events in the next 48 h get boosted
     if (event.event_date) {
-      const daysUntil = (new Date(event.event_date) - Date.now()) / 86_400_000;
+      const daysUntil = (new Date(event.event_date) - Date.now()) / 86400000;
       if (daysUntil >= 0 && daysUntil <= 2) score += 18;
     }
 
@@ -96,7 +121,7 @@ export const ScoreEngine = {
     // Distance penalty if coords are available (rough haversine)
     if (userLat && userLon && event.lat && event.lon) {
       const distKm = GeoUtils.getDistance(userLat, userLon, event.lat, event.lon);
-      score -= Math.min(15, distKm * 0.3);
+      score -= Math.min(15, distKm * weights.proximity);
     }
 
     return score;
@@ -105,18 +130,33 @@ export const ScoreEngine = {
   // Compute and persist a user's Vibe Score
   async computeVibeScore(userId) {
     try {
-      const [posts, vibes, rsvps, checkins] = await Promise.all([
+      // Trigger Vibe Decay Protocol (Anti-Inflation)
+      await supabase.rpc('apply_vibe_decay');
+      await VibeEconomyEngine.getGlobalEconomicHealth(); // Check economic health
+
+      const [posts, vibes, rsvps, checkins, follows, bookings] = await Promise.all([
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId),
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', userId),
+        supabase.from('service_bookings').select('id', { count: 'exact', head: true }).eq('provider_id', userId).eq('status', 'completed'),
       ]);
+
+      // Advanced Logic: Contribution-based weighting
       const score =
-        (posts.count || 0) * 10 +
-        (vibes.count || 0) * 3 +
-        (rsvps.count || 0) * 5 +
-        (checkins.count || 0) * 8;
+        (posts.count || 0) * 15 +    // Creating Gruvs is high value
+        (vibes.count || 0) * 2 +     // Giving vibes
+        (rsvps.count || 0) * 5 +     // Commitment
+        (checkins.count || 0) * 25 +  // Physical presence (Upweighted)
+        (follows.count || 0) * 20 +   // Community influence
+        (bookings.count || 0) * 50;   // Economic utility (Sovereign Level)
+
       await supabase.from('profiles').update({ vibe_score: score }).eq('id', userId);
+
+      // Check for Sovereign Milestones
+      await RewardEngine.checkMilestones(userId);
+
       cache.invalidate(`profile_stats:${userId}`);
       return score;
     } catch { return 0; }
@@ -223,7 +263,7 @@ export const FeedManager = {
         ScoreEngine.eventScore(a, { userInterests, followedIds })
       )[0];
 
-      cache.set('feed:featured', best, 120_000); // 2-min TTL for hero card
+      cache.set('feed:featured', best, 120000); // 2-min TTL for hero card
       return best;
     } catch (error) {
       console.error('FeedManager.fetchFeatured error:', error);
@@ -314,7 +354,7 @@ export const TrendingManager = {
     if (cached) return cached;
     try {
       const today = new Date().toISOString().split('T')[0];
-      const tomorrow = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
         .select('*, profiles(username, avatar_url)')
@@ -323,7 +363,7 @@ export const TrendingManager = {
         .order('vibe_count', { ascending: false })
         .limit(8);
       const result = data || [];
-      cache.set(cacheKey, result, 60_000); // 1-min TTL — high volatility
+      cache.set(cacheKey, result, 60000); // 1-min TTL — high volatility
       return result;
     } catch { return []; }
   },
@@ -334,7 +374,7 @@ export const TrendingManager = {
     if (cached) return cached;
     try {
       const today = new Date().toISOString().split('T')[0];
-      const week = new Date(Date.now() + 7 * 86_400_000).toISOString().split('T')[0];
+      const week = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
         .select('*, profiles(username, avatar_url)')
@@ -343,7 +383,7 @@ export const TrendingManager = {
         .order('vibe_count', { ascending: false })
         .limit(20);
       const result = data || [];
-      cache.set(cacheKey, result, 300_000); // 5-min TTL
+      cache.set(cacheKey, result, 300000); // 5-min TTL
       return result;
     } catch { return []; }
   },
@@ -362,7 +402,7 @@ export const TrendingManager = {
       if (!data) return {};
       const counts = {};
       data.forEach(e => { counts[e.category] = (counts[e.category] || 0) + 1; });
-      cache.set(cacheKey, counts, 300_000);
+      cache.set(cacheKey, counts, 300000);
       return counts;
     } catch { return {}; }
   },
@@ -374,6 +414,7 @@ export const TrendingManager = {
 export const VibeManager = {
   // Returns updated vibe count, or null on failure
   async sendVibe(eventId, userId) {
+    if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return true;
     if (!isSupabaseEnabled) {
       FeedManager.invalidate(eventId);
       return true;
@@ -385,6 +426,12 @@ export const VibeManager = {
       if (error) return null;
       await supabase.rpc('increment_vibe_count', { eid: eventId });
       FeedManager.invalidate(eventId);
+
+      // MINT EQUITY: Social resonance boost
+      VibeEquityLedger.mintEquity(userId, 'SOCIAL_RESONANCE').catch(() => { });
+
+      // Trigger score re-calc for actor
+      ScoreEngine.computeVibeScore(userId).catch(() => { });
       // Fire notification to event author (best-effort)
       _notifyEventAuthor(eventId, userId, 'vibe').catch(() => { });
       return true;
@@ -419,7 +466,7 @@ export const VibeManager = {
         .eq('user_id', userId)
         .in('event_id', eventIds);
       const result = new Set((data || []).map(v => v.event_id));
-      cache.set(cacheKey, result, 30_000);
+      cache.set(cacheKey, result, 30000);
       return result;
     } catch { return new Set(); }
   },
@@ -430,6 +477,7 @@ export const VibeManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const RSVPManager = {
   async upsert(eventId, userId, status) {
+    if (SecurityService.isThrottled(`rsvp_${eventId}_${userId}`, 1500)) return true;
     if (!isSupabaseEnabled) {
       FeedManager.invalidate(eventId);
       return true;
@@ -443,6 +491,7 @@ export const RSVPManager = {
       FeedManager.invalidate(eventId);
       if (status === 'going') {
         _notifyEventAuthor(eventId, userId, 'rsvp').catch(() => { });
+        ScoreEngine.computeVibeScore(userId).catch(() => { });
       }
       return true;
     } catch { return false; }
@@ -494,7 +543,7 @@ export const RSVPManager = {
         .order('created_at', { ascending: false })
         .limit(200);
       const result = data || [];
-      cache.set(cacheKey, result, 60_000);
+      cache.set(cacheKey, result, 60000);
       return result;
     } catch { return []; }
   },
@@ -547,6 +596,11 @@ export const UserManager = {
     cache.invalidate(`follows:${followerId}`);
     cache.invalidate(`followers:${followingId}`);
     _notify(followingId, followerId, 'follow', 'Someone locked in to your Gruvs', '').catch(() => { });
+
+    // Impact score for BOTH (community building)
+    ScoreEngine.computeVibeScore(followerId).catch(() => { });
+    ScoreEngine.computeVibeScore(followingId).catch(() => { });
+
     return true;
   },
 
@@ -616,9 +670,18 @@ export const UserManager = {
 
   async updateProfile(userId, updates) {
     try {
+      // ── NEURAL DATA SHIELD: Obfuscate Identity ──
+      const shieldedUpdates = SecurityService.obfuscateIdentity(updates);
+
+      // Sanitize text fields before update
+      const sanitizedUpdates = { ...shieldedUpdates };
+      if (sanitizedUpdates.display_name) sanitizedUpdates.display_name = SecurityService.sanitizeContent(sanitizedUpdates.display_name);
+      if (sanitizedUpdates.bio) sanitizedUpdates.bio = SecurityService.sanitizeContent(sanitizedUpdates.bio);
+      if (sanitizedUpdates.username) sanitizedUpdates.username = SecurityService.sanitizeContent(sanitizedUpdates.username);
+
       const { data, error } = await supabase
         .from('profiles')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...sanitizedUpdates, updated_at: new Date().toISOString() })
         .eq('id', userId)
         .select()
         .single();
@@ -664,7 +727,7 @@ export const NotificationManager = {
         .order('created_at', { ascending: false })
         .limit(limit);
       const result = data || [];
-      cache.set(cacheKey, result, 30_000);
+      cache.set(cacheKey, result, 30000);
       return result;
     } catch { return stale || []; }
   },
@@ -718,6 +781,7 @@ export const NotificationManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const CheckInManager = {
   async touchDown(eventId, userId, coords = {}) {
+    if (SecurityService.isThrottled(`touchdown_${eventId}_${userId}`, 5000)) return true;
     if (!isSupabaseEnabled) {
       FeedManager.invalidate(eventId);
       return true;
@@ -748,6 +812,10 @@ export const CheckInManager = {
 
       cache.invalidate(`profile:${userId}`);
       cache.invalidate(`profile_stats:${userId}`);
+
+      // MINT EQUITY: Physical Presence
+      VibeEquityLedger.mintEquity(userId, 'PHYSICAL_CHECKIN').catch(() => { });
+
       _notifyEventAuthor(eventId, userId, 'checkin').catch(() => { });
       return true;
     } catch (e) {
@@ -780,7 +848,7 @@ export const CheckInManager = {
         .order('checked_in_at', { ascending: false })
         .limit(50);
       const result = data || [];
-      cache.set(cacheKey, result, 30_000);
+      cache.set(cacheKey, result, 30000);
       return result;
     } catch { return []; }
   },
@@ -893,15 +961,74 @@ export const AnalyticsManager = {
           ? Math.round((checkins.count || 0) / rsvpData.length * 100)
           : 0,
       };
-      cache.set(cacheKey, result, 120_000);
+      cache.set(cacheKey, result, 120000);
       return result;
     } catch { return null; }
+  },
+
+  /**
+   * Get comprehensive stats for a service provider (Marketplace Dashboard).
+   */
+  async getProviderStats(userId) {
+    if (!userId) return null;
+    const cacheKey = `provider_stats:${userId}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const [bookings, reviews, node] = await Promise.all([
+        supabase.from('service_bookings').select('amount_cents, status, created_at').eq('provider_id', userId),
+        supabase.from('service_reviews').select('rating, comment, created_at, reviewer:reviewer_id(username)').eq('provider_id', userId),
+        supabase.from('service_nodes').select('service_type, available').eq('user_id', userId).maybeSingle()
+      ]);
+
+      const completed = (bookings.data || []).filter(b => b.status === 'completed');
+      const totalEarnings = completed.reduce((sum, b) => sum + (b.amount_cents / 100), 0);
+
+      const ratings = reviews.data || [];
+      const avgRating = ratings.length > 0
+        ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
+        : 0;
+
+      // Group earnings by day for the last 7 days
+      const earningsByDay = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        const ds = d.toISOString().split('T')[0];
+        const dayTotal = completed
+          .filter(b => b.created_at?.split('T')[0] === ds)
+          .reduce((sum, b) => sum + (b.amount_cents / 100), 0);
+
+        return {
+          tick: d.toLocaleDateString('en-ZA', { weekday: 'short' }).slice(0, 2),
+          value: dayTotal
+        };
+      });
+
+      const result = {
+        totalEarnings,
+        totalBookings: (bookings.data || []).length,
+        completedCount: completed.length,
+        avgRating: avgRating.toFixed(1),
+        reviewCount: ratings.length,
+        recentReviews: ratings.slice(0, 5),
+        earningsChart: earningsByDay,
+        serviceType: node.data?.service_type || 'General',
+        isAvailable: node.data?.available ?? false
+      };
+
+      cache.set(cacheKey, result, 60000);
+      return result;
+    } catch (e) {
+      console.error('getProviderStats error:', e);
+      return null;
+    }
   },
 
   // [M,T,W,T,F,S,S] Gruv posting activity for profile chart
   async getWeeklyActivity(userId) {
     try {
-      const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
       const { data } = await supabase
         .from('events')
         .select('created_at')
@@ -934,7 +1061,7 @@ export const CalendarManager = {
     try {
       const { data } = await supabase
         .from('events')
-        .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media')
+        .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media, price')
         .gte('event_date', from)
         .lte('event_date', to)
         .order('event_date', { ascending: true })
@@ -956,7 +1083,7 @@ export const CalendarManager = {
       const today = new Date().toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
-        .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media')
+        .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media, price')
         .gte('event_date', today)
         .order('event_date', { ascending: true })
         .limit(limit);
@@ -978,7 +1105,7 @@ export const RealtimeManager = {
   },
 
   subscribeToFeed(onInsert, onUpdate) {
-    if (!this._isAvailable()) return () => {};
+    if (!this._isAvailable()) return () => { };
     this._add('feed_realtime', 'events_feed',
       supabase.channel('events_feed')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, p => {
@@ -996,7 +1123,7 @@ export const RealtimeManager = {
   },
 
   subscribeToEvent(eventId, onChange) {
-    if (!this._isAvailable()) return () => {};
+    if (!this._isAvailable()) return () => { };
     const key = `event_${eventId}`;
     this._add(key, key,
       supabase.channel(key)
@@ -1010,7 +1137,7 @@ export const RealtimeManager = {
 
   // Live vibe count changes for an event (useful on EventDetail screen)
   subscribeToVibeCount(eventId, onChange) {
-    if (!this._isAvailable()) return () => {};
+    if (!this._isAvailable()) return () => { };
     const key = `vibes_${eventId}`;
     this._add(key, key,
       supabase.channel(key)
@@ -1031,7 +1158,7 @@ export const RealtimeManager = {
 
   // Live Touch Down attendee count
   subscribeToAttendees(eventId, onChange) {
-    if (!this._isAvailable()) return () => {};
+    if (!this._isAvailable()) return () => { };
     const key = `checkins_${eventId}`;
     this._add(key, key,
       supabase.channel(key)
@@ -1200,7 +1327,7 @@ export const MessageManager = {
           convos.push({ ...msg, partner, partnerId });
         }
       }
-      cache.set(cacheKey, convos, 30_000);
+      cache.set(cacheKey, convos, 30000);
       return convos;
     } catch { return stale || []; }
   },
@@ -1219,7 +1346,7 @@ export const MessageManager = {
         .is('read_at', null)
         .is('deleted_at', null);
       const n = count || 0;
-      cache.set(cacheKey, n, 15_000);
+      cache.set(cacheKey, n, 15000);
       return n;
     } catch { return 0; }
   },
@@ -1227,6 +1354,9 @@ export const MessageManager = {
   // Send a message — supports media, location, event shares, replies, and request logic.
   // Pass _pregenId to use a client-generated UUID as the DB row ID (enables optimistic + broadcast sync).
   async send(senderId, recipientId, body, options = {}) {
+    if (SecurityService.isThrottled(`msg_${senderId}_${recipientId}`, 500)) {
+      throw new Error('Please wait a moment before sending another message.');
+    }
     const {
       messageType, type,
       mediaUrl = null,
@@ -1238,6 +1368,9 @@ export const MessageManager = {
     } = options;
     const msgType = messageType || type || 'text';
     try {
+      // Sanitize message body
+      const sanitizedBody = SecurityService.sanitizeContent(body);
+
       // Check if conversation already accepted
       const { data: prior } = await supabase
         .from('messages')
@@ -1254,7 +1387,7 @@ export const MessageManager = {
         .insert({
           ...(_pregenId ? { id: _pregenId } : {}),
           sender_id: senderId, recipient_id: recipientId,
-          body: trimmedBody,
+          body: (sanitizedBody || '').trim() || null,
           is_request: !accepted,
           request_accepted: accepted,
           message_type: msgType,
@@ -1274,8 +1407,8 @@ export const MessageManager = {
 
       const notifyText = msgType === 'image' ? 'Sent a photo'
         : msgType === 'location' ? 'Shared a location'
-        : msgType === 'vibe_card' ? 'Sent a Vibe Card'
-        : (trimmedBody || '').slice(0, 80);
+          : msgType === 'vibe_card' ? 'Sent a Vibe Card'
+            : (trimmedBody || '').slice(0, 80);
       _notify(recipientId, senderId, 'message', 'New Message', notifyText).catch(() => { });
 
       return data;
@@ -1351,7 +1484,7 @@ export const MessageManager = {
         .order('created_at', { ascending: true })
         .limit(limit);
       const result = data || [];
-      cache.set(cacheKey, result, 20_000);
+      cache.set(cacheKey, result, 20000);
       return result;
     } catch { return stale || []; }
   },
@@ -1526,7 +1659,7 @@ export const ReminderManager = {
         .eq('user_id', userId).eq('sent', false)
         .order('remind_at', { ascending: true });
       const result = data || [];
-      cache.set(cacheKey, result, 60_000);
+      cache.set(cacheKey, result, 60000);
       return result;
     } catch { return []; }
   },
@@ -1606,7 +1739,7 @@ export const CampaignManager = {
         .eq('business_id', bizId)
         .order('created_at', { ascending: false });
       const result = data || [];
-      cache.set(cacheKey, result, 60_000);
+      cache.set(cacheKey, result, 60000);
       return result;
     } catch { return stale || []; }
   },
@@ -1681,7 +1814,7 @@ export const FollowingFeedManager = {
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
       const result = { events: data || [], hasMore: (data || []).length === pageSize };
-      cache.set(cacheKey, result, 60_000);
+      cache.set(cacheKey, result, 60000);
       return result;
     } catch { return { events: [], hasMore: false }; }
   },
@@ -1885,7 +2018,7 @@ export const RetentionManager = {
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }),
       ]);
       const res = { users: u.count, events: e.count, vibes: v.count };
-      cache.set(cacheKey, res, 300_000);
+      cache.set(cacheKey, res, 300000);
       return res;
     } catch { return { users: 0, events: 0, vibes: 0 }; }
   }

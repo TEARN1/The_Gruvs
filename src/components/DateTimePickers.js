@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet,
+  Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
+const SCREEN_W = Dimensions.get('window').width;
 const ITEM_H = 52;
 const VISIBLE = 5;
 const MONTHS = [
@@ -123,7 +124,7 @@ export const CalendarPicker = ({
 
 const cp = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-  card: { width: '100%', maxWidth: 348, borderRadius: 24, padding: 20 },
+  card: { width: '100%', maxWidth: Math.min(SCREEN_W - 32, 348), borderRadius: 24, padding: 20 },
   navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
   navBtn: { padding: 4 },
   monthLabel: { fontSize: 17, fontWeight: '900' },
@@ -229,7 +230,7 @@ export const TimePicker = ({
 
 const tp = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', alignItems: 'center', padding: 32 },
-  card: { width: '100%', maxWidth: 280, borderRadius: 24, padding: 22, overflow: 'hidden' },
+  card: { width: '100%', maxWidth: Math.min(SCREEN_W - 32, 280), borderRadius: 24, padding: 22, overflow: 'hidden' },
   title: { fontSize: 16, fontWeight: '900', textAlign: 'center', marginBottom: 18, letterSpacing: 0.5 },
   wheelsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   col: { flex: 1, overflow: 'hidden', position: 'relative' },

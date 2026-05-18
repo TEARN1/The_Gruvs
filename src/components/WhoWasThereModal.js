@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useIdentity } from '../context/IdentityContext';
 import { DirectMessageModal } from './DirectMessageModal';
 import { ViberProfileModal } from './ViberProfileModal';
 
@@ -27,6 +28,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
+  const { applyProfilePrivacy } = useIdentity();
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -78,11 +80,16 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
       for (const row of (data || [])) {
         if (!seen.has(row.user_id) && row.profiles) {
           seen.add(row.user_id);
-          unique.push({
-            ...row.profiles,
-            venue_name: row.venue_name,
-            checkin_at: row.checked_in_at,
-          });
+
+          // Apply privacy filter (Ghost/Celebrity modes)
+          const privateProfile = applyProfilePrivacy(row.profiles, row.user_id);
+          if (privateProfile) {
+            unique.push({
+              ...privateProfile,
+              venue_name: row.venue_name,
+              checkin_at: row.checked_in_at,
+            });
+          }
         }
       }
       setResults(unique);
@@ -319,11 +326,11 @@ const s = StyleSheet.create({
   username: { fontSize: 14, fontWeight: '800' },
   venueName: { fontSize: 10, fontWeight: '800' },
   checkinTime: { fontSize: 10, fontWeight: '600' },
-  msgBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  empty: { flex: 1, alignItems: 'center', paddingTop: 80, gap: 12, paddingHorizontal: 32 },
+  msgBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  empty: { flex: 1, alignItems: 'center', paddingTop: 80, gap: 12, paddingHorizontal: 20 },
   emptyTitle: { fontSize: 16, fontWeight: '800' },
   emptySub: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
-  hint: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 40 },
+  hint: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 24 },
   hintTitle: { fontSize: 18, fontWeight: '900' },
   hintSub: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
 });

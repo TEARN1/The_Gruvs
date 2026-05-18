@@ -14,7 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
-import { adminChat } from '../services/claudeService';
+import { adminChat, chat, runHealthCheck, AIFeature } from '../services/claudeService';
 
 const OWNER_EMAIL = 'asemahlenkwali@gmail.com';
 
@@ -22,6 +22,7 @@ const QUICK_COMMANDS = [
   { label: '📊 Stats today',          query: 'How many new users signed up today and what is total user count?' },
   { label: '🔥 Top event this week',  query: 'What is the top trending event this week and why?' },
   { label: '⚠️ Churn risk users',     query: 'Show me users who are at risk of churning.' },
+  { label: '🩺 Health check',         query: 'Run a full platform health audit and recommend the top 3 actions for the owner.' },
   { label: '📢 Write announcement',   query: 'Generate a new app update announcement for the Upgrades section.' },
 ];
 
@@ -154,6 +155,39 @@ export const AdminAIScreen = ({ onClose }) => {
     );
   }
 
+  const runLLMSanityCheck = async () => {
+    if (loading) return;
+
+    const diagnosticText = 'Run a runtime AI diagnostic check. Confirm whether you can access current event data without guessing. If you cannot verify anything, say "I don\'t have enough verified data."';
+    const userMsg = { id: Date.now().toString(), role: 'user', text: diagnosticText };
+    setMessages(prev => [...prev, userMsg]);
+    setLoading(true);
+
+    const history = [...messages, userMsg]
+      .filter(m => m.role !== 'system')
+      .slice(-12)
+      .map(m => ({ role: m.role, content: m.text }));
+
+    try {
+      const result = await runHealthCheck({ userId: user.id });
+
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        text: result.text || 'No response received from the AI.',
+      }] );
+    } catch (e) {
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        text: `Diagnostic failed: ${e?.message || 'unknown error'}`,
+      }] );
+    } finally {
+      setLoading(false);
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
+    }
+  };
+
   const send = async (text) => {
     const trimmed = (text || input).trim();
     if (!trimmed || loading) return;
@@ -223,6 +257,13 @@ export const AdminAIScreen = ({ onClose }) => {
               <Text style={[styles.quickText, { color: primary }]}>{q.label}</Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={[styles.quickChip, { borderColor: `${primary}35`, backgroundColor: `${primary}08` }]}
+            onPress={runLLMSanityCheck}
+            disabled={loading}
+          >
+            <Text style={[styles.quickText, { color: primary }]}>🧪 LLM sanity check</Text>
+          </TouchableOpacity>
         </ScrollView>
       )}
 

@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { TrustLedger } from './trustLedger';
+import { LevelManager } from './dataFlow';
 
 export const EscrowService = {
   /**
@@ -105,6 +107,17 @@ export const EscrowService = {
         }
       }
 
+      // ── Movement OS Integration: Update Social Integrity Score ──
+      // Reward the provider for successful delivery
+      TrustLedger.updateAfterPath(providerId, {
+        checkinReliable: true,
+        cargoIntact: true,
+        socialPositive: true,
+      }).catch(() => {});
+
+      // ── Reward XP ──
+      LevelManager.addXP(providerId, 'BOOKING_COMPLETE').catch(() => {});
+
       return true;
     } catch (err) {
       console.error('[EscrowService.releaseToProvider] unexpected:', err.message);
@@ -175,6 +188,26 @@ export const EscrowService = {
     } catch (err) {
       console.error('[EscrowService.getBookingStatus] unexpected:', err.message);
       return null;
+    }
+  },
+
+  /**
+   * Fetch all bookings for a user (either as client or provider).
+   */
+  async getUserBookings(userId) {
+    if (!userId) return [];
+    try {
+      const { data, error } = await supabase
+        .from('service_bookings')
+        .select('*, provider:provider_id(username, avatar_url), client:client_id(username, avatar_url)')
+        .or(`client_id.eq.${userId},provider_id.eq.${userId}`)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('[EscrowService.getUserBookings] error:', err.message);
+      return [];
     }
   },
 };

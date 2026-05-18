@@ -334,7 +334,7 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                   onPress={() => goToEvent(ev)}
                 />
               </FadeInView>
-            ))Trending Events */}
+            )))}
           {trendingEvents.length > 0 && (
             <FadeInView direction="up" delay={120}>
               <SectionLabel label="TRENDING" color={muted} style={{ marginTop: 8 }} />
@@ -352,10 +352,6 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             </FadeInView>
           )}
 
-          {/* 
-          )}
-
-          {/* Activity */}
           <SectionLabel label="ACTIVITY" color={muted} style={{ marginTop: 8 }} />
           {loading ? (
             <>

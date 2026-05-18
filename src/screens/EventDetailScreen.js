@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Image, StyleSheet,
-  Platform, Linking, Share, Animated, Modal,
+  Platform, Linking, Share, Animated, Modal, Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const SCREEN_W = Dimensions.get('window').width;
+const HERO_H = Math.min(300, Math.max(220, SCREEN_W * 0.72));
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useIdentity } from '../context/IdentityContext';
 import { GlassView } from '../components/GlassView';
 import { EchoSection } from '../components/EchoSection';
 import { RatingSection } from '../components/RatingSection';
@@ -17,8 +22,11 @@ import { useToast } from '../components/ToastNotification';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, ScoreEngine } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
+import { SecurityService } from '../services/securityService';
 import { EventContextualAds } from '../components/EventContextualAds';
 import { DirectMessageModal } from '../components/DirectMessageModal';
+import { ReportModal } from '../components/ReportModal';
+import { EventScheduleSection } from '../components/EventScheduleSection';
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -54,6 +62,8 @@ const formatPrice = (price) => {
 export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) => {
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
+  const { applyLocationPrivacy, applyProfilePrivacy } = useIdentity();
+  const insets = useSafeAreaInsets();
   const { show: showToast } = useToast();
 
   const [rsvpStatus, setRsvpStatus] = useState(null);
@@ -69,6 +79,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [settingReminder, setSettingReminder] = useState(false);
   const [whoGoingVisible, setWhoGoingVisible] = useState(false);
   const [whoGoing, setWhoGoing] = useState([]);
+  const [reportVisible, setReportVisible] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -81,10 +92,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   const organizer = event?.profiles || {};
   const media = event?.media_urls?.length
-    ? event.media_urls.map((u) => ({ type: 'image', url: u }))
-    : event?.image_url
-      ? [{ type: 'image', url: event.image_url }]
-      : [];
+    ? event.media_urls.map((u) => ({ type: 'video', url: u }))
+    : event?.media?.length
+      ? event.media
+      : event?.image_url
+        ? [{ type: 'image', url: event.image_url }]
+        : [];
 
   useEffect(() => {
     if (visible) {
@@ -221,12 +234,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     try {
       const { data, error } = await supabase
         .from('event_rsvps')
-        .select('profiles(id, username, avatar_url, vibe_score)')
+        .select('profiles(id, username, avatar_url, vibe_score, identity_mode, is_beacon_active)')
         .eq('event_id', event.id)
         .eq('status', 'going')
         .limit(50);
       if (error) throw error;
-      setWhoGoing((data || []).map(r => r.profiles).filter(Boolean));
+
+      const results = (data || [])
+        .map(r => r.profiles)
+        .filter(Boolean)
+        .map(p => applyProfilePrivacy(p, p.id))
+        .filter(v => v !== null);
+
+      setWhoGoing(results);
       setWhoGoingVisible(true);
     } catch (err) {
       console.error('WhoGoing error:', err);
@@ -237,24 +257,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const openMaps = () => {
     if (!event?.venue_name) return;
     const query = encodeURIComponent(event.venue_address || event.venue_name);
-    Linking.openURL(`https://maps.google.com/?q=${query}`);
+    SecurityService.safeOpenURL(`https://maps.google.com/?q=${query}`);
   };
 
   const openTickets = () => {
-    if (event?.ticket_url) Linking.openURL(event.ticket_url);
+    if (event?.ticket_url) SecurityService.safeOpenURL(event.ticket_url);
   };
 
-  const handleReport = async () => {
+  const handleReport = () => {
     if (!user) { onAuthRequired?.(); return; }
-    try {
-      await supabase.from('reports').insert({
-        reporter_id: user.id,
-        target_id: event?.id,
-        target_type: 'event',
-        reason: 'flagged_by_user',
-      });
-    } catch { /* table may not exist yet — fall through */ }
-    showToast('Report submitted. We will review this Gruv.', 'info');
+    setReportVisible(true);
   };
 
   const handleCheckIn = async () => {
@@ -263,7 +275,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     setCheckingIn(true);
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch { }
     const coords = await LocationService.requestAndGet();
-    const ok = await CheckInManager.touchDown(event.id, user.id, coords || {});
+
+    // Apply privacy mode to coordinates
+    const privateCoords = coords ? applyLocationPrivacy(coords.lat, coords.lon) : {};
+
+    const ok = await CheckInManager.touchDown(event.id, user.id, privateCoords || {});
     setCheckingIn(false);
     if (ok) {
       setCheckedIn(true);
@@ -305,7 +321,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           )}
 
           <TouchableOpacity
-            style={[styles.heroBtn, styles.closeBtn]}
+            style={[styles.heroBtn, styles.closeBtn, { top: insets.top + 8 }]}
             onPress={onClose}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityRole="button"
@@ -314,7 +330,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             <Feather name="x" size={20} color="#fff" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.heroBtn, styles.shareBtn]} onPress={handleShare} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity style={[styles.heroBtn, styles.shareBtn, { top: insets.top + 8 }]} onPress={handleShare} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Feather name="share-2" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -511,6 +527,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {/* Contextual ads based on event phase */}
           {event && <EventContextualAds event={event} />}
 
+          {(event?.schedule?.length > 0) && (
+            <>
+              <View style={styles.sectionDivider} />
+              <EventScheduleSection
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                bg={background}
+              />
+            </>
+          )}
+
           <View style={styles.sectionDivider} />
           {event?.id && <EchoSection eventId={event.id} onAuthRequired={onAuthRequired} />}
 
@@ -520,12 +549,27 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           <View style={styles.sectionDivider} />
           {event?.id && <EventGallery eventId={event.id} />}
 
+          <View style={styles.sectionDivider} />
+          {media.length > 0 && (
+            <View style={{ marginBottom: 20 }}>
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>EVENT PREVIEW</Text>
+              <MediaViewer media={media} />
+            </View>
+          )}
+
           <TouchableOpacity style={styles.reportBtn} onPress={handleReport}>
             <Feather name="flag" size={12} color={textMuted} />
             <Text style={[styles.reportText, { color: textMuted }]}>Report Gruv</Text>
           </TouchableOpacity>
 
         </ScrollView>
+
+        <ReportModal
+          visible={reportVisible}
+          onClose={() => setReportVisible(false)}
+          targetId={event?.id}
+          targetType="event"
+        />
 
         {/* Who's Going Modal */}
         <Modal visible={whoGoingVisible} animationType="slide" transparent onRequestClose={() => setWhoGoingVisible(false)}>
@@ -587,7 +631,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hero: {
-    height: 280,
+    height: HERO_H,
     width: '100%',
     overflow: 'hidden',
     position: 'relative',
@@ -612,10 +656,10 @@ const styles = StyleSheet.create({
   },
   heroBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    top: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',

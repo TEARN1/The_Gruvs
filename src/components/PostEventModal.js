@@ -2,8 +2,10 @@ import React, { useState, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Image,
+  KeyboardAvoidingView, Platform, Image, Dimensions,
 } from 'react-native';
+
+const SCREEN_W = Dimensions.get('window').width;
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -14,6 +16,7 @@ import { supabase } from '../services/supabase';
 import { uploadToStorage } from '../services/storageService';
 import { CategoryPickerModal } from './CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
+import { VibeEquityLedger } from '../services/vibeEquityLedger';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
 import { fillEvent } from '../services/claudeService';
 
@@ -40,16 +43,19 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const [lon, setLon] = useState(null);
   const [ageRestriction, setAgeRestriction] = useState(0);
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [mediaItems, setMediaItems] = useState([]); // { uri, type, name }
-  // AI Fill — HIDDEN under development
-  // const [aiDescription, setAiDescription] = useState('');
-  // const [aiLoading, setAiLoading] = useState(false);
+  const [mediaItems, setMediaItems] = useState([]); // { uri, type, name, mimeType }
+  const [scheduleItems, setScheduleItems] = useState([]); // { id, time, title, performer, notes }
+  const [scheduleFormVisible, setScheduleFormVisible] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({ time: '', title: '', performer: '', notes: '' });
+  const [aiDescription, setAiDescription] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [error, setError] = useState('');
   const [catPickerVisible, setCatPickerVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [step, setStep] = useState(1);
   const scrollRef = useRef(null);
 
   const primary = currentTheme?.primary || '#00f2ff';
@@ -63,7 +69,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     setTicketUrl(''); setEventType('');
     setLat(null); setLon(null);
     setAgeRestriction(0); setSelectedCategories([]); setMediaItems([]);
-    setStep(1); // Start at step 1 when modal reopens
+    setScheduleItems([]); setScheduleFormVisible(false);
+    setScheduleForm({ time: '', title: '', performer: '', notes: '' });
+    setStep(1);
     setLoading(false); setUploadingMedia(false); setError('');
     setCalendarVisible(false); setTimePickerVisible(false);
   };
@@ -111,6 +119,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
         uri: a.uri,
         type: a.type || (a.uri.includes('.mp4') || a.uri.includes('.mov') ? 'video' : 'image'),
         name: a.fileName || `media_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        mimeType: a.mimeType || undefined,
       }));
       setMediaItems(prev => [...prev, ...newItems].slice(0, MAX_MEDIA));
     }
@@ -127,7 +136,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       try {
         const ext = (item.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
         const fileName = `events/${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const mimeType = item.type === 'video' ? `video/${ext}` : `image/${ext}`;
+        const mimeType = item.mimeType || (item.type === 'video' ? `video/${ext}` : `image/${ext}`);
         const publicUrl = await uploadToStorage(item.uri, 'event-media', fileName, { mimeType });
         uploaded.push({ url: publicUrl, type: item.type });
       } catch (e) {
@@ -181,6 +190,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       payload.event_time = `${String(pickedHour).padStart(2, '0')}:${String(pickedMinute).padStart(2, '0')}`;
     }
     if (mediaUrls.length > 0) payload.media = mediaUrls;
+    if (scheduleItems.length > 0) payload.schedule = scheduleItems.map(({ id, ...rest }) => rest);
     if (ageRestriction) payload.age_restriction = ageRestriction;
     if (primaryCat) payload.category = primaryCat;
     if (ticketUrl.trim()) payload.ticket_url = ticketUrl.trim();
@@ -216,6 +226,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       // Scroll down to show the error box
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 350);
     } else {
+      // MINT EQUITY: Hosting is the highest value action
+      VibeEquityLedger.mintEquity(user.id, 'EVENT_HOSTING').catch(() => {});
+
       reset();
       onPostSuccess?.();
       onClose();
@@ -257,6 +270,121 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   };
 
   const canProceedStep1 = title.trim().length > 2 && description.trim().length > 5 && address.trim().length > 3;
+
+  const addScheduleItem = () => {
+    if (!scheduleForm.time.trim() || !scheduleForm.title.trim()) return;
+    setScheduleItems(prev => [
+      ...prev,
+      { id: `${Date.now()}_${Math.random().toString(36).slice(2)}`, ...scheduleForm },
+    ]);
+    setScheduleForm({ time: '', title: '', performer: '', notes: '' });
+    setScheduleFormVisible(false);
+  };
+
+  const removeScheduleItem = (id) => setScheduleItems(prev => prev.filter(s => s.id !== id));
+
+  const renderScheduleBuilder = () => (
+    <View style={{ marginBottom: 20 }}>
+      <View style={pm.sectionHeader}>
+        <Text style={[pm.label, { color: muted, marginBottom: 0 }]}>Event Schedule</Text>
+        <TouchableOpacity
+          onPress={() => setScheduleFormVisible(v => !v)}
+          style={[pm.addScheduleBtn, { borderColor: primary, backgroundColor: `${primary}12` }]}
+        >
+          <Feather name="plus" size={13} color={primary} />
+          <Text style={{ color: primary, fontSize: 12, fontWeight: '800' }}>Add Slot</Text>
+        </TouchableOpacity>
+      </View>
+
+      {scheduleItems.length > 0 && (
+        <View style={{ gap: 8, marginBottom: 10 }}>
+          {scheduleItems.map((item) => (
+            <View key={item.id} style={[pm.scheduleRow, { borderColor: `${primary}30`, backgroundColor: `${primary}08` }]}>
+              <View style={[pm.scheduleTimeBadge, { backgroundColor: `${primary}20` }]}>
+                <Text style={[pm.scheduleTime, { color: primary }]}>{item.time}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[pm.scheduleTitle, { color: textColor }]}>{item.title}</Text>
+                {!!item.performer && <Text style={[pm.scheduleSub, { color: muted }]}>{item.performer}</Text>}
+                {!!item.notes && <Text style={[pm.scheduleSub, { color: muted, fontStyle: 'italic' }]}>{item.notes}</Text>}
+              </View>
+              <TouchableOpacity onPress={() => removeScheduleItem(item.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Feather name="x" size={16} color={muted} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {scheduleFormVisible && (
+        <View style={[pm.scheduleForm, { borderColor: `${primary}30`, backgroundColor: `${primary}06` }]}>
+          <Text style={[pm.scheduleFormTitle, { color: primary }]}>New Schedule Slot</Text>
+          <View style={pm.scheduleRow2}>
+            <TextInput
+              style={[pm.scheduleInput, { color: textColor, borderColor: `${primary}35`, flex: 0.7 }]}
+              placeholder="Time (e.g. 22:00)"
+              placeholderTextColor={muted}
+              value={scheduleForm.time}
+              onChangeText={v => setScheduleForm(f => ({ ...f, time: v }))}
+              maxLength={10}
+            />
+            <TextInput
+              style={[pm.scheduleInput, { color: textColor, borderColor: `${primary}35`, flex: 1.3 }]}
+              placeholder="Activity / Set title *"
+              placeholderTextColor={muted}
+              value={scheduleForm.title}
+              onChangeText={v => setScheduleForm(f => ({ ...f, title: v }))}
+              maxLength={60}
+            />
+          </View>
+          <TextInput
+            style={[pm.scheduleInput, { color: textColor, borderColor: `${primary}35` }]}
+            placeholder="Performer / Artist (optional)"
+            placeholderTextColor={muted}
+            value={scheduleForm.performer}
+            onChangeText={v => setScheduleForm(f => ({ ...f, performer: v }))}
+            maxLength={60}
+          />
+          <TextInput
+            style={[pm.scheduleInput, { color: textColor, borderColor: `${primary}35` }]}
+            placeholder="Notes / details (optional)"
+            placeholderTextColor={muted}
+            value={scheduleForm.notes}
+            onChangeText={v => setScheduleForm(f => ({ ...f, notes: v }))}
+            maxLength={100}
+          />
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+            <TouchableOpacity
+              style={[pm.scheduleConfirmBtn, { backgroundColor: scheduleForm.time && scheduleForm.title ? primary : `${primary}30`, flex: 1 }]}
+              onPress={addScheduleItem}
+              disabled={!scheduleForm.time.trim() || !scheduleForm.title.trim()}
+            >
+              <Feather name="check" size={14} color={scheduleForm.time && scheduleForm.title ? '#000' : muted} />
+              <Text style={{ color: scheduleForm.time && scheduleForm.title ? '#000' : muted, fontWeight: '800', fontSize: 13 }}>Add</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[pm.scheduleConfirmBtn, { borderColor: `${primary}30`, borderWidth: 1, backgroundColor: 'transparent' }]}
+              onPress={() => { setScheduleFormVisible(false); setScheduleForm({ time: '', title: '', performer: '', notes: '' }); }}
+            >
+              <Text style={{ color: muted, fontWeight: '700', fontSize: 13 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {scheduleItems.length === 0 && !scheduleFormVisible && (
+        <TouchableOpacity
+          onPress={() => setScheduleFormVisible(true)}
+          style={[pm.scheduleEmpty, { borderColor: `${primary}25` }]}
+        >
+          <Feather name="clock" size={18} color={`${primary}60`} />
+          <Text style={{ color: muted, fontSize: 12, marginTop: 6, textAlign: 'center', lineHeight: 18 }}>
+            Add a timeline — DJ sets, performances,{'\n'}speakers, activities, etc.
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   const renderCategoryChips = () => {
     if (selectedCategories.length === 0) return null;
@@ -463,8 +591,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                     </Text>
                   </TouchableOpacity>
 
+                  {/* Schedule */}
+                  {renderScheduleBuilder()}
+
                   {/* Categories */}
-                  <Text style={[pm.label, { color: muted, marginTop: 20 }]}>Categories & Interests</Text>
+                  <Text style={[pm.label, { color: muted, marginTop: 4 }]}>Categories & Interests</Text>
                   {renderCategoryChips()}
                   <TouchableOpacity
                     style={[pm.catBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}08` }]}
@@ -559,6 +690,12 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                     <Text style={[pm.summaryLine, { color: muted }]}>
                       🖼️ {mediaItems.length} media item{mediaItems.length !== 1 ? 's' : ''}
                     </Text>
+                    {scheduleItems.length > 0 && (
+                      <Text style={[pm.summaryLine, { color: muted }]}>
+                        🗓️ {scheduleItems.length} schedule slot{scheduleItems.length !== 1 ? 's' : ''}
+                        {' — '}{scheduleItems.map(s => s.time).join(', ')}
+                      </Text>
+                    )}
                   </GlassView>
 
                   {uploadingMedia && (
@@ -682,7 +819,7 @@ const pm = StyleSheet.create({
 
   tag: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginRight: 8 },
   ageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  ageBtn: { flex: 1, minWidth: 60, paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
+  ageBtn: { flex: 1, minWidth: SCREEN_W < 375 ? 45 : 60, paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
 
   // Summary
   summary: { borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, gap: 6 },
@@ -711,4 +848,18 @@ const pm = StyleSheet.create({
     padding: 12, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
   },
   errorText: { color: '#ef4444', fontSize: 12, fontWeight: '600' },
+
+  // Schedule builder
+  addScheduleBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  scheduleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderWidth: 1, borderRadius: 14, padding: 12 },
+  scheduleTimeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, minWidth: 50, alignItems: 'center' },
+  scheduleTime: { fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  scheduleTitle: { fontSize: 13, fontWeight: '800', lineHeight: 18 },
+  scheduleSub: { fontSize: 11, lineHeight: 16, marginTop: 2 },
+  scheduleForm: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10, marginBottom: 10 },
+  scheduleFormTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
+  scheduleRow2: { flexDirection: SCREEN_W < 375 ? 'column' : 'row', gap: 8 },
+  scheduleInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, fontSize: 13, backgroundColor: 'rgba(255,255,255,0.05)' },
+  scheduleConfirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 30 },
+  scheduleEmpty: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 16, paddingVertical: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
 });

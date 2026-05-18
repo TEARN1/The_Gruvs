@@ -22,6 +22,9 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { GigModeCard } from '../components/GigModeCard';
+import { PostGigModal } from '../components/PostGigModal';
+import { ProviderSetupModal } from '../components/ProviderSetupModal';
+import { ProviderDashboardScreen } from './ProviderDashboardScreen';
 
 // ---------------------------------------------------------------------------
 // Sample fallback data
@@ -417,6 +420,9 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
   const [refreshing, setRefreshing] = useState(false);
   const [bookingTarget, setBookingTarget] = useState(null);
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
+  const [postModalVisible, setPostModalVisible] = useState(false);
+  const [providerModalVisible, setProviderModalVisible] = useState(false);
+  const [providerDashVisible, setProviderDashVisible] = useState(false);
 
   const fetchProviders = useCallback(async () => {
     // Removed demo mode fallback. Real data required.
@@ -526,26 +532,46 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
         </View>
 
         {/* Gig Mode toggle */}
-        <TouchableOpacity
-          style={[
-            styles.gigToggle,
-            {
-              backgroundColor: gigMode ? primary : surface,
-              borderColor: primary,
-            },
-          ]}
-          onPress={() => setGigMode((v) => !v)}
-          activeOpacity={0.8}
-        >
-          <Feather
-            name={gigMode ? 'zap' : 'briefcase'}
-            size={13}
-            color={gigMode ? '#fff' : primary}
-          />
-          <Text style={[styles.gigToggleText, { color: gigMode ? '#fff' : primary }]}>
-            {gigMode ? 'Gig Mode ON' : 'Gig Mode'}
-          </Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {gigMode ? (
+            <TouchableOpacity
+              style={[styles.postBtn, { borderColor: primary, backgroundColor: `${primary}15` }]}
+              onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
+            >
+              <Feather name="plus" size={14} color={primary} />
+              <Text style={[styles.postBtnText, { color: primary }]}>Post Gig</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.postBtn, { borderColor: primary, backgroundColor: `${primary}15` }]}
+              onPress={() => user ? setProviderDashVisible(true) : onAuthRequired()}
+            >
+              <Feather name="grid" size={14} color={primary} />
+              <Text style={[styles.postBtnText, { color: primary }]}>My Hub</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={[
+              styles.gigToggle,
+              {
+                backgroundColor: gigMode ? primary : surface,
+                borderColor: primary,
+              },
+            ]}
+            onPress={() => setGigMode((v) => !v)}
+            activeOpacity={0.8}
+          >
+            <Feather
+              name={gigMode ? 'zap' : 'briefcase'}
+              size={13}
+              color={gigMode ? '#fff' : primary}
+            />
+            <Text style={[styles.gigToggleText, { color: gigMode ? '#fff' : primary }]}>
+              {gigMode ? 'Gig Mode ON' : 'Gig Mode'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── Tabs ── */}
@@ -697,6 +723,29 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
         }}
         showToast={showToast}
       />
+
+      <PostGigModal
+        visible={postModalVisible}
+        onClose={() => setPostModalVisible(false)}
+        onPostSuccess={() => {
+          showToast('Gig posted successfully!', 'success');
+          load(true);
+        }}
+      />
+
+      <ProviderSetupModal
+        visible={providerModalVisible}
+        onClose={() => setProviderModalVisible(false)}
+        onSaveSuccess={() => {
+          showToast('Provider settings updated!', 'success');
+          load(true);
+        }}
+      />
+
+      <ProviderDashboardScreen
+        visible={providerDashVisible}
+        onClose={() => setProviderDashVisible(false)}
+      />
     </View>
   );
 }
@@ -735,6 +784,19 @@ const styles = StyleSheet.create({
   gigToggleText: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  postBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  postBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
   },
 
   // Tabs

@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback, startTransition } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Image,
   Animated, Linking, RefreshControl, ScrollView, TextInput,
-  Share, Modal, Platform, ActivityIndicator,
+  Share, Modal, Platform, ActivityIndicator, Dimensions,
 } from 'react-native';
+
+const SCREEN_W = Dimensions.get('window').width;
+const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
+const TREND_CARD_H = Math.round(TREND_CARD_W * 0.62);
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -20,6 +24,7 @@ import { BrandLogo } from '../components/BrandLogo';
 import { ReactPicker } from '../components/ReactPicker';
 import { EchoSection } from '../components/EchoSection';
 import { RatingSection } from '../components/RatingSection';
+import { PulseScheduleSection } from '../components/PulseScheduleSection';
 import { EventGallery } from '../components/EventGallery';
 import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
 import { EventAdminPanel } from '../components/EventAdminPanel';
@@ -36,10 +41,15 @@ import { useIdentity } from '../context/IdentityContext';
 import { PresenceBar } from '../components/PresenceBar';
 import { AdFlywheel } from '../components/AdFlywheel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
+import { EventMapView } from '../components/EventMapView';
 import { PathMapScreen } from './PathMapScreen';
 import { EventDetailScreen } from './EventDetailScreen';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { SecurityService } from '../services/securityService';
 import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine } from '../services/dataFlow';
+import { RouteEngine } from '../services/routeEngine';
+import { VibePredictor } from '../services/vibePredictor';
+import { NeuralUI } from '../services/neuralUI';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 import { FONT, RADIUS } from '../constants/DesignTokens';
 import { SkeletonCard as SkeletonCardImported } from '../components/SkeletonCard';
@@ -204,7 +214,7 @@ const tm = StyleSheet.create({
 
 // ── Main LandingPage ──────────────────────────────────────────────────────────
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices }) => {
-  const { currentTheme } = useTheme();
+  const { currentTheme, applyNeuralTheme } = useTheme();
   const { user, profile } = useAuth();
   const toast = useToast();
   const { identityMode, modeConfig } = useIdentity();
@@ -212,12 +222,27 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   const [events, setEvents] = useState([]);
   const [trending, setTrending] = useState([]);
+  const [trendingEvents, setTrendingEvents] = useState([]); // full event objects for top trending
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedCat, setSelectedCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [prediction, setPrediction] = useState(null);
+  const [loadingPrediction, setLoadingPrediction] = useState(false);
+  const [layoutType, setLayoutType] = useState('list');
   const searchTimer = useRef(null);
+  const [routeEvents, setRouteEvents] = useState([]);
+  const [routeModalVisible, setRouteModalVisible] = useState(false);
+  const [computedRoute, setComputedRoute] = useState([]);
+  const [userCoords, setUserCoords] = useState(null);
+  
+  // Resolve optimal path asynchronously when needed
+  useEffect(() => {
+    if (routeModalVisible && routeEvents.length > 0) {
+      RouteEngine.calculateOptimalPath(routeEvents, userCoords).then(setComputedRoute);
+    }
+  }, [routeEvents, userCoords, routeModalVisible]);
   const [highlightedId, setHighlightedId] = useState(null);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -242,6 +267,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [openEcho, setOpenEcho] = useState({});
   const [openGallery, setOpenGallery] = useState({});
   const [openRate, setOpenRate] = useState({});
+  const [openPulseSchedule, setOpenPulseSchedule] = useState({});
   const [reactionFlash, setReactionFlash] = useState({});
 
   // New feature modals
@@ -263,71 +289,33 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const surface = currentTheme?.surface || '#131a1c';
 
-  // Debounce search — avoids a network hit on every keystroke
-  useEffect(() => {
-    clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => setDebouncedQuery(searchQuery), 350);
-    return () => clearTimeout(searchTimer.current);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    loadData(true);
-  }, [selectedCat, debouncedQuery, mode, refreshKey, feedMode, user?.id]);
-
-  useEffect(() => { loadTrending(); }, []);
-
-  // Scroll-to + highlight when arriving from Explore
-  useEffect(() => {
-    if (!targetEvent || loading || events.length === 0) return;
-
-    const targetId = String(targetEvent.id || targetEvent.event_id || '');
-    const idx = events.findIndex(e => String(e.id) === targetId);
-
-    if (idx >= 0) {
-      setHighlightedId(events[idx].id);
-      setTimeout(() => {
-        flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.1 });
-      }, 350);
-      setTimeout(() => setHighlightedId(null), 3500);
-    } else if (targetEvent.category && targetEvent.category !== 'all') {
-      setSelectedCat(targetEvent.category);
-      toast.show(`Browsing ${targetEvent.category} events`, 'info');
-    }
-
-    onTargetHandled?.();
-  }, [targetEvent, loading, events.length]);
-
-  // Real-time updates
-  useEffect(() => {
-    // Real-time updates required for production.
-
-    const channel = supabase.channel('public:events')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events' }, payload => {
-        const updatedEvent = payload.new;
-        setEvents(prev => prev.map(ev => ev.id === updatedEvent.id ? { ...ev, ...updatedEvent } : ev));
-        setVibeCounts(prev => ({ ...prev, [updatedEvent.id]: updatedEvent.vibe_count }));
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Pattern: Passive Background Re-ranking
-  // Keeps the feed order fresh based on real-time stat changes (velocity/score)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (events.length > 0 && !loading && !refreshing) {
-        setEvents(prev => ScoreEngine.reRank(prev, {
-          userInterests: profile?.interests || [],
-          followedIds: Array.from(new Set(events.map(e => e.author_id))), // approximate followed from current visible authors
-        }));
+  const loadTrending = useCallback(async () => {
+    try {
+      const data = await TrendingManager.fetch(8);
+      setTrending(data || []);
+      // Fetch full event objects for top 3 trending so they can be shown as interactive cards
+      const ids = (data || []).slice(0, 3).map(s => s.event_id).filter(Boolean);
+      if (ids.length) {
+        const { data: fullEvents } = await supabase
+          .from('events')
+          .select('*, profiles!author_id(username, avatar_url, vibe_score)')
+          .in('id', ids)
+          .eq('is_cancelled', false);
+        if (fullEvents?.length) {
+          // Preserve trending rank order
+          const ranked = ids
+            .map((id, i) => {
+              const ev = fullEvents.find(e => e.id === id);
+              return ev ? { ...ev, _isTrending: true, _trendingRank: i + 1 } : null;
+            })
+            .filter(Boolean);
+          setTrendingEvents(ranked);
+        }
       }
-    }, 60000); // Re-rank every minute
-
-    return () => clearInterval(interval);
-  }, [events.length, loading, refreshing, profile?.interests]);
+    } catch (err) {
+      console.error('Trending load error:', err);
+    }
+  }, []);
 
   const loadData = useCallback(async (isRefreshing = false) => {
     if (loadingMore || (!hasMore && !isRefreshing)) {
@@ -379,25 +367,42 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
   }, [selectedCat, debouncedQuery, mode, page, hasMore, loadingMore, events, feedMode, user]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
     loadData(true);
-  };
+  }, [loadData]);
 
-  const handleLoadMore = () => {
-    if (!loading && !loadingMore && hasMore) {
-      loadData(false);
-    }
-  };
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && hasMore) loadData(false);
+  }, [loadData, loadingMore, hasMore]);
 
-  const loadTrending = useCallback(async () => {
-    try {
-      const data = await TrendingManager.fetch(8);
-      setTrending(data || []);
-    } catch (err) {
-      console.error('Trending load error:', err);
-    }
-  }, []);
+  // Stable feed: trending full-cards first, then regular events (deduped).
+  // Computed without emptying the list — prevents the "Kingdom is Quiet" bounce.
+  const trendingIds = useMemo(
+    () => new Set(trendingEvents.map(e => e.id)),
+    [trendingEvents]
+  );
+  const feedData = useMemo(
+    () => [...trendingEvents, ...events.filter(e => !trendingIds.has(e.id))],
+    [trendingEvents, events, trendingIds]
+  );
+
+  // Debounce search — avoids a network hit on every keystroke
+  useEffect(() => {
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => setDebouncedQuery(searchQuery), 350);
+    return () => clearTimeout(searchTimer.current);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    loadData(true);
+  }, [selectedCat, debouncedQuery, mode, refreshKey, feedMode, user?.id, loadData]);
+
+  useEffect(() => {
+    loadTrending();
+  }, [loadTrending, user?.id, profile?.vibe_score]);
+
+  // Scroll-to + highlight when arriving from Explore
 
   // Crew signal — who among followed users has RSVP'd to events in the feed
   useEffect(() => {
@@ -602,6 +607,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       });
   };
 
+  const handleToggleRoute = (event) => {
+    const isAdded = routeEvents.some(e => e.id === event.id);
+    if (isAdded) {
+      setRouteEvents(prev => prev.filter(e => e.id !== event.id));
+      toast.show('Removed from your journey', 'info');
+    } else {
+      if (routeEvents.length >= 6) {
+        toast.show('Royal Routes are capped at 6 stops', 'info');
+        return;
+      }
+      setRouteEvents(prev => [...prev, event]);
+      toast.show('Added to your journey 📍', 'success');
+      safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+    }
+  };
+
   const openViberProfile = (profile) => {
     if (!profile) return;
     setSelectedViber(profile);
@@ -699,6 +720,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         }}
         primary={primary}
       />
+
+      {/* Vibe Oracle (AI Prediction) — DISABLED */}
 
       {/* Feed mode toggle — All / Following */}
       {user && (
@@ -889,6 +912,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             } : {})}
           >
 
+            {/* Trending crown banner */}
+            {event._isTrending && (
+              <View style={[styles.trendingBanner, { backgroundColor: primary }]}>
+                <Text style={styles.trendingBannerText}>
+                  🔥 #{event._trendingRank} TRENDING NOW
+                </Text>
+              </View>
+            )}
+
             {/* Media */}
             {/* Item 49: aspect-ratio reserves space before image loads (prevents CLS) */}
             <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }, isWeb && { aspectRatio: '16/9' }]}>
@@ -1012,7 +1044,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 {(event.venue_name || event.address) ? (
                   <TouchableOpacity
                     style={styles.metaItem}
-                    onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
+                    onPress={() => SecurityService.safeOpenURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
                   >
                     <Feather name="map-pin" size={11} color={primary} />
                     <Text style={[styles.metaText, { color: primary }]} numberOfLines={1}>
@@ -1071,13 +1103,30 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               {event.ticket_url ? (
                 <TouchableOpacity
                   style={[styles.ticketBtn, { borderColor: catColor }]}
-                  onPress={() => Linking.openURL(event.ticket_url)}
+                  onPress={() => SecurityService.safeOpenURL(event.ticket_url)}
                 >
                   <Feather name="tag" size={13} color={catColor} />
                   <Text style={[styles.ticketText, { color: catColor }]}>Get Tickets / RSVP</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
+
+            {/* Schedule preview — tap card to see full schedule + polls */}
+            {event.schedule?.length > 0 && (
+              <TouchableOpacity
+                style={[styles.schedulePreview, { backgroundColor: `${primary}0d`, borderTopColor: `${primary}20` }]}
+                onPress={() => setSelectedEvent(event)}
+                activeOpacity={0.8}
+              >
+                <Feather name="calendar" size={13} color={primary} />
+                <Text style={[styles.schedulePreviewText, { color: primary }]}>
+                  {event.schedule.length} schedule slot{event.schedule.length !== 1 ? 's' : ''}
+                  {' · '}{event.schedule.slice(0, 2).map(s => s.time).join(', ')}
+                  {event.schedule.length > 2 ? ' …' : ''}
+                </Text>
+                <Feather name="chevron-right" size={13} color={primary} />
+              </TouchableOpacity>
+            )}
 
             {/* Reaction summary */}
             {event.reaction_count > 0 ? (
@@ -1131,6 +1180,30 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 >
                   <Feather name="camera" size={19} color={openGallery[id] ? primary : muted} />
                   <Text style={[styles.actionLabel, { color: openGallery[id] ? primary : muted }]}>Gallery</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => startTransition(() => setOpenPulseSchedule(p => ({ ...p, [id]: !p[id] })))}
+                  accessibilityRole="button"
+                  accessibilityLabel="View Pulse Schedule"
+                >
+                  <Feather name="activity" size={19} color={openPulseSchedule[id] ? primary : muted} />
+                  <Text style={[styles.actionLabel, { color: openPulseSchedule[id] ? primary : muted }]}>Pulse</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => handleToggleRoute(event)}
+                  accessibilityRole="button"
+                  accessibilityLabel={routeEvents.some(re => re.id === id) ? 'Remove from journey' : 'Add to journey'}
+                >
+                  <Feather
+                    name={routeEvents.some(re => re.id === id) ? "map-pin" : "plus-circle"}
+                    size={19}
+                    color={routeEvents.some(re => re.id === id) ? primary : muted}
+                  />
+                  <Text style={[styles.actionLabel, { color: routeEvents.some(re => re.id === id) ? primary : muted }]}>Journey</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1195,6 +1268,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             {openRate[id] && (
               <RatingSection eventId={id} onAuthRequired={onAuthRequired} />
             )}
+            {openPulseSchedule[id] && (
+              <PulseScheduleSection eventId={id} eventCategory={event.category} onAuthRequired={onAuthRequired} />
+            )}
             {!isSample && (
               <PresenceBar
                 eventId={id}
@@ -1235,7 +1311,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       <FlatList
         ref={flatListRef}
-        data={loading ? [] : events}
+        data={feedData}
+        key={layoutType}
+        numColumns={layoutType === 'grid' ? 2 : 1}
+        columnWrapperStyle={layoutType === 'grid' ? { gap: 0 } : undefined}
         keyExtractor={item => String(item.id)}
         showsVerticalScrollIndicator={false}
         onScrollToIndexFailed={() => { }}
@@ -1266,11 +1345,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           ) : null
         }
         ListEmptyComponent={
-          loading ? (
+          // Only render empty state when data has genuinely settled to zero.
+          // During refresh the pull-to-refresh spinner is sufficient — never flash an empty screen.
+          loading && events.length === 0 ? (
             <View style={{ paddingTop: 8 }}>
               {[1, 2, 3].map(i => <SkeletonCard key={i} primary={primary} />)}
             </View>
-          ) : (
+          ) : !loading && feedData.length === 0 ? (
             <View style={styles.emptyWrap}>
               <View style={[styles.emptyIconCircle, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}>
                 <Feather name={feedMode === 'following' ? 'users' : 'compass'} size={48} color={primary} />
@@ -1301,7 +1382,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 </TouchableOpacity>
               )}
             </View>
-          )
+          ) : null
         }
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
@@ -1365,6 +1446,33 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         onClose={() => setSelectedEvent(null)}
         onAuthRequired={onAuthRequired}
       />
+
+      {/* Royal Journey Builder Floating Action */}
+      {routeEvents.length > 0 && (
+        <TouchableOpacity
+          style={[styles.routeFab, { backgroundColor: primary }]}
+          onPress={() => setRouteModalVisible(true)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.routeFabBadge}>
+            <Text style={styles.routeFabBadgeText}>{routeEvents.length}</Text>
+          </View>
+          <Feather name="map" size={24} color="#000" />
+        </TouchableOpacity>
+      )}
+
+      {/* Royal Journey Map View */}
+      <EventMapView
+        visible={routeModalVisible}
+        onClose={() => setRouteModalVisible(false)}
+        events={computedRoute}
+        userCoords={userCoords}
+        isRoute={true}
+        onSelectEvent={(ev) => {
+          setRouteModalVisible(false);
+          setSelectedEvent(ev);
+        }}
+      />
     </View>
   );
 };
@@ -1399,12 +1507,16 @@ const styles = StyleSheet.create({
   visitorBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginVertical: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
   visitorText: { flex: 1, fontSize: 12, lineHeight: 17 },
 
+  // Trending banner on full cards
+  trendingBanner: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 6 },
+  trendingBannerText: { color: '#000', fontSize: 11, fontWeight: '900', letterSpacing: 1 },
+
   // Trending
   trendingSection: { marginBottom: 10, marginTop: 14 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '900' },
   seeAll: { fontSize: 13, fontWeight: '800' },
-  trendCard: { width: 210, height: 130, borderRadius: 18, overflow: 'hidden', position: 'relative' },
+  trendCard: { width: TREND_CARD_W, height: TREND_CARD_H, borderRadius: 18, overflow: 'hidden', position: 'relative' },
   trendImg: { width: '100%', height: '100%' },
   trendOverlay: { ...StyleSheet.absoluteFillObject },
   trendRank: { position: 'absolute', top: 10, left: 10, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
@@ -1415,8 +1527,10 @@ const styles = StyleSheet.create({
   trendMeta: { color: 'rgba(255,255,255,0.75)', fontSize: 10 },
 
   // Card
-  eventCard: { marginHorizontal: 16, marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
-  imgSection: { position: 'relative' },
+  eventCard: { flex: 1, marginHorizontal: SCREEN_W < 375 ? 10 : 16, marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
+  schedulePreview: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
+  schedulePreviewText: { fontSize: 12, fontWeight: '700', flex: 1, flexShrink: 1, minWidth: 0 },
+  imgSection: { position: 'relative', minHeight: Math.round((SCREEN_W - 32) * 9 / 16) },
   catBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
   catBadgeText: { fontSize: 9, ...FONT.badge, letterSpacing: 0.8 }, // item 60: 0.8 improves 9px legibility
   bookmarkBtn: { position: 'absolute', top: 12, right: 12, padding: 8, borderRadius: 20 },
@@ -1426,7 +1540,7 @@ const styles = StyleSheet.create({
   avatarWrap: { position: 'relative' },
   avatar: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5 },
   onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: 5, borderWidth: 1.5, borderColor: '#000' },
-  username: { fontSize: 14, fontWeight: '900' },
+  username: { fontSize: 14, fontWeight: '900', flex: 1, flexShrink: 1, minWidth: 0 },
   vibeScoreBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1 },
   vibeScoreText: { fontSize: 8, fontWeight: '900' },
   handle: { fontSize: 10, opacity: 0.6 },
@@ -1437,9 +1551,9 @@ const styles = StyleSheet.create({
   eventTitle: { fontSize: 22, fontWeight: '900', marginBottom: 8, letterSpacing: -0.3 },
   eventDesc: { fontSize: 14, lineHeight: 22, marginBottom: 14, opacity: 0.85 },
 
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 11 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+  metaText: { fontSize: 11, flexShrink: 1 },
 
   countdown: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginBottom: 10 },
   countdownText: { fontSize: 11, fontWeight: '800' },
@@ -1476,4 +1590,9 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 30 },
   emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 30 },
   emptyBtnText: { fontWeight: '900', fontSize: 14, letterSpacing: 0.5 },
+
+  // Royal Journey FAB
+  routeFab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, elevation: 10, zIndex: 100 },
+  routeFabBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: '#ef4444', minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#000' },
+  routeFabBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
 });

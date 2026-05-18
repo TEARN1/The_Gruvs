@@ -25,25 +25,29 @@ import { CrewFeedScreen } from './src/screens/CrewFeedScreen';
 import { ExplorePage } from './src/screens/ExplorePage';
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
-// import { AIAssistant } from './src/components/AIAssistant'; // HIDDEN — Under development
+import { GodViewDashboard } from './src/screens/GodViewDashboard';
+//import { AIAssistant } from './src/components/AIAssistant'; // HIDDEN — Under development
 import { installGlobalErrorHandler } from './src/utils/errorReporter';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { SecurityService } from './src/services/securityService';
+import { VibeEconomyEngine } from './src/services/revenueEngine';
+import { NeuralUI } from './src/services/neuralUI';
 
 // Install before any component mounts so all boot errors are captured
 installGlobalErrorHandler();
 
 const TABS = [
-  { key: 'feed',          label: 'The Drop',  icon: 'home'            },
-  { key: 'explore',       label: 'Explore',   icon: 'compass'         },
-  { key: 'crew',          label: 'Crew',      icon: 'users'           },
-  { key: 'calendar',      label: 'Lineup',    icon: 'calendar'        },
-  { key: 'chats',         label: 'Linked Up', icon: 'message-circle'  },
-  { key: 'notifications', label: 'Pings',     icon: 'bell'            },
-  { key: 'profile',       label: 'Vibe Card', icon: 'user'            },
+  { key: 'feed', label: 'The Drop', icon: 'home' },
+  { key: 'explore', label: 'Explore', icon: 'compass' },
+  { key: 'crew', label: 'Crew', icon: 'users' },
+  { key: 'calendar', label: 'Lineup', icon: 'calendar' },
+  { key: 'chats', label: 'Linked Up', icon: 'message-circle' },
+  { key: 'notifications', label: 'Pings', icon: 'bell' },
+  { key: 'profile', label: 'Vibe Card', icon: 'user' },
 ];
 
-const WIDE_BREAKPOINT      = BREAKPOINT.wide;
-const SIDEBAR_OPEN_WIDTH   = 220;
+const WIDE_BREAKPOINT = BREAKPOINT.wide;
+const SIDEBAR_OPEN_WIDTH = 220;
 const SIDEBAR_CLOSED_WIDTH = 56;
 
 // ── Bottom Tab Bar (narrow screens) ──────────────────────────────────────────
@@ -118,7 +122,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0, unre
 
 // ── Left Sidebar (wide screens) ───────────────────────────────────────────────
 // Item 33: accessibilityRole="navigation" on root
-const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onToggle }) => (
+const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onToggle, onGodView }) => (
   <View
     accessibilityRole="navigation"
     accessibilityLabel="Main navigation"
@@ -133,7 +137,11 @@ const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onTog
     ]}
   >
     {/* Logo */}
-    <View style={[sb.logoRow, { justifyContent: isOpen ? 'flex-start' : 'center' }]}>
+    <TouchableOpacity
+      activeOpacity={1}
+      onLongPress={onGodView}
+      style={[sb.logoRow, { justifyContent: isOpen ? 'flex-start' : 'center' }]}
+    >
       <BrandLogo size={24} showGlow={isOpen} />
       {isOpen && (
         <View style={{ marginLeft: 10 }}>
@@ -141,7 +149,7 @@ const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onTog
           <Text style={[sb.logoSub, { color: muted }]}>Royale Edition</Text>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
 
     <View style={[sb.divider, { backgroundColor: `${primary}15` }]} />
 
@@ -216,9 +224,9 @@ const sb = StyleSheet.create({
     paddingVertical: 16,
   },
   logoName: { fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
-  logoSub:  { fontSize: 8,  fontWeight: '700', letterSpacing: 1,   marginTop: 2, opacity: 0.6 },
-  divider:  { height: 1, marginHorizontal: 14, marginBottom: 8 },
-  nav:      { flex: 1 },
+  logoSub: { fontSize: 8, fontWeight: '700', letterSpacing: 1, marginTop: 2, opacity: 0.6 },
+  divider: { height: 1, marginHorizontal: 14, marginBottom: 8 },
+  nav: { flex: 1 },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -241,15 +249,17 @@ const sb = StyleSheet.create({
 
 // ── Main Navigator ─────────────────────────────────────────────────────────────
 const MainNavigator = () => {
-  const { currentTheme } = useTheme();
+  const { currentTheme, applyNeuralTheme } = useTheme();
   const { width } = useWindowDimensions();
-  const unreadCount   = useUnreadCount();
+  const unreadCount = useUnreadCount();
   const unreadDMCount = useUnreadDMCount();
-  const { hasLaunched, openTutorial, markLaunched } = useTutorial();
+  const { hasLaunched, openTutorial, markLaunched, activeTutorial } = useTutorial();
   const [currentTab, setCurrentTab] = useState('feed');
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [authModalVisible, setAuthModalVisible] = useState(false);
+  const [godViewVisible, setGodViewVisible] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isSovereign, setIsSovereign] = useState(false);
   const [targetEvent, setTargetEvent] = useState(null);
   // Item 41: cross-fade between screens
   const screenOpacity = useRef(new Animated.Value(1)).current;
@@ -271,6 +281,37 @@ const MainNavigator = () => {
 
   // Auto-launch welcome tutorial on first app open
   useEffect(() => {
+    // Advanced Logic: Check Sovereign Status
+    const checkStatus = async () => {
+      const { user } = SecurityService.getCurrentSession();
+      if (user) {
+        const status = await VibeEconomyEngine.getSovereignStatus(user.id);
+        setIsSovereign(status.isRoyal);
+
+        // NEW: Dynamic Sovereign Glow
+        if (status.isRoyal) {
+          // Apply a subtle glow effect to the UI based on equity
+          const glowIntensity = Math.min(1, status.equity / VibeEconomyEngine.ROYAL_THRESHOLD);
+          applyNeuralTheme({ glowIntensity: glowIntensity * 0.5 }); // Max 50% intensity
+        }
+
+        // Advanced Logic: Neural UI Mutation
+        if (status.isRoyal || status.sis > 90) {
+          NeuralUI.calculateOptimalEnvironment({ sis: status.sis, equity: status.equity })
+            .then(res => applyNeuralTheme(res.custom_tokens))
+            .catch(() => { });
+        }
+      }
+    };
+    checkStatus();
+
+    // Security check: validate session on mount
+    SecurityService.validateSession().then(isValid => {
+      if (!isValid && currentTab !== 'feed') {
+        // Optional: force sign out or redirect if session is invalid
+      }
+    });
+
     if (!hasLaunched) {
       const t = setTimeout(() => {
         openTutorial('welcome');
@@ -280,10 +321,10 @@ const MainNavigator = () => {
     }
   }, [hasLaunched]);
 
-  const bg      = currentTheme?.background || '#0d1112';
-  const primary = currentTheme?.primary    || '#00f2ff';
-  const muted   = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const isDark  = !bg.startsWith('#f') && !bg.startsWith('#e');
+  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || '#00f2ff';
+  const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
+  const isDark = !bg.startsWith('#f') && !bg.startsWith('#e');
 
   // Item 35: keyboard navigation 1-6 on web desktop
   useEffect(() => {
@@ -309,7 +350,7 @@ const MainNavigator = () => {
 
   const handleTabChange = (tab) => {
     if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
     }
 
     if (tab === currentTab && tab === 'feed') {
@@ -426,6 +467,7 @@ const MainNavigator = () => {
               bg={bg}
               isOpen={sidebarOpen}
               onToggle={() => setSidebarOpen(p => !p)}
+              onGodView={() => setGodViewVisible(true)}
             />
             {/* Item 43: nativeID for skip-link anchor */}
             <Animated.View nativeID="main-content" style={[styles.wideContent, { opacity: screenOpacity }]}>
@@ -462,7 +504,13 @@ const MainNavigator = () => {
       {/* <AIAssistant bottomOffset={80} /> */}
 
       {/* Tutorial overlay — rendered on top of everything */}
-      <TutorialOverlay />
+      {activeTutorial && <TutorialOverlay />}
+
+      {/* Supreme God View Dashboard */}
+      <GodViewDashboard
+        visible={godViewVisible}
+        onClose={() => setGodViewVisible(false)}
+      />
     </View>
   );
 };
@@ -502,12 +550,12 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
 
   // Wide layout
-  wideLayout:  { flex: 1, flexDirection: 'row' },
+  wideLayout: { flex: 1, flexDirection: 'row' },
   wideContent: { flex: 1, overflow: 'hidden' },
 
   // Narrow layout
   narrowLayout: { flex: 1 },
-  content:      { flex: 1 },
+  content: { flex: 1 },
 
   // Bottom tab bar — height expands to cover bottom inset (home indicator / nav bar)
   tabBar: {
@@ -532,7 +580,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   tabLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
-  tabDot:   { width: 4, height: 4, borderRadius: 2, marginTop: 1 },
+  tabDot: { width: 4, height: 4, borderRadius: 2, marginTop: 1 },
   unreadBadge: { position: 'absolute', top: -4, right: -6, minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
   unreadBadgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
 

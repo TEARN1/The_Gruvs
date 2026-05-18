@@ -1,6 +1,7 @@
 import { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { UserManager, clearAllCache, PresenceManager } from '../services/dataFlow';
+import { SecurityService } from '../services/securityService';
 
 const AuthContext = createContext();
 
@@ -56,6 +57,22 @@ export const AuthProvider = ({ children }) => {
     return () => listener?.subscription?.unsubscribe();
   }, [fetchProfile]);
 
+  // ── NEURAL DATA SHIELD: Ghost Handshake Monitor ──
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(async () => {
+      console.log("[Shield] Validating Ghost Handshake...");
+      const isValid = await SecurityService.validateSession();
+      if (!isValid) {
+        console.warn("[Shield] Handshake Expired. Re-authenticating...");
+        supabase.auth.refreshSession();
+      }
+    }, 10 * 60 * 1000); // 10 minutes
+
+    return () => clearInterval(interval);
+  }, [user]);
+
   const refreshProfile = useCallback(() => {
     if (user?.id) fetchProfile(user.id);
   }, [user?.id, fetchProfile]);
@@ -68,7 +85,10 @@ export const AuthProvider = ({ children }) => {
   }, [user?.id]);
 
   const signOut = useCallback(async () => {
-    if (user?.id) await PresenceManager.goOffline(user.id).catch(() => {});
+    if (user?.id) {
+      await PresenceManager.goOffline(user.id).catch(() => {});
+      SecurityService.logSecurityEvent(user.id, 'AUTH_SIGNOUT');
+    }
     await supabase.auth.signOut();
     clearAllCache();
     setUser(null);

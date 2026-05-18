@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, Animated, TouchableOpacity,
   Modal, FlatList, Image, ActivityIndicator,
@@ -9,11 +9,11 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { DirectMessageModal } from './DirectMessageModal';
 
-const REFRESH_MS = 30_000;
+const REFRESH_MS = 30000;
 
 const fmt = (n) => {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000)     return `${(n / 1000).toFixed(1)}K`;
   return String(n);
 };
 

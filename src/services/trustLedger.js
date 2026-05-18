@@ -35,29 +35,47 @@ const TIERS = [
 ];
 
 export const TrustLedger = {
+  // CONFIGURATION: Precision Constants
+  DECAY_HALF_LIFE_DAYS: 30,
+  K_STABILITY_FACTOR: 0.85,
+  CENTRALITY_WEIGHT: 0.15, // Impact of "Who trusts you" on your score
+
   /**
-   * Fetch the social_integrity_score for a user.
-   * Returns a number 0-100, or 0 on failure.
+   * Calculate High-Fidelity SIS Score.
+   * Logic: S = [(B * K) + (R * (1 - K))] * D + (C * W)
+   * Where B = Base History, R = Recent Reliability, D = Temporal Decay, C = Centrality, W = Weight
    */
   async getSISScore(userId) {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('social_integrity_score')
-        .eq('id', userId)
-        .single();
+      const { data: prof } = await supabase.from('profiles').select('social_integrity_score, last_active_at, base_trust_index, followers_count').eq('id', userId).single();
 
-      if (error || !data) {
-        console.error('[TrustLedger.getSISScore] error:', error?.message);
-        return 0;
-      }
+      if (!prof) return 50.00000000;
 
-      const score = data.social_integrity_score;
-      if (typeof score !== 'number') return 0;
-      return Math.min(100, Math.max(0, score));
-    } catch (err) {
-      console.error('[TrustLedger.getSISScore] unexpected:', err.message);
-      return 0;
+      // 1. Calculate Temporal Decay (Exponential)
+      const lastActive = prof.last_active_at ? new Date(prof.last_active_at) : new Date();
+      const daysSinceActive = (Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24);
+      const decay = Math.pow(0.5, daysSinceActive / this.DECAY_HALF_LIFE_DAYS);
+
+      // 2. Calculate Eigen-Influence (Centrality Proxy)
+      const { data: followerScores } = await supabase.rpc('get_follower_integrity_aggregate', { u_id: userId });
+      const centralityScore = followerScores?.aggregate_score || (prof.followers_count * 0.1);
+
+      // NEW: Incorporate Real-World Social Proof from Path Crossings
+      const { count: crossingCount } = await supabase.from('path_crossings').select('id', { count: 'exact', head: true })
+        .or(`user_id_a.eq.${userId},user_id_b.eq.${userId}`)
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days
+      const realWorldSocialProof = (crossingCount || 0) * 0.5; // Each crossing adds 0.5 to SIS
+
+      // 3. Synthesize High-Fidelity Score with 8-decimal precision
+      const base = prof.base_trust_index || 50;
+      const current = prof.social_integrity_score || 50;
+
+      const reputationStability = (base * this.K_STABILITY_FACTOR) + (current * (1 - this.K_STABILITY_FACTOR));
+      const finalScore = (reputationStability * decay) + (centralityScore * this.CENTRALITY_WEIGHT);
+
+      return parseFloat(Math.min(100, Math.max(0, finalScore + realWorldSocialProof)).toFixed(8));
+    } catch {
+      return 50.00000000;
     }
   },
 

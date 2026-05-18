@@ -10,8 +10,13 @@ export function installGlobalErrorHandler() {
 
   ErrorUtils.setGlobalHandler((error, isFatal) => {
     const level = isFatal ? 'FATAL' : 'ERROR';
-    const message = error?.message || String(error);
+    let message = error?.message || String(error);
     const stack = error?.stack || '';
+
+    // Scrub sensitive data from logs (tokens, emails, keys)
+    message = message.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]');
+    message = message.replace(/sb-[a-zA-Z0-9-]{20,}/g, '[TOKEN]');
+    message = message.replace(/pk_live_[a-zA-Z0-9]{20,}/g, '[KEY]');
 
     console.error(`[The Gruvs] [${level}] ${message}`);
     if (isFatal && stack) {

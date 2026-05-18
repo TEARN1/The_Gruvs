@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useIdentity } from '../context/IdentityContext';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { useToast } from '../components/ToastNotification';
@@ -92,6 +93,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
+  const { applyProfilePrivacy } = useIdentity();
   const { show: showToast } = useToast();
 
   const primary   = currentTheme?.primary    || '#00f2ff';
@@ -148,8 +150,14 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
     setFetchError(null);
     try {
       const results = filter === 'nearby' ? await fetchNearby() : await fetchAll(q);
+
+      // Apply privacy filtering (Ghost/Celebrity modes)
+      const filteredResults = (results || [])
+        .map(v => applyProfilePrivacy(v, v.id || v.profile_id))
+        .filter(v => v !== null);
+
       // Sort online users to the top
-      setVibers(results.sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0)));
+      setVibers(filteredResults.sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0)));
     } catch (e) {
       setFetchError(e.message || 'Could not load Vibers');
       setVibers([]);

@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useIdentity } from '../context/IdentityContext';
 import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
@@ -123,7 +124,7 @@ const HeroCard = ({ event, primary, onPress }) => {
 };
 
 const hero = StyleSheet.create({
-  wrap: { height: 320, borderRadius: 24, overflow: 'hidden', marginHorizontal: 16, marginBottom: 20 },
+  wrap: { height: Math.min(320, Math.max(240, width * 0.75)), borderRadius: 24, overflow: 'hidden', marginHorizontal: 16, marginBottom: 20 },
   img: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   overlay: { ...StyleSheet.absoluteFillObject },
   badge: { position: 'absolute', top: 16, left: 16, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
@@ -304,7 +305,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress }) => {
 };
 
 const et = StyleSheet.create({
-  wrap: { width: 165, height: 210, borderRadius: 18, overflow: 'hidden', borderWidth: 1, position: 'relative' },
+  wrap: { width: Math.min(165, (width - 48) / 2), height: Math.min(210, (width - 48) / 2 * 1.27), borderRadius: 18, overflow: 'hidden', borderWidth: 1, position: 'relative' },
   img: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   overlay: StyleSheet.absoluteFillObject,
   catBadge: { position: 'absolute', top: 10, left: 10, width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
@@ -341,6 +342,7 @@ const sh = StyleSheet.create({
 export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
+  const { applyLocationPrivacy } = useIdentity();
 
   const [query, setQuery] = useState('');
   const [activeMood, setActiveMood] = useState(null);
@@ -375,44 +377,6 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const bg        = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-
-  useEffect(() => {
-    supabase.from('app_updates')
-      .select('id, title, description, version, released_at, type')
-      .order('released_at', { ascending: false })
-      .limit(5)
-      .then(({ data }) => setAppUpdates(data || []));
-  }, []);
-
-  useEffect(() => {
-    loadAll();
-
-    // Real-time: auto-update feed without manual refresh
-    const unsub = RealtimeManager.subscribeToFeed(
-      (newEvent) => {
-        // Prepend new Gruv to the top of "Happening Now"
-        setHappeningNow(prev => {
-          const already = prev.some(e => e.id === newEvent.id);
-          if (already) return prev;
-          return [newEvent, ...prev].slice(0, 8);
-        });
-        // Also set as featured if it has the highest vibe count
-        setFeaturedEvent(prev => {
-          if (!prev) return newEvent;
-          return (newEvent.vibe_count || 0) > (prev.vibe_count || 0) ? newEvent : prev;
-        });
-      },
-      (updatedEvent) => {
-        // Update vibe_count / going count in all lists in-place
-        const patch = (list) => list.map(e => e.id === updatedEvent.id ? { ...e, ...updatedEvent } : e);
-        setHappeningNow(patch);
-        setTrendingEvents(patch);
-        setNearbyEvents(patch);
-        setFeaturedEvent(prev => prev?.id === updatedEvent.id ? { ...prev, ...updatedEvent } : prev);
-      }
-    );
-    return () => unsub();
-  }, []);
 
   const loadAll = async () => {
     setLoading(true);
@@ -461,7 +425,10 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         setUserCoords(coords);
         // Save to profile so PostGIS viber-proximity works
         if (user) {
-          LocationService.saveToProfile(user.id, coords.lat, coords.lon);
+          const privateCoords = applyLocationPrivacy(coords.lat, coords.lon);
+          if (privateCoords) {
+            LocationService.saveToProfile(user.id, privateCoords.lat, privateCoords.lon);
+          }
           // Fetch nearby vibers AND filter for those who are followed and online
           const nearby = await DiscoveryManager.findNearbyVibers(user.id, 25);
           
@@ -507,6 +474,44 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       setLocationLoading(false);
     }
   };
+
+  useEffect(() => {
+    supabase.from('app_updates')
+      .select('id, title, description, version, released_at, type')
+      .order('released_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => setAppUpdates(data || []));
+  }, []);
+
+  useEffect(() => {
+    loadAll();
+
+    // Real-time: auto-update feed without manual refresh
+    const unsub = RealtimeManager.subscribeToFeed(
+      (newEvent) => {
+        // Prepend new Gruv to the top of "Happening Now"
+        setHappeningNow(prev => {
+          const already = prev.some(e => e.id === newEvent.id);
+          if (already) return prev;
+          return [newEvent, ...prev].slice(0, 8);
+        });
+        // Also set as featured if it has the highest vibe count
+        setFeaturedEvent(prev => {
+          if (!prev) return newEvent;
+          return (newEvent.vibe_count || 0) > (prev.vibe_count || 0) ? newEvent : prev;
+        });
+      },
+      (updatedEvent) => {
+        // Update vibe_count / going count in all lists in-place
+        const patch = (list) => list.map(e => e.id === updatedEvent.id ? { ...e, ...updatedEvent } : e);
+        setHappeningNow(patch);
+        setTrendingEvents(patch);
+        setNearbyEvents(patch);
+        setFeaturedEvent(prev => prev?.id === updatedEvent.id ? { ...prev, ...updatedEvent } : prev);
+      }
+    );
+    return () => unsub();
+  }, []);
 
   // Debounced search
   useEffect(() => {
@@ -1138,7 +1143,7 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginTop: 2 },
   searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginVertical: 14, paddingHorizontal: 14, height: 48, borderRadius: 24, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.05)' },
   searchInput: { flex: 1, fontSize: 14 },
-  heroSkeleton: { height: 320, borderRadius: 24, marginHorizontal: 16, marginBottom: 20 },
+  heroSkeleton: { height: Math.min(320, Math.max(240, width * 0.75)), borderRadius: 24, marginHorizontal: 16, marginBottom: 20 },
   noResults: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   noResultsText: { fontSize: 14 },
   resultCount: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 12 },

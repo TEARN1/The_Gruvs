@@ -32,6 +32,9 @@ import { PathMapScreen } from './PathMapScreen';
 import { useIdentity } from '../context/IdentityContext';
 import { BusinessDashboardScreen } from './BusinessDashboardScreen';
 import { AdminAIScreen } from './AdminAIScreen';
+import { WalletScreen } from './WalletScreen';
+import { ProviderDashboardScreen } from './ProviderDashboardScreen';
+import { RoyalGovernance } from '../services/royalGovernance';
 import { TutorialCenter } from '../components/TutorialCenter';
 import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
@@ -504,8 +507,170 @@ const fm = StyleSheet.create({
   saveBtnText: { color: '#000', fontWeight: '900', fontSize: 14 },
 });
 
+// ── Royal Council Sub-View ────────────────────────────────────────────────────
+const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
+  const [proposals, setProposals] = useState([]);
+  const [mintStats, setMintStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      supabase.from('governance_proposals').select('*').eq('status', 'voting_open'),
+      supabase.from('profiles').select('vibe_equity', { count: 'exact', head: true })
+    ]).then(([{ data: propData }, { count: totalSupply }]) => {
+      setProposals(propData || []);
+      const halvingInterval = projectDNA.sovereign_mint_params.halving_interval_equity;
+      const phase = Math.floor((totalSupply || 0) / halvingInterval);
+      setMintStats({
+        totalSupply: totalSupply || 0,
+        phase: phase + 1,
+        nextHalving: (phase + 1) * halvingInterval,
+        burnRate: projectDNA.sovereign_mint_params.vibe_burn_rate * 100
+      });
+      setLoading(false);
+    });
+  }, []);
+
+  const vote = async (id, type) => {
+    try {
+      await RoyalGovernance.castRoyalVote(user.id, id, type);
+      toast.show("Your decree has been recorded, Royal Viber.", "success");
+    } catch (e) {
+      toast.show(e.message, "error");
+    }
+  };
+
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
+      {/* Sovereign Mint Stats */}
+      <GlassView style={[fm.section, { borderColor: '#FFD70040', marginBottom: 20 }]}>
+        <Text style={[fm.sectionTitle, { color: '#FFD700' }]}>Sovereign Mint Status</Text>
+        {mintStats ? (
+          <View style={{ gap: 8, marginTop: 10 }}>
+            <View style={styles.mintStatRow}>
+              <Text style={{ color: muted, fontSize: 12 }}>Global Supply</Text>
+              <Text style={{ color: textColor, fontWeight: '800' }}>{mintStats.totalSupply.toLocaleString()} Equity</Text>
+            </View>
+            <View style={styles.mintStatRow}>
+              <Text style={{ color: muted, fontSize: 12 }}>Minting Phase</Text>
+              <Text style={{ color: '#FFD700', fontWeight: '900' }}>Phase {mintStats.phase}</Text>
+            </View>
+            <View style={styles.mintStatRow}>
+              <Text style={{ color: muted, fontSize: 12 }}>Next Halving</Text>
+              <Text style={{ color: textColor }}>at {mintStats.nextHalving.toLocaleString()}</Text>
+            </View>
+            <View style={styles.mintStatRow}>
+              <Text style={{ color: muted, fontSize: 12 }}>Protocol Burn Rate</Text>
+              <Text style={{ color: '#ef4444', fontWeight: '700' }}>{mintStats.burnRate}%</Text>
+            </View>
+          </View>
+        ) : <ActivityIndicator color="#FFD700" />}
+      </GlassView>
+
+      <GlassView style={[fm.section, { borderColor: '#FFD70060', backgroundColor: '#FFD70008' }]}>
+        <Text style={[fm.sectionTitle, { color: '#FFD700' }]}>Active Decrees</Text>
+        <Text style={{ color: muted, fontSize: 11, marginBottom: 16 }}>
+          Stake your Vibe-Equity to shape the Kingdom's economic laws.
+        </Text>
+
+        {loading ? <ActivityIndicator color="#FFD700" /> : proposals.map(p => (
+          <View key={p.id} style={{ marginBottom: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.1)', paddingBottom: 16 }}>
+            <Text style={{ color: textColor, fontWeight: '900', fontSize: 15 }}>{p.title}</Text>
+            <Text style={{ color: muted, fontSize: 12, marginTop: 4, lineHeight: 18 }}>{p.description}</Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+              <TouchableOpacity onPress={() => vote(p.id, 'yes')} style={{ flex: 1, padding: 10, borderRadius: 10, backgroundColor: '#10b98120', borderWidth: 1, borderColor: '#10b98150', alignItems: 'center' }}>
+                <Text style={{ color: '#10b981', fontWeight: '900', fontSize: 12 }}>DECREE YES</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => vote(p.id, 'no')} style={{ flex: 1, padding: 10, borderRadius: 10, backgroundColor: '#ef444420', borderWidth: 1, borderColor: '#ef444450', alignItems: 'center' }}>
+                <Text style={{ color: '#ef4444', fontWeight: '900', fontSize: 12 }}>DECREE NO</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </GlassView>
+    </ScrollView>
+  );
+};
+
+// ── Security & Privacy Sub-View ───────────────────────────────────────────────
+const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
+  const handleDeleteAccount = () => {
+    if (!user) return;
+    Alert.alert(
+      "Delete Account?",
+      "Your profile will be hidden immediately and your data will be permanently removed after review. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const ok = await SecurityService.requestAccountDeletion(user.id);
+            if (ok) toast.show("Deletion requested. You will be signed out.", "info");
+          }
+        }
+      ]
+    );
+  };
+
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
+      <GlassView style={fm.section}>
+        <Text style={[fm.sectionTitle, { color: primary }]}>Encryption & Safety</Text>
+        <View style={{ gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Feather name="lock" size={18} color={primary} />
+            <View>
+              <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>End-to-End Encryption</Text>
+              <Text style={{ color: muted, fontSize: 11 }}>Your DMs are private and encrypted.</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Feather name="shield" size={18} color={primary} />
+            <View>
+              <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>Session Integrity</Text>
+              <Text style={{ color: muted, fontSize: 11 }}>Protected by Supabase Auth with secure tokens.</Text>
+            </View>
+          </View>
+        </View>
+      </GlassView>
+
+      <GlassView style={fm.section}>
+        <Text style={[fm.sectionTitle, { color: primary }]}>Privacy Preferences</Text>
+        <Text style={{ color: muted, fontSize: 12, marginBottom: 16 }}>
+          Manage your presence and visibility. Use Identity Modes (Ghost/Celebrity) on the main profile to fuzz your location or stay invisible.
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: `${primary}15`, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: `${primary}30`, marginBottom: 12 }}
+          onPress={() => Share.share({ message: 'Join me on The Gruvs — safer social discovery.' })}
+        >
+          <Text style={{ color: primary, fontWeight: '900', textAlign: 'center' }}>Invite a Friend</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{ padding: 14 }}
+          onPress={() => Linking.openURL('https://thegruvs.com/privacy')}
+        >
+          <Text style={{ color: muted, fontWeight: '700', textAlign: 'center', fontSize: 12 }}>View Privacy Policy</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{ marginTop: 24, padding: 10 }}
+          onPress={handleDeleteAccount}
+        >
+          <Text style={{ color: '#ef4444', fontWeight: '800', textAlign: 'center', fontSize: 12, opacity: 0.8 }}>Request Account Deletion</Text>
+        </TouchableOpacity>
+      </GlassView>
+
+      <Text style={{ color: muted, fontSize: 10, textAlign: 'center', marginTop: 20 }}>
+        Version 2.0.4 (Security Hardened)
+      </Text>
+    </ScrollView>
+  );
+};
+
 // ── Find Them Sub-View ────────────────────────────────────────────────────────
-const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }) => {
+const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, applyLocationPrivacy }) => {
   const [distance, setDistance] = useState(5);
   const [activeFilter, setActiveFilter] = useState(null);
   const [people, setPeople] = useState([]);
@@ -516,7 +681,12 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast }
     if (!user) { onAuthRequired(); return; }
     setLoading(true);
     const coords = await LocationService.requestAndGet();
-    if (coords) LocationService.saveToProfile(user.id, coords.lat, coords.lon);
+    if (coords && applyLocationPrivacy) {
+      const privateCoords = applyLocationPrivacy(coords.lat, coords.lon);
+      if (privateCoords) {
+        LocationService.saveToProfile(user.id, privateCoords.lat, privateCoords.lon);
+      }
+    }
     const data = await DiscoveryManager.findNearbyVibers(user.id, distance);
     setLoading(false);
     setPeople(data || []);
@@ -756,7 +926,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [bizDashVisible, setBizDashVisible] = useState(false);
+  const [whoWasThereVisible, setWhoWasThereVisible] = useState(false);
   const [adminAIVisible, setAdminAIVisible] = useState(false);
+  const [walletVisible, setWalletVisible] = useState(false);
+  const [providerDashVisible, setProviderDashVisible] = useState(false);
   const [vibeCoachData, setVibeCoachData]   = useState(null);
   const [vibeCoachLoading, setVibeCoachLoading] = useState(false);
 
@@ -850,7 +1023,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       quality: 0.85,
       ...opts,
     });
-    return result.canceled || !result.assets?.length ? null : result.assets[0];
+    if (result.canceled || !result.assets?.length) return null;
+    return result.assets[0]; // includes .uri, .mimeType, .fileName
   };
 
   const handleAvatarUpload = async () => {
@@ -858,9 +1032,13 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const asset = await pickImage({ allowsEditing: true, aspect: [1, 1] });
       if (!asset) return;
       toast.show('Uploading profile picture...', 'info');
-      const ext = (asset.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
-      const publicUrl = await uploadToStorage(asset.uri, 'avatars', `avatars/${user.id}.${ext}`);
-      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
+      // Derive extension from the original filename when available — blob URIs have no extension
+      const fileName = asset.fileName || asset.uri.split('/').pop().split('?')[0];
+      const ext = (fileName.split('.').pop() || 'jpg').toLowerCase();
+      const storagePath = `avatars/${user.id}_${Date.now()}.${ext}`;
+      const publicUrl = await uploadToStorage(asset.uri, 'avatars', storagePath, { mimeType: asset.mimeType });
+      const { error: updateErr } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
+      if (updateErr) throw new Error(updateErr.message);
       refreshProfile();
       toast.show('Profile picture updated!', 'success');
     } catch (e) {
@@ -873,11 +1051,13 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const asset = await pickImage({ allowsEditing: false });
       if (!asset) return;
       toast.show('Uploading to gallery...', 'info');
-      const ext = (asset.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
-      const path = `gallery/${user.id}/${Date.now()}.${ext}`;
-      const publicUrl = await uploadToStorage(asset.uri, 'avatars', path);
-      const newGallery = [...profileGallery, publicUrl];
-      await supabase.from('profiles').update({ profile_gallery: newGallery }).eq('id', user.id);
+      const fileName = asset.fileName || asset.uri.split('/').pop().split('?')[0];
+      const ext = (fileName.split('.').pop() || 'jpg').toLowerCase();
+      const storagePath = `gallery/${user.id}/${Date.now()}.${ext}`;
+      const publicUrl = await uploadToStorage(asset.uri, 'avatars', storagePath, { mimeType: asset.mimeType });
+      const newGallery = [...(profileGallery || []), publicUrl];
+      const { error: updateErr } = await supabase.from('profiles').update({ profile_gallery: newGallery }).eq('id', user.id);
+      if (updateErr) throw new Error(updateErr.message);
       setProfileGallery(newGallery);
       toast.show('Added to gallery!', 'success');
     } catch (e) {
@@ -1006,10 +1186,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const asset = await pickImage({ allowsEditing: true, aspect: [16, 9] });
       if (!asset) return;
       toast.show('Uploading cover photo...', 'info');
-      const ext = (asset.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
-      const path = `${user.id}/cover_${Date.now()}.${ext}`;
-      const publicUrl = await uploadToStorage(asset.uri, 'covers', path);
-      await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', user.id);
+      const fileName = asset.fileName || asset.uri.split('/').pop().split('?')[0];
+      const ext = (fileName.split('.').pop() || 'jpg').toLowerCase();
+      const storagePath = `${user.id}/cover_${Date.now()}.${ext}`;
+      const publicUrl = await uploadToStorage(asset.uri, 'covers', storagePath, { mimeType: asset.mimeType });
+      const { error: updateErr } = await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', user.id);
+      if (updateErr) throw new Error(updateErr.message);
       refreshProfile();
       toast.show('Cover updated!', 'success');
     } catch (e) {
@@ -1066,7 +1248,38 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         <FindThemPage
           primary={primary} muted={muted} textColor={textColor}
           user={user} onAuthRequired={onAuthRequired} toast={toast}
+          applyLocationPrivacy={applyLocationPrivacy}
         />
+      </View>
+    );
+  }
+
+  if (subView === 'security') {
+    return (
+      <View style={[styles.container, { backgroundColor: bg }]}>
+        <View style={[styles.subHeader, { borderBottomColor: `${primary}20` }]}>
+          <TouchableOpacity onPress={() => setSubView(null)} style={styles.backBtn}>
+            <Feather name="arrow-left" size={22} color={primary} />
+          </TouchableOpacity>
+          <Text style={[styles.subTitle, { color: textColor }]}>Privacy & Security</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <SecurityPage primary={primary} muted={muted} textColor={textColor} user={user} toast={toast} />
+      </View>
+    );
+  }
+
+  if (subView === 'council') {
+    return (
+      <View style={[styles.container, { backgroundColor: bg }]}>
+        <View style={[styles.subHeader, { borderBottomColor: '#FFD70020' }]}>
+          <TouchableOpacity onPress={() => setSubView(null)} style={styles.backBtn}>
+            <Feather name="arrow-left" size={22} color="#FFD700" />
+          </TouchableOpacity>
+          <Text style={[styles.subTitle, { color: '#FFD700' }]}>Royal Council</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <RoyalCouncilPage primary={primary} textColor={textColor} muted={muted} user={user} toast={toast} />
       </View>
     );
   }
@@ -1319,6 +1532,49 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           >
             <Feather name="users" size={16} color={primary} />
             <Text style={[styles.findBtnText, { color: primary }]}>Find Them</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setWhoWasThereVisible(true)}
+          >
+            <Feather name="clock" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>History</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.findRow}>
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setWalletVisible(true)}
+          >
+            <Feather name="wallet" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Wallet</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setProviderDashVisible(true)}
+          >
+            <Feather name="briefcase" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Hub</Text>
+          </TouchableOpacity>
+
+          {(profile?.vibe_equity >= 500) && (
+            <TouchableOpacity
+              style={[styles.findBtn, { backgroundColor: '#FFD70018', borderColor: '#FFD70040' }]}
+              onPress={() => setSubView('council')}
+            >
+              <Feather name="shield" size={16} color="#FFD700" />
+              <Text style={[styles.findBtnText, { color: '#FFD700' }]}>Council</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setSubView('security')}
+          >
+            <Feather name="shield" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Privacy</Text>
           </TouchableOpacity>
         </View>
 
@@ -1701,6 +1957,23 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <AdminAIScreen onClose={() => setAdminAIVisible(false)} />
         </View>
       )}
+
+      <WhoWasThereModal
+        visible={whoWasThereVisible}
+        onClose={() => setWhoWasThereVisible(false)}
+        onAuthRequired={onAuthRequired}
+      />
+
+      <WalletScreen
+        visible={walletVisible}
+        onClose={() => setWalletVisible(false)}
+      />
+
+      <ProviderDashboardScreen
+        visible={providerDashVisible}
+        onClose={() => setProviderDashVisible(false)}
+      />
+
       <TutorialCenter
         visible={tutorialCenterVisible}
         onClose={() => setTutorialCenterVisible(false)}
@@ -1722,8 +1995,8 @@ const styles = StyleSheet.create({
 
   // Cover
   coverPhoto: { height: COVER_H, overflow: 'hidden', position: 'relative' },
-  coverPattern: { position: 'absolute', top: -30, left: -30, width: 220, height: 220, borderRadius: 110, borderWidth: 40 },
-  coverPatternAlt: { position: 'absolute', bottom: -50, right: -30, width: 180, height: 180, borderRadius: 90, borderWidth: 35 },
+  coverPattern: { position: 'absolute', top: -30, left: -30, width: Math.min(220, width * 0.5), height: Math.min(220, width * 0.5), borderRadius: Math.min(110, width * 0.25), borderWidth: 40 },
+  coverPatternAlt: { position: 'absolute', bottom: -50, right: -30, width: Math.min(180, width * 0.42), height: Math.min(180, width * 0.42), borderRadius: Math.min(90, width * 0.21), borderWidth: 35 },
   coverEditBtn: { position: 'absolute', bottom: 10, right: 14, backgroundColor: 'rgba(0,0,0,0.55)', padding: 8, borderRadius: 20 },
 
   // Avatar row
@@ -1773,7 +2046,7 @@ const styles = StyleSheet.create({
   contentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, gap: 4, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   contentTabLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
   tabContent: { paddingHorizontal: 16, marginBottom: 14 },
-  emptyTab: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 16, paddingVertical: 36, alignItems: 'center', gap: 12 },
+  emptyTab: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 16, paddingVertical: width < 375 ? 24 : 36, alignItems: 'center', gap: 12 },
   emptyTabText: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
   miniCard: { flexDirection: 'row', borderWidth: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.03)' },
   miniCardImg: { width: 72, height: 72 },
@@ -1805,10 +2078,10 @@ const styles = StyleSheet.create({
 
   // Guest
   guestContent: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 80, alignItems: 'center' },
-  guestCard: { width: '100%', padding: 36, alignItems: 'center', marginBottom: 20, borderRadius: 24 },
+  guestCard: { width: '100%', padding: width < 375 ? 20 : 36, alignItems: 'center', marginBottom: 20, borderRadius: 24 },
   guestTitle: { fontSize: 26, fontWeight: '900', marginBottom: 12, letterSpacing: 1 },
   guestSub: { fontSize: 14, textAlign: 'center', lineHeight: 21, marginBottom: 28 },
-  guestBtn: { paddingVertical: 15, paddingHorizontal: 32, borderRadius: 30 },
+  guestBtn: { paddingVertical: 15, paddingHorizontal: width < 375 ? 20 : 32, borderRadius: 30 },
   guestBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
 
   // Sign out
@@ -1819,4 +2092,5 @@ const styles = StyleSheet.create({
   editRow: { marginBottom: 14 },
   editLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6, opacity: 0.7 },
   editInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 13, backgroundColor: 'rgba(255,255,255,0.04)', textAlignVertical: 'top' },
+  mintStatRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
 });

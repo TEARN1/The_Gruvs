@@ -18,6 +18,7 @@ export const ThemeProvider = ({ children }) => {
   const [gender, setGender] = useState(GENDERS.MALE);
   const [themeIndex, setThemeIndex] = useState(0);
   const [currentTheme, setCurrentTheme] = useState(THEMES[GENDERS.MALE][0]);
+  const [neuralOverride, setNeuralOverride] = useState(null);
   const [ready, setReady] = useState(false);
 
   // Load persisted preference on mount
@@ -43,50 +44,50 @@ export const ThemeProvider = ({ children }) => {
     })();
   }, []);
 
-  // Sync currentTheme whenever gender/index changes
+  // Sync currentTheme whenever gender/index/neuralOverride changes
   useEffect(() => {
+    if (neuralOverride) {
+      setCurrentTheme(prev => ({ ...prev, ...neuralOverride }));
+      return;
+    }
     const theme = THEMES[gender]?.[themeIndex];
     if (theme) setCurrentTheme(theme);
-  }, [gender, themeIndex]);
+  }, [gender, themeIndex, neuralOverride]);
 
-  // Items 23-30: Inject CSS custom properties to :root on web whenever theme changes
+  // Items 23-30: Inject CSS custom properties to :root on web
   useEffect(() => {
     if (Platform.OS !== 'web' || !currentTheme) return;
     const root = document.documentElement;
     const set  = (name, val) => val != null && root.style.setProperty(name, val);
 
-    // Item 23: primary colour
     set('--color-primary', currentTheme.primary);
-    // Item 24: surface, background, text, muted
     set('--color-bg',      currentTheme.background);
     set('--color-surface', currentTheme.surface);
     set('--color-text',    currentTheme.text);
     set('--color-muted',   currentTheme.textMuted);
-    // Item 25: glow colour
     set('--color-glow',    currentTheme.glowColor || currentTheme.primary);
-    // Item 26: border colour
     set('--color-border',  currentTheme.borderColor || 'rgba(255,255,255,0.15)');
-    // Item 27: glass radius
     set('--radius-glass',  `${currentTheme.borderRadius || 18}px`);
-    // Item 28: data-theme attribute for CSS selectors
     root.setAttribute('data-theme', currentTheme.id || 'royal_obsidian');
-    // Item 29: accent colour
     set('--color-accent',  currentTheme.accent);
-    // Item 30: update browser chrome theme-color meta tag
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) metaTheme.setAttribute('content', currentTheme.background || '#0d1112');
   }, [currentTheme]);
 
   const changeTheme = (newGender, newIndex) => {
+    setNeuralOverride(null); // Clear AI override on manual change
     if (!THEMES[newGender]?.[newIndex]) return;
     setGender(newGender);
     setThemeIndex(newIndex);
-    // Persist
     AsyncStorage?.setItem(STORAGE_KEY, JSON.stringify({ gender: newGender, index: newIndex })).catch(() => {});
   };
 
+  const applyNeuralTheme = (override) => {
+    setNeuralOverride(override);
+  };
+
   return (
-    <ThemeContext.Provider value={{ currentTheme, gender, themeIndex, changeTheme, ready }}>
+    <ThemeContext.Provider value={{ currentTheme, gender, themeIndex, changeTheme, applyNeuralTheme, ready }}>
       {children}
     </ThemeContext.Provider>
   );

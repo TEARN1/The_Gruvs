@@ -9,6 +9,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Modal,
   ScrollView, Image, Dimensions, Linking, Platform,
 } from 'react-native';
+import Svg, { Line, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -45,7 +46,7 @@ const project = (lat, lon, minLat, maxLat, minLon, maxLon) => {
   return { x, y };
 };
 
-const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent }) => {
+const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = false }) => {
   const [selected, setSelected] = useState(null);
 
   const withCoords = events.filter(e => e.lat != null && e.lon != null);
@@ -83,6 +84,29 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent }) => {
       {[0.25, 0.5, 0.75].map(f => (
         <View key={`v${f}`} style={[grid.gridV, { left: MAP_W * f }]} />
       ))}
+
+      {/* Route Polylines */}
+      {isRoute && pins.length > 1 && (
+        <Svg style={StyleSheet.absoluteFill}>
+          {pins.map((pin, i) => {
+            if (i === 0) return null;
+            const prev = pins[i - 1];
+            return (
+              <Line
+                key={`line-${i}`}
+                x1={prev.x}
+                y1={prev.y}
+                x2={pin.x}
+                y2={pin.y}
+                stroke={primaryColor}
+                strokeWidth="2"
+                strokeDasharray="5, 5"
+                opacity={0.6}
+              />
+            );
+          })}
+        </Svg>
+      )}
 
       {/* Compass rose */}
       <View style={grid.compass}>
@@ -174,7 +198,7 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent }) => {
   );
 };
 
-export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, onClose }) => {
+export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, onClose, isRoute = false }) => {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const primary = currentTheme?.primary || '#00f2ff';
@@ -194,7 +218,9 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
         {/* Header */}
         <View style={[s.header, { borderBottomColor: `${primary}20`, paddingTop: (insets.top || 0) + 16 }]}>
           <View>
-            <Text style={[s.headerTitle, { color: textColor }]}>Events Near You</Text>
+            <Text style={[s.headerTitle, { color: textColor }]}>
+              {isRoute ? 'Royal Journey' : 'Events Near You'}
+            </Text>
             <Text style={[s.headerSub, { color: muted }]}>
               {events.filter(e => e.lat != null).length} pinned · {events.length} total
             </Text>
@@ -212,6 +238,7 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
             userCoords={userCoords}
             primaryColor={primary}
             onSelectEvent={handleSelect}
+            isRoute={isRoute}
           />
 
           {/* Legend */}

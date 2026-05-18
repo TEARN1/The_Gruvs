@@ -3,7 +3,7 @@ import {
   View, Image, StyleSheet, Text, FlatList,
   Dimensions, TouchableOpacity,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { AutoPlayVideo } from './AutoPlayVideo';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const placeholderSource = require('../../assets/events/pixel.png');
@@ -20,14 +20,10 @@ const MediaItem = ({ item, isActive }) => {
 
   if (item.type === 'video' && !loadFailed) {
     return (
-      <Video
-        source={{ uri: item.url }}
+      <AutoPlayVideo
+        source={item.url}
+        isVisible={isActive}
         style={styles.media}
-        resizeMode={ResizeMode.COVER}
-        isLooping
-        shouldPlay={isActive}
-        isMuted={!isActive}
-        onError={() => setLoadFailed(true)}
       />
     );
   }

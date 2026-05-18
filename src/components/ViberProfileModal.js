@@ -17,6 +17,7 @@ import { DirectMessageModal } from './DirectMessageModal';
 import { EditEventModal } from './EditEventModal';
 import { UserManager, PresenceManager, AuraService } from '../services/dataFlow';
 import { useToast } from './ToastNotification';
+import { ReportModal } from './ReportModal';
 
 const RANK_LABELS = [
   { min: 0,     max: 100,    name: 'Viber',       color: '#94a3b8' },
@@ -99,6 +100,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [followLoading, setFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('events');
   const [dmOpen, setDmOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [followersList, setFollowersList] = useState([]);
   const [followersModalVisible, setFollowersModalVisible] = useState(false);
   const [followingList, setFollowingList] = useState([]);
@@ -401,6 +403,13 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                     >
                       <Feather name="message-circle" size={16} color={primary} />
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[s.msgBtn, { borderColor: '#ef444460' }]}
+                      onPress={() => setReportOpen(true)}
+                    >
+                      <Feather name="flag" size={14} color="#ef4444" />
+                    </TouchableOpacity>
                   </View>
                 )}
               </View>
@@ -603,6 +612,13 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       users={followingList}
     />
 
+    <ReportModal
+      visible={reportOpen}
+      onClose={() => setReportOpen(false)}
+      targetId={targetId}
+      targetType="user"
+    />
+
     {/* Edit / Cancel / Delete own event */}
     <EditEventModal
       visible={!!editingEvent}
@@ -635,8 +651,8 @@ const s = StyleSheet.create({
   actionBtns: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 8 },
   followBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, minWidth: 100, justifyContent: 'center' },
   followBtnText: { fontWeight: '900', fontSize: 12 },
-  msgBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
-  editEventBtn: { position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  msgBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+  editEventBtn: { position: 'absolute', top: 6, right: 6, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   cancelledOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', borderRadius: 14, overflow: 'hidden' },
   cancelledLine: { position: 'absolute', top: '50%', left: 0, right: 0, height: 1.5, backgroundColor: '#ef4444', opacity: 0.7, transform: [{ rotate: '-8deg' }] },
   cancelledLabel: { color: '#ef4444', fontWeight: '900', fontSize: 11, letterSpacing: 2, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
