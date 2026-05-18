@@ -16,83 +16,86 @@ const MIME_MAP = {
 
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+  'image/heic', 'image/heif',
   'video/mp4', 'video/quicktime', 'video/x-m4v',
 ];
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
 
-// Derive the file extension from the storage path, not the (potentially opaque) URI.
 const extFromPath = (storagePath) => {
   const base = storagePath.split('?')[0];
   return (base.split('.').pop() || 'jpg').toLowerCase();
 };
 
-// Resolve MIME type: explicit arg wins, then storagePath extension, fallback jpeg.
 const resolveMime = (mimeType, storagePath) => {
-  if (mimeType) return mimeType;
+  if (mimeType && mimeType !== 'application/octet-stream') return mimeType;
   const ext = extFromPath(storagePath);
   return MIME_MAP[ext] || 'image/jpeg';
 };
 
-/**
- * Convert a URI (file://, blob:, data:, content://, http://) to a Blob.
- * On web, data: URIs are decoded manually to avoid a Fetch no-op on some browsers.
- */
-const uriToBlob = async (uri) => {
-  // data: URI — decode base64 directly (most reliable on web)
+// On React Native, XMLHttpRequest handles file:// URIs more reliably than fetch()
+const uriToBlob = (uri) => new Promise((resolve, reject) => {
   if (uri.startsWith('data:')) {
-    const [header, b64] = uri.split(',');
-    const mime = header.split(':')[1].split(';')[0];
-    const binary = atob(b64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return new Blob([bytes], { type: mime });
+    try {
+      const [header, b64] = uri.split(',');
+      const mime = header.split(':')[1].split(';')[0];
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return resolve(new Blob([bytes], { type: mime }));
+    } catch (e) {
+      return reject(new Error('Could not decode base64 image.'));
+    }
   }
 
-  // blob:, file://, content://, http:// — use fetch
-  const response = await fetch(uri);
-  if (!response.ok) {
-    throw new Error(`Could not read the selected file (HTTP ${response.status}). Make sure the file is accessible.`);
-  }
-  return response.blob();
-};
+  const xhr = new XMLHttpRequest();
+  xhr.responseType = 'blob';
+  xhr.onload = () => {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      resolve(xhr.response);
+    } else {
+      reject(new Error(`Could not read file (status ${xhr.status}). Try picking the image again.`));
+    }
+  };
+  xhr.onerror = () => reject(new Error('Network error reading file. Make sure you have camera/media permissions.'));
+  xhr.open('GET', uri);
+  xhr.send();
+});
 
 /**
  * Upload a local file URI to Supabase Storage.
- * Works on iOS, Android, and web (Expo managed / Expo Go / bare).
  * @param {string} uri          - Local URI from expo-image-picker or expo-document-picker.
- * @param {string} bucket       - Supabase storage bucket name.
- * @param {string} storagePath  - Destination path inside the bucket.
+ * @param {string} bucket       - Supabase storage bucket name (e.g. 'avatars', 'covers').
+ * @param {string} storagePath  - Path inside the bucket — first segment MUST be user ID.
  * @param {object} opts
- * @param {string} [opts.mimeType] - Explicit MIME type (use asset.mimeType from picker).
+ * @param {string} [opts.mimeType] - Explicit MIME type from asset.mimeType (picker).
  * @returns {Promise<string>} Public URL of the uploaded file.
  */
 export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {}) => {
-  if (!uri) throw new Error('No file selected.');
+  if (!uri) throw new Error('No file selected. Please pick an image first.');
 
   const type = resolveMime(mimeType, storagePath);
 
   if (!ALLOWED_TYPES.includes(type)) {
-    throw new Error(`Unsupported file type "${type}". Please use JPG, PNG, WEBP, GIF, or MP4.`);
+    throw new Error(`File type "${type}" is not supported. Please use a JPG, PNG, WEBP, GIF or MP4.`);
   }
 
   let blob;
   try {
     blob = await uriToBlob(uri);
   } catch (e) {
-    throw new Error(`Failed to read file: ${e.message}`);
+    throw new Error(`Could not read the file: ${e.message}`);
   }
 
   if (!blob || blob.size === 0) {
-    throw new Error('The selected file appears to be empty. Please try a different one.');
+    throw new Error('The selected file is empty or could not be read. Please try a different photo.');
   }
 
   if (blob.size > MAX_SIZE) {
     const mb = (blob.size / 1024 / 1024).toFixed(1);
-    throw new Error(`File is ${mb} MB — maximum allowed is ${MAX_SIZE / 1024 / 1024} MB.`);
+    throw new Error(`File is ${mb} MB — maximum size is 50 MB.`);
   }
 
-  // Use the blob's actual type if we still have a fallback guess
   const finalType = (blob.type && blob.type !== 'application/octet-stream') ? blob.type : type;
 
   const { error: uploadError } = await supabase.storage
@@ -100,19 +103,27 @@ export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {
     .upload(storagePath, blob, { contentType: finalType, upsert: true });
 
   if (uploadError) {
-    // Surface actionable Supabase errors
     const msg = uploadError.message || '';
-    if (msg.includes('Bucket not found')) {
-      throw new Error(`Storage bucket "${bucket}" does not exist. Ask the admin to create it in Supabase.`);
+    if (msg.includes('Bucket not found') || msg.includes('bucket')) {
+      throw new Error(
+        `Storage bucket "${bucket}" does not exist in your Supabase project. ` +
+        `Run supabase_business_schema_fixed.sql in the Supabase SQL Editor to create it.`
+      );
     }
-    if (msg.includes('not authorized') || msg.includes('policy')) {
-      throw new Error('Upload permission denied. Check storage bucket policies in Supabase.');
+    if (msg.includes('not authorized') || msg.includes('policy') || msg.includes('violates')) {
+      throw new Error(
+        'Upload was blocked by storage policy. Make sure you are signed in and that ' +
+        'supabase_business_schema_fixed.sql has been run in your Supabase project.'
+      );
+    }
+    if (msg.includes('exceeded') || msg.includes('too large')) {
+      throw new Error('File exceeds the bucket size limit. Try a smaller image.');
     }
     throw new Error(`Upload failed: ${msg}`);
   }
 
   const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
-  if (!data?.publicUrl) throw new Error('Upload succeeded but could not get public URL.');
+  if (!data?.publicUrl) throw new Error('Upload succeeded but public URL could not be retrieved.');
 
   return data.publicUrl;
 };

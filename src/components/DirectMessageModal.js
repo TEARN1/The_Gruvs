@@ -344,11 +344,13 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     setReplyingTo(null);
     broadcastTyping(false);
 
-    // Pre-generate a UUID so the broadcast and DB row share the same ID.
-    // This lets the recipient deduplicate when postgres_changes fires later.
+    // Pre-generate a valid UUID v4 so broadcast and DB row share the same ID.
     const msgId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
       ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+          const r = (Math.random() * 16) | 0;
+          return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+        });
 
     const now = new Date().toISOString();
     const optimistic = {

@@ -293,16 +293,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     try {
       const data = await TrendingManager.fetch(8);
       setTrending(data || []);
-      // Fetch full event objects for top 3 trending so they can be shown as interactive cards
-      const ids = (data || []).slice(0, 3).map(s => s.event_id).filter(Boolean);
+
+      // Fetch full event objects so they can appear as interactive cards in the feed
+      const ids = (data || []).slice(0, 5).map(s => s.event_id).filter(Boolean);
       if (ids.length) {
         const { data: fullEvents } = await supabase
           .from('events')
-          .select('*, profiles!author_id(username, avatar_url, vibe_score)')
+          .select('*, profiles!author_id(username, avatar_url, vibe_score, is_verified)')
           .in('id', ids)
           .eq('is_cancelled', false);
         if (fullEvents?.length) {
-          // Preserve trending rank order
           const ranked = ids
             .map((id, i) => {
               const ev = fullEvents.find(e => e.id === id);
@@ -310,7 +310,25 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             })
             .filter(Boolean);
           setTrendingEvents(ranked);
+          return; // done
         }
+      }
+
+      // No trending data yet — seed trendingEvents from the top of the main events list
+      // so the Recent Gruvs feed always has something to show
+      const { data: topEvents } = await supabase
+        .from('events')
+        .select('*, profiles!author_id(username, avatar_url, vibe_score, is_verified)')
+        .eq('is_cancelled', false)
+        .order('vibe_count', { ascending: false })
+        .limit(5);
+      if (topEvents?.length) {
+        const ranked = topEvents.map((ev, i) => ({
+          ...ev,
+          _isTrending: ev.vibe_count > 0,
+          _trendingRank: i + 1,
+        }));
+        setTrendingEvents(ranked);
       }
     } catch (err) {
       console.error('Trending load error:', err);

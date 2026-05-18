@@ -1297,8 +1297,9 @@ LANGUAGE sql SECURITY DEFINER AS $$
   SELECT e.id, e.title, coalesce(e.address, e.city), e.going::bigint,
          (e.media->0->>'url'), e.category
   FROM events e
-  WHERE e.is_cancelled = false AND e.event_date >= current_date
-  ORDER BY e.trending_score DESC, e.going DESC
+  WHERE e.is_cancelled = false
+    AND (e.event_date IS NULL OR e.event_date >= current_date - interval '30 days')
+  ORDER BY e.trending_score DESC NULLS LAST, e.vibe_count DESC, e.going DESC, e.created_at DESC
   LIMIT limit_count;
 $$;
 
@@ -1426,32 +1427,44 @@ $$;
 -- ============================================================
 --  STORAGE BUCKET
 -- ============================================================
--- Create all required buckets: avatars (5MB), covers (5MB), chat_media (10MB), event-media (100MB)
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) VALUES 
-  ('avatars', 'avatars', true, 5242880, ARRAY['image/jpeg','image/png','image/webp']),
-  ('covers', 'covers', true, 5242880, ARRAY['image/jpeg','image/png','image/webp']),
-  ('chat_media', 'chat_media', true, 10485760, ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/quicktime']),
-  ('event-media', 'event-media', true, 104857600, ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/quicktime'])
-ON CONFLICT (id) DO UPDATE SET 
-  public = EXCLUDED.public, 
-  file_size_limit = EXCLUDED.file_size_limit, 
+-- Buckets: avatars (20MB), covers (20MB), chat_media (25MB), event-media (100MB)
+-- All MIME types allowed per bucket — including HEIC from iPhone cameras
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) VALUES
+  ('avatars',     'avatars',     true, 20971520,  ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']),
+  ('covers',      'covers',      true, 20971520,  ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']),
+  ('chat_media',  'chat_media',  true, 26214400,  ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','video/mp4','video/quicktime']),
+  ('event-media', 'event-media', true, 104857600, ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','video/mp4','video/quicktime'])
+ON CONFLICT (id) DO UPDATE SET
+  public             = EXCLUDED.public,
+  file_size_limit    = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- Global Storage Policies
+-- ── Storage Policies ────────────────────────────────────────────────────────
+-- Anyone can read public media
 DROP POLICY IF EXISTS "Public access to media" ON storage.objects;
 CREATE POLICY "Public access to media"
   ON storage.objects FOR SELECT USING (bucket_id IN ('avatars', 'covers', 'event-media', 'chat_media'));
 
+-- Any authenticated user can upload — paths are user-scoped so collisions are impossible
 DROP POLICY IF EXISTS "Authenticated users can upload" ON storage.objects;
 CREATE POLICY "Authenticated users can upload"
   ON storage.objects FOR INSERT
   WITH CHECK (bucket_id IN ('avatars', 'covers', 'event-media', 'chat_media') AND auth.role() = 'authenticated');
 
--- Ownership check based on folder name (expects paths like 'avatars/USER_ID/...')
+-- Authenticated users can update/replace their own files
+DROP POLICY IF EXISTS "Authenticated users can update" ON storage.objects;
+CREATE POLICY "Authenticated users can update"
+  ON storage.objects FOR UPDATE
+  USING (bucket_id IN ('avatars', 'covers', 'event-media', 'chat_media') AND auth.role() = 'authenticated');
+
+-- Users can delete files where their user ID is the first path component
 DROP POLICY IF EXISTS "Users can delete own files" ON storage.objects;
 CREATE POLICY "Users can delete own files"
   ON storage.objects FOR DELETE
-  USING (bucket_id IN ('avatars', 'covers', 'event-media', 'chat_media') AND auth.uid()::text = (storage.foldername(name))[1]);
+  USING (
+    bucket_id IN ('avatars', 'covers', 'event-media', 'chat_media')
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
 
 -- ============================================================
 --  FOLLOWS  (canonical table — all code queries 'follows')

@@ -1034,8 +1034,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       toast.show('Uploading profile picture...', 'info');
       // Derive extension from the original filename when available — blob URIs have no extension
       const fileName = asset.fileName || asset.uri.split('/').pop().split('?')[0];
-      const ext = (fileName.split('.').pop() || 'jpg').toLowerCase();
-      const storagePath = `avatars/${user.id}_${Date.now()}.${ext}`;
+      const rawExt = fileName.includes('.') ? fileName.split('.').pop() : '';
+      const ext = (rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'jpg').toLowerCase().slice(0, 5);
+      const storagePath = `${user.id}/avatar_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'avatars', storagePath, { mimeType: asset.mimeType });
       const { error: updateErr } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
       if (updateErr) throw new Error(updateErr.message);
@@ -1052,8 +1053,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       if (!asset) return;
       toast.show('Uploading to gallery...', 'info');
       const fileName = asset.fileName || asset.uri.split('/').pop().split('?')[0];
-      const ext = (fileName.split('.').pop() || 'jpg').toLowerCase();
-      const storagePath = `gallery/${user.id}/${Date.now()}.${ext}`;
+      const rawExt = fileName.includes('.') ? fileName.split('.').pop() : '';
+      const ext = (rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'jpg').toLowerCase().slice(0, 5);
+      const storagePath = `${user.id}/gallery_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'avatars', storagePath, { mimeType: asset.mimeType });
       const newGallery = [...(profileGallery || []), publicUrl];
       const { error: updateErr } = await supabase.from('profiles').update({ profile_gallery: newGallery }).eq('id', user.id);
@@ -1187,7 +1189,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       if (!asset) return;
       toast.show('Uploading cover photo...', 'info');
       const fileName = asset.fileName || asset.uri.split('/').pop().split('?')[0];
-      const ext = (fileName.split('.').pop() || 'jpg').toLowerCase();
+      const rawExt = fileName.includes('.') ? fileName.split('.').pop() : '';
+      const ext = (rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'jpg').toLowerCase().slice(0, 5);
       const storagePath = `${user.id}/cover_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'covers', storagePath, { mimeType: asset.mimeType });
       const { error: updateErr } = await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', user.id);

@@ -341,10 +341,36 @@ export const TrendingManager = {
     const cacheKey = `trending:${limit}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
+
+    // Try the RPC first — falls back to a direct query if the function doesn't exist yet
     try {
       const { data } = await supabase.rpc('find_popular_spots', { limit_count: limit });
-      if (data?.length > 0) { cache.set(cacheKey, data); return data; }
+      if (data?.length > 0) { cache.set(cacheKey, data, 120000); return data; }
+    } catch { /* RPC not yet deployed — use fallback below */ }
+
+    // Fallback: pull top events by trending_score directly
+    try {
+      const { data: events } = await supabase
+        .from('events')
+        .select('id, title, description, media, vibe_count, going, event_date, venue_name, category')
+        .eq('is_cancelled', false)
+        .order('vibe_count', { ascending: false })
+        .limit(limit);
+      if (events?.length > 0) {
+        const mapped = events.map((e, i) => ({
+          event_id: e.id,
+          title: e.title,
+          description: e.title || e.description,
+          image: e.media?.[0]?.url || null,
+          rsvp_count: e.going || 0,
+          vibe_count: e.vibe_count || 0,
+          rank: i + 1,
+        }));
+        cache.set(cacheKey, mapped, 120000);
+        return mapped;
+      }
     } catch { }
+
     return [];
   },
 
@@ -591,7 +617,10 @@ export const UserManager = {
     if (!isSupabaseEnabled) return true;
     const { error } = await supabase
       .from('follows')
-      .insert({ follower_id: followerId, following_id: followingId });
+      .upsert(
+        { follower_id: followerId, following_id: followingId },
+        { onConflict: 'follower_id,following_id', ignoreDuplicates: true }
+      );
     if (error) throw new Error(error.message);
     cache.invalidate(`follows:${followerId}`);
     cache.invalidate(`followers:${followingId}`);
@@ -620,7 +649,7 @@ export const UserManager = {
     try {
       const { data } = await supabase
         .from('follows')
-        .select('id')
+        .select('follower_id')
         .eq('follower_id', followerId)
         .eq('following_id', followingId)
         .maybeSingle();
@@ -1371,14 +1400,21 @@ export const MessageManager = {
       // Sanitize message body
       const sanitizedBody = SecurityService.sanitizeContent(body);
 
-      // Check if conversation already accepted
-      const { data: prior } = await supabase
-        .from('messages')
-        .select('id, request_accepted')
-        .or(`and(sender_id.eq.${recipientId},recipient_id.eq.${senderId}),and(sender_id.eq.${senderId},recipient_id.eq.${recipientId})`)
-        .limit(1)
-        .maybeSingle();
-      const accepted = !!prior?.request_accepted;
+      // Check if this conversation already has an accepted message.
+      let accepted = false;
+      try {
+        const { data: prior } = await supabase
+          .from('messages')
+          .select('request_accepted')
+          .or(
+            `and(sender_id.eq.${senderId},recipient_id.eq.${recipientId}),` +
+            `and(sender_id.eq.${recipientId},recipient_id.eq.${senderId})`
+          )
+          .eq('request_accepted', true)
+          .limit(1)
+          .maybeSingle();
+        accepted = !!prior;
+      } catch { accepted = false; }
 
       const trimmedBody = (body || '').trim() || null;
 
