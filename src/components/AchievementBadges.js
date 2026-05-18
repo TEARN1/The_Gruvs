@@ -32,7 +32,7 @@ const checkBadges = async (userId) => {
         supabase.from('events').select('id, vibe_count', { count: 'exact' }).eq('user_id', userId),
         supabase.from('profiles').select('vibe_score, username, bio, avatar_url, location, referral_count').eq('id', userId).single(),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', userId),
-        supabase.from('event_rsvps').select('event_id, events(start_time, city)').eq('user_id', userId),
+        supabase.from('event_rsvps').select('event_id, events(event_date, event_time, city)').eq('user_id', userId),
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('profiles').select('referral_count').eq('id', userId).single(),
@@ -76,9 +76,9 @@ const checkBadges = async (userId) => {
       const cities = new Set();
       rsvps.forEach(r => {
         const ev = Array.isArray(r.events) ? r.events[0] : r.events;
-        if (ev?.start_time) {
-          const hour = new Date(ev.start_time).getHours();
-          if (hour >= 22 || hour < 4) nightCount++;
+        if (ev?.event_time) {
+          const hour = parseInt(ev.event_time.split(':')[0], 10);
+          if (!isNaN(hour) && (hour >= 22 || hour < 4)) nightCount++;
         }
         if (ev?.city) cities.add(ev.city.trim().toLowerCase());
       });

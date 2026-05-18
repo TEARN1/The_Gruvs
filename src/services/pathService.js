@@ -35,7 +35,7 @@ export const pathService = {
   async fetchUserPaths(userId, limit = 20) {
     const { data, error } = await supabase
       .from('paths')
-      .select('*, events(title, venue, start_time)')
+      .select('*, events(title, venue_name, event_date, event_time)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);

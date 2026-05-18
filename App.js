@@ -9,7 +9,7 @@ import { BREAKPOINT } from './src/constants/DesignTokens';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
-import { AuthProvider } from './src/context/AuthContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { IdentityProvider } from './src/context/IdentityContext';
 import { ToastProvider } from './src/components/ToastNotification';
 import { LandingPage } from './src/screens/LandingPage';
@@ -250,6 +250,7 @@ const sb = StyleSheet.create({
 // ── Main Navigator ─────────────────────────────────────────────────────────────
 const MainNavigator = () => {
   const { currentTheme, applyNeuralTheme } = useTheme();
+  const { user: authUser } = useAuth();
   const { width } = useWindowDimensions();
   const unreadCount = useUnreadCount();
   const unreadDMCount = useUnreadDMCount();
@@ -283,7 +284,7 @@ const MainNavigator = () => {
   useEffect(() => {
     // Advanced Logic: Check Sovereign Status
     const checkStatus = async () => {
-      const { user } = SecurityService.getCurrentSession();
+      const user = authUser;
       if (user) {
         const status = await VibeEconomyEngine.getSovereignStatus(user.id);
         setIsSovereign(status.isRoyal);

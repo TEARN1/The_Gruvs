@@ -1678,6 +1678,7 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS followers_count INTEGER     DEFAUL
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS following_count INTEGER     DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_online       BOOLEAN     DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen       TIMESTAMPTZ;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak  INTEGER DEFAULT 0;
 
 -- ============================================================
 --  increment_profile_score  RPC
