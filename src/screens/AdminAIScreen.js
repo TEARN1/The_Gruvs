@@ -96,7 +96,7 @@ async function executeTool(toolName, toolInput) {
         const { data: u } = await supabase.from('profiles').select('id').eq('username', username).single();
         if (!u) return `User @${username} not found.`;
         if (action === 'flag') {
-          await supabase.from('reports').insert({ reported_id: u.id, reporter_id: u.id, reason: reason || 'Admin flagged', status: 'flagged' });
+          await supabase.from('reports').insert({ target_type: 'profile', target_id: u.id, reporter_id: u.id, reason: reason || 'Admin flagged', status: 'pending' });
           return `User @${username} flagged for review.`;
         }
         if (action === 'suspend') {

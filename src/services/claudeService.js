@@ -41,7 +41,7 @@ export const AIFeature = {
 // Extended thinking budget (tokens).
 const THINKING_BUDGET_COACH = 16000;
 const THINKING_BUDGET_CHAT = 32000;
-const THINKING_BUDGET_ARCHITECT = 128000;
+// THINKING_BUDGET_ARCHITECT reserved for future deep-reasoning calls
 
 const CORE_REASONING_PROMPT = `When you answer, follow the most advanced reasoning process available:
 • If the request needs facts, plan the tool calls first and use the results to inform the final response.
@@ -348,7 +348,6 @@ async function buildDeepContext(userId) {
 
   try {
     const today = new Date().toISOString().split('T')[0];
-    const week7 = new Date(Date.now() - 7 * 86400000).toISOString();
     const week30 = new Date(Date.now() - 30 * 86400000).toISOString();
 
     const [
@@ -356,7 +355,7 @@ async function buildDeepContext(userId) {
       { data: memory },
       { data: rsvps },
       { data: vibes },
-      { data: saves },
+      { data: savedEvents },
       { data: following },
       { data: topInteractions },
       { data: nearbyEvents },
@@ -402,7 +401,6 @@ async function buildDeepContext(userId) {
     ]);
 
     const lines = [];
-    const crossedPathUserIds = new Set();
 
     // Profile
     if (profile) {
@@ -1241,7 +1239,7 @@ Return ONLY a JSON object:
  * Haiku does a fast first pass. If verdict is borderline ('flagged'), Sonnet does
  * a deep review with full context reasoning before final verdict.
  */
-export async function moderateContent({ text = '', type = 'event', userId } = {}) {
+export async function moderateContent({ text = '', type = 'event' } = {}) {
   const fastPrompt = `Moderate this ${type} content for a South African event platform.
 
 CONTENT: "${text.slice(0, 1000)}"
@@ -1619,7 +1617,7 @@ async function _executeAdminTool(name, input) {
         const { data: u } = await supabase.from('profiles').select('id, display_name').eq('username', input.username).single();
         if (!u) return `User @${input.username} not found.`;
         if (input.action === 'flag') {
-          await supabase.from('reports').insert({ reported_id: u.id, reporter_id: u.id, reason: input.reason || 'Admin flagged', status: 'flagged' });
+          await supabase.from('reports').insert({ target_type: 'profile', target_id: u.id, reporter_id: u.id, reason: input.reason || 'Admin flagged', status: 'pending' });
           return `User @${input.username} flagged for review.`;
         }
         if (input.action === 'suspend') {
