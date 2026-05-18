@@ -1681,6 +1681,152 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen       TIMESTAMPTZ;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak  INTEGER DEFAULT 0;
 
 -- ============================================================
+--  AI TABLES (interactions, memory, predictions, recommendations)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS ai_interactions (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        REFERENCES profiles(id) ON DELETE SET NULL,
+  feature     TEXT,
+  input       TEXT,
+  output      TEXT,
+  model       TEXT,
+  tokens_used INTEGER,
+  feedback    INTEGER,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE ai_interactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users read own ai_interactions" ON ai_interactions;
+DROP POLICY IF EXISTS "Users insert ai_interactions"  ON ai_interactions;
+CREATE POLICY "Users read own ai_interactions" ON ai_interactions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users insert ai_interactions"  ON ai_interactions FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+CREATE POLICY "Users update own ai_interactions" ON ai_interactions FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS ai_user_memory (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+  summary     TEXT,
+  preferences JSONB       DEFAULT '{}',
+  behaviour   JSONB       DEFAULT '{}',
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE ai_user_memory ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own ai_memory" ON ai_user_memory;
+CREATE POLICY "Users manage own ai_memory" ON ai_user_memory FOR ALL USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS ai_predictions (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID        REFERENCES profiles(id) ON DELETE CASCADE,
+  event_id        UUID        REFERENCES events(id)   ON DELETE SET NULL,
+  confidence      FLOAT,
+  logic           TEXT,
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE ai_predictions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users read own ai_predictions" ON ai_predictions;
+CREATE POLICY "Users read own ai_predictions" ON ai_predictions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Service insert ai_predictions"  ON ai_predictions FOR INSERT WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS ai_recommendations_cache (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+  event_ids   UUID[]      DEFAULT '{}',
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE ai_recommendations_cache ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users read own recommendations" ON ai_recommendations_cache;
+CREATE POLICY "Users read own recommendations" ON ai_recommendations_cache FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Service upsert recommendations"  ON ai_recommendations_cache FOR ALL USING (true);
+
+-- ============================================================
+--  SECURITY LOGS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS security_logs (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        REFERENCES profiles(id) ON DELETE SET NULL,
+  event_type  TEXT        NOT NULL,
+  details     JSONB       DEFAULT '{}',
+  ip_address  TEXT,
+  user_agent  TEXT,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE security_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins read security_logs" ON security_logs;
+CREATE POLICY "Admins read security_logs"  ON security_logs FOR SELECT USING (auth.uid() IN (SELECT id FROM profiles WHERE role = 'admin'));
+CREATE POLICY "Service insert security_logs" ON security_logs FOR INSERT WITH CHECK (true);
+
+-- ============================================================
+--  SERVICE REVIEWS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS service_reviews (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id  UUID,
+  provider_id UUID        REFERENCES profiles(id) ON DELETE CASCADE,
+  reviewer_id UUID        REFERENCES profiles(id) ON DELETE SET NULL,
+  rating      INTEGER     CHECK (rating BETWEEN 1 AND 5),
+  comment     TEXT,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE service_reviews ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "service_reviews readable"     ON service_reviews;
+DROP POLICY IF EXISTS "Reviewers insert reviews"     ON service_reviews;
+CREATE POLICY "service_reviews readable"     ON service_reviews FOR SELECT USING (true);
+CREATE POLICY "Reviewers insert reviews"     ON service_reviews FOR INSERT WITH CHECK (auth.uid() = reviewer_id);
+
+-- ============================================================
+--  GOVERNANCE (proposals + votes)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS governance_proposals (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  title       TEXT        NOT NULL,
+  description TEXT,
+  status      TEXT        DEFAULT 'voting_open',
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE governance_proposals ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "governance_proposals readable"   ON governance_proposals FOR SELECT USING (true);
+CREATE POLICY "Service insert proposals"        ON governance_proposals FOR INSERT WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS governance_votes (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        REFERENCES profiles(id) ON DELETE CASCADE,
+  proposal_id UUID        REFERENCES governance_proposals(id) ON DELETE CASCADE,
+  vote        TEXT        NOT NULL,
+  weight      NUMERIC     DEFAULT 1,
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (user_id, proposal_id)
+);
+ALTER TABLE governance_votes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "governance_votes readable"   ON governance_votes FOR SELECT USING (true);
+CREATE POLICY "Users cast votes"            ON governance_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- ============================================================
+--  GLOBAL ECONOMY PARAMS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS global_economy_params (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  vibe_tax_rate FLOAT       DEFAULT 0.05,
+  updated_at    TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE global_economy_params ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "global_economy_params readable" ON global_economy_params FOR SELECT USING (true);
+-- Seed default row if none exists
+INSERT INTO global_economy_params (vibe_tax_rate) SELECT 0.05 WHERE NOT EXISTS (SELECT 1 FROM global_economy_params);
+
+-- ============================================================
+--  EVENT CHECKINS (alias table used by claudeService)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS event_checkins (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        REFERENCES profiles(id) ON DELETE CASCADE,
+  event_id    UUID        REFERENCES events(id)   ON DELETE CASCADE,
+  checked_in_at TIMESTAMPTZ DEFAULT now(),
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE event_checkins ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "event_checkins readable"   ON event_checkins FOR SELECT USING (true);
+CREATE POLICY "Users insert checkins"     ON event_checkins FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- ============================================================
 --  increment_profile_score  RPC
 -- ============================================================
 CREATE OR REPLACE FUNCTION increment_profile_score(uid UUID, amount INTEGER)
