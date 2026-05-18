@@ -885,8 +885,11 @@ ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES p
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS name        TEXT;
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS category    TEXT;
 ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price       NUMERIC;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS available   BOOLEAN DEFAULT true;
+ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price        NUMERIC;
+ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_min    NUMERIC;
+ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_max    NUMERIC;
+ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS service_type TEXT;
+ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS available    BOOLEAN DEFAULT true;
 
 ALTER TABLE service_nodes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Services readable"          ON service_nodes;
@@ -913,6 +916,9 @@ ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profi
 ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS title       TEXT;
 ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS pay         NUMERIC;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS pay_rands   NUMERIC;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS category    TEXT;
+ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS time_window TEXT    DEFAULT 'Flexible';
 ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS active      BOOLEAN DEFAULT true;
 
 ALTER TABLE gig_posts ENABLE ROW LEVEL SECURITY;
@@ -951,6 +957,7 @@ ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS pickup_address  TEXT;
 ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS dropoff_address TEXT;
 ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS scheduled_at    TIMESTAMPTZ;
 ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS estimated_price NUMERIC(10,2);
+ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS amount_cents    INTEGER;
 ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS status          TEXT DEFAULT 'escrow_held';
 ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS escrow_held_at  TIMESTAMPTZ DEFAULT now();
 ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS completed_at    TIMESTAMPTZ;
