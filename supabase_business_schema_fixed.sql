@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   identity_mode    TEXT        DEFAULT 'public' CHECK (identity_mode IN ('public','ghost','celebrity')),
   is_beacon_active BOOLEAN     DEFAULT false,
   is_discoverable  BOOLEAN     DEFAULT true,
+  badges           TEXT[]      DEFAULT '{}',
+  xp               INTEGER     DEFAULT 0,
   created_at       TIMESTAMPTZ DEFAULT now(),
   updated_at       TIMESTAMPTZ DEFAULT now()
 );
@@ -1722,7 +1724,9 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS followers_count INTEGER     DEFAUL
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS following_count INTEGER     DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_online       BOOLEAN     DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen       TIMESTAMPTZ;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak  INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak  INTEGER     DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS badges          TEXT[]      DEFAULT '{}';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS xp              INTEGER     DEFAULT 0;
 
 -- ============================================================
 --  AI TABLES (interactions, memory, predictions, recommendations)
@@ -2415,8 +2419,13 @@ CREATE TABLE IF NOT EXISTS dm_rooms (
   unread_count_2  INTEGER     DEFAULT 0,
   created_at      TIMESTAMPTZ DEFAULT now(),
   updated_at      TIMESTAMPTZ DEFAULT now(),
-  UNIQUE (LEAST(participant_1, participant_2), GREATEST(participant_1, participant_2))
+  CHECK (participant_1 <> participant_2)
 );
+
+-- Expression-based unique constraint: prevents duplicate rooms regardless of which
+-- user is participant_1 vs participant_2 (must be a separate index, not inline).
+CREATE UNIQUE INDEX IF NOT EXISTS dm_rooms_pair_unique
+  ON dm_rooms (LEAST(participant_1, participant_2), GREATEST(participant_1, participant_2));
 CREATE INDEX IF NOT EXISTS dm_rooms_p1 ON dm_rooms(participant_1, last_message_at DESC);
 CREATE INDEX IF NOT EXISTS dm_rooms_p2 ON dm_rooms(participant_2, last_message_at DESC);
 ALTER TABLE dm_rooms ENABLE ROW LEVEL SECURITY;

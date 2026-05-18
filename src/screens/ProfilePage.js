@@ -13,7 +13,7 @@ import { FadeInView } from '../components/FadeInView';
 import { THEMES, GENDERS } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
-import { DiscoveryManager, UserManager, AnalyticsManager } from '../services/dataFlow';
+import { DiscoveryManager, UserManager, AnalyticsManager, BehavioralEngine } from '../services/dataFlow';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { LocationService } from '../services/locationService';
 import * as ImagePicker from 'expo-image-picker';
@@ -937,46 +937,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     if (vibeCoachLoading) return;
     setVibeCoachLoading(true);
     try {
-      const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
-      const [rsvpRes, vibeRes, echoRes, checkinRes] = await Promise.all([
-        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', user?.id).gte('created_at', since7d),
-        supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', user?.id).gte('created_at', since7d),
-        supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', user?.id).gte('created_at', since7d),
-        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', user?.id).gte('created_at', since7d),
-      ]);
-      const r = rsvpRes.count || 0, v = vibeRes.count || 0, e = echoRes.count || 0, c = checkinRes.count || 0;
-      const score = profile?.vibe_score || 0;
-      const hasAvatar = !!profile?.avatar_url;
-      const hasBio = !!(profile?.bio?.trim());
-      const hasInterests = (profile?.interests || []).length > 0;
-      const followers = profile?.followers_count || 0;
-
-      // Deterministic tip engine — no AI required
-      const tips = [];
-      if (!hasAvatar) tips.push('Add a profile photo — vibers with photos get 3× more profile visits.');
-      if (!hasBio) tips.push('Write a short bio. Tell people who you are and what kind of Gruvs you live for.');
-      if (!hasInterests) tips.push('Add your interests so the feed can surface Gruvs that match your taste.');
-      if (r === 0) tips.push('RSVP to at least one upcoming Gruv this week — it signals your vibe to the community.');
-      if (v < 3) tips.push('Drop some Vibes on events you enjoy. The more you vibe, the better your feed gets.');
-      if (e === 0) tips.push('Leave an Echo on a Gruv you attended — organisers and other vibers see your perspective.');
-      if (c === 0) tips.push('Touch Down at your next Gruv to unlock check-in rewards and appear in Who Was There.');
-      if (followers < 5) tips.push('Follow 5 vibers whose taste matches yours. Your crew feed gets richer as your network grows.');
-      if (score > 500 && tips.length === 0) tips.push('You\'re locked in — keep showing up and your Vibe Score compounds weekly.');
-
-      // Summary insight
-      const total = r + v + e + c;
-      let insight;
-      if (total === 0) insight = 'No activity this week. Jump in — your first move unlocks the recommendation engine.';
-      else if (total < 5) insight = `${total} action${total > 1 ? 's' : ''} this week. You're warming up — consistency is how the Vibe Score compounds.`;
-      else insight = `${total} actions this week — you're in the mix. Keep the momentum going.`;
-
-      // Next milestone
-      let next_milestone = null;
-      if (score < 100) next_milestone = `${100 - score} pts to reach Level 2`;
-      else if (score < 500) next_milestone = `${500 - score} pts to reach Level 3`;
-      else if (score < 1000) next_milestone = `${1000 - score} pts to Sovereign status`;
-
-      setVibeCoachData({ insight, tips: tips.slice(0, 4), next_milestone });
+      const result = await BehavioralEngine.analyze(user?.id, profile);
+      if (result) setVibeCoachData(result);
     } catch {}
     setVibeCoachLoading(false);
   };
@@ -1688,6 +1650,31 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </View>
           {vibeCoachData ? (
             <>
+              {/* Trend + Cohort row */}
+              {(vibeCoachData.trend || vibeCoachData.cohort) && (
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                  {vibeCoachData.trend && (
+                    <View style={{ flex: 1, padding: 8, borderRadius: 10, backgroundColor: `${primary}10`, alignItems: 'center' }}>
+                      <Text style={{ color: vibeCoachData.trend.direction === 'up' ? '#10b981' : vibeCoachData.trend.direction === 'down' ? '#ef4444' : muted, fontSize: 16, fontWeight: '900' }}>
+                        {vibeCoachData.trend.direction === 'up' ? '↑' : vibeCoachData.trend.direction === 'down' ? '↓' : '→'} {Math.abs(vibeCoachData.trend.pct)}%
+                      </Text>
+                      <Text style={{ color: muted, fontSize: 10, marginTop: 2 }}>vs last week</Text>
+                    </View>
+                  )}
+                  {vibeCoachData.cohort && (
+                    <View style={{ flex: 1, padding: 8, borderRadius: 10, backgroundColor: `${primary}10`, alignItems: 'center' }}>
+                      <Text style={{ color: primary, fontSize: 13, fontWeight: '800' }}>{vibeCoachData.cohort.percentile}th %ile</Text>
+                      <Text style={{ color: muted, fontSize: 10, marginTop: 2 }}>{vibeCoachData.cohort.label}</Text>
+                    </View>
+                  )}
+                  {vibeCoachData.decay_score !== undefined && (
+                    <View style={{ flex: 1, padding: 8, borderRadius: 10, backgroundColor: `${primary}10`, alignItems: 'center' }}>
+                      <Text style={{ color: primary, fontSize: 13, fontWeight: '800' }}>{vibeCoachData.decay_score.toFixed(1)}</Text>
+                      <Text style={{ color: muted, fontSize: 10, marginTop: 2 }}>momentum</Text>
+                    </View>
+                  )}
+                </View>
+              )}
               {!!vibeCoachData.insight && (
                 <Text style={{ color: textColor, fontSize: 13, lineHeight: 19, marginBottom: 10 }}>{vibeCoachData.insight}</Text>
               )}

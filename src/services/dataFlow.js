@@ -66,65 +66,187 @@ export const GeoUtils = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ADVANCED SCORING PRIMITIVES
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Wilson lower-bound score for binary positive/negative counts.
+// Gives statistically sound ranking even with small sample sizes.
+// n = total observations, p = positive fraction, z = 1.96 for 95% CI
+function wilsonLowerBound(positives, total, z = 1.96) {
+  if (total === 0) return 0;
+  const p = positives / total;
+  const z2 = z * z;
+  const num = p + z2 / (2 * total) - z * Math.sqrt((p * (1 - p) + z2 / (4 * total)) / total);
+  const den = 1 + z2 / total;
+  return num / den;
+}
+
+// Exponential temporal decay: score * e^(-λ * hours)
+// λ=0.08 → half-life ≈ 8.7 h (content freshness curve)
+function expDecay(value, ageHours, lambda = 0.08) {
+  return value * Math.exp(-lambda * ageHours);
+}
+
+// Gaussian peak at targetHours with σ spread — used for event imminence
+// Returns [0,1]; max at t=targetHours, falls off symmetrically
+function gaussianPeak(hoursUntil, targetHours = 20, sigma = 18) {
+  const d = hoursUntil - targetHours;
+  return Math.exp(-(d * d) / (2 * sigma * sigma));
+}
+
+// Inverse-square geographic proximity score in [0,1]
+// Returns 1 at dist=0, ~0.5 at dist=σKm, approaches 0 at large distances
+function geoProximityScore(distKm, sigmaKm = 8) {
+  return 1 / (1 + (distKm * distKm) / (sigmaKm * sigmaKm));
+}
+
+// Logarithmic compression for large raw counts — avoids viral outliers dominating
+function logCompress(value, scale = 10) {
+  return scale * Math.log1p(value);
+}
+
+// Engagement velocity with momentum: current rate + acceleration term
+// velocity = (count / ageH), momentum = velocity / ageH (second derivative signal)
+function engagementMomentum(count, ageHours) {
+  if (ageHours < 0.1) return logCompress(count, 8);
+  const velocity = count / ageHours;
+  const momentum = velocity / Math.max(1, ageHours); // acceleration
+  return velocity * 3 + momentum * 12;
+}
+
+// Interest affinity score: multi-category weighted dot product
+// Each matching category contributes, with primary interest weighted 2×
+const INTEREST_HIERARCHY = {
+  Music: ['Music', 'Nightlife', 'Entertainment'],
+  Art: ['Art', 'Culture', 'Photography'],
+  Tech: ['Tech', 'Business', 'Innovation'],
+  Fashion: ['Fashion', 'Lifestyle', 'Art'],
+  Nightlife: ['Nightlife', 'Music', 'Social'],
+  Food: ['Food', 'Social', 'Culture'],
+  Sports: ['Sports', 'Fitness', 'Outdoor'],
+  Social: ['Social', 'Networking', 'Community'],
+  Business: ['Business', 'Tech', 'Networking'],
+};
+
+function interestAffinityScore(category, userInterests) {
+  if (!category || !userInterests.length) return 0;
+  let score = 0;
+  userInterests.forEach((interest, idx) => {
+    const weight = 1 / (idx + 1); // primary interest = 1.0, secondary = 0.5, tertiary = 0.33
+    if (interest === category) {
+      score += 30 * weight; // direct match
+    } else {
+      const related = INTEREST_HIERARCHY[interest] || [];
+      if (related.includes(category)) score += 12 * weight; // adjacent match
+    }
+  });
+  return score;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SCORE ENGINE  (Vibe Score — used for feed ranking & profile display)
 // ─────────────────────────────────────────────────────────────────────────────
 export const ScoreEngine = {
-  // Weighted relevance score for a single event (higher = more relevant)
-  eventScore(event, { userInterests = [], followedIds = [], userLat, userLon, crossedPathIds = [], aiRecommendedIds = new Set() } = {}) {
-    let score = 0;
 
-    // Neural weights from Project DNA
-    const weights = projectDNA?.neural_weights || { social: 1.5, activity: 2.0, proximity: 0.3 };
+  // Advanced multi-signal relevance score for a single event.
+  // Combines 9 orthogonal signals into a composite score.
+  eventScore(event, {
+    userInterests = [],
+    followedIds = [],
+    userLat,
+    userLon,
+    crossedPathIds = [],
+    aiRecommendedIds = new Set(), // kept for API compatibility
+  } = {}) {
+    const now = Date.now();
+    const ageH = Math.max(0.01, (now - new Date(event.created_at).getTime()) / 3600000);
+    const vibes = event.vibe_count || 0;
+    const going = event.going || 0;
+    const totalEngagement = vibes + going;
 
-    // Sovereign Weighting: High-Integrity hosts get priority distribution
-    if (event.profiles?.social_integrity_score) {
-      score += (event.profiles.social_integrity_score / 2);
-    }
+    // ── SIGNAL 1: Host trust prior (Bayesian weight)
+    // social_integrity_score [0,200] treated as a prior on content quality.
+    // Modelled as a multiplier centred at 1.0 (neutral), max 1.4 at SIS=200.
+    const sis = event.profiles?.social_integrity_score || 50;
+    const trustMultiplier = 0.8 + (Math.min(sis, 200) / 200) * 0.6; // [0.8, 1.4]
 
-    // Social signals
-    score += (event.vibe_count || 0) * weights.social;
-    score += (event.going || 0) * 1.2;
+    // ── SIGNAL 2: Wilson lower-bound social proof
+    // Treats (vibes + going) as positives, uses an impression proxy of max(total,10).
+    // Prevents a 1-vibe event from outranking a 50-vibe event.
+    const impressionProxy = Math.max(totalEngagement * 3, 10);
+    const wilsonProof = wilsonLowerBound(totalEngagement, impressionProxy) * 80;
 
-    // Intersectional Affinity: Have we met this host before?
-    if (crossedPathIds.includes(event.author_id)) {
-      score += 40; // Massive boost for "Real World" connections
-    }
+    // ── SIGNAL 3: Engagement velocity with momentum
+    // Rewards rapidly accelerating engagement in the first 48h.
+    // After 48h the momentum signal decays, leaving only the Wilson proof.
+    const velocitySignal = ageH < 48 ? engagementMomentum(totalEngagement, ageH) : 0;
 
-    // Vibe Velocity: High growth in short time
-    const ageH = (Date.now() - new Date(event.created_at).getTime()) / 3600000;
-    if (ageH < 24) {
-      const velocity = (event.vibe_count || 0) / Math.max(1, ageH);
-      score += velocity * 5; // Momentum boost
-    }
+    // ── SIGNAL 4: Exponential content freshness decay
+    // Content freshness decays with half-life ~8.7h.
+    const freshness = expDecay(25, ageH, 0.08);
 
-    // Integrity Pattern: Reward high-integrity hosts
-    if (event.profiles?.social_integrity_score) {
-      score += (event.profiles.social_integrity_score / 10);
-    }
-
-    // Personalisation boosts
-    if (followedIds.includes(event.author_id)) score += 25;
-    if (userInterests.includes(event.category)) score += 15;
-
-    // Recency — events created in the last 6 h get a spike
-    score += Math.max(0, 20 - ageH * 0.5);
-
-    // Upcoming proximity — events in the next 48 h get boosted
+    // ── SIGNAL 5: Upcoming event temporal sweet-spot
+    // Gaussian peak centred at 20h before the event, σ=18h.
+    // Events too far away (>7 days) or already past score near 0.
+    let imminenceSignal = 0;
     if (event.event_date) {
-      const daysUntil = (new Date(event.event_date) - Date.now()) / 86400000;
-      if (daysUntil >= 0 && daysUntil <= 2) score += 18;
+      const eventMs = new Date(`${event.event_date}T${event.event_time || '20:00'}:00`).getTime();
+      const hoursUntil = (eventMs - now) / 3600000;
+      if (hoursUntil >= -2 && hoursUntil <= 168) { // -2h to +7 days
+        imminenceSignal = gaussianPeak(hoursUntil, 20, 18) * 35;
+        // Extra urgency: < 6h away and still has spots
+        if (hoursUntil > 0 && hoursUntil < 6) imminenceSignal += 20;
+      }
     }
 
-    // Free events get a small nudge
-    if (!event.price || event.price === 0) score += 5;
-
-    // Distance penalty if coords are available (rough haversine)
+    // ── SIGNAL 6: Geographic inverse-square proximity
+    // Score falls off as 1/(1 + dist²/σ²) with σ=8km.
+    // No penalty beyond ~25km — just diminishing reward.
+    let geoSignal = 0;
     if (userLat && userLon && event.lat && event.lon) {
       const distKm = GeoUtils.getDistance(userLat, userLon, event.lat, event.lon);
-      score -= Math.min(15, distKm * weights.proximity);
+      geoSignal = geoProximityScore(distKm, 8) * 25;
     }
 
-    return score;
+    // ── SIGNAL 7: Multi-dimensional interest affinity vector
+    // Weighted dot product across interest hierarchy graph.
+    const affinitySignal = interestAffinityScore(event.category, userInterests);
+
+    // ── SIGNAL 8: Social graph network proximity
+    // Weights: followed host > real-world path crossing > no connection.
+    // Uses graded scoring rather than binary booleans.
+    let networkSignal = 0;
+    if (followedIds.includes(event.author_id)) networkSignal += 28;
+    if (crossedPathIds.includes(event.author_id)) networkSignal += 22;
+    // Mutual: both follow each other — approximated if host follows viewer (can't check without data)
+    // Slight boost for high-engagement followed host signals
+    if (followedIds.includes(event.author_id) && vibes > 10) networkSignal += 8;
+
+    // ── SIGNAL 9: Ancillary quality signals
+    const freeBoost = (!event.price || event.price === 0) ? 5 : 0;
+    // Verified host small lift
+    const verifiedBoost = event.profiles?.is_verified ? 6 : 0;
+    // Logarithmic absolute social mass — compressed so mega-events don't bury everything
+    const socialMass = logCompress(totalEngagement, 6);
+
+    // ── COMPOSITE SCORE
+    // Each signal is independent; trustMultiplier scales the whole bundle.
+    const raw = wilsonProof + velocitySignal + freshness + imminenceSignal
+      + geoSignal + affinitySignal + networkSignal
+      + freeBoost + verifiedBoost + socialMass;
+
+    return raw * trustMultiplier;
+  },
+
+  // Heat score for trending — Wilson + velocity only (no personalization)
+  heatScore(event) {
+    const ageH = Math.max(0.01, (Date.now() - new Date(event.created_at).getTime()) / 3600000);
+    const total = (event.vibe_count || 0) + (event.going || 0);
+    const impressions = Math.max(total * 3, 10);
+    const wilson = wilsonLowerBound(total, impressions) * 100;
+    const velocity = ageH < 72 ? engagementMomentum(total, ageH) : 0;
+    const freshness = expDecay(20, ageH, 0.05);
+    return wilson + velocity + freshness;
   },
 
   // Compute and persist a user's Vibe Score
@@ -143,14 +265,24 @@ export const ScoreEngine = {
         supabase.from('service_bookings').select('id', { count: 'exact', head: true }).eq('provider_id', userId).eq('status', 'completed'),
       ]);
 
-      // Advanced Logic: Contribution-based weighting
-      const score =
-        (posts.count || 0) * 15 +    // Creating Gruvs is high value
-        (vibes.count || 0) * 2 +     // Giving vibes
-        (rsvps.count || 0) * 5 +     // Commitment
-        (checkins.count || 0) * 25 +  // Physical presence (Upweighted)
-        (follows.count || 0) * 20 +   // Community influence
-        (bookings.count || 0) * 50;   // Economic utility (Sovereign Level)
+      // Decay-weighted contribution scoring.
+      // Each action type has a base value scaled by a logarithmic volume diminisher
+      // so that 1000 vibes is not 1000x better than 1 vibe — compresses outliers.
+      const p = posts.count || 0;
+      const vi = vibes.count || 0;
+      const r = rsvps.count || 0;
+      const c = checkins.count || 0;
+      const f = follows.count || 0;
+      const b = bookings.count || 0;
+
+      const score = Math.round(
+        logCompress(p, 12) * 15 +    // Creating Gruvs — high authorship value
+        logCompress(vi, 10) * 2 +    // Giving vibes — social engagement
+        logCompress(r, 10) * 5 +     // Commitment — intent signal
+        logCompress(c, 12) * 25 +    // Physical presence — highest trust signal
+        logCompress(f, 14) * 20 +    // Community influence — reach multiplier
+        logCompress(b, 16) * 50      // Economic utility — sovereign-tier signal
+      );
 
       await supabase.from('profiles').update({ vibe_score: score }).eq('id', userId);
 
@@ -348,22 +480,27 @@ export const TrendingManager = {
       if (data?.length > 0) { cache.set(cacheKey, data, 120000); return data; }
     } catch { /* RPC not yet deployed — use fallback below */ }
 
-    // Fallback: pull top events by trending_score directly
+    // Fallback: pull candidate pool, rank by Wilson+velocity heat score
     try {
       const { data: events } = await supabase
         .from('events')
-        .select('id, title, description, media, vibe_count, going, event_date, venue_name, category')
+        .select('id, title, description, media, vibe_count, going, event_date, event_time, venue_name, category, created_at')
         .eq('is_cancelled', false)
+        .gte('event_date', new Date().toISOString().split('T')[0])
         .order('vibe_count', { ascending: false })
-        .limit(limit);
+        .limit(limit * 4); // oversample so we can re-rank
       if (events?.length > 0) {
-        const mapped = events.map((e, i) => ({
+        const ranked = [...events]
+          .sort((a, b) => ScoreEngine.heatScore(b) - ScoreEngine.heatScore(a))
+          .slice(0, limit);
+        const mapped = ranked.map((e, i) => ({
           event_id: e.id,
           title: e.title,
-          description: e.title || e.description,
+          description: e.description || e.title,
           image: e.media?.[0]?.url || null,
           rsvp_count: e.going || 0,
           vibe_count: e.vibe_count || 0,
+          heat: Math.round(ScoreEngine.heatScore(e)),
           rank: i + 1,
         }));
         cache.set(cacheKey, mapped, 120000);
@@ -387,10 +524,12 @@ export const TrendingManager = {
         .gte('event_date', today)
         .lte('event_date', tomorrow)
         .order('vibe_count', { ascending: false })
-        .limit(8);
-      const result = data || [];
-      cache.set(cacheKey, result, 60000); // 1-min TTL — high volatility
-      return result;
+        .limit(20); // oversample, re-rank by heat
+      const events = (data || [])
+        .sort((a, b) => ScoreEngine.heatScore(b) - ScoreEngine.heatScore(a))
+        .slice(0, 8);
+      cache.set(cacheKey, events, 60000); // 1-min TTL — high volatility
+      return events;
     } catch { return []; }
   },
 
@@ -888,17 +1027,32 @@ export const CheckInManager = {
 // DISCOVERY MANAGER  (Nearby events & Vibers)
 // ─────────────────────────────────────────────────────────────────────────────
 export const DiscoveryManager = {
-  async findNearbyEvents(lat, lon, radiusKm = 25) {
-    // Removed demo mode fallback.
+  // Find nearby events and re-rank by a geo×social composite.
+  // Social boost: events hosted by followed users or path-crossed users are surfaced higher
+  // even if slightly further away — because real-world social graph proximity matters more than
+  // raw kilometres for event discovery.
+  async findNearbyEvents(lat, lon, radiusKm = 25, { followedIds = [], crossedPathIds = [] } = {}) {
     const cacheKey = `nearby_events:${Math.round(lat * 10)}:${Math.round(lon * 10)}:${radiusKm}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
     try {
       const { data } = await supabase.rpc('find_nearby_events', {
-        lat, lon, radius_km: radiusKm, limit_count: 20,
+        lat, lon, radius_km: radiusKm, limit_count: 40, // oversample for re-ranking
       });
-      if (data) cache.set(cacheKey, data);
-      return data || [];
+      let events = data || [];
+      if (events.length > 0 && (followedIds.length > 0 || crossedPathIds.length > 0)) {
+        // Re-rank: composite of geo proximity + social graph proximity
+        events = events.map(e => {
+          const distKm = e.dist_km || e.distance_km || 0;
+          const geo = geoProximityScore(distKm, 8) * 60;
+          const social = followedIds.includes(e.author_id) ? 35
+            : crossedPathIds.includes(e.author_id) ? 22 : 0;
+          const heat = ScoreEngine.heatScore(e);
+          return { ...e, _discovery_score: geo + social + heat * 0.4 };
+        }).sort((a, b) => b._discovery_score - a._discovery_score).slice(0, 20);
+      }
+      if (events.length) cache.set(cacheKey, events);
+      return events;
     } catch (error) {
       console.error('DiscoveryManager.findNearbyEvents error:', error);
       return [];
@@ -2091,4 +2245,186 @@ export const RewardEngine = {
       return [];
     } catch { return []; }
   }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BEHAVIORAL ENGINE  (deep activity analysis for Vibe Coach & retention)
+// ─────────────────────────────────────────────────────────────────────────────
+export const BehavioralEngine = {
+
+  // Compare this week's activity to last week's — returns trend direction and delta
+  _computeTrend(thisWeek, lastWeek) {
+    if (lastWeek === 0 && thisWeek === 0) return { direction: 'flat', delta: 0, pct: 0 };
+    if (lastWeek === 0) return { direction: 'up', delta: thisWeek, pct: 100 };
+    const delta = thisWeek - lastWeek;
+    const pct = Math.round((delta / lastWeek) * 100);
+    return { direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat', delta, pct };
+  },
+
+  // Activity decay score: recent actions weighted more than old ones.
+  // Uses exponential half-life of 3.5 days so actions from 7 days ago carry ~25% weight.
+  _decayWeightedScore(timestampedRows, nowMs = Date.now()) {
+    const HALF_LIFE_MS = 3.5 * 86400000;
+    return timestampedRows.reduce((sum, ts) => {
+      const ageMs = nowMs - new Date(ts).getTime();
+      return sum + Math.exp(-Math.LN2 * ageMs / HALF_LIFE_MS);
+    }, 0);
+  },
+
+  // Cohort percentile: where does the user sit vs a sample of recent active profiles?
+  // Returns { percentile: 0-100, label: string }
+  _cohortPercentile(userScore, sampleScores) {
+    if (!sampleScores.length) return { percentile: 50, label: 'average' };
+    const below = sampleScores.filter(s => s < userScore).length;
+    const percentile = Math.round((below / sampleScores.length) * 100);
+    const label = percentile >= 90 ? 'top 10%'
+      : percentile >= 75 ? 'top 25%'
+      : percentile >= 50 ? 'above average'
+      : percentile >= 25 ? 'below average'
+      : 'bottom 25%';
+    return { percentile, label };
+  },
+
+  // Primary entry point for Vibe Coach.
+  // Returns { insight, tips, next_milestone, trend, cohort, decay_score, action_roi }
+  async analyze(userId, profile) {
+    if (!userId) return null;
+    try {
+      const now = Date.now();
+      const since7d = new Date(now - 7 * 86400000).toISOString();
+      const since14d = new Date(now - 14 * 86400000).toISOString();
+
+      // Fetch this week + last week activity in parallel
+      const [
+        rsvpThis, vibeThis, checkinThis, echoThis, postThis,
+        rsvpLast, vibeLast, checkinLast, echoLast, postLast,
+        rsvpTs, checkinTs, vibeTs,
+        peerSample,
+      ] = await Promise.all([
+        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
+        supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
+        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
+        supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
+        supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId).gte('created_at', since7d),
+
+        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
+        supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
+        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
+        supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
+        supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId).gte('created_at', since14d).lt('created_at', since7d),
+
+        // Timestamps for decay weighting
+        supabase.from('event_rsvps').select('created_at').eq('user_id', userId).gte('created_at', since7d),
+        supabase.from('live_checkins').select('checked_in_at').eq('user_id', userId).gte('checked_in_at', since7d),
+        supabase.from('event_vibes').select('created_at').eq('user_id', userId).gte('created_at', since7d),
+
+        // Peer sample: vibe scores from recently active profiles (anonymised)
+        supabase.from('profiles').select('vibe_score').not('vibe_score', 'is', null).gt('vibe_score', 0).order('last_seen', { ascending: false }).limit(80),
+      ]);
+
+      const tw = {
+        rsvp: rsvpThis.count || 0, vibe: vibeThis.count || 0,
+        checkin: checkinThis.count || 0, echo: echoThis.count || 0, post: postThis.count || 0,
+      };
+      const lw = {
+        rsvp: rsvpLast.count || 0, vibe: vibeLast.count || 0,
+        checkin: checkinLast.count || 0, echo: echoLast.count || 0, post: postLast.count || 0,
+      };
+
+      const thisTotal = tw.rsvp + tw.vibe + tw.checkin + tw.echo + tw.post;
+      const lastTotal = lw.rsvp + lw.vibe + lw.checkin + lw.echo + lw.post;
+
+      const trend = this._computeTrend(thisTotal, lastTotal);
+
+      // Decay-weighted engagement momentum
+      const rsvpTimes = (rsvpTs.data || []).map(r => r.created_at);
+      const checkinTimes = (checkinTs.data || []).map(r => r.checked_in_at);
+      const vibeTimes = (vibeTs.data || []).map(r => r.created_at);
+      const decay_score = parseFloat(this._decayWeightedScore([...rsvpTimes, ...checkinTimes, ...vibeTimes]).toFixed(2));
+
+      // Cohort percentile
+      const peerScores = (peerSample.data || []).map(p => p.vibe_score || 0);
+      const userScore = profile?.vibe_score || 0;
+      const cohort = this._cohortPercentile(userScore, peerScores);
+
+      // Profile completeness signals
+      const hasAvatar = !!profile?.avatar_url;
+      const hasBio = !!(profile?.bio?.trim());
+      const hasInterests = (profile?.interests || []).length > 0;
+      const followers = profile?.followers_count || 0;
+      const streak = profile?.current_streak || 0;
+
+      // Action ROI: which activity type gives most return per effort
+      // Based on ScoreEngine.computeVibeScore weights (checkin=25, post=15, follow=20, rsvp=5, vibe=2)
+      const action_roi = [];
+      if (tw.checkin === 0) action_roi.push({ action: 'Touch Down at an event', pts_per_action: 25 });
+      if (tw.post === 0) action_roi.push({ action: 'Post a Gruv', pts_per_action: 15 });
+      if (tw.rsvp < 2) action_roi.push({ action: 'RSVP to upcoming Gruvs', pts_per_action: 5 });
+      if (tw.vibe < 5) action_roi.push({ action: 'Send Vibes on events', pts_per_action: 2 });
+      action_roi.sort((a, b) => b.pts_per_action - a.pts_per_action);
+
+      // Tip generation with priority ranking (highest-impact first)
+      const tips = [];
+
+      // Critical: profile completeness (blocks discovery)
+      if (!hasAvatar) tips.push({ priority: 10, text: 'Add a profile photo — vibers with photos get 3× more profile visits.' });
+      if (!hasBio) tips.push({ priority: 9, text: 'Write a short bio so others know what Gruvs you live for.' });
+      if (!hasInterests) tips.push({ priority: 8, text: 'Set your interests to unlock personalised feed ranking.' });
+
+      // Trend-driven coaching
+      if (trend.direction === 'down' && trend.pct < -30) {
+        tips.push({ priority: 7, text: `Your activity dropped ${Math.abs(trend.pct)}% vs last week. A single RSVP or Touch Down will reverse the trend.` });
+      } else if (trend.direction === 'up' && trend.pct > 20) {
+        tips.push({ priority: 3, text: `You're up ${trend.pct}% from last week. Momentum is everything — keep it going.` });
+      }
+
+      // Streak coaching
+      if (streak >= 7) tips.push({ priority: 2, text: `${streak}-day streak — you're earning the Loyal Viber badge. Don't break the chain.` });
+      else if (streak > 0 && streak < 7) tips.push({ priority: 4, text: `${streak}-day streak — ${7 - streak} more days to unlock the Loyal Viber badge.` });
+
+      // Cohort-driven coaching
+      if (cohort.percentile < 30 && userScore > 0) {
+        tips.push({ priority: 6, text: `You're in the ${cohort.label} of vibers. The gap to the top 50% is ${Math.max(0, peerScores[Math.floor(peerScores.length * 0.5)] - userScore)} pts.` });
+      } else if (cohort.percentile >= 75) {
+        tips.push({ priority: 1, text: `You're in the ${cohort.label} of all vibers. You're setting the standard.` });
+      }
+
+      // Highest-ROI action nudge
+      if (action_roi[0]) {
+        tips.push({ priority: 5, text: `Highest return this week: ${action_roi[0].action} (${action_roi[0].pts_per_action} pts/action).` });
+      }
+
+      // Social growth
+      if (followers < 10) tips.push({ priority: 5, text: `You have ${followers} followers. Follow vibers whose taste matches yours — your feed improves with every connection.` });
+
+      // Sort by priority, take top 4
+      tips.sort((a, b) => b.priority - a.priority);
+      const finalTips = tips.slice(0, 4).map(t => t.text);
+
+      // Insight: decay_score-weighted narrative
+      let insight;
+      if (decay_score === 0) {
+        insight = 'No activity this week. Your feed ranking drops when you go quiet — one action resets the clock.';
+      } else if (decay_score < 1) {
+        insight = `Low engagement momentum this week (${thisTotal} action${thisTotal !== 1 ? 's' : ''}). Your score is decaying — consistency compounds faster than bursts.`;
+      } else if (decay_score < 3) {
+        const trendWord = trend.direction === 'up' ? '↑ up' : trend.direction === 'down' ? '↓ down' : 'steady';
+        insight = `${thisTotal} actions this week (${trendWord} ${Math.abs(trend.pct)}% vs last week). You're in the mix — push one more action to hit the momentum threshold.`;
+      } else {
+        insight = `Strong week — decay-weighted momentum of ${decay_score.toFixed(1)}. You're in the ${cohort.label} of all vibers right now.`;
+      }
+
+      // Next milestone
+      let next_milestone = null;
+      if (userScore < 100) next_milestone = `${100 - userScore} pts to Level 2`;
+      else if (userScore < 500) next_milestone = `${500 - userScore} pts to Elite Viber`;
+      else if (userScore < 2000) next_milestone = `${2000 - userScore} pts to Royal Viber`;
+      else if (userScore < 10000) next_milestone = `${10000 - userScore} pts to Gruv Master`;
+
+      return { insight, tips: finalTips, next_milestone, trend, cohort, decay_score, action_roi: action_roi.slice(0, 3) };
+    } catch (e) {
+      console.error('BehavioralEngine.analyze error:', e);
+      return null;
+    }
+  },
 };
