@@ -1050,6 +1050,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const { error: updateErr } = await supabase.from('profiles').update({ profile_gallery: newGallery }).eq('id', user.id);
       if (updateErr) throw new Error(updateErr.message);
       setProfileGallery(newGallery);
+      refreshProfile();
       toast.show('Added to gallery!', 'success');
     } catch (e) {
       toast.show('Upload failed: ' + (e.message || 'Unknown error'), 'error');

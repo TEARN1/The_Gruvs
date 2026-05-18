@@ -1351,6 +1351,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         keyExtractor={item => String(item.id)}
         showsVerticalScrollIndicator={false}
         onScrollToIndexFailed={() => { }}
+        removeClippedSubviews={Platform.OS !== 'web'}
+        maxToRenderPerBatch={4}
+        windowSize={7}
+        initialNumToRender={4}
+        updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>
             {renderHeader()}

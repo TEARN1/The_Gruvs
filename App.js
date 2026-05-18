@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useFonts } from 'expo-font';
 import {
   View, StyleSheet, TouchableOpacity, Text,
-  StatusBar, Animated, Platform, useWindowDimensions,
+  StatusBar, Animated, Platform, useWindowDimensions, BackHandler,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { BREAKPOINT } from './src/constants/DesignTokens';
@@ -23,6 +23,7 @@ import { ProfilePage } from './src/screens/ProfilePage';
 import { CalendarPage } from './src/screens/CalendarPage';
 import { CrewFeedScreen } from './src/screens/CrewFeedScreen';
 import { ExplorePage } from './src/screens/ExplorePage';
+import { ReelsScreen } from './src/screens/ReelsScreen';
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
 import { GodViewDashboard } from './src/screens/GodViewDashboard';
@@ -38,6 +39,7 @@ installGlobalErrorHandler();
 
 const TABS = [
   { key: 'feed', label: 'The Drop', icon: 'home' },
+  { key: 'reels', label: 'Reels', icon: 'film' },
   { key: 'explore', label: 'Explore', icon: 'compass' },
   { key: 'crew', label: 'Crew', icon: 'users' },
   { key: 'calendar', label: 'Lineup', icon: 'calendar' },
@@ -264,8 +266,31 @@ const MainNavigator = () => {
   const [targetEvent, setTargetEvent] = useState(null);
   // Item 41: cross-fade between screens
   const screenOpacity = useRef(new Animated.Value(1)).current;
+  const backPressCount = useRef(0);
+  const backPressTimer = useRef(null);
 
   const isWide = width >= WIDE_BREAKPOINT;
+
+  // Android hardware back: single press → go to feed; double press within 2s → exit app
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const handler = () => {
+      if (currentTab !== 'feed') {
+        setCurrentTab('feed');
+        return true;
+      }
+      if (backPressCount.current === 1) {
+        BackHandler.exitApp();
+        return true;
+      }
+      backPressCount.current = 1;
+      clearTimeout(backPressTimer.current);
+      backPressTimer.current = setTimeout(() => { backPressCount.current = 0; }, 2000);
+      return true;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', handler);
+    return () => { sub.remove(); clearTimeout(backPressTimer.current); };
+  }, [currentTab]);
 
   const handleNotifNavigate = useCallback((type, data) => {
     if (type === 'event' && data?.event_id) {
@@ -390,6 +415,10 @@ const MainNavigator = () => {
             refreshKey={feedRefreshKey}
             onNavigateToServices={handleNavigateToServices}
           />
+        ));
+      case 'reels':
+        return wrap('Reels', (
+          <ReelsScreen onAuthRequired={handleAuthRequired} />
         ));
       case 'explore':
         return wrap('Explore', (

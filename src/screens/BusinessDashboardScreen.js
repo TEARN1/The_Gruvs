@@ -28,7 +28,158 @@ const TABS = [
   { key: 'analytics', label: 'Reads', icon: 'bar-chart-2' },
   { key: 'finance', label: 'Stacks', icon: 'dollar-sign' },
   { key: 'ecosystem', label: 'Network', icon: 'globe' },
+  { key: 'playbook', label: 'Playbook', icon: 'book-open' },
 ];
+
+// ── Marketing tips per business category ────────────────────────────────────
+const getMarketingTips = (businessType = '') => {
+  const bt = (businessType || '').toLowerCase();
+
+  const nightlifeTips = [
+    '📍 Drop a Gruv for every event you host — post 3–5 days before the date for maximum reach.',
+    '🎯 Run a Mission targeting Vibers who\'ve checked into similar venues in the last 30 days.',
+    '🔥 Go Live (check-in) during peak hours — your venue shows up on the map in real time.',
+    '👥 Invite your regulars to follow your business page so they see every drop first.',
+    '🎁 Offer a free drink or entry discount to Vibers who share your Gruv to their crew.',
+    '📸 Post photos and videos from past events to your gallery — social proof sells tickets.',
+    '🤝 Partner with local DJs and artists and co-tag them in your event posts.',
+    '📊 Use Reads analytics to see peak engagement times and schedule posts accordingly.',
+    '💬 Reply to every comment and message within 2 hours — response rate boosts your vibe score.',
+    '🏷️ Use trending hashtags and tag your city/neighbourhood in every Gruv.',
+    '🎟️ Create early-bird tickets in your Storefront and promote scarcity ("Only 20 left!").',
+    '📣 Run a "Bring a Friend" campaign — the referrer gets R20 off next entry.',
+    '📅 Post a monthly lineup of events so fans can plan ahead and book early.',
+    '🔔 Enable push notifications for followers so they get pinged when you go live.',
+    '🌟 Feature your top-rated events on your Storefront as hero products.',
+    '📱 Share your Gruv link on WhatsApp groups, TikTok bio, and Instagram story.',
+    '🎶 Tag the genre/theme of your night (Afrobeats, Amapiano, Hip-Hop) to reach genre fans.',
+    '🏆 Run a monthly "Best Dressed" or crowd-vote competition — drives engagement and shares.',
+    '💰 Offer table bookings and VIP packages in your Storefront for premium revenue.',
+    '📆 Consistency beats everything — post at least 2 Gruvs per week to stay top of feed.',
+  ];
+
+  const foodTips = [
+    '📍 Check your business in every day so hungry Vibers nearby can see you\'re open.',
+    '📸 Post high-quality food photos in your gallery — people eat with their eyes first.',
+    '🎯 Run a Mission targeting Vibers who checked in near your area in the last 7 days.',
+    '🍽️ Feature your bestselling dishes as products in your Storefront with photos and prices.',
+    '🎁 Offer a loyalty reward — 5th meal free for returning Vibers who show proof of follow.',
+    '💬 Respond to every review and message quickly — your responsiveness score affects rankings.',
+    '📣 Drop a "Daily Special" Gruv every morning to keep your feed active and fresh.',
+    '🏷️ Use hashtags like #KotaShop #Kasi #ShisaNyama #Braai to reach the right crowd.',
+    '🤝 Partner with event organisers to be the official food vendor at their events.',
+    '📅 Post a weekly or monthly menu Gruv so followers know what\'s coming.',
+    '📱 Share your Storefront link in local WhatsApp food groups and community pages.',
+    '🎶 Host a live music night or link with a DJ to drive foot traffic on slow days.',
+    '🌟 Collect and showcase 5-star reviews on your profile to build trust.',
+    '🔥 Run a "limited-time" offer visible only in the app to create FOMO.',
+    '📊 Check Reads to see which menu posts get the most engagement and double down.',
+    '🎟️ Sell pre-order meal vouchers through your Storefront for events and weekends.',
+    '📣 Create a "Behind the Kitchen" video series — authenticity builds a loyal following.',
+    '💰 Offer catering packages for events in your area — post as a service in your Storefront.',
+    '🏆 Enter community awards or "Best Kota in the City" challenges to boost visibility.',
+    '📆 Post consistently — at least once per day keeps you visible in nearby feeds.',
+  ];
+
+  const artsTips = [
+    '🎨 Post your latest work to your gallery regularly — new content gets pushed to followers.',
+    '📍 Check into events and venues you shoot or perform at to build local credibility.',
+    '🎯 Run a Mission targeting Vibers interested in events, music, or fashion.',
+    '💼 List your services (packages, rates, availability) clearly in your Storefront.',
+    '🤝 Collaborate with event organisers — offer discounted rates for exposure at big events.',
+    '📸 Post behind-the-scenes content to humanise your brand and build trust.',
+    '🏷️ Use niche hashtags like #JoziPhotographer #CptDJ #SAProducer to attract local clients.',
+    '📣 Share client testimonials as posts — social proof is your biggest marketing tool.',
+    '🎟️ Sell your beats, presets, templates, or prints directly in your Storefront.',
+    '📊 Use Reads to see which content pieces drive the most profile visits and inquiries.',
+    '💬 DM new followers personally — a quick "Thanks for following, what are you working on?" converts.',
+    '🌟 Offer a free mini-shoot or sample beat to new clients — let your work speak.',
+    '🎶 Post video reels of your live performances or studio sessions regularly.',
+    '📅 Announce bookings and availability windows as Gruvs — "I\'m available this weekend."',
+    '🔥 Feature your best work at the top of your Storefront as a portfolio hero.',
+    '📱 Add your Gruv profile link to your email signature, bio, and WhatsApp status.',
+    '🏆 Enter competitions and share your placement — even a runner-up boosts credibility.',
+    '💰 Bundle your services (e.g., photo + video) and sell packages in your Storefront.',
+    '🤝 Build a referral network with complementary creatives — DJ refers you, you refer them.',
+    '📆 Stay consistent — post at least 3 times a week to stay in the algorithm.',
+  ];
+
+  const fashionTips = [
+    '📸 Post every new collection, drop, or design to your gallery with clean visuals.',
+    '🎯 Run a Mission targeting Vibers who are active in nightlife and social events.',
+    '💼 List every item with sizes, prices, and stock levels in your Storefront.',
+    '🏷️ Use hashtags like #SACape #KasiSwag #AfricanFashion #StreetsofJozi.',
+    '🤝 Partner with event promoters to dress their hosts or staff — free brand exposure.',
+    '📣 Post "styling tips" content featuring your products — educate and sell at once.',
+    '🎁 Offer a flash sale (24 hours only) as a Mission to drive urgency and conversions.',
+    '📊 Use Reads to see which product posts convert into Storefront visits most.',
+    '💬 Reply to every "Where can I get this?" comment with a direct Storefront link.',
+    '🌟 Feature testimonials and photos of real customers wearing your pieces.',
+    '📅 Announce restock dates as Gruvs so followers know when to check in.',
+    '🔥 Create scarcity — "Only 3 left in this size" in your Storefront product description.',
+    '🎶 Sponsor or dress a local music video or event — position your brand in culture.',
+    '📱 Go Live during markets or pop-ups — let followers shop in real time.',
+    '🏆 Enter local fashion challenges or style competitions to grow your audience.',
+    '💰 Add a lookbook or styling guide as a free download in your Storefront.',
+    '🤝 Collaborate with other fashion brands for capsule collections — doubles your reach.',
+    '📣 Start a weekly "Fit of the Week" series featuring your customers.',
+    '📸 Invest in at least one professional photoshoot per collection — quality matters.',
+    '📆 Consistency builds brand recall — post at least 5 times a week.',
+  ];
+
+  const servicesTips = [
+    '📍 Keep your business location and service area updated on your profile.',
+    '💼 List every service you offer with clear descriptions and pricing in your Storefront.',
+    '⭐ Ask every satisfied client to leave a review on your profile — 5 stars = trust.',
+    '🎯 Run a Mission targeting local homeowners and business owners in your radius.',
+    '📸 Post before/after photos of your work — results are the best marketing.',
+    '📣 Offer a first-service discount in your Storefront to attract new clients.',
+    '💬 Respond to inquiries within 1 hour — speed of response wins contracts.',
+    '🏷️ Use area-specific hashtags like #JoziPlumber #CapeContractor #DurbanElectrician.',
+    '📅 Post availability windows as Gruvs — "Available this week in Soweto/Sandton."',
+    '🤝 Partner with property agents and building managers for steady referral streams.',
+    '📊 Use Reads to track which service posts get the most inquiries.',
+    '🔥 Create emergency service packages (same-day response) as premium products.',
+    '🌟 Build a portfolio of completed jobs in your gallery — evidence builds confidence.',
+    '📱 Share your Storefront link in local community WhatsApp and Facebook groups.',
+    '🏆 Certifications, qualifications, and licences should be visible on your profile.',
+    '💰 Offer bundled service packages (e.g., electrical + plumbing inspection) for more value.',
+    '📣 Post helpful tips (e.g., "5 signs your geyser needs replacing") — becomes shareable.',
+    '🎁 Referral programme: clients who refer a paying job get R100 off their next service.',
+    '📆 Stay active — even one post a week keeps you visible in local searches.',
+    '🤝 Build a network of complementary tradespeople and cross-refer each other.',
+  ];
+
+  const generalTips = [
+    '📍 Keep your profile location, bio, and contact info up to date at all times.',
+    '📸 Post at least 3 times a week — consistency keeps you in front of your audience.',
+    '🎯 Use Missions to target the exact type of Viber most likely to become a customer.',
+    '💼 Build a complete Storefront — every product or service should be listed with a price.',
+    '⭐ Ask every happy customer to follow your page and leave a review.',
+    '💬 Respond to every DM and comment within 2 hours — engagement drives your ranking.',
+    '🏷️ Use relevant hashtags so new Vibers can discover you when searching.',
+    '🤝 Partner with complementary businesses for cross-promotion — doubles your reach.',
+    '📊 Check your Reads weekly — know which content works and do more of it.',
+    '📣 Run a referral campaign — reward customers who bring new customers.',
+    '🔥 Create scarcity and urgency in your Storefront offers — "Limited spots available."',
+    '🌟 Showcase social proof — photos of real customers, testimonials, and reviews.',
+    '📅 Post event Gruvs regularly — being seen at events builds community credibility.',
+    '💰 Offer bundles and packages — they increase average transaction value.',
+    '📱 Add your Gruv profile link everywhere: WhatsApp status, email signature, TikTok bio.',
+    '🎁 Run monthly giveaways — your page gets shared to people who wouldn\'t have found you.',
+    '🏆 Track and celebrate milestones publicly — "100 followers", "50 orders" builds hype.',
+    '📆 Never go dark — even a simple "Good morning from [Business]" post maintains presence.',
+    '🎶 Align with culture — post content tied to trending moments, music, or local events.',
+    '🔔 Enable notifications for your followers so they hear from you first, always.',
+  ];
+
+  if (['night club', 'tavern', 'bar', 'shisanyama', 'lounge', 'karaoke', 'comedy', 'jazz', 'after party', 'event organiser', 'music venue'].some(k => bt.includes(k))) return nightlifeTips;
+  if (['restaurant', 'fast food', 'kota', 'braai', 'food truck', 'catering', 'bakery', 'butchery', 'spaza', 'bottle store', 'coffee', 'juice', 'ice cream', 'tuck shop'].some(k => bt.includes(k))) return foodTips;
+  if (['dj', 'artist', 'producer', 'studio', 'photography', 'videography', 'graphic', 'content creator', 'podcast', 'film', 'gallery', 'illustrator', 'animation'].some(k => bt.includes(k))) return artsTips;
+  if (['fashion', 'clothing', 'thrift', 'tailor', 'sneaker', 'barber', 'salon', 'nail', 'beauty', 'tattoo', 'makeup', 'skincare', 'piercing'].some(k => bt.includes(k))) return fashionTips;
+  if (['electrician', 'plumber', 'builder', 'welder', 'painter', 'tiler', 'handyman', 'cleaning', 'pest', 'security', 'locksmith', 'gardener', 'pool'].some(k => bt.includes(k))) return servicesTips;
+  return generalTips;
+};
 
 const BUSINESS_TYPES = [
   // Nightlife & Entertainment
@@ -809,6 +960,35 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         </ScrollView>
       );
 
+      // ── PLAYBOOK ────────────────────────────────────────────────────────────
+      case 'playbook': {
+        const tips = getMarketingTips(biz?.business_type);
+        return (
+          <ScrollView contentContainerStyle={sc.tabContent} showsVerticalScrollIndicator={false}>
+            <GlassView style={[sc.bizCard, { borderColor: `${primary}25`, marginBottom: 8 }]}>
+              <View style={[sc.bizIconWrap, { backgroundColor: `${primary}20` }]}>
+                <Feather name="book-open" size={24} color={primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[sc.bizName, { color: textColor }]}>Marketing Playbook</Text>
+                <Text style={[sc.bizType, { color: muted }]}>
+                  20 ways to grow {biz?.business_type ? `your ${biz.business_type}` : 'your business'} on The Gruvs
+                </Text>
+              </View>
+            </GlassView>
+            {tips.map((tip, i) => (
+              <GlassView key={i} style={[sc.tipRow, { borderColor: `${primary}18` }]}>
+                <View style={[sc.tipNumber, { backgroundColor: `${primary}18` }]}>
+                  <Text style={[sc.tipNumText, { color: primary }]}>{i + 1}</Text>
+                </View>
+                <Text style={[sc.tipText, { color: textColor }]}>{tip}</Text>
+              </GlassView>
+            ))}
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        );
+      }
+
       default: return null;
     }
   };
@@ -1052,4 +1232,8 @@ const sc = StyleSheet.create({
   submitBtnText: { color: '#000', fontSize: 14, fontWeight: '900', letterSpacing: 0.5 },
   newBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   newBtnText: { color: '#000', fontSize: 11, fontWeight: '900' },
+  tipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 8 },
+  tipNumber: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
+  tipNumText: { fontSize: 11, fontWeight: '900' },
+  tipText: { flex: 1, fontSize: 13, lineHeight: 20, fontWeight: '500' },
 });

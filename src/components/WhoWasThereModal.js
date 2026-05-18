@@ -281,9 +281,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
         <DirectMessageModal
           visible={msgVisible}
           onClose={() => { setMsgVisible(false); setMsgTarget(null); }}
-          recipientId={msgTarget.id}
-          recipientUsername={msgTarget.username}
-          recipientAvatar={msgTarget.avatar_url}
+          recipient={msgTarget}
         />
       )}
     </Modal>
