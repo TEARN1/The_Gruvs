@@ -78,10 +78,7 @@ export const IdentityProvider = ({ children }) => {
   // Sync to Supabase when user/mode changes
   useEffect(() => {
     if (user?.id && !loading) {
-      supabase.from('profiles')
-        .update({ identity_mode: identityMode, is_beacon_active: beaconActive })
-        .eq('id', user.id)
-        .catch(() => {}); // Best effort sync
+      (async () => { try { await supabase.from('profiles').update({ identity_mode: identityMode, is_beacon_active: beaconActive }).eq('id', user.id); } catch {} })();
     }
   }, [user?.id, identityMode, beaconActive, loading]);
 

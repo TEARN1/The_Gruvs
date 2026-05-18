@@ -64,12 +64,7 @@ export const VibePredictor = {
       const prediction = JSON.parse(response.text);
 
       // 3. Persist Prediction for Self-Training (Fire and forget)
-      supabase.from('ai_predictions').insert({
-        user_id: userId,
-        event_id: prediction.predicted_event_id,
-        confidence: prediction.confidence_score,
-        logic: prediction.logic_path
-      }).catch(() => {});
+      (async () => { try { await supabase.from('ai_predictions').insert({ user_id: userId, event_id: prediction.predicted_event_id, confidence: prediction.confidence_score, logic: prediction.logic_path }); } catch {} })();
 
       return prediction;
     } catch (e) {
