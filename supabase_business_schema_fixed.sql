@@ -86,6 +86,16 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_code    TEXT        UNIQU
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_count   INTEGER     DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role             TEXT        DEFAULT 'user';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name     TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_title      TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_description TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS looks_description  TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_gallery    TEXT[];
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_online        BOOLEAN     DEFAULT true;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS share_events       BOOLEAN     DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS provider_type      TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS provider_rate      TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS provider_bio       TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS provider_verified  BOOLEAN     DEFAULT false;
 
 CREATE INDEX IF NOT EXISTS profiles_coords_gist   ON profiles USING gist(coords);
 CREATE INDEX IF NOT EXISTS profiles_username_trgm ON profiles USING gin(username gin_trgm_ops);
