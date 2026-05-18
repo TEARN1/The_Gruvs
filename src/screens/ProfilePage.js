@@ -39,6 +39,7 @@ import { TutorialCenter } from '../components/TutorialCenter';
 import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
 import { WhoWasThereModal } from '../components/WhoWasThereModal';
+import { EventTicketModal } from '../components/EventTicketModal';
 
 const { width } = Dimensions.get('window');
 
@@ -929,6 +930,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [whoWasThereVisible, setWhoWasThereVisible] = useState(false);
   const [adminAIVisible, setAdminAIVisible] = useState(false);
   const [walletVisible, setWalletVisible] = useState(false);
+  const [ticketsVisible, setTicketsVisible] = useState(false);
   const [providerDashVisible, setProviderDashVisible] = useState(false);
   const [vibeCoachData, setVibeCoachData]   = useState(null);
   const [vibeCoachLoading, setVibeCoachLoading] = useState(false);
@@ -1460,6 +1462,35 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <VibeLevel score={vibeScore} primary={primary} muted={muted} textColor={textColor} />
         </View>
 
+        {/* XP Level bar */}
+        {user && (() => {
+          const xp = profile?.xp || 0;
+          const level = Math.min(100, Math.floor(Math.sqrt(xp / 50)) + 1);
+          const xpForLevel = (n) => Math.pow(n - 1, 2) * 50;
+          const xpStart = xpForLevel(level);
+          const xpEnd   = xpForLevel(level + 1);
+          const pct = level >= 100 ? 100 : Math.round(((xp - xpStart) / (xpEnd - xpStart)) * 100);
+          return (
+            <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={{ backgroundColor: `${primary}20`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: `${primary}40` }}>
+                    <Text style={{ color: primary, fontWeight: '900', fontSize: 11 }}>LVL {level}</Text>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>XP Progress</Text>
+                </View>
+                <Text style={{ color: muted, fontSize: 11, fontWeight: '700' }}>{xp} XP</Text>
+              </View>
+              <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+                <View style={{ width: `${pct}%`, height: '100%', backgroundColor: primary, borderRadius: 3 }} />
+              </View>
+              {level < 100 && (
+                <Text style={{ color: muted, fontSize: 10, marginTop: 4 }}>{xpEnd - xp} XP to Level {level + 1}</Text>
+              )}
+            </View>
+          );
+        })()}
+
         {/* Streak Badge */}
         {user && (
           <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
@@ -1570,6 +1601,13 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           >
             <Feather name="wallet" size={16} color={primary} />
             <Text style={[styles.findBtnText, { color: primary }]}>Wallet</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setTicketsVisible(true)}
+          >
+            <Feather name="ticket" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Tickets</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -2022,6 +2060,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       <WalletScreen
         visible={walletVisible}
         onClose={() => setWalletVisible(false)}
+      />
+      <EventTicketModal
+        visible={ticketsVisible}
+        onClose={() => setTicketsVisible(false)}
       />
 
       <ProviderDashboardScreen

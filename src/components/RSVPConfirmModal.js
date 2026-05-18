@@ -6,6 +6,7 @@ import {
 
 const SCREEN_W = Dimensions.get('window').width;
 import { Feather } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +27,7 @@ export const RSVPConfirmModal = ({ visible, onClose, event }) => {
   const [selected, setSelected] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [rsvpId, setRsvpId] = useState(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -35,20 +37,22 @@ export const RSVPConfirmModal = ({ visible, onClose, event }) => {
   const handleClose = () => {
     setSelected(null);
     setConfirmed(false);
+    setRsvpId(null);
     onClose();
   };
 
   const confirm = async () => {
     if (!selected || !user || !event) return;
     setSubmitting(true);
-    const { error } = await supabase.from('event_rsvps').upsert(
+    const { data: upserted, error } = await supabase.from('event_rsvps').upsert(
       { event_id: event.id, user_id: user.id, status: selected },
       { onConflict: 'event_id,user_id' }
-    );
+    ).select('id').single();
     setSubmitting(false);
     if (error) {
       toast.show('Could not save RSVP. Try again.', 'error');
     } else {
+      setRsvpId(upserted?.id || null);
       setConfirmed(true);
       if (selected === 'going') {
         await supabase.from('events')
@@ -85,13 +89,27 @@ export const RSVPConfirmModal = ({ visible, onClose, event }) => {
                   ? `You've RSVP'd to "${event.title}". See you at the Gruv!`
                   : `Your response for "${event.title}" has been saved.`}
               </Text>
+              {selected === 'going' && rsvpId && (
+                <>
+                  <Text style={[s.qrLabel, { color: muted }]}>YOUR TICKET — SHOW AT DOOR</Text>
+                  <View style={[s.qrWrap, { borderColor: `${primary}40` }]}>
+                    <QRCode
+                      value={`gruvsticket://${event.id}/${user?.id}/${rsvpId}`}
+                      size={140}
+                      color="#000"
+                      backgroundColor="#fff"
+                    />
+                  </View>
+                  <Text style={[s.refText, { color: muted }]}>Ref: {rsvpId.slice(0, 8).toUpperCase()}</Text>
+                </>
+              )}
               {event.ticket_url && selected === 'going' && (
                 <TouchableOpacity
                   style={[s.ticketBtn, { backgroundColor: primary }]}
                   onPress={() => SecurityService.safeOpenURL(event.ticket_url)}
                 >
                   <Feather name="tag" size={15} color="#000" />
-                  <Text style={s.ticketText}>Get Tickets</Text>
+                  <Text style={s.ticketText}>External Tickets</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity style={[s.closeBtn, { borderColor: `${primary}30` }]} onPress={handleClose}>
@@ -206,4 +224,7 @@ const s = StyleSheet.create({
   ticketText: { color: '#000', fontWeight: '900', fontSize: 15 },
   closeBtn: { paddingHorizontal: SCREEN_W < 375 ? 20 : 40, paddingVertical: 10, borderRadius: 20, borderWidth: 1, marginTop: 4 },
   closeBtnText: { fontSize: 14, fontWeight: '700' },
+  qrLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1.4, marginTop: 4 },
+  qrWrap: { padding: 10, backgroundColor: '#fff', borderRadius: 14, borderWidth: 1 },
+  refText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.6 },
 });

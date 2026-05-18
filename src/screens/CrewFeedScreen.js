@@ -13,6 +13,7 @@ import { SkeletonCard } from '../components/SkeletonCard';
 import { FollowingFeedManager, ActivityFeedManager, TrendingManager } from '../services/dataFlow';
 import { SPACING, RADIUS, FONT } from '../constants/DesignTokens';
 import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
+import { StoriesRow } from '../components/StoriesRow';
 
 // ── Relative time helper ───────────────────────────────────────────────────────
 const fmtAge = (ts) => {
@@ -281,6 +282,9 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             <Text style={{ color: primary, fontSize: 11, fontWeight: '900', letterSpacing: 0.4 }}>FIND</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Crew Stories */}
+        {user && <StoriesRow onAuthRequired={onAuthRequired} />}
 
         <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
           {/* Auth gate */}

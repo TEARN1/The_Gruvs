@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
-  Image, ActivityIndicator, RefreshControl, Platform,
+  Image, ActivityIndicator, RefreshControl, Platform, ScrollView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -113,13 +113,35 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const [msgTarget, setMsgTarget] = useState(null);
   const [msgVisible, setMsgVisible] = useState(false);
   const [followedIds, setFollowedIds] = useState(new Set());
+  const [suggested, setSuggested] = useState([]);
+  const [blockedIds, setBlockedIds] = useState(new Set());
 
   const searchTimer = useRef(null);
 
   const loadFollowing = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
-    setFollowedIds(new Set((data || []).map(r => r.following_id)));
+    const [followRes, blockRes] = await Promise.all([
+      supabase.from('follows').select('following_id').eq('follower_id', user.id),
+      supabase.from('user_blocks').select('blocked_id').eq('blocker_id', user.id),
+    ]);
+    setFollowedIds(new Set((followRes.data || []).map(r => r.following_id)));
+    setBlockedIds(new Set((blockRes.data || []).map(r => r.blocked_id)));
+  }, [user]);
+
+  const loadSuggested = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase.rpc('suggested_follows', { p_user: user.id, p_limit: 6 });
+    if (!data?.length) return;
+    const ids = data.map(r => r.suggested_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url, is_verified, vibe_score, bio')
+      .in('id', ids);
+    const scored = (profiles || []).map(p => ({
+      ...p,
+      mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0,
+    })).sort((a, b) => b.mutual_count - a.mutual_count);
+    setSuggested(scored);
   }, [user]);
 
   const fetchAll = useCallback(async (q = '') => {
@@ -172,6 +194,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   useEffect(() => {
     load();
     loadFollowing();
+    if (!query) loadSuggested();
   }, [filter, user?.id]);
 
   useEffect(() => {
@@ -185,6 +208,16 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
     if (!user) { onAuthRequired?.(); return; }
     setMsgTarget(viber);
     setMsgVisible(true);
+  };
+
+  const handleBlock = async (viber) => {
+    if (!user) return;
+    await supabase.from('user_blocks').upsert(
+      { blocker_id: user.id, blocked_id: viber.id },
+      { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
+    );
+    setBlockedIds(prev => new Set([...prev, viber.id]));
+    showToast(`@${viber.username} blocked`, 'info');
   };
 
   return (
@@ -259,20 +292,66 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
         </View>
       ) : (
         <FlatList
-          data={vibers}
+          data={vibers.filter(v => !blockedIds.has(v.id))}
           keyExtractor={item => item.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, paddingTop: 8 }}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={primary} colors={[primary]} />}
-          ListHeaderComponent={vibers.length > 0 ? (
-            <Text style={[s.countHeader, { color: muted }]}>
-              {vibers.length} Viber{vibers.length !== 1 ? 's' : ''}
-              {filter === 'online' ? ' online now' : filter === 'nearby' ? ' near you' : ' in the kingdom'}
-              {vibers.filter(v => checkOnline(v)).length > 0 && filter !== 'online'
-                ? ` · ${vibers.filter(v => checkOnline(v)).length} online`
-                : ''}
-            </Text>
-          ) : null}
+          ListHeaderComponent={
+            <>
+              {/* Suggested follows (friends-of-friends) */}
+              {user && suggested.length > 0 && !query && filter === 'all' && (
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={[s.sectionLabel, { color: muted }]}>SUGGESTED FOR YOU</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                    {suggested.filter(v => !blockedIds.has(v.id)).map(v => (
+                      <TouchableOpacity
+                        key={v.id}
+                        style={[s.suggestCard, { backgroundColor: surface, borderColor: `${primary}20` }]}
+                        onPress={() => { setSelectedViber(v); setProfileVisible(true); }}
+                        activeOpacity={0.8}
+                      >
+                        {v.avatar_url
+                          ? <Image source={{ uri: v.avatar_url }} style={s.suggestAvatar} />
+                          : <View style={[s.suggestAvatar, { backgroundColor: avatarBg(v.username), alignItems: 'center', justifyContent: 'center' }]}>
+                              <Text style={{ color: '#fff', fontWeight: '900', fontSize: 15 }}>{(v.username || 'V')[0].toUpperCase()}</Text>
+                            </View>
+                        }
+                        <Text style={[s.suggestName, { color: textColor }]} numberOfLines={1}>@{v.username}</Text>
+                        <Text style={[s.suggestMutual, { color: muted }]}>{v.mutual_count} mutual{v.mutual_count !== 1 ? 's' : ''}</Text>
+                        <TouchableOpacity
+                          style={[s.suggestFollowBtn, { backgroundColor: followedIds.has(v.id) ? `${primary}20` : primary }]}
+                          onPress={async () => {
+                            if (!user) return;
+                            if (followedIds.has(v.id)) {
+                              await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', v.id);
+                              setFollowedIds(prev => { const n = new Set(prev); n.delete(v.id); return n; });
+                            } else {
+                              await supabase.from('follows').upsert({ follower_id: user.id, following_id: v.id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
+                              setFollowedIds(prev => new Set([...prev, v.id]));
+                            }
+                          }}
+                        >
+                          <Text style={[s.suggestFollowText, { color: followedIds.has(v.id) ? primary : '#000' }]}>
+                            {followedIds.has(v.id) ? 'Following' : 'Follow'}
+                          </Text>
+                        </TouchableOpacity>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+              {vibers.filter(v => !blockedIds.has(v.id)).length > 0 && (
+                <Text style={[s.countHeader, { color: muted }]}>
+                  {vibers.filter(v => !blockedIds.has(v.id)).length} Viber{vibers.filter(v => !blockedIds.has(v.id)).length !== 1 ? 's' : ''}
+                  {filter === 'online' ? ' online now' : filter === 'nearby' ? ' near you' : ' in the kingdom'}
+                  {vibers.filter(v => checkOnline(v) && !blockedIds.has(v.id)).length > 0 && filter !== 'online'
+                    ? ` · ${vibers.filter(v => checkOnline(v) && !blockedIds.has(v.id)).length} online`
+                    : ''}
+                </Text>
+              )}
+            </>
+          }
           renderItem={({ item }) => (
             <ViberRow
               viber={item}
@@ -349,4 +428,11 @@ const s = StyleSheet.create({
   emptySub: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
   retryBtn: { marginTop: 8, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 },
   countHeader: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 10, textTransform: 'uppercase' },
+  sectionLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1.4, marginBottom: 10 },
+  suggestCard: { width: 120, borderRadius: 16, borderWidth: 1, padding: 12, alignItems: 'center', gap: 4 },
+  suggestAvatar: { width: 48, height: 48, borderRadius: 24, marginBottom: 4 },
+  suggestName: { fontSize: 11, fontWeight: '800', textAlign: 'center' },
+  suggestMutual: { fontSize: 10, textAlign: 'center' },
+  suggestFollowBtn: { marginTop: 6, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 12 },
+  suggestFollowText: { fontSize: 11, fontWeight: '900' },
 });

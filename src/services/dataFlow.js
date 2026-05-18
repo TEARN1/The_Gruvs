@@ -1928,6 +1928,8 @@ export const PresenceManager = {
       await supabase.from('profiles').update({ is_online: true, last_seen: new Date().toISOString() }).eq('id', userId);
       cache.invalidate(`profile:${userId}`);
       RetentionManager.logSession(userId).catch(() => { });
+      // Log daily activity for streak tracking (fire-and-forget RPC)
+      supabase.rpc('record_daily_activity', { p_user: userId }).catch(() => {});
       // Heartbeat: refresh last_seen every 4 minutes so the 5-min window stays accurate
       if (this._heartbeatTimer) clearInterval(this._heartbeatTimer);
       this._heartbeatTimer = setInterval(async () => {

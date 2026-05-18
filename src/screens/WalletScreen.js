@@ -11,6 +11,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
+import { supabase } from '../services/supabase';
 import { TrustLedger } from '../services/trustLedger';
 import { EscrowService } from '../services/escrowService';
 import { VibeEconomyEngine } from '../services/revenueEngine';
@@ -25,6 +26,8 @@ export const WalletScreen = ({ visible, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bookings, setBookings] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [activeTab, setActiveTab] = useState('gigs');
   const [sisScore, setSISScore] = useState(50);
   const [tier, setTier] = useState(null);
   const [isRoyal, setIsRoyal] = useState(false);
@@ -40,15 +43,17 @@ export const WalletScreen = ({ visible, onClose }) => {
     if (!user) return;
     setLoading(true);
     try {
-      const [score, history, status] = await Promise.all([
+      const [score, history, status, txnRes] = await Promise.all([
         TrustLedger.getSISScore(user.id),
         EscrowService.getUserBookings(user.id),
-        VibeEconomyEngine.getSovereignStatus(user.id)
+        VibeEconomyEngine.getSovereignStatus(user.id),
+        supabase.from('wallet_transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
       ]);
       setSISScore(score);
       setTier(TrustLedger.getProviderTier(score));
       setBookings(history);
       setIsRoyal(status.isRoyal);
+      setTransactions(txnRes.data || []);
     } catch (e) {
       toast?.show('Failed to load wallet data', 'error');
     } finally {
@@ -211,22 +216,76 @@ export const WalletScreen = ({ visible, onClose }) => {
           </GlassView>
         )}
 
-        {/* History */}
-        <View style={s.historySection}>
-          <Text style={[s.sectionLabel, { color: muted }]}>RECENT GIGS</Text>
-          {loading ? (
-            <ActivityIndicator color={primary} style={{ marginTop: 40 }} />
-          ) : bookings.length === 0 ? (
-            <View style={s.emptyState}>
-              <MaterialCommunityIcons name="wallet-outline" size={48} color={muted} style={{ opacity: 0.3 }} />
-              <Text style={{ color: muted, marginTop: 12 }}>No transactions yet</Text>
-            </View>
-          ) : (
-            <View style={[s.historyList, { backgroundColor: surface }]}>
-              {bookings.map(renderBooking)}
-            </View>
-          )}
+        {/* Tab bar */}
+        <View style={[s.tabBar, { borderBottomColor: `${primary}18` }]}>
+          {[{ key: 'gigs', label: 'Gigs', icon: 'briefcase' }, { key: 'xp', label: 'XP Ledger', icon: 'zap' }].map(t => (
+            <TouchableOpacity
+              key={t.key}
+              onPress={() => setActiveTab(t.key)}
+              style={[s.tabBtn, activeTab === t.key && { borderBottomColor: primary, borderBottomWidth: 2 }]}
+            >
+              <Feather name={t.icon} size={13} color={activeTab === t.key ? primary : muted} />
+              <Text style={[s.tabLabel, { color: activeTab === t.key ? primary : muted }]}>{t.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
+
+        {/* Gigs history */}
+        {activeTab === 'gigs' && (
+          <View style={s.historySection}>
+            <Text style={[s.sectionLabel, { color: muted }]}>RECENT GIGS</Text>
+            {loading ? (
+              <ActivityIndicator color={primary} style={{ marginTop: 40 }} />
+            ) : bookings.length === 0 ? (
+              <View style={s.emptyState}>
+                <MaterialCommunityIcons name="wallet-outline" size={48} color={muted} style={{ opacity: 0.3 }} />
+                <Text style={{ color: muted, marginTop: 12 }}>No gigs yet</Text>
+              </View>
+            ) : (
+              <View style={[s.historyList, { backgroundColor: surface }]}>
+                {bookings.map(renderBooking)}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* XP / vibe-equity transaction ledger */}
+        {activeTab === 'xp' && (
+          <View style={s.historySection}>
+            <Text style={[s.sectionLabel, { color: muted }]}>VIBE-EQUITY LEDGER</Text>
+            {loading ? (
+              <ActivityIndicator color={primary} style={{ marginTop: 40 }} />
+            ) : transactions.length === 0 ? (
+              <View style={s.emptyState}>
+                <Feather name="activity" size={40} color={muted} style={{ opacity: 0.3 }} />
+                <Text style={{ color: muted, marginTop: 12 }}>No economy activity yet</Text>
+              </View>
+            ) : (
+              <View style={[s.historyList, { backgroundColor: surface }]}>
+                {transactions.map(t => {
+                  const isCredit = t.direction === 'credit';
+                  const date = new Date(t.created_at).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' });
+                  return (
+                    <View key={t.id} style={[s.bookingRow, { borderBottomColor: `${primary}10` }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={[s.iconBox, { backgroundColor: isCredit ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }]}>
+                          <Feather name={isCredit ? 'arrow-down-left' : 'arrow-up-right'} size={16} color={isCredit ? '#10b981' : '#ef4444'} />
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <Text style={[s.bookingTitle, { color: textColor }]}>{t.reason?.replace(/_/g, ' ').toUpperCase()}</Text>
+                          <Text style={[s.bookingSub, { color: muted }]}>{date}</Text>
+                        </View>
+                        <Text style={[s.bookingAmount, { color: isCredit ? '#10b981' : '#ef4444' }]}>
+                          {isCredit ? '+' : '-'}{t.amount.toFixed(1)} VE
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       <ReviewModal
@@ -277,5 +336,8 @@ const s = StyleSheet.create({
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 12, paddingLeft: 48 },
   miniBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   miniBtnText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  emptyState: { alignItems: 'center', marginTop: 60, opacity: 0.6 }
+  emptyState: { alignItems: 'center', marginTop: 60, opacity: 0.6 },
+  tabBar: { flexDirection: 'row', borderBottomWidth: 1, marginHorizontal: 0 },
+  tabBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
+  tabLabel: { fontSize: 12, fontWeight: '800' },
 });

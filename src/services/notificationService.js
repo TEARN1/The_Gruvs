@@ -57,6 +57,28 @@ export const NotificationService = {
         read: false,
       });
     } catch {}
+    // Fire real device push if recipient has a token
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('push_token')
+        .eq('id', recipientId)
+        .single();
+      const token = profile?.push_token;
+      if (!token || !token.startsWith('ExponentPushToken')) return;
+      await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          to: token,
+          title,
+          body,
+          data: { type, ...data },
+          sound: 'default',
+          priority: 'high',
+        }),
+      });
+    } catch {}
   },
 
   async notifyVibe(recipientId, actorUsername, eventTitle) {

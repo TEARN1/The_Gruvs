@@ -1786,6 +1786,7 @@ CREATE TABLE IF NOT EXISTS ai_predictions (
 ALTER TABLE ai_predictions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users read own ai_predictions" ON ai_predictions;
 CREATE POLICY "Users read own ai_predictions" ON ai_predictions FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Service insert ai_predictions" ON ai_predictions;
 CREATE POLICY "Service insert ai_predictions"  ON ai_predictions FOR INSERT WITH CHECK (true);
 
 CREATE TABLE IF NOT EXISTS ai_recommendations_cache (
@@ -1797,6 +1798,7 @@ CREATE TABLE IF NOT EXISTS ai_recommendations_cache (
 ALTER TABLE ai_recommendations_cache ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users read own recommendations" ON ai_recommendations_cache;
 CREATE POLICY "Users read own recommendations" ON ai_recommendations_cache FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Service upsert recommendations" ON ai_recommendations_cache;
 CREATE POLICY "Service upsert recommendations"  ON ai_recommendations_cache FOR ALL USING (true);
 
 -- ============================================================
@@ -1846,6 +1848,8 @@ CREATE TABLE IF NOT EXISTS governance_proposals (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE governance_proposals ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "governance_proposals readable" ON governance_proposals;
+DROP POLICY IF EXISTS "Service insert proposals"      ON governance_proposals;
 CREATE POLICY "governance_proposals readable"   ON governance_proposals FOR SELECT USING (true);
 CREATE POLICY "Service insert proposals"        ON governance_proposals FOR INSERT WITH CHECK (true);
 
@@ -1859,6 +1863,8 @@ CREATE TABLE IF NOT EXISTS governance_votes (
   UNIQUE (user_id, proposal_id)
 );
 ALTER TABLE governance_votes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "governance_votes readable" ON governance_votes;
+DROP POLICY IF EXISTS "Users cast votes"          ON governance_votes;
 CREATE POLICY "governance_votes readable"   ON governance_votes FOR SELECT USING (true);
 CREATE POLICY "Users cast votes"            ON governance_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
 
@@ -1887,6 +1893,8 @@ CREATE TABLE IF NOT EXISTS event_checkins (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE event_checkins ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "event_checkins readable" ON event_checkins;
+DROP POLICY IF EXISTS "Users insert checkins"   ON event_checkins;
 CREATE POLICY "event_checkins readable"   ON event_checkins FOR SELECT USING (true);
 CREATE POLICY "Users insert checkins"     ON event_checkins FOR INSERT WITH CHECK (auth.uid() = user_id);
 
@@ -2347,6 +2355,7 @@ CREATE TABLE IF NOT EXISTS path_traces (
 );
 CREATE INDEX IF NOT EXISTS path_traces_path ON path_traces(path_id, recorded_at);
 ALTER TABLE path_traces ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Path traces readable" ON path_traces;
 CREATE POLICY "Path traces readable"    ON path_traces FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Users manage own traces" ON path_traces;
 CREATE POLICY "Users manage own traces" ON path_traces FOR ALL    USING (auth.uid() = user_id);
@@ -2358,6 +2367,7 @@ CREATE TABLE IF NOT EXISTS path_stars (
   PRIMARY KEY (path_id, user_id)
 );
 ALTER TABLE path_stars ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Path stars readable" ON path_stars;
 CREATE POLICY "Path stars readable"         ON path_stars FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Users manage own path stars" ON path_stars;
 CREATE POLICY "Users manage own path stars" ON path_stars FOR ALL    USING (auth.uid() = user_id);
@@ -2675,17 +2685,27 @@ ALTER TABLE reel_likes    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reel_comments ENABLE ROW LEVEL SECURITY;
 
 -- Reels: anyone can read non-deleted; only owner can insert/delete
+DROP POLICY IF EXISTS "reels_select" ON reels;
+DROP POLICY IF EXISTS "reels_insert" ON reels;
+DROP POLICY IF EXISTS "reels_delete" ON reels;
+DROP POLICY IF EXISTS "reels_update" ON reels;
 CREATE POLICY "reels_select"  ON reels FOR SELECT USING (is_deleted = FALSE);
 CREATE POLICY "reels_insert"  ON reels FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "reels_delete"  ON reels FOR DELETE USING (auth.uid() = user_id);
 CREATE POLICY "reels_update"  ON reels FOR UPDATE USING (auth.uid() = user_id);
 
 -- Reel likes: anyone can read; authenticated users can insert/delete their own
+DROP POLICY IF EXISTS "reel_likes_select" ON reel_likes;
+DROP POLICY IF EXISTS "reel_likes_insert" ON reel_likes;
+DROP POLICY IF EXISTS "reel_likes_delete" ON reel_likes;
 CREATE POLICY "reel_likes_select" ON reel_likes FOR SELECT USING (TRUE);
 CREATE POLICY "reel_likes_insert" ON reel_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "reel_likes_delete" ON reel_likes FOR DELETE USING (auth.uid() = user_id);
 
 -- Reel comments: anyone can read; authenticated users can insert their own
+DROP POLICY IF EXISTS "reel_comments_select" ON reel_comments;
+DROP POLICY IF EXISTS "reel_comments_insert" ON reel_comments;
+DROP POLICY IF EXISTS "reel_comments_delete" ON reel_comments;
 CREATE POLICY "reel_comments_select" ON reel_comments FOR SELECT USING (TRUE);
 CREATE POLICY "reel_comments_insert" ON reel_comments FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "reel_comments_delete" ON reel_comments FOR DELETE USING (auth.uid() = user_id);
@@ -2722,3 +2742,943 @@ $$;
 CREATE OR REPLACE TRIGGER reel_comment_count_trigger
 AFTER INSERT OR DELETE ON reel_comments
 FOR EACH ROW EXECUTE FUNCTION sync_reel_comment_count();
+-- ─────────────────────────────────────────────────────────────────────────────
+-- CREW STORIES (24-hour disappearing posts)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS stories (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  media_url   TEXT NOT NULL,
+  media_type  TEXT NOT NULL DEFAULT 'image' CHECK (media_type IN ('image', 'video')),
+  caption     TEXT DEFAULT '',
+  expires_at  TIMESTAMPTZ NOT NULL DEFAULT (now() + INTERVAL '24 hours'),
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS story_views (
+  story_id    UUID NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  viewer_id   UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  viewed_at   TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (story_id, viewer_id)
+);
+
+-- Auto-expire: a cron job or the query filters on expires_at; no hard delete needed here
+CREATE INDEX IF NOT EXISTS idx_stories_user_id   ON stories(user_id);
+CREATE INDEX IF NOT EXISTS idx_stories_expires   ON stories(expires_at);
+CREATE INDEX IF NOT EXISTS idx_story_views_story ON story_views(story_id);
+CREATE INDEX IF NOT EXISTS idx_story_views_viewer ON story_views(viewer_id);
+
+ALTER TABLE stories     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE story_views ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "stories_select"  ON stories;
+DROP POLICY IF EXISTS "stories_insert"  ON stories;
+DROP POLICY IF EXISTS "stories_delete"  ON stories;
+DROP POLICY IF EXISTS "story_views_select"  ON story_views;
+DROP POLICY IF EXISTS "story_views_insert"  ON story_views;
+DROP POLICY IF EXISTS "story_views_select_viewer" ON story_views;
+
+CREATE POLICY "stories_select"  ON stories FOR SELECT USING (expires_at > now());
+CREATE POLICY "stories_insert"  ON stories FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "stories_delete"  ON stories FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "story_views_select"  ON story_views FOR SELECT USING (auth.uid() = viewer_id);
+CREATE POLICY "story_views_insert"  ON story_views FOR INSERT WITH CHECK (auth.uid() = viewer_id);
+
+-- Storage bucket for story media (if not already created)
+INSERT INTO storage.buckets (id, name, public)
+  VALUES ('stories', 'stories', true)
+  ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "stories bucket public read" ON storage.objects;
+DROP POLICY IF EXISTS "stories bucket auth upload" ON storage.objects;
+DROP POLICY IF EXISTS "stories bucket auth delete" ON storage.objects;
+
+CREATE POLICY "stories bucket public read"
+  ON storage.objects FOR SELECT USING (bucket_id = 'stories');
+
+CREATE POLICY "stories bucket auth upload"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'stories' AND auth.role() = 'authenticated');
+
+CREATE POLICY "stories bucket auth delete"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'stories' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- EVENT CHECK-INS (door scanning / manual ticket verification)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS event_checkins (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id    UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  rsvp_id     UUID NOT NULL REFERENCES event_rsvps(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  checked_in_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (rsvp_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_checkins_event ON event_checkins(event_id);
+CREATE INDEX IF NOT EXISTS idx_checkins_user  ON event_checkins(user_id);
+
+ALTER TABLE event_checkins ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "checkins_select" ON event_checkins;
+DROP POLICY IF EXISTS "checkins_insert" ON event_checkins;
+
+-- Event organiser can read; authenticated users can upsert their own checkin
+CREATE POLICY "checkins_select" ON event_checkins FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "checkins_insert" ON event_checkins FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+-- ============================================================
+--  THE GRUVS — 50 ADVANCED SQL LOGICS  (v5 addendum)
+--  Categories: XP/Levels · Events · Social Graph · Streaks
+--              Business · Moderation · Messaging · Stories
+--              Reels · Economy · Governance
+--  All idempotent — safe to re-run.
+-- ============================================================
+
+
+-- ════════════════════════════════════════════════════════════
+-- 1.  XP & LEVELING SYSTEM
+-- ════════════════════════════════════════════════════════════
+
+-- #1  Central XP-award function (called by every trigger below)
+CREATE OR REPLACE FUNCTION award_xp(p_user_id UUID, p_amount INT, p_reason TEXT DEFAULT NULL)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE profiles
+  SET xp          = COALESCE(xp, 0) + p_amount,
+      vibe_equity = COALESCE(vibe_equity, 0) + (p_amount * 0.1)
+  WHERE id = p_user_id;
+END;
+$$;
+
+-- #2  XP on RSVP (10 XP for going, 2 for maybe)
+CREATE OR REPLACE FUNCTION xp_on_rsvp()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF NEW.status = 'going' THEN
+    PERFORM award_xp(NEW.user_id, 10, 'rsvp_going');
+  ELSIF NEW.status = 'maybe' THEN
+    PERFORM award_xp(NEW.user_id, 2, 'rsvp_maybe');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_xp_rsvp ON event_rsvps;
+CREATE TRIGGER trg_xp_rsvp
+  AFTER INSERT ON event_rsvps
+  FOR EACH ROW EXECUTE FUNCTION xp_on_rsvp();
+
+-- #3  XP when someone follows you (5 XP to the followed user)
+CREATE OR REPLACE FUNCTION xp_on_follow()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  PERFORM award_xp(NEW.following_id, 5, 'received_follow');
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_xp_follow ON follows;
+CREATE TRIGGER trg_xp_follow
+  AFTER INSERT ON follows
+  FOR EACH ROW EXECUTE FUNCTION xp_on_follow();
+
+-- #4  XP when your reel gets a like (3 XP per like, to owner only)
+CREATE OR REPLACE FUNCTION xp_on_reel_like()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_owner UUID;
+BEGIN
+  SELECT user_id INTO v_owner FROM reels WHERE id = NEW.reel_id;
+  IF v_owner IS NOT NULL AND v_owner <> NEW.user_id THEN
+    PERFORM award_xp(v_owner, 3, 'reel_liked');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_xp_reel_like ON reel_likes;
+CREATE TRIGGER trg_xp_reel_like
+  AFTER INSERT ON reel_likes
+  FOR EACH ROW EXECUTE FUNCTION xp_on_reel_like();
+
+-- #5  XP when your event gets a vibe (8 XP to event organiser)
+CREATE OR REPLACE FUNCTION xp_on_vibe()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_organiser UUID;
+BEGIN
+  SELECT organiser_id INTO v_organiser FROM events WHERE id = NEW.event_id;
+  IF v_organiser IS NOT NULL AND v_organiser <> NEW.user_id THEN
+    PERFORM award_xp(v_organiser, 8, 'event_vibed');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_xp_vibe ON event_vibes;
+CREATE TRIGGER trg_xp_vibe
+  AFTER INSERT ON event_vibes
+  FOR EACH ROW EXECUTE FUNCTION xp_on_vibe();
+
+-- #6  Level view — maps XP to a level (1–100)
+CREATE OR REPLACE VIEW user_levels AS
+SELECT
+  id,
+  username,
+  avatar_url,
+  xp,
+  LEAST(100, FLOOR(SQRT(COALESCE(xp,0)::numeric / 50))::INT + 1) AS level,
+  LEAST(100, FLOOR(SQRT(COALESCE(xp,0)::numeric / 50))::INT + 1)::TEXT || ' / 100' AS level_label
+FROM profiles;
+
+
+-- ════════════════════════════════════════════════════════════
+-- 2.  EVENT INTELLIGENCE
+-- ════════════════════════════════════════════════════════════
+
+-- #7  Hot-score function (weights: vibes 3, rsvps 5, echoes 2, rating 10)
+CREATE OR REPLACE FUNCTION event_hot_score(
+  p_vibes INT, p_rsvps INT, p_echoes INT,
+  p_ratings NUMERIC, p_created TIMESTAMPTZ
+)
+RETURNS NUMERIC LANGUAGE sql IMMUTABLE AS $$
+  SELECT
+    (p_vibes * 3 + p_rsvps * 5 + p_echoes * 2 + COALESCE(p_ratings,0) * 10)
+    / NULLIF(POWER(EXTRACT(EPOCH FROM (now() - p_created)) / 3600 + 2, 1.5), 0);
+$$;
+
+-- #8  Trending events view
+CREATE OR REPLACE VIEW trending_events AS
+SELECT
+  e.*,
+  event_hot_score(
+    COALESCE((SELECT COUNT(*) FROM event_vibes  WHERE event_id = e.id), 0)::INT,
+    COALESCE(e.going, 0),
+    COALESCE((SELECT COUNT(*) FROM echoes       WHERE event_id = e.id), 0)::INT,
+    COALESCE((SELECT AVG(rating) FROM event_ratings WHERE event_id = e.id), 0),
+    e.created_at
+  ) AS hot_score
+FROM events e
+WHERE e.event_date >= now() - INTERVAL '6 hours'
+ORDER BY hot_score DESC;
+
+-- #9  Trigger: keep events.going in sync with event_rsvps
+CREATE OR REPLACE FUNCTION sync_event_going_count()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE events
+  SET going = (
+    SELECT COUNT(*) FROM event_rsvps
+    WHERE event_id = COALESCE(NEW.event_id, OLD.event_id)
+      AND status = 'going'
+  )
+  WHERE id = COALESCE(NEW.event_id, OLD.event_id);
+  RETURN NULL;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_sync_going ON event_rsvps;
+CREATE TRIGGER trg_sync_going
+  AFTER INSERT OR UPDATE OR DELETE ON event_rsvps
+  FOR EACH ROW EXECUTE FUNCTION sync_event_going_count();
+
+-- #10  Trigger: mark event as full when going >= capacity
+ALTER TABLE events ADD COLUMN IF NOT EXISTS is_full BOOLEAN DEFAULT false;
+CREATE OR REPLACE FUNCTION flag_event_full()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.capacity IS NOT NULL AND NEW.going >= NEW.capacity THEN
+    NEW.is_full := true;
+  ELSE
+    NEW.is_full := false;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_flag_full ON events;
+CREATE TRIGGER trg_flag_full
+  BEFORE UPDATE OF going ON events
+  FOR EACH ROW EXECUTE FUNCTION flag_event_full();
+
+-- #11  Upcoming events this week view
+CREATE OR REPLACE VIEW events_this_week AS
+SELECT * FROM events
+WHERE event_date BETWEEN now() AND now() + INTERVAL '7 days'
+ORDER BY event_date ASC;
+
+-- #12  Function: events within radius_km of a lat/lng point
+ALTER TABLE events ADD COLUMN IF NOT EXISTS coords geography(Point, 4326);
+CREATE OR REPLACE FUNCTION events_near(
+  lat DOUBLE PRECISION,
+  lng DOUBLE PRECISION,
+  radius_km DOUBLE PRECISION DEFAULT 10
+)
+RETURNS SETOF events LANGUAGE sql STABLE AS $$
+  SELECT e.* FROM events e
+  WHERE e.coords IS NOT NULL
+    AND ST_DWithin(
+      e.coords::geography,
+      ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography,
+      radius_km * 1000
+    )
+    AND e.event_date >= now()
+  ORDER BY e.event_date ASC;
+$$;
+
+-- #13  Trigger: notify organiser at RSVP milestones (50/100/500/1000)
+CREATE OR REPLACE FUNCTION notify_rsvp_milestone()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_count  INT;
+  v_org    UUID;
+  v_title  TEXT;
+BEGIN
+  IF NEW.status <> 'going' THEN RETURN NEW; END IF;
+  SELECT going, organiser_id, title INTO v_count, v_org, v_title
+  FROM events WHERE id = NEW.event_id;
+  IF v_count IN (50, 100, 500, 1000) THEN
+    INSERT INTO notifications(recipient_id, type, title, body, data, read)
+    VALUES (
+      v_org, 'milestone',
+      v_count::TEXT || ' people are going!',
+      '"' || v_title || '" just hit ' || v_count::TEXT || ' confirmed RSVPs.',
+      jsonb_build_object('event_id', NEW.event_id, 'count', v_count),
+      false
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_rsvp_milestone ON event_rsvps;
+CREATE TRIGGER trg_rsvp_milestone
+  AFTER UPDATE OF status ON event_rsvps
+  FOR EACH ROW EXECUTE FUNCTION notify_rsvp_milestone();
+
+-- #14  Function: archive events older than 48 h (returns row count)
+ALTER TABLE events ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false;
+CREATE OR REPLACE FUNCTION archive_past_events()
+RETURNS INT LANGUAGE plpgsql AS $$
+DECLARE v_count INT;
+BEGIN
+  UPDATE events
+  SET is_archived = true
+  WHERE event_date < now() - INTERVAL '48 hours'
+    AND is_archived = false;
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count;
+END;
+$$;
+
+
+-- ════════════════════════════════════════════════════════════
+-- 3.  SOCIAL GRAPH
+-- ════════════════════════════════════════════════════════════
+
+-- #15  Trigger: keep followers_count / following_count in sync
+CREATE OR REPLACE FUNCTION sync_follow_counts()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+  fwer UUID := COALESCE(NEW.follower_id,  OLD.follower_id);
+  fwed UUID := COALESCE(NEW.following_id, OLD.following_id);
+BEGIN
+  UPDATE profiles SET followers_count = (SELECT COUNT(*) FROM follows WHERE following_id = fwed) WHERE id = fwed;
+  UPDATE profiles SET following_count = (SELECT COUNT(*) FROM follows WHERE follower_id  = fwer) WHERE id = fwer;
+  RETURN NULL;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_sync_follow_counts ON follows;
+CREATE TRIGGER trg_sync_follow_counts
+  AFTER INSERT OR DELETE ON follows
+  FOR EACH ROW EXECUTE FUNCTION sync_follow_counts();
+
+-- #16  Mutual follows (friends) view
+CREATE OR REPLACE VIEW mutual_follows AS
+SELECT a.follower_id AS user_a, a.following_id AS user_b
+FROM follows a
+JOIN follows b ON b.follower_id = a.following_id AND b.following_id = a.follower_id;
+
+-- #17  Friends-of-friends suggested follows
+CREATE OR REPLACE FUNCTION suggested_follows(p_user UUID, p_limit INT DEFAULT 10)
+RETURNS TABLE(suggested_id UUID, mutual_count BIGINT) LANGUAGE sql STABLE AS $$
+  SELECT f2.following_id, COUNT(*) AS mutual_count
+  FROM follows f1
+  JOIN follows f2 ON f2.follower_id = f1.following_id
+  WHERE f1.follower_id = p_user
+    AND f2.following_id <> p_user
+    AND f2.following_id NOT IN (SELECT following_id FROM follows WHERE follower_id = p_user)
+  GROUP BY f2.following_id
+  ORDER BY mutual_count DESC
+  LIMIT p_limit;
+$$;
+
+-- #18  Trending users (most new followers in last 7 days)
+CREATE OR REPLACE VIEW trending_users AS
+SELECT
+  p.id, p.username, p.avatar_url, p.is_verified,
+  COUNT(f.follower_id) AS new_followers_7d
+FROM profiles p
+JOIN follows f ON f.following_id = p.id
+WHERE f.created_at >= now() - INTERVAL '7 days'
+GROUP BY p.id
+ORDER BY new_followers_7d DESC
+LIMIT 50;
+
+-- #19  User blocks / mutes table
+CREATE TABLE IF NOT EXISTS user_blocks (
+  blocker_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  blocked_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (blocker_id, blocked_id)
+);
+ALTER TABLE user_blocks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "blocks_own" ON user_blocks;
+CREATE POLICY "blocks_own" ON user_blocks
+  USING (auth.uid() = blocker_id)
+  WITH CHECK (auth.uid() = blocker_id);
+
+
+-- ════════════════════════════════════════════════════════════
+-- 4.  STREAK & BADGES
+-- ════════════════════════════════════════════════════════════
+
+-- #20  Daily activity log (one row per user per calendar day)
+CREATE TABLE IF NOT EXISTS daily_activity (
+  user_id      UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  day          DATE NOT NULL DEFAULT CURRENT_DATE,
+  action_count INT  DEFAULT 1,
+  PRIMARY KEY (user_id, day)
+);
+ALTER TABLE daily_activity ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "activity_own" ON daily_activity;
+CREATE POLICY "activity_own" ON daily_activity
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- #21  Function: upsert daily activity and return current streak length
+CREATE OR REPLACE FUNCTION record_daily_activity(p_user UUID)
+RETURNS INT LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_streak INT := 0;
+  v_day    DATE;
+  v_prev   DATE;
+BEGIN
+  INSERT INTO daily_activity(user_id, day)
+  VALUES (p_user, CURRENT_DATE)
+  ON CONFLICT (user_id, day)
+  DO UPDATE SET action_count = daily_activity.action_count + 1;
+
+  FOR v_day IN
+    SELECT day FROM daily_activity WHERE user_id = p_user ORDER BY day DESC
+  LOOP
+    IF v_streak = 0 THEN
+      IF v_day = CURRENT_DATE OR v_day = CURRENT_DATE - 1 THEN
+        v_streak := 1; v_prev := v_day;
+      ELSE EXIT;
+      END IF;
+    ELSE
+      IF v_day = v_prev - 1 THEN v_streak := v_streak + 1; v_prev := v_day;
+      ELSE EXIT;
+      END IF;
+    END IF;
+  END LOOP;
+  RETURN v_streak;
+END;
+$$;
+
+-- #22  Function: award a badge idempotently
+CREATE OR REPLACE FUNCTION award_badge(p_user UUID, p_badge TEXT)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE profiles
+  SET badges = array_append(badges, p_badge)
+  WHERE id = p_user
+    AND NOT (COALESCE(badges, '{}') @> ARRAY[p_badge]);
+END;
+$$;
+
+-- #23  Trigger: auto-award streak badges on check-in
+CREATE OR REPLACE FUNCTION check_streak_badges()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_streak INT;
+BEGIN
+  v_streak := record_daily_activity(NEW.user_id);
+  IF    v_streak >= 100 THEN PERFORM award_badge(NEW.user_id, 'streak_100');
+  ELSIF v_streak >= 30  THEN PERFORM award_badge(NEW.user_id, 'streak_30');
+  ELSIF v_streak >= 7   THEN PERFORM award_badge(NEW.user_id, 'streak_7');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_streak_on_checkin ON event_checkins;
+CREATE TRIGGER trg_streak_on_checkin
+  AFTER INSERT ON event_checkins
+  FOR EACH ROW EXECUTE FUNCTION check_streak_badges();
+
+
+-- ════════════════════════════════════════════════════════════
+-- 5.  BUSINESS & CAMPAIGN ANALYTICS
+-- ════════════════════════════════════════════════════════════
+
+-- #24  Trigger: auto-increment campaign impression / click count
+ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS impressions INT DEFAULT 0;
+ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS clicks      INT DEFAULT 0;
+ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS action TEXT DEFAULT 'impression';
+
+CREATE OR REPLACE FUNCTION sync_campaign_stats()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.action = 'impression' THEN
+    UPDATE ad_campaigns SET impressions = impressions + 1 WHERE id = NEW.campaign_id;
+  ELSIF NEW.action = 'click' THEN
+    UPDATE ad_campaigns SET clicks = clicks + 1 WHERE id = NEW.campaign_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_campaign_stats ON campaign_analytics;
+CREATE TRIGGER trg_campaign_stats
+  AFTER INSERT ON campaign_analytics
+  FOR EACH ROW EXECUTE FUNCTION sync_campaign_stats();
+
+-- #25  Campaign performance view (CTR + cost-per-click)
+CREATE OR REPLACE VIEW campaign_performance AS
+SELECT
+  c.id, c.name, c.budget_total AS budget, c.status,
+  c.impressions,
+  c.clicks,
+  ROUND(safe_div(c.clicks::numeric, NULLIF(c.impressions,0)) * 100, 2) AS ctr_pct,
+  ROUND(safe_div(c.budget_total::numeric, NULLIF(c.clicks,0)), 2)      AS cost_per_click
+FROM ad_campaigns c;
+
+-- #26  Trigger: auto-deactivate expired campaigns
+ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ;
+CREATE OR REPLACE FUNCTION deactivate_expired_campaigns()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.end_date IS NOT NULL AND NEW.end_date < now() AND NEW.status = 'active' THEN
+    NEW.status := 'completed';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_expire_campaign ON ad_campaigns;
+CREATE TRIGGER trg_expire_campaign
+  BEFORE UPDATE ON ad_campaigns
+  FOR EACH ROW EXECUTE FUNCTION deactivate_expired_campaigns();
+
+-- #27  Business analytics summary view
+CREATE OR REPLACE VIEW business_analytics AS
+SELECT
+  bp.id AS business_id,
+  bp.business_name AS name,
+  bp.business_type AS type,
+  COUNT(DISTINCT e.id)                AS total_events,
+  COALESCE(SUM(e.going), 0)           AS total_attendees,
+  COUNT(DISTINCT c.id)                AS total_campaigns,
+  COALESCE(SUM(c.impressions), 0)     AS total_impressions,
+  COALESCE(SUM(c.clicks), 0)          AS total_clicks
+FROM business_profiles bp
+LEFT JOIN events       e ON COALESCE(e.author_id, e.user_id) = bp.user_id
+LEFT JOIN ad_campaigns c ON c.business_id  = bp.id
+GROUP BY bp.id, bp.business_name, bp.business_type;
+
+
+-- ════════════════════════════════════════════════════════════
+-- 6.  CONTENT MODERATION
+-- ════════════════════════════════════════════════════════════
+
+-- #28  Report count columns on key tables
+ALTER TABLE events   ADD COLUMN IF NOT EXISTS report_count INT DEFAULT 0;
+ALTER TABLE reels    ADD COLUMN IF NOT EXISTS report_count INT DEFAULT 0;
+ALTER TABLE echoes   ADD COLUMN IF NOT EXISTS report_count INT DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS report_count INT DEFAULT 0;
+
+-- #29  Trigger: increment report_count on the target row
+CREATE OR REPLACE FUNCTION sync_report_count()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  CASE NEW.target_type
+    WHEN 'event'   THEN UPDATE events   SET report_count = report_count + 1 WHERE id = NEW.target_id;
+    WHEN 'reel'    THEN UPDATE reels    SET report_count = report_count + 1 WHERE id = NEW.target_id;
+    WHEN 'echo'    THEN UPDATE echoes   SET report_count = report_count + 1 WHERE id = NEW.target_id;
+    WHEN 'profile' THEN UPDATE profiles SET report_count = report_count + 1 WHERE id = NEW.target_id;
+    ELSE NULL;
+  END CASE;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_sync_report_count ON reports;
+CREATE TRIGGER trg_sync_report_count
+  AFTER INSERT ON reports
+  FOR EACH ROW EXECUTE FUNCTION sync_report_count();
+
+-- #30  Trigger: auto-hide content with 5+ reports
+ALTER TABLE events ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;
+ALTER TABLE reels  ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;
+ALTER TABLE echoes ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;
+
+CREATE OR REPLACE FUNCTION auto_hide_reported()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.report_count >= 5 THEN
+    NEW.is_hidden := true;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_hide_event ON events;
+DROP TRIGGER IF EXISTS trg_hide_reel  ON reels;
+DROP TRIGGER IF EXISTS trg_hide_echo  ON echoes;
+CREATE TRIGGER trg_hide_event BEFORE UPDATE OF report_count ON events FOR EACH ROW EXECUTE FUNCTION auto_hide_reported();
+CREATE TRIGGER trg_hide_reel  BEFORE UPDATE OF report_count ON reels  FOR EACH ROW EXECUTE FUNCTION auto_hide_reported();
+CREATE TRIGGER trg_hide_echo  BEFORE UPDATE OF report_count ON echoes FOR EACH ROW EXECUTE FUNCTION auto_hide_reported();
+
+-- #31  Trigger: deduct Social Integrity Score when a profile is reported
+CREATE OR REPLACE FUNCTION deduct_sis_on_report()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.target_type = 'profile' THEN
+    UPDATE profiles
+    SET social_integrity_score = GREATEST(0, COALESCE(social_integrity_score,50) - 5)
+    WHERE id = NEW.target_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_sis_report ON reports;
+CREATE TRIGGER trg_sis_report
+  AFTER INSERT ON reports
+  FOR EACH ROW EXECUTE FUNCTION deduct_sis_on_report();
+
+-- #32  Flagged content dashboard view
+CREATE OR REPLACE VIEW flagged_content AS
+SELECT 'event'   AS type, id, title   AS label, report_count, is_hidden, created_at FROM events   WHERE report_count > 0
+UNION ALL
+SELECT 'reel'    AS type, id, caption AS label, report_count, is_hidden, created_at FROM reels    WHERE report_count > 0
+UNION ALL
+SELECT 'echo'    AS type, id, body    AS label, report_count, is_hidden, created_at FROM echoes   WHERE report_count > 0
+ORDER BY report_count DESC;
+
+
+-- ════════════════════════════════════════════════════════════
+-- 7.  MESSAGING
+-- ════════════════════════════════════════════════════════════
+
+-- #33  Unified messages table — add room-based columns to existing messages table
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS room_id    UUID REFERENCES dm_rooms(id) ON DELETE CASCADE;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_type TEXT;
+CREATE INDEX IF NOT EXISTS idx_messages_room   ON messages(room_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "messages_select" ON messages;
+DROP POLICY IF EXISTS "messages_insert" ON messages;
+DROP POLICY IF EXISTS "messages_update" ON messages;
+CREATE POLICY "messages_select" ON messages FOR SELECT
+  USING (EXISTS (SELECT 1 FROM dm_rooms r WHERE r.id = room_id AND (r.participant_1 = auth.uid() OR r.participant_2 = auth.uid())));
+CREATE POLICY "messages_insert" ON messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
+CREATE POLICY "messages_update" ON messages FOR UPDATE USING  (auth.uid() = sender_id);
+
+-- #34  Trigger: update dm_rooms last_message_at + unread counters
+-- dm_rooms already has last_message_at; add missing columns only
+ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS last_message_body TEXT;
+
+CREATE OR REPLACE FUNCTION sync_dm_room_last_msg()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE v_room dm_rooms%ROWTYPE;
+BEGIN
+  SELECT * INTO v_room FROM dm_rooms WHERE id = NEW.room_id;
+  UPDATE dm_rooms SET
+    last_message_at   = NEW.created_at,
+    last_message_body = LEFT(COALESCE(NEW.body, ''), 80),
+    unread_count_1 = CASE WHEN v_room.participant_1 <> NEW.sender_id THEN unread_count_1 + 1 ELSE unread_count_1 END,
+    unread_count_2 = CASE WHEN v_room.participant_2 <> NEW.sender_id THEN unread_count_2 + 1 ELSE unread_count_2 END
+  WHERE id = NEW.room_id;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_dm_last_msg ON messages;
+CREATE TRIGGER trg_dm_last_msg
+  AFTER INSERT ON messages
+  FOR EACH ROW EXECUTE FUNCTION sync_dm_room_last_msg();
+
+-- #35  Function: mark all messages read in a room for a given user
+CREATE OR REPLACE FUNCTION mark_room_read(p_room UUID, p_user UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_room dm_rooms%ROWTYPE;
+BEGIN
+  SELECT * INTO v_room FROM dm_rooms WHERE id = p_room;
+  UPDATE messages
+  SET read_at = now()
+  WHERE room_id = p_room AND sender_id <> p_user AND read_at IS NULL;
+  IF v_room.participant_1 = p_user THEN
+    UPDATE dm_rooms SET unread_count_1 = 0 WHERE id = p_room;
+  ELSE
+    UPDATE dm_rooms SET unread_count_2 = 0 WHERE id = p_room;
+  END IF;
+END;
+$$;
+
+-- #36  Conversations ordered by last activity (portal view)
+CREATE OR REPLACE VIEW user_conversations AS
+SELECT
+  r.id               AS room_id,
+  r.participant_1    AS user_a,
+  r.participant_2    AS user_b,
+  r.last_message_at,
+  r.last_message_body,
+  r.unread_count_1   AS unread_a,
+  r.unread_count_2   AS unread_b,
+  pa.username        AS user_a_username,
+  pa.avatar_url      AS user_a_avatar,
+  pb.username        AS user_b_username,
+  pb.avatar_url      AS user_b_avatar
+FROM dm_rooms r
+JOIN profiles pa ON pa.id = r.participant_1
+JOIN profiles pb ON pb.id = r.participant_2
+ORDER BY r.last_message_at DESC NULLS LAST;
+
+
+-- ════════════════════════════════════════════════════════════
+-- 8.  STORIES
+-- ════════════════════════════════════════════════════════════
+
+-- #37  Function: purge expired stories (safe to call from edge function / cron)
+CREATE OR REPLACE FUNCTION purge_expired_stories()
+RETURNS INT LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_count INT;
+BEGIN
+  DELETE FROM stories WHERE expires_at < now();
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count;
+END;
+$$;
+
+-- #38  Active story count per user view
+CREATE OR REPLACE VIEW active_story_counts AS
+SELECT user_id, COUNT(*) AS story_count
+FROM stories
+WHERE expires_at > now()
+GROUP BY user_id;
+
+-- #39  XP when someone views your story (1 XP per unique viewer, max 20 per story)
+CREATE OR REPLACE FUNCTION xp_on_story_view()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_owner UUID; v_view_count INT;
+BEGIN
+  SELECT user_id INTO v_owner FROM stories WHERE id = NEW.story_id;
+  IF v_owner IS NULL OR v_owner = NEW.viewer_id THEN RETURN NEW; END IF;
+  SELECT COUNT(*) INTO v_view_count FROM story_views WHERE story_id = NEW.story_id;
+  IF v_view_count <= 20 THEN
+    PERFORM award_xp(v_owner, 1, 'story_viewed');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_xp_story_view ON story_views;
+CREATE TRIGGER trg_xp_story_view
+  AFTER INSERT ON story_views
+  FOR EACH ROW EXECUTE FUNCTION xp_on_story_view();
+
+
+-- ════════════════════════════════════════════════════════════
+-- 9.  REELS
+-- ════════════════════════════════════════════════════════════
+
+-- #40  Reel views log (unique per user per reel)
+CREATE TABLE IF NOT EXISTS reel_views (
+  reel_id   UUID NOT NULL REFERENCES reels(id)    ON DELETE CASCADE,
+  viewer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (reel_id, viewer_id)
+);
+ALTER TABLE reels ADD COLUMN IF NOT EXISTS view_count INT DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_reel_views_reel   ON reel_views(reel_id);
+CREATE INDEX IF NOT EXISTS idx_reel_views_viewer ON reel_views(viewer_id);
+ALTER TABLE reel_views ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "reel_views_insert" ON reel_views;
+DROP POLICY IF EXISTS "reel_views_select" ON reel_views;
+CREATE POLICY "reel_views_insert" ON reel_views FOR INSERT WITH CHECK (auth.uid() = viewer_id);
+CREATE POLICY "reel_views_select" ON reel_views FOR SELECT USING (TRUE);
+
+-- #41  Trigger: increment view_count on new unique view
+CREATE OR REPLACE FUNCTION sync_reel_view_count()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE reels SET view_count = view_count + 1 WHERE id = NEW.reel_id;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_reel_view_count ON reel_views;
+CREATE TRIGGER trg_reel_view_count
+  AFTER INSERT ON reel_views
+  FOR EACH ROW EXECUTE FUNCTION sync_reel_view_count();
+
+-- #42  Reel discovery score function
+CREATE OR REPLACE FUNCTION reel_discovery_score(
+  p_likes INT, p_comments INT, p_views INT, p_created TIMESTAMPTZ
+)
+RETURNS NUMERIC LANGUAGE sql IMMUTABLE AS $$
+  SELECT (p_likes * 5 + p_comments * 3 + p_views * 0.5)
+       / NULLIF(POWER(EXTRACT(EPOCH FROM (now() - p_created)) / 3600 + 1, 1.2), 0);
+$$;
+
+-- #43  Trending reels view (top 50 by discovery score)
+CREATE OR REPLACE VIEW trending_reels AS
+SELECT
+  r.*,
+  reel_discovery_score(r.like_count, r.comment_count, r.view_count, r.created_at) AS score
+FROM reels r
+WHERE r.is_deleted = false
+ORDER BY score DESC
+LIMIT 50;
+
+-- #44  Trigger: award XP + badge at reel like milestones
+CREATE OR REPLACE FUNCTION xp_reel_milestone()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF    NEW.like_count = 10   THEN PERFORM award_xp(NEW.user_id, 25,  'reel_10_likes');
+  ELSIF NEW.like_count = 100  THEN PERFORM award_xp(NEW.user_id, 100, 'reel_100_likes'); PERFORM award_badge(NEW.user_id, 'reel_star');
+  ELSIF NEW.like_count = 1000 THEN PERFORM award_xp(NEW.user_id, 500, 'reel_1k_likes');  PERFORM award_badge(NEW.user_id, 'viral_reel');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_xp_reel_milestone ON reels;
+CREATE TRIGGER trg_xp_reel_milestone
+  AFTER UPDATE OF like_count ON reels
+  FOR EACH ROW EXECUTE FUNCTION xp_reel_milestone();
+
+
+-- ════════════════════════════════════════════════════════════
+-- 10. ECONOMY & WALLET
+-- ════════════════════════════════════════════════════════════
+
+-- #45  Wallet transactions ledger
+CREATE TABLE IF NOT EXISTS wallet_transactions (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  amount        NUMERIC     NOT NULL,
+  direction     TEXT        NOT NULL CHECK (direction IN ('credit','debit')),
+  reason        TEXT        NOT NULL,
+  balance_after NUMERIC,
+  ref_id        UUID,
+  ref_type      TEXT,
+  created_at    TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_wallet_txn_user    ON wallet_transactions(user_id, created_at DESC);
+ALTER TABLE wallet_transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "wallet_own" ON wallet_transactions;
+CREATE POLICY "wallet_own" ON wallet_transactions FOR SELECT USING (auth.uid() = user_id);
+
+-- #46  Function: credit vibe_equity with full audit trail
+CREATE OR REPLACE FUNCTION credit_vibe_equity(
+  p_user UUID, p_amount NUMERIC, p_reason TEXT,
+  p_ref UUID DEFAULT NULL, p_ref_type TEXT DEFAULT NULL
+)
+RETURNS NUMERIC LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_balance NUMERIC;
+BEGIN
+  UPDATE profiles SET vibe_equity = COALESCE(vibe_equity,0) + p_amount WHERE id = p_user
+  RETURNING vibe_equity INTO v_balance;
+  INSERT INTO wallet_transactions(user_id, amount, direction, reason, balance_after, ref_id, ref_type)
+  VALUES (p_user, p_amount, 'credit', p_reason, v_balance, p_ref, p_ref_type);
+  RETURN v_balance;
+END;
+$$;
+
+-- #47  Function: debit vibe_equity — returns false if insufficient funds
+CREATE OR REPLACE FUNCTION debit_vibe_equity(
+  p_user UUID, p_amount NUMERIC, p_reason TEXT,
+  p_ref UUID DEFAULT NULL, p_ref_type TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_balance NUMERIC;
+BEGIN
+  SELECT vibe_equity INTO v_balance FROM profiles WHERE id = p_user FOR UPDATE;
+  IF COALESCE(v_balance,0) < p_amount THEN RETURN false; END IF;
+  UPDATE profiles SET vibe_equity = vibe_equity - p_amount WHERE id = p_user;
+  INSERT INTO wallet_transactions(user_id, amount, direction, reason, balance_after, ref_id, ref_type)
+  VALUES (p_user, p_amount, 'debit', p_reason, v_balance - p_amount, p_ref, p_ref_type);
+  RETURN true;
+END;
+$$;
+
+-- #48  Trigger: reward vibe_equity + XP on event check-in
+CREATE OR REPLACE FUNCTION reward_checkin_economy()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  PERFORM credit_vibe_equity(NEW.user_id, 5, 'event_checkin', NEW.event_id, 'event');
+  PERFORM award_xp(NEW.user_id, 20, 'event_checkin');
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_economy_checkin ON event_checkins;
+CREATE TRIGGER trg_economy_checkin
+  AFTER INSERT ON event_checkins
+  FOR EACH ROW EXECUTE FUNCTION reward_checkin_economy();
+
+-- #49  Economy summary view per user
+CREATE OR REPLACE VIEW user_economy AS
+SELECT
+  p.id,
+  p.username,
+  COALESCE(p.vibe_equity, 0)                                           AS balance,
+  COALESCE(SUM(CASE WHEN t.direction = 'credit' THEN t.amount END), 0) AS total_earned,
+  COALESCE(SUM(CASE WHEN t.direction = 'debit'  THEN t.amount END), 0) AS total_spent,
+  COUNT(t.id)                                                           AS transaction_count
+FROM profiles p
+LEFT JOIN wallet_transactions t ON t.user_id = p.id
+GROUP BY p.id, p.username, p.vibe_equity;
+
+
+-- ════════════════════════════════════════════════════════════
+-- 11. GOVERNANCE
+-- ════════════════════════════════════════════════════════════
+
+-- #50  Function: tally votes, mark passed/rejected, close expired proposals
+ALTER TABLE governance_proposals ADD COLUMN IF NOT EXISTS yes_votes  INT DEFAULT 0;
+ALTER TABLE governance_proposals ADD COLUMN IF NOT EXISTS no_votes   INT DEFAULT 0;
+ALTER TABLE governance_proposals ADD COLUMN IF NOT EXISTS result     TEXT;
+ALTER TABLE governance_proposals ADD COLUMN IF NOT EXISTS ends_at    TIMESTAMPTZ;
+ALTER TABLE governance_proposals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE governance_votes      ADD COLUMN IF NOT EXISTS vote      TEXT CHECK (vote IN ('yes','no','abstain'));
+
+CREATE OR REPLACE FUNCTION tally_governance_proposals()
+RETURNS INT LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_row   governance_proposals%ROWTYPE;
+  v_yes   INT;
+  v_no    INT;
+  v_count INT := 0;
+BEGIN
+  FOR v_row IN
+    SELECT * FROM governance_proposals
+    WHERE status = 'open' AND ends_at < now()
+  LOOP
+    SELECT
+      COUNT(*) FILTER (WHERE vote = 'yes'),
+      COUNT(*) FILTER (WHERE vote = 'no')
+    INTO v_yes, v_no
+    FROM governance_votes WHERE proposal_id = v_row.id;
+
+    UPDATE governance_proposals SET
+      status     = 'closed',
+      yes_votes  = v_yes,
+      no_votes   = v_no,
+      result     = CASE WHEN v_yes > v_no THEN 'passed' ELSE 'rejected' END,
+      updated_at = now()
+    WHERE id = v_row.id;
+
+    v_count := v_count + 1;
+  END LOOP;
+  RETURN v_count;
+END;
+$$;
+
+
+-- ════════════════════════════════════════════════════════════
+-- FINAL INDEXES
+-- ════════════════════════════════════════════════════════════
+CREATE INDEX IF NOT EXISTS idx_daily_activity_user  ON daily_activity(user_id, day DESC);
+CREATE INDEX IF NOT EXISTS idx_wallet_txn_created   ON wallet_transactions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_room_ts     ON messages(room_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_blocks_blocker  ON user_blocks(blocker_id);
+CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked  ON user_blocks(blocked_id);
+CREATE INDEX IF NOT EXISTS idx_follows_created      ON follows(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_events_hot           ON events(event_date, going DESC);
+CREATE INDEX IF NOT EXISTS idx_reels_likes          ON reels(like_count DESC);

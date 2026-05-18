@@ -157,6 +157,13 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
   useEffect(() => {
     if (isActive) {
       videoRef.current?.playAsync().catch(() => {});
+      // Log view (unique per user per reel — DB has primary key guard)
+      if (user && reel?.id) {
+        supabase.from('reel_views').upsert(
+          { reel_id: reel.id, viewer_id: user.id },
+          { onConflict: 'reel_id,viewer_id', ignoreDuplicates: true }
+        ).then(() => {});
+      }
     } else {
       videoRef.current?.pauseAsync().catch(() => {});
     }
