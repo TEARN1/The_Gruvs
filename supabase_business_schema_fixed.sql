@@ -82,6 +82,10 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS identity_mode    TEXT        DEFAU
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_beacon_active BOOLEAN     DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_discoverable  BOOLEAN     DEFAULT true;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at       TIMESTAMPTZ DEFAULT now();
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_code    TEXT        UNIQUE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_count   INTEGER     DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role             TEXT        DEFAULT 'user';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name     TEXT;
 
 CREATE INDEX IF NOT EXISTS profiles_coords_gist   ON profiles USING gist(coords);
 CREATE INDEX IF NOT EXISTS profiles_username_trgm ON profiles USING gin(username gin_trgm_ops);
