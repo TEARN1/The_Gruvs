@@ -243,7 +243,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             : [...prev, payload]
         );
         setRequestStatus('accepted');
-        supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', payload.id).catch(() => {});
+        (async () => { try { await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', payload.id); } catch {} })();
         try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
       })
       .subscribe();

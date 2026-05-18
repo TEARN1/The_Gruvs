@@ -166,7 +166,7 @@ export const EventContextualAds = ({ event, onNavigate }) => {
         setCampaigns(data);
         // Record impressions
         await Promise.all(data.map(c =>
-          supabase.from('campaign_analytics').insert({ campaign_id: c.id, business_id: c.business_id, event_type: 'impression', metadata: { phase: p, event_id: event.id } }).catch(() => {})
+          supabase.from('campaign_analytics').insert({ campaign_id: c.id, business_id: c.business_id, event_type: 'impression', metadata: { phase: p, event_id: event.id } }).then(() => {}).catch(() => {})
         ));
       }
     } catch {}

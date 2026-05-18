@@ -830,14 +830,15 @@ export const CheckInManager = {
         );
       if (error) throw error;
 
-      // Atomic vibe score increment — no race condition
-      await supabase.rpc('increment_profile_score', { uid: userId, amount: 8 }).catch(() =>
-        // Fallback: read-then-write if RPC not available
-        supabase.from('profiles').select('vibe_score').eq('id', userId).single()
-          .then(({ data }) =>
-            supabase.from('profiles').update({ vibe_score: (data?.vibe_score || 0) + 8 }).eq('id', userId)
-          )
-      );
+      // Atomic vibe score increment — fallback to read-then-write if RPC not deployed yet
+      try {
+        await supabase.rpc('increment_profile_score', { uid: userId, amount: 8 });
+      } catch {
+        try {
+          const { data: prof } = await supabase.from('profiles').select('vibe_score').eq('id', userId).single();
+          await supabase.from('profiles').update({ vibe_score: (prof?.vibe_score || 0) + 8 }).eq('id', userId);
+        } catch { }
+      }
 
       cache.invalidate(`profile:${userId}`);
       cache.invalidate(`profile_stats:${userId}`);
