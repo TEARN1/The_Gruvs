@@ -393,7 +393,6 @@ async function buildDeepContext(userId) {
       supabase.from('events')
         .select('title, category, event_date, city, trending_score')
         .eq('is_cancelled', false)
-        .eq('identity_mode', 'public') // Only public events in trending
         .gte('event_date', today)
         .ilike('city', `%${profile?.city || 'Cape Town'}%`)
         .order('trending_score', { ascending: false })

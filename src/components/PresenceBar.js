@@ -102,7 +102,7 @@ export const PresenceBar = ({
     if (!eventId) return;
     const { data, error } = await supabase
       .from('live_checkins')
-      .select('*, profiles(id, username, avatar_url, interests, lat, lon)')
+      .select('*, profiles(id, username, avatar_url, interests, lat, lon, identity_mode, is_beacon_active)')
       .eq('event_id', eventId)
       .gte('checked_in_at', new Date(Date.now() - 6 * 3600 * 1000).toISOString());
 
@@ -374,7 +374,7 @@ export const PresenceBar = ({
           contentContainerStyle={s.scroll}
         >
           {checkins.map(checkin => {
-            const isGhost = checkin.identity_mode === 'ghost';
+            const isGhost = (checkin.profiles?.identity_mode || checkin.identity_mode) === 'ghost';
             const isMe = checkin.user_id === user?.id;
             const starred = starredIds.has(checkin.user_id);
             const matched = matchIds.has(checkin.user_id);
