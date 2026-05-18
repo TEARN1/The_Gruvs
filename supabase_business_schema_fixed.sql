@@ -956,6 +956,29 @@ CREATE POLICY "Parties update bookings"      ON service_bookings FOR UPDATE USIN
 
 
 -- ============================================================
+--  GIG ACCEPTANCES
+-- ============================================================
+CREATE TABLE IF NOT EXISTS gig_acceptances (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  gig_id      UUID        NOT NULL REFERENCES gig_posts(id)  ON DELETE CASCADE,
+  worker_id   UUID        NOT NULL REFERENCES profiles(id)   ON DELETE CASCADE,
+  status      TEXT        DEFAULT 'applied' CHECK (status IN ('applied','accepted','rejected','completed')),
+  message     TEXT,
+  accepted_at TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (gig_id, worker_id)
+);
+ALTER TABLE gig_acceptances ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Gig acceptances visible to parties" ON gig_acceptances;
+DROP POLICY IF EXISTS "Workers can apply"                  ON gig_acceptances;
+DROP POLICY IF EXISTS "Parties update gig acceptance"      ON gig_acceptances;
+CREATE POLICY "Gig acceptances visible to parties" ON gig_acceptances FOR SELECT
+  USING (auth.uid() = worker_id OR EXISTS (SELECT 1 FROM gig_posts g WHERE g.id = gig_id AND g.user_id = auth.uid()));
+CREATE POLICY "Workers can apply"             ON gig_acceptances FOR INSERT WITH CHECK (auth.uid() = worker_id);
+CREATE POLICY "Parties update gig acceptance" ON gig_acceptances FOR UPDATE
+  USING (auth.uid() = worker_id OR EXISTS (SELECT 1 FROM gig_posts g WHERE g.id = gig_id AND g.user_id = auth.uid()));
+
+-- ============================================================
 --  DISPUTES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS disputes (
@@ -2249,3 +2272,111 @@ CREATE POLICY "event_polls_update" ON event_polls
 DROP POLICY IF EXISTS "event_polls_delete" ON event_polls;
 CREATE POLICY "event_polls_delete" ON event_polls
   FOR DELETE USING (auth.uid() = author_id);
+
+-- ============================================================
+--  PATHS (user journey trails)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS paths (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  title       TEXT,
+  description TEXT,
+  color       TEXT        DEFAULT '#00f2ff',
+  is_public   BOOLEAN     DEFAULT true,
+  star_count  INTEGER     DEFAULT 0,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS paths_user   ON paths(user_id);
+CREATE INDEX IF NOT EXISTS paths_public ON paths(is_public, created_at DESC) WHERE is_public = true;
+ALTER TABLE paths ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public paths readable"  ON paths;
+DROP POLICY IF EXISTS "Users manage own paths" ON paths;
+CREATE POLICY "Public paths readable"  ON paths FOR SELECT USING (is_public = true OR auth.uid() = user_id);
+CREATE POLICY "Users manage own paths" ON paths FOR ALL    USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS path_traces (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  path_id     UUID        NOT NULL REFERENCES paths(id)    ON DELETE CASCADE,
+  user_id     UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  lat         FLOAT       NOT NULL,
+  lon         FLOAT       NOT NULL,
+  event_id    UUID        REFERENCES events(id) ON DELETE SET NULL,
+  recorded_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS path_traces_path ON path_traces(path_id, recorded_at);
+ALTER TABLE path_traces ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Path traces readable"    ON path_traces FOR SELECT USING (true);
+CREATE POLICY "Users manage own traces" ON path_traces FOR ALL    USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS path_stars (
+  path_id    UUID        NOT NULL REFERENCES paths(id)    ON DELETE CASCADE,
+  user_id    UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (path_id, user_id)
+);
+ALTER TABLE path_stars ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Path stars readable"         ON path_stars FOR SELECT USING (true);
+CREATE POLICY "Users manage own path stars" ON path_stars FOR ALL    USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION sync_path_stars()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN UPDATE paths SET star_count = star_count + 1              WHERE id = new.path_id;
+  ELSIF TG_OP = 'DELETE' THEN UPDATE paths SET star_count = greatest(0, star_count-1) WHERE id = old.path_id;
+  END IF; RETURN null;
+END;
+$$;
+DROP TRIGGER IF EXISTS path_stars_sync ON path_stars;
+CREATE TRIGGER path_stars_sync AFTER INSERT OR DELETE ON path_stars
+  FOR EACH ROW EXECUTE FUNCTION sync_path_stars();
+
+CREATE TABLE IF NOT EXISTS path_crossings (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  path_id_a  UUID        NOT NULL REFERENCES paths(id) ON DELETE CASCADE,
+  path_id_b  UUID        NOT NULL REFERENCES paths(id) ON DELETE CASCADE,
+  lat        FLOAT,
+  lon        FLOAT,
+  crossed_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS path_crossings_a ON path_crossings(path_id_a);
+CREATE INDEX IF NOT EXISTS path_crossings_b ON path_crossings(path_id_b);
+ALTER TABLE path_crossings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Path crossings readable" ON path_crossings;
+CREATE POLICY "Path crossings readable" ON path_crossings FOR SELECT USING (true);
+CREATE POLICY "Service insert path_crossings" ON path_crossings FOR INSERT WITH CHECK (true);
+
+-- ============================================================
+--  REPORTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS reports (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  target_type TEXT        NOT NULL CHECK (target_type IN ('event','profile','echo','message')),
+  target_id   UUID        NOT NULL,
+  reason      TEXT        NOT NULL,
+  details     TEXT,
+  status      TEXT        DEFAULT 'pending' CHECK (status IN ('pending','reviewed','resolved','dismissed')),
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS reports_reporter ON reports(reporter_id);
+CREATE INDEX IF NOT EXISTS reports_status   ON reports(status);
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users insert own reports" ON reports;
+DROP POLICY IF EXISTS "Users see own reports"    ON reports;
+CREATE POLICY "Users insert own reports" ON reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+CREATE POLICY "Users see own reports"    ON reports FOR SELECT USING (auth.uid() = reporter_id);
+
+-- ============================================================
+--  APP UPDATES
+-- ============================================================
+CREATE TABLE IF NOT EXISTS app_updates (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  version     TEXT        NOT NULL,
+  title       TEXT        NOT NULL,
+  description TEXT,
+  type        TEXT        NOT NULL DEFAULT 'feature' CHECK (type IN ('feature','fix','improvement','security')),
+  released_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE app_updates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can read app_updates" ON app_updates;
+CREATE POLICY "Anyone can read app_updates" ON app_updates FOR SELECT USING (true);

@@ -397,7 +397,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
           <View style={styles.metaRow}>
             <MetaChip icon="calendar" label={formatDate(event?.event_date)} color={primary} />
-            {!!event?.start_time && <MetaChip icon="clock" label={formatTime(event.start_time)} color={primary} />}
+            {!!(event?.event_time || event?.date_time) && <MetaChip icon="clock" label={event?.event_time ? formatTime(event.event_time) : new Date(event.date_time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} color={primary} />}
             {!!event?.venue_name && (
               <TouchableOpacity onPress={openMaps}>
                 <MetaChip icon="map-pin" label={event.venue_name} color={primary} pressable />
