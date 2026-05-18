@@ -18,7 +18,6 @@ import { CategoryPickerModal } from './CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
-import { fillEvent } from '../services/claudeService';
 
 const MAX_MEDIA = 30;
 const EVENT_TYPES = ['Social', 'Concert', 'Workshop', 'Festival', 'Meetup', 'Party', 'Conference', 'Pop-Up', 'Rave', 'Market', 'Retreat', 'Competition'];
@@ -47,8 +46,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const [scheduleItems, setScheduleItems] = useState([]); // { id, time, title, performer, notes }
   const [scheduleFormVisible, setScheduleFormVisible] = useState(false);
   const [scheduleForm, setScheduleForm] = useState({ time: '', title: '', performer: '', notes: '' });
-  const [aiDescription, setAiDescription] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [error, setError] = useState('');
@@ -235,39 +232,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     }
   };
 
-  const handleAIFill = async () => {
-    if (!aiDescription.trim() || aiLoading) return;
-    setAiLoading(true);
-    setError('');
-    try {
-      const filled = await fillEvent({ roughDescription: aiDescription.trim(), city, userId: user?.id });
-      if (filled.title)          setTitle(filled.title);
-      if (filled.description)    setDescription(filled.description);
-      if (filled.city)           setCity(filled.city);
-      if (filled.address)        setAddress(filled.address);
-      if (filled.age_restriction != null) setAgeRestriction(filled.age_restriction);
-      if (filled.category) {
-        const catKey = filled.category.toLowerCase().replace(/\s+/g, '_');
-        setSelectedCategories([catKey]);
-        setEventType(filled.category);
-      }
-      if (filled.event_time) {
-        const parts = filled.event_time.split(':');
-        if (parts.length >= 2) {
-          setPickedHour(parseInt(parts[0], 10) || 20);
-          setPickedMinute(parseInt(parts[1], 10) || 0);
-          setTimeSet(true);
-        }
-      }
-      if (filled.price_min != null) {/* stored via ticket_url or ignore — not a form field */}
-      setStep(1);
-    } catch {
-      setError('AI fill failed — fill in the details manually.');
-      setStep(1);
-    } finally {
-      setAiLoading(false);
-    }
-  };
 
   const canProceedStep1 = title.trim().length > 2 && description.trim().length > 5 && address.trim().length > 3;
 

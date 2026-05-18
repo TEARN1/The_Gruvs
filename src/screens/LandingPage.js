@@ -48,8 +48,6 @@ import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { SecurityService } from '../services/securityService';
 import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine } from '../services/dataFlow';
 import { RouteEngine } from '../services/routeEngine';
-import { VibePredictor } from '../services/vibePredictor';
-import { NeuralUI } from '../services/neuralUI';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 import { FONT, RADIUS } from '../constants/DesignTokens';
 import { SkeletonCard as SkeletonCardImported } from '../components/SkeletonCard';
@@ -214,7 +212,7 @@ const tm = StyleSheet.create({
 
 // ── Main LandingPage ──────────────────────────────────────────────────────────
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices }) => {
-  const { currentTheme, applyNeuralTheme } = useTheme();
+  const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
   const toast = useToast();
   const { identityMode, modeConfig } = useIdentity();
