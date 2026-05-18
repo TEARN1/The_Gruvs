@@ -28,7 +28,7 @@ export const IntelligenceMonitor = {
 // CACHE  (stale-while-revalidate, prefix invalidation)
 // ─────────────────────────────────────────────────────────────────────────────
 const CACHE = {};
-const CACHE_TTL = 90000; // 90 s fresh window
+const CACHE_TTL = 300000; // 5 min default — serves stale while revalidating
 
 const cache = {
   set(key, value, ttl = CACHE_TTL) {
@@ -48,6 +48,29 @@ const cache = {
     Object.keys(CACHE).forEach(k => { if (k.startsWith(prefix)) delete CACHE[k]; });
   },
   clear() { Object.keys(CACHE).forEach(k => delete CACHE[k]); },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ONLINE STATUS UTILS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Consider a user "online" if last_seen within 5 minutes OR is_online flag is true.
+// This handles stale flags gracefully — if someone closed the app, last_seen decays.
+export const isOnline = (profile) => {
+  if (!profile) return false;
+  if (profile.is_online === true) {
+    // Verify the flag isn't stale: if last_seen > 10 min ago despite flag, treat as offline
+    if (profile.last_seen) {
+      const minsAgo = (Date.now() - new Date(profile.last_seen).getTime()) / 60000;
+      if (minsAgo > 10) return false;
+    }
+    return true;
+  }
+  if (profile.last_seen) {
+    const minsAgo = (Date.now() - new Date(profile.last_seen).getTime()) / 60000;
+    return minsAgo <= 5;
+  }
+  return false;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -308,13 +331,29 @@ export const ScoreEngine = {
 export const FeedManager = {
   PAGE_SIZE: 15,
 
+  // Preload the next page in background so scroll feels instant
+  prefetchPage(opts = {}) {
+    const next = { ...opts, page: (opts.page || 0) + 1 };
+    const key = `feed:${next.mode||'drop'}:${next.category||'all'}:${next.query||''}:${next.page}:${next.userId||'anon'}`;
+    if (!cache.get(key) && !cache.getStale(key)) {
+      setTimeout(() => this.fetchPage(next).catch(() => {}), 800);
+    }
+  },
+
   async fetchPage({
     page = 0, category = 'all', query = '', mode = 'drop',
     userInterests = [], followedIds = [], userLat, userLon, userId = null,
   } = {}) {
     const cacheKey = `feed:${mode}:${category}:${query}:${page}:${userId || 'anon'}`;
-    const cached = cache.get(cacheKey);
-    if (cached) return cached;
+    // Serve stale immediately — caller gets instant paint, fresh data arrives next render
+    const stale = cache.getStale(cacheKey);
+    const fresh = cache.get(cacheKey);
+    if (fresh) return fresh;
+    if (stale) {
+      // Return stale now, revalidate in background
+      this._revalidatePage({ page, category, query, mode, userInterests, followedIds, userLat, userLon, userId }, cacheKey);
+      return stale;
+    }
 
     // Load AI recommendations for this user (non-blocking, best-effort)
     let aiRecommendedIds = new Set();
@@ -333,7 +372,7 @@ export const FeedManager = {
     try {
       let q = supabase
         .from('events')
-        .select('*, profiles(id, username, avatar_url, is_verified, is_online, vibe_score)', { count: 'estimated' })
+        .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)', { count: 'estimated' })
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
 
       if (category !== 'all') q = q.eq('category', category);
@@ -447,7 +486,7 @@ export const FeedManager = {
     try {
       const { data } = await supabase
         .from('events')
-        .select('*, profiles(id, username, avatar_url, is_verified, is_online, vibe_score)')
+        .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)')
         .eq('id', eventId)
         .single();
       if (data) cache.set(cacheKey, data);
@@ -456,6 +495,31 @@ export const FeedManager = {
       console.error('FeedManager.fetchSingle error:', error);
       return null;
     }
+  },
+
+  // Background revalidation — updates cache silently, does NOT throw
+  async _revalidatePage(opts, cacheKey) {
+    try {
+      const { page, category, query, mode, userInterests, followedIds, userLat, userLon, userId } = opts;
+      let q = supabase
+        .from('events')
+        .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)', { count: 'estimated' })
+        .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
+      if (category !== 'all') q = q.eq('category', category);
+      if (query.trim()) {
+        const s = query.trim();
+        q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%,category.ilike.%${s}%,venue_name.ilike.%${s}%,city.ilike.%${s}%`).order('vibe_count', { ascending: false });
+      } else {
+        q = q.order('created_at', { ascending: false });
+      }
+      const { data, count } = await q;
+      if (!data) return;
+      let events = [...data].sort((a, b) =>
+        ScoreEngine.eventScore(b, { userInterests, followedIds, userLat, userLon }) -
+        ScoreEngine.eventScore(a, { userInterests, followedIds, userLat, userLon })
+      );
+      cache.set(cacheKey, { events, total: count || 0, page, hasMore: events.length === this.PAGE_SIZE }, CACHE_TTL);
+    } catch { /* silent */ }
   },
 
   invalidate(eventId) {
@@ -1861,19 +1925,27 @@ export const ReminderManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const PresenceManager = {
   _channel: null,
+  _heartbeatTimer: null,
 
   async goOnline(userId) {
     if (!userId) return;
     try {
       await supabase.from('profiles').update({ is_online: true, last_seen: new Date().toISOString() }).eq('id', userId);
       cache.invalidate(`profile:${userId}`);
-      // Also log session for retention logic
       RetentionManager.logSession(userId).catch(() => { });
+      // Heartbeat: refresh last_seen every 4 minutes so the 5-min window stays accurate
+      if (this._heartbeatTimer) clearInterval(this._heartbeatTimer);
+      this._heartbeatTimer = setInterval(async () => {
+        try {
+          await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', userId);
+        } catch { }
+      }, 4 * 60 * 1000);
     } catch { }
   },
 
   async goOffline(userId) {
     if (!userId) return;
+    if (this._heartbeatTimer) { clearInterval(this._heartbeatTimer); this._heartbeatTimer = null; }
     try {
       await supabase.from('profiles').update({ is_online: false, last_seen: new Date().toISOString() }).eq('id', userId);
       cache.invalidate(`profile:${userId}`);

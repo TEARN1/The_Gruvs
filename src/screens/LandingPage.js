@@ -46,7 +46,7 @@ import { PathMapScreen } from './PathMapScreen';
 import { EventDetailScreen } from './EventDetailScreen';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { SecurityService } from '../services/securityService';
-import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine } from '../services/dataFlow';
+import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine, isOnline as checkOnline } from '../services/dataFlow';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 import { FONT, RADIUS } from '../constants/DesignTokens';
@@ -342,37 +342,44 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     if (isRefreshing) {
       setPage(0);
       setHasMore(true);
-      setLoading(true);
+      // Don't show full spinner on refresh — stale data keeps the screen painted
+      setLoading(events.length === 0);
     } else {
       setLoadingMore(true);
     }
 
     const currentPage = isRefreshing ? 0 : page;
+    const fetchOpts = {
+      page: currentPage,
+      category: selectedCat,
+      query: debouncedQuery,
+      userInterests: profile?.interests || [],
+      mode: feedMode,
+      userId: user?.id || null,
+    };
 
     try {
-      const { events: newEvents, hasMore: moreAvailable } = await FeedManager.fetchPage({
-        page: currentPage,
-        category: selectedCat,
-        query: debouncedQuery,
-        userInterests: profile?.interests || [],
-        mode: feedMode,
-        userId: user?.id || null,
-      });
+      const { events: newEvents, hasMore: moreAvailable } = await FeedManager.fetchPage(fetchOpts);
 
       if (isRefreshing) {
         setEvents(newEvents);
       } else {
-        setEvents(prev => [...prev, ...newEvents]);
+        setEvents(prev => {
+          const existingIds = new Set(prev.map(e => e.id));
+          return [...prev, ...newEvents.filter(e => !existingIds.has(e.id))];
+        });
       }
       setHasMore(moreAvailable);
 
       const counts = {};
-      newEvents.forEach(e => {
-        counts[e.id] = e.vibe_count || 0;
-      });
+      newEvents.forEach(e => { counts[e.id] = e.vibe_count || 0; });
       setVibeCounts(prev => ({ ...prev, ...counts }));
 
-      if (!isRefreshing && newEvents.length > 0) setPage(prev => prev + 1);
+      if (!isRefreshing && newEvents.length > 0) {
+        setPage(prev => prev + 1);
+        // Prefetch next page silently so scroll feels instant
+        FeedManager.prefetchPage({ ...fetchOpts, page: currentPage + 1 });
+      }
     } catch (err) {
       console.error('LandingPage load error:', err);
       toast.show('Failed to load gruvs. Check your connection.', 'error');
@@ -381,7 +388,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       setLoadingMore(false);
       setRefreshing(false);
     }
-  }, [selectedCat, debouncedQuery, mode, page, hasMore, loadingMore, events, feedMode, user]);
+  // Removed `events` and `loadingMore` from deps — they caused infinite re-render loops
+  }, [selectedCat, debouncedQuery, page, hasMore, feedMode, user?.id, profile?.interests]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -824,7 +832,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 activeOpacity={0.85}
               >
                 <Image
-                  source={{ uri: spot.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400' }}
+                  source={spot.image ? { uri: spot.image } : { uri: '' }}
                   style={styles.trendImg}
                 />
                 <View style={[styles.trendOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
@@ -940,7 +948,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             {/* Media */}
             {/* Item 49: aspect-ratio reserves space before image loads (prevents CLS) */}
             <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }, isWeb && { aspectRatio: '16/9' }]}>
-              <MediaViewer media={event.media && event.media.length > 0 ? event.media : [{ url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800', type: 'image' }]} />
+              <MediaViewer media={(() => {
+                // media is JSONB — Supabase may return it as array or as string
+                let m = event.media;
+                if (typeof m === 'string') { try { m = JSON.parse(m); } catch { m = null; } }
+                // Also check media_urls (TEXT[] fallback column)
+                if ((!m || !m.length) && event.media_urls?.length) {
+                  m = event.media_urls.map(u => ({ url: u, type: 'image' }));
+                }
+                return m?.length ? m : null;
+              })()} />
               {/* Item 48: vignette gradient instead of flat scrim */}
               <View style={{
                 ...StyleSheet.absoluteFillObject,
@@ -984,7 +1001,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                         <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>{(event.profiles?.username || 'V')[0].toUpperCase()}</Text>
                       </View>
                     }
-                    {event.profiles?.is_online && <View style={[styles.onlineDot, { backgroundColor: '#10b981' }]} />}
+                    {checkOnline(event.profiles) && <View style={[styles.onlineDot, { backgroundColor: '#10b981' }]} />}
                   </View>
                 </TouchableOpacity>
                 <View style={{ flex: 1 }}>

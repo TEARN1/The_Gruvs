@@ -102,7 +102,7 @@ export const PresenceBar = ({
     if (!eventId) return;
     const { data, error } = await supabase
       .from('live_checkins')
-      .select('*, profiles(id, username, avatar_url, interests, lat, lon, identity_mode, is_beacon_active)')
+      .select('*, profiles(id, username, avatar_url, interests, lat, lon, identity_mode, is_beacon_active, is_online, last_seen)')
       .eq('event_id', eventId)
       .gte('checked_in_at', new Date(Date.now() - 6 * 3600 * 1000).toISOString());
 

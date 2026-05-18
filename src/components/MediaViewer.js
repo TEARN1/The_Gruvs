@@ -45,12 +45,11 @@ export const MediaViewer = ({ media, containerWidth }) => {
 
   if (!media || media.length === 0) {
     return (
-      <View style={styles.container}>
-        <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800' }}
-          style={styles.media}
-          resizeMode="cover"
-        />
+      <View style={[styles.container, { backgroundColor: '#111a1c', alignItems: 'center', justifyContent: 'center' }]}>
+        <View style={{ alignItems: 'center', opacity: 0.3 }}>
+          <Text style={{ fontSize: 36 }}>🎵</Text>
+          <Text style={{ color: '#fff', fontSize: 11, marginTop: 4 }}>No photo added</Text>
+        </View>
       </View>
     );
   }

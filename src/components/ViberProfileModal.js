@@ -15,7 +15,7 @@ import { supabase } from '../services/supabase';
 import { NotificationService } from '../services/notificationService';
 import { DirectMessageModal } from './DirectMessageModal';
 import { EditEventModal } from './EditEventModal';
-import { UserManager, PresenceManager, AuraService } from '../services/dataFlow';
+import { UserManager, PresenceManager, AuraService, isOnline as checkOnline } from '../services/dataFlow';
 import { useToast } from './ToastNotification';
 import { ReportModal } from './ReportModal';
 
@@ -168,10 +168,10 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       if (profileRes.status === 'fulfilled' && profileRes.value.data) {
         const p = profileRes.value.data;
         setProfile(p);
-        setIsOnline(p.is_online ?? false);
+        setIsOnline(checkOnline(p));
       } else if (propUser) {
         setProfile(propUser);
-        setIsOnline(propUser.is_online ?? false);
+        setIsOnline(checkOnline(propUser));
       }
       if (eventsRes.status === 'fulfilled') setEvents(eventsRes.value.data || []);
       if (followersRes.status === 'fulfilled') setFollowerCount(followersRes.value.count || 0);
