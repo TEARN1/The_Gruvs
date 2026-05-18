@@ -313,6 +313,7 @@ DROP POLICY IF EXISTS "Authenticated users insert events" ON events;
 DROP POLICY IF EXISTS "Users update own events"           ON events;
 DROP POLICY IF EXISTS "Users delete own events"           ON events;
 CREATE POLICY "Events readable by all"            ON events FOR SELECT  USING (true);
+DROP POLICY IF EXISTS "Authenticated users insert events" ON events;
 CREATE POLICY "Authenticated users insert events" ON events FOR INSERT  WITH CHECK (auth.uid() = author_id OR auth.uid() = user_id);
 CREATE POLICY "Users update own events"           ON events FOR UPDATE  USING (auth.uid() = author_id OR auth.uid() = user_id);
 CREATE POLICY "Users delete own events"           ON events FOR DELETE  USING (auth.uid() = author_id OR auth.uid() = user_id);
@@ -641,6 +642,7 @@ ALTER TABLE check_ins ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Check-ins readable"         ON check_ins;
 DROP POLICY IF EXISTS "Users manage own check-ins" ON check_ins;
 CREATE POLICY "Check-ins readable"         ON check_ins FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users manage own check-ins" ON check_ins;
 CREATE POLICY "Users manage own check-ins" ON check_ins FOR ALL    USING (auth.uid() = user_id);
 
 CREATE OR REPLACE FUNCTION sync_check_in_counts()
@@ -973,6 +975,7 @@ ALTER TABLE service_bookings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Bookings readable by parties" ON service_bookings;
 DROP POLICY IF EXISTS "Clients create bookings"      ON service_bookings;
 DROP POLICY IF EXISTS "Parties update bookings"      ON service_bookings;
+DROP POLICY IF EXISTS "Bookings readable by parties" ON service_bookings;
 CREATE POLICY "Bookings readable by parties" ON service_bookings FOR SELECT USING (auth.uid() = client_id OR auth.uid() = provider_id);
 CREATE POLICY "Clients create bookings"      ON service_bookings FOR INSERT WITH CHECK (auth.uid() = client_id);
 CREATE POLICY "Parties update bookings"      ON service_bookings FOR UPDATE USING (auth.uid() = client_id OR auth.uid() = provider_id);
@@ -995,9 +998,11 @@ ALTER TABLE gig_acceptances ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Gig acceptances visible to parties" ON gig_acceptances;
 DROP POLICY IF EXISTS "Workers can apply"                  ON gig_acceptances;
 DROP POLICY IF EXISTS "Parties update gig acceptance"      ON gig_acceptances;
+DROP POLICY IF EXISTS "Gig acceptances visible to parties" ON gig_acceptances;
 CREATE POLICY "Gig acceptances visible to parties" ON gig_acceptances FOR SELECT
   USING (auth.uid() = worker_id OR EXISTS (SELECT 1 FROM gig_posts g WHERE g.id = gig_id AND g.user_id = auth.uid()));
 CREATE POLICY "Workers can apply"             ON gig_acceptances FOR INSERT WITH CHECK (auth.uid() = worker_id);
+DROP POLICY IF EXISTS "Parties update gig acceptance" ON gig_acceptances;
 CREATE POLICY "Parties update gig acceptance" ON gig_acceptances FOR UPDATE
   USING (auth.uid() = worker_id OR EXISTS (SELECT 1 FROM gig_posts g WHERE g.id = gig_id AND g.user_id = auth.uid()));
 
@@ -1024,6 +1029,7 @@ CREATE INDEX IF NOT EXISTS disputes_status_idx  ON disputes(status);
 ALTER TABLE disputes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Disputes readable by parties" ON disputes;
 DROP POLICY IF EXISTS "Users raise own disputes"     ON disputes;
+DROP POLICY IF EXISTS "Disputes readable by parties" ON disputes;
 CREATE POLICY "Disputes readable by parties" ON disputes FOR SELECT USING (auth.uid() = raised_by);
 CREATE POLICY "Users raise own disputes"     ON disputes FOR INSERT WITH CHECK (auth.uid() = raised_by);
 
@@ -1097,6 +1103,7 @@ ALTER TABLE business_profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "business_profiles_owner"       ON business_profiles;
 DROP POLICY IF EXISTS "business_profiles_public_read" ON business_profiles;
 CREATE POLICY "business_profiles_owner"       ON business_profiles FOR ALL    USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "business_profiles_public_read" ON business_profiles;
 CREATE POLICY "business_profiles_public_read" ON business_profiles FOR SELECT USING (true);
 
 
@@ -1226,6 +1233,7 @@ ALTER TABLE campaign_analytics ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "analytics_insert"      ON campaign_analytics;
 DROP POLICY IF EXISTS "analytics_read_owner"  ON campaign_analytics;
 CREATE POLICY "analytics_insert"     ON campaign_analytics FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "analytics_read_owner" ON campaign_analytics;
 CREATE POLICY "analytics_read_owner" ON campaign_analytics FOR SELECT
   USING (business_id IN (SELECT id FROM business_profiles WHERE user_id = auth.uid()));
 
@@ -1310,6 +1318,7 @@ ALTER TABLE contextual_ads ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "contextual_ads_read"  ON contextual_ads;
 DROP POLICY IF EXISTS "contextual_ads_write" ON contextual_ads;
 CREATE POLICY "contextual_ads_read"  ON contextual_ads FOR SELECT USING (active = true);
+DROP POLICY IF EXISTS "contextual_ads_write" ON contextual_ads;
 CREATE POLICY "contextual_ads_write" ON contextual_ads FOR ALL
   USING (campaign_id IN (
     SELECT id FROM ad_campaigns WHERE business_id IN (
@@ -1529,6 +1538,7 @@ ALTER TABLE follows ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Follows readable"         ON follows;
 DROP POLICY IF EXISTS "Users manage own follows" ON follows;
 CREATE POLICY "Follows readable"         ON follows FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users manage own follows" ON follows;
 CREATE POLICY "Users manage own follows" ON follows FOR ALL    USING (auth.uid() = follower_id);
 
 CREATE OR REPLACE FUNCTION sync_follows_counts()
@@ -1601,6 +1611,7 @@ DROP POLICY IF EXISTS "Message participants can read" ON messages;
 DROP POLICY IF EXISTS "Users send own messages"           ON messages;
 DROP POLICY IF EXISTS "Users update own messages"         ON messages;
 DROP POLICY IF EXISTS "Users delete own messages"         ON messages;
+DROP POLICY IF EXISTS "Message participants can read" ON messages;
 CREATE POLICY "Message participants can read" ON messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = recipient_id);
 CREATE POLICY "Users send own messages"           ON messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
 CREATE POLICY "Users update own messages"         ON messages FOR UPDATE USING (auth.uid() = sender_id OR auth.uid() = recipient_id);
@@ -1675,6 +1686,7 @@ CREATE INDEX IF NOT EXISTS profile_views_profile ON profile_views(profile_id, vi
 ALTER TABLE profile_views ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Profile views readable by owner" ON profile_views;
 DROP POLICY IF EXISTS "Anyone can record view"          ON profile_views;
+DROP POLICY IF EXISTS "Profile views readable by owner" ON profile_views;
 CREATE POLICY "Profile views readable by owner" ON profile_views FOR SELECT USING (auth.uid() = profile_id);
 CREATE POLICY "Anyone can record view"          ON profile_views FOR INSERT WITH CHECK (auth.uid() = viewer_id);
 
@@ -1743,10 +1755,12 @@ CREATE TABLE IF NOT EXISTS ai_interactions (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE ai_interactions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users read own ai_interactions" ON ai_interactions;
-DROP POLICY IF EXISTS "Users insert ai_interactions"  ON ai_interactions;
-CREATE POLICY "Users read own ai_interactions" ON ai_interactions FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users insert ai_interactions"  ON ai_interactions FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+DROP POLICY IF EXISTS "Users read own ai_interactions"   ON ai_interactions;
+DROP POLICY IF EXISTS "Users insert ai_interactions"    ON ai_interactions;
+DROP POLICY IF EXISTS "Users update own ai_interactions" ON ai_interactions;
+CREATE POLICY "Users read own ai_interactions"   ON ai_interactions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users insert ai_interactions"     ON ai_interactions FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+DROP POLICY IF EXISTS "Users update own ai_interactions" ON ai_interactions;
 CREATE POLICY "Users update own ai_interactions" ON ai_interactions FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE TABLE IF NOT EXISTS ai_user_memory (
@@ -1800,6 +1814,7 @@ CREATE TABLE IF NOT EXISTS security_logs (
 ALTER TABLE security_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admins read security_logs" ON security_logs;
 CREATE POLICY "Admins read security_logs"  ON security_logs FOR SELECT USING (auth.uid() IN (SELECT id FROM profiles WHERE role = 'admin'));
+DROP POLICY IF EXISTS "Service insert security_logs" ON security_logs;
 CREATE POLICY "Service insert security_logs" ON security_logs FOR INSERT WITH CHECK (true);
 
 -- ============================================================
@@ -1856,6 +1871,7 @@ CREATE TABLE IF NOT EXISTS global_economy_params (
   updated_at    TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE global_economy_params ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "global_economy_params readable" ON global_economy_params;
 CREATE POLICY "global_economy_params readable" ON global_economy_params FOR SELECT USING (true);
 -- Seed default row if none exists
 INSERT INTO global_economy_params (vibe_tax_rate) SELECT 0.05 WHERE NOT EXISTS (SELECT 1 FROM global_economy_params);
@@ -2317,6 +2333,7 @@ ALTER TABLE paths ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public paths readable"  ON paths;
 DROP POLICY IF EXISTS "Users manage own paths" ON paths;
 CREATE POLICY "Public paths readable"  ON paths FOR SELECT USING (is_public = true OR auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users manage own paths" ON paths;
 CREATE POLICY "Users manage own paths" ON paths FOR ALL    USING (auth.uid() = user_id);
 
 CREATE TABLE IF NOT EXISTS path_traces (
@@ -2331,6 +2348,7 @@ CREATE TABLE IF NOT EXISTS path_traces (
 CREATE INDEX IF NOT EXISTS path_traces_path ON path_traces(path_id, recorded_at);
 ALTER TABLE path_traces ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Path traces readable"    ON path_traces FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users manage own traces" ON path_traces;
 CREATE POLICY "Users manage own traces" ON path_traces FOR ALL    USING (auth.uid() = user_id);
 
 CREATE TABLE IF NOT EXISTS path_stars (
@@ -2341,6 +2359,7 @@ CREATE TABLE IF NOT EXISTS path_stars (
 );
 ALTER TABLE path_stars ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Path stars readable"         ON path_stars FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users manage own path stars" ON path_stars;
 CREATE POLICY "Users manage own path stars" ON path_stars FOR ALL    USING (auth.uid() = user_id);
 
 CREATE OR REPLACE FUNCTION sync_path_stars()
@@ -2368,6 +2387,7 @@ CREATE INDEX IF NOT EXISTS path_crossings_b ON path_crossings(path_id_b);
 ALTER TABLE path_crossings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Path crossings readable" ON path_crossings;
 CREATE POLICY "Path crossings readable" ON path_crossings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Service insert path_crossings" ON path_crossings;
 CREATE POLICY "Service insert path_crossings" ON path_crossings FOR INSERT WITH CHECK (true);
 
 -- ============================================================
@@ -2388,6 +2408,7 @@ CREATE INDEX IF NOT EXISTS reports_status   ON reports(status);
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users insert own reports" ON reports;
 DROP POLICY IF EXISTS "Users see own reports"    ON reports;
+DROP POLICY IF EXISTS "Users insert own reports" ON reports;
 CREATE POLICY "Users insert own reports" ON reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
 CREATE POLICY "Users see own reports"    ON reports FOR SELECT USING (auth.uid() = reporter_id);
 
@@ -2432,6 +2453,7 @@ ALTER TABLE dm_rooms ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "DM room participants can read"   ON dm_rooms;
 DROP POLICY IF EXISTS "DM room participants can update" ON dm_rooms;
 CREATE POLICY "DM room participants can read"   ON dm_rooms FOR SELECT USING (auth.uid() = participant_1 OR auth.uid() = participant_2);
+DROP POLICY IF EXISTS "DM room participants can update" ON dm_rooms;
 CREATE POLICY "DM room participants can update" ON dm_rooms FOR ALL    USING (auth.uid() = participant_1 OR auth.uid() = participant_2);
 DROP TRIGGER IF EXISTS dm_rooms_touch ON dm_rooms;
 CREATE TRIGGER dm_rooms_touch BEFORE UPDATE ON dm_rooms FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
@@ -2456,4 +2478,5 @@ ALTER TABLE event_rsvps ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "RSVPs readable"         ON event_rsvps;
 DROP POLICY IF EXISTS "Users manage own RSVPs" ON event_rsvps;
 CREATE POLICY "RSVPs readable"         ON event_rsvps FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users manage own RSVPs" ON event_rsvps;
 CREATE POLICY "Users manage own RSVPs" ON event_rsvps FOR ALL    USING (auth.uid() = user_id);
