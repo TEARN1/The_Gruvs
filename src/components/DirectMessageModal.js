@@ -13,7 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
-import { MessageManager, BlockManager } from '../services/dataFlow';
+import { MessageManager, BlockManager, isOnline as checkOnline } from '../services/dataFlow';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -690,7 +690,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
               <Text style={[dm.headerName, { color: textColor }]}>@{recipient?.username || 'Viber'}</Text>
               {isTyping
                 ? <Text style={[dm.headerSub, { color: primary }]}>typing...</Text>
-                : recipient?.is_online
+                : checkOnline(recipient)
                   ? <Text style={[dm.headerSub, { color: '#10b981' }]}>● Online</Text>
                   : <Text style={[dm.headerSub, { color: muted }]}>Offline</Text>
               }

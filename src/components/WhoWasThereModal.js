@@ -6,6 +6,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
+import { isOnline as checkOnline } from '../services/dataFlow';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
@@ -60,7 +61,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
           venue_name,
           event_id,
           checked_in_at,
-          profiles:user_id (id, username, avatar_url, bio, vibe_score, is_online, is_verified)
+          profiles:user_id (id, username, avatar_url, bio, vibe_score, is_online, last_seen, is_verified)
         `)
         .gte('checked_in_at', since)
         .neq('user_id', user.id)
@@ -218,7 +219,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
               }
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[s.row, { backgroundColor: surface, borderColor: item.is_online ? `${primary}30` : 'rgba(255,255,255,0.06)' }]}
+                  style={[s.row, { backgroundColor: surface, borderColor: checkOnline(item) ? `${primary}30` : 'rgba(255,255,255,0.06)' }]}
                   onPress={() => { setSelectedViber(item); setProfileVisible(true); }}
                   activeOpacity={0.82}
                 >
@@ -231,7 +232,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
                           </Text>
                         </View>
                     }
-                    {item.is_online && <View style={[s.onlineDot, { borderColor: surface }]} />}
+                    {checkOnline(item) && <View style={[s.onlineDot, { borderColor: surface }]} />}
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

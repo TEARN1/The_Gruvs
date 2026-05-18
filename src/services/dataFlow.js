@@ -1124,12 +1124,7 @@ export const DiscoveryManager = {
   },
 
   async findNearbyVibers(userId, radius = 10) {
-    if (!isSupabaseEnabled) {
-      return [
-        { id: 'v1', username: 'local_viber', vibe_score: 300, avatar_url: 'https://i.pravatar.cc/150?u=v1', dist_km: 1.2 },
-        { id: 'v2', username: 'gruv_neighbor', vibe_score: 150, avatar_url: 'https://i.pravatar.cc/150?u=v2', dist_km: 2.5 },
-      ];
-    }
+    if (!isSupabaseEnabled) return [];
     const cacheKey = `nearby_vibers:${userId}:${radius}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;

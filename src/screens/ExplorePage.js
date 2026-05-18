@@ -12,7 +12,7 @@ import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
-import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager } from '../services/dataFlow';
+import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager, isOnline as checkOnline } from '../services/dataFlow';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { LocationService } from '../services/locationService';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
@@ -49,8 +49,9 @@ const HeroCard = ({ event, primary, onPress }) => {
   }, []);
 
   const getMediaUrl = (item) => {
-    if (!item) return 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=85';
+    if (!item) return null;
     const url = typeof item === 'string' ? item : item.url;
+    if (!url) return null;
     return url.includes('?') ? `${url}&w=1200&q=85` : `${url}?w=1200&q=85`;
   };
 
@@ -242,7 +243,7 @@ const NearbyVibers = ({ vibers, primary, textColor, onPress }) => {
                     </View>
                 }
               </View>
-              {v.is_online && <View style={[nv.dot, { backgroundColor: '#10b981', borderColor: '#0d1112', borderWidth: 2 }]} />}
+              {checkOnline(v) && <View style={[nv.dot, { backgroundColor: '#10b981', borderColor: '#0d1112', borderWidth: 2 }]} />}
             </View>
             <View style={{ marginTop: 4, alignItems: 'center' }}>
               <Text style={[nv.name, { color: textColor, fontWeight: '800' }]} numberOfLines={1}>@{v.username}</Text>
@@ -272,8 +273,7 @@ const nv = StyleSheet.create({
 // ── Compact event tile for horizontal scrolls ─────────────────────────────────
 const EventTile = ({ event, primary, textColor, muted, onPress }) => {
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
-  const thumb = event.media?.[0]?.url || event.media?.[0] ||
-    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400';
+  const thumb = event.media?.[0]?.url || (typeof event.media?.[0] === 'string' ? event.media[0] : null) || null;
     const isWeb = Platform.OS === 'web';
     return (
       // Items 69-70: accessible label + aspect-ratio on web prevents CLS
@@ -437,7 +437,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           followedIds = new Set((follows || []).map(f => f.following_id));
 
           const safeNearby = nearby || [];
-          const onlineFollowers = safeNearby.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
+          const onlineFollowers = safeNearby.filter(v => followedIds.has(v.id || v.profile_id) && checkOnline(v));
           setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : safeNearby);
 
           // Advanced matching logic
@@ -458,7 +458,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         followedIds = new Set((follows || []).map(f => f.following_id));
 
         const safeNearby2 = nearby || [];
-        const onlineFollowers = safeNearby2.filter(v => followedIds.has(v.id || v.profile_id) && v.is_online);
+        const onlineFollowers = safeNearby2.filter(v => followedIds.has(v.id || v.profile_id) && checkOnline(v));
         setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : safeNearby2);
         
         // Try to fetch events near their last known location
@@ -1080,7 +1080,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 const SearchResultCard = ({ ev, primary, textColor, muted, catColor, onPress }) => (
   <TouchableOpacity style={[src.wrap, { borderColor: `${catColor}25` }]} onPress={onPress} activeOpacity={0.8}>
     <Image
-      source={{ uri: ev.media?.[0]?.url || ev.media?.[0] || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=200' }}
+      source={ev.media?.[0]?.url || (typeof ev.media?.[0] === 'string' ? ev.media[0] : null) ? { uri: ev.media?.[0]?.url || ev.media?.[0] } : {}}
       style={src.thumb}
     />
     <View style={{ flex: 1 }}>
@@ -1110,7 +1110,7 @@ const src = StyleSheet.create({
 // ── Trend tile ────────────────────────────────────────────────────────────────
 const TrendTile = ({ spot, rank, primary, onPress }) => (
   <TouchableOpacity onPress={onPress} style={[tt.wrap, { backgroundColor: rank < 3 ? `${primary}10` : 'rgba(255,255,255,0.04)' }]} activeOpacity={0.85}>
-    <Image source={{ uri: spot.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=200' }} style={tt.img} />
+    {spot.image ? <Image source={{ uri: spot.image }} style={tt.img} /> : <View style={[tt.img, { backgroundColor: '#111a1c' }]} />}
     <View style={[tt.rankBadge, { backgroundColor: rank < 3 ? primary : 'rgba(255,255,255,0.15)' }]}>
       <Text style={[tt.rankText, { color: rank < 3 ? '#000' : '#fff' }]}>#{rank + 1}</Text>
     </View>

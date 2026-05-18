@@ -13,7 +13,7 @@ import { FadeInView } from '../components/FadeInView';
 import { THEMES, GENDERS } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
-import { DiscoveryManager, UserManager, AnalyticsManager, BehavioralEngine } from '../services/dataFlow';
+import { DiscoveryManager, UserManager, AnalyticsManager, BehavioralEngine, isOnline as checkOnline } from '../services/dataFlow';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { LocationService } from '../services/locationService';
 import * as ImagePicker from 'expo-image-picker';
@@ -198,7 +198,7 @@ const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage }) 
         <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{pAvatarInitials(person.username)}</Text>
       </View>
     }
-    {person.is_online && <View style={pcard.onlineDot} />}
+    {checkOnline(person) && <View style={pcard.onlineDot} />}
     <View style={{ flex: 1, marginLeft: 12 }}>
       <Text style={[pcard.name, { color: textColor }]}>@{person.username}</Text>
       <Text style={[pcard.meta, { color: muted }]}>{person.distance_km?.toFixed(1) || '?'} km away</Text>

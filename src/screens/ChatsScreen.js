@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { MessageManager } from '../services/dataFlow';
+import { MessageManager, isOnline as checkOnline } from '../services/dataFlow';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 
 const fmtAge = (ts) => {
@@ -57,7 +57,7 @@ const ConvoRow = ({ item, userId, primary, textColor, muted, surface, onPress })
               </Text>
             </View>
         }
-        {partner?.is_online && (
+        {checkOnline(partner) && (
           <View style={[cs.onlineDot, { borderColor: surface }]} />
         )}
       </View>

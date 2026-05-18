@@ -12,7 +12,7 @@ import { useIdentity } from '../context/IdentityContext';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { useToast } from '../components/ToastNotification';
-import { DiscoveryManager } from '../services/dataFlow';
+import { DiscoveryManager, isOnline as checkOnline } from '../services/dataFlow';
 
 const FILTERS = [
   { key: 'all',    label: 'All Vibers', icon: 'users' },
@@ -36,7 +36,7 @@ function ViberRow({ viber, primary, textColor, muted, bg, onPress, onMessage, is
   const rank = getRank(viber.vibe_score || 0);
   return (
     <TouchableOpacity
-      style={[s.row, { backgroundColor: bg, borderColor: viber.is_online ? `${primary}30` : 'rgba(255,255,255,0.06)' }]}
+      style={[s.row, { backgroundColor: bg, borderColor: checkOnline(viber) ? `${primary}30` : 'rgba(255,255,255,0.06)' }]}
       onPress={() => onPress(viber)}
       activeOpacity={0.82}
     >
@@ -48,7 +48,7 @@ function ViberRow({ viber, primary, textColor, muted, bg, onPress, onMessage, is
               <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>{(viber.username || 'V')[0].toUpperCase()}</Text>
             </View>
         }
-        {viber.is_online && (
+        {checkOnline(viber) && (
           <View style={[s.onlineDot, { borderColor: bg }]} />
         )}
       </View>
@@ -125,13 +125,14 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const fetchAll = useCallback(async (q = '') => {
     let qb = supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url, bio, is_online, is_verified, vibe_score, interests')
+      .select('id, username, display_name, avatar_url, bio, is_online, last_seen, is_verified, vibe_score, interests')
       .order('vibe_score', { ascending: false })
       .limit(100);
 
     if (user?.id) qb = qb.neq('id', user.id);
     if (q.trim()) qb = qb.or(`username.ilike.%${q.trim()}%,display_name.ilike.%${q.trim()}%`);
-    if (filter === 'online') qb = qb.eq('is_online', true);
+    // 'online' filter: pull last_seen within 5min instead of relying on stale is_online flag
+    if (filter === 'online') qb = qb.gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString());
 
     const { data, error } = await qb;
     if (error) throw new Error(error.message);
@@ -157,7 +158,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
         .filter(v => v !== null);
 
       // Sort online users to the top
-      setVibers(filteredResults.sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0)));
+      setVibers(filteredResults.sort((a, b) => (checkOnline(b) ? 1 : 0) - (checkOnline(a) ? 1 : 0)));
     } catch (e) {
       setFetchError(e.message || 'Could not load Vibers');
       setVibers([]);
@@ -201,7 +202,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
         </View>
         <View style={[s.onlineBadge, { backgroundColor: '#10b98118', borderColor: '#10b98135' }]}>
           <View style={s.onlinePip} />
-          <Text style={s.onlineBadgeText}>{vibers.filter(v => v.is_online).length} online</Text>
+          <Text style={s.onlineBadgeText}>{vibers.filter(v => checkOnline(v)).length} online</Text>
         </View>
       </View>
 
@@ -267,8 +268,8 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
             <Text style={[s.countHeader, { color: muted }]}>
               {vibers.length} Viber{vibers.length !== 1 ? 's' : ''}
               {filter === 'online' ? ' online now' : filter === 'nearby' ? ' near you' : ' in the kingdom'}
-              {vibers.filter(v => v.is_online).length > 0 && filter !== 'online'
-                ? ` · ${vibers.filter(v => v.is_online).length} online`
+              {vibers.filter(v => checkOnline(v)).length > 0 && filter !== 'online'
+                ? ` · ${vibers.filter(v => checkOnline(v)).length} online`
                 : ''}
             </Text>
           ) : null}
