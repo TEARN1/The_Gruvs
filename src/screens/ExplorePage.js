@@ -400,6 +400,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const loadAll = async () => {
     setLoading(true);
+    try {
     // Removed demo mode fallback. Real data required.
     const [trending, happening, counts] = await Promise.all([
       TrendingManager.fetch(8),
@@ -427,9 +428,6 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       happening[0] || null
     );
     setFeaturedEvent(featured || null);
-
-    setLoading(false);
-    setRefreshing(false);
 
     // ── Trending hashtags: mine from recent event captions/reels ─────────────
     try {
@@ -516,6 +514,10 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       // Location failed
     } finally {
       setLocationLoading(false);
+    }
+    } catch { /* loadAll outer catch — prevents spinner getting stuck */ } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -823,7 +825,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <SectionHeader
                 title={activeMoods.size > 0 || activeCat ? `${activeMoods.size > 0 ? MOODS.filter(m => activeMoods.has(m.key)).map(m => m.label).join(' & ') : (CATEGORY_CONFIG[activeCat]?.label || '')} Gruvs` : 'Happening Now'}
                 actionLabel="See all"
-                onAction={() => { setActiveMood(null); setActiveCat(null); }}
+                onAction={() => { setActiveMoods(new Set()); setActiveCat(null); }}
                 textColor={textColor}
                 primary={primary}
               />
@@ -976,7 +978,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             <View style={{ marginBottom: 20 }}>
               <SectionHeader title="Browse by Category" textColor={textColor} primary={primary} />
               <CategoryGrid
-                onSelect={(key) => { setActiveCat(key); setActiveMood(null); }}
+                onSelect={(key) => { setActiveCat(key); setActiveMoods(new Set()); }}
                 primary={primary}
                 textColor={textColor}
                 muted={muted}
