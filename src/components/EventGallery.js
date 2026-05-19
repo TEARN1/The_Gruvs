@@ -3,6 +3,8 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   FlatList, Modal, Dimensions, ActivityIndicator, Platform,
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
+import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +26,7 @@ export const EventGallery = ({ eventId }) => {
   const [lightboxItem, setLightboxItem] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [tableError, setTableError] = useState(false);
+  const [activeVideoId, setActiveVideoId] = useState(null);
 
   const primary = currentTheme?.primary || '#00f2ff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
@@ -77,6 +80,9 @@ export const EventGallery = ({ eventId }) => {
     }
   };
 
+  const isVideoItem = (item) =>
+    item.media_type === 'video' || /\.(mp4|mov|webm|avi|m4v)(\?|$)/i.test(item.url || '');
+
   const handleUpload = async () => {
     if (!user) {
       toast.show('Sign in to add photos to the gallery!', 'info');
@@ -90,22 +96,24 @@ export const EventGallery = ({ eventId }) => {
       }
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
       quality: 0.8,
+      videoMaxDuration: 60,
     });
     if (result.canceled) return;
     const asset = result.assets[0];
+    const isVideo = asset.type === 'video';
     setUploading(true);
     try {
-      const ext = (asset.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
+      const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
       const fileName = `gallery/${eventId}/${user.id}_${Date.now()}.${ext}`;
-      const publicUrl = await uploadToStorage(asset.uri, 'event-media', fileName);
+      const publicUrl = await uploadToStorage(asset.uri, 'event-media', fileName, { mimeType: asset.mimeType });
       const { error: dbError } = await supabase.from('event_gallery').insert({
         event_id: eventId,
         user_id: user.id,
         url: publicUrl,
-        media_type: 'image',
+        media_type: isVideo ? 'video' : 'image',
       });
       // If table doesn't exist, the photo still uploaded to storage — inform user
       if (dbError) {
@@ -152,7 +160,7 @@ export const EventGallery = ({ eventId }) => {
             <View style={styles.header}>
               <View>
                 <Text style={[styles.title, { color: textColor }]}>Community Gallery</Text>
-                <Text style={[styles.subtitle, { color: muted }]}>{gallery.length} photo{gallery.length !== 1 ? 's' : ''}</Text>
+                <Text style={[styles.subtitle, { color: muted }]}>{gallery.length + hostMedia.length} item{(gallery.length + hostMedia.length) !== 1 ? 's' : ''}</Text>
               </View>
               <TouchableOpacity onPress={() => setIsModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={[styles.close, { color: textColor }]}>✕</Text>
@@ -166,24 +174,45 @@ export const EventGallery = ({ eventId }) => {
               numColumns={3}
               columnWrapperStyle={styles.row}
               contentContainerStyle={styles.grid}
-              renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => setLightboxItem(item)} style={{ position: 'relative' }}>
-                  <Image
-                    source={{ uri: item.url }}
-                    style={styles.thumb}
-                  />
-                  {item.is_host && (
-                    <View style={{ position: 'absolute', top: 3, left: 3, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6 }}>
-                      <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>HOST</Text>
-                    </View>
-                  )}
-                  {item.profiles?.username && (
-                    <Text style={[styles.thumbUser, { color: muted }]} numberOfLines={1}>
-                      @{item.profiles.username}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              )}
+              renderItem={({ item }) => {
+                const isVid = isVideoItem(item);
+                const isPlaying = activeVideoId === item.id;
+                return (
+                  <TouchableOpacity
+                    onPress={() => isVid ? setActiveVideoId(isPlaying ? null : item.id) : setLightboxItem(item)}
+                    style={{ position: 'relative' }}
+                    activeOpacity={0.85}
+                  >
+                    {isVid ? (
+                      <Video
+                        source={{ uri: item.url }}
+                        style={styles.thumb}
+                        resizeMode={ResizeMode.COVER}
+                        shouldPlay={isPlaying}
+                        isLooping
+                        isMuted={!isPlaying}
+                      />
+                    ) : (
+                      <Image source={{ uri: item.url }} style={styles.thumb} />
+                    )}
+                    {isVid && !isPlaying && (
+                      <View style={styles.playOverlay}>
+                        <Feather name="play-circle" size={24} color="rgba(255,255,255,0.9)" />
+                      </View>
+                    )}
+                    {item.is_host && (
+                      <View style={styles.hostBadge}>
+                        <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>HOST</Text>
+                      </View>
+                    )}
+                    {item.profiles?.username && (
+                      <Text style={[styles.thumbUser, { color: muted }]} numberOfLines={1}>
+                        @{item.profiles.username}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
               ListEmptyComponent={
                 <View style={styles.empty}>
                   <Text style={{ fontSize: 40 }}>📷</Text>
@@ -215,7 +244,18 @@ export const EventGallery = ({ eventId }) => {
               activeOpacity={1}
               onPress={() => setLightboxItem(null)}
             >
-              <Image source={{ uri: lightboxItem.url }} style={styles.lightboxImage} resizeMode="contain" />
+              {isVideoItem(lightboxItem) ? (
+                <Video
+                  source={{ uri: lightboxItem.url }}
+                  style={styles.lightboxImage}
+                  resizeMode={ResizeMode.CONTAIN}
+                  shouldPlay
+                  isLooping
+                  useNativeControls
+                />
+              ) : (
+                <Image source={{ uri: lightboxItem.url }} style={styles.lightboxImage} resizeMode="contain" />
+              )}
               <View style={styles.lightboxMeta}>
                 <Text style={styles.lightboxUser}>
                   @{lightboxItem.profiles?.username || 'Viber'}
@@ -278,6 +318,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
   },
   thumbUser: { fontSize: 9, marginTop: 3, textAlign: 'center', width: THUMB_SIZE },
+  playOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 8 },
+  hostBadge: { position: 'absolute', top: 3, left: 3, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6 },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyText: { fontSize: 13, marginTop: 6 },
   uploadBtn: {

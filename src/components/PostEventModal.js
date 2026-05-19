@@ -148,6 +148,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       setError('Title, description and address are required.');
       return;
     }
+    if (!pickedDate) {
+      setError('Event date is required.');
+      return;
+    }
     if (!user?.id) { setError('Sign in required to post a Gruv.'); return; }
 
     setLoading(true);
@@ -170,9 +174,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       address: address.trim(),
       lat,
       lon,
-      coords: lat && lon
-        ? `POINT(${lon} ${lat})`
-        : null,
+      coords: lat && lon ? `POINT(${lon} ${lat})` : null,
+      is_deleted: false,
+      is_published: true,
+      is_cancelled: false,
     };
     if (city.trim()) payload.city = city.trim();
     if (pickedDate) {
