@@ -8,7 +8,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback,
   Image, Dimensions, Platform, TextInput, Modal, ScrollView, KeyboardAvoidingView,
-  Animated, ActivityIndicator, Share, PanResponder, Alert,
+  Animated, ActivityIndicator, Share, PanResponder, Alert, RefreshControl,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -484,6 +484,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
   const [reels, setReels] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [commentTarget, setCommentTarget] = useState(null);
   const [commentsVisible, setCommentsVisible] = useState(false);
@@ -637,6 +638,14 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         showsVerticalScrollIndicator={false}
         snapToAlignment="start"
         decelerationRate="fast"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => { setRefreshing(true); await loadReels(); setRefreshing(false); }}
+            tintColor={primary}
+            colors={[primary]}
+          />
+        }
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewConfig}
         getItemLayout={(_, index) => ({ length: REEL_H, offset: REEL_H * index, index })}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Image, StyleSheet,
-  Platform, Linking, Share, Animated, Modal, Dimensions,
+  Platform, Linking, Share, Animated, Modal, Dimensions, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -81,6 +81,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [whoGoing, setWhoGoing] = useState([]);
   const [reportVisible, setReportVisible] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -332,7 +333,23 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.body} showsVerticalScrollIndicator={false} contentContainerStyle={styles.bodyContent}>
+        <ScrollView
+          style={styles.body}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.bodyContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => {
+                setRefreshing(true);
+                await Promise.all([fetchUserState(), fetchGoingCount()]);
+                setRefreshing(false);
+              }}
+              tintColor={primary}
+              colors={[primary]}
+            />
+          }
+        >
 
           <View style={styles.organizerRow}>
             <View style={styles.avatarWrap}>
