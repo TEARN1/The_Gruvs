@@ -278,6 +278,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [reportTarget, setReportTarget] = useState(null);
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
   const followedIdsRef = useRef([]); // stable ref so fetchPage can use it without re-render
+  const [followingSet, setFollowingSet] = useState(new Set()); // reactive mirror for follow buttons
   const [dateFilter, setDateFilter] = useState('any');
   const [dateRange, setDateRange] = useState(null);
   const [activeHashtag, setActiveHashtag] = useState(null);
@@ -467,6 +468,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         if (!follows?.length) return;
         const followedIds = follows.map(f => f.following_id);
         followedIdsRef.current = followedIds; // cache for ScoreEngine scoring
+        setFollowingSet(new Set(followedIds));
         const eventIds = events.map(e => e.id);
         const { data: crewRsvps } = await supabase
           .from('event_rsvps')
@@ -523,6 +525,21 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   };
 
   // ── REMOVED: loadNearby and renderNearby are only used by ExplorePage now ─────
+
+  const handleFollowFromFeed = async (profileId) => {
+    if (!user || !profileId || profileId === user.id) return;
+    const isFollowing = followingSet.has(profileId);
+    setFollowingSet(prev => {
+      const n = new Set(prev);
+      isFollowing ? n.delete(profileId) : n.add(profileId);
+      return n;
+    });
+    if (isFollowing) {
+      await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profileId);
+    } else {
+      await supabase.from('follows').upsert({ follower_id: user.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
+    }
+  };
 
   const handleVibe = async (eventId) => {
     if (!user) { onAuthRequired(); return; }
@@ -1077,6 +1094,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                     @{(event.profiles?.username || 'viber').toLowerCase().replace(/\s+/g, '')}
                   </Text>
                 </View>
+                {user && event.profiles?.id && event.profiles.id !== user.id && (
+                  <TouchableOpacity
+                    onPress={() => handleFollowFromFeed(event.profiles.id)}
+                    style={[styles.feedFollowBtn, followingSet.has(event.profiles.id) && { backgroundColor: 'transparent', borderColor: muted }]}
+                  >
+                    <Text style={[styles.feedFollowText, followingSet.has(event.profiles.id) && { color: muted }]}>
+                      {followingSet.has(event.profiles.id) ? 'Following' : '+ Follow'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <View style={[styles.priceBadge, {
                   backgroundColor: (!event.price || event.price === 'FREE' || event.price === 0) ? 'rgba(16,185,129,0.15)' : `${catColor}22`,
                   borderColor: (!event.price || event.price === 'FREE' || event.price === 0) ? '#10b981' : catColor,
@@ -1698,6 +1725,8 @@ const styles = StyleSheet.create({
   verifiedBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   priceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
   priceText: { fontSize: 11, fontWeight: '900' },
+  feedFollowBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#00f2ff', backgroundColor: 'rgba(0,242,255,0.1)', marginRight: 6 },
+  feedFollowText: { fontSize: 11, fontWeight: '700', color: '#00f2ff' },
 
   eventTitle: { fontSize: 22, fontWeight: '900', marginBottom: 8, letterSpacing: -0.3 },
   eventDesc: { fontSize: 14, lineHeight: 22, marginBottom: 14, opacity: 0.85 },

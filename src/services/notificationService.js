@@ -79,7 +79,7 @@ export const NotificationService = {
         .from('profiles')
         .select('push_token')
         .eq('id', recipientId)
-        .single();
+        .maybeSingle();
       const token = profile?.push_token;
       if (!token || !token.startsWith('ExponentPushToken')) return;
       await fetch('https://exp.host/--/api/v2/push/send', {
