@@ -368,12 +368,31 @@ export const FeedManager = {
       } catch { /* ignore */ }
     }
 
-    // Removed demo mode fallback. Real data required.
     try {
+      // Following mode: resolve followed author IDs first
+      let resolvedFollowedIds = followedIds;
+      if (mode === 'following' && userId && followedIds.length === 0) {
+        const { data: followData } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', userId)
+          .limit(200);
+        resolvedFollowedIds = (followData || []).map(f => f.following_id);
+      }
+
       let q = supabase
         .from('events')
         .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)', { count: 'estimated' })
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
+
+      // Filter to events by followed users when in Following mode
+      if (mode === 'following') {
+        if (resolvedFollowedIds.length === 0) {
+          // User follows nobody — return empty immediately
+          return { events: [], total: 0, page, hasMore: false };
+        }
+        q = q.in('author_id', resolvedFollowedIds);
+      }
 
       if (category !== 'all') q = q.eq('category', category);
 
