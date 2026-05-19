@@ -11,27 +11,32 @@
 
     <title>The Gruvs — Discover Your Next Event</title>
 
-    <!-- SEO & Social -->
+    <!-- SEO & Social — default (overridden by /share edge function for dynamic links) -->
     <meta name="description" content="The Gruvs — the ultimate event discovery platform. Find gruvs near you, connect with vibers, hire services, and ride the vibe economy." />
     <meta name="keywords" content="events, discover, gruvs, vibers, nightlife, music, party, food, culture, South Africa" />
     <meta name="author" content="The Gruvs" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://the-gruvs-pt23.vercel.app" />
 
-    <!-- Open Graph -->
+    <!-- Open Graph — default app card -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="The Gruvs — Discover Your Next Event" />
     <meta property="og:description" content="Find the best local events — from music and nightlife to food and culture. Connect with vibers near you." />
     <meta property="og:url" content="https://the-gruvs-pt23.vercel.app" />
     <meta property="og:site_name" content="The Gruvs" />
     <meta property="og:locale" content="en_ZA" />
-    <meta property="og:image" content="/logo.jpg" />
+    <meta property="og:image" content="https://the-gruvs-pt23.vercel.app/og-default.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Gruvs — Discover Your Next Event" />
 
-    <!-- Twitter Card -->
+    <!-- Twitter Card — default -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@thegruvs" />
     <meta name="twitter:title" content="The Gruvs — Discover Your Next Event" />
     <meta name="twitter:description" content="Find the best local events — from music and nightlife to food and culture." />
-    <meta name="twitter:image" content="/logo.jpg" />
+    <meta name="twitter:image" content="https://the-gruvs-pt23.vercel.app/og-default.jpg" />
+    <meta name="twitter:image:alt" content="The Gruvs" />
 
     <!-- PWA & Mobile -->
     <meta name="theme-color" content="#0d1112" />
@@ -42,25 +47,18 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="msapplication-TileColor" content="#0d1112" />
     <meta name="format-detection" content="telephone=no" />
-
-    <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <link rel="shortcut icon" href="/favicon.ico" />
-
-    <!-- Item 21: color-scheme — browser controls (scrollbars, inputs) adopt theme -->
     <meta name="color-scheme" content="dark light" />
+    <link rel="shortcut icon" href="/favicon.ico" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://images.unsplash.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-    <!-- Item 20: preload heaviest-used Inter weights to eliminate FOUT -->
     <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin />
 
-    <!-- Feather icon font — must be declared before JS boots so icons render on first paint -->
     <style>
       @font-face {
-        /* 'feather' lowercase matches the fontFamily key used by @expo/vector-icons internally */
         font-family: 'feather';
         src: url('https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf') format('truetype');
         font-weight: normal;
@@ -68,17 +66,9 @@
         font-display: block;
       }
     </style>
-    <!-- Preload the font file so it's ready before React mounts -->
-    <link
-      rel="preload"
-      as="font"
-      type="font/ttf"
-      href="https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf"
-      crossorigin="anonymous"
-    />
+    <link rel="preload" as="font" type="font/ttf" href="https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf" crossorigin="anonymous" />
 
     <style id="expo-reset">
-      /* ── Items 1-5: CSS Custom Properties (design tokens) ─────────────────── */
       :root {
         --color-primary:  #00f2ff;
         --color-bg:       #0d1112;
@@ -88,238 +78,71 @@
         --color-glow:     #00f2ff;
         --color-accent:   #b8c1c2;
         --color-border:   rgba(255,255,255,0.15);
-
-        --radius-card:  22px;
-        --radius-pill:  20px;
-        --radius-btn:   14px;
-        --radius-badge: 8px;
-        --radius-glass: 18px;
-
+        --radius-card:  22px; --radius-pill: 20px; --radius-btn: 14px;
+        --radius-badge: 8px;  --radius-glass: 18px;
         --shadow-card: 0 12px 40px rgba(0,0,0,0.6);
         --shadow-glow: 0 0 25px color-mix(in srgb, var(--color-glow) 60%, transparent);
         --shadow-lift: 0 20px 60px rgba(0,0,0,0.75);
-
-        --transition-fast:   150ms ease;
-        --transition-base:   220ms ease;
-        --transition-slow:   380ms ease;
+        --transition-fast: 150ms ease; --transition-base: 220ms ease;
+        --transition-slow: 380ms ease;
         --transition-spring: cubic-bezier(0.34,1.56,0.64,1);
-
-        --z-toast:   99999;
-        --z-modal:   9000;
-        --z-sidebar: 800;
-        --z-fab:     600;
-        --z-sticky:  100;
+        --z-toast: 99999; --z-modal: 9000; --z-sidebar: 800; --z-fab: 600; --z-sticky: 100;
       }
-
-      /* Item 16: Static light-mode fallback (overridden by ThemeContext injection) */
       @media (prefers-color-scheme: light) {
-        :root {
-          --color-bg:      #f0f4f5;
-          --color-surface: #e4e8e9;
-          --color-text:    #0d1112;
-          --color-muted:   rgba(13,17,18,0.55);
-        }
+        :root { --color-bg: #f0f4f5; --color-surface: #e4e8e9; --color-text: #0d1112; --color-muted: rgba(13,17,18,0.55); }
       }
-
-      html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-      }
-      body {
-        background-color: #0d1112;
-        color: #fff;
-        /* Removed overflow: hidden to support native browser behavior. Scrolling handled by ScrollView. */
-      }
-      #root {
-        display: flex;
-        flex: 1;
-        height: 100%;
-      }
-
+      html, body { height: 100%; margin: 0; padding: 0; display: flex; flex-direction: column; }
+      body { background-color: #0d1112; color: #fff; }
+      #root { display: flex; flex: 1; height: 100%; }
       body, input, textarea, button, select {
         font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
       }
-
       input, textarea, select { font-size: 16px !important; }
-
-      /* Item 6: Brand-coloured text selection */
       ::selection { background-color: rgba(0,242,255,0.25); color: #fff; }
-
-      /* Item 7: Prevent text orphans in headings and paragraphs */
-      h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
-      p, li, label { text-wrap: pretty; }
-
-      /* Item 15: Brand-coloured text cursor in inputs */
+      h1,h2,h3,h4,h5,h6 { text-wrap: balance; }
+      p,li,label { text-wrap: pretty; }
       textarea, input { caret-color: var(--color-primary, #00f2ff); }
-
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: rgba(0,242,255,0.2); border-radius: 8px; }
       ::-webkit-scrollbar-thumb:hover { background: rgba(0,242,255,0.4); }
-
-      *:focus-visible {
-        outline: 2px solid #00f2ff;
-        outline-offset: 2px;
-      }
-
+      *:focus-visible { outline: 2px solid #00f2ff; outline-offset: 2px; }
       [role="button"], button { user-select: none; -webkit-user-select: none; cursor: pointer; }
-
       html { overscroll-behavior-y: contain; }
-
-      body {
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
-      }
-
-      /* Item 8: Defer off-screen image/video rendering */
-      img, video {
-        content-visibility: auto;
-        contain-intrinsic-size: 0 200px;
-      }
-
-      /* Item 9: Event card hover lift */
-      .event-card {
-        transition: transform var(--transition-base), box-shadow var(--transition-base);
-        cursor: pointer;
-      }
+      body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+      img, video { content-visibility: auto; contain-intrinsic-size: 0 200px; }
+      .event-card { transition: transform var(--transition-base), box-shadow var(--transition-base); cursor: pointer; }
       @media (hover: hover) {
         .event-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); }
-        /* Item 63: Hero card hover */
         .hero-card:hover { transform: scale(1.01); box-shadow: var(--shadow-lift); }
-        /* Item 68: Category cell hover */
         .category-cell:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
-      }
-
-      /* Item 10: Pointer-only opacity feedback on interactive elements */
-      @media (hover: hover) {
         [role="button"]:hover, button:hover { opacity: 0.88; }
       }
-
-      /* Item 17: Glassmorphic sticky filter bar */
-      .sticky-filter-bar {
-        position: sticky;
-        top: 0;
-        z-index: var(--z-sticky, 100);
-        backdrop-filter: blur(12px) saturate(1.5);
-        -webkit-backdrop-filter: blur(12px) saturate(1.5);
-        background-color: rgba(13,17,18,0.85);
-      }
-
-      /* Item 18: Optional scroll-snap classes */
-      .scroll-snap-list {
-        scroll-snap-type: y mandatory;
-        scroll-padding-top: 60px;
-      }
+      .sticky-filter-bar { position: sticky; top: 0; z-index: var(--z-sticky,100); backdrop-filter: blur(12px) saturate(1.5); -webkit-backdrop-filter: blur(12px) saturate(1.5); background-color: rgba(13,17,18,0.85); }
+      .scroll-snap-list { scroll-snap-type: y mandatory; scroll-padding-top: 60px; }
       .scroll-snap-item { scroll-snap-align: start; }
-
-      /* Item 39: CSS tooltip for collapsed sidebar items */
       [data-tooltip] { position: relative; }
-      [data-tooltip]:hover::after {
-        content: attr(data-tooltip);
-        position: absolute;
-        left: calc(100% + 10px);
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(13,17,18,0.95);
-        color: #fff;
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 8px;
-        padding: 4px 10px;
-        font-size: 12px;
-        font-weight: 700;
-        white-space: nowrap;
-        pointer-events: none;
-        z-index: var(--z-sidebar, 800);
-      }
-
-      /* Item 40: Skip-to-content link (visible on focus) */
-      #skip-to-content {
-        position: absolute;
-        top: -100px;
-        left: 8px;
-        z-index: var(--z-toast, 99999);
-        background: var(--color-primary, #00f2ff);
-        color: #000;
-        padding: 8px 16px;
-        border-radius: var(--radius-btn, 14px);
-        font-weight: 900;
-        font-size: 13px;
-        transition: top var(--transition-fast);
-      }
+      [data-tooltip]:hover::after { content: attr(data-tooltip); position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); background: rgba(13,17,18,0.95); color: #fff; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 700; white-space: nowrap; pointer-events: none; z-index: var(--z-sidebar,800); }
+      #skip-to-content { position: absolute; top: -100px; left: 8px; z-index: var(--z-toast,99999); background: var(--color-primary,#00f2ff); color: #000; padding: 8px 16px; border-radius: var(--radius-btn,14px); font-weight: 900; font-size: 13px; transition: top var(--transition-fast); }
       #skip-to-content:focus { top: 8px; }
-
-      @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after {
-          animation-duration: 0.01ms !important;
-          transition-duration: 0.01ms !important;
-        }
-      }
-
-      @media (prefers-reduced-transparency: reduce) {
-        .glass-view { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-      }
-
-      @supports not (display: flex) {
-        #root { display: block; }
-      }
-
-      /* Item 11: Print styles */
-      @media print {
-        body { background: #fff !important; color: #000 !important; }
-        .tab-bar, .sidebar, .ad-flywheel { display: none !important; }
-        .event-card { border: 1px solid #ccc !important; break-inside: avoid; }
-        img { max-width: 100% !important; }
-      }
-
-      /* ── Keyframe animations ──────────────────────────────────────────────── */
-
-      @keyframes shimmer {
-        0%   { background-position: -200% 0; }
-        100% { background-position:  200% 0; }
-      }
-      .skeleton {
-        background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
-        background-size: 200% 100%;
-        animation: shimmer 1.8s ease-in-out infinite;
-      }
-
-      /* Item 12: Staggered reveal for list items */
-      @keyframes fadeSlideUp {
-        from { opacity: 0; transform: translateY(16px); }
-        to   { opacity: 1; transform: translateY(0);    }
-      }
-      .fade-slide-up {
-        animation: fadeSlideUp var(--transition-slow) var(--transition-spring) both;
-      }
-
-      /* Item 13: Ambient badge glow */
-      @keyframes pulseGlow {
-        0%,  100% { box-shadow: 0 0 10px color-mix(in srgb, var(--color-glow, #00f2ff) 40%, transparent); }
-        50%        { box-shadow: 0 0 28px color-mix(in srgb, var(--color-glow, #00f2ff) 90%, transparent); }
-      }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+      @media (prefers-reduced-transparency: reduce) { .glass-view { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; } }
+      @supports not (display: flex) { #root { display: block; } }
+      @media print { body { background: #fff !important; color: #000 !important; } .tab-bar, .sidebar, .ad-flywheel { display: none !important; } .event-card { border: 1px solid #ccc !important; break-inside: avoid; } img { max-width: 100% !important; } }
+      @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+      .skeleton { background: linear-gradient(90deg,rgba(255,255,255,0.03) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.03) 75%); background-size: 200% 100%; animation: shimmer 1.8s ease-in-out infinite; }
+      @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+      .fade-slide-up { animation: fadeSlideUp var(--transition-slow) var(--transition-spring) both; }
+      @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 10px color-mix(in srgb,var(--color-glow,#00f2ff) 40%,transparent); } 50% { box-shadow: 0 0 28px color-mix(in srgb,var(--color-glow,#00f2ff) 90%,transparent); } }
       .badge-glow { animation: pulseGlow 2.4s ease-in-out infinite; }
-
-      /* Item 14: View Transitions API — tab crossfade */
       @supports (view-transition-name: root) {
-        @keyframes vt-fade-out { to   { opacity: 0; } }
-        @keyframes vt-fade-in  { from { opacity: 0; } }
+        @keyframes vt-fade-out { to { opacity: 0; } }
+        @keyframes vt-fade-in { from { opacity: 0; } }
         ::view-transition-old(root) { animation: 120ms ease out both vt-fade-out; }
-        ::view-transition-new(root) { animation: 180ms ease in  both vt-fade-in;  }
+        ::view-transition-new(root) { animation: 180ms ease in both vt-fade-in; }
       }
-
-      /* Item 19: Toast entrance animation */
-      @keyframes toastIn {
-        from { opacity: 0; transform: translateY(-16px) scale(0.96); }
-        to   { opacity: 1; transform: translateY(0)     scale(1);    }
-      }
+      @keyframes toastIn { from { opacity: 0; transform: translateY(-16px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
       .toast-enter { animation: toastIn 220ms var(--transition-spring) both; }
     </style>
   </head>
@@ -332,7 +155,16 @@
       </div>
     </noscript>
     <div id="root"></div>
-    <!-- Item 22: Enable smooth scroll before React hydrates -->
     <script>document.documentElement.style.scrollBehavior='smooth';</script>
+
+    <!--
+      Dynamic OG tags are injected server-side by the Supabase Edge Function at
+      /functions/v1/og-meta when a crawler hits a share link like:
+        /share/event/<id>
+        /share/profile/<username>
+        /share/reel/<id>
+      The edge function returns a full HTML shell with correct og: tags baked in,
+      then redirects real users to the SPA. See supabase/functions/og-meta/index.ts
+    -->
   </body>
 </html>

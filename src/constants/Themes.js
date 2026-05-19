@@ -16,52 +16,41 @@ const BASE_GLASS = {
   elevation: 8,
 };
 
-// Core brand palette
-const BRAND_TEAL    = '#00f2ff';
-const BRAND_STEEL   = '#b8c1c2';
-const BRAND_OBSIDIAN= '#0d1112';
-const BRAND_PEARL   = '#f0f4f5';
-
-// Extended palette
-const ROYAL_GOLD    = '#f5c518';
-const STEEL_BLUE    = '#4a90d9';
-const NAVY          = '#0a1628';
-const ROSE_PINK     = '#ff6b9d';
-const DUSTY_ROSE    = '#c9607a';
-const DARK_ROSE     = '#1a0d10';
-const AMETHYST      = '#9b59b6';
-const SOFT_PURPLE   = '#d4a8e8';
-const DEEP_PURPLE   = '#120820';
-const COSMIC_VIOLET = '#7c3aed';
-const SOLAR_ORANGE  = '#f97316';
-const MIDNIGHT      = '#0f0a1e';
-const SOLAR_AMBER   = '#fbbf24';
-const FOREST_DARK   = '#0a1a0f';
+const BASE_GLASS_LIGHT = {
+  ...BASE_GLASS,
+  borderColor: 'rgba(0,0,0,0.10)',
+  backgroundColor: 'rgba(255,255,255,0.55)',
+  shadowOpacity: 0.15,
+};
 
 export const THEMES = {
-  [GENDERS.MALE]: [
+  // ─────────────────────────────────────────────────────────────────
+  //  MALE  — 4 dark, 4 light
+  // ─────────────────────────────────────────────────────────────────
+  male: [
+    // ── DARK ──────────────────────────────────────────────────────
     {
       id: 'royal_obsidian',
       name: 'Royal Obsidian',
-      background: BRAND_OBSIDIAN,
+      background: '#0d1112',
       surface: '#131a1c',
-      primary: BRAND_TEAL,
-      accent: BRAND_STEEL,
+      primary: '#00f2ff',
+      accent: '#b8c1c2',
       text: '#ffffff',
       textMuted: 'rgba(255,255,255,0.55)',
-      glowColor: BRAND_TEAL,
+      glowColor: '#00f2ff',
       ...BASE_GLASS,
     },
     {
       id: 'steel_navy',
       name: 'Steel Navy',
-      background: NAVY,
+      background: '#0a1628',
       surface: '#0d1f38',
-      primary: STEEL_BLUE,
-      accent: BRAND_STEEL,
+      primary: '#4a90d9',
+      accent: '#b8c1c2',
       text: '#ffffff',
       textMuted: 'rgba(200,220,255,0.55)',
-      glowColor: STEEL_BLUE,
+      glowColor: '#4a90d9',
       ...BASE_GLASS,
       borderColor: 'rgba(74,144,217,0.25)',
       backgroundColor: 'rgba(74,144,217,0.08)',
@@ -71,53 +60,109 @@ export const THEMES = {
       name: 'Royal Gold',
       background: '#100d00',
       surface: '#1a1500',
-      primary: ROYAL_GOLD,
+      primary: '#f5c518',
       accent: '#c9a227',
       text: '#ffffff',
       textMuted: 'rgba(255,230,100,0.55)',
-      glowColor: ROYAL_GOLD,
+      glowColor: '#f5c518',
       ...BASE_GLASS,
       borderColor: 'rgba(245,197,24,0.2)',
       backgroundColor: 'rgba(245,197,24,0.06)',
     },
     {
-      id: 'royal_pearl',
-      name: 'Royal Pearl',
-      background: BRAND_PEARL,
-      surface: '#e4e8e9',
-      primary: '#0099aa',
-      accent: '#2c3e50',
-      text: '#0d1112',
-      textMuted: 'rgba(13,17,18,0.55)',
-      glowColor: '#0099aa',
+      // Dark 4 — smouldering embers of a warehouse rave
+      id: 'inferno_rave',
+      name: 'Inferno Rave',
+      background: '#0c0500',
+      surface: '#1a0a00',
+      primary: '#ff4500',
+      accent: '#ff8c00',
+      text: '#fff5e6',
+      textMuted: 'rgba(255,140,0,0.55)',
+      glowColor: '#ff4500',
       ...BASE_GLASS,
-      borderColor: 'rgba(0,153,170,0.25)',
-      backgroundColor: 'rgba(0,153,170,0.08)',
+      borderColor: 'rgba(255,69,0,0.25)',
+      backgroundColor: 'rgba(255,69,0,0.08)',
+    },
+
+    // ── LIGHT ─────────────────────────────────────────────────────
+    {
+      // Crisp coastal morning — sky reflections on still water
+      id: 'arctic_drift',
+      name: 'Arctic Drift',
+      background: '#f0f8ff',
+      surface: '#dceeff',
+      primary: '#0077b6',
+      accent: '#023e8a',
+      text: '#011f3f',
+      textMuted: 'rgba(1,31,63,0.5)',
+      glowColor: '#0077b6',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(0,119,182,0.2)',
+      backgroundColor: 'rgba(0,119,182,0.07)',
+    },
+    {
+      // Polished concrete + brushed chrome — luxury apartment lobby
+      id: 'chrome_loft',
+      name: 'Chrome Loft',
+      background: '#f4f4f5',
+      surface: '#e4e4e7',
+      primary: '#18181b',
+      accent: '#71717a',
+      text: '#09090b',
+      textMuted: 'rgba(9,9,11,0.45)',
+      glowColor: '#18181b',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(24,24,27,0.15)',
+      backgroundColor: 'rgba(24,24,27,0.05)',
+    },
+    {
+      // Late-afternoon savanna — warm amber light, ochre earth
+      id: 'savanna_dusk',
+      name: 'Savanna Dusk',
+      background: '#fdf6e3',
+      surface: '#f5e8c8',
+      primary: '#b5541c',
+      accent: '#8b3a0f',
+      text: '#3b1f0a',
+      textMuted: 'rgba(59,31,10,0.5)',
+      glowColor: '#b5541c',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(181,84,28,0.2)',
+      backgroundColor: 'rgba(181,84,28,0.07)',
+    },
+    {
+      // Pure white boxing gym meets sports editorial
+      id: 'white_noise',
+      name: 'White Noise',
+      background: '#ffffff',
+      surface: '#f1f5f9',
+      primary: '#0f172a',
+      accent: '#64748b',
+      text: '#0f172a',
+      textMuted: 'rgba(15,23,42,0.45)',
+      glowColor: '#0f172a',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(15,23,42,0.12)',
+      backgroundColor: 'rgba(15,23,42,0.04)',
     },
   ],
-  [GENDERS.FEMALE]: [
-    {
-      id: 'royal_obsidian',
-      name: 'Royal Obsidian',
-      background: BRAND_OBSIDIAN,
-      surface: '#131a1c',
-      primary: BRAND_TEAL,
-      accent: BRAND_STEEL,
-      text: '#ffffff',
-      textMuted: 'rgba(255,255,255,0.55)',
-      glowColor: BRAND_TEAL,
-      ...BASE_GLASS,
-    },
+
+  // ─────────────────────────────────────────────────────────────────
+  //  FEMALE  — 4 dark, 4 light
+  // ─────────────────────────────────────────────────────────────────
+  female: [
+    // ── DARK ──────────────────────────────────────────────────────
     {
       id: 'rose_noir',
       name: 'Rose Noir',
-      background: DARK_ROSE,
+      background: '#1a0d10',
       surface: '#240d14',
-      primary: ROSE_PINK,
-      accent: DUSTY_ROSE,
+      primary: '#ff6b9d',
+      accent: '#c9607a',
       text: '#ffffff',
       textMuted: 'rgba(255,180,210,0.55)',
-      glowColor: ROSE_PINK,
+      glowColor: '#ff6b9d',
       ...BASE_GLASS,
       borderColor: 'rgba(255,107,157,0.2)',
       backgroundColor: 'rgba(255,107,157,0.07)',
@@ -125,55 +170,126 @@ export const THEMES = {
     {
       id: 'amethyst_crown',
       name: 'Amethyst Crown',
-      background: DEEP_PURPLE,
+      background: '#120820',
       surface: '#1c0d2e',
-      primary: AMETHYST,
-      accent: SOFT_PURPLE,
+      primary: '#9b59b6',
+      accent: '#d4a8e8',
       text: '#ffffff',
       textMuted: 'rgba(212,168,232,0.55)',
-      glowColor: AMETHYST,
+      glowColor: '#9b59b6',
       ...BASE_GLASS,
       borderColor: 'rgba(155,89,182,0.25)',
       backgroundColor: 'rgba(155,89,182,0.08)',
     },
     {
+      // Bioluminescent deep sea — teal-black, alien calm
+      id: 'abyss_bloom',
+      name: 'Abyss Bloom',
+      background: '#00080f',
+      surface: '#001220',
+      primary: '#00e5c8',
+      accent: '#00b89c',
+      text: '#e0fffc',
+      textMuted: 'rgba(0,229,200,0.5)',
+      glowColor: '#00e5c8',
+      ...BASE_GLASS,
+      borderColor: 'rgba(0,229,200,0.22)',
+      backgroundColor: 'rgba(0,229,200,0.07)',
+    },
+    {
+      // Velvet darkness — deep maroon + champagne gold, awards night
+      id: 'velvet_noir',
+      name: 'Velvet Noir',
+      background: '#0e0005',
+      surface: '#1c000c',
+      primary: '#e8c97a',
+      accent: '#c9a84c',
+      text: '#fdf0d5',
+      textMuted: 'rgba(232,201,122,0.55)',
+      glowColor: '#e8c97a',
+      ...BASE_GLASS,
+      borderColor: 'rgba(232,201,122,0.2)',
+      backgroundColor: 'rgba(232,201,122,0.06)',
+    },
+
+    // ── LIGHT ─────────────────────────────────────────────────────
+    {
+      // Fresh peony garden — white petals, blush centres
+      id: 'peony_mist',
+      name: 'Peony Mist',
+      background: '#fff5f8',
+      surface: '#ffe4ee',
+      primary: '#d6336c',
+      accent: '#9c1a3d',
+      text: '#2d0d1a',
+      textMuted: 'rgba(45,13,26,0.5)',
+      glowColor: '#d6336c',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(214,51,108,0.2)',
+      backgroundColor: 'rgba(214,51,108,0.07)',
+    },
+    {
+      // Warm caramel latte in a ceramic cup — cafe core
+      id: 'latte_haze',
+      name: 'Latte Haze',
+      background: '#fdf8f1',
+      surface: '#f5e9d8',
+      primary: '#a0522d',
+      accent: '#6b3217',
+      text: '#2c1503',
+      textMuted: 'rgba(44,21,3,0.48)',
+      glowColor: '#a0522d',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(160,82,45,0.2)',
+      backgroundColor: 'rgba(160,82,45,0.07)',
+    },
+    {
+      // Midday lavender field, sun-bleached and soft
+      id: 'lavender_haze',
+      name: 'Lavender Haze',
+      background: '#f8f5ff',
+      surface: '#eee6ff',
+      primary: '#7c3aed',
+      accent: '#5b21b6',
+      text: '#1e0850',
+      textMuted: 'rgba(30,8,80,0.48)',
+      glowColor: '#7c3aed',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(124,58,237,0.2)',
+      backgroundColor: 'rgba(124,58,237,0.07)',
+    },
+    {
+      // Pearl Blush — original light theme kept
       id: 'pearl_blush',
       name: 'Pearl Blush',
       background: '#fff0f5',
       surface: '#ffe0ec',
-      primary: DUSTY_ROSE,
+      primary: '#c9607a',
       accent: '#8b2a44',
       text: '#1a0a10',
       textMuted: 'rgba(139,42,68,0.6)',
-      glowColor: DUSTY_ROSE,
-      ...BASE_GLASS,
+      glowColor: '#c9607a',
+      ...BASE_GLASS_LIGHT,
       borderColor: 'rgba(201,96,122,0.25)',
       backgroundColor: 'rgba(201,96,122,0.08)',
     },
   ],
-  [GENDERS.NON_BINARY]: [
-    {
-      id: 'royal_obsidian',
-      name: 'Royal Obsidian',
-      background: BRAND_OBSIDIAN,
-      surface: '#131a1c',
-      primary: BRAND_TEAL,
-      accent: BRAND_STEEL,
-      text: '#ffffff',
-      textMuted: 'rgba(255,255,255,0.55)',
-      glowColor: BRAND_TEAL,
-      ...BASE_GLASS,
-    },
+
+  // ─────────────────────────────────────────────────────────────────
+  //  NON-BINARY  — 4 dark, 4 light
+  // ─────────────────────────────────────────────────────────────────
+  non_binary: [
+    // ── DARK ──────────────────────────────────────────────────────
     {
       id: 'cosmic_void',
       name: 'Cosmic Void',
-      background: MIDNIGHT,
+      background: '#0f0a1e',
       surface: '#170d30',
-      primary: COSMIC_VIOLET,
+      primary: '#7c3aed',
       accent: '#a78bfa',
       text: '#ffffff',
       textMuted: 'rgba(167,139,250,0.55)',
-      glowColor: COSMIC_VIOLET,
+      glowColor: '#7c3aed',
       ...BASE_GLASS,
       borderColor: 'rgba(124,58,237,0.25)',
       backgroundColor: 'rgba(124,58,237,0.08)',
@@ -183,28 +299,106 @@ export const THEMES = {
       name: 'Solar Eclipse',
       background: '#0f0800',
       surface: '#1a1000',
-      primary: SOLAR_ORANGE,
-      accent: SOLAR_AMBER,
+      primary: '#f97316',
+      accent: '#fbbf24',
       text: '#ffffff',
       textMuted: 'rgba(249,115,22,0.65)',
-      glowColor: SOLAR_ORANGE,
+      glowColor: '#f97316',
       ...BASE_GLASS,
       borderColor: 'rgba(249,115,22,0.22)',
       backgroundColor: 'rgba(249,115,22,0.07)',
     },
     {
-      id: 'forest_emerald',
-      name: 'Forest Emerald',
-      background: FOREST_DARK,
-      surface: '#0f2416',
-      primary: '#10b981',
-      accent: '#6ee7b7',
-      text: '#ffffff',
-      textMuted: 'rgba(110,231,183,0.55)',
-      glowColor: '#10b981',
+      // Aurora borealis over frozen tundra — shifting greens & magentas
+      id: 'aurora_veil',
+      name: 'Aurora Veil',
+      background: '#020b0e',
+      surface: '#051318',
+      primary: '#00ff9f',
+      accent: '#c850c0',
+      text: '#e0fff8',
+      textMuted: 'rgba(0,255,159,0.5)',
+      glowColor: '#00ff9f',
       ...BASE_GLASS,
-      borderColor: 'rgba(16,185,129,0.22)',
-      backgroundColor: 'rgba(16,185,129,0.07)',
+      borderColor: 'rgba(0,255,159,0.2)',
+      backgroundColor: 'rgba(0,255,159,0.06)',
+    },
+    {
+      // Y2K vaporwave — magenta grid, chrome sans-serif, neon horizon
+      id: 'vaporwave',
+      name: 'Vaporwave',
+      background: '#0d0019',
+      surface: '#160030',
+      primary: '#ff2d78',
+      accent: '#00d4ff',
+      text: '#ffffff',
+      textMuted: 'rgba(255,45,120,0.6)',
+      glowColor: '#ff2d78',
+      ...BASE_GLASS,
+      borderColor: 'rgba(255,45,120,0.25)',
+      backgroundColor: 'rgba(255,45,120,0.07)',
+    },
+
+    // ── LIGHT ─────────────────────────────────────────────────────
+    {
+      // Overcast Japanese street — concrete, matcha green, quiet energy
+      id: 'wabi_sabi',
+      name: 'Wabi Sabi',
+      background: '#f7f5f0',
+      surface: '#eeead8',
+      primary: '#3a6b35',
+      accent: '#1f4028',
+      text: '#1a1a0f',
+      textMuted: 'rgba(26,26,15,0.48)',
+      glowColor: '#3a6b35',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(58,107,53,0.2)',
+      backgroundColor: 'rgba(58,107,53,0.07)',
+    },
+    {
+      // Desert mirage — sand white, terracotta, bleached bone
+      id: 'kalahari',
+      name: 'Kalahari',
+      background: '#fdf9f0',
+      surface: '#f5ead4',
+      primary: '#c2410c',
+      accent: '#78350f',
+      text: '#292109',
+      textMuted: 'rgba(41,33,9,0.48)',
+      glowColor: '#c2410c',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(194,65,12,0.2)',
+      backgroundColor: 'rgba(194,65,12,0.07)',
+    },
+    {
+      // Electric pastel — playground of a graphic designer at 2 am
+      id: 'candy_grid',
+      name: 'Candy Grid',
+      background: '#fafafa',
+      surface: '#f0f4ff',
+      primary: '#8b5cf6',
+      accent: '#ec4899',
+      text: '#0f0a1e',
+      textMuted: 'rgba(15,10,30,0.45)',
+      glowColor: '#8b5cf6',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(139,92,246,0.2)',
+      backgroundColor: 'rgba(139,92,246,0.06)',
+    },
+    {
+      // Cloud editorial — stark white, single accent of cyan ink
+      id: 'editorial_cloud',
+      name: 'Editorial Cloud',
+      background: '#ffffff',
+      surface: '#f0fdff',
+      primary: '#0891b2',
+      accent: '#0e7490',
+      text: '#0c1a1f',
+      textMuted: 'rgba(12,26,31,0.45)',
+      glowColor: '#0891b2',
+      ...BASE_GLASS_LIGHT,
+      borderColor: 'rgba(8,145,178,0.18)',
+      backgroundColor: 'rgba(8,145,178,0.05)',
     },
   ],
 };
