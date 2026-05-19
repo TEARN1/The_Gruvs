@@ -14,6 +14,7 @@ import { FadeInView } from '../components/FadeInView';
 import { THEMES, GENDERS } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { thumb } from '../utils/storageThumb';
 import { DiscoveryManager, UserManager, AnalyticsManager, BehavioralEngine, isOnline as checkOnline } from '../services/dataFlow';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { LocationService } from '../services/locationService';
@@ -195,7 +196,7 @@ const pAvatarBg = (name) => {
 const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage }) => (
   <View style={[pcard.wrap, { borderColor: `${primary}18` }]}>
     {person.avatar_url
-      ? <Image source={{ uri: person.avatar_url }} style={[pcard.avatar, { borderColor: `${primary}50` }]} />
+      ? <Image source={{ uri: thumb.avatar(person.avatar_url) }} style={[pcard.avatar, { borderColor: `${primary}50` }]} />
       : <View style={[pcard.avatar, { borderColor: `${primary}50`, backgroundColor: pAvatarBg(person.username), alignItems: 'center', justifyContent: 'center' }]}>
         <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{pAvatarInitials(person.username)}</Text>
       </View>
@@ -443,7 +444,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         <Text style={[fm.sectionTitle, { color: primary }]}>Preview — How others see you</Text>
         <View style={[fm.previewCard, { borderColor: `${primary}25` }]}>
           {profile?.avatar_url
-            ? <Image source={{ uri: profile.avatar_url }} style={[fm.previewAvatar, { borderColor: primary }]} />
+            ? <Image source={{ uri: thumb.avatar(profile.avatar_url) }} style={[fm.previewAvatar, { borderColor: primary }]} />
             : <View style={[fm.previewAvatar, { borderColor: primary, backgroundColor: pAvatarBg(profile?.username), alignItems: 'center', justifyContent: 'center' }]}>
               <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900' }}>{pAvatarInitials(profile?.username)}</Text>
             </View>
@@ -1376,7 +1377,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           onPress={() => profile?.cover_url && setImageViewerUri(profile.cover_url)}
         >
           {profile?.cover_url
-            ? <Image source={{ uri: profile.cover_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            ? <Image source={{ uri: thumb.cover(profile.cover_url) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
             : <>
               <View style={[styles.coverPattern, { borderColor: `${primary}12` }]} />
               <View style={[styles.coverPatternAlt, { borderColor: `${primary}10` }]} />
@@ -1398,7 +1399,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             activeOpacity={0.85}
           >
             {avatarUrl
-              ? <Image source={{ uri: avatarUrl }} style={[styles.avatar, { borderColor: primary }]} />
+              ? <Image source={{ uri: thumb.avatarLg(avatarUrl) }} style={[styles.avatar, { borderColor: primary }]} />
               : <View style={[styles.avatar, { borderColor: primary, backgroundColor: avatarBgColor(username), alignItems: 'center', justifyContent: 'center' }]}>
                 <Text style={{ color: '#fff', fontSize: 28, fontWeight: '900' }}>{avatarInitials(username)}</Text>
               </View>
@@ -2149,7 +2150,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 onPress={handleAvatarUpload}
               >
                 {avatarUrl
-                  ? <Image source={{ uri: avatarUrl }} style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: primary }} />
+                  ? <Image source={{ uri: thumb.avatarLg(avatarUrl) }} style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: primary }} />
                   : <View style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: primary, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
                       <Feather name="user" size={32} color={primary} />
                     </View>
@@ -2165,7 +2166,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 style={{ height: 80, borderRadius: 14, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30`, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 18 }}
               >
                 {profile?.cover_url
-                  ? <Image source={{ uri: profile.cover_url }} style={{ ...StyleSheet.absoluteFillObject, borderRadius: 14 }} resizeMode="cover" />
+                  ? <Image source={{ uri: thumb.coverSm(profile.cover_url) }} style={{ ...StyleSheet.absoluteFillObject, borderRadius: 14 }} resizeMode="cover" />
                   : null}
                 <View style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
                   <Feather name="image" size={15} color="#fff" />

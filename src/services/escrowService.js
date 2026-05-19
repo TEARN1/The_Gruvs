@@ -1,6 +1,8 @@
 import { supabase } from './supabase';
 import { TrustLedger } from './trustLedger';
 import { LevelManager } from './dataFlow';
+import { log } from '../utils/log';
+import { withRetry } from '../utils/retry';
 
 export const EscrowService = {
   /**
@@ -40,13 +42,13 @@ export const EscrowService = {
         .single();
 
       if (error) {
-        console.error('[EscrowService.lockFunds] error:', error.message);
+        log.error('EscrowService:lockFunds', error);
         return null;
       }
 
       return data?.id ?? null;
     } catch (err) {
-      console.error('[EscrowService.lockFunds] unexpected:', err.message);
+      log.error('EscrowService:lockFunds', err);
       return null;
     }
   },
@@ -59,26 +61,30 @@ export const EscrowService = {
    */
   async releaseToProvider(bookingId, providerId) {
     try {
-      // Fetch booking to get the amount
+      // Fetch booking — verify providerId owns this booking (IDOR defense)
       const { data: booking, error: fetchErr } = await supabase
         .from('service_bookings')
-        .select('amount_cents')
+        .select('amount_cents, client_id, provider_id')
         .eq('id', bookingId)
+        .eq('provider_id', providerId)   // ownership check
+        .eq('status', 'escrow_held')     // only release held funds
         .single();
 
       if (fetchErr || !booking) {
-        console.error('[EscrowService.releaseToProvider] fetch error:', fetchErr?.message);
+        log.error('EscrowService:releaseToProvider', fetchErr || 'booking not found or not owned');
         return false;
       }
 
-      // Mark booking completed
-      const { error: updateErr } = await supabase
-        .from('service_bookings')
-        .update({ status: 'completed', completed_at: new Date().toISOString() })
-        .eq('id', bookingId);
+      // Mark booking completed — scoped to both id AND provider_id
+      const { error: updateErr } = await withRetry(() =>
+        supabase.from('service_bookings')
+          .update({ status: 'completed', completed_at: new Date().toISOString() })
+          .eq('id', bookingId)
+          .eq('provider_id', providerId)
+      );
 
       if (updateErr) {
-        console.error('[EscrowService.releaseToProvider] update booking error:', updateErr.message);
+        log.error('EscrowService:releaseToProvider', updateErr);
         return false;
       }
 
@@ -91,19 +97,18 @@ export const EscrowService = {
       });
 
       if (walletErr) {
-        // Fallback: manual read-modify-write
-        const { data: prof, error: profErr } = await supabase
+        // Fallback: manual read-modify-write — scoped to providerId
+        const { data: prof } = await supabase
           .from('profiles')
           .select('wallet_balance')
           .eq('id', providerId)
           .single();
-
-        if (!profErr && prof) {
-          const newBalance = (prof.wallet_balance || 0) + amountRands;
-          await supabase
-            .from('profiles')
-            .update({ wallet_balance: newBalance })
-            .eq('id', providerId);
+        if (prof) {
+          await withRetry(() =>
+            supabase.from('profiles')
+              .update({ wallet_balance: (prof.wallet_balance || 0) + amountRands })
+              .eq('id', providerId)
+          );
         }
       }
 
@@ -120,7 +125,7 @@ export const EscrowService = {
 
       return true;
     } catch (err) {
-      console.error('[EscrowService.releaseToProvider] unexpected:', err.message);
+      log.error('EscrowService:releaseToProvider', err);
       return false;
     }
   },
@@ -131,38 +136,41 @@ export const EscrowService = {
    *  - inserts a row into disputes table
    * Returns true on success, false on failure.
    */
-  async initiateDispute(bookingId, reason) {
+  // callerId must be either the client_id or provider_id of the booking
+  async initiateDispute(bookingId, reason, callerId) {
+    if (!callerId) { log.error('EscrowService:initiateDispute', 'callerId required'); return false; }
     try {
-      const { error: updateErr } = await supabase
+      // Ownership check — only a party to the booking can open a dispute
+      const { data: booking, error: checkErr } = await supabase
         .from('service_bookings')
-        .update({ status: 'disputed' })
-        .eq('id', bookingId);
+        .select('id')
+        .eq('id', bookingId)
+        .or(`client_id.eq.${callerId},provider_id.eq.${callerId}`)
+        .single();
 
-      if (updateErr) {
-        console.error('[EscrowService.initiateDispute] update error:', updateErr.message);
+      if (checkErr || !booking) {
+        log.error('EscrowService:initiateDispute', 'booking not found or caller not a party');
         return false;
       }
+
+      const { error: updateErr } = await withRetry(() =>
+        supabase.from('service_bookings')
+          .update({ status: 'disputed' })
+          .eq('id', bookingId)
+          .or(`client_id.eq.${callerId},provider_id.eq.${callerId}`)
+      );
+
+      if (updateErr) { log.error('EscrowService:initiateDispute', updateErr); return false; }
 
       const { error: disputeErr } = await supabase
         .from('disputes')
-        .insert([
-          {
-            booking_id: bookingId,
-            reason,
-            status: 'open',
-            created_at: new Date().toISOString(),
-          },
-        ]);
+        .insert([{ booking_id: bookingId, raised_by: callerId, reason, status: 'open', created_at: new Date().toISOString() }]);
 
-      if (disputeErr) {
-        console.error('[EscrowService.initiateDispute] insert dispute error:', disputeErr.message);
-        // Booking is already marked disputed — still consider partial success
-        return false;
-      }
+      if (disputeErr) { log.error('EscrowService:initiateDispute:insert', disputeErr); return false; }
 
       return true;
     } catch (err) {
-      console.error('[EscrowService.initiateDispute] unexpected:', err.message);
+      log.error('EscrowService:initiateDispute', err);
       return false;
     }
   },
@@ -180,13 +188,13 @@ export const EscrowService = {
         .single();
 
       if (error) {
-        console.error('[EscrowService.getBookingStatus] error:', error.message);
+        log.error('EscrowService:getBookingStatus', error);
         return null;
       }
 
       return data ?? null;
     } catch (err) {
-      console.error('[EscrowService.getBookingStatus] unexpected:', err.message);
+      log.error('EscrowService:getBookingStatus', err);
       return null;
     }
   },
@@ -206,7 +214,7 @@ export const EscrowService = {
       if (error) throw error;
       return data || [];
     } catch (err) {
-      console.error('[EscrowService.getUserBookings] error:', err.message);
+      log.error('EscrowService:getUserBookings', err);
       return [];
     }
   },

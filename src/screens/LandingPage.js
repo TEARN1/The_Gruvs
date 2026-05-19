@@ -45,6 +45,7 @@ import { EventMapView } from '../components/EventMapView';
 import { PathMapScreen } from './PathMapScreen';
 import { EventDetailScreen } from './EventDetailScreen';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { thumb } from '../utils/storageThumb';
 import { SecurityService } from '../services/securityService';
 import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine, isOnline as checkOnline } from '../services/dataFlow';
 import { RouteEngine } from '../services/routeEngine';
@@ -1030,7 +1031,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 <TouchableOpacity onPress={() => openViberProfile(event.profiles)}>
                   <View style={styles.avatarWrap}>
                     {event.profiles?.avatar_url
-                      ? <Image source={{ uri: event.profiles.avatar_url }} style={[styles.avatar, { borderColor: primary }]} />
+                      ? <Image source={{ uri: thumb.avatar(event.profiles.avatar_url) }} style={[styles.avatar, { borderColor: primary }]} />
                       : <View style={[styles.avatar, { borderColor: primary, backgroundColor: AVATAR_COLORS[(event.profiles?.username?.charCodeAt(0) || 0) % AVATAR_COLORS.length], alignItems: 'center', justifyContent: 'center' }]}>
                         <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>{(event.profiles?.username || 'V')[0].toUpperCase()}</Text>
                       </View>

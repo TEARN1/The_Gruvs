@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Image,
-  StyleSheet, ActivityIndicator, RefreshControl, TextInput,
+  StyleSheet, RefreshControl, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MessageManager, isOnline as checkOnline } from '../services/dataFlow';
 import { DirectMessageModal } from '../components/DirectMessageModal';
+import { thumb } from '../utils/storageThumb';
 
 const fmtAge = (ts) => {
   if (!ts) return '';
@@ -50,7 +51,7 @@ const ConvoRow = ({ item, userId, primary, textColor, muted, surface, onPress })
       {/* Avatar */}
       <View style={{ position: 'relative' }}>
         {partner?.avatar_url
-          ? <Image source={{ uri: partner.avatar_url }} style={cs.avatar} />
+          ? <Image source={{ uri: thumb.avatar(partner.avatar_url) }} style={cs.avatar} />
           : <View style={[cs.avatar, { backgroundColor: avatarBg(partner?.username), alignItems: 'center', justifyContent: 'center' }]}>
               <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>
                 {(partner?.username || '?').slice(0, 2).toUpperCase()}
@@ -100,6 +101,8 @@ const cs = StyleSheet.create({
   preview:   { fontSize: 13, flex: 1 },
   unreadDot: { width: 9, height: 9, borderRadius: 5, marginLeft: 8 },
 });
+
+const CONVO_ROW_HEIGHT = 79; // paddingVertical 14*2 + avatar 50 + 1 border
 
 // ── Main ChatsScreen ──────────────────────────────────────────────────────────
 export const ChatsScreen = ({ onAuthRequired }) => {
@@ -193,7 +196,17 @@ export const ChatsScreen = ({ onAuthRequired }) => {
 
       {/* List */}
       {loading ? (
-        <ActivityIndicator color={primary} size="large" style={{ marginTop: 60 }} />
+        <View style={{ paddingTop: 6 }}>
+          {[...Array(7)].map((_, i) => (
+            <View key={i} style={[cs.row, { borderBottomColor: `${primary}12` }]}>
+              <View style={[cs.avatar, { backgroundColor: `${primary}12` }]} />
+              <View style={{ flex: 1, marginLeft: 14, gap: 10 }}>
+                <View style={{ height: 13, width: '50%', borderRadius: 6, backgroundColor: `${primary}12` }} />
+                <View style={{ height: 11, width: '75%', borderRadius: 6, backgroundColor: `${primary}08` }} />
+              </View>
+            </View>
+          ))}
+        </View>
       ) : (
         <FlatList
           data={filtered}
@@ -210,6 +223,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
             />
           )}
           showsVerticalScrollIndicator={false}
+          getItemLayout={(_, index) => ({ length: CONVO_ROW_HEIGHT, offset: CONVO_ROW_HEIGHT * index, index })}
           contentContainerStyle={{ paddingBottom: 140 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => fetchConvos(true)} tintColor={primary} />

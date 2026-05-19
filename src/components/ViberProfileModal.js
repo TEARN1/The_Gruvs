@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { thumb } from '../utils/storageThumb';
 import { NotificationService } from '../services/notificationService';
 import { DirectMessageModal } from './DirectMessageModal';
 import { EditEventModal } from './EditEventModal';
@@ -288,7 +289,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
               : users.map(u => (
                 <View key={u.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: `${primary}10`, gap: 12 }}>
                   {u.avatar_url
-                    ? <Image source={{ uri: u.avatar_url }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: `${primary}40` }} />
+                    ? <Image source={{ uri: thumb.avatar(u.avatar_url) }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: `${primary}40` }} />
                     : <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
                         <Text style={{ color: primary, fontWeight: '900', fontSize: 14 }}>{(u.username || '?').slice(0, 2).toUpperCase()}</Text>
                       </View>
@@ -342,7 +343,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
               {/* Cover / header area with Dynamic Aura */}
               <View style={[s.coverArea, { backgroundColor: (profile.interests ? AuraService.getAura(profile.interests) : primary) + '20' }]}>
                 {profile.cover_url
-                  ? <Image source={{ uri: profile.cover_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                  ? <Image source={{ uri: thumb.cover(profile.cover_url) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                   : (
                     <View 
                       style={[
@@ -368,7 +369,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
               <View style={s.avatarRow}>
                 <View style={s.avatarWrap}>
                   {profile.avatar_url
-                    ? <Image source={{ uri: profile.avatar_url }} style={[s.avatar, { borderColor: rank?.color || primary }]} />
+                    ? <Image source={{ uri: thumb.avatarLg(profile.avatar_url) }} style={[s.avatar, { borderColor: rank?.color || primary }]} />
                     : <View style={[s.avatar, { borderColor: rank?.color || primary, backgroundColor: '#1a2428', alignItems: 'center', justifyContent: 'center' }]}>
                         <Text style={{ color: '#fff', fontSize: 28, fontWeight: '900' }}>
                           {(profile.username || '?').slice(0, 2).toUpperCase()}
@@ -559,7 +560,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                         <Text style={[s.sectionLabel, { color: muted }]}>GALLERY</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                           {profile.profile_gallery.map((url, i) => (
-                            <Image key={i} source={{ uri: url }} style={{ width: 140, height: 180, borderRadius: 14, borderWidth: 1, borderColor: `${primary}20` }} resizeMode="cover" />
+                            <Image key={i} source={{ uri: thumb.thumbnail(url) }} style={{ width: 140, height: 180, borderRadius: 14, borderWidth: 1, borderColor: `${primary}20` }} resizeMode="cover" />
                           ))}
                         </ScrollView>
                       </View>
