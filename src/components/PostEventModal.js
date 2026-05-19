@@ -21,7 +21,8 @@ import { CalendarPicker, TimePicker } from './DateTimePickers';
 
 const MAX_MEDIA = 30;
 const EVENT_TYPES = ['Social', 'Concert', 'Workshop', 'Festival', 'Meetup', 'Party', 'Conference', 'Pop-Up', 'Rave', 'Market', 'Retreat', 'Competition'];
-const AGE_OPTIONS = [0, 16, 18, 21, 25];
+const AGE_MIN_OPTIONS = [0, 13, 16, 18, 21, 25, 30, 35];
+const AGE_MAX_OPTIONS = [0, 17, 20, 25, 30, 35, 45, 99]; // 0 = no upper limit
 
 export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const { currentTheme } = useTheme();
@@ -40,7 +41,12 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const [eventType, setEventType] = useState('');
   const [lat, setLat] = useState(null);
   const [lon, setLon] = useState(null);
-  const [ageRestriction, setAgeRestriction] = useState(0);
+  const [ageMin, setAgeMin] = useState(0);
+  const [ageMax, setAgeMax] = useState(0);
+  const [endHour, setEndHour] = useState(null);
+  const [endMinute, setEndMinute] = useState(null);
+  const [endTimeSet, setEndTimeSet] = useState(false);
+  const [endTimePickerVisible, setEndTimePickerVisible] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [mediaItems, setMediaItems] = useState([]); // { uri, type, name, mimeType }
   const [scheduleItems, setScheduleItems] = useState([]); // { id, time, title, performer, notes }
@@ -65,7 +71,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     setPickedDate(null); setPickedHour(20); setPickedMinute(0); setTimeSet(false);
     setTicketUrl(''); setEventType('');
     setLat(null); setLon(null);
-    setAgeRestriction(0); setSelectedCategories([]); setMediaItems([]);
+    setAgeMin(0); setAgeMax(0); setSelectedCategories([]); setMediaItems([]);
+    setEndHour(null); setEndMinute(null); setEndTimeSet(false); setEndTimePickerVisible(false);
     setScheduleItems([]); setScheduleFormVisible(false);
     setScheduleForm({ time: '', title: '', performer: '', notes: '' });
     setStep(1);
@@ -195,7 +202,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       payload.media_urls = mediaUrls.map(m => m.url);
     }
     if (scheduleItems.length > 0) payload.schedule = scheduleItems.map(({ id, ...rest }) => rest);
-    if (ageRestriction) payload.age_restriction = ageRestriction;
+    if (ageMin > 0) payload.age_restriction = ageMin;
+    if (ageMax > 0) payload.age_max = ageMax;
+    if (endTimeSet && endHour !== null) {
+      payload.end_time = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+    }
     if (primaryCat) payload.category = primaryCat;
     if (ticketUrl.trim()) payload.ticket_url = ticketUrl.trim();
 
@@ -482,7 +493,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                       </Text>
                     </TouchableOpacity>
 
-                    {/* Time picker button */}
+                    {/* Start time picker */}
                     <TouchableOpacity
                       style={[pm.pickerBtn, { borderColor: timeSet ? primary : `${primary}35`, backgroundColor: timeSet ? `${primary}12` : 'rgba(255,255,255,0.05)', flex: 1 }]}
                       onPress={() => setTimePickerVisible(true)}
@@ -491,7 +502,20 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                       <Text style={[pm.pickerBtnText, { color: timeSet ? primary : muted }]}>
                         {timeSet
                           ? `${String(pickedHour).padStart(2, '0')}:${String(pickedMinute).padStart(2, '0')}`
-                          : 'Pick time'}
+                          : 'Start'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* End time picker */}
+                    <TouchableOpacity
+                      style={[pm.pickerBtn, { borderColor: endTimeSet ? primary : `${primary}25`, backgroundColor: endTimeSet ? `${primary}12` : 'rgba(255,255,255,0.03)', flex: 1 }]}
+                      onPress={() => setEndTimePickerVisible(true)}
+                    >
+                      <Feather name="clock" size={15} color={endTimeSet ? primary : muted} />
+                      <Text style={[pm.pickerBtnText, { color: endTimeSet ? primary : muted }]}>
+                        {endTimeSet && endHour !== null
+                          ? `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`
+                          : 'End (opt)'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -626,20 +650,46 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                     keyboardType="url"
                   />
 
-                  <Text style={[pm.label, { color: muted }]}>Age Restriction</Text>
-                  <View style={pm.ageRow}>
-                    {AGE_OPTIONS.map(a => (
-                      <TouchableOpacity
-                        key={a}
-                        onPress={() => setAgeRestriction(a)}
-                        style={[pm.ageBtn, { backgroundColor: ageRestriction === a ? primary : `${primary}10`, borderColor: ageRestriction === a ? primary : `${primary}20` }]}
-                      >
-                        <Text style={{ color: ageRestriction === a ? '#000' : textColor, fontWeight: '800', fontSize: 13 }}>
-                          {a === 0 ? 'All Ages' : `${a}+`}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  <Text style={[pm.label, { color: muted }]}>Age Range</Text>
+                  <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>MIN AGE</Text>
+                      <View style={[pm.ageRow, { flexWrap: 'wrap' }]}>
+                        {AGE_MIN_OPTIONS.map(a => (
+                          <TouchableOpacity
+                            key={a}
+                            onPress={() => setAgeMin(a)}
+                            style={[pm.ageBtn, { backgroundColor: ageMin === a ? primary : `${primary}10`, borderColor: ageMin === a ? primary : `${primary}20` }]}
+                          >
+                            <Text style={{ color: ageMin === a ? '#000' : textColor, fontWeight: '800', fontSize: 11 }}>
+                              {a === 0 ? 'Any' : `${a}+`}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
                   </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>MAX AGE</Text>
+                    <View style={[pm.ageRow, { flexWrap: 'wrap' }]}>
+                      {AGE_MAX_OPTIONS.map(a => (
+                        <TouchableOpacity
+                          key={a}
+                          onPress={() => setAgeMax(a)}
+                          style={[pm.ageBtn, { backgroundColor: ageMax === a ? primary : `${primary}10`, borderColor: ageMax === a ? primary : `${primary}20` }]}
+                        >
+                          <Text style={{ color: ageMax === a ? '#000' : textColor, fontWeight: '800', fontSize: 11 }}>
+                            {a === 0 ? 'No limit' : a === 99 ? '99+' : `≤${a}`}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                  {ageMin > 0 && (
+                    <Text style={{ color: primary, fontSize: 11, fontWeight: '800', marginTop: 4 }}>
+                      Allowed: {ageMin}{ageMax > 0 ? `–${ageMax === 99 ? '99+' : ageMax}` : '+'}
+                    </Text>
+                  )}
 
                   {/* Summary card */}
                   <GlassView style={[pm.summary, { borderColor: `${primary}20` }]}>
@@ -649,9 +699,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                     {pickedDate ? (
                       <Text style={[pm.summaryLine, { color: muted }]}>
                         📅 {pickedDate.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                        {timeSet ? ` at ${String(pickedHour).padStart(2, '0')}:${String(pickedMinute).padStart(2, '0')}` : ''}
+                        {timeSet ? ` ${String(pickedHour).padStart(2, '0')}:${String(pickedMinute).padStart(2, '0')}` : ''}
+                        {endTimeSet && endHour !== null ? ` – ${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}` : ''}
                       </Text>
                     ) : null}
+                    {ageMin > 0 && (
+                      <Text style={[pm.summaryLine, { color: muted }]}>
+                        🔞 Ages {ageMin}{ageMax > 0 ? `–${ageMax === 99 ? '99+' : ageMax}` : '+'}
+                      </Text>
+                    )}
                     {selectedCategories.length > 0 && (
                       <Text style={[pm.summaryLine, { color: muted }]}>
                         🏷️ {selectedCategories.slice(0, 5).map(k => ALL_CATEGORIES_MAP[k]?.label || k).join(', ')}
@@ -728,6 +784,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
         onConfirm={(h, m) => { setPickedHour(h); setPickedMinute(m); setTimeSet(true); setTimePickerVisible(false); }}
         initialHour={pickedHour}
         initialMinute={pickedMinute}
+        primary={primary} bg={bg} textColor={textColor} muted={muted}
+      />
+
+      <TimePicker
+        visible={endTimePickerVisible}
+        onClose={() => setEndTimePickerVisible(false)}
+        onConfirm={(h, m) => { setEndHour(h); setEndMinute(m); setEndTimeSet(true); setEndTimePickerVisible(false); }}
+        initialHour={endHour ?? pickedHour}
+        initialMinute={endMinute ?? 0}
         primary={primary} bg={bg} textColor={textColor} muted={muted}
       />
     </>

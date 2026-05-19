@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
   Image, ActivityIndicator, RefreshControl, Platform, ScrollView,
@@ -18,6 +18,36 @@ const FILTERS = [
   { key: 'all',    label: 'All Vibers', icon: 'users' },
   { key: 'online', label: 'Online Now', icon: 'zap' },
   { key: 'nearby', label: 'Near Me',    icon: 'map-pin' },
+];
+
+const RADIUS_OPTIONS = [1, 5, 10, 25, 50, 100];
+
+const DESC_GENDERS = [
+  { key: 'male',       label: '♂ Male' },
+  { key: 'female',     label: '♀ Female' },
+  { key: 'non_binary', label: '⚧ Non-binary' },
+];
+
+const DESC_HAIR = [
+  'Short', 'Long', 'Medium', 'Bald', 'Locs/Dreads', 'Braids',
+  'Natural/Afro', 'Weave', 'Coloured', 'Curly', 'Faded',
+];
+
+const DESC_BODY = ['Slim', 'Athletic', 'Average', 'Curvy', 'Plus Size', 'Tall', 'Short', 'Muscular'];
+
+const DESC_SKIN = [
+  { key: 'very_light', label: 'Very Light', color: '#fddbc4' },
+  { key: 'light',      label: 'Light',      color: '#f1c89b' },
+  { key: 'medium',     label: 'Medium',     color: '#c8926b' },
+  { key: 'tan',        label: 'Tan/Olive',  color: '#9c6b42' },
+  { key: 'brown',      label: 'Brown',      color: '#7c4a28' },
+  { key: 'dark',       label: 'Dark Brown', color: '#4a2712' },
+  { key: 'deep',       label: 'Deep/Ebony', color: '#2d1408' },
+];
+
+const DESC_INTERESTS = [
+  'Music', 'Art', 'Food', 'Sports', 'Tech', 'Fashion', 'Film', 'Dance',
+  'Gaming', 'Travel', 'Fitness', 'Comedy', 'Nightlife', 'Wellness', 'Business',
 ];
 
 const RANK_LABELS = [
@@ -116,6 +146,13 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const [suggested, setSuggested] = useState([]);
   const [blockedIds, setBlockedIds] = useState(new Set());
   const pendingFollowIds = useRef(new Set());
+  const [showDescFilters, setShowDescFilters] = useState(false);
+  const [descGender, setDescGender] = useState(null);
+  const [descHair, setDescHair] = useState(null);
+  const [descBody, setDescBody] = useState(null);
+  const [descSkin, setDescSkin] = useState(null);
+  const [descInterest, setDescInterest] = useState(null);
+  const [nearbyRadius, setNearbyRadius] = useState(25);
 
   const searchTimer = useRef(null);
 
@@ -164,9 +201,9 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
 
   const fetchNearby = useCallback(async () => {
     if (!user) return [];
-    const results = await DiscoveryManager.findNearbyVibers(user.id, 25);
+    const results = await DiscoveryManager.findNearbyVibers(user.id, nearbyRadius);
     return (results || []).filter(v => v.id !== user.id);
-  }, [user]);
+  }, [user, nearbyRadius]);
 
   const load = useCallback(async (isRefresh = false, q = '') => {
     if (isRefresh) setRefreshing(true);
@@ -180,8 +217,16 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
         .map(v => applyProfilePrivacy(v, v.id || v.profile_id))
         .filter(v => v !== null);
 
+      // Apply description filters (profile fields may or may not be set)
+      let descFiltered = filteredResults;
+      if (descGender) descFiltered = descFiltered.filter(v => !v.gender || v.gender === descGender);
+      if (descHair)   descFiltered = descFiltered.filter(v => !v.hair_style || v.hair_style?.toLowerCase().includes(descHair.toLowerCase()));
+      if (descBody)   descFiltered = descFiltered.filter(v => !v.body_type || v.body_type === descBody);
+      if (descSkin)   descFiltered = descFiltered.filter(v => !v.skin_tone || v.skin_tone === descSkin);
+      if (descInterest) descFiltered = descFiltered.filter(v => !v.interests || (Array.isArray(v.interests) ? v.interests.some(i => i?.toLowerCase() === descInterest.toLowerCase()) : v.interests?.toLowerCase().includes(descInterest.toLowerCase())));
+
       // Sort online users to the top
-      setVibers(filteredResults.sort((a, b) => (checkOnline(b) ? 1 : 0) - (checkOnline(a) ? 1 : 0)));
+      setVibers(descFiltered.sort((a, b) => (checkOnline(b) ? 1 : 0) - (checkOnline(a) ? 1 : 0)));
     } catch (e) {
       setFetchError(e.message || 'Could not load Vibers');
       setVibers([]);
@@ -271,7 +316,107 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
             <Text style={[s.filterText, { color: filter === f.key ? '#000' : primary }]}>{f.label}</Text>
           </TouchableOpacity>
         ))}
+        <TouchableOpacity
+          style={[s.filterBtn, {
+            backgroundColor: showDescFilters ? `${primary}20` : `${primary}12`,
+            borderColor: showDescFilters ? primary : `${primary}25`,
+          }]}
+          onPress={() => setShowDescFilters(p => !p)}
+          activeOpacity={0.8}
+        >
+          <Feather name="sliders" size={12} color={primary} />
+          <Text style={[s.filterText, { color: primary }]}>
+            Describe
+            {(descGender || descHair || descBody || descSkin || descInterest) ? ' ✦' : ''}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Nearby radius selector */}
+      {filter === 'nearby' && (
+        <View style={{ paddingHorizontal: 16, marginBottom: 10 }}>
+          <Text style={[s.sectionLabel, { color: muted }]}>Search Radius</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {RADIUS_OPTIONS.map(r => (
+              <TouchableOpacity
+                key={r}
+                onPress={() => setNearbyRadius(r)}
+                style={[s.filterBtn, {
+                  backgroundColor: nearbyRadius === r ? primary : `${primary}12`,
+                  borderColor: nearbyRadius === r ? primary : `${primary}25`,
+                }]}
+              >
+                <Text style={[s.filterText, { color: nearbyRadius === r ? '#000' : primary }]}>{r}km</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Description filters panel */}
+      {showDescFilters && (
+        <View style={[s.descPanel, { backgroundColor: `${surface}80`, borderColor: `${primary}15` }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={{ color: textColor, fontSize: 13, fontWeight: '900' }}>Describe who you're looking for</Text>
+            {(descGender || descHair || descBody || descSkin || descInterest) && (
+              <TouchableOpacity onPress={() => { setDescGender(null); setDescHair(null); setDescBody(null); setDescSkin(null); setDescInterest(null); }}>
+                <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '800' }}>Clear</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <Text style={[s.descLabel, { color: muted }]}>Gender</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
+            {DESC_GENDERS.map(g => (
+              <TouchableOpacity key={g.key} onPress={() => setDescGender(descGender === g.key ? null : g.key)}
+                style={[s.filterBtn, { backgroundColor: descGender === g.key ? primary : `${primary}12`, borderColor: descGender === g.key ? primary : `${primary}25` }]}>
+                <Text style={[s.filterText, { color: descGender === g.key ? '#000' : primary }]}>{g.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={[s.descLabel, { color: muted }]}>Skin Tone</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
+            {DESC_SKIN.map(sk => (
+              <TouchableOpacity key={sk.key} onPress={() => setDescSkin(descSkin === sk.key ? null : sk.key)}
+                style={[s.filterBtn, { backgroundColor: descSkin === sk.key ? primary : `${primary}12`, borderColor: descSkin === sk.key ? primary : `${primary}25`, flexDirection: 'row', gap: 6 }]}>
+                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: sk.color }} />
+                <Text style={[s.filterText, { color: descSkin === sk.key ? '#000' : primary }]}>{sk.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={[s.descLabel, { color: muted }]}>Hair Style</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
+            {DESC_HAIR.map(h => (
+              <TouchableOpacity key={h} onPress={() => setDescHair(descHair === h ? null : h)}
+                style={[s.filterBtn, { backgroundColor: descHair === h ? primary : `${primary}12`, borderColor: descHair === h ? primary : `${primary}25` }]}>
+                <Text style={[s.filterText, { color: descHair === h ? '#000' : primary }]}>{h}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={[s.descLabel, { color: muted }]}>Body Type</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
+            {DESC_BODY.map(b => (
+              <TouchableOpacity key={b} onPress={() => setDescBody(descBody === b ? null : b)}
+                style={[s.filterBtn, { backgroundColor: descBody === b ? primary : `${primary}12`, borderColor: descBody === b ? primary : `${primary}25` }]}>
+                <Text style={[s.filterText, { color: descBody === b ? '#000' : primary }]}>{b}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={[s.descLabel, { color: muted }]}>Interests</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 4 }}>
+            {DESC_INTERESTS.map(i => (
+              <TouchableOpacity key={i} onPress={() => setDescInterest(descInterest === i ? null : i)}
+                style={[s.filterBtn, { backgroundColor: descInterest === i ? primary : `${primary}12`, borderColor: descInterest === i ? primary : `${primary}25` }]}>
+                <Text style={[s.filterText, { color: descInterest === i ? '#000' : primary }]}>{i}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* List */}
       {loading ? (
@@ -416,9 +561,12 @@ const s = StyleSheet.create({
   onlineBadgeText: { color: '#10b981', fontSize: 11, fontWeight: '800' },
   searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 14, height: 44, borderRadius: 22, borderWidth: 1 },
   searchInput: { flex: 1, fontSize: 14 },
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 12 },
+  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, marginBottom: 12 },
   filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5 },
   filterText: { fontSize: 12, fontWeight: '800' },
+  sectionLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5, marginBottom: 8 },
+  descPanel: { marginHorizontal: 16, marginBottom: 12, borderRadius: 18, borderWidth: 1, padding: 14 },
+  descLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4, marginBottom: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 18, padding: 12, marginBottom: 8 },
   avatar: { width: 52, height: 52, borderRadius: 26 },
   onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: '#10b981', borderWidth: 2 },
