@@ -19,6 +19,7 @@ import { DiscoveryManager, UserManager, AnalyticsManager, BehavioralEngine, isOn
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { LocationService } from '../services/locationService';
 import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
 import { CategoryPickerModal } from '../components/CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { useToast } from '../components/ToastNotification';
@@ -838,19 +839,28 @@ const mec = StyleSheet.create({
   badgeText: { fontSize: 10, fontWeight: '800' },
 });
 
+const isVideoUrl = (url) => /\.(mp4|mov|webm|avi|m4v)(\?|$)/i.test(url || '');
+
 const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
-  const allImgs = [
-    ...(profileGallery || []),
+  const [activeVideo, setActiveVideo] = useState(null);
+
+  // Build items with type info
+  const allItems = [
+    ...(profileGallery || []).map(url => ({ url, isVideo: isVideoUrl(url) })),
     ...myEvents.flatMap(ev => {
-      if (Array.isArray(ev.media_urls)) return ev.media_urls;
+      if (Array.isArray(ev.media_urls)) return ev.media_urls.map(url => ({ url, isVideo: isVideoUrl(url) }));
       return (ev.media || [])
-        .filter(m => m?.type === 'image' || typeof m === 'string')
-        .map(m => (typeof m === 'string' ? m : m.url));
-    })
-  ].filter(Boolean).slice(0, 24);
+        .filter(m => m?.url || typeof m === 'string')
+        .map(m => {
+          const url = typeof m === 'string' ? m : m.url;
+          return { url, isVideo: m?.type === 'video' || isVideoUrl(url) };
+        });
+    }),
+  ].filter(item => item?.url).slice(0, 30);
 
   const cellSize = Math.floor((width - 44) / 3);
-  if (allImgs.length === 0) {
+
+  if (allItems.length === 0) {
     return (
       <View style={{ alignItems: 'center', paddingVertical: 32, gap: 10 }}>
         <Feather name="image" size={32} color={primary} style={{ opacity: 0.4 }} />
@@ -858,10 +868,36 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
       </View>
     );
   }
+
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-      {allImgs.map((url, i) => (
-        <Image key={i} source={{ uri: url }} style={{ width: cellSize, height: cellSize, borderRadius: 10, borderWidth: 1, borderColor: `${primary}15` }} resizeMode="cover" />
+      {allItems.map((item, i) => (
+        <TouchableOpacity
+          key={i}
+          onPress={() => setActiveVideo(item.isVideo ? (activeVideo === item.url ? null : item.url) : null)}
+          activeOpacity={0.85}
+          style={{ width: cellSize, height: cellSize, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}15` }}
+        >
+          {item.isVideo ? (
+            <>
+              <Video
+                source={{ uri: item.url }}
+                style={{ width: cellSize, height: cellSize }}
+                resizeMode={ResizeMode.COVER}
+                shouldPlay={activeVideo === item.url}
+                isLooping
+                isMuted={activeVideo !== item.url}
+              />
+              {activeVideo !== item.url && (
+                <View style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                  <Feather name="play-circle" size={28} color="#fff" />
+                </View>
+              )}
+            </>
+          ) : (
+            <Image source={{ uri: item.url }} style={{ width: cellSize, height: cellSize }} resizeMode="cover" />
+          )}
+        </TouchableOpacity>
       ))}
     </View>
   );

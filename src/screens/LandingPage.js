@@ -1082,61 +1082,59 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 </View>
               )}
 
-              {/* Title + description — tap to open full detail */}
-              {/* Item 55: accessibilityHint communicates the action */}
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => setSelectedEvent(event)}
-                accessibilityHint="Double-tap to open event details"
-              >
-                <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
-                <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>
-              </TouchableOpacity>
+              {/* Two-column row: title+desc LEFT, meta chips RIGHT */}
+              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedEvent(event)}
+                  accessibilityHint="Double-tap to open event details"
+                >
+                  <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
+                  <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>
+                </TouchableOpacity>
 
-              {/* Meta row */}
-              <View style={styles.metaRow}>
-                {event.event_date ? (
-                  <View style={styles.metaItem}>
-                    <Feather name="calendar" size={11} color={muted} />
-                    <Text style={[styles.metaText, { color: muted }]}>
-                      {new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}
-                    </Text>
-                  </View>
-                ) : null}
-                {event.event_time ? (
-                  <View style={styles.metaItem}>
-                    <Feather name="clock" size={11} color={muted} />
-                    <Text style={[styles.metaText, { color: muted }]}>{event.event_time}</Text>
-                  </View>
-                ) : null}
-                {(event.venue_name || event.address) ? (
-                  <TouchableOpacity
-                    style={styles.metaItem}
-                    onPress={() => SecurityService.safeOpenURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
-                  >
-                    <Feather name="map-pin" size={11} color={primary} />
-                    <Text style={[styles.metaText, { color: primary }]} numberOfLines={1}>
-                      {event.venue_name || event.address}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
+                {/* Right column: date / time / venue / countdown chips */}
+                <View style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0, maxWidth: 110 }}>
+                  {event.event_date ? (
+                    <View style={[styles.metaChip, { borderColor: `${primary}22` }]}>
+                      <Feather name="calendar" size={10} color={primary} />
+                      <Text style={[styles.metaChipText, { color: primary }]}>
+                        {new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {event.event_time ? (
+                    <View style={[styles.metaChip, { borderColor: `${muted}30` }]}>
+                      <Feather name="clock" size={10} color={muted} />
+                      <Text style={[styles.metaChipText, { color: muted }]}>{event.event_time}</Text>
+                    </View>
+                  ) : null}
+                  {(event.venue_name || event.address) ? (
+                    <TouchableOpacity
+                      style={[styles.metaChip, { borderColor: `${primary}30` }]}
+                      onPress={() => SecurityService.safeOpenURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
+                    >
+                      <Feather name="map-pin" size={10} color={primary} />
+                      <Text style={[styles.metaChipText, { color: primary }]} numberOfLines={1}>
+                        {event.venue_name || event.address}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {countdown ? (
+                    <View style={[styles.metaChip, { borderColor: `${primary}35`, backgroundColor: `${primary}10` }]}>
+                      <Feather name="clock" size={10} color={primary} />
+                      <Text style={[styles.metaChipText, { color: primary, fontWeight: '800' }]}>{countdown}</Text>
+                    </View>
+                  ) : null}
+                  {event._aiRecommended ? (
+                    <View style={[styles.metaChip, { borderColor: '#7c3aed50', backgroundColor: '#7c3aed12' }]}>
+                      <Text style={{ fontSize: 9 }}>✦</Text>
+                      <Text style={[styles.metaChipText, { color: '#a78bfa' }]}>AI Pick</Text>
+                    </View>
+                  ) : null}
+                </View>
               </View>
-
-              {/* AI Pick badge */}
-              {event._aiRecommended && (
-                <View style={[styles.countdown, { backgroundColor: '#7c3aed18', borderColor: '#7c3aed50', marginBottom: 6 }]}>
-                  <Text style={{ fontSize: 10 }}>✦</Text>
-                  <Text style={[styles.countdownText, { color: '#a78bfa' }]}>AI Pick for You</Text>
-                </View>
-              )}
-
-              {/* Countdown pill */}
-              {countdown ? (
-                <View style={[styles.countdown, { backgroundColor: `${primary}12`, borderColor: `${primary}28` }]}>
-                  <Feather name="clock" size={11} color={primary} />
-                  <Text style={[styles.countdownText, { color: primary }]}>{countdown}</Text>
-                </View>
-              ) : null}
 
               {/* Item 62: RSVP progress bar with progressbar role */}
               {event.capacity > 0 ? (
@@ -1630,6 +1628,8 @@ const styles = StyleSheet.create({
 
   countdown: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginBottom: 10 },
   countdownText: { fontSize: 11, fontWeight: '800' },
+  metaChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
+  metaChipText: { fontSize: 10, fontWeight: '700', flexShrink: 1 },
 
   rsvpWrap: { marginBottom: 10 },
   rsvpTrack: { height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 5 },

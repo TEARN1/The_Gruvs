@@ -11,6 +11,7 @@ import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { CalendarManager } from '../services/dataFlow';
+import { CrewFeedScreen } from './CrewFeedScreen';
 import { PostEventModal } from '../components/PostEventModal';
 import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
 import { supabase } from '../services/supabase';
@@ -307,6 +308,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { user } = useAuth();
 
   const [postModalVisible, setPostModalVisible] = useState(false);
+  const [pageMode, setPageMode] = useState('lineup'); // 'lineup' | 'crew'
   const [selectedDate, setSelectedDate] = useState(new Date(today));
   const [viewYear, setViewYear]   = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -436,6 +438,24 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       <AuraEffect />
+
+      {/* Lineup / Crew segment toggle */}
+      <View style={[calS.segmentWrap, { backgroundColor: bg, borderBottomColor: `${primary}18` }]}>
+        {[{ key: 'lineup', label: 'Lineup', icon: 'calendar' }, { key: 'crew', label: 'Crew', icon: 'users' }].map(s => (
+          <TouchableOpacity
+            key={s.key}
+            style={[calS.segBtn, pageMode === s.key && { borderBottomColor: primary, borderBottomWidth: 2 }]}
+            onPress={() => setPageMode(s.key)}
+          >
+            <Feather name={s.icon} size={14} color={pageMode === s.key ? primary : muted} />
+            <Text style={[calS.segLabel, { color: pageMode === s.key ? primary : muted }]}>{s.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {pageMode === 'crew' ? (
+        <CrewFeedScreen onAuthRequired={onAuthRequired} onNavigateToEvent={onNavigateToEvent} />
+      ) : (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 140 }}
@@ -644,6 +664,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
         )}
 
       </ScrollView>
+      )}
 
       <PostEventModal
         visible={postModalVisible}
@@ -696,6 +717,9 @@ const styles = StyleSheet.create({
 });
 
 const calS = StyleSheet.create({
+  segmentWrap: { flexDirection: 'row', borderBottomWidth: 1, paddingHorizontal: 16 },
+  segBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  segLabel:    { fontSize: 13, fontWeight: '800' },
   searchWrap:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14, borderWidth: 1 },
   searchInput: { flex: 1, fontSize: 13 },
   filterPill:  { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },

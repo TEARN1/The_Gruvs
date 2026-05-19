@@ -22,7 +22,6 @@ import { useNotifications } from './src/hooks/useNotifications';
 import { ProfilePage } from './src/screens/ProfilePage';
 import { ViberProfileModal } from './src/components/ViberProfileModal';
 import { CalendarPage } from './src/screens/CalendarPage';
-import { CrewFeedScreen } from './src/screens/CrewFeedScreen';
 import { ExplorePage } from './src/screens/ExplorePage';
 import { ReelsScreen } from './src/screens/ReelsScreen';
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
@@ -44,7 +43,6 @@ const TABS = [
   { key: 'feed', label: 'The Drop', icon: 'home' },
   { key: 'reels', label: 'Reels', icon: 'film' },
   { key: 'explore', label: 'Explore', icon: 'compass' },
-  { key: 'crew', label: 'Crew', icon: 'users' },
   { key: 'calendar', label: 'Lineup', icon: 'calendar' },
   { key: 'chats', label: 'Linked Up', icon: 'message-circle' },
   { key: 'notifications', label: 'Pings', icon: 'bell' },
@@ -462,8 +460,6 @@ const MainNavigator = () => {
             onNavigateToEvent={handleNavigateToEvent}
           />
         ));
-      case 'crew':
-        return wrap('Crew Feed', <CrewFeedScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />);
       case 'calendar':
         return wrap('Lineup', <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />);
       case 'chats':

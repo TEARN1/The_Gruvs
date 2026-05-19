@@ -33,8 +33,8 @@ export const TUTORIALS = [
       {
         icon: 'layout',
         title: 'Your Command Center',
-        body: 'Move through The Gruvs using the 5 tabs:\n\n• The Drop — Your live personalised Gruv feed\n• Scout — Full city catalogue and search\n• Lineup — Your stashed Gruvs schedule\n• Pings — Alerts and reminders\n• Vibe Card — Your identity, settings, and Biz Hub',
-        tip: 'Long press on Pings to mark all as read quickly.',
+        body: 'Move through The Gruvs using the 7 tabs:\n\n• The Drop — Live personalised Gruv feed\n• Reels — Short-form video from Vibers & events\n• Scout — Full city catalogue and search\n• Lineup — Schedule + Crew (toggle at top)\n• Linked Up — Your direct message threads\n• Pings — Alerts and reminders\n• Vibe Card — Your identity, settings, and Biz Hub',
+        tip: 'Lineup and Crew are now together — switch between them with the toggle at the top of the Lineup tab.',
         visual: 'tabs',
       },
     ],
@@ -556,15 +556,156 @@ export const TUTORIALS = [
       },
     ],
   },
+
+  // ── Reels ────────────────────────────────────────────────────────────────────
+  {
+    id: 'reels_intro',
+    title: 'Reels — Short-Form Video',
+    category: 'Reels',
+    icon: 'film',
+    color: '#ec4899',
+    duration: '3 min',
+    steps: [
+      {
+        icon: 'film',
+        title: 'What Are Reels?',
+        body: 'Reels are short vertical videos posted by Vibers and organisers — highlights from Gruvs, DJ sets, behind-the-scenes, food drops, and culture moments. Swipe up to skip to the next Reel.',
+        tip: 'Double-tap anywhere on a Reel to instantly drop a ❤️ like.',
+        visual: 'reels_feed',
+      },
+      {
+        icon: 'sliders',
+        title: 'For You vs Following',
+        body: 'Switch between two feeds at the top of Reels:\n\n• For You — Algorithm-curated mix of trending and personalised Reels from across The Gruvs\n• Following — Only Reels from Vibers you follow\n\nTap the tab at the top to switch.',
+        tip: '"Following" is the cleanest signal — use it when you only want content from Vibers you know.',
+        visual: 'reels_tabs',
+      },
+      {
+        icon: 'zap',
+        title: 'Reel Controls',
+        body: 'Action bar on the right side:\n\n• ❤️ Like — or double-tap the screen\n• 💬 Comment — drop a quick thought\n• 📤 Share — send via WhatsApp, copy link\n• 🔖 Save — bookmark to watch again later\n• 👁 Views — how many Vibers have watched\n• 🔊 Mute — tap to toggle audio on/off\n• Speed — 0.5× · 1× · 1.5× playback speed',
+        tip: 'Tap the creator\'s avatar at the top of the action bar to open their Vibe Card.',
+        visual: 'reels_actions',
+      },
+      {
+        icon: 'video',
+        title: 'Posting a Reel',
+        body: 'Tap the camera icon on your Vibe Card gallery tab to post a Reel. Upload a video up to 60 seconds. Add a caption, hashtags, and optionally link it to a specific Gruv. Linked Reels appear inside the Gruv detail page too.',
+        tip: 'Reels linked to trending Gruvs get surfaced in the For You feed more aggressively.',
+        visual: 'post_reel',
+      },
+    ],
+  },
+
+  // ── Crew ─────────────────────────────────────────────────────────────────────
+  {
+    id: 'crew_intro',
+    title: 'Crew — Your Squad',
+    category: 'Lineup & Pings',
+    icon: 'users',
+    color: '#7c3aed',
+    duration: '2 min',
+    steps: [
+      {
+        icon: 'users',
+        title: 'What Is Crew?',
+        body: "Crew is your inner circle on The Gruvs — the Vibers you roll with to Gruvs. The Crew feed shows what your squad is Vibing, Stashing, and Touching Down at, so you can co-ordinate nights out without any back-and-forth.",
+        tip: 'Crew is now inside the Lineup tab — tap the Crew toggle at the top to switch.',
+        visual: 'crew_feed',
+      },
+      {
+        icon: 'user-plus',
+        title: 'Building Your Crew',
+        body: "Follow Vibers to add them to your Crew view. Your Crew feed pulls from everyone you follow. The more you follow, the richer the signal — you'll always know which Gruvs your people are planning to hit.",
+        tip: 'Start by following Vibers you recognise from events you\'ve attended — they\'re the most relevant crew signal.',
+        visual: 'follow_crew',
+      },
+      {
+        icon: 'calendar',
+        title: 'Crew + Lineup Together',
+        body: "The Lineup tab now combines your personal schedule (Lineup mode) with your social scene (Crew mode) under one roof. Switch between them with the toggle at the top — no extra tab needed.",
+        tip: 'Check Crew before you Stash a Gruv — if your squad is already Vibing it, you should be there too.',
+        visual: 'crew_lineup',
+      },
+    ],
+  },
+
+  // ── Linked Up (DMs) ──────────────────────────────────────────────────────────
+  {
+    id: 'linked_up',
+    title: 'Linked Up — Direct Messages',
+    category: 'Social & Connections',
+    icon: 'message-circle',
+    color: '#06b6d4',
+    duration: '2 min',
+    steps: [
+      {
+        icon: 'message-circle',
+        title: 'Linked Up — Your Inbox',
+        body: 'Linked Up is your direct message tab. One-on-one chats with any Viber. Use it to co-ordinate transport, plan group nights, ask questions to organisers, or just keep the conversation going after a Gruv.',
+        tip: 'Message requests from Vibers you don\'t follow go into a separate request queue — check the bell badge at the top.',
+        visual: 'linked_up',
+      },
+      {
+        icon: 'user-plus',
+        title: 'Starting a Conversation',
+        body: 'Tap any Viber\'s avatar or username across the app (The Drop, Reels, Scout, profiles) to open their Vibe Card. From there, hit the message icon to open a new chat. The chat opens immediately — no follow required.',
+        tip: 'First messages to Vibers you don\'t follow are sent as requests — they\'re visible but need acceptance to reply.',
+        visual: 'start_dm',
+      },
+      {
+        icon: 'search',
+        title: 'Finding Conversations',
+        body: 'The search bar at the top of Linked Up filters your existing conversations by username in real time. Unread threads show a blue dot — bold preview text means you haven\'t opened it yet.',
+        tip: 'Linked Up refreshes automatically — new messages appear without pulling to refresh.',
+        visual: 'dm_inbox',
+      },
+    ],
+  },
+
+  // ── AI & Smart Features ───────────────────────────────────────────────────────
+  {
+    id: 'ai_drop',
+    title: 'AI-Powered Drop',
+    category: 'The Drop & Gruvs',
+    icon: 'cpu',
+    color: '#8b5cf6',
+    duration: '2 min',
+    steps: [
+      {
+        icon: 'cpu',
+        title: 'Your Drop Is Personalised',
+        body: 'The Drop learns from everything you do — Vibes, Stashes, Touch Downs, Echoes, search queries, and even how long you pause on a card. The longer you use The Gruvs, the sharper the recommendations get.',
+        tip: 'Vibing and Stashing events explicitly trains the algorithm the fastest.',
+        visual: 'ai_feed',
+      },
+      {
+        icon: 'star',
+        title: '"AI Pick for You" Badge',
+        body: 'When the engine has high confidence a Gruv matches your taste and history, it adds the ✦ AI Pick badge to the card. These are not random — they\'re scored against your actual activity pattern.',
+        tip: 'AI Picks improve the more you interact. First-time users see popular Gruvs until there\'s enough signal.',
+        visual: 'ai_pick',
+      },
+      {
+        icon: 'trending-up',
+        title: 'Trending & Blazing',
+        body: 'The Blazing section combines real-time Vibe count velocity, Echo volume, and Touch Down rate. Trending Reels are similarly ranked by watch time and engagement in the last 2 hours — not just total views.',
+        tip: 'Blazing rankings update every 5 minutes — refresh The Drop to catch what\'s heating up.',
+        visual: 'ai_trending',
+      },
+    ],
+  },
 ];
 
 export const TUTORIAL_CATEGORIES = [
   'Tune In',
   'The Drop & Gruvs',
   'Scout & Discover',
+  'Reels',
+  'Lineup & Pings',
+  'Social & Connections',
   'Vibe Card & Identity',
   'Biz Hub & Missions',
-  'Lineup & Pings',
 ];
 
 // ── Context ───────────────────────────────────────────────────────────────────

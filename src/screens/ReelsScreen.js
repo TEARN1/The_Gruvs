@@ -153,6 +153,7 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
   const [duration, setDuration] = useState(0);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [following, setFollowing] = useState(reel._following || false);
+  const [saved, setSaved] = useState(reel._saved || false);
 
   useEffect(() => {
     if (isActive) {
@@ -214,6 +215,17 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
     try {
       await Share.share({ message: `Check out @${reel.profiles?.username}'s reel on The Gruvs!` });
     } catch {}
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+    const newSaved = !saved;
+    setSaved(newSaved);
+    if (newSaved) {
+      await supabase.from('saved_reels').upsert({ reel_id: reel.id, user_id: user.id }, { onConflict: 'reel_id,user_id', ignoreDuplicates: true });
+    } else {
+      await supabase.from('saved_reels').delete().eq('reel_id', reel.id).eq('user_id', user.id);
+    }
   };
 
   const isVideo = reel.media_type === 'video';
@@ -299,6 +311,20 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
             <Text style={[ri.actionLabel, { color: '#fff' }]}>Share</Text>
           </TouchableOpacity>
 
+          {/* Save */}
+          <TouchableOpacity style={ri.actionBtn} onPress={handleSave} activeOpacity={0.8}>
+            <Feather name={saved ? 'bookmark' : 'bookmark'} size={25} color={saved ? primary : '#fff'} />
+            <Text style={[ri.actionLabel, { color: saved ? primary : '#fff' }]}>Save</Text>
+          </TouchableOpacity>
+
+          {/* View count */}
+          {(reel.view_count > 0) && (
+            <View style={ri.actionBtn}>
+              <Feather name="eye" size={22} color="rgba(255,255,255,0.6)" />
+              <Text style={[ri.actionLabel, { color: 'rgba(255,255,255,0.6)' }]}>{fmtCount(reel.view_count)}</Text>
+            </View>
+          )}
+
           {/* Message */}
           {user && user.id !== reel.user_id && (
             <TouchableOpacity style={ri.actionBtn} onPress={() => onMessage(author)} activeOpacity={0.8}>
@@ -354,9 +380,9 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
 };
 const ri = StyleSheet.create({
   container: { backgroundColor: '#000' },
-  gradient: { ...StyleSheet.absoluteFillObject, background: undefined, backgroundColor: 'transparent',
-    // simulate bottom gradient
-    top: '40%', borderTopWidth: 0 },
+  gradient: { ...StyleSheet.absoluteFillObject, backgroundColor: 'transparent', top: '45%',
+    // Bottom-up dark fade so caption/actions are readable
+    borderTopWidth: 0 },
   progressBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: 'rgba(255,255,255,0.2)' },
   progressFill: { height: '100%', borderRadius: 1 },
   heartBurst: { position: 'absolute', alignSelf: 'center', top: '35%' },
@@ -459,44 +485,54 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
   const viewConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
 
+  const TabSwitcher = ({ absolute = false }) => (
+    <View style={[rs.tabBar, absolute && rs.tabBarAbsolute, { paddingTop: insets.top }]}>
+      {onClose && (
+        <TouchableOpacity onPress={onClose} style={{ position: 'absolute', left: 16, top: insets.top + 10 }}>
+          <Feather name="x" size={22} color="#fff" />
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity onPress={() => setTab('foryou')}>
+        <Text style={[rs.tabLabel, tab === 'foryou' && rs.tabActive]}>For You</Text>
+        {tab === 'foryou' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => setTab('following')}>
+        <Text style={[rs.tabLabel, tab === 'following' && rs.tabActive]}>Following</Text>
+        {tab === 'following' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
+      </TouchableOpacity>
+    </View>
+  );
+
   if (loading) {
     return (
-      <View style={[rs.screen, { backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }]}>
-        <ActivityIndicator color={primary} size="large" />
-        <Text style={{ color: muted, marginTop: 12, fontSize: 13 }}>Loading Reels...</Text>
+      <View style={[rs.screen, { backgroundColor: '#000' }]}>
+        <TabSwitcher />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={primary} size="large" />
+          <Text style={{ color: muted, marginTop: 12, fontSize: 13 }}>Loading Reels...</Text>
+        </View>
       </View>
     );
   }
 
   if (!reels.length) {
     return (
-      <View style={[rs.screen, { backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={{ fontSize: 36 }}>🎬</Text>
-        <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, marginTop: 12 }}>No Reels yet</Text>
-        <Text style={{ color: muted, fontSize: 13, marginTop: 6 }}>Be the first to post a reel on The Gruvs</Text>
+      <View style={[rs.screen, { backgroundColor: '#000' }]}>
+        <TabSwitcher />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 36 }}>🎬</Text>
+          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, marginTop: 12 }}>No Reels yet</Text>
+          <Text style={{ color: muted, fontSize: 13, marginTop: 6 }}>
+            {tab === 'following' ? "Follow more Vibers to see their reels here" : "Be the first to post a reel on The Gruvs"}
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={[rs.screen, { paddingTop: insets.top }]}>
-      {/* Tab bar overlay */}
-      <View style={rs.tabBar}>
-        {onClose && (
-          <TouchableOpacity onPress={onClose} style={{ position: 'absolute', left: 16 }}>
-            <Feather name="x" size={22} color="#fff" />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity onPress={() => setTab('foryou')}>
-          <Text style={[rs.tabLabel, tab === 'foryou' && rs.tabActive]}>For You</Text>
-          {tab === 'foryou' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setTab('following')}>
-          <Text style={[rs.tabLabel, tab === 'following' && rs.tabActive]}>Following</Text>
-          {tab === 'following' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
-        </TouchableOpacity>
-      </View>
-
+    <View style={rs.screen}>
+      <TabSwitcher absolute />
       <FlatList
         ref={flatRef}
         data={reels}
@@ -557,7 +593,8 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
 const rs = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
-  tabBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'center', gap: 32, paddingVertical: 12 },
+  tabBar: { flexDirection: 'row', justifyContent: 'center', gap: 32, paddingBottom: 12, backgroundColor: 'rgba(0,0,0,0.4)' },
+  tabBarAbsolute: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   tabLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 14, fontWeight: '800', letterSpacing: 0.5, textShadowColor: '#000', textShadowRadius: 6 },
   tabActive: { color: '#fff' },
   tabUnderline: { height: 2, borderRadius: 1, marginTop: 3 },
