@@ -43,6 +43,7 @@ import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
 import { WhoWasThereModal } from '../components/WhoWasThereModal';
 import { EventTicketModal } from '../components/EventTicketModal';
+import { CreateReelModal } from '../components/CreateReelModal';
 
 const { width } = Dimensions.get('window');
 
@@ -986,6 +987,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { completed: tutorialsDone } = useTutorial();
   const streak = useStreak();
   const [postModalVisible, setPostModalVisible] = useState(false);
+  const [createReelVisible, setCreateReelVisible] = useState(false);
   const { identityMode, modeConfig, setIdentityMode, applyLocationPrivacy } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs');
   const [settingsTab, setSettingsTab] = useState('discover');
@@ -1099,33 +1101,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   };
 
-  const handleReelUpload = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
-        allowsEditing: true,
-        quality: 0.85,
-        videoMaxDuration: 60,
-      });
-      if (result.canceled || !result.assets?.length) return;
-      const asset = result.assets[0];
-      const isVideo = asset.type === 'video';
-      toast.show(`Uploading ${isVideo ? 'video' : 'photo'} reel...`, 'info');
-      const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
-      const storagePath = `${user.id}/reel_${Date.now()}.${ext}`;
-      const publicUrl = await uploadToStorage(asset.uri, 'reels', storagePath, { mimeType: asset.mimeType });
-      const { error } = await supabase.from('reels').insert({
-        user_id: user.id,
-        media_url: publicUrl,
-        media_type: isVideo ? 'video' : 'image',
-        caption: '',
-      });
-      if (error) throw new Error(error.message);
-      toast.show('Reel posted! 🎬', 'success');
-    } catch (e) {
-      toast.show('Reel upload failed: ' + (e.message || 'Unknown error'), 'error');
-    }
-  };
 
   const handleSaveProfile = async () => {
     try {
@@ -1915,7 +1890,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                       <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>Add Photo</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={handleReelUpload}
+                      onPress={() => setCreateReelVisible(true)}
                       style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, padding: 11, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: `${primary}40`, justifyContent: 'center' }}
                     >
                       <Feather name="film" size={15} color={primary} />
@@ -2129,6 +2104,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       <TutorialCenter
         visible={tutorialCenterVisible}
         onClose={() => setTutorialCenterVisible(false)}
+      />
+
+      <CreateReelModal
+        visible={createReelVisible}
+        onClose={() => setCreateReelVisible(false)}
+        onPosted={() => setCreateReelVisible(false)}
       />
 
       {/* ── Full-screen image viewer ── */}
