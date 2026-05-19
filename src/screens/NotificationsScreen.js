@@ -22,6 +22,7 @@ const TYPE_META = {
   royal:        { icon: 'star',           color: '#f59e0b' },
   rating:       { icon: 'award',          color: '#ec4899' },
   profile_view: { icon: 'eye',            color: '#a78bfa' },
+  event_day:    { icon: 'calendar',       color: '#10b981' },
 };
 
 const SEGMENTS = ['Today', 'This Week', 'Older'];
@@ -135,7 +136,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     const viewerId = item.data?.viewer_id || item.data?.actor_id;
     if ((item.type === 'profile_view' || item.type === 'follow') && viewerId) {
       setProfileModalUserId(viewerId);
-    } else if (['vibe', 'rsvp', 'echo', 'comment'].includes(item.type) && item.data?.event_id && onNavigateToEvent) {
+    } else if (['vibe', 'rsvp', 'echo', 'comment', 'event_day'].includes(item.type) && item.data?.event_id && onNavigateToEvent) {
       onNavigateToEvent({ id: item.data.event_id });
     }
   };
@@ -143,7 +144,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const renderItem = ({ item }) => {
     const meta = TYPE_META[item.type] || TYPE_META.vibe;
     const avatarUrl = thumb.avatar(item.actor?.avatar_url || item.data?.viewer_avatar || item.data?.actor_avatar || null);
-    const isActionable = ['profile_view', 'follow', 'vibe', 'rsvp', 'echo'].includes(item.type);
+    const isActionable = ['profile_view', 'follow', 'vibe', 'rsvp', 'echo', 'event_day'].includes(item.type);
     return (
       <TouchableOpacity
         onPress={() => handleNotifPress(item)}
