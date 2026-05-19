@@ -6,6 +6,8 @@
  */
 
 import { supabase, isSupabaseEnabled } from './supabase';
+import { withRetry } from '../utils/retry';
+import { log } from '../utils/log';
 import { LocationService } from './locationService';
 import { SecurityService } from './securityService';
 import { VibeEquityLedger } from './vibeEquityLedger';
@@ -649,21 +651,17 @@ export const VibeManager = {
       return true;
     }
     try {
-      const { error } = await supabase
-        .from('event_vibes')
-        .upsert({ event_id: eventId, user_id: userId }, { onConflict: 'event_id,user_id', ignoreDuplicates: true });
-      if (error) return null;
+      const { error } = await withRetry(() =>
+        supabase.from('event_vibes')
+          .upsert({ event_id: eventId, user_id: userId }, { onConflict: 'event_id,user_id', ignoreDuplicates: true })
+      );
+      if (error) { log.error('VibeManager:sendVibe', error); return null; }
       FeedManager.invalidate(eventId);
-
-      // MINT EQUITY: Social resonance boost
-      VibeEquityLedger.mintEquity(userId, 'SOCIAL_RESONANCE').catch(() => { });
-
-      // Trigger score re-calc for actor
-      ScoreEngine.computeVibeScore(userId).catch(() => { });
-      // Fire notification to event author (best-effort)
-      _notifyEventAuthor(eventId, userId, 'vibe').catch(() => { });
+      VibeEquityLedger.mintEquity(userId, 'SOCIAL_RESONANCE').catch(() => {});
+      ScoreEngine.computeVibeScore(userId).catch(() => {});
+      _notifyEventAuthor(eventId, userId, 'vibe').catch(() => {});
       return true;
-    } catch { return null; }
+    } catch (e) { log.error('VibeManager:sendVibe', e); return null; }
   },
 
   async removeVibe(eventId, userId) {
@@ -672,13 +670,13 @@ export const VibeManager = {
       return true;
     }
     try {
-      const { error } = await supabase
-        .from('event_vibes')
-        .delete().eq('event_id', eventId).eq('user_id', userId);
-      if (error) return null;
+      const { error } = await withRetry(() =>
+        supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId)
+      );
+      if (error) { log.error('VibeManager:removeVibe', error); return null; }
       FeedManager.invalidate(eventId);
       return true;
-    } catch { return null; }
+    } catch (e) { log.error('VibeManager:removeVibe', e); return null; }
   },
 
   async getUserVibes(eventIds, userId) {
@@ -710,27 +708,30 @@ export const RSVPManager = {
       return true;
     }
     try {
-      const { error } = await supabase
-        .from('event_rsvps')
-        .upsert({ event_id: eventId, user_id: userId, status }, { onConflict: 'event_id,user_id' });
-      if (error) throw error;
+      const { error } = await withRetry(() =>
+        supabase.from('event_rsvps')
+          .upsert({ event_id: eventId, user_id: userId, status }, { onConflict: 'event_id,user_id' })
+      );
+      if (error) { log.error('RSVPManager:upsert', error); return false; }
       cache.invalidate(`rsvp:${userId}`);
       FeedManager.invalidate(eventId);
       if (status === 'going') {
-        _notifyEventAuthor(eventId, userId, 'rsvp').catch(() => { });
-        ScoreEngine.computeVibeScore(userId).catch(() => { });
+        _notifyEventAuthor(eventId, userId, 'rsvp').catch(() => {});
+        ScoreEngine.computeVibeScore(userId).catch(() => {});
       }
       return true;
-    } catch { return false; }
+    } catch (e) { log.error('RSVPManager:upsert', e); return false; }
   },
 
   async remove(eventId, userId) {
     try {
-      await supabase.from('event_rsvps')
-        .delete().eq('event_id', eventId).eq('user_id', userId);
+      const { error } = await withRetry(() =>
+        supabase.from('event_rsvps').delete().eq('event_id', eventId).eq('user_id', userId)
+      );
+      if (error) { log.error('RSVPManager:remove', error); return false; }
       cache.invalidate(`rsvp:${userId}`);
       return true;
-    } catch { return false; }
+    } catch (e) { log.error('RSVPManager:remove', e); return false; }
   },
 
   async getUserStatus(eventId, userId) {
@@ -1630,9 +1631,8 @@ export const MessageManager = {
 
       const trimmedBody = (body || '').trim() || null;
 
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
+      const { data, error } = await withRetry(() =>
+        supabase.from('messages').insert({
           ...(_pregenId ? { id: _pregenId } : {}),
           sender_id: senderId, recipient_id: recipientId,
           body: (sanitizedBody || '').trim() || null,
@@ -1644,9 +1644,8 @@ export const MessageManager = {
           event_id,
           latitude,
           longitude,
-        })
-        .select()
-        .single();
+        }).select().single()
+      );
       if (error) throw error;
 
       cache.invalidate(`convos:${senderId}`);

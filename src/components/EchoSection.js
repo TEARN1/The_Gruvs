@@ -7,6 +7,9 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { log } from '../utils/log';
+import { thumb } from '../utils/storageThumb';
+import { withRetry } from '../utils/retry';
 
 const formatAge = (dateStr) => {
   if (!dateStr) return '';
@@ -42,15 +45,16 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
 
   const fetchEchoes = useCallback(async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('echoes')
-        .select('*, profiles(username, avatar_url)')
+        .select('id, body, likes, parent_id, created_at, user_id, profiles!user_id(username, avatar_url)')
         .eq('event_id', eventId)
         .order(sort === 'top' ? 'likes' : 'created_at', { ascending: false })
         .limit(30);
+      if (error) throw error;
       if (data) setEchoes(data);
     } catch (e) {
-      console.log('Echo fetch error:', e.message);
+      log.error('EchoSection:fetch', e);
     }
   }, [eventId, sort]);
 
@@ -95,24 +99,23 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
     if (!user) { onAuthRequired(); return; }
     const isCurrentlyLiked = likedEchoes.has(echoId);
 
-    // Optimistic UI update first
     setLikedEchoes(prev => {
       const next = new Set(prev);
       isCurrentlyLiked ? next.delete(echoId) : next.add(echoId);
       return next;
     });
-    setEchoes(prev => prev.map(e =>
-      e.id === echoId
-        ? { ...e, likes: Math.max(0, (e.likes || 0) + (isCurrentlyLiked ? -1 : 1)) }
-        : e
-    ));
 
-    // Persist new count to Supabase
-    const echo = echoes.find(e => e.id === echoId);
-    if (echo) {
-      const newCount = Math.max(0, (echo.likes || 0) + (isCurrentlyLiked ? -1 : 1));
-      await supabase.from('echoes').update({ likes: newCount }).eq('id', echoId);
-    }
+    // Use functional updater to avoid stale closure — no extra echoes.find() needed
+    let currentLikes = 0;
+    setEchoes(prev => prev.map(e => {
+      if (e.id !== echoId) return e;
+      currentLikes = Math.max(0, (e.likes || 0) + (isCurrentlyLiked ? -1 : 1));
+      return { ...e, likes: currentLikes };
+    }));
+
+    await withRetry(() =>
+      supabase.from('echoes').update({ likes: currentLikes }).eq('id', echoId)
+    );
   };
 
   const avatarInitials = (name) =>
@@ -125,7 +128,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
 
   const displayEchoes = echoes;
 
-  const myAvatar = profile?.avatar_url;
+  const myAvatar = thumb.avatar(profile?.avatar_url);
   const myInitials = avatarInitials(profile?.username || user?.email);
   const myColor = avatarColor(profile?.username || user?.email);
 
@@ -170,7 +173,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
             <View key={echo.id} style={styles.echoItem}>
               {/* Avatar */}
               {echo.profiles?.avatar_url
-                ? <Image source={{ uri: echo.profiles.avatar_url }} style={styles.avatar} />
+                ? <Image source={{ uri: thumb.avatar(echo.profiles.avatar_url) }} style={styles.avatar} />
                 : <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarColor(name) }]}>
                     <Text style={styles.avatarText}>{avatarInitials(name)}</Text>
                   </View>

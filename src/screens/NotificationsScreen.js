@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  ActivityIndicator, RefreshControl, Image,
+  RefreshControl, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -10,6 +10,8 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { NotificationService } from '../services/notificationService';
 import { ViberProfileModal } from '../components/ViberProfileModal';
+import { log } from '../utils/log';
+import { thumb } from '../utils/storageThumb';
 
 const TYPE_META = {
   vibe:         { icon: 'zap',            color: '#f97316' },
@@ -23,6 +25,7 @@ const TYPE_META = {
 };
 
 const SEGMENTS = ['Today', 'This Week', 'Older'];
+const ITEM_HEIGHT = 71; // paddingVertical 14*2 + avatar 42 + 1 border
 
 const formatAge = (dateStr) => {
   if (!dateStr) return '';
@@ -66,15 +69,16 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     if (!user) { setNotifications([]); return; }
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('notifications')
         .select('*, actor:profiles!actor_id(username, avatar_url)')
         .eq('recipient_id', user.id)
         .order('created_at', { ascending: false })
         .limit(100);
+      if (error) throw error;
       setNotifications(data || []);
     } catch (e) {
-      console.log('Notifications fetch error:', e.message);
+      log.error('NotificationsScreen:fetch', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -98,14 +102,16 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   useEffect(() => {
     fetchNotifications();
-    // Auto-clear the badge as soon as the screen opens
-    markAllRead();
+    // Delay markAllRead so the badge clears after notifications are visible,
+    // not before the list renders (which would mark unread before user sees them)
+    const t = setTimeout(() => markAllRead(), 1500);
+    return () => clearTimeout(t);
   }, [fetchNotifications, markAllRead]);
 
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`notifications_screen_${user.id}_${Math.random().toString(36).substr(2,9)}`)
+      .channel(`notifications_screen_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -136,7 +142,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const renderItem = ({ item }) => {
     const meta = TYPE_META[item.type] || TYPE_META.vibe;
-    const avatarUrl = item.actor?.avatar_url || item.data?.viewer_avatar || item.data?.actor_avatar || null;
+    const avatarUrl = thumb.avatar(item.actor?.avatar_url || item.data?.viewer_avatar || item.data?.actor_avatar || null);
     const isActionable = ['profile_view', 'follow', 'vibe', 'rsvp', 'echo'].includes(item.type);
     return (
       <TouchableOpacity
@@ -241,13 +247,24 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
       {/* List */}
       {loading ? (
-        <ActivityIndicator color={primary} size="large" style={{ marginTop: 60 }} />
+        <View style={{ paddingTop: 8 }}>
+          {[...Array(6)].map((_, i) => (
+            <View key={i} style={[ns.item, { borderBottomColor: `${primary}15` }]}>
+              <View style={[ns.iconWrap, ns.skeleton, { backgroundColor: `${primary}12` }]} />
+              <View style={{ flex: 1, marginLeft: 14, gap: 8 }}>
+                <View style={[ns.skeleton, { height: 12, width: '70%', borderRadius: 6 }]} />
+                <View style={[ns.skeleton, { height: 10, width: '45%', borderRadius: 6 }]} />
+              </View>
+            </View>
+          ))}
+        </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={item => String(item.id)}
           renderItem={renderItem}
           showsVerticalScrollIndicator={false}
+          getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -368,6 +385,11 @@ const ns = StyleSheet.create({
   avatarImg: { width: 42, height: 42, borderRadius: 21 },
   typeIcon: { position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#0d1112' },
   tapHint: { fontSize: 10, fontWeight: '600' },
+  skeleton: {
+    background: 'transparent',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    overflow: 'hidden',
+  },
   empty: { alignItems: 'center', paddingTop: 70, gap: 12 },
   emptyText: { fontSize: 16, fontWeight: '800' },
   emptySub: { fontSize: 13, textAlign: 'center' },

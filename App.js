@@ -30,6 +30,7 @@ import { TutorialOverlay } from './src/components/TutorialOverlay';
 import { GodViewDashboard } from './src/screens/GodViewDashboard';
 //import { AIAssistant } from './src/components/AIAssistant'; // HIDDEN — Under development
 import { installGlobalErrorHandler } from './src/utils/errorReporter';
+import { validateEnv } from './src/utils/validateEnv';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { SecurityService } from './src/services/securityService';
 import { VibeEconomyEngine } from './src/services/revenueEngine';
@@ -37,6 +38,7 @@ import { NeuralUI } from './src/services/neuralUI';
 
 // Install before any component mounts so all boot errors are captured
 installGlobalErrorHandler();
+validateEnv();
 
 const TABS = [
   { key: 'feed', label: 'The Drop', icon: 'home' },
@@ -263,7 +265,7 @@ const MainNavigator = () => {
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [godViewVisible, setGodViewVisible] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isSovereign, setIsSovereign] = useState(false);
+  const [, setIsSovereign] = useState(false);
   const [targetEvent, setTargetEvent] = useState(null);
   const [targetProfile, setTargetProfile] = useState(null);
   const [targetReel, setTargetReel] = useState(null);
