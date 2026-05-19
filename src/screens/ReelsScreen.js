@@ -21,6 +21,10 @@ import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 
 const { width: SW, height: SH } = Dimensions.get('window');
+const IS_WEB = Platform.OS === 'web';
+// On web constrain reel to phone-like frame
+const REEL_W = IS_WEB ? Math.min(SW, 420) : SW;
+const REEL_H = IS_WEB ? Math.min(SH, 820) : SH;
 
 const avatarBg = (u = '') =>
   ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u.charCodeAt(0) || 0) % 5];
@@ -235,7 +239,7 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
 
   return (
     <TouchableWithoutFeedback onPress={handleDoubleTap}>
-      <View style={[ri.container, { width: SW, height: SH }]}>
+      <View style={[ri.container, { width: REEL_W, height: REEL_H }]}>
         {/* Media */}
         {isVideo ? (
           <Video
@@ -530,8 +534,8 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     );
   }
 
-  return (
-    <View style={rs.screen}>
+  const reelFeed = (
+    <View style={IS_WEB ? rs.webFeedContainer : rs.screen}>
       <TabSwitcher absolute />
       <FlatList
         ref={flatRef}
@@ -543,7 +547,11 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewConfig}
-        getItemLayout={(_, index) => ({ length: SH, offset: SH * index, index })}
+        getItemLayout={(_, index) => ({ length: REEL_H, offset: REEL_H * index, index })}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        removeClippedSubviews={!IS_WEB}
         renderItem={({ item, index }) => (
           <ReelItem
             reel={item}
@@ -560,6 +568,64 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
           />
         )}
       />
+    </View>
+  );
+
+  return (
+    <View style={[rs.screen, IS_WEB && rs.webRoot]}>
+      {IS_WEB && SW > 800 && (
+        <View style={rs.webSidebar}>
+          <Text style={[rs.sidebarHeading, { color: primary }]}>Trending</Text>
+          {reels.slice(0, 5).map(r => (
+            <TouchableOpacity
+              key={r.id}
+              style={[rs.sidebarItem, { borderColor: `${primary}20` }]}
+              onPress={() => {
+                const idx = reels.findIndex(x => x.id === r.id);
+                if (idx >= 0) {
+                  flatRef.current?.scrollToIndex({ index: idx, animated: true });
+                  setActiveIndex(idx);
+                }
+              }}
+            >
+              <Image source={{ uri: r.media_url }} style={rs.sidebarThumb} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }} numberOfLines={1}>
+                  @{r.profiles?.username}
+                </Text>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }} numberOfLines={1}>{r.caption}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {reelFeed}
+
+      {IS_WEB && SW > 800 && (
+        <View style={rs.webSideRight}>
+          <TouchableOpacity
+            style={[rs.sideNavBtn, { borderColor: `${primary}30` }]}
+            onPress={() => {
+              const prev = Math.max(0, activeIndex - 1);
+              flatRef.current?.scrollToIndex({ index: prev, animated: true });
+              setActiveIndex(prev);
+            }}
+          >
+            <Feather name="chevron-up" size={22} color={primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[rs.sideNavBtn, { borderColor: `${primary}30` }]}
+            onPress={() => {
+              const next = Math.min(reels.length - 1, activeIndex + 1);
+              flatRef.current?.scrollToIndex({ index: next, animated: true });
+              setActiveIndex(next);
+            }}
+          >
+            <Feather name="chevron-down" size={22} color={primary} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       <CommentsSheet
         visible={commentsVisible}
@@ -593,6 +659,14 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
 const rs = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
+  webRoot: { flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch', backgroundColor: '#000' },
+  webFeedContainer: { width: REEL_W, height: REEL_H, overflow: 'hidden', backgroundColor: '#000' },
+  webSidebar: { width: 220, paddingTop: 60, paddingHorizontal: 16, gap: 10 },
+  webSideRight: { width: 80, justifyContent: 'center', alignItems: 'center', gap: 16 },
+  sidebarHeading: { fontSize: 12, fontWeight: '900', letterSpacing: 1.5, marginBottom: 8 },
+  sidebarItem: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 10, borderWidth: 1 },
+  sidebarThumb: { width: 44, height: 60, borderRadius: 6, backgroundColor: '#111' },
+  sideNavBtn: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
   tabBar: { flexDirection: 'row', justifyContent: 'center', gap: 32, paddingBottom: 12, backgroundColor: 'rgba(0,0,0,0.4)' },
   tabBarAbsolute: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   tabLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 14, fontWeight: '800', letterSpacing: 0.5, textShadowColor: '#000', textShadowRadius: 6 },

@@ -2,10 +2,10 @@
  * ProviderDashboardScreen — Dedicated hub for Service Nodes.
  * Tracks earnings, ratings, SIS score, and active gigs.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Dimensions, Platform
+  ActivityIndicator, RefreshControl, Dimensions, Platform, Switch
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -14,6 +14,7 @@ import { GlassView } from '../components/GlassView';
 import { AnalyticsManager } from '../services/dataFlow';
 import { TrustLedger } from '../services/trustLedger';
 import { ProviderSetupModal } from '../components/ProviderSetupModal';
+import { supabase } from '../services/supabase';
 import { useToast } from '../components/ToastNotification';
 
 const { width: SW } = Dimensions.get('window');
@@ -42,6 +43,7 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
   const [stats, setStats] = useState(null);
   const [sisScore, setSISScore] = useState(50);
   const [setupVisible, setSetupVisible] = useState(false);
+  const [togglingAvail, setTogglingAvail] = useState(false);
 
   const primary = currentTheme?.primary || '#00f2ff';
   const bg = currentTheme?.background || '#0d1112';
@@ -66,6 +68,23 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
       setRefreshing(false);
     }
   };
+
+  const toggleAvailability = useCallback(async () => {
+    if (!user || togglingAvail) return;
+    const newVal = !stats?.isAvailable;
+    setTogglingAvail(true);
+    setStats(prev => prev ? { ...prev, isAvailable: newVal } : prev);
+    const { error } = await supabase
+      .from('service_nodes')
+      .upsert({ user_id: user.id, available: newVal, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    if (error) {
+      setStats(prev => prev ? { ...prev, isAvailable: !newVal } : prev);
+      toast.show('Failed to update status', 'error');
+    } else {
+      toast.show(newVal ? 'You\'re now Open for Business!' : 'Status set to Offline', 'success');
+    }
+    setTogglingAvail(false);
+  }, [user, stats?.isAvailable, togglingAvail]);
 
   useEffect(() => {
     if (visible) loadData();
@@ -100,16 +119,42 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
             <View style={s.mainRow}>
               <View>
                 <Text style={[s.label, { color: muted }]}>NET EARNINGS</Text>
-                <Text style={[s.earningsVal, { color: textColor }]}>R{stats?.totalEarnings?.toFixed(2)}</Text>
-              </View>
-              <View style={[s.statusBadge, { backgroundColor: stats?.isAvailable ? '#10b98120' : '#ef444420', borderColor: stats?.isAvailable ? '#10b981' : '#ef4444' }]}>
-                <Text style={[s.statusText, { color: stats?.isAvailable ? '#10b981' : '#ef4444' }]}>
-                  {stats?.isAvailable ? 'OPEN FOR BUSINESS' : 'OFFLINE'}
+                <Text style={[s.earningsVal, { color: textColor }]}>
+                  R{(stats?.totalEarnings ?? 0).toFixed(2)}
                 </Text>
+                {stats?.completedCount === 0 && (
+                  <Text style={[s.earningsHint, { color: muted }]}>Complete gigs to earn</Text>
+                )}
+              </View>
+              <View style={{ alignItems: 'flex-end', gap: 8 }}>
+                <TouchableOpacity
+                  onPress={toggleAvailability}
+                  disabled={togglingAvail}
+                  style={[s.statusBadge, { backgroundColor: stats?.isAvailable ? '#10b98120' : '#ef444420', borderColor: stats?.isAvailable ? '#10b981' : '#ef4444' }]}
+                  activeOpacity={0.7}
+                >
+                  {togglingAvail
+                    ? <ActivityIndicator size={10} color={stats?.isAvailable ? '#10b981' : '#ef4444'} />
+                    : <Text style={[s.statusText, { color: stats?.isAvailable ? '#10b981' : '#ef4444' }]}>
+                        {stats?.isAvailable ? '● OPEN FOR BUSINESS' : '● OFFLINE'}
+                      </Text>
+                  }
+                </TouchableOpacity>
+                <Text style={[{ fontSize: 9, color: muted }]}>Tap to toggle</Text>
               </View>
             </View>
 
-            <MiniChart data={stats?.earningsChart || []} color={primary} textColor={textColor} muted={muted} />
+            {!stats?.serviceType || stats.serviceType === 'General' ? (
+              <TouchableOpacity
+                onPress={() => setSetupVisible(true)}
+                style={[s.setupCta, { borderColor: `${primary}40`, backgroundColor: `${primary}10` }]}
+              >
+                <Feather name="plus-circle" size={14} color={primary} />
+                <Text style={[s.setupCtaText, { color: primary }]}>Set up your provider profile to start earning</Text>
+              </TouchableOpacity>
+            ) : (
+              <MiniChart data={stats?.earningsChart || []} color={primary} textColor={textColor} muted={muted} />
+            )}
           </GlassView>
 
           {/* Stats Grid */}
@@ -184,8 +229,11 @@ const s = StyleSheet.create({
   mainRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
   label: { fontSize: 10, fontWeight: '800', letterSpacing: 1 },
   earningsVal: { fontSize: 32, fontWeight: '900', marginTop: 4 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, minWidth: 60, alignItems: 'center' },
   statusText: { fontSize: 9, fontWeight: '900' },
+  earningsHint: { fontSize: 10, marginTop: 2 },
+  setupCta: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 12, borderWidth: 1, marginTop: 12 },
+  setupCtaText: { fontSize: 12, fontWeight: '700', flex: 1 },
   chartRow: { flexDirection: 'row', height: 80, alignItems: 'flex-end', gap: 6 },
   chartCol: { flex: 1, alignItems: 'center' },
   chartBar: { width: '100%', borderRadius: 4, minHeight: 4 },
