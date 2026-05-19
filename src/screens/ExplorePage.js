@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
-  TextInput, Dimensions, Animated, Platform, Modal,
+  TextInput, Dimensions, Animated, Platform, Modal, RefreshControl,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -380,6 +380,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [userResults, setUserResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [marketplaceVisible,  setMarketplaceVisible]  = useState(false);
   const [scoutVisible,        setScoutVisible]        = useState(false);
   const [discoverVisible,     setDiscoverVisible]     = useState(false);
@@ -428,6 +429,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     setFeaturedEvent(featured || null);
 
     setLoading(false);
+    setRefreshing(false);
 
     // ── Trending hashtags: mine from recent event captions/reels ─────────────
     try {
@@ -612,6 +614,14 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         contentContainerStyle={{ paddingBottom: 140 }}
         onScroll={Platform.OS === 'web' ? (e) => setScrollY(e.nativeEvent.contentOffset.y) : undefined}
         scrollEventThrottle={Platform.OS === 'web' ? 100 : undefined}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); loadAll(); }}
+            tintColor={primary}
+            colors={[primary]}
+          />
+        }
       >
         {renderWelcome()}
 

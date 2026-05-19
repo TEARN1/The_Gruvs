@@ -217,16 +217,8 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
         .map(v => applyProfilePrivacy(v, v.id || v.profile_id))
         .filter(v => v !== null);
 
-      // Apply description filters (profile fields may or may not be set)
-      let descFiltered = filteredResults;
-      if (descGender) descFiltered = descFiltered.filter(v => !v.gender || v.gender === descGender);
-      if (descHair)   descFiltered = descFiltered.filter(v => !v.hair_style || v.hair_style?.toLowerCase().includes(descHair.toLowerCase()));
-      if (descBody)   descFiltered = descFiltered.filter(v => !v.body_type || v.body_type === descBody);
-      if (descSkin)   descFiltered = descFiltered.filter(v => !v.skin_tone || v.skin_tone === descSkin);
-      if (descInterest) descFiltered = descFiltered.filter(v => !v.interests || (Array.isArray(v.interests) ? v.interests.some(i => i?.toLowerCase() === descInterest.toLowerCase()) : v.interests?.toLowerCase().includes(descInterest.toLowerCase())));
-
-      // Sort online users to the top
-      setVibers(descFiltered.sort((a, b) => (checkOnline(b) ? 1 : 0) - (checkOnline(a) ? 1 : 0)));
+      // Sort online users to the top — description filters applied reactively via useMemo
+      setVibers(filteredResults.sort((a, b) => (checkOnline(b) ? 1 : 0) - (checkOnline(a) ? 1 : 0)));
     } catch (e) {
       setFetchError(e.message || 'Could not load Vibers');
       setVibers([]);
@@ -235,6 +227,16 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       else setLoading(false);
     }
   }, [filter, fetchAll, fetchNearby]);
+
+  const displayVibers = useMemo(() => {
+    let result = vibers.filter(v => !blockedIds.has(v.id));
+    if (descGender) result = result.filter(v => !v.gender || v.gender === descGender);
+    if (descHair)   result = result.filter(v => !v.hair_style || v.hair_style?.toLowerCase().includes(descHair.toLowerCase()));
+    if (descBody)   result = result.filter(v => !v.body_type || v.body_type === descBody);
+    if (descSkin)   result = result.filter(v => !v.skin_tone || v.skin_tone === descSkin);
+    if (descInterest) result = result.filter(v => !v.interests || (Array.isArray(v.interests) ? v.interests.some(i => i?.toLowerCase() === descInterest.toLowerCase()) : v.interests?.toLowerCase().includes(descInterest.toLowerCase())));
+    return result;
+  }, [vibers, blockedIds, descGender, descHair, descBody, descSkin, descInterest]);
 
   // Re-run when filter changes OR when auth resolves (user goes from null → logged in)
   useEffect(() => {
@@ -281,7 +283,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
         </View>
         <View style={[s.onlineBadge, { backgroundColor: '#10b98118', borderColor: '#10b98135' }]}>
           <View style={s.onlinePip} />
-          <Text style={s.onlineBadgeText}>{vibers.filter(v => checkOnline(v)).length} online</Text>
+          <Text style={s.onlineBadgeText}>{displayVibers.filter(v => checkOnline(v)).length} online</Text>
         </View>
       </View>
 
@@ -438,7 +440,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
         </View>
       ) : (
         <FlatList
-          data={vibers.filter(v => !blockedIds.has(v.id))}
+          data={displayVibers}
           keyExtractor={item => item.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, paddingTop: 8 }}
           showsVerticalScrollIndicator={false}

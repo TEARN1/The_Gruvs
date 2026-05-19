@@ -57,7 +57,7 @@ export const AutoPlayVideo = ({
         onPlaybackStatusUpdate={setStatus}
         onLoadStart={() => setLoading(true)}
         onLoad={() => setLoading(false)}
-        onError={(err) => console.log('Video Error:', err)}
+        onError={() => {}}
       />
 
       {loading && (
