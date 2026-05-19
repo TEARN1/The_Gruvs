@@ -45,6 +45,20 @@ export const NotificationService = {
       return null;
     }
   },
+
+  // Call once after registerForPush — keeps the token fresh if Expo rotates it
+  watchTokenRefresh(userId) {
+    if (!userId || Platform.OS === 'web') return () => {};
+    try {
+      const sub = Notifications.addPushTokenListener(async ({ data: token }) => {
+        if (!token || !token.startsWith('ExponentPushToken')) return;
+        await supabase.from('profiles').update({ push_token: token }).eq('id', userId);
+      });
+      return () => sub.remove();
+    } catch {
+      return () => {};
+    }
+  },
   async send(recipientId, { type, title, body, data = {}, actorId = null, eventId = null }) {
     if (!recipientId) return;
     try {

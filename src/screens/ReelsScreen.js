@@ -374,7 +374,7 @@ const ri = StyleSheet.create({
 });
 
 // ── Main ReelsScreen ──────────────────────────────────────────────────────────
-export const ReelsScreen = ({ onAuthRequired, onClose }) => {
+export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialReelHandled }) => {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
@@ -432,6 +432,18 @@ export const ReelsScreen = ({ onAuthRequired, onClose }) => {
       }
 
       setReels(enriched);
+
+      // If a specific reel was deep-linked, scroll to it after load
+      if (initialReelId && enriched.length) {
+        const idx = enriched.findIndex(r => r.id === initialReelId);
+        if (idx > 0) {
+          setTimeout(() => {
+            flatRef.current?.scrollToIndex({ index: idx, animated: false });
+            setActiveIndex(idx);
+          }, 300);
+        }
+        onInitialReelHandled?.();
+      }
     } catch (e) {
       toast.show('Could not load reels', 'error');
     } finally {

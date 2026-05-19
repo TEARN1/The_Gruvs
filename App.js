@@ -20,6 +20,7 @@ import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
 import { ProfilePage } from './src/screens/ProfilePage';
+import { ViberProfileModal } from './src/components/ViberProfileModal';
 import { CalendarPage } from './src/screens/CalendarPage';
 import { CrewFeedScreen } from './src/screens/CrewFeedScreen';
 import { ExplorePage } from './src/screens/ExplorePage';
@@ -264,6 +265,8 @@ const MainNavigator = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isSovereign, setIsSovereign] = useState(false);
   const [targetEvent, setTargetEvent] = useState(null);
+  const [targetProfile, setTargetProfile] = useState(null);
+  const [targetReel, setTargetReel] = useState(null);
   // Item 41: cross-fade between screens
   const screenOpacity = useRef(new Animated.Value(1)).current;
   const backPressCount = useRef(0);
@@ -304,6 +307,32 @@ const MainNavigator = () => {
   }, []);
 
   useNotifications({ onNavigate: handleNotifNavigate });
+
+  // Web deep-link: read ?event=, ?profile=, ?reel= from og-meta redirect URLs
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const eventId   = params.get('event');
+      const profileId = params.get('profile');
+      const reelId    = params.get('reel');
+      if (eventId) {
+        setTargetEvent({ id: eventId });
+        setCurrentTab('feed');
+        // Clean URL without reload
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (profileId) {
+        setTargetProfile(profileId);
+        setCurrentTab('profile');
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (reelId) {
+        setTargetReel(reelId);
+        setCurrentTab('reels');
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-launch welcome tutorial on first app open
   useEffect(() => {
@@ -418,7 +447,11 @@ const MainNavigator = () => {
         ));
       case 'reels':
         return wrap('Reels', (
-          <ReelsScreen onAuthRequired={handleAuthRequired} />
+          <ReelsScreen
+            onAuthRequired={handleAuthRequired}
+            initialReelId={targetReel}
+            onInitialReelHandled={() => setTargetReel(null)}
+          />
         ));
       case 'explore':
         return wrap('Explore', (
@@ -535,6 +568,14 @@ const MainNavigator = () => {
 
       {/* Tutorial overlay — rendered on top of everything */}
       {activeTutorial && <TutorialOverlay />}
+
+      {/* Deep-link: profile share opens ViberProfileModal over current tab */}
+      <ViberProfileModal
+        visible={!!targetProfile}
+        userId={targetProfile}
+        onClose={() => setTargetProfile(null)}
+        onNavigateToEvent={handleNavigateToEvent}
+      />
 
       {/* Supreme God View Dashboard */}
       <GodViewDashboard

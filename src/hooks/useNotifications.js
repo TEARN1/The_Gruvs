@@ -21,6 +21,7 @@ export const useNotifications = ({ onNavigate } = {}) => {
   useEffect(() => {
     if (!user?.id) return;
     NotificationService.registerForPush(user.id).then(setExpoPushToken);
+    return NotificationService.watchTokenRefresh(user.id);
   }, [user?.id]);
 
   useEffect(() => {

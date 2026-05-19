@@ -1,9 +1,8 @@
 import { Share, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 
-const APP_URL    = 'https://the-gruvs-pt23.vercel.app';
-const OG_BASE    = 'https://your-project-ref.supabase.co/functions/v1/og-meta';
-// ↑ Replace "your-project-ref" with your actual Supabase project ref
+const APP_URL = process.env.EXPO_PUBLIC_APP_URL || 'https://the-gruvs-pt23.vercel.app';
+const OG_BASE = `${process.env.EXPO_PUBLIC_FUNCTIONS_URL || 'https://feevvddvrjmfbhffccbf.supabase.co/functions/v1'}/og-meta`;
 
 /**
  * Builds a share URL that routes through the og-meta edge function.
