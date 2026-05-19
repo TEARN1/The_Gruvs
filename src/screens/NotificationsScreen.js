@@ -68,7 +68,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     try {
       const { data } = await supabase
         .from('notifications')
-        .select('*')
+        .select('*, actor:profiles!actor_id(username, avatar_url)')
         .eq('recipient_id', user.id)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -136,7 +136,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const renderItem = ({ item }) => {
     const meta = TYPE_META[item.type] || TYPE_META.vibe;
-    const avatarUrl = item.data?.viewer_avatar || item.data?.actor_avatar || null;
+    const avatarUrl = item.actor?.avatar_url || item.data?.viewer_avatar || item.data?.actor_avatar || null;
     const isActionable = ['profile_view', 'follow', 'vibe', 'rsvp', 'echo'].includes(item.type);
     return (
       <TouchableOpacity

@@ -216,6 +216,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
           type: 'profile_view',
           title: `${viewerName} viewed your profile`,
           body: 'Tap to see who visited',
+          actorId: viewerUserId,
           data: { viewer_id: viewerUserId, viewer_username: viewerName, viewer_avatar: viewerProfile?.avatar_url || null },
         });
       }

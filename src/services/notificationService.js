@@ -45,11 +45,13 @@ export const NotificationService = {
       return null;
     }
   },
-  async send(recipientId, { type, title, body, data = {} }) {
+  async send(recipientId, { type, title, body, data = {}, actorId = null, eventId = null }) {
     if (!recipientId) return;
     try {
       await supabase.from('notifications').insert({
         recipient_id: recipientId,
+        actor_id: actorId || null,
+        event_id: eventId || null,
         type,
         title,
         body,
@@ -81,43 +83,51 @@ export const NotificationService = {
     } catch {}
   },
 
-  async notifyVibe(recipientId, actorUsername, eventTitle) {
+  async notifyVibe(recipientId, actorId, actorUsername, eventId, eventTitle) {
     return this.send(recipientId, {
       type: 'vibe',
       title: `${actorUsername} vibed with your event`,
       body: eventTitle,
+      actorId,
+      eventId,
     });
   },
 
-  async notifyRsvp(recipientId, actorUsername, eventTitle) {
+  async notifyRsvp(recipientId, actorId, actorUsername, eventId, eventTitle) {
     return this.send(recipientId, {
       type: 'rsvp',
       title: `${actorUsername} RSVP'd to your event`,
       body: eventTitle,
+      actorId,
+      eventId,
     });
   },
 
-  async notifyFollow(recipientId, actorUsername) {
+  async notifyFollow(recipientId, actorId, actorUsername) {
     return this.send(recipientId, {
       type: 'follow',
       title: `${actorUsername} started following you`,
       body: 'Tap to view their profile',
+      actorId,
     });
   },
 
-  async notifyEcho(recipientId, actorUsername, echoBody) {
+  async notifyEcho(recipientId, actorId, actorUsername, eventId, echoBody) {
     return this.send(recipientId, {
       type: 'echo',
       title: `${actorUsername} echoed your event`,
       body: echoBody?.slice(0, 80) || '',
+      actorId,
+      eventId,
     });
   },
 
-  async notifyProfileView(recipientId, viewerUsername, viewerAvatarUrl, viewerUserId) {
+  async notifyProfileView(recipientId, viewerUserId, viewerUsername, viewerAvatarUrl) {
     return this.send(recipientId, {
       type: 'profile_view',
       title: `${viewerUsername} viewed your profile`,
       body: 'Tap to see who visited',
+      actorId: viewerUserId,
       data: { viewer_id: viewerUserId, viewer_username: viewerUsername, viewer_avatar: viewerAvatarUrl || null },
     });
   },
