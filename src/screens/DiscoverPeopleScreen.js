@@ -115,6 +115,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const [followedIds, setFollowedIds] = useState(new Set());
   const [suggested, setSuggested] = useState([]);
   const [blockedIds, setBlockedIds] = useState(new Set());
+  const pendingFollowIds = useRef(new Set());
 
   const searchTimer = useRef(null);
 
@@ -322,13 +323,18 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
                         <TouchableOpacity
                           style={[s.suggestFollowBtn, { backgroundColor: followedIds.has(v.id) ? `${primary}20` : primary }]}
                           onPress={async () => {
-                            if (!user) return;
-                            if (followedIds.has(v.id)) {
-                              await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', v.id);
-                              setFollowedIds(prev => { const n = new Set(prev); n.delete(v.id); return n; });
-                            } else {
-                              await supabase.from('follows').upsert({ follower_id: user.id, following_id: v.id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
-                              setFollowedIds(prev => new Set([...prev, v.id]));
+                            if (!user || pendingFollowIds.current.has(v.id)) return;
+                            pendingFollowIds.current.add(v.id);
+                            try {
+                              if (followedIds.has(v.id)) {
+                                await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', v.id);
+                                setFollowedIds(prev => { const n = new Set(prev); n.delete(v.id); return n; });
+                              } else {
+                                await supabase.from('follows').upsert({ follower_id: user.id, following_id: v.id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
+                                setFollowedIds(prev => new Set([...prev, v.id]));
+                              }
+                            } finally {
+                              pendingFollowIds.current.delete(v.id);
                             }
                           }}
                         >
