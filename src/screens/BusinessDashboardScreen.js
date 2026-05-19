@@ -416,7 +416,6 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         if (!bizData) { setSetupMode(true); return; }
         setBiz(bizData);
       } catch (err) {
-        console.error('Business load error:', err);
         showToast('Failed to load business profile.', 'error');
         return;
       }
@@ -470,7 +469,6 @@ export const BusinessDashboardScreen = ({ onClose }) => {
 
       setAnalytics({ impressions: totalImpressions, clicks: totalClicks, conversions: totalConversions, rsvps, totalRevenue, totalSpent, chart });
     } catch (e) {
-      console.error('[BusinessDashboard] loadAll error', e);
     } finally {
       setLoading(false);
     }

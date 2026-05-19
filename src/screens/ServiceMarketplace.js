@@ -434,7 +434,6 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
         .order('created_at', { ascending: false });
       setProviders(data || []);
     } catch (err) {
-      console.error('Fetch providers error:', err);
       showToast('Failed to load service providers.', 'error');
       setProviders([]);
     }
@@ -450,7 +449,6 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
         .order('created_at', { ascending: false });
       setGigs(data || []);
     } catch (err) {
-      console.error('Fetch gigs error:', err);
       showToast('Failed to load active gigs.', 'error');
       setGigs([]);
     }

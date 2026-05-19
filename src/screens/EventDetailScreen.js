@@ -154,7 +154,6 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       setIsFollowing(isFollowingResult);
       if (alreadyCheckedIn) setCheckedIn(true);
     } catch (err) {
-      console.error('Fetch user state error:', err);
     }
   };
 
@@ -182,7 +181,6 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         'success'
       );
     } catch (err) {
-      console.error('RSVP error:', err);
       // Rollback on failure
       setRsvpStatus(prev);
       if (status === 'going' && prev !== 'going') setGoingCount((c) => Math.max(0, c - 1));
@@ -249,7 +247,6 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       setWhoGoing(results);
       setWhoGoingVisible(true);
     } catch (err) {
-      console.error('WhoGoing error:', err);
       showToast('Could not load vibers list.', 'error');
     }
   };

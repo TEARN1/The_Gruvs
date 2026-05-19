@@ -326,7 +326,6 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
       setEvents(evts);
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({ events: evts, ts: Date.now() }));
     } catch (err) {
-      console.error('[Scout] load error:', err);
     } finally {
       setLoading(false);
     }

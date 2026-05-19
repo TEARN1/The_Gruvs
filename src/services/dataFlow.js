@@ -427,7 +427,6 @@ export const FeedManager = {
       cache.set(cacheKey, result);
       return result;
     } catch (error) {
-      console.error('FeedManager.fetchPage error:', error);
       return { events: [], total: 0, page, hasMore: false };
     }
   },
@@ -460,7 +459,6 @@ export const FeedManager = {
       cache.set('feed:featured', best, 120000); // 2-min TTL for hero card
       return best;
     } catch (error) {
-      console.error('FeedManager.fetchFeatured error:', error);
       return null;
     }
   },
@@ -498,7 +496,6 @@ export const FeedManager = {
 
       return { events: [...eventMap.values()].slice(0, 20), users };
     } catch (error) {
-      console.error('FeedManager.searchAll error:', error);
       throw error;
     }
   },
@@ -517,7 +514,6 @@ export const FeedManager = {
       if (data) cache.set(cacheKey, data);
       return data;
     } catch (error) {
-      console.error('FeedManager.fetchSingle error:', error);
       return null;
     }
   },
@@ -1147,7 +1143,6 @@ export const DiscoveryManager = {
       if (events.length) cache.set(cacheKey, events);
       return events;
     } catch (error) {
-      console.error('DiscoveryManager.findNearbyEvents error:', error);
       return [];
     }
   },
@@ -1171,7 +1166,6 @@ export const DiscoveryManager = {
       if (data) cache.set(cacheKey, data);
       return data || [];
     } catch (error) {
-      console.error('DiscoveryManager.findNearbyVibers error:', error);
       return [];
     }
   },
@@ -1204,7 +1198,6 @@ export const AnalyticsManager = {
       cache.set(cacheKey, result);
       return result;
     } catch (error) {
-      console.error('AnalyticsManager.getProfileStats error:', error);
       return { gruvCount: 0, savedCount: 0, vibeCount: 0, touchDownCount: 0, followerCount: 0 };
     }
   },
@@ -1292,7 +1285,6 @@ export const AnalyticsManager = {
       cache.set(cacheKey, result, 60000);
       return result;
     } catch (e) {
-      console.error('getProviderStats error:', e);
       return null;
     }
   },
@@ -2522,7 +2514,6 @@ export const BehavioralEngine = {
 
       return { insight, tips: finalTips, next_milestone, trend, cohort, decay_score, action_roi: action_roi.slice(0, 3) };
     } catch (e) {
-      console.error('BehavioralEngine.analyze error:', e);
       return null;
     }
   },

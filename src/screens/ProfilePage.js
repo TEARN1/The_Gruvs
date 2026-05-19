@@ -261,7 +261,6 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         setProfileGallery(data.profile_gallery || []);
       }
     } catch (err) {
-      console.error('Refresh profile error:', err);
       toast?.show('Failed to refresh profile', 'error');
     }
   }, [user]);

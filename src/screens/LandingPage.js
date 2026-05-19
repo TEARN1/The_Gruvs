@@ -334,7 +334,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         setTrendingEvents(ranked);
       }
     } catch (err) {
-      console.error('Trending load error:', err);
     }
   }, []);
 
@@ -409,7 +408,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         FeedManager.prefetchPage({ ...fetchOpts, page: currentPage + 1 });
       }
     } catch (err) {
-      console.error('LandingPage load error:', err);
       toast.show('Failed to load gruvs. Check your connection.', 'error');
     } finally {
       setLoading(false);
