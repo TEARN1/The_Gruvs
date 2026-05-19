@@ -1966,6 +1966,7 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+DROP VIEW IF EXISTS conversations CASCADE;
 CREATE OR REPLACE VIEW conversations AS
 WITH latest_messages AS (
   SELECT DISTINCT ON (
@@ -2503,6 +2504,7 @@ DROP TRIGGER IF EXISTS dm_rooms_touch ON dm_rooms;
 CREATE TRIGGER dm_rooms_touch BEFORE UPDATE ON dm_rooms FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
 -- Conversations view alias (backward compat)
 DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.views WHERE table_schema='public' AND table_name='conversations') THEN DROP VIEW conversations CASCADE; END IF; END $$;
+DROP VIEW IF EXISTS conversations CASCADE;
 CREATE OR REPLACE VIEW conversations WITH (security_invoker = true) AS SELECT * FROM dm_rooms;
 
 -- ============================================================
@@ -2951,6 +2953,7 @@ CREATE TRIGGER trg_xp_vibe
   FOR EACH ROW EXECUTE FUNCTION xp_on_vibe();
 
 -- #6  Level view — maps XP to a level (1–100)
+DROP VIEW IF EXISTS user_levels CASCADE;
 CREATE OR REPLACE VIEW user_levels AS
 SELECT
   id,
@@ -2978,6 +2981,7 @@ RETURNS NUMERIC LANGUAGE sql IMMUTABLE AS $$
 $$;
 
 -- #8  Trending events view
+DROP VIEW IF EXISTS trending_events CASCADE;
 CREATE OR REPLACE VIEW trending_events AS
 SELECT
   e.*,
@@ -3030,6 +3034,7 @@ CREATE TRIGGER trg_flag_full
   FOR EACH ROW EXECUTE FUNCTION flag_event_full();
 
 -- #11  Upcoming events this week view
+DROP VIEW IF EXISTS events_this_week CASCADE;
 CREATE OR REPLACE VIEW events_this_week AS
 SELECT * FROM events
 WHERE event_date BETWEEN now() AND now() + INTERVAL '7 days'
@@ -3121,6 +3126,7 @@ CREATE TRIGGER trg_sync_follow_counts
   FOR EACH ROW EXECUTE FUNCTION sync_follow_counts();
 
 -- #16  Mutual follows (friends) view
+DROP VIEW IF EXISTS mutual_follows CASCADE;
 CREATE OR REPLACE VIEW mutual_follows AS
 SELECT a.follower_id AS user_a, a.following_id AS user_b
 FROM follows a
@@ -3141,6 +3147,7 @@ RETURNS TABLE(suggested_id UUID, mutual_count BIGINT) LANGUAGE sql STABLE AS $$
 $$;
 
 -- #18  Trending users (most new followers in last 7 days)
+DROP VIEW IF EXISTS trending_users CASCADE;
 CREATE OR REPLACE VIEW trending_users AS
 SELECT
   p.id, p.username, p.avatar_url, p.is_verified,
@@ -3270,6 +3277,7 @@ CREATE TRIGGER trg_campaign_stats
   FOR EACH ROW EXECUTE FUNCTION sync_campaign_stats();
 
 -- #25  Campaign performance view (CTR + cost-per-click)
+DROP VIEW IF EXISTS campaign_performance CASCADE;
 CREATE OR REPLACE VIEW campaign_performance AS
 SELECT
   c.id, c.name, c.budget_total AS budget, c.status,
@@ -3296,6 +3304,7 @@ CREATE TRIGGER trg_expire_campaign
   FOR EACH ROW EXECUTE FUNCTION deactivate_expired_campaigns();
 
 -- #27  Business analytics summary view
+DROP VIEW IF EXISTS business_analytics CASCADE;
 CREATE OR REPLACE VIEW business_analytics AS
 SELECT
   bp.id AS business_id,
@@ -3380,6 +3389,7 @@ CREATE TRIGGER trg_sis_report
   FOR EACH ROW EXECUTE FUNCTION deduct_sis_on_report();
 
 -- #32  Flagged content dashboard view
+DROP VIEW IF EXISTS flagged_content CASCADE;
 CREATE OR REPLACE VIEW flagged_content AS
 SELECT 'event'   AS type, id, title   AS label, report_count, is_hidden, created_at FROM events   WHERE report_count > 0
 UNION ALL
@@ -3448,6 +3458,7 @@ END;
 $$;
 
 -- #36  Conversations ordered by last activity (portal view)
+DROP VIEW IF EXISTS user_conversations CASCADE;
 CREATE OR REPLACE VIEW user_conversations AS
 SELECT
   r.id               AS room_id,
@@ -3483,6 +3494,7 @@ END;
 $$;
 
 -- #38  Active story count per user view
+DROP VIEW IF EXISTS active_story_counts CASCADE;
 CREATE OR REPLACE VIEW active_story_counts AS
 SELECT user_id, COUNT(*) AS story_count
 FROM stories
@@ -3552,6 +3564,7 @@ RETURNS NUMERIC LANGUAGE sql IMMUTABLE AS $$
 $$;
 
 -- #43  Trending reels view (top 50 by discovery score)
+DROP VIEW IF EXISTS trending_reels CASCADE;
 CREATE OR REPLACE VIEW trending_reels AS
 SELECT
   r.*,
@@ -3647,6 +3660,7 @@ CREATE TRIGGER trg_economy_checkin
   FOR EACH ROW EXECUTE FUNCTION reward_checkin_economy();
 
 -- #49  Economy summary view per user
+DROP VIEW IF EXISTS user_economy CASCADE;
 CREATE OR REPLACE VIEW user_economy AS
 SELECT
   p.id,
