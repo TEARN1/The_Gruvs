@@ -50,6 +50,7 @@ export const PresenceBar = ({
   eventEndTime,
   eventLat,
   eventLon,
+  onAuthRequired,
   primary = '#00f2ff',
   muted = 'rgba(255,255,255,0.45)',
   textColor = '#fff',
@@ -127,20 +128,15 @@ export const PresenceBar = ({
   // ------------------------------------------------------------------
   const fetchStars = useCallback(async () => {
     if (!user?.id || !eventId) return;
-    const { data } = await supabase
-      .from('path_stars')
-      .select('to_user_id, from_user_id')
-      .eq('event_id', eventId);
 
-    if (!data) return;
+    // Only fetch rows involving the current user — avoids exposing third-party star data
+    const [{ data: iStarredData }, { data: theyStarredData }] = await Promise.all([
+      supabase.from('path_stars').select('to_user_id').eq('event_id', eventId).eq('from_user_id', user.id),
+      supabase.from('path_stars').select('from_user_id').eq('event_id', eventId).eq('to_user_id', user.id),
+    ]);
 
-    const iStarred = new Set(
-      data.filter(r => r.from_user_id === user.id).map(r => r.to_user_id)
-    );
-    const theyStarred = new Set(
-      data.filter(r => r.to_user_id === user.id).map(r => r.from_user_id)
-    );
-    // mutual = both starred each other
+    const iStarred  = new Set((iStarredData  || []).map(r => r.to_user_id));
+    const theyStarred = new Set((theyStarredData || []).map(r => r.from_user_id));
     const mutual = new Set([...iStarred].filter(id => theyStarred.has(id)));
 
     setStarredIds(iStarred);
@@ -202,7 +198,7 @@ export const PresenceBar = ({
   // ------------------------------------------------------------------
   const handleCheckIn = async () => {
     if (!user?.id) {
-      showToast('Sign in to check in', 'info');
+      onAuthRequired ? onAuthRequired() : showToast('Sign in to check in', 'info');
       return;
     }
     if (alreadyCheckedIn) {

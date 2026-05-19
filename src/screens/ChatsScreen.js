@@ -126,7 +126,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
     if (!user) { setConvos([]); return; }
     if (isRefresh) setRefreshing(true); else setLoading(true);
     const data = await MessageManager.getConversations(user.id);
-    setConvos(data);
+    setConvos(data || []);
     setLoading(false);
     setRefreshing(false);
   }, [user]);
