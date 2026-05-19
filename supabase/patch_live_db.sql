@@ -463,3 +463,21 @@ CREATE TABLE IF NOT EXISTS ai_moderation_queue (
 ALTER TABLE ai_moderation_queue ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Service manages moderation" ON ai_moderation_queue;
 CREATE POLICY "Service manages moderation" ON ai_moderation_queue FOR ALL USING (auth.role() IN ('service_role','postgres'));
+
+
+-- Add sound_name to reels (used by CreateReelModal audio pill)
+ALTER TABLE reels ADD COLUMN IF NOT EXISTS sound_name TEXT;
+
+-- Add reel_reports table for in-app reporting
+CREATE TABLE IF NOT EXISTS reel_reports (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  reel_id     UUID        NOT NULL REFERENCES reels(id) ON DELETE CASCADE,
+  reporter_id UUID        REFERENCES profiles(id) ON DELETE SET NULL,
+  reason      TEXT        NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(reel_id, reporter_id)
+);
+ALTER TABLE reel_reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can report reels" ON reel_reports;
+CREATE POLICY "Users can report reels" ON reel_reports
+  FOR INSERT WITH CHECK (auth.uid() = reporter_id);

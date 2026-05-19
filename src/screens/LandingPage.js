@@ -1372,7 +1372,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   eventEndTime={event.end_time}
                   eventLat={event.lat}
                   eventLon={event.lon}
-                  eventDate={event.event_date}
                   onAuthRequired={onAuthRequired}
                 />
               ) : null;

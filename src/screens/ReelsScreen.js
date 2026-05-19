@@ -19,6 +19,7 @@ import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
+import { CreateReelModal } from '../components/CreateReelModal';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const IS_WEB = Platform.OS === 'web';
@@ -492,6 +493,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const [dmVisible, setDmVisible] = useState(false);
   const [tab, setTab] = useState('foryou'); // 'foryou' | 'following' | 'trending'
   const [hashtagFilter, setHashtagFilter] = useState(null);
+  const [createVisible, setCreateVisible] = useState(false);
 
   const flatRef = useRef(null);
 
@@ -744,6 +746,23 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
           recipient={dmTarget}
         />
       )}
+
+      {/* Create Reel FAB */}
+      {user && (
+        <TouchableOpacity
+          style={[rs.fab, { backgroundColor: primary, bottom: (insets.bottom || 16) + 16 }]}
+          onPress={() => setCreateVisible(true)}
+          activeOpacity={0.85}
+        >
+          <Feather name="plus" size={22} color="#000" />
+        </TouchableOpacity>
+      )}
+
+      <CreateReelModal
+        visible={createVisible}
+        onClose={() => setCreateVisible(false)}
+        onPosted={() => { setCreateVisible(false); loadReels(); }}
+      />
     </View>
   );
 };
@@ -758,6 +777,7 @@ const rs = StyleSheet.create({
   sidebarItem: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 10, borderWidth: 1 },
   sidebarThumb: { width: 44, height: 60, borderRadius: 6, backgroundColor: '#111' },
   sideNavBtn: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
+  fab: { position: 'absolute', right: 18, width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', elevation: 6, shadowColor: '#000', shadowOpacity: 0.4, shadowOffset: { width: 0, height: 3 }, shadowRadius: 6 },
   tabBar: { flexDirection: 'row', justifyContent: 'center', gap: 32, paddingBottom: 12, backgroundColor: 'rgba(0,0,0,0.4)' },
   tabBarAbsolute: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   tabLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 14, fontWeight: '800', letterSpacing: 0.5, textShadowColor: '#000', textShadowRadius: 6 },
