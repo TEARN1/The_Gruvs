@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
-  Switch, Dimensions, Share, Platform, RefreshControl,
+  Switch, Dimensions, Share, Platform, RefreshControl, Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -986,6 +987,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [myVibedEvents, setMyVibedEvents] = useState([]);
   const [tabLoading, setTabLoading] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [imageViewerUri, setImageViewerUri] = useState(null);
+  const [editProfileVisible, setEditProfileVisible] = useState(false);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -1128,7 +1131,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         const { data } = await supabase
           .from('events')
           .select('*, profiles(username, avatar_url)')
-          .eq('author_id', user.id)
+          .or(`author_id.eq.${user.id},user_id.eq.${user.id}`)
           .order('created_at', { ascending: false })
           .limit(20);
         setMyEvents(data || []);
@@ -1367,7 +1370,11 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         </View>
 
         {/* Cover Photo */}
-        <View style={[styles.coverPhoto, { backgroundColor: `${primary}18` }]}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={[styles.coverPhoto, { backgroundColor: `${primary}18` }]}
+          onPress={() => profile?.cover_url && setImageViewerUri(profile.cover_url)}
+        >
           {profile?.cover_url
             ? <Image source={{ uri: profile.cover_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
             : <>
@@ -1375,14 +1382,21 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <View style={[styles.coverPatternAlt, { borderColor: `${primary}10` }]} />
             </>
           }
-          <TouchableOpacity style={styles.coverEditBtn} onPress={handleCoverUpload}>
-            <Feather name="camera" size={14} color="rgba(255,255,255,0.7)" />
-          </TouchableOpacity>
-        </View>
+          {user && (
+            <TouchableOpacity style={styles.coverEditBtn} onPress={handleCoverUpload}>
+              <Feather name="camera" size={14} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
 
         {/* Avatar Row */}
         <View style={styles.avatarSection}>
-          <TouchableOpacity style={styles.avatarWrap} onPress={handleAvatarUpload} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.avatarWrap}
+            onPress={() => avatarUrl ? setImageViewerUri(avatarUrl) : (user && handleAvatarUpload())}
+            onLongPress={() => user && handleAvatarUpload()}
+            activeOpacity={0.85}
+          >
             {avatarUrl
               ? <Image source={{ uri: avatarUrl }} style={[styles.avatar, { borderColor: primary }]} />
               : <View style={[styles.avatar, { borderColor: primary, backgroundColor: avatarBgColor(username), alignItems: 'center', justifyContent: 'center' }]}>
@@ -1390,18 +1404,22 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               </View>
             }
             <View style={[styles.onlineDot, { backgroundColor: '#10b981' }]} />
-            <View style={[styles.avatarEditBadge, { backgroundColor: primary }]}>
-              <Feather name="camera" size={10} color="#000" />
-            </View>
+            {user && (
+              <View style={[styles.avatarEditBadge, { backgroundColor: primary }]}>
+                <Feather name="camera" size={10} color="#000" />
+              </View>
+            )}
           </TouchableOpacity>
           <View style={styles.avatarActions}>
-            <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: primary }]}
-              onPress={() => { setNewUsername(username); setEditingUsername(true); }}
-            >
-              <Feather name="edit-2" size={13} color="#000" />
-              <Text style={styles.actionBtnText}>Edit Profile</Text>
-            </TouchableOpacity>
+            {user && (
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: primary }]}
+                onPress={() => setEditProfileVisible(true)}
+              >
+                <Feather name="edit-2" size={13} color="#000" />
+                <Text style={styles.actionBtnText}>Edit Profile</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={[styles.actionBtnOutline, { borderColor: `${primary}50` }]} onPress={handleShareProfile}>
               <Feather name="share-2" size={14} color={primary} />
               <Text style={[styles.actionBtnOutlineText, { color: primary }]}>Share</Text>
@@ -2075,6 +2093,135 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         visible={tutorialCenterVisible}
         onClose={() => setTutorialCenterVisible(false)}
       />
+
+      {/* ── Full-screen image viewer ── */}
+      <Modal
+        visible={!!imageViewerUri}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setImageViewerUri(null)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={1}
+          onPress={() => setImageViewerUri(null)}
+        >
+          <TouchableOpacity activeOpacity={1} style={{ width: '100%', alignItems: 'center' }}>
+            <Image
+              source={{ uri: imageViewerUri }}
+              style={{ width: width, height: width, resizeMode: 'contain' }}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setImageViewerUri(null)}
+            style={{ position: 'absolute', top: 52, right: 18, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, padding: 8 }}
+          >
+            <Feather name="x" size={22} color="#fff" />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Edit Profile sheet ── */}
+      <Modal
+        visible={editProfileVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditProfileVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' }}
+        >
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setEditProfileVisible(false)}
+          />
+          <View style={{ backgroundColor: bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingBottom: 36, paddingTop: 16, maxHeight: '88%' }}>
+            {/* Handle */}
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: `${primary}40`, alignSelf: 'center', marginBottom: 18 }} />
+            <Text style={{ color: textColor, fontSize: 18, fontWeight: '900', marginBottom: 18 }}>Edit Profile</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* Avatar */}
+              <TouchableOpacity
+                style={{ alignSelf: 'center', marginBottom: 20 }}
+                onPress={handleAvatarUpload}
+              >
+                {avatarUrl
+                  ? <Image source={{ uri: avatarUrl }} style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: primary }} />
+                  : <View style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: primary, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="user" size={32} color={primary} />
+                    </View>
+                }
+                <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: primary, borderRadius: 12, padding: 5 }}>
+                  <Feather name="camera" size={13} color="#000" />
+                </View>
+              </TouchableOpacity>
+
+              {/* Cover photo */}
+              <TouchableOpacity
+                onPress={handleCoverUpload}
+                style={{ height: 80, borderRadius: 14, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30`, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 18 }}
+              >
+                {profile?.cover_url
+                  ? <Image source={{ uri: profile.cover_url }} style={{ ...StyleSheet.absoluteFillObject, borderRadius: 14 }} resizeMode="cover" />
+                  : null}
+                <View style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
+                  <Feather name="image" size={15} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Change Cover Photo</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Bio */}
+              <Text style={{ color: primary, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>Bio</Text>
+              <TextInput
+                style={{ color: textColor, borderWidth: 1, borderColor: `${primary}25`, borderRadius: 12, padding: 12, fontSize: 13, minHeight: 80, textAlignVertical: 'top', marginBottom: 14 }}
+                value={bio}
+                onChangeText={setBio}
+                placeholder="Tell vibers about yourself..."
+                placeholderTextColor={muted}
+                multiline
+              />
+
+              {/* Location */}
+              <Text style={{ color: primary, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>Location</Text>
+              <TextInput
+                style={{ color: textColor, borderWidth: 1, borderColor: `${primary}25`, borderRadius: 12, padding: 12, fontSize: 13, marginBottom: 14 }}
+                value={location}
+                onChangeText={setLocation}
+                placeholder="City, Country"
+                placeholderTextColor={muted}
+              />
+
+              {/* Website */}
+              <Text style={{ color: primary, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>Website / Link</Text>
+              <TextInput
+                style={{ color: textColor, borderWidth: 1, borderColor: `${primary}25`, borderRadius: 12, padding: 12, fontSize: 13, marginBottom: 22 }}
+                value={website}
+                onChangeText={setWebsite}
+                placeholder="https://..."
+                placeholderTextColor={muted}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+
+              <TouchableOpacity
+                style={{ backgroundColor: primary, borderRadius: 14, paddingVertical: 15, alignItems: 'center' }}
+                onPress={async () => {
+                  await handleSaveProfile();
+                  setEditProfileVisible(false);
+                }}
+                disabled={saving}
+              >
+                {saving
+                  ? <ActivityIndicator size="small" color="#000" />
+                  : <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>Save Profile</Text>}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };

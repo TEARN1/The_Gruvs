@@ -183,6 +183,7 @@ export const TimePicker = ({
         snapToInterval={ITEM_H}
         decelerationRate="fast"
         onMomentumScrollEnd={onScroll}
+        onScrollEndDrag={onScroll}
         contentContainerStyle={{ paddingVertical: PAD * ITEM_H }}
       >
         {items.map(val => (

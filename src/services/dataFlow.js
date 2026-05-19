@@ -653,7 +653,6 @@ export const VibeManager = {
         .from('event_vibes')
         .upsert({ event_id: eventId, user_id: userId }, { onConflict: 'event_id,user_id', ignoreDuplicates: true });
       if (error) return null;
-      await supabase.rpc('increment_vibe_count', { eid: eventId });
       FeedManager.invalidate(eventId);
 
       // MINT EQUITY: Social resonance boost
@@ -677,7 +676,6 @@ export const VibeManager = {
         .from('event_vibes')
         .delete().eq('event_id', eventId).eq('user_id', userId);
       if (error) return null;
-      await supabase.rpc('decrement_vibe_count', { eid: eventId });
       FeedManager.invalidate(eventId);
       return true;
     } catch { return null; }
@@ -1447,7 +1445,7 @@ export const RouteManager = {
     try {
       const { data, error } = await supabase
         .from('routes')
-        .insert({ creator_id: userId, title, description, route_color: color })
+        .insert({ user_id: userId, title, description, color })
         .select()
         .single();
       if (error) throw error;
@@ -1490,7 +1488,7 @@ export const RouteManager = {
       const { data } = await supabase
         .from('routes')
         .select('*')
-        .eq('creator_id', userId)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
       if (data) cache.set(cacheKey, data);
       return data || [];

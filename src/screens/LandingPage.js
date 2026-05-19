@@ -375,6 +375,28 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       newEvents.forEach(e => { counts[e.id] = e.vibe_count || 0; });
       setVibeCounts(prev => ({ ...prev, ...counts }));
 
+      if (user?.id && newEvents.length > 0) {
+        const eventIds = newEvents.map(e => e.id);
+        const [vibeRes, reactRes] = await Promise.allSettled([
+          supabase.from('event_vibes').select('event_id').eq('user_id', user.id).in('event_id', eventIds),
+          supabase.from('event_reactions').select('event_id, reaction_key').eq('user_id', user.id).in('event_id', eventIds),
+        ]);
+        if (vibeRes.status === 'fulfilled' && vibeRes.value.data) {
+          setMyVibes(prev => {
+            const next = new Set(prev);
+            vibeRes.value.data.forEach(v => next.add(v.event_id));
+            return next;
+          });
+        }
+        if (reactRes.status === 'fulfilled' && reactRes.value.data) {
+          setReactions(prev => {
+            const next = { ...prev };
+            reactRes.value.data.forEach(r => { next[r.event_id] = r.reaction_key; });
+            return next;
+          });
+        }
+      }
+
       if (!isRefreshing && newEvents.length > 0) {
         setPage(prev => prev + 1);
         // Prefetch next page silently so scroll feels instant
@@ -565,9 +587,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     electric: '#00f2ff', goat: '#84cc16', clap: '#fb923c',
   };
 
-  const handleReact = (eventId, key) => {
+  const handleReact = async (eventId, key) => {
     if (!user) { onAuthRequired(); return; }
-    setReactions(prev => ({ ...prev, [eventId]: prev[eventId] === key ? null : key }));
+    const prev_key = reactions[eventId];
+    const newKey = prev_key === key ? null : key;
+    setReactions(prev => ({ ...prev, [eventId]: newKey }));
     setOpenReact(prev => ({ ...prev, [eventId]: false }));
     const r = REACTION_LIST.find(r => r.key === key);
     if (r) {
@@ -576,6 +600,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       setReactionFlash(prev => ({ ...prev, [eventId]: flashColor }));
       setTimeout(() => setReactionFlash(prev => { const n = { ...prev }; delete n[eventId]; return n; }), 600);
     }
+    try {
+      if (newKey === null) {
+        await supabase.from('event_reactions').delete().eq('event_id', eventId).eq('user_id', user.id);
+      } else {
+        await supabase.from('event_reactions').upsert(
+          { event_id: eventId, user_id: user.id, reaction_key: newKey },
+          { onConflict: 'event_id,user_id' }
+        );
+      }
+    } catch { /* best effort */ }
   };
 
   const handleBookmark = async (eventId) => {

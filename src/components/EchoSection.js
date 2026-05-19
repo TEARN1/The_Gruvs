@@ -61,17 +61,32 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
   const submitEcho = async () => {
     if (!text.trim()) return;
     if (!user) { onAuthRequired(); return; }
+    const body = text.trim();
+    const tempId = `temp-${Date.now()}`;
+    const optimistic = {
+      id: tempId,
+      event_id: eventId,
+      user_id: user.id,
+      body,
+      parent_id: replyTo?.id || null,
+      created_at: new Date().toISOString(),
+      likes: 0,
+      profiles: { username: profile?.username || user.user_metadata?.username || 'You', avatar_url: profile?.avatar_url || null },
+    };
+    setEchoes(prev => [optimistic, ...prev]);
+    setText('');
+    setReplyTo(null);
     setPosting(true);
     const { error } = await supabase.from('echoes').insert({
       event_id: eventId,
       user_id: user.id,
-      body: text.trim(),
-      parent_id: replyTo?.id || null,
+      body,
+      parent_id: optimistic.parent_id,
     });
     setPosting(false);
-    if (!error) {
-      setText('');
-      setReplyTo(null);
+    if (error) {
+      setEchoes(prev => prev.filter(e => e.id !== tempId));
+    } else {
       fetchEchoes();
     }
   };

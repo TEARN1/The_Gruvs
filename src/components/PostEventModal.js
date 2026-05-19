@@ -186,7 +186,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     if (timeSet) {
       payload.event_time = `${String(pickedHour).padStart(2, '0')}:${String(pickedMinute).padStart(2, '0')}`;
     }
-    if (mediaUrls.length > 0) payload.media = mediaUrls;
+    if (mediaUrls.length > 0) {
+      payload.media = mediaUrls;
+      payload.media_urls = mediaUrls.map(m => m.url);
+    }
     if (scheduleItems.length > 0) payload.schedule = scheduleItems.map(({ id, ...rest }) => rest);
     if (ageRestriction) payload.age_restriction = ageRestriction;
     if (primaryCat) payload.category = primaryCat;

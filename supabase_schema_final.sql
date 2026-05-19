@@ -706,10 +706,44 @@ CREATE TABLE IF NOT EXISTS event_gallery (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS url      TEXT;
-ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS caption  TEXT;
+ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS event_id   UUID REFERENCES events(id)   ON DELETE CASCADE;
+ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS url        TEXT;
+ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS caption    TEXT;
+ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS media_type TEXT DEFAULT 'image';
+
+-- Pulse Schedule requests (crowd-sourced live requests per event)
+CREATE TABLE IF NOT EXISTS pulse_requests (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id    UUID        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  user_id     UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  content     TEXT        NOT NULL CHECK (length(content) <= 200),
+  vote_count  INTEGER     DEFAULT 1,
+  is_live     BOOLEAN     DEFAULT false,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS pulse_requests_event_id ON pulse_requests(event_id, vote_count DESC);
+ALTER TABLE pulse_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Pulse readable"        ON pulse_requests;
+DROP POLICY IF EXISTS "Users insert pulse"    ON pulse_requests;
+DROP POLICY IF EXISTS "Users update pulse"    ON pulse_requests;
+CREATE POLICY "Pulse readable"        ON pulse_requests FOR SELECT USING (true);
+CREATE POLICY "Users insert pulse"    ON pulse_requests FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update pulse"    ON pulse_requests FOR UPDATE USING (true);
+
+-- Pulse votes (prevent double-voting)
+CREATE TABLE IF NOT EXISTS pulse_votes (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id  UUID NOT NULL REFERENCES pulse_requests(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (request_id, user_id)
+);
+ALTER TABLE pulse_votes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Pulse votes readable"  ON pulse_votes;
+DROP POLICY IF EXISTS "Users manage own vote" ON pulse_votes;
+CREATE POLICY "Pulse votes readable"  ON pulse_votes FOR SELECT USING (true);
+CREATE POLICY "Users manage own vote" ON pulse_votes FOR ALL    USING (auth.uid() = user_id);
 
 CREATE INDEX IF NOT EXISTS event_gallery_event_id ON event_gallery(event_id);
 
@@ -3682,3 +3716,32 @@ CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked  ON user_blocks(blocked_id);
 CREATE INDEX IF NOT EXISTS idx_follows_created      ON follows(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_events_hot           ON events(event_date, going DESC);
 CREATE INDEX IF NOT EXISTS idx_reels_likes          ON reels(like_count DESC);
+
+-- ════════════════════════════════════════════════════════════
+-- STORAGE BUCKETS
+-- ════════════════════════════════════════════════════════════
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES
+  ('avatars',     'avatars',     true, 10485760,  ARRAY['image/jpeg','image/png','image/webp','image/heic','image/heif']),
+  ('covers',      'covers',      true, 10485760,  ARRAY['image/jpeg','image/png','image/webp','image/heic','image/heif']),
+  ('event-media', 'event-media', true, 52428800,  ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/quicktime','video/x-m4v']),
+  ('chat_media',  'chat_media',  true, 52428800,  ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/quicktime'])
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage RLS policies
+DROP POLICY IF EXISTS "Avatar public read"    ON storage.objects;
+DROP POLICY IF EXISTS "Avatar auth upload"    ON storage.objects;
+DROP POLICY IF EXISTS "Cover public read"     ON storage.objects;
+DROP POLICY IF EXISTS "Cover auth upload"     ON storage.objects;
+DROP POLICY IF EXISTS "EventMedia public read" ON storage.objects;
+DROP POLICY IF EXISTS "EventMedia auth upload" ON storage.objects;
+DROP POLICY IF EXISTS "ChatMedia auth access"  ON storage.objects;
+
+CREATE POLICY "Avatar public read"    ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+CREATE POLICY "Avatar auth upload"    ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+CREATE POLICY "Cover public read"     ON storage.objects FOR SELECT USING (bucket_id = 'covers');
+CREATE POLICY "Cover auth upload"     ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'covers' AND auth.role() = 'authenticated');
+CREATE POLICY "EventMedia public read" ON storage.objects FOR SELECT USING (bucket_id = 'event-media');
+CREATE POLICY "EventMedia auth upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'event-media' AND auth.role() = 'authenticated');
+CREATE POLICY "ChatMedia auth access"  ON storage.objects FOR ALL   USING (bucket_id = 'chat_media' AND auth.role() = 'authenticated');
+

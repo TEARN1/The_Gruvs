@@ -288,13 +288,13 @@ export const PresenceBar = ({
 
     if (mutual) {
       // Create DM room
-      const expiresAt48h = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
-      await supabase.from('dm_rooms').insert({
-        user_a: user.id,
-        user_b: toUserId,
-        event_id: eventId,
-        expires_at: expiresAt48h,
-      });
+      await supabase.from('dm_rooms').upsert(
+        {
+          participant_1: user.id < toUserId ? user.id : toUserId,
+          participant_2: user.id < toUserId ? toUserId : user.id,
+        },
+        { onConflict: 'participant_1,participant_2', ignoreDuplicates: true }
+      );
       setMatchIds(prev => new Set([...prev, toUserId]));
       showToast('💬 Mutual match! A chat room is open for 48h', 'success');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

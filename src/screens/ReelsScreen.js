@@ -146,7 +146,7 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
 
   const [liked, setLiked] = useState(reel._liked || false);
   const [likeCount, setLikeCount] = useState(reel.like_count || 0);
-  const [muted, setMuted_] = useState(false);
+  const [audioMuted, setAudioMuted] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [progress, setProgress] = useState(0);
@@ -232,7 +232,7 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
             style={StyleSheet.absoluteFill}
             resizeMode={ResizeMode.COVER}
             isLooping
-            isMuted={muted}
+            isMuted={audioMuted}
             rate={speed}
             shouldPlay={isActive}
             onReadyForDisplay={() => setVideoLoaded(true)}
@@ -309,8 +309,8 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
 
           {/* Mute / Volume */}
           {isVideo && (
-            <TouchableOpacity style={ri.actionBtn} onPress={() => setMuted_(m => !m)} activeOpacity={0.8}>
-              <Feather name={muted ? 'volume-x' : 'volume-2'} size={24} color="#fff" />
+            <TouchableOpacity style={ri.actionBtn} onPress={() => setAudioMuted(m => !m)} activeOpacity={0.8}>
+              <Feather name={audioMuted ? 'volume-x' : 'volume-2'} size={24} color="#fff" />
             </TouchableOpacity>
           )}
 
