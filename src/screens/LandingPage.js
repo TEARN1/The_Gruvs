@@ -277,6 +277,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [rsvpEvent, setRsvpEvent] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
+  const followedIdsRef = useRef([]); // stable ref so fetchPage can use it without re-render
   const [dateFilter, setDateFilter] = useState('any');
   const [dateRange, setDateRange] = useState(null);
   const [activeHashtag, setActiveHashtag] = useState(null);
@@ -360,6 +361,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       userInterests: profile?.interests || [],
       mode: feedMode,
       userId: user?.id || null,
+      followedIds: followedIdsRef.current,
     };
 
     try {
@@ -466,6 +468,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           .limit(100);
         if (!follows?.length) return;
         const followedIds = follows.map(f => f.following_id);
+        followedIdsRef.current = followedIds; // cache for ScoreEngine scoring
         const eventIds = events.map(e => e.id);
         const { data: crewRsvps } = await supabase
           .from('event_rsvps')

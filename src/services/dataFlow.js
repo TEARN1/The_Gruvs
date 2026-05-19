@@ -383,6 +383,8 @@ export const FeedManager = {
       let q = supabase
         .from('events')
         .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)', { count: 'estimated' })
+        .neq('is_deleted', true)
+        .neq('is_cancelled', true)
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
 
       // Filter to events by followed users when in Following mode
@@ -568,7 +570,8 @@ export const TrendingManager = {
       const { data: events } = await supabase
         .from('events')
         .select('id, title, description, media, vibe_count, going, event_date, event_time, venue_name, category, created_at')
-        .eq('is_cancelled', false)
+        .neq('is_cancelled', true)
+        .neq('is_deleted', true)
         .gte('event_date', new Date().toISOString().split('T')[0])
         .order('vibe_count', { ascending: false })
         .limit(limit * 4); // oversample so we can re-rank
@@ -606,6 +609,8 @@ export const TrendingManager = {
         .select('*, profiles(username, avatar_url)')
         .gte('event_date', today)
         .lte('event_date', tomorrow)
+        .neq('is_deleted', true)
+        .neq('is_cancelled', true)
         .order('vibe_count', { ascending: false })
         .limit(20); // oversample, re-rank by heat
       const events = (data || [])
@@ -628,6 +633,8 @@ export const TrendingManager = {
         .select('*, profiles(username, avatar_url)')
         .gte('event_date', today)
         .lte('event_date', week)
+        .neq('is_deleted', true)
+        .neq('is_cancelled', true)
         .order('vibe_count', { ascending: false })
         .limit(20);
       const result = data || [];
