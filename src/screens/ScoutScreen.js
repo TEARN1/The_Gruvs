@@ -317,6 +317,8 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
           .from('events')
           .select('id, title, category, lat, lon, venue_name, event_date, media_urls, image_url, vibe_count, price, max_attendees, profiles(username, avatar_url)')
           .gte('event_date', new Date().toISOString().split('T')[0])
+          .neq('is_deleted', true)
+          .neq('is_cancelled', true)
           .order('event_date', { ascending: true })
           .limit(80);
         evts = data || [];

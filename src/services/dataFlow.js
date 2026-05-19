@@ -444,6 +444,8 @@ export const FeedManager = {
         .from('events')
         .select('*, profiles(id, username, avatar_url, is_verified, vibe_score)')
         .gte('event_date', new Date().toISOString().split('T')[0])
+        .neq('is_deleted', true)
+        .neq('is_cancelled', true)
         .order('vibe_count', { ascending: false })
         .limit(20);
 
@@ -473,6 +475,8 @@ export const FeedManager = {
           .from('events')
           .select('*, profiles(id, username, avatar_url)')
           .or(`title.ilike.%${s}%,description.ilike.%${s}%,category.ilike.%${s}%,venue_name.ilike.%${s}%,city.ilike.%${s}%`)
+          .neq('is_deleted', true)
+          .neq('is_cancelled', true)
           .order('vibe_count', { ascending: false })
           .limit(20),
         supabase
@@ -525,6 +529,8 @@ export const FeedManager = {
       let q = supabase
         .from('events')
         .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)', { count: 'estimated' })
+        .neq('is_deleted', true)
+        .neq('is_cancelled', true)
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
       if (category !== 'all') q = q.eq('category', category);
       if (query.trim()) {
@@ -1330,15 +1336,14 @@ export const CalendarManager = {
         .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media, price')
         .gte('event_date', from)
         .lte('event_date', to)
+        .neq('is_deleted', true)
+        .neq('is_cancelled', true)
         .order('event_date', { ascending: true })
         .limit(60);
       const result = data || [];
       cache.set(cacheKey, result);
       return result;
-    } catch (error) {
-      console.error('CalendarManager.fetchMonthEvents error:', error);
-      return [];
-    }
+    } catch { return []; }
   },
 
   async fetchUpcoming(limit = 10) {
@@ -1351,6 +1356,8 @@ export const CalendarManager = {
         .from('events')
         .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media, price')
         .gte('event_date', today)
+        .neq('is_deleted', true)
+        .neq('is_cancelled', true)
         .order('event_date', { ascending: true })
         .limit(limit);
       const result = data || [];
@@ -2091,6 +2098,8 @@ export const FollowingFeedManager = {
         .select('*, profiles(id, username, avatar_url, is_verified, vibe_score)')
         .in('author_id', followedIds)
         .gte('event_date', new Date().toISOString().split('T')[0])
+        .neq('is_deleted', true)
+        .neq('is_cancelled', true)
         .order('created_at', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
