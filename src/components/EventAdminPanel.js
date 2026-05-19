@@ -115,7 +115,6 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
         avgRating,
       });
     } catch (e) {
-      console.log('AdminPanel error:', e.message);
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -52,7 +52,6 @@ export const ProviderSetupModal = ({ visible, onClose, onSaveSuccess }) => {
         setAvailable(data.available);
       }
     } catch (e) {
-      console.log('Load node error:', e.message);
     } finally {
       setFetching(false);
     }

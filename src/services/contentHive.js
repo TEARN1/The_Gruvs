@@ -14,7 +14,6 @@ export const ContentHive = {
    * Tailored for the SA market with Royale aesthetics.
    */
   async generateViralDrop(eventId) {
-    console.log(`[Hive] Generating viral assets for event: ${eventId}`);
 
     // 1. Fetch Event DNA
     const { data: event } = await supabase

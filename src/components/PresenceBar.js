@@ -108,7 +108,6 @@ export const PresenceBar = ({
       .gte('checked_in_at', new Date(Date.now() - 6 * 3600 * 1000).toISOString());
 
     if (error) {
-      console.log('PresenceBar fetch error:', error.message);
       setLoading(false);
       return;
     }

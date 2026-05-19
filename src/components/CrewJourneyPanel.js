@@ -76,7 +76,6 @@ export const CrewJourneyPanel = ({ onEventPress }) => {
 
         setJourneys(Object.values(eventMap).slice(0, 10));
       } catch (e) {
-        console.log('CrewJourney error:', e.message);
       } finally {
         setLoading(false);
       }

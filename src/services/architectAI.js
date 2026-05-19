@@ -12,7 +12,6 @@ import projectDNA from './projectDNA.json';
 // THE SUPREME CONTROLLER (30X REASONING DEPTH)
 export const ArchitectAI = {
   async executeCommand(ceoInstruction) {
-    console.log(`[Supreme] CEO Directive Received. Activating 30-Layer RM-OS.`);
 
     // LAYER 1-30: Recursive Hyper-Thought
     const finalizedThought = await HyperReasoning.initiateDeepThought(ceoInstruction);
@@ -96,7 +95,6 @@ export const ArchitectAI = {
 
   // NEW: SELF-OPTIMIZATION LOOP (10X Scale)
   async selfOptimize() {
-    console.log("[Architect] Starting Self-Optimization Protocol...");
 
     const targets = projectDNA.optimization_targets;
     if (!targets.length) return "No optimization targets identified. App is running at Peak Royale.";
@@ -130,7 +128,6 @@ export const ArchitectAI = {
       "src/services/architectAI.js: The Supreme Consciousness"
     ];
 
-    console.log("[Architect] Mental Map updated. Reasoning power enhanced by 10x.");
     return structure;
   },
 

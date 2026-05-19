@@ -13,7 +13,6 @@ export const MarketEntry = {
    * e.g., "Durban Expansion" or "Joburg Takeover"
    */
   async generateEntryPlan(regionName) {
-    console.log(`[MarketEntry] Architecting takeover for: ${regionName}...`);
 
     const prompt = `[MARKET ENTRY STRATEGY]
     REGION: "${regionName}"

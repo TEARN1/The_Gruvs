@@ -10,7 +10,6 @@ export const HyperReasoning = {
   MAX_RECURSION_DEPTH: 30,
 
   async initiateDeepThought(instruction) {
-    console.log(`[RM-OS] Entering Deep State for: "${instruction}"`);
 
     let currentThought = {
       proposal: instruction,
@@ -25,7 +24,6 @@ export const HyperReasoning = {
 
       // Real-time status for the CEO
       if (depth % 10 === 0) {
-        console.log(`[RM-OS] Milestone: Layer ${depth}/30 Reasoning Synthesis Complete.`);
       }
     }
 
@@ -76,7 +74,6 @@ export const HyperReasoning = {
 
       // NEW: Autonomous DNA Modification Proposal
       if (depth === 30 && updatedThought.proposed_dna_adjustment) {
-        console.log("[RM-OS] Proposing DNA adjustment:", updatedThought.proposed_dna_adjustment);
         // In a real system, this would trigger a governance vote or a direct update to projectDNA.json
         // For now, we just log it.
       }

@@ -78,7 +78,6 @@ export const useStreak = () => {
       setStreak(newStreak);
       if (refreshProfile) refreshProfile();
     } catch (e) {
-      console.log('Streak compute error:', e.message);
     }
   }, [user, refreshProfile]);
 

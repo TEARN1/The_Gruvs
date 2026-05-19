@@ -145,7 +145,6 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
       setActivities(results);
       setUnreadCount(results.filter(r => Date.now() - new Date(r.created_at) < 3600000).length);
     } catch (e) {
-      console.log('Activity fetch error:', e.message);
       setActivities([]);
     } finally {
       setLoading(false);

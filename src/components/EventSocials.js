@@ -76,7 +76,6 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
         .limit(20);
       if (commentData) setComments(commentData);
     } catch (e) {
-      console.log('EventSocials fetch error:', e.message);
     }
   }, [eventId, user]);
 

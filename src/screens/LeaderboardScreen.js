@@ -66,7 +66,6 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
       const { data } = await query;
       setProfiles(data || []);
     } catch (e) {
-      console.log('Leaderboard fetch error:', e.message);
     } finally {
       setLoading(false);
       setRefreshing(false);

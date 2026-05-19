@@ -13,7 +13,6 @@ export const LimbicSystem = {
    * Runs locally on the client/edge to preserve Vibe-Equity.
    */
   processEmergency(actionType, currentStats) {
-    console.log(`[Limbic] Cerebral Cortex Offline. Executing DNA-derived heuristics for ${actionType}...`);
 
     // Safety check derived from last known stable PhD state
     const weights = projectDNA.neural_weights;

@@ -137,7 +137,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
         const publicUrl = await uploadToStorage(item.uri, 'event-media', fileName, { mimeType });
         uploaded.push({ url: publicUrl, type: item.type });
       } catch (e) {
-        console.log('Media upload error:', e.message);
       }
     }
     return uploaded;

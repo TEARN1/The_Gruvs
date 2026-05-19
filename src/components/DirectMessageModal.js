@@ -469,7 +469,6 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       }
     } catch (e) {
       setMediaLoading(false);
-      console.log('Image upload error:', e.message);
     }
   };
 

@@ -86,7 +86,6 @@ const checkBadges = async (userId) => {
       if (cities.size >= 3) earned.add('explorer');
     }
   } catch (e) {
-    console.log('Badge check error:', e.message);
   }
   return earned;
 };

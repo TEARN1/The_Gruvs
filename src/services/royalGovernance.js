@@ -15,7 +15,6 @@ export const RoyalGovernance = {
    * Scans Echoes and Vibe patterns to find what the kingdom needs.
    */
   async generateAutonomousProposal() {
-    console.log(`[Governance] AI scan for new kingdom decree...`);
 
     const { data: echoes } = await supabase.from('echoes').select('body').limit(100);
 

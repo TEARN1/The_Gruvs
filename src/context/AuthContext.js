@@ -20,7 +20,6 @@ export const AuthProvider = ({ children }) => {
         .single();
       if (data) setProfile(data);
     } catch (e) {
-      console.log('Profile fetch error:', e.message);
     } finally {
       setLoading(false);
     }
@@ -62,7 +61,6 @@ export const AuthProvider = ({ children }) => {
     if (!user) return;
 
     const interval = setInterval(async () => {
-      console.log("[Shield] Validating Ghost Handshake...");
       const isValid = await SecurityService.validateSession();
       if (!isValid) {
         console.warn("[Shield] Handshake Expired. Re-authenticating...");

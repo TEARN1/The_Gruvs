@@ -22,7 +22,6 @@ export const VibeEquityLedger = {
    * Where W = Action Weight, E = Efficiency, P = PhD Stability Factor
    */
   async mintEquity(userId, actionType, metadata = {}) {
-    console.log(`[Sovereign Mint] Executing Precision Protocol for ${actionType}...`);
 
     const weight = this.MULTIPLIERS[actionType] || 1.0;
 
@@ -67,7 +66,6 @@ export const VibeEquityLedger = {
     const newEquity = profile.vibe_equity - amount;
     await supabase.from('profiles').update({ vibe_equity: newEquity }).eq('id', userId);
 
-    console.log(`[Central Bank] ${amount} Vibe-Equity burned. Deflationary event recorded.`);
     return newEquity;
   },
 

@@ -18,11 +18,9 @@ import projectDNA from './projectDNA.json';
 export const IntelligenceMonitor = {
   async logSuccess(feature, duration) {
     if (duration > 500) {
-      console.log(`[URE] Performance bottleneck detected in ${feature}. Training DNA to optimize.`);
     }
   },
   async logFailure(feature, error) {
-    console.log(`[URE] Recursive failure in ${feature}: ${error}. Self-correcting via DNA update.`);
   }
 };
 

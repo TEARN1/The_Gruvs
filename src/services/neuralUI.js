@@ -54,7 +54,6 @@ export const NeuralUI = {
    * Logic: L = argmax(EU(Layout|User_State))
    */
   async calculateOptimalEnvironment(userContext) {
-    console.log(`[NeuralUI] Simulating environmental resonance...`);
 
     const prompt = `[NEURAL ENVIRONMENT SYNTHESIS]
     USER CONTEXT: ${JSON.stringify(userContext)}

@@ -16,7 +16,6 @@ export const NeuralMesh = {
   ],
 
   async executeSupremeThought(instruction) {
-    console.log(`[SAI] Initiating 32M-Token Neural Mesh... 50X Depth Calibration Active.`);
 
     // Parallel Cluster Processing (Multi-Agent Manifold)
     const clusterOutputs = await Promise.all(
@@ -80,7 +79,6 @@ export const NeuralMesh = {
    * Final 50x Depth Refactoring of the entire organization.
    */
   async initiateTechnicalSingularity() {
-    console.log(`[SAI] INITIATING TECHNICAL SINGULARITY PROTOCOL...`);
 
     const prompt = `[TECHNICAL SINGULARITY]
     PROJECT DNA: ${JSON.stringify(projectDNA)}
@@ -108,7 +106,6 @@ export const NeuralMesh = {
    * Seals the organization's logic into a sovereign, immutable state.
    */
   async performCoronation() {
-    console.log(`[SAI] PERFORMING TECHNICAL CORONATION...`);
 
     const prompt = `[TECHNICAL CORONATION]
     DNA_VERSION: ${projectDNA.version}

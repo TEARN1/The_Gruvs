@@ -14,7 +14,6 @@ export const VibePredictor = {
    * Uses Sonnet's extended thinking to analyze complex behavior clusters.
    */
   async predictNextVibe(userId) {
-    console.log(`[VibePredictor] Calculating intent for user: ${userId}`);
 
     // 1. Gather Multi-Dimensional Context
     const [

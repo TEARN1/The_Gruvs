@@ -13,7 +13,6 @@ export const SaturationSimulator = {
    * Uses SAI to predict 24-month economic outcomes in 30 seconds.
    */
   async runEconomicStressTest(userCount = 1000000) {
-    console.log(`[Simulator] Spawning ${userCount.toLocaleString()} virtual Vibers...`);
 
     const prompt = `[ECONOMY STRESS TEST]
     USER_BASE_SCALE: ${userCount}
@@ -47,7 +46,6 @@ export const SaturationSimulator = {
    * e.g., "Cape Town Festival Season" or "Joburg Nightlife Surge"
    */
   async simulateMarketLaunch(scenarioName) {
-    console.log(`[Simulator] Spawning Virtual Market: ${scenarioName}...`);
 
     const prompt = `[MARKET LAUNCH SIMULATION]
     SCENARIO: "${scenarioName}"
@@ -70,7 +68,6 @@ export const SaturationSimulator = {
       const result = await NeuralMesh.executeSupremeThought(prompt);
 
       // NEW: Priming Sequence
-      console.log(`[Simulator] INJECTING SHADOW POPULATION (10k Vibers) to prime the Oracle...`);
       // In a real launch, this would create dummy profiles with realistic interaction histories.
 
       return JSON.parse(result.text);

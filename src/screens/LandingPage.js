@@ -494,7 +494,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         .order('created_at', { ascending: false });
       setEventCheckins(prev => ({ ...prev, [eventId]: data || [] }));
     } catch (e) {
-      console.log('Checkins fetch error:', e.message);
       setEventCheckins(prev => ({ ...prev, [eventId]: [] }));
     }
   }, [eventCheckins]);
