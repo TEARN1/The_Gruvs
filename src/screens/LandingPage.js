@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, Image,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image,
   Animated, Linking, RefreshControl, ScrollView, TextInput,
   Share, Modal, Platform, ActivityIndicator, Dimensions,
 } from 'react-native';
@@ -262,11 +262,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [reactions, setReactions] = useState({});
   const [savedEvents, setSavedEvents] = useState(new Set());
   const [isVibing, setIsVibing] = useState({});
-  const [openReact, setOpenReact] = useState({});
-  const [openEcho, setOpenEcho] = useState({});
-  const [openGallery, setOpenGallery] = useState({});
-  const [openRate, setOpenRate] = useState({});
-  const [openPulseSchedule, setOpenPulseSchedule] = useState({});
+  const [openSection, setOpenSection] = useState({}); // { [eventId]: 'react'|'echo'|'gallery'|'rate'|'pulse'|null }
+  const [reactorsEvent, setReactorsEvent] = useState(null); // eventId to show reactors for
+  const [reactorsList, setReactorsList] = useState([]);
+  const [reactorsFilter, setReactorsFilter] = useState('all');
+  const [reactorsLoading, setReactorsLoading] = useState(false);
+  const toggleSection = useCallback((id, section) => {
+    startTransition(() => setOpenSection(prev => ({ ...prev, [id]: prev[id] === section ? null : section })));
+  }, []);
   const [reactionFlash, setReactionFlash] = useState({});
 
   // New feature modals
@@ -537,6 +540,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       return next;
     });
 
+    setVibeCounts(prev => ({ ...prev, [eventId]: Math.max(0, (prev[eventId] || 0) + (isCurrentVibed ? -1 : 1)) }));
+
     // Optimistically update the event count in local state if possible
     setEvents(prev => prev.map(ev => {
       if (ev.id === eventId) {
@@ -563,6 +568,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           else next.delete(eventId);
           return next;
         });
+        setVibeCounts(prev => ({ ...prev, [eventId]: Math.max(0, (prev[eventId] || 0) + (isCurrentVibed ? 1 : -1)) }));
         setEvents(prev => prev.map(ev => {
           if (ev.id === eventId) {
             return {
@@ -593,7 +599,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const prev_key = reactions[eventId];
     const newKey = prev_key === key ? null : key;
     setReactions(prev => ({ ...prev, [eventId]: newKey }));
-    setOpenReact(prev => ({ ...prev, [eventId]: false }));
+    setOpenSection(prev => ({ ...prev, [eventId]: null }));
     const r = REACTION_LIST.find(r => r.key === key);
     if (r) {
       toast.show(`Reacted ${r.emoji}`, 'info');
@@ -653,6 +659,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       });
     }
   };
+
+  const fetchReactors = useCallback(async (eventId) => {
+    setReactorsLoading(true);
+    const { data } = await supabase
+      .from('event_reactions')
+      .select('reaction_key, user_id, profiles:user_id(username, avatar_url)')
+      .eq('event_id', eventId)
+      .limit(100);
+    setReactorsList(data || []);
+    setReactorsLoading(false);
+  }, []);
 
   const handleShare = (event) => {
     if (!Share?.share) {
@@ -1194,12 +1211,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               </TouchableOpacity>
             )}
 
-            {/* Reaction summary */}
             {event.reaction_count > 0 ? (
-              <View style={[styles.reactionSummary, { borderTopColor: `${primary}12`, borderBottomColor: `${primary}12` }]}>
+              <TouchableOpacity
+                style={[styles.reactionSummary, { borderTopColor: `${primary}12`, borderBottomColor: `${primary}12` }]}
+                onPress={() => { setReactorsEvent(id); setReactorsFilter('all'); fetchReactors(id); }}
+                activeOpacity={0.8}
+              >
                 <Text style={styles.reactionEmojis}>{event.reactions_summary || '🔥❤️🙌'}</Text>
                 <Text style={[styles.reactionCount, { color: muted }]}>{event.reaction_count} reactions</Text>
-              </View>
+                <Feather name="chevron-right" size={12} color={muted} style={{ marginLeft: 'auto' }} />
+              </TouchableOpacity>
             ) : null}
 
             {/* Action bar — Item 51: accessible labels on all action buttons */}
@@ -1217,7 +1238,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => startTransition(() => setOpenReact(p => ({ ...p, [id]: !p[id] })))}
+                  onPress={() => toggleSection(id, 'react')}
                   accessibilityRole="button"
                   accessibilityLabel="React to this event"
                 >
@@ -1230,32 +1251,32 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => startTransition(() => setOpenEcho(p => ({ ...p, [id]: !p[id] })))}
+                  onPress={() => toggleSection(id, 'echo')}
                   accessibilityRole="button"
                   accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
                 >
-                  <Feather name="message-circle" size={19} color={openEcho[id] ? primary : muted} />
-                  <Text style={[styles.actionCount, { color: openEcho[id] ? primary : muted }]}>{event.echo_count || 0}</Text>
+                  <Feather name="message-circle" size={19} color={openSection[id] === 'echo' ? primary : muted} />
+                  <Text style={[styles.actionCount, { color: openSection[id] === 'echo' ? primary : muted }]}>{event.echo_count || 0}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => startTransition(() => setOpenGallery(p => ({ ...p, [id]: !p[id] })))}
+                  onPress={() => toggleSection(id, 'gallery')}
                   accessibilityRole="button"
                   accessibilityLabel="View event gallery"
                 >
-                  <Feather name="camera" size={19} color={openGallery[id] ? primary : muted} />
-                  <Text style={[styles.actionLabel, { color: openGallery[id] ? primary : muted }]}>Gallery</Text>
+                  <Feather name="camera" size={19} color={openSection[id] === 'gallery' ? primary : muted} />
+                  <Text style={[styles.actionLabel, { color: openSection[id] === 'gallery' ? primary : muted }]}>Gallery</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => startTransition(() => setOpenPulseSchedule(p => ({ ...p, [id]: !p[id] })))}
+                  onPress={() => toggleSection(id, 'pulse')}
                   accessibilityRole="button"
                   accessibilityLabel="View Pulse Schedule"
                 >
-                  <Feather name="activity" size={19} color={openPulseSchedule[id] ? primary : muted} />
-                  <Text style={[styles.actionLabel, { color: openPulseSchedule[id] ? primary : muted }]}>Pulse</Text>
+                  <Feather name="activity" size={19} color={openSection[id] === 'pulse' ? primary : muted} />
+                  <Text style={[styles.actionLabel, { color: openSection[id] === 'pulse' ? primary : muted }]}>Pulse</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1274,12 +1295,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => startTransition(() => setOpenRate(p => ({ ...p, [id]: !p[id] })))}
+                  onPress={() => toggleSection(id, 'rate')}
                   accessibilityRole="button"
                   accessibilityLabel="Rate this event"
                 >
-                  <Feather name="star" size={19} color={openRate[id] ? primary : muted} />
-                  <Text style={[styles.actionLabel, { color: openRate[id] ? primary : muted }]}>Rate</Text>
+                  <Feather name="star" size={19} color={openSection[id] === 'rate' ? primary : muted} />
+                  <Text style={[styles.actionLabel, { color: openSection[id] === 'rate' ? primary : muted }]}>Rate</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1320,32 +1341,39 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             </ScrollView>
 
             {/* Collapsible sections */}
-            {openReact[id] && (
+            {openSection[id] === 'react' && (
               <ReactPicker visible onReact={key => handleReact(id, key)} userReaction={userReaction} />
             )}
-            {openEcho[id] && (
+            {openSection[id] === 'echo' && (
               <EchoSection eventId={id} onAuthRequired={onAuthRequired} />
             )}
-            {openGallery[id] && (
+            {openSection[id] === 'gallery' && (
               <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
                 <EventGallery eventId={id} />
               </View>
             )}
-            {openRate[id] && (
+            {openSection[id] === 'rate' && (
               <RatingSection eventId={id} onAuthRequired={onAuthRequired} />
             )}
-            {openPulseSchedule[id] && (
+            {openSection[id] === 'pulse' && (
               <PulseScheduleSection eventId={id} eventCategory={event.category} onAuthRequired={onAuthRequired} />
             )}
-            {!isSample && (
-              <PresenceBar
-                eventId={id}
-                eventEndTime={event.end_time}
-                eventLat={event.lat}
-                eventLon={event.lon}
-                onAuthRequired={onAuthRequired}
-              />
-            )}
+            {!isSample && (() => {
+              // Only show PresenceBar on the event day (and day before/after for timezone flex)
+              const eventDay = event.event_date ? new Date(event.event_date).toDateString() : null;
+              const today = new Date().toDateString();
+              const isEventDay = !eventDay || eventDay === today;
+              return isEventDay ? (
+                <PresenceBar
+                  eventId={id}
+                  eventEndTime={event.end_time}
+                  eventLat={event.lat}
+                  eventLon={event.lon}
+                  eventDate={event.event_date}
+                  onAuthRequired={onAuthRequired}
+                />
+              ) : null;
+            })()}
             {!isSample && (
               <ReturnPathCard
                 event={event}
@@ -1385,9 +1413,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         showsVerticalScrollIndicator={false}
         onScrollToIndexFailed={() => { }}
         removeClippedSubviews={Platform.OS !== 'web'}
-        maxToRenderPerBatch={4}
-        windowSize={7}
-        initialNumToRender={4}
+        maxToRenderPerBatch={5}
+        windowSize={10}
+        initialNumToRender={5}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>
@@ -1509,6 +1537,56 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         targetId={reportTarget?.id}
         targetType={reportTarget?.type}
       />
+      {/* Reactors modal */}
+      <Modal visible={!!reactorsEvent} transparent animationType="slide" onRequestClose={() => setReactorsEvent(null)}>
+        <TouchableWithoutFeedback onPress={() => setReactorsEvent(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
+        </TouchableWithoutFeedback>
+        <View style={[styles.reactorsSheet, { backgroundColor: surface }]}>
+          <View style={[styles.reactorsHandle, { backgroundColor: `${primary}30` }]} />
+          <Text style={[styles.reactorsTitle, { color: textColor }]}>Reactions</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, marginBottom: 12 }}>
+            {['all', '🔥', '❤️', '⚡', '😮', '🙌'].map(f => (
+              <TouchableOpacity
+                key={f}
+                style={[styles.reactorFilterBtn, { backgroundColor: reactorsFilter === f ? primary : `${primary}18`, borderColor: reactorsFilter === f ? primary : `${primary}30` }]}
+                onPress={() => setReactorsFilter(f)}
+              >
+                <Text style={{ fontSize: f === 'all' ? 11 : 18, color: reactorsFilter === f ? '#000' : textColor, fontWeight: '800' }}>
+                  {f === 'all' ? 'All' : f}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          {reactorsLoading
+            ? <ActivityIndicator color={primary} style={{ marginTop: 20 }} />
+            : (() => {
+                const EMOJI_MAP = { fire: '🔥', love: '❤️', hype: '⚡', shocked: '😮', clap: '🙌' };
+                const filtered = reactorsFilter === 'all'
+                  ? reactorsList
+                  : reactorsList.filter(r => (EMOJI_MAP[r.reaction_key] || r.reaction_key) === reactorsFilter);
+                return filtered.length === 0
+                  ? <Text style={{ color: muted, textAlign: 'center', paddingTop: 24, fontSize: 13 }}>No reactions yet</Text>
+                  : (
+                    <ScrollView contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingBottom: 32 }}>
+                      {filtered.map((r, i) => (
+                        <View key={i} style={styles.reactorRow}>
+                          {r.profiles?.avatar_url
+                            ? <Image source={{ uri: r.profiles.avatar_url }} style={styles.reactorAvatar} />
+                            : <View style={[styles.reactorAvatar, { backgroundColor: primary + '30', alignItems: 'center', justifyContent: 'center' }]}>
+                                <Text style={{ color: primary, fontWeight: '900', fontSize: 12 }}>{(r.profiles?.username || '?')[0].toUpperCase()}</Text>
+                              </View>
+                          }
+                          <Text style={[styles.reactorName, { color: textColor }]}>@{r.profiles?.username || 'Viber'}</Text>
+                          <Text style={{ fontSize: 22, marginLeft: 'auto' }}>{EMOJI_MAP[r.reaction_key] || r.reaction_key}</Text>
+                        </View>
+                      ))}
+                    </ScrollView>
+                  );
+              })()
+          }
+        </View>
+      </Modal>
       <OfflineBanner />
       <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
       <EventDetailScreen
@@ -1668,4 +1746,11 @@ const styles = StyleSheet.create({
   routeFab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, elevation: 10, zIndex: 100 },
   routeFabBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: '#ef4444', minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#000' },
   routeFabBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+  reactorsSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, paddingBottom: 0, maxHeight: '65%' },
+  reactorsHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 12 },
+  reactorsTitle: { fontSize: 16, fontWeight: '900', textAlign: 'center', marginBottom: 12, letterSpacing: 0.5 },
+  reactorFilterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  reactorRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  reactorAvatar: { width: 38, height: 38, borderRadius: 19 },
+  reactorName: { fontSize: 14, fontWeight: '700' },
 });

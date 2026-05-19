@@ -19,6 +19,7 @@ export const EventGallery = ({ eventId }) => {
   const { user } = useAuth();
   const toast = useToast();
   const [gallery, setGallery] = useState([]);
+  const [hostMedia, setHostMedia] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [lightboxItem, setLightboxItem] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -34,18 +35,43 @@ export const EventGallery = ({ eventId }) => {
 
   const fetchGallery = async () => {
     try {
+      // Fetch community gallery
       const { data, error } = await supabase
         .from('event_gallery')
         .select('*, profiles(username, avatar_url)')
         .eq('event_id', eventId)
         .order('created_at', { ascending: false });
-      if (error) {
-        // Table doesn't exist yet — show empty state silently
-        setTableError(true);
-        return;
+      if (!error && data) setGallery(data);
+      else setTableError(true);
+
+      // Fetch host's own event media
+      const { data: ev } = await supabase
+        .from('events')
+        .select('media, media_urls, author_id, profiles:author_id(username, avatar_url)')
+        .eq('id', eventId)
+        .single();
+      if (ev) {
+        let hostImgs = [];
+        if (Array.isArray(ev.media)) {
+          hostImgs = ev.media.filter(m => m?.url).map(m => ({
+            id: `host_${m.url}`,
+            url: m.url,
+            media_type: m.type || 'image',
+            profiles: ev.profiles,
+            is_host: true,
+          }));
+        }
+        if (!hostImgs.length && Array.isArray(ev.media_urls)) {
+          hostImgs = ev.media_urls.map((url, i) => ({
+            id: `host_url_${i}`,
+            url,
+            media_type: 'image',
+            profiles: ev.profiles,
+            is_host: true,
+          }));
+        }
+        setHostMedia(hostImgs);
       }
-      setTableError(false);
-      if (data) setGallery(data);
     } catch {
       setTableError(true);
     }
@@ -135,17 +161,22 @@ export const EventGallery = ({ eventId }) => {
 
             {/* Grid */}
             <FlatList
-              data={gallery}
+              data={[...hostMedia, ...gallery]}
               keyExtractor={item => item.id}
               numColumns={3}
               columnWrapperStyle={styles.row}
               contentContainerStyle={styles.grid}
               renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => setLightboxItem(item)}>
+                <TouchableOpacity onPress={() => setLightboxItem(item)} style={{ position: 'relative' }}>
                   <Image
                     source={{ uri: item.url }}
                     style={styles.thumb}
                   />
+                  {item.is_host && (
+                    <View style={{ position: 'absolute', top: 3, left: 3, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>HOST</Text>
+                    </View>
+                  )}
                   {item.profiles?.username && (
                     <Text style={[styles.thumbUser, { color: muted }]} numberOfLines={1}>
                       @{item.profiles.username}

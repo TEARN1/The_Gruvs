@@ -47,11 +47,22 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
     try {
       const { data, error } = await supabase
         .from('echoes')
-        .select('id, body, likes, parent_id, created_at, user_id, profiles!user_id(username, avatar_url)')
+        .select('id, body, likes, parent_id, created_at, user_id, profiles:user_id(username, avatar_url)')
         .eq('event_id', eventId)
         .order(sort === 'top' ? 'likes' : 'created_at', { ascending: false })
         .limit(30);
-      if (error) throw error;
+      if (error) {
+        // Fallback: fetch without join, show echoes without profile data
+        const { data: fallback } = await supabase
+          .from('echoes')
+          .select('id, body, likes, parent_id, created_at, user_id')
+          .eq('event_id', eventId)
+          .order(sort === 'top' ? 'likes' : 'created_at', { ascending: false })
+          .limit(30);
+        if (fallback) setEchoes(fallback.map(e => ({ ...e, profiles: null })));
+        log.error('EchoSection:fetch', error);
+        return;
+      }
       if (data) setEchoes(data);
     } catch (e) {
       log.error('EchoSection:fetch', e);

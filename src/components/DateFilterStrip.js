@@ -14,6 +14,7 @@ const OPTIONS = [
   { value: 'weekend', label: 'Weekend' },
   { value: 'week',    label: 'This week' },
   { value: 'month',   label: 'This month' },
+  { value: 'year',    label: 'This Year' },
 ];
 
 export const dateFilterToRange = (value) => {
@@ -47,6 +48,12 @@ export const dateFilterToRange = (value) => {
   if (value === 'month') {
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { from: toISO(start), to: toISO(end) };
+  }
+
+  if (value === 'year') {
+    const start = new Date(now.getFullYear(), 0, 1);
+    const end = new Date(now.getFullYear(), 11, 31);
     return { from: toISO(start), to: toISO(end) };
   }
 
