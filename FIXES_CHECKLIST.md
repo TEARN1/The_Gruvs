@@ -26,7 +26,7 @@ All AI features have been disabled and hidden from the UI:
 
 **Steps**:
 1. Go to: https://supabase.com → Your Project → SQL Editor
-2. Copy the ENTIRE contents of: `supabase/patch_live_db.sql`
+2. Copy the ENTIRE contents of: `supabase_combined_schema.sql`
 3. Paste into SQL Editor
 4. Click "Run"
 5. This will:
@@ -52,7 +52,7 @@ All AI features have been disabled and hidden from the UI:
 
 **Root Cause**: Likely RLS (Row Level Security) policies not configured
 
-**Solution**: Verify and run the patch_live_db.sql
+**Solution**: Verify and run the supabase_combined_schema.sql
 
 **The Patch Sets Up**:
 - Messages table with required columns (message_type, media_url, parent_id, is_request, etc.)
@@ -130,7 +130,7 @@ All AI features have been disabled and hidden from the UI:
 
 ## 🚀 QUICK FIX CHECKLIST
 
-- [ ] **Step 1**: Copy `supabase/patch_live_db.sql` content
+- [ ] **Step 1**: Copy `supabase_combined_schema.sql` content
 - [ ] **Step 2**: Paste into Supabase → SQL Editor
 - [ ] **Step 3**: Click "Run" and wait for completion
 - [ ] **Step 4**: Verify buckets in Storage section
