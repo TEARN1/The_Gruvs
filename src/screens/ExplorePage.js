@@ -369,6 +369,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [appUpdates,          setAppUpdates]          = useState([]);
   const [whoWasThereVisible,  setWhoWasThereVisible]  = useState(false);
   const [routes, setRoutes] = useState([]);
+  const [trendingHashtags, setTrendingHashtags] = useState([]);
   const [scrollY, setScrollY] = useState(0);
   const scrollRef = useRef(null);
   const searchTimer = useRef(null);
@@ -409,6 +410,29 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     setFeaturedEvent(featured || null);
 
     setLoading(false);
+
+    // ── Trending hashtags: mine from recent event captions/reels ─────────────
+    try {
+      const cutoff = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data: reelCaps } = await supabase
+        .from('reels')
+        .select('caption')
+        .eq('is_deleted', false)
+        .gte('created_at', cutoff)
+        .limit(200);
+      const tagCounts = {};
+      (reelCaps || []).forEach(r => {
+        (r.caption?.match(/#\w+/g) || []).forEach(tag => {
+          const t = tag.toLowerCase();
+          tagCounts[t] = (tagCounts[t] || 0) + 1;
+        });
+      });
+      const sorted = Object.entries(tagCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 12)
+        .map(([tag, count]) => ({ tag, count }));
+      setTrendingHashtags(sorted);
+    } catch { setTrendingHashtags([]); }
 
     // ── Location: runs after initial render so UI isn't blocked ──────────────
     setLocationLoading(true);
@@ -728,6 +752,26 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <SectionHeader title="What's your mood?" textColor={textColor} primary={primary} />
               <MoodRow activeMood={activeMood} onSelect={(m) => { setActiveMood(m); setActiveCat(null); }} primary={primary} />
             </View>
+
+            {/* ── Trending hashtags ──────────────────────────────────────── */}
+            {trendingHashtags.length > 0 && (
+              <View style={{ marginBottom: 20 }}>
+                <SectionHeader title="Trending Tags" textColor={textColor} primary={primary} />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+                  {trendingHashtags.map(({ tag, count }) => (
+                    <TouchableOpacity
+                      key={tag}
+                      style={[styles.hashChip, { borderColor: `${primary}35`, backgroundColor: `${primary}10` }]}
+                      onPress={() => setQuery(tag)}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={[styles.hashChipText, { color: primary }]}>{tag}</Text>
+                      <Text style={[styles.hashChipCount, { color: muted }]}>{count}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
             {/* ── Hero card ──────────────────────────────────────────────── */}
             {featuredEvent ? (
@@ -1157,6 +1201,9 @@ const styles = StyleSheet.create({
   servSub: { fontSize: 11, lineHeight: 16 },
   servCta: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14 },
   servCtaText: { color: '#000', fontSize: 11, fontWeight: '900' },
+  hashChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  hashChipText: { fontSize: 12, fontWeight: '800' },
+  hashChipCount: { fontSize: 10, fontWeight: '600' },
   emptyNearby: { padding: 24, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', gap: 8 },
   emptyNearbyText: { fontSize: 14, fontWeight: '800' },
   emptyNearbySub: { fontSize: 12, textAlign: 'center' },
