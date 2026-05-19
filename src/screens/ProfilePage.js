@@ -34,7 +34,6 @@ import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
 import { PathMapScreen } from './PathMapScreen';
 import { useIdentity } from '../context/IdentityContext';
 import { BusinessDashboardScreen } from './BusinessDashboardScreen';
-import { AdminAIScreen } from './AdminAIScreen';
 import { WalletScreen } from './WalletScreen';
 import { ProviderDashboardScreen } from './ProviderDashboardScreen';
 import { RoyalGovernance } from '../services/royalGovernance';
@@ -966,7 +965,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [bizDashVisible, setBizDashVisible] = useState(false);
   const [whoWasThereVisible, setWhoWasThereVisible] = useState(false);
-  const [adminAIVisible, setAdminAIVisible] = useState(false);
   const [walletVisible, setWalletVisible] = useState(false);
   const [ticketsVisible, setTicketsVisible] = useState(false);
   const [providerDashVisible, setProviderDashVisible] = useState(false);
@@ -1357,16 +1355,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Feather name="award" size={14} color={primary} />
               <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Leaderboard</Text>
             </TouchableOpacity>
-            {/* Admin AI — owner only */}
-            {user?.email === 'asemahlenkwali@gmail.com' && (
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)' }}
-                onPress={() => setAdminAIVisible(true)}
-              >
-                <Text style={{ fontSize: 12 }}>✦</Text>
-                <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '800' }}>Admin AI</Text>
-              </TouchableOpacity>
-            )}
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(139,92,246,0.15)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)' }}
               onPress={() => setTutorialCenterVisible(true)}
@@ -2074,12 +2062,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <BusinessDashboardScreen onClose={() => setBizDashVisible(false)} />
         </View>
       )}
-      {adminAIVisible && (
-        <View style={StyleSheet.absoluteFill}>
-          <AdminAIScreen onClose={() => setAdminAIVisible(false)} />
-        </View>
-      )}
-
       <WhoWasThereModal
         visible={whoWasThereVisible}
         onClose={() => setWhoWasThereVisible(false)}

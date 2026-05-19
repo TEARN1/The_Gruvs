@@ -28,12 +28,30 @@ const { width } = Dimensions.get('window');
 
 // ── Mood buckets ───────────────────────────────────────────────────────────────
 const MOODS = [
-  { key: 'hype',     label: 'Hype',     icon: 'zap',        color: '#f97316', cats: ['music','party','nightlife'] },
-  { key: 'chill',    label: 'Chill',    icon: 'coffee',     color: '#06b6d4', cats: ['food','art','wellness','nature'] },
-  { key: 'culture',  label: 'Culture',  icon: 'globe',      color: '#8b5cf6', cats: ['art','film','gallery','heritage'] },
-  { key: 'sport',    label: 'Sport',    icon: 'activity',   color: '#10b981', cats: ['sport','fitness','outdoor'] },
-  { key: 'family',   label: 'Family',   icon: 'users',      color: '#f59e0b', cats: ['kids','family','carnival'] },
-  { key: 'network',  label: 'Network',  icon: 'briefcase',  color: '#3b82f6', cats: ['tech','business','workshop'] },
+  { key: 'hype',       label: 'Hype',         icon: 'zap',          color: '#f97316', cats: ['music','party','nightlife','rave'] },
+  { key: 'chill',      label: 'Chill',         icon: 'coffee',       color: '#06b6d4', cats: ['food','art','wellness','lounge'] },
+  { key: 'culture',    label: 'Culture',       icon: 'globe',        color: '#8b5cf6', cats: ['art','film','gallery','heritage'] },
+  { key: 'sport',      label: 'Sport',         icon: 'activity',     color: '#10b981', cats: ['sport','fitness','outdoor'] },
+  { key: 'family',     label: 'Family',        icon: 'users',        color: '#f59e0b', cats: ['kids','family','carnival'] },
+  { key: 'network',    label: 'Network',       icon: 'briefcase',    color: '#3b82f6', cats: ['tech','business','workshop'] },
+  { key: 'rave',       label: 'Rave',          icon: 'headphones',   color: '#ec4899', cats: ['rave','edm','techno','nightlife'] },
+  { key: 'foodie',     label: 'Foodie',        icon: 'coffee',       color: '#f59e0b', cats: ['food','market','pop-up'] },
+  { key: 'romance',    label: 'Romance',       icon: 'heart',        color: '#f43f5e', cats: ['date','social','dinner'] },
+  { key: 'spiritual',  label: 'Spiritual',     icon: 'sun',          color: '#a78bfa', cats: ['wellness','retreat','meditation'] },
+  { key: 'comedy',     label: 'Comedy',        icon: 'smile',        color: '#facc15', cats: ['comedy','standup','entertainment'] },
+  { key: 'fashion',    label: 'Fashion',       icon: 'star',         color: '#e879f9', cats: ['fashion','pop-up','market'] },
+  { key: 'outdoor',    label: 'Outdoor',       icon: 'map-pin',      color: '#34d399', cats: ['outdoor','nature','hiking'] },
+  { key: 'gaming',     label: 'Gaming',        icon: 'monitor',      color: '#60a5fa', cats: ['esports','gaming','tech'] },
+  { key: 'arts',       label: 'Arts & Crafts', icon: 'edit-2',       color: '#fb923c', cats: ['art','gallery','workshop'] },
+  { key: 'dance',      label: 'Dance',         icon: 'music',        color: '#f472b6', cats: ['dance','music','party'] },
+  { key: 'education',  label: 'Education',     icon: 'book',         color: '#38bdf8', cats: ['workshop','conference','tech'] },
+  { key: 'wellness',   label: 'Wellness',      icon: 'heart',        color: '#4ade80', cats: ['wellness','yoga','retreat'] },
+  { key: 'social',     label: 'Social',        icon: 'users',        color: '#c084fc', cats: ['social','meetup','networking'] },
+  { key: 'heritage',   label: 'Heritage',      icon: 'flag',         color: '#fbbf24', cats: ['heritage','culture','art'] },
+  { key: 'film',       label: 'Film & TV',     icon: 'film',         color: '#818cf8', cats: ['film','gallery','entertainment'] },
+  { key: 'kids',       label: 'Kids Fun',      icon: 'gift',         color: '#fb7185', cats: ['kids','family','carnival'] },
+  { key: 'late_night', label: 'Late Night',    icon: 'moon',         color: '#6366f1', cats: ['nightlife','rave','party'] },
+  { key: 'market',     label: 'Market',        icon: 'shopping-bag', color: '#d97706', cats: ['market','food','pop-up','fashion'] },
 ];
 
 // ── Hero card (featured event of the day) ────────────────────────────────────
@@ -141,7 +159,7 @@ const hero = StyleSheet.create({
 
 // ── Mood selector ─────────────────────────────────────────────────────────────
 // Items 65-66: radiogroup semantics + scale transition on active mood
-const MoodRow = ({ activeMood, onSelect, primary }) => (
+const MoodRow = ({ activeMoods, onSelect, primary }) => (
   <View accessibilityRole="radiogroup" accessibilityLabel="Select your mood">
     <ScrollView
       showsVerticalScrollIndicator={false}
@@ -150,7 +168,7 @@ const MoodRow = ({ activeMood, onSelect, primary }) => (
       contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingVertical: 4 }}
     >
       {MOODS.map(m => {
-        const isActive = activeMood === m.key;
+        const isActive = activeMoods.has(m.key);
         return (
           <TouchableOpacity
             key={m.key}
@@ -163,7 +181,7 @@ const MoodRow = ({ activeMood, onSelect, primary }) => (
               },
               Platform.OS === 'web' && { transition: 'transform 180ms cubic-bezier(0.34,1.56,0.64,1), background-color 150ms ease' },
             ]}
-            onPress={() => onSelect(isActive ? null : m.key)}
+            onPress={() => onSelect(m.key)}
             accessibilityRole="radio"
             accessibilityState={{ checked: isActive }}
             accessibilityLabel={m.label}
@@ -345,7 +363,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { applyLocationPrivacy } = useIdentity();
 
   const [query, setQuery] = useState('');
-  const [activeMood, setActiveMood] = useState(null);
+  const [activeMoods, setActiveMoods] = useState(new Set());
   const [activeCat, setActiveCat] = useState(null);
   const [featuredEvent, setFeaturedEvent] = useState(null);
   const [happeningNow, setHappeningNow] = useState([]);
@@ -554,9 +572,9 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   // Filter events by mood or category
   const filteredEvents = (() => {
     if (activeCat) return happeningNow.filter(e => e.category === activeCat);
-    if (activeMood) {
-      const mood = MOODS.find(m => m.key === activeMood);
-      if (mood) return happeningNow.filter(e => mood.cats.includes(e.category));
+    if (activeMoods.size > 0) {
+      const allCats = new Set(MOODS.filter(m => activeMoods.has(m.key)).flatMap(m => m.cats));
+      return happeningNow.filter(e => allCats.has(e.category));
     }
     return happeningNow;
   })();
@@ -750,7 +768,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {/* ── Mood selector ──────────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
               <SectionHeader title="What's your mood?" textColor={textColor} primary={primary} />
-              <MoodRow activeMood={activeMood} onSelect={(m) => { setActiveMood(m); setActiveCat(null); }} primary={primary} />
+              <MoodRow activeMoods={activeMoods} onSelect={(key) => { setActiveMoods(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; }); setActiveCat(null); }} primary={primary} />
             </View>
 
             {/* ── Trending hashtags ──────────────────────────────────────── */}
@@ -793,7 +811,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {/* ── Happening Now ───────────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
               <SectionHeader
-                title={activeMood || activeCat ? `${activeMood ? MOODS.find(m => m.key === activeMood)?.label : (CATEGORY_CONFIG[activeCat]?.label || '')} Gruvs` : 'Happening Now'}
+                title={activeMoods.size > 0 || activeCat ? `${activeMoods.size > 0 ? MOODS.filter(m => activeMoods.has(m.key)).map(m => m.label).join(' & ') : (CATEGORY_CONFIG[activeCat]?.label || '')} Gruvs` : 'Happening Now'}
                 actionLabel="See all"
                 onAction={() => { setActiveMood(null); setActiveCat(null); }}
                 textColor={textColor}

@@ -54,7 +54,7 @@ const SIDEBAR_OPEN_WIDTH = 220;
 const SIDEBAR_CLOSED_WIDTH = 56;
 
 // ── Bottom Tab Bar (narrow screens) ──────────────────────────────────────────
-const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0, unreadDMCount = 0 }) => {
+const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, unreadDMCount = 0 }) => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const indicatorAnim = useRef(new Animated.Value(0)).current;
@@ -74,7 +74,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, unreadCount = 0, unre
   }, [currentTab, tabWidth]);
 
   return (
-    <View style={[styles.tabBar, { borderTopColor: `${primary}25`, paddingBottom: insets.bottom || 6 }]}>
+    <View style={[styles.tabBar, { borderTopColor: `${primary}25`, paddingBottom: insets.bottom || 6, backgroundColor: bg || 'rgba(13,17,18,0.97)' }]}>
       <Animated.View
         style={[
           styles.indicator,
@@ -547,6 +547,7 @@ const MainNavigator = () => {
               onTabChange={handleTabChange}
               primary={primary}
               muted={muted}
+              bg={bg}
               unreadCount={unreadCount}
               unreadDMCount={unreadDMCount}
             />
@@ -631,7 +632,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     minHeight: 62,
     borderTopWidth: 1,
-    backgroundColor: 'rgba(0,0,0,0.88)',
+    backgroundColor: 'transparent',
     position: 'relative',
   },
   indicator: {
