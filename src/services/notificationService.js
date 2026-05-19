@@ -146,6 +146,85 @@ export const NotificationService = {
     });
   },
 
+  /**
+   * Called once per app session. For each of the user's today-events where they RSVP'd,
+   * fire a push notification to every other RSVPed user. Uses a seen-key in Supabase
+   * (notifications table) to avoid duplicate blasts on the same day.
+   */
+  async sendEventDayNotifications(currentUserId) {
+    if (!currentUserId || Platform.OS === 'web') return;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Find events happening today where current user RSVP'd
+      const { data: myRsvps } = await supabase
+        .from('event_rsvps')
+        .select('event_id, events:event_id(id, title, author_id, event_date)')
+        .eq('user_id', currentUserId)
+        .in('status', ['going', 'maybe']);
+
+      const todayEvents = (myRsvps || []).filter(r => {
+        const d = r.events?.event_date;
+        return d && d.split('T')[0] === today;
+      }).map(r => r.events);
+
+      for (const event of todayEvents) {
+        if (!event?.id) continue;
+
+        // Skip if we already sent this user a notification today for this event
+        const { data: existing } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('recipient_id', currentUserId)
+          .eq('event_id', event.id)
+          .eq('type', 'event_day')
+          .gte('created_at', `${today}T00:00:00`)
+          .maybeSingle();
+
+        if (existing) continue;
+
+        // Notify current user themselves
+        await this.send(currentUserId, {
+          type: 'event_day',
+          title: `🎉 Today's the day!`,
+          body: `${event.title} is happening today. Check in when you arrive!`,
+          eventId: event.id,
+        });
+
+        // If current user is the event author, also notify all other RSVPed attendees
+        if (event.author_id === currentUserId) {
+          const { data: allRsvps } = await supabase
+            .from('event_rsvps')
+            .select('user_id')
+            .eq('event_id', event.id)
+            .in('status', ['going', 'maybe'])
+            .neq('user_id', currentUserId);
+
+          for (const rsvp of (allRsvps || [])) {
+            // Check if they already got one today
+            const { data: alreadySent } = await supabase
+              .from('notifications')
+              .select('id')
+              .eq('recipient_id', rsvp.user_id)
+              .eq('event_id', event.id)
+              .eq('type', 'event_day')
+              .gte('created_at', `${today}T00:00:00`)
+              .maybeSingle();
+            if (alreadySent) continue;
+
+            await this.send(rsvp.user_id, {
+              type: 'event_day',
+              title: `🎉 Today's the day!`,
+              body: `${event.title} is happening today. Check in when you arrive!`,
+              eventId: event.id,
+              actorId: currentUserId,
+            });
+          }
+        }
+      }
+    } catch {}
+  },
+
   async markAllRead(userId) {
     if (!userId) return;
     try {

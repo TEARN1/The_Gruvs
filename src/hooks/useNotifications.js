@@ -21,6 +21,8 @@ export const useNotifications = ({ onNavigate } = {}) => {
   useEffect(() => {
     if (!user?.id) return;
     NotificationService.registerForPush(user.id).then(setExpoPushToken);
+    // Send event-day notifications once per session, after push is registered
+    NotificationService.sendEventDayNotifications(user.id);
     return NotificationService.watchTokenRefresh(user.id);
   }, [user?.id]);
 

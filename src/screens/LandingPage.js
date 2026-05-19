@@ -1359,10 +1359,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               <PulseScheduleSection eventId={id} eventCategory={event.category} onAuthRequired={onAuthRequired} />
             )}
             {!isSample && (() => {
-              // Only show PresenceBar on the event day (and day before/after for timezone flex)
-              const eventDay = event.event_date ? new Date(event.event_date).toDateString() : null;
-              const today = new Date().toDateString();
-              const isEventDay = !eventDay || eventDay === today;
+              // Show PresenceBar on the event day ±1 day for timezone flex
+              let isEventDay = true;
+              if (event.event_date) {
+                const evMs = new Date(event.event_date).getTime();
+                const diffDays = (Date.now() - evMs) / 86400000;
+                isEventDay = diffDays >= -1 && diffDays < 2;
+              }
               return isEventDay ? (
                 <PresenceBar
                   eventId={id}
