@@ -8,7 +8,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback,
   Image, Dimensions, Platform, TextInput, Modal, ScrollView, KeyboardAvoidingView,
-  Animated, ActivityIndicator, Share,
+  Animated, ActivityIndicator, Share, PanResponder, Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -141,12 +141,12 @@ const cs = StyleSheet.create({
 });
 
 // ── Single Reel Item ──────────────────────────────────────────────────────────
-const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage }) => {
+const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag }) => {
   const videoRef = useRef(null);
-  const doubleTapTimer = useRef(null);
   const lastTap = useRef(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
   const heartScale = useRef(new Animated.Value(0)).current;
+  const progressBarRef = useRef(null);
 
   const [liked, setLiked] = useState(reel._liked || false);
   const [likeCount, setLikeCount] = useState(reel.like_count || 0);
@@ -158,11 +158,13 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [following, setFollowing] = useState(reel._following || false);
   const [saved, setSaved] = useState(reel._saved || false);
+  const [paused, setPaused] = useState(false);
+  const [showPauseIcon, setShowPauseIcon] = useState(false);
+  const pauseIconAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isActive) {
+    if (isActive && !paused) {
       videoRef.current?.playAsync().catch(() => {});
-      // Log view (unique per user per reel — DB has primary key guard)
       if (user && reel?.id) {
         supabase.from('reel_views').upsert(
           { reel_id: reel.id, viewer_id: user.id },
@@ -172,14 +174,55 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
     } else {
       videoRef.current?.pauseAsync().catch(() => {});
     }
-  }, [isActive]);
+  }, [isActive, paused]);
 
-  const handleDoubleTap = () => {
+  const togglePause = () => {
+    const next = !paused;
+    setPaused(next);
+    setShowPauseIcon(true);
+    pauseIconAnim.setValue(1);
+    Animated.sequence([
+      Animated.delay(600),
+      Animated.timing(pauseIconAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setShowPauseIcon(false));
+  };
+
+  const handleSeek = (evt) => {
+    if (!duration || !videoRef.current) return;
+    progressBarRef.current?.measure((_, __, width) => {
+      const x = evt.nativeEvent.locationX;
+      const ratio = Math.max(0, Math.min(1, x / width));
+      videoRef.current?.setPositionAsync(ratio * duration).catch(() => {});
+    });
+  };
+
+  const parsedCaption = caption.split(/(\s+)/).map((word, i) => {
+    if (word.startsWith('#')) {
+      return <Text key={i} style={{ color: primary, fontWeight: '800' }} onPress={() => onHashtag?.(word)}>{word}</Text>;
+    }
+    if (word.startsWith('@')) {
+      return <Text key={i} style={{ color: '#60a5fa', fontWeight: '800' }}>{word}</Text>;
+    }
+    return <Text key={i} style={{ color: 'rgba(255,255,255,0.92)' }}>{word}</Text>;
+  });
+
+  const handleTap = () => {
     const now = Date.now();
     if (now - lastTap.current < 300) {
       triggerLike();
+    } else {
+      togglePause();
     }
     lastTap.current = now;
+  };
+
+  const handleReport = () => {
+    Alert.alert('Report Reel', 'Why are you reporting this?', [
+      { text: 'Spam', onPress: async () => { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'spam' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } },
+      { text: 'Inappropriate', onPress: async () => { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'inappropriate' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } },
+      { text: 'Misleading', onPress: async () => { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'misleading' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const triggerLike = async () => {
@@ -238,7 +281,7 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
   const hashtags = (caption.match(/#\w+/g) || []);
 
   return (
-    <TouchableWithoutFeedback onPress={handleDoubleTap}>
+    <TouchableWithoutFeedback onPress={handleTap}>
       <View style={[ri.container, { width: REEL_W, height: REEL_H }]}>
         {/* Media */}
         {isVideo ? (
@@ -266,17 +309,29 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
         {/* Dark gradient overlay */}
         <View style={ri.gradient} />
 
-        {/* Progress bar (video only) */}
+        {/* Seekable progress bar (video only) */}
         {isVideo && duration > 0 && (
-          <View style={ri.progressBar}>
+          <TouchableOpacity
+            ref={progressBarRef}
+            style={ri.progressBar}
+            onPress={handleSeek}
+            activeOpacity={1}
+          >
             <View style={[ri.progressFill, { width: `${progress * 100}%`, backgroundColor: primary }]} />
-          </View>
+          </TouchableOpacity>
         )}
 
-        {/* Double-tap heart burst */}
+        {/* Like burst */}
         <Animated.View style={[ri.heartBurst, { opacity: heartAnim, transform: [{ scale: heartScale }] }]}>
           <Text style={{ fontSize: 70 }}>❤️</Text>
         </Animated.View>
+
+        {/* Pause indicator */}
+        {showPauseIcon && (
+          <Animated.View style={[ri.pauseOverlay, { opacity: pauseIconAnim }]}>
+            <Feather name={paused ? 'pause' : 'play'} size={52} color="rgba(255,255,255,0.9)" />
+          </Animated.View>
+        )}
 
         {/* Right action bar */}
         <View style={ri.actions}>
@@ -354,29 +409,37 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
               <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>{speed}x</Text>
             </TouchableOpacity>
           )}
+
+          {/* Report / more */}
+          {user && user.id !== reel.user_id && (
+            <TouchableOpacity style={ri.actionBtn} onPress={handleReport} activeOpacity={0.8}>
+              <Feather name="more-horizontal" size={22} color="rgba(255,255,255,0.6)" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Bottom info */}
         <View style={ri.bottom}>
-          <TouchableOpacity onPress={() => onProfile(author)} activeOpacity={0.8}>
+          <TouchableOpacity onPress={() => onProfile(author)} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Text style={ri.username}>@{author.username || 'Viber'}</Text>
+            {author.is_verified && <Feather name="check-circle" size={13} color={primary} />}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setCaptionExpanded(e => !e)} activeOpacity={0.9}>
-            <Text style={ri.caption} numberOfLines={captionExpanded ? 0 : 2}>{caption}</Text>
+            <Text style={ri.caption} numberOfLines={captionExpanded ? 0 : 2}>{parsedCaption}</Text>
           </TouchableOpacity>
-          {hashtags.length > 0 && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-              {hashtags.map((tag, i) => (
-                <Text key={i} style={[ri.hashtag, { color: primary }]}>{tag}</Text>
-              ))}
-            </View>
-          )}
           {reel.event_title && (
             <View style={ri.eventPill}>
               <Feather name="calendar" size={10} color={primary} />
               <Text style={[ri.eventPillText, { color: primary }]}>{reel.event_title}</Text>
             </View>
           )}
+          {/* Rotating audio info */}
+          <View style={ri.audioPill}>
+            <Feather name="music" size={10} color="rgba(255,255,255,0.7)" />
+            <Text style={ri.audioPillText} numberOfLines={1}>
+              {reel.sound_name || `original sound · @${author.username || 'Viber'}`}
+            </Text>
+          </View>
         </View>
       </View>
     </TouchableWithoutFeedback>
@@ -390,17 +453,19 @@ const ri = StyleSheet.create({
   progressBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: 'rgba(255,255,255,0.2)' },
   progressFill: { height: '100%', borderRadius: 1 },
   heartBurst: { position: 'absolute', alignSelf: 'center', top: '35%' },
-  actions: { position: 'absolute', right: 10, bottom: 120, alignItems: 'center', gap: 4 },
+  pauseOverlay: { position: 'absolute', alignSelf: 'center', top: '40%', backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 40, padding: 12 },
+  actions: { position: 'absolute', right: 10, bottom: 140, alignItems: 'center', gap: 4 },
   avatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#fff' },
   followDot: { position: 'absolute', bottom: -6, width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   actionBtn: { alignItems: 'center', paddingVertical: 6 },
   actionLabel: { fontSize: 11, fontWeight: '700', marginTop: 2, textShadowColor: '#000', textShadowRadius: 4 },
-  bottom: { position: 'absolute', left: 14, right: 70, bottom: 24 },
+  bottom: { position: 'absolute', left: 14, right: 70, bottom: 30 },
   username: { color: '#fff', fontWeight: '900', fontSize: 14, marginBottom: 4, textShadowColor: '#000', textShadowRadius: 6 },
   caption: { color: 'rgba(255,255,255,0.92)', fontSize: 13, lineHeight: 18, textShadowColor: '#000', textShadowRadius: 4 },
-  hashtag: { fontSize: 12, fontWeight: '800' },
-  eventPill: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, backgroundColor: 'rgba(0,0,0,0.5)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  eventPill: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5, backgroundColor: 'rgba(0,0,0,0.5)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   eventPillText: { fontSize: 10, fontWeight: '800' },
+  audioPill: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 7, backgroundColor: 'rgba(0,0,0,0.45)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, maxWidth: 220 },
+  audioPillText: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600', flex: 1 },
 });
 
 // ── Main ReelsScreen ──────────────────────────────────────────────────────────
@@ -425,7 +490,8 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const [profileVisible, setProfileVisible] = useState(false);
   const [dmTarget, setDmTarget] = useState(null);
   const [dmVisible, setDmVisible] = useState(false);
-  const [tab, setTab] = useState('foryou'); // 'foryou' | 'following'
+  const [tab, setTab] = useState('foryou'); // 'foryou' | 'following' | 'trending'
+  const [hashtagFilter, setHashtagFilter] = useState(null);
 
   const flatRef = useRef(null);
 
@@ -436,17 +502,25 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         .from('reels')
         .select(`
           id, caption, media_url, media_type, like_count, comment_count, view_count,
-          event_id, event_title, user_id, created_at,
+          event_id, event_title, user_id, created_at, sound_name,
           profiles:user_id(id, username, avatar_url, vibe_score, is_verified)
         `)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: false })
         .limit(30);
 
       if (tab === 'following' && user) {
         const { data: followData } = await supabase.from('follows').select('following_id').eq('follower_id', user.id).limit(200);
         const ids = (followData || []).map(r => r.following_id);
         if (ids.length) qb = qb.in('user_id', ids);
+        qb = qb.order('created_at', { ascending: false });
+      } else if (tab === 'trending') {
+        qb = qb.order('like_count', { ascending: false });
+      } else {
+        qb = qb.order('created_at', { ascending: false });
+      }
+
+      if (hashtagFilter) {
+        qb = qb.ilike('caption', `%${hashtagFilter}%`);
       }
 
       const { data, error } = await qb;
@@ -479,7 +553,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     } finally {
       setLoading(false);
     }
-  }, [tab, user]);
+  }, [tab, user, hashtagFilter]);
 
   useEffect(() => { loadReels(); }, [loadReels]);
 
@@ -496,14 +570,30 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
           <Feather name="x" size={22} color="#fff" />
         </TouchableOpacity>
       )}
-      <TouchableOpacity onPress={() => setTab('foryou')}>
-        <Text style={[rs.tabLabel, tab === 'foryou' && rs.tabActive]}>For You</Text>
-        {tab === 'foryou' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => setTab('following')}>
-        <Text style={[rs.tabLabel, tab === 'following' && rs.tabActive]}>Following</Text>
-        {tab === 'following' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
-      </TouchableOpacity>
+      {hashtagFilter ? (
+        <TouchableOpacity
+          onPress={() => setHashtagFilter(null)}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: `${primary}25`, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 14, borderWidth: 1, borderColor: `${primary}50` }}
+        >
+          <Text style={{ color: primary, fontWeight: '900', fontSize: 13 }}>{hashtagFilter}</Text>
+          <Feather name="x" size={12} color={primary} />
+        </TouchableOpacity>
+      ) : (
+        <>
+          <TouchableOpacity onPress={() => setTab('foryou')}>
+            <Text style={[rs.tabLabel, tab === 'foryou' && rs.tabActive]}>For You</Text>
+            {tab === 'foryou' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setTab('following')}>
+            <Text style={[rs.tabLabel, tab === 'following' && rs.tabActive]}>Following</Text>
+            {tab === 'following' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setTab('trending')}>
+            <Text style={[rs.tabLabel, tab === 'trending' && rs.tabActive]}>🔥 Trending</Text>
+            {tab === 'trending' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 
@@ -565,6 +655,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
             onComment={(r) => { setCommentTarget(r); setCommentsVisible(true); }}
             onProfile={(p) => { setProfileTarget(p); setProfileVisible(true); }}
             onMessage={(p) => { setDmTarget(p); setDmVisible(true); }}
+            onHashtag={(tag) => { setHashtagFilter(tag); flatRef.current?.scrollToOffset({ offset: 0, animated: false }); }}
           />
         )}
       />
