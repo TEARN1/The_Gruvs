@@ -1181,18 +1181,27 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const handleSaveUsername = async () => {
     if (!newUsername.trim() || !user) return;
     setSavingUsername(true);
-    const { error } = await supabase.from('profiles').update({ username: newUsername.trim() }).eq('id', user.id);
-    setSavingUsername(false);
-    if (!error) { refreshProfile(); setEditingUsername(false); toast.show('Username updated!', 'success'); }
-    else toast.show('Failed to update.', 'error');
+    try {
+      const { error } = await supabase.from('profiles').update({ username: newUsername.trim() }).eq('id', user.id);
+      if (!error) { refreshProfile(); setEditingUsername(false); toast.show('Username updated!', 'success'); }
+      else toast.show('Failed to update: ' + error.message, 'error');
+    } catch (e) {
+      toast.show('Failed to update.', 'error');
+    } finally {
+      setSavingUsername(false);
+    }
   };
 
   const handleDeleteEvent = (ev) => {
     const doDelete = async () => {
-      const { error } = await supabase.from('events').delete().eq('id', ev.id);
-      if (error) { toast.show('Could not delete event.', 'error'); return; }
-      setMyEvents(prev => prev.filter(e => e.id !== ev.id));
-      toast.show('Event deleted.', 'success');
+      try {
+        const { error } = await supabase.from('events').delete().eq('id', ev.id);
+        if (error) { toast.show('Could not delete event.', 'error'); return; }
+        setMyEvents(prev => prev.filter(e => e.id !== ev.id));
+        toast.show('Event deleted.', 'success');
+      } catch {
+        toast.show('Could not delete event.', 'error');
+      }
     };
     if (Platform.OS === 'web') {
       if (typeof window !== 'undefined' && window.confirm(`Delete "${ev.title}"? This cannot be undone.`)) doDelete();
