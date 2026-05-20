@@ -45,7 +45,7 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
         .limit(20);
       if (data) setRequests(data);
     } catch {}
-    setLoading(false);
+    finally { setLoading(false); }
   }, [eventId]);
 
   const fetchMyVotes = useCallback(async () => {
