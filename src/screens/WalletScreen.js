@@ -2,10 +2,10 @@
  * WalletScreen — The financial hub of the Movement OS.
  * Displays balance, integrity tier, and real-time gig history.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Platform
+  ActivityIndicator, RefreshControl, Platform, Animated,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -17,6 +17,27 @@ import { EscrowService } from '../services/escrowService';
 import { VibeEconomyEngine } from '../services/revenueEngine';
 import { useToast } from '../components/ToastNotification';
 import { ReviewModal } from '../components/ReviewModal';
+
+const WalletSkeleton = ({ primary }) => {
+  const pulse = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={{ opacity: pulse, gap: 10, marginTop: 8 }}>
+      {[1, 2, 3].map(i => (
+        <View key={i} style={{ height: 64, borderRadius: 12, backgroundColor: `${primary}10` }} />
+      ))}
+    </Animated.View>
+  );
+};
 
 export const WalletScreen = ({ visible, onClose }) => {
   const { currentTheme } = useTheme();
@@ -245,7 +266,7 @@ export const WalletScreen = ({ visible, onClose }) => {
           <View style={s.historySection}>
             <Text style={[s.sectionLabel, { color: muted }]}>RECENT GIGS</Text>
             {loading ? (
-              <ActivityIndicator color={primary} style={{ marginTop: 40 }} />
+              <WalletSkeleton primary={primary} />
             ) : bookings.length === 0 ? (
               <View style={s.emptyState}>
                 <MaterialCommunityIcons name="wallet-outline" size={48} color={muted} style={{ opacity: 0.3 }} />
@@ -264,7 +285,7 @@ export const WalletScreen = ({ visible, onClose }) => {
           <View style={s.historySection}>
             <Text style={[s.sectionLabel, { color: muted }]}>VIBE-EQUITY LEDGER</Text>
             {loading ? (
-              <ActivityIndicator color={primary} style={{ marginTop: 40 }} />
+              <WalletSkeleton primary={primary} />
             ) : transactions.length === 0 ? (
               <View style={s.emptyState}>
                 <Feather name="activity" size={40} color={muted} style={{ opacity: 0.3 }} />

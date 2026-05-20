@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -413,6 +414,27 @@ function BookingModal({
 // Main Screen
 // ---------------------------------------------------------------------------
 
+const MarketplaceSkeleton = ({ primary }) => {
+  const pulse = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={{ opacity: pulse, padding: 16, gap: 12 }}>
+      {[1, 2, 3, 4].map(i => (
+        <View key={i} style={{ height: 90, borderRadius: 14, backgroundColor: `${primary}10` }} />
+      ))}
+    </Animated.View>
+  );
+};
+
 export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
@@ -663,9 +685,7 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
 
       {/* ── Content ── */}
       {loading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={primary} />
-        </View>
+        <MarketplaceSkeleton primary={primary} />
       ) : gigMode ? (
         /* ── GIG MODE ── */
         <FlatList
