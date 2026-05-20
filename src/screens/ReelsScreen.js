@@ -637,6 +637,31 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     );
   }
 
+  const onComment = useCallback((r) => { setCommentTarget(r); setCommentsVisible(true); }, []);
+  const onProfile = useCallback((p) => { setProfileTarget(p); setProfileVisible(true); }, []);
+  const onDmMessage = useCallback((p) => { setDmTarget(p); setDmVisible(true); }, []);
+  const onHashtag = useCallback((tag) => {
+    setHashtagFilter(tag);
+    flatRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, []);
+
+  const renderReelItem = useCallback(({ item, index }) => (
+    <ReelItem
+      reel={item}
+      isActive={index === activeIndex}
+      primary={primary}
+      muted={muted}
+      textColor={textColor}
+      bg={bg}
+      surface={surface}
+      user={user}
+      onComment={onComment}
+      onProfile={onProfile}
+      onMessage={onDmMessage}
+      onHashtag={onHashtag}
+    />
+  ), [activeIndex, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag]);
+
   const reelFeed = (
     <View style={IS_WEB ? rs.webFeedContainer : rs.screen}>
       <TabSwitcher absolute />
@@ -663,22 +688,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         maxToRenderPerBatch={3}
         windowSize={5}
         removeClippedSubviews={!IS_WEB}
-        renderItem={({ item, index }) => (
-          <ReelItem
-            reel={item}
-            isActive={index === activeIndex}
-            primary={primary}
-            muted={muted}
-            textColor={textColor}
-            bg={bg}
-            surface={surface}
-            user={user}
-            onComment={(r) => { setCommentTarget(r); setCommentsVisible(true); }}
-            onProfile={(p) => { setProfileTarget(p); setProfileVisible(true); }}
-            onMessage={(p) => { setDmTarget(p); setDmVisible(true); }}
-            onHashtag={(tag) => { setHashtagFilter(tag); flatRef.current?.scrollToOffset({ offset: 0, animated: false }); }}
-          />
-        )}
+        renderItem={renderReelItem}
       />
     </View>
   );

@@ -151,7 +151,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
     );
   };
 
-  const renderItem = ({ item, index }) => {
+  const renderItem = useCallback(({ item, index }) => {
     const rank = index + 1;
     const tier = getTier(item.vibe_score || 0);
     const isMe = item.id === user?.id;
@@ -189,7 +189,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
         </View>
       </View>
     );
-  };
+  }, [user?.id, primary, textColor, muted, surface]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>

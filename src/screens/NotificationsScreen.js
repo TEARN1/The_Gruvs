@@ -141,7 +141,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem = useCallback(({ item }) => {
     const meta = TYPE_META[item.type] || TYPE_META.vibe;
     const avatarUrl = thumb.avatar(item.actor?.avatar_url || item.data?.viewer_avatar || item.data?.actor_avatar || null);
     const isActionable = ['profile_view', 'follow', 'vibe', 'rsvp', 'echo', 'event_day'].includes(item.type);
@@ -189,7 +189,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [primary, textColor, muted, handleNotifPress]);
 
   if (!user) {
     return (
