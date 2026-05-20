@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   FlatList, Modal, Dimensions, ActivityIndicator, Platform,
@@ -82,6 +82,46 @@ export const EventGallery = ({ eventId }) => {
 
   const isVideoItem = (item) =>
     item.media_type === 'video' || /\.(mp4|mov|webm|avi|m4v)(\?|$)/i.test(item.url || '');
+
+  const renderGalleryItem = useCallback(({ item }) => {
+    const isVid = isVideoItem(item);
+    const isPlaying = activeVideoId === item.id;
+    return (
+      <TouchableOpacity
+        onPress={() => isVid ? setActiveVideoId(isPlaying ? null : item.id) : setLightboxItem(item)}
+        style={{ position: 'relative' }}
+        activeOpacity={0.85}
+      >
+        {isVid ? (
+          <Video
+            source={{ uri: item.url }}
+            style={styles.thumb}
+            resizeMode={ResizeMode.COVER}
+            shouldPlay={isPlaying}
+            isLooping
+            isMuted={!isPlaying}
+          />
+        ) : (
+          <Image source={{ uri: item.url }} style={styles.thumb} />
+        )}
+        {isVid && !isPlaying && (
+          <View style={styles.playOverlay}>
+            <Feather name="play-circle" size={24} color="rgba(255,255,255,0.9)" />
+          </View>
+        )}
+        {item.is_host && (
+          <View style={styles.hostBadge}>
+            <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>HOST</Text>
+          </View>
+        )}
+        {item.profiles?.username && (
+          <Text style={[styles.thumbUser, { color: muted }]} numberOfLines={1}>
+            @{item.profiles.username}
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+  }, [activeVideoId, muted]);
 
   const handleUpload = async () => {
     if (!user) {
@@ -174,45 +214,7 @@ export const EventGallery = ({ eventId }) => {
               numColumns={3}
               columnWrapperStyle={styles.row}
               contentContainerStyle={styles.grid}
-              renderItem={({ item }) => {
-                const isVid = isVideoItem(item);
-                const isPlaying = activeVideoId === item.id;
-                return (
-                  <TouchableOpacity
-                    onPress={() => isVid ? setActiveVideoId(isPlaying ? null : item.id) : setLightboxItem(item)}
-                    style={{ position: 'relative' }}
-                    activeOpacity={0.85}
-                  >
-                    {isVid ? (
-                      <Video
-                        source={{ uri: item.url }}
-                        style={styles.thumb}
-                        resizeMode={ResizeMode.COVER}
-                        shouldPlay={isPlaying}
-                        isLooping
-                        isMuted={!isPlaying}
-                      />
-                    ) : (
-                      <Image source={{ uri: item.url }} style={styles.thumb} />
-                    )}
-                    {isVid && !isPlaying && (
-                      <View style={styles.playOverlay}>
-                        <Feather name="play-circle" size={24} color="rgba(255,255,255,0.9)" />
-                      </View>
-                    )}
-                    {item.is_host && (
-                      <View style={styles.hostBadge}>
-                        <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>HOST</Text>
-                      </View>
-                    )}
-                    {item.profiles?.username && (
-                      <Text style={[styles.thumbUser, { color: muted }]} numberOfLines={1}>
-                        @{item.profiles.username}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
+              renderItem={renderGalleryItem}
               ListEmptyComponent={
                 <View style={styles.empty}>
                   <Text style={{ fontSize: 40 }}>📷</Text>

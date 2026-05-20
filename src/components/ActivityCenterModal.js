@@ -160,26 +160,43 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
     ? activities
     : activities.filter(a => a.type === activeFilter);
 
-  const renderAvatar = (item) => {
+  const renderActivityItem = useCallback(({ item }) => {
     const meta = TYPE_META[item.type] || TYPE_META.vibe;
     const initials = item.actor?.[0]?.toUpperCase() || 'G';
-    const colors = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706'];
-    const bgColor = colors[(item.actor?.charCodeAt(0) || 0) % colors.length];
-
+    const COLORS = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706'];
+    const bgColor = COLORS[(item.actor?.charCodeAt(0) || 0) % COLORS.length];
+    const isNew = Date.now() - new Date(item.created_at) < 3600000;
     return (
-      <View style={ac.avatarWrap}>
-        {item.actor_avatar
-          ? <Image source={{ uri: item.actor_avatar }} style={ac.avatar} />
-          : <View style={[ac.avatar, { backgroundColor: bgColor, alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '900' }}>{initials}</Text>
-            </View>
-        }
-        <View style={[ac.typeDot, { backgroundColor: meta.color }]}>
-          <Feather name={meta.icon} size={8} color="#fff" />
+      <View
+        style={[
+          ac.item,
+          { borderBottomColor: `${primary}12` },
+          isNew && { backgroundColor: `${primary}06` },
+        ]}
+      >
+        <View style={ac.avatarWrap}>
+          {item.actor_avatar
+            ? <Image source={{ uri: item.actor_avatar }} style={ac.avatar} />
+            : <View style={[ac.avatar, { backgroundColor: bgColor, alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '900' }}>{initials}</Text>
+              </View>
+          }
+          <View style={[ac.typeDot, { backgroundColor: meta.color }]}>
+            <Feather name={meta.icon} size={8} color="#fff" />
+          </View>
         </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={[ac.text, { color: textColor }]}>
+            <Text style={[ac.actor, { color: primary }]}>{item.actor}</Text>
+            {' '}
+            <Text style={{ color: textColor }}>{item.content}</Text>
+          </Text>
+          <Text style={[ac.time, { color: muted }]}>{formatAge(item.created_at)}</Text>
+        </View>
+        {isNew && <View style={[ac.newDot, { backgroundColor: primary }]} />}
       </View>
     );
-  };
+  }, [primary, textColor, muted]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -235,29 +252,7 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
                   tintColor={primary}
                 />
               }
-              renderItem={({ item, index }) => {
-                const isNew = Date.now() - new Date(item.created_at) < 3600000;
-                return (
-                  <View
-                    style={[
-                      ac.item,
-                      { borderBottomColor: `${primary}12` },
-                      isNew && { backgroundColor: `${primary}06` },
-                    ]}
-                  >
-                    {renderAvatar(item)}
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={[ac.text, { color: textColor }]}>
-                        <Text style={[ac.actor, { color: primary }]}>{item.actor}</Text>
-                        {' '}
-                        <Text style={{ color: textColor }}>{item.content}</Text>
-                      </Text>
-                      <Text style={[ac.time, { color: muted }]}>{formatAge(item.created_at)}</Text>
-                    </View>
-                    {isNew && <View style={[ac.newDot, { backgroundColor: primary }]} />}
-                  </View>
-                );
-              }}
+              renderItem={renderActivityItem}
               ListEmptyComponent={
                 <View style={ac.empty}>
                   <Feather name={user ? 'bell' : 'lock'} size={40} color={muted} />
