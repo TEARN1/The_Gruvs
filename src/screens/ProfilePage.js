@@ -535,8 +535,7 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
         nextHalving: (phase + 1) * halvingInterval,
         burnRate: projectDNA.sovereign_mint_params.vibe_burn_rate * 100
       });
-      setLoading(false);
-    });
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const vote = async (id, type) => {

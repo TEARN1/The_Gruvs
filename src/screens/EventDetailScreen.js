@@ -353,8 +353,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               refreshing={refreshing}
               onRefresh={async () => {
                 setRefreshing(true);
-                await Promise.all([fetchUserState(), fetchGoingCount()]);
-                setRefreshing(false);
+                try { await Promise.all([fetchUserState(), fetchGoingCount()]); } catch { } finally { setRefreshing(false); }
               }}
               tintColor={primary}
               colors={[primary]}

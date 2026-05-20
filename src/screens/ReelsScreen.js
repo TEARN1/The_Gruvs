@@ -241,7 +241,6 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
     const newLiked = !liked;
     setLiked(newLiked);
     setLikeCount(c => newLiked ? c + 1 : Math.max(0, c - 1));
-    // Burst heart animation
     heartAnim.setValue(1);
     heartScale.setValue(0);
     Animated.parallel([
@@ -251,10 +250,16 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
         Animated.timing(heartAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
       ]),
     ]).start();
-    if (newLiked) {
-      await supabase.from('reel_likes').upsert({ reel_id: reel.id, user_id: user.id }, { onConflict: 'reel_id,user_id', ignoreDuplicates: true });
-    } else {
-      await supabase.from('reel_likes').delete().eq('reel_id', reel.id).eq('user_id', user.id);
+    try {
+      if (newLiked) {
+        await supabase.from('reel_likes').upsert({ reel_id: reel.id, user_id: user.id }, { onConflict: 'reel_id,user_id', ignoreDuplicates: true });
+      } else {
+        await supabase.from('reel_likes').delete().eq('reel_id', reel.id).eq('user_id', user.id);
+      }
+    } catch {
+      // Rollback optimistic update
+      setLiked(!newLiked);
+      setLikeCount(c => newLiked ? Math.max(0, c - 1) : c + 1);
     }
   };
 
@@ -646,7 +651,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={async () => { setRefreshing(true); await loadReels(true); setRefreshing(false); }}
+            onRefresh={async () => { setRefreshing(true); try { await loadReels(true); } catch { } finally { setRefreshing(false); } }}
             tintColor={primary}
             colors={[primary]}
           />
