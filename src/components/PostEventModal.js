@@ -183,7 +183,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       lat,
       lon,
       coords: lat && lon ? `POINT(${lon} ${lat})` : null,
-      is_deleted: false,
       is_published: true,
       is_cancelled: false,
     };

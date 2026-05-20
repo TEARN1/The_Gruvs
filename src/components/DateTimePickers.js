@@ -139,6 +139,40 @@ const cp = StyleSheet.create({
   confirmText: { fontWeight: '900', fontSize: 14 },
 });
 
+// ── Stable wheel column — defined at module level so React never remounts it ──
+// Defining inside TimePicker creates a new component type on every render,
+// which causes React to unmount/remount the ScrollView and lose scroll position.
+const WheelColumn = ({ items, selected, scrollRef, onScroll, wheelH, padH, primary, textColor }) => (
+  <View style={[tp.col, { height: wheelH }]}>
+    <View
+      style={[tp.highlight, { borderColor: `${primary}50`, top: padH, height: ITEM_H }]}
+      pointerEvents="none"
+    />
+    <ScrollView
+      ref={scrollRef}
+      showsVerticalScrollIndicator={false}
+      snapToInterval={ITEM_H}
+      decelerationRate="fast"
+      onMomentumScrollEnd={onScroll}
+      onScrollEndDrag={onScroll}
+      contentContainerStyle={{ paddingVertical: padH }}
+    >
+      {items.map(val => (
+        <View key={val} style={{ height: ITEM_H, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={[
+            tp.itemText,
+            val === selected
+              ? { fontWeight: '900', fontSize: 28, color: primary }
+              : { color: `${textColor}70` },
+          ]}>
+            {String(val).padStart(2, '0')}
+          </Text>
+        </View>
+      ))}
+    </ScrollView>
+  </View>
+);
+
 // ── Scroll time picker ────────────────────────────────────────────────────────
 export const TimePicker = ({
   visible, onClose, onConfirm, initialHour = 20, initialMinute = 0,
@@ -153,6 +187,7 @@ export const TimePicker = ({
   const MINUTES = Array.from({ length: 60 }, (_, i) => i);
   const PAD = Math.floor(VISIBLE / 2);
   const WHEEL_H = ITEM_H * VISIBLE;
+  const PAD_H = PAD * ITEM_H;
 
   useEffect(() => {
     if (visible) {
@@ -174,33 +209,6 @@ export const TimePicker = ({
     setMinute(Math.max(0, Math.min(59, idx)));
   };
 
-  const Column = ({ items, selected, scrollRef, onScroll }) => (
-    <View style={[tp.col, { height: WHEEL_H }]}>
-      <View style={[tp.highlight, { borderColor: `${primary}50`, top: PAD * ITEM_H, height: ITEM_H }]} pointerEvents="none" />
-      <ScrollView
-        ref={scrollRef}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_H}
-        decelerationRate="fast"
-        onMomentumScrollEnd={onScroll}
-        onScrollEndDrag={onScroll}
-        contentContainerStyle={{ paddingVertical: PAD * ITEM_H }}
-      >
-        {items.map(val => (
-          <View key={val} style={{ height: ITEM_H, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={[
-              tp.itemText,
-              { color: val === selected ? primary : `${textColor}70` },
-              val === selected && { fontWeight: '900', fontSize: 28, color: primary },
-            ]}>
-              {String(val).padStart(2, '0')}
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
-    </View>
-  );
-
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={tp.overlay} activeOpacity={1} onPress={onClose}>
@@ -208,9 +216,15 @@ export const TimePicker = ({
           <Text style={[tp.title, { color: textColor }]}>Pick a Time</Text>
 
           <View style={[tp.wheelsRow, { height: WHEEL_H }]}>
-            <Column items={HOURS} selected={hour} scrollRef={hourRef} onScroll={onHourScroll} />
+            <WheelColumn
+              items={HOURS} selected={hour} scrollRef={hourRef} onScroll={onHourScroll}
+              wheelH={WHEEL_H} padH={PAD_H} primary={primary} textColor={textColor}
+            />
             <Text style={[tp.colon, { color: textColor }]}>:</Text>
-            <Column items={MINUTES} selected={minute} scrollRef={minRef} onScroll={onMinuteScroll} />
+            <WheelColumn
+              items={MINUTES} selected={minute} scrollRef={minRef} onScroll={onMinuteScroll}
+              wheelH={WHEEL_H} padH={PAD_H} primary={primary} textColor={textColor}
+            />
           </View>
 
           <Text style={[tp.preview, { color: primary }]}>
