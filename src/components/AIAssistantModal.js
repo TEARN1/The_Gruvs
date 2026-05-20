@@ -138,7 +138,7 @@ export const AIAssistantModal = ({ visible, onClose }) => {
     setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, feedback: thumbs } : m));
   };
 
-  const renderMessage = ({ item }) => {
+  const renderMessage = useCallback(({ item }) => {
     const isUser = item.role === MSG_ROLE.USER;
     return (
       <View style={[styles.msgRow, isUser && styles.msgRowUser]}>
@@ -156,7 +156,6 @@ export const AIAssistantModal = ({ visible, onClose }) => {
           <Text style={[styles.bubbleText, { color: isUser ? '#000' : textColor }]}>
             {item.text}
           </Text>
-          {/* Feedback buttons for AI messages */}
           {!isUser && item.interactionId && (
             <View style={styles.feedbackRow}>
               <TouchableOpacity onPress={() => handleFeedback(item, 1)} style={styles.feedbackBtn}>
@@ -170,7 +169,7 @@ export const AIAssistantModal = ({ visible, onClose }) => {
         </View>
       </View>
     );
-  };
+  }, [primary, surface, textColor, muted, handleFeedback]);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
