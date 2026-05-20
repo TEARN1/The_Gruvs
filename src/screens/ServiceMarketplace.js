@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -502,26 +502,44 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
     return tabMatch && distMatch;
   });
 
-  const handleBook = (provider) => {
+  const handleBook = useCallback((provider) => {
     setBookingTarget(provider);
     setBookingModalVisible(true);
-  };
+  }, []);
 
-  const handleAcceptGig = async (gig) => {
+  const handleAcceptGig = useCallback(async (gig) => {
     try {
       await supabase.from('gig_acceptances').insert([
-        {
-          gig_id: gig.id,
-          worker_id: user?.id,
-          status: 'accepted',
-        },
+        { gig_id: gig.id, worker_id: user?.id, status: 'accepted' },
       ]);
     } catch {
       // silently ignore — card already shows accepted state
     }
     const posterName = gig.poster_username || gig.profiles?.username || 'poster';
     showToast(`Gig accepted! Contact ${posterName}`, 'success');
-  };
+  }, [user?.id, showToast]);
+
+  const renderGigCard = useCallback(({ item }) => (
+    <GigModeCard
+      gig={item}
+      onAccept={handleAcceptGig}
+      primary={primary}
+      muted={muted}
+      textColor={textColor}
+      bg={surface}
+    />
+  ), [handleAcceptGig, primary, muted, textColor, surface]);
+
+  const renderServiceCard = useCallback(({ item }) => (
+    <ServiceCard
+      provider={item}
+      onBook={handleBook}
+      primary={primary}
+      muted={muted}
+      textColor={textColor}
+      bg={surface}
+    />
+  ), [handleBook, primary, muted, textColor, surface]);
 
   const EmptyState = ({ icon, message }) => (
     <View style={styles.emptyState}>
@@ -663,16 +681,7 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
               colors={[primary]}
             />
           }
-          renderItem={({ item }) => (
-            <GigModeCard
-              gig={item}
-              onAccept={handleAcceptGig}
-              primary={primary}
-              muted={muted}
-              textColor={textColor}
-              bg={surface}
-            />
-          )}
+          renderItem={renderGigCard}
           ListEmptyComponent={
             <EmptyState
               icon="alert-circle"
@@ -695,16 +704,7 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
               colors={[primary]}
             />
           }
-          renderItem={({ item }) => (
-            <ServiceCard
-              provider={item}
-              onBook={handleBook}
-              primary={primary}
-              muted={muted}
-              textColor={textColor}
-              bg={surface}
-            />
-          )}
+          renderItem={renderServiceCard}
           ListEmptyComponent={
             <EmptyState
               icon="truck"

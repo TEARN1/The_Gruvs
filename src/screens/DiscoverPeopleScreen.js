@@ -268,11 +268,24 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
     return () => supabase.removeChannel(chan);
   }, []);
 
-  const handleMessage = (viber) => {
+  const handleMessage = useCallback((viber) => {
     if (!user) { onAuthRequired?.(); return; }
     setMsgTarget(viber);
     setMsgVisible(true);
-  };
+  }, [user, onAuthRequired]);
+
+  const renderViberRow = useCallback(({ item }) => (
+    <ViberRow
+      viber={item}
+      primary={primary}
+      textColor={textColor}
+      muted={muted}
+      bg={surface}
+      onPress={(v) => { setSelectedViber(v); setProfileVisible(true); }}
+      onMessage={handleMessage}
+      isFollowing={followedIds.has(item.id)}
+    />
+  ), [primary, textColor, muted, surface, followedIds, handleMessage]);
 
   const handleBlock = async (viber) => {
     if (!user) return;
@@ -525,18 +538,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
               )}
             </>
           }
-          renderItem={({ item }) => (
-            <ViberRow
-              viber={item}
-              primary={primary}
-              textColor={textColor}
-              muted={muted}
-              bg={surface}
-              onPress={(v) => { setSelectedViber(v); setProfileVisible(true); }}
-              onMessage={handleMessage}
-              isFollowing={followedIds.has(item.id)}
-            />
-          )}
+          renderItem={renderViberRow}
           ListEmptyComponent={
             <View style={s.empty}>
               <Feather name="users" size={44} color={muted} style={{ opacity: 0.4 }} />

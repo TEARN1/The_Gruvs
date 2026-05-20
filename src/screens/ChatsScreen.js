@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Image,
   StyleSheet, RefreshControl, TextInput,
@@ -146,11 +146,27 @@ export const ChatsScreen = ({ onAuthRequired }) => {
     return () => unsubRef.current?.();
   }, [fetchConvos, user]);
 
-  const filtered = search.trim()
+  const filtered = useMemo(() => search.trim()
     ? convos.filter(c => (c.partner?.username || '').toLowerCase().includes(search.toLowerCase()))
-    : convos;
+    : convos,
+  [convos, search]);
 
-  const pendingCount = convos.filter(c => c.is_request && !c.request_accepted && c.recipient_id === user?.id).length;
+  const pendingCount = useMemo(
+    () => convos.filter(c => c.is_request && !c.request_accepted && c.recipient_id === user?.id).length,
+    [convos, user?.id],
+  );
+
+  const renderConvoRow = useCallback(({ item }) => (
+    <ConvoRow
+      item={item}
+      userId={user.id}
+      primary={primary}
+      textColor={textColor}
+      muted={muted}
+      surface={surface}
+      onPress={() => setActiveConvo(item.partner)}
+    />
+  ), [user?.id, primary, textColor, muted, surface]);
 
   if (!user) {
     return (
@@ -216,17 +232,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
         <FlatList
           data={filtered}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <ConvoRow
-              item={item}
-              userId={user.id}
-              primary={primary}
-              textColor={textColor}
-              muted={muted}
-              surface={surface}
-              onPress={() => setActiveConvo(item.partner)}
-            />
-          )}
+          renderItem={renderConvoRow}
           showsVerticalScrollIndicator={false}
           getItemLayout={(_, index) => ({ length: CONVO_ROW_HEIGHT, offset: CONVO_ROW_HEIGHT * index, index })}
           contentContainerStyle={{ paddingBottom: 140 }}
