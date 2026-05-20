@@ -485,6 +485,49 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     loadCrewSignal();
   }, [user, events]);
 
+  // Real-time: new events appear instantly + live vibe counts update
+  useEffect(() => {
+    if (!isSupabaseEnabled) return;
+    const channel = supabase
+      .channel('landing_live')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'events' },
+        async (payload) => {
+          const newEvt = payload.new;
+          if (!newEvt?.id || newEvt.is_cancelled || newEvt.is_deleted) return;
+          try {
+            const { data } = await supabase
+              .from('events')
+              .select('*, profiles!author_id(username, avatar_url, vibe_score, social_integrity_score, is_verified)')
+              .eq('id', newEvt.id)
+              .single();
+            if (!data) return;
+            setEvents(prev => {
+              if (prev.some(e => e.id === data.id)) return prev;
+              return [data, ...prev];
+            });
+            setVibeCounts(prev => ({ ...prev, [data.id]: data.vibe_count || 0 }));
+          } catch { }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'events' },
+        (payload) => {
+          const updated = payload.new;
+          if (!updated?.id) return;
+          // Update vibe count and event data in-place — no refetch needed
+          setVibeCounts(prev => ({ ...prev, [updated.id]: updated.vibe_count || 0 }));
+          setEvents(prev => prev.map(e =>
+            e.id === updated.id ? { ...e, vibe_count: updated.vibe_count, going: updated.going } : e
+          ));
+        }
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, []);
+
   // Fetch checkins for event (for ReturnPathCard)
   const fetchEventCheckins = useCallback(async (eventId) => {
     if (!eventId || eventCheckins[eventId]) return; // cached
