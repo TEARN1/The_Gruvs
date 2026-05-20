@@ -553,7 +553,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   };
 
   // ── Render message bubble ─────────────────────────────────────────────────────
-  const renderItem = ({ item, index }) => {
+  const renderItem = useCallback(({ item, index }) => {
     const isMine = item.sender_id === user?.id;
     const showDate = index === 0 || fmtDate(item.created_at) !== fmtDate(messages[index - 1]?.created_at);
     const isSelected = selectedMsgId === item.id;
@@ -655,7 +655,8 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         )}
       </>
     );
-  };
+  }, [user?.id, messages, selectedMsgId, reactionMsgId, showReactions, primary, bg, muted, textColor,
+      handleDelete, handleReact, setSelectedMsgId, setReactionMsgId, setShowReactions, setMessages, setBody]);
 
   // Determine if the current user is the recipient of the *first* message in the thread
   // and if that message is a request that hasn't been accepted yet.
