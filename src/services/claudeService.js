@@ -152,19 +152,35 @@ async function createMessage(params) {
 }
 
 async function _createMessageGateway(params) {
-  try {
-    const { data, error } = await withTimeout(
-      supabase.functions.invoke('ai-gateway', { body: params }),
-      GATEWAY_TIMEOUT_MS,
-      'AI gateway'
-    );
-
-    if (error) throw error;
-    return data;
-  } catch (e) {
-    console.error('[claudeService] Gateway error:', e.message);
-    throw e;
+  let lastError;
+  const delays = [0, 1200, 3000]; // 3 attempts: immediate, 1.2s, 3s
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]));
+    try {
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke('ai-gateway', { body: params }),
+        GATEWAY_TIMEOUT_MS,
+        'AI gateway'
+      );
+      if (error) {
+        // 4xx means bad input — bail immediately, no retry
+        const status = error.context?.status || error.status;
+        if (status >= 400 && status < 500) throw error;
+        lastError = error;
+        continue;
+      }
+      return data;
+    } catch (e) {
+      lastError = e;
+      const status = e?.context?.status || e?.status;
+      if (status >= 400 && status < 500) {
+        console.error('[claudeService] Gateway 4xx — not retrying:', e.message);
+        throw e;
+      }
+      console.error(`[claudeService] Gateway attempt ${attempt + 1} failed:`, e.message);
+    }
   }
+  throw lastError;
 }
 
 function _buildLocalMessages(params) {
@@ -370,16 +386,7 @@ async function buildDeepContext(userId) {
     const today = new Date().toISOString().split('T')[0];
     const week30 = new Date(Date.now() - 30 * 86400000).toISOString();
 
-    const [
-      { data: profile },
-      { data: memory },
-      { data: rsvps },
-      { data: vibes },
-      { data: savedEvents },
-      { data: following },
-      { data: topInteractions },
-      { data: nearbyEvents },
-    ] = await Promise.all([
+    const results = await Promise.allSettled([
       supabase.from('profiles')
         .select('display_name, username, city, vibe_score, vibe_equity, interests, followers_count, following_count, events_posted, current_streak, social_integrity_score')
         .eq('id', userId).single(),
@@ -414,10 +421,18 @@ async function buildDeepContext(userId) {
         .select('title, category, event_date, city, trending_score')
         .eq('is_cancelled', false)
         .gte('event_date', today)
-        .ilike('city', `%${profile?.city || 'Cape Town'}%`)
         .order('trending_score', { ascending: false })
         .limit(8),
     ]);
+    const [profileRes, memoryRes, rsvpsRes, vibesRes, savedRes, followingRes, interactionsRes, nearbyRes] = results;
+    const profile = profileRes.status === 'fulfilled' ? profileRes.value.data : null;
+    const memory = memoryRes.status === 'fulfilled' ? memoryRes.value.data : null;
+    const rsvps = rsvpsRes.status === 'fulfilled' ? rsvpsRes.value.data : null;
+    const vibes = vibesRes.status === 'fulfilled' ? vibesRes.value.data : null;
+    const savedEvents = savedRes.status === 'fulfilled' ? savedRes.value.data : null;
+    const following = followingRes.status === 'fulfilled' ? followingRes.value.data : null;
+    const topInteractions = interactionsRes.status === 'fulfilled' ? interactionsRes.value.data : null;
+    const nearbyEvents = nearbyRes.status === 'fulfilled' ? nearbyRes.value.data : null;
 
     const lines = [];
 

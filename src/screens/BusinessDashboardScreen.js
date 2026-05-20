@@ -12,6 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { resilientRead, resilient } from '../utils/resilience';
 import { GlassView } from '../components/GlassView';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
@@ -419,16 +420,30 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       setBiz(bizData);
 
       // Parallel data fetch using centralized managers
-      const [campData, partData, segRes, notifData] = await Promise.all([
-        CampaignManager.fetchForBusiness(bizData.id),
-        EcosystemManager.fetchPartners(bizData.id),
-        supabase.from('audience_segments').select('*').eq('business_id', bizData.id).order('created_at', { ascending: false }),
-        NotificationManager.fetch(user.id, 10), // Notifications are for user (as biz owner)
+      const [campData, partData, segments, notifData] = await Promise.all([
+        CampaignManager.fetchForBusiness(bizData.id).catch(() => []),
+        EcosystemManager.fetchPartners(bizData.id).catch(() => []),
+        resilientRead(
+          async () => {
+            const { data, error } = await supabase.from('audience_segments').select('*').eq('business_id', bizData.id).order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+          },
+          async () => {
+            const { data, error } = await supabase.from('audience_segments').select('id, name, size, created_at').eq('business_id', bizData.id).limit(20);
+            if (error) throw error;
+            return data;
+          },
+          async () => [],
+          [],
+          'BusinessDashboard.segments'
+        ),
+        NotificationManager.fetch(user.id, 10).catch(() => []),
       ]);
 
       setCampaigns(campData);
       setPartners(partData);
-      setSegments(segRes.data || []);
+      setSegments(segments || []);
       setNotifications(notifData);
 
       // Build analytics summary from raw events
@@ -478,13 +493,29 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const handleSetupSubmit = async () => {
     if (!setupForm.business_name.trim()) { showToast('Please enter a business name.', 'error'); return; }
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
-    const { data, error } = await supabase.from('business_profiles').upsert({
-      user_id: user.id,
-      ...setupForm,
-      tier: 'starter',
-    }, { onConflict: 'user_id' }).select().single();
-    if (!error && data) { setBiz(data); setSetupMode(false); loadAll(); }
-    else showToast(error?.message || 'Could not create business profile.', 'error');
+    try {
+      const payload = { user_id: user.id, ...setupForm, tier: 'starter' };
+      const result = await resilient(
+        [
+          async () => {
+            const { data, error } = await supabase.from('business_profiles').upsert(payload, { onConflict: 'user_id' }).select().single();
+            if (error) throw error;
+            return data;
+          },
+          async () => {
+            const { data, error } = await supabase.from('business_profiles').insert(payload).select().single();
+            if (error) throw error;
+            return data;
+          },
+          () => supabase.rpc('create_business_profile', { p_user_id: user.id, p_name: setupForm.business_name }),
+        ],
+        { attemptsPerTier: 2, baseMs: 500, label: 'BusinessDashboard.setupSubmit', fallbackValue: null }
+      );
+      if (result) { setBiz(result); setSetupMode(false); loadAll(); }
+      else showToast('Could not create business profile.', 'error');
+    } catch (e) {
+      showToast(e?.message || 'Could not create business profile.', 'error');
+    }
   };
 
   const handleTabPress = (key) => {
