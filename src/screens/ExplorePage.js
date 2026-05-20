@@ -565,10 +565,12 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
-      const { events, users } = await FeedManager.searchAll(query);
-      setSearchResults(events);
-      setUserResults(users);
-      setSearching(false);
+      try {
+        const { events, users } = await FeedManager.searchAll(query);
+        setSearchResults(events);
+        setUserResults(users);
+      } catch { setSearchResults([]); setUserResults([]); }
+      finally { setSearching(false); }
     }, 350);
     return () => clearTimeout(searchTimer.current);
   }, [query]);
