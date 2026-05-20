@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
   TextInput, Dimensions, Animated, Platform, Modal, RefreshControl,
@@ -398,128 +398,104 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
-  const loadAll = async () => {
+  // Shared helper: fetch nearby vibers + priority-sort followed+online first
+  const loadNearbyVibers = useCallback(async (uid) => {
+    const [nearby, followRes] = await Promise.all([
+      DiscoveryManager.findNearbyVibers(uid, 25),
+      supabase.from('follows').select('following_id').eq('follower_id', uid),
+    ]);
+    const followedIds = new Set((followRes.data || []).map(f => f.following_id));
+    const list = nearby || [];
+    const prioritized = list.filter(v => followedIds.has(v.id || v.profile_id) && checkOnline(v));
+    setNearbyVibers(prioritized.length > 0 ? prioritized : list);
+  }, []);
+
+  const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-    // Removed demo mode fallback. Real data required.
-    const [trending, happening, counts] = await Promise.all([
-      TrendingManager.fetch(8),
-      TrendingManager.fetchHappeningNow(),
-      TrendingManager.fetchCategoryCounts(),
-    ]);
+      const [trending, happening, counts] = await Promise.all([
+        TrendingManager.fetch(8),
+        TrendingManager.fetchHappeningNow(),
+        TrendingManager.fetchCategoryCounts(),
+      ]);
 
-    setTrendingEvents(trending);
-    setHappeningNow(happening);
-    setCategoryCounts(counts);
+      setTrendingEvents(trending);
+      setHappeningNow(happening);
+      setCategoryCounts(counts);
 
-    // Fetch real routes from DB
-    try {
-      const { data: routeData } = await supabase
-        .from('routes')
-        .select('*, profiles(username, avatar_url)')
-        .eq('active', true)
-        .order('join_count', { ascending: false })
-        .limit(5);
-      setRoutes(routeData || []);
-    } catch { setRoutes([]); }
+      try {
+        const { data: routeData } = await supabase
+          .from('routes')
+          .select('*, profiles(username, avatar_url)')
+          .eq('active', true)
+          .order('join_count', { ascending: false })
+          .limit(5);
+        setRoutes(routeData || []);
+      } catch { setRoutes([]); }
 
-    const featured = happening.reduce((best, e) =>
-      (e.vibe_count || e.going || 0) > (best.vibe_count || best.going || 0) ? e : best,
-      happening[0] || null
-    );
-    setFeaturedEvent(featured || null);
+      const featured = happening.reduce((best, e) =>
+        (e.vibe_count || e.going || 0) > (best.vibe_count || best.going || 0) ? e : best,
+        happening[0] || null
+      );
+      setFeaturedEvent(featured || null);
 
-    // ── Trending hashtags: mine from recent event captions/reels ─────────────
-    try {
-      const cutoff = new Date(Date.now() - 7 * 86400000).toISOString();
-      const { data: reelCaps } = await supabase
-        .from('reels')
-        .select('caption')
-        .eq('is_deleted', false)
-        .gte('created_at', cutoff)
-        .limit(200);
-      const tagCounts = {};
-      (reelCaps || []).forEach(r => {
-        (r.caption?.match(/#\w+/g) || []).forEach(tag => {
-          const t = tag.toLowerCase();
-          tagCounts[t] = (tagCounts[t] || 0) + 1;
+      // Mine trending hashtags from recent reels
+      try {
+        const cutoff = new Date(Date.now() - 7 * 86400000).toISOString();
+        const { data: reelCaps } = await supabase
+          .from('reels')
+          .select('caption')
+          .eq('is_deleted', false)
+          .gte('created_at', cutoff)
+          .limit(200);
+        const tagCounts = {};
+        (reelCaps || []).forEach(r => {
+          (r.caption?.match(/#\w+/g) || []).forEach(tag => {
+            const t = tag.toLowerCase();
+            tagCounts[t] = (tagCounts[t] || 0) + 1;
+          });
         });
-      });
-      const sorted = Object.entries(tagCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 12)
-        .map(([tag, count]) => ({ tag, count }));
-      setTrendingHashtags(sorted);
-    } catch { setTrendingHashtags([]); }
+        setTrendingHashtags(
+          Object.entries(tagCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 12)
+            .map(([tag, count]) => ({ tag, count }))
+        );
+      } catch { setTrendingHashtags([]); }
 
-    // ── Location: runs after initial render so UI isn't blocked ──────────────
-    setLocationLoading(true);
-    
-    try {
-      let coords = null;
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.BestForNavigation,
-        });
-        coords = { lat: loc.coords.latitude, lon: loc.coords.longitude };
+      setLocationLoading(true);
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.BestForNavigation });
+          const coords = { lat: loc.coords.latitude, lon: loc.coords.longitude };
+          setUserCoords(coords);
 
-        setUserCoords(coords);
-        // Save to profile so PostGIS viber-proximity works
-        if (user) {
-          const privateCoords = applyLocationPrivacy(coords.lat, coords.lon);
-          if (privateCoords) {
-            LocationService.saveToProfile(user.id, privateCoords.lat, privateCoords.lon);
+          if (user) {
+            const privateCoords = applyLocationPrivacy(coords.lat, coords.lon);
+            if (privateCoords) LocationService.saveToProfile(user.id, privateCoords.lat, privateCoords.lon);
+            await loadNearbyVibers(user.id);
+            try {
+              const matches = await DiscoveryManager.findNearbyVibers(user.id, 10);
+              setVibeMatches(matches.map(v => ({ ...v, matchScore: Math.min(99, Math.round((v.vibe_score || 0) / 10)), overlap: v.interests?.slice(0, 3) || [] })));
+            } catch { setVibeMatches([]); }
           }
-          // Fetch nearby vibers AND filter for those who are followed and online
-          const nearby = await DiscoveryManager.findNearbyVibers(user.id, 25);
-          
-          let followedIds = new Set();
-          const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
-          followedIds = new Set((follows || []).map(f => f.following_id));
-
-          const safeNearby = nearby || [];
-          const onlineFollowers = safeNearby.filter(v => followedIds.has(v.id || v.profile_id) && checkOnline(v));
-          setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : safeNearby);
-
-          // Advanced matching logic
-          try {
-            const matches = await DiscoveryManager.findNearbyVibers(user.id, 10);
-            setVibeMatches(matches.map(v => ({ ...v, matchScore: Math.min(99, Math.round((v.vibe_score || 0) / 10)), overlap: v.interests?.slice(0, 3) || [] })));
-          } catch { setVibeMatches([]); }
-        }
-        // Fetch events near the user's physical location
-        const eventsNear = await DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50); 
-        setNearbyEvents(eventsNear);
-      } else if (user) {
-        // No location but user logged in — still try vibers (profile may already have coords)
-        const nearby = await DiscoveryManager.findNearbyVibers(user.id, 25);
-        
-        let followedIds = new Set();
-        const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
-        followedIds = new Set((follows || []).map(f => f.following_id));
-
-        const safeNearby2 = nearby || [];
-        const onlineFollowers = safeNearby2.filter(v => followedIds.has(v.id || v.profile_id) && checkOnline(v));
-        setNearbyVibers(onlineFollowers.length > 0 ? onlineFollowers : safeNearby2);
-        
-        // Try to fetch events near their last known location
-        const profile = await UserManager.getProfile(user.id);
-        if (profile?.lat && profile?.lon) {
-          const eventsNear = await DiscoveryManager.findNearbyEvents(profile.lat, profile.lon, 50);
+          const eventsNear = await DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50);
           setNearbyEvents(eventsNear);
+        } else if (user) {
+          await loadNearbyVibers(user.id);
+          const profile = await UserManager.getProfile(user.id);
+          if (profile?.lat && profile?.lon) {
+            const eventsNear = await DiscoveryManager.findNearbyEvents(profile.lat, profile.lon, 50);
+            setNearbyEvents(eventsNear);
+          }
         }
-      }
-    } catch {
-      // Location failed
-    } finally {
-      setLocationLoading(false);
-    }
-    } catch { /* loadAll outer catch — prevents spinner getting stuck */ } finally {
+      } catch { } finally { setLocationLoading(false); }
+    } catch { } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user, applyLocationPrivacy, loadNearbyVibers]);
 
   useEffect(() => {
     supabase.from('app_updates')
@@ -575,15 +551,19 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     return () => clearTimeout(searchTimer.current);
   }, [query]);
 
-  // Filter events by mood or category
-  const filteredEvents = (() => {
+  const onMoodSelect = useCallback((key) => {
+    setActiveMoods(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+    setActiveCat(null);
+  }, []);
+
+  const filteredEvents = useMemo(() => {
     if (activeCat) return happeningNow.filter(e => e.category === activeCat);
     if (activeMoods.size > 0) {
       const allCats = new Set(MOODS.filter(m => activeMoods.has(m.key)).flatMap(m => m.cats));
       return happeningNow.filter(e => allCats.has(e.category));
     }
     return happeningNow;
-  })();
+  }, [happeningNow, activeCat, activeMoods]);
 
   const isSearching = query.trim().length > 0;
   const renderWelcome = () => {
@@ -621,7 +601,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); loadAll(); }}
+            onRefresh={loadAll}
             tintColor={primary}
             colors={[primary]}
           />
@@ -782,7 +762,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {/* ── Mood selector ──────────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
               <SectionHeader title="What's your mood?" textColor={textColor} primary={primary} />
-              <MoodRow activeMoods={activeMoods} onSelect={(key) => { setActiveMoods(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; }); setActiveCat(null); }} primary={primary} />
+              <MoodRow activeMoods={activeMoods} onSelect={onMoodSelect} primary={primary} />
             </View>
 
             {/* ── Trending hashtags ──────────────────────────────────────── */}

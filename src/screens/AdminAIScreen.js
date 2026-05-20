@@ -3,7 +3,7 @@
  * Chat with Claude to manage the app: query stats, send notifications,
  * feature events, moderate users, post announcements.
  */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   FlatList, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -183,6 +183,29 @@ export const AdminAIScreen = ({ onClose }) => {
     }
   };
 
+  const renderMessage = useCallback(({ item }) => {
+    const isUser = item.role === 'user';
+    return (
+      <View style={[styles.msgRow, isUser && styles.msgRowUser]}>
+        {!isUser && (
+          <View style={[styles.aiAvatar, { backgroundColor: `${primary}20`, borderColor: `${primary}40` }]}>
+            <Text style={{ fontSize: 10 }}>AI</Text>
+          </View>
+        )}
+        <View style={[
+          styles.bubble,
+          isUser
+            ? [styles.bubbleUser, { backgroundColor: primary }]
+            : [styles.bubbleAI, { backgroundColor: surface, borderColor: `${primary}20` }],
+        ]}>
+          <Text style={[styles.bubbleText, { color: isUser ? '#000' : textColor }]}>
+            {item.text}
+          </Text>
+        </View>
+      </View>
+    );
+  }, [primary, surface, textColor]);
+
   const send = async (text) => {
     const trimmed = (text || input).trim();
     if (!trimmed || loading) return;
@@ -277,28 +300,7 @@ export const AdminAIScreen = ({ onClose }) => {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.msgList}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => {
-          const isUser = item.role === 'user';
-          return (
-            <View style={[styles.msgRow, isUser && styles.msgRowUser]}>
-              {!isUser && (
-                <View style={[styles.aiAvatar, { backgroundColor: `${primary}20`, borderColor: `${primary}40` }]}>
-                  <Text style={{ fontSize: 10 }}>AI</Text>
-                </View>
-              )}
-              <View style={[
-                styles.bubble,
-                isUser
-                  ? [styles.bubbleUser, { backgroundColor: primary }]
-                  : [styles.bubbleAI, { backgroundColor: surface, borderColor: `${primary}20` }],
-              ]}>
-                <Text style={[styles.bubbleText, { color: isUser ? '#000' : textColor }]}>
-                  {item.text}
-                </Text>
-              </View>
-            </View>
-          );
-        }}
+        renderItem={renderMessage}
       />
 
       {loading && (
