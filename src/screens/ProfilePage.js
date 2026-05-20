@@ -2157,7 +2157,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <View style={{ backgroundColor: bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingBottom: 36, paddingTop: 16, maxHeight: '88%' }}>
             {/* Handle */}
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: `${primary}40`, alignSelf: 'center', marginBottom: 18 }} />
-            <Text style={{ color: textColor, fontSize: 18, fontWeight: '900', marginBottom: 18 }}>Edit Profile</Text>
+            <Text style={{ color: textColor, fontSize: 18, fontWeight: '900', marginBottom: 6 }}>Edit Profile</Text>
+            <Text style={{ color: primary, fontSize: 13, fontWeight: '700', marginBottom: 18, opacity: 0.8 }}>
+              @{username}
+            </Text>
 
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Avatar */}
