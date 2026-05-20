@@ -27,10 +27,11 @@ export const IntelligenceMonitor = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CACHE  (stale-while-revalidate, prefix invalidation)
+// CACHE  (stale-while-revalidate, prefix invalidation, TTL guardrail)
 // ─────────────────────────────────────────────────────────────────────────────
 const CACHE = {};
-const CACHE_TTL = 300000; // 5 min default — serves stale while revalidating
+const CACHE_TTL    = 300000; // 5 min default
+const CACHE_MAX_AGE = 1800000; // 30 min hard cap — stale entries evicted regardless
 
 const cache = {
   set(key, value, ttl = CACHE_TTL) {
@@ -39,18 +40,46 @@ const cache = {
   get(key) {
     const entry = CACHE[key];
     if (!entry) return null;
-    if (Date.now() - entry.ts > entry.ttl) { delete CACHE[key]; return null; }
+    const age = Date.now() - entry.ts;
+    if (age > entry.ttl) { delete CACHE[key]; return null; }
     return entry.value;
   },
-  // Returns stale value (if any) AND triggers background revalidation
+  // Returns stale value even past TTL, but enforces 30-min hard cap
   getStale(key) {
-    return CACHE[key]?.value ?? null;
+    const entry = CACHE[key];
+    if (!entry) return null;
+    if (Date.now() - entry.ts > CACHE_MAX_AGE) { delete CACHE[key]; return null; }
+    return entry.value;
   },
   invalidate(prefix) {
     Object.keys(CACHE).forEach(k => { if (k.startsWith(prefix)) delete CACHE[k]; });
   },
   clear() { Object.keys(CACHE).forEach(k => delete CACHE[k]); },
+  // Periodic sweep of expired entries to prevent unbounded memory growth
+  sweep() {
+    const now = Date.now();
+    Object.keys(CACHE).forEach(k => {
+      if (now - CACHE[k].ts > CACHE_MAX_AGE) delete CACHE[k];
+    });
+  },
 };
+
+// Run sweep every 10 minutes — harmless background cleanup
+if (typeof setInterval !== 'undefined') setInterval(() => cache.sweep(), 600000);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REQUEST DEDUPLICATION  (in-flight promise sharing)
+// Prevents the same query from firing multiple times when multiple components
+// mount simultaneously (e.g., 3 screens all calling TrendingManager.fetch()).
+// ─────────────────────────────────────────────────────────────────────────────
+const IN_FLIGHT = new Map();
+
+function dedupe(key, fn) {
+  if (IN_FLIGHT.has(key)) return IN_FLIGHT.get(key);
+  const promise = fn().finally(() => IN_FLIGHT.delete(key));
+  IN_FLIGHT.set(key, promise);
+  return promise;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ONLINE STATUS UTILS
@@ -347,15 +376,21 @@ export const FeedManager = {
     userInterests = [], followedIds = [], userLat, userLon, userId = null,
   } = {}) {
     const cacheKey = `feed:${mode}:${category}:${query}:${page}:${userId || 'anon'}`;
-    // Serve stale immediately — caller gets instant paint, fresh data arrives next render
     const stale = cache.getStale(cacheKey);
     const fresh = cache.get(cacheKey);
     if (fresh) return fresh;
     if (stale) {
-      // Return stale now, revalidate in background
       this._revalidatePage({ page, category, query, mode, userInterests, followedIds, userLat, userLon, userId }, cacheKey);
       return stale;
     }
+    // Deduplicate concurrent calls with identical key
+    return dedupe(cacheKey, () => this._doFetchPage({ page, category, query, mode, userInterests, followedIds, userLat, userLon, userId }, cacheKey));
+  },
+
+  async _doFetchPage({
+    page = 0, category = 'all', query = '', mode = 'drop',
+    userInterests = [], followedIds = [], userLat, userLon, userId = null,
+  } = {}, cacheKey) {
 
     // Load AI recommendations for this user (non-blocking, best-effort)
     let aiRecommendedIds = new Set();
@@ -562,6 +597,10 @@ export const TrendingManager = {
     const cacheKey = `trending:${limit}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
+    return dedupe(cacheKey, () => this._doFetch(limit, cacheKey));
+  },
+
+  async _doFetch(limit, cacheKey) {
 
     // Try the RPC first — falls back to a direct query if the function doesn't exist yet
     try {

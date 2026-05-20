@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity, FlatList,
-  ActivityIndicator, RefreshControl, SafeAreaView, Image,
+  ActivityIndicator, RefreshControl, SafeAreaView, Image, Animated,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -29,6 +29,37 @@ const getAvatarBg = (username) => {
   const colors = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706', '#db2777'];
   return colors[(username?.charCodeAt(0) || 0) % colors.length];
 };
+
+// Pulsing skeleton card for loading state
+const SkeletonRow = ({ primary }) => {
+  const pulse = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={[sk.row, { opacity: pulse }]}>
+      <View style={[sk.circle, { backgroundColor: `${primary}30` }]} />
+      <View style={{ flex: 1, gap: 6 }}>
+        <View style={[sk.line, { width: '55%', backgroundColor: `${primary}25` }]} />
+        <View style={[sk.line, { width: '30%', backgroundColor: `${primary}15` }]} />
+      </View>
+      <View style={[sk.badge, { backgroundColor: `${primary}20` }]} />
+    </Animated.View>
+  );
+};
+const sk = StyleSheet.create({
+  row:    { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16 },
+  circle: { width: 44, height: 44, borderRadius: 22 },
+  line:   { height: 10, borderRadius: 5 },
+  badge:  { width: 56, height: 22, borderRadius: 8 },
+});
 
 export const LeaderboardScreen = ({ visible, onClose }) => {
   const { currentTheme } = useTheme();
@@ -220,7 +251,11 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
           </View>
 
           {loading ? (
-            <ActivityIndicator color={primary} size="large" style={{ marginTop: 60 }} />
+            <View style={{ marginTop: 8 }}>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <SkeletonRow key={i} primary={primary} />
+              ))}
+            </View>
           ) : (
             <FlatList
               data={profiles}

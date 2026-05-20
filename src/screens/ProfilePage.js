@@ -812,6 +812,35 @@ const ft = StyleSheet.create({
   searchText: { color: '#000', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
 });
 
+// ── Profile tab skeleton ──────────────────────────────────────────────────────
+const ProfileTabSkeleton = ({ primary }) => {
+  const pulse = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={{ opacity: pulse, gap: 10, paddingVertical: 4 }}>
+      {[1, 2, 3].map(i => (
+        <View key={i} style={{ flexDirection: 'row', gap: 12, padding: 12, borderRadius: 14, backgroundColor: `${primary}08` }}>
+          <View style={{ width: 64, height: 64, borderRadius: 10, backgroundColor: `${primary}20` }} />
+          <View style={{ flex: 1, gap: 8, justifyContent: 'center' }}>
+            <View style={{ height: 12, width: '60%', borderRadius: 6, backgroundColor: `${primary}20` }} />
+            <View style={{ height: 10, width: '40%', borderRadius: 5, backgroundColor: `${primary}12` }} />
+            <View style={{ height: 9, width: '75%', borderRadius: 5, backgroundColor: `${primary}10` }} />
+          </View>
+        </View>
+      ))}
+    </Animated.View>
+  );
+};
+
 // ── Mini event card for profile tabs ─────────────────────────────────────────
 const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPress }) => {
   // media_urls is a string[] saved by PostEventModal; media is the legacy object[] format
@@ -1822,7 +1851,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         {/* Tab Content */}
         <View style={styles.tabContent}>
           {tabLoading ? (
-            <ActivityIndicator color={primary} style={{ marginVertical: 24 }} />
+            <ProfileTabSkeleton primary={primary} />
           ) : (
             <>
               {activeTab === 'gruvs' && (

@@ -8,10 +8,13 @@
 
 -- ══════════════════════════════════════════════════════════════════════════════
 --  0. EXTENSIONS
+--  Wrapped in DO blocks: Supabase pre-installs postgis/pg_trgm/unaccent as
+--  supabase_admin, so a plain CREATE EXTENSION errors with "must be owner".
+--  The DO block catches and ignores that permission error gracefully.
 -- ══════════════════════════════════════════════════════════════════════════════
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE EXTENSION IF NOT EXISTS unaccent;
+DO $$ BEGIN CREATE EXTENSION IF NOT EXISTS postgis;  EXCEPTION WHEN OTHERS THEN NULL; END $$;
+DO $$ BEGIN CREATE EXTENSION IF NOT EXISTS pg_trgm;  EXCEPTION WHEN OTHERS THEN NULL; END $$;
+DO $$ BEGIN CREATE EXTENSION IF NOT EXISTS unaccent; EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 
 -- ══════════════════════════════════════════════════════════════════════════════
@@ -228,7 +231,7 @@ CREATE TRIGGER on_auth_user_created
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='followers')
   AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='follows') THEN
-    ALTER TABLE public.followers RENAME TO public.follows;
+    ALTER TABLE public.followers RENAME TO follows;
   END IF;
 END $$;
 
@@ -254,7 +257,14 @@ CREATE POLICY "Follows readable"         ON public.follows FOR SELECT USING (tru
 CREATE POLICY "Users manage own follows" ON public.follows FOR ALL    USING (auth.uid() = follower_id);
 
 -- Compat view so old code using "followers" still works
-DROP VIEW IF EXISTS public.followers CASCADE;
+-- Drop followers whether it's a leftover table or an old view
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='followers' AND table_type='BASE TABLE') THEN
+    DROP TABLE public.followers CASCADE;
+  ELSIF EXISTS (SELECT 1 FROM information_schema.views WHERE table_schema='public' AND table_name='followers') THEN
+    DROP VIEW public.followers CASCADE;
+  END IF;
+END $$;
 CREATE OR REPLACE VIEW public.followers AS SELECT * FROM public.follows;
 
 CREATE OR REPLACE FUNCTION public.sync_follow_counts()
@@ -311,7 +321,13 @@ DROP POLICY IF EXISTS "Users manage own blocks" ON public.user_blocks;
 CREATE POLICY "Users manage own blocks" ON public.user_blocks FOR ALL USING (auth.uid() = blocker_id);
 
 -- Legacy alias: if code queries "blocked_users", point it at user_blocks
-DROP VIEW IF EXISTS public.blocked_users CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='blocked_users' AND table_type='BASE TABLE') THEN
+    DROP TABLE public.blocked_users CASCADE;
+  ELSIF EXISTS (SELECT 1 FROM information_schema.views WHERE table_schema='public' AND table_name='blocked_users') THEN
+    DROP VIEW public.blocked_users CASCADE;
+  END IF;
+END $$;
 CREATE OR REPLACE VIEW public.blocked_users AS SELECT * FROM public.user_blocks;
 
 CREATE TABLE IF NOT EXISTS public.muted_users (
@@ -325,19 +341,6 @@ ALTER TABLE public.muted_users ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own mutes" ON public.muted_users;
 CREATE POLICY "Users manage own mutes" ON public.muted_users FOR ALL USING (auth.uid() = muter_id);
 
-
-CREATE TABLE IF NOT EXISTS blocked_users (
-  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  blocker_id UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  blocked_id UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE (blocker_id, blocked_id)
-);
-CREATE INDEX IF NOT EXISTS blocked_blocker ON blocked_users(blocker_id);
-CREATE INDEX IF NOT EXISTS blocked_blocked ON blocked_users(blocked_id);
-ALTER TABLE blocked_users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users manage own blocks" ON blocked_users;
-CREATE POLICY "Users manage own blocks" ON blocked_users FOR ALL USING (auth.uid() = blocker_id);
 
 -- ============================================================
 --  MUTED USERS
@@ -2253,10 +2256,9 @@ CREATE POLICY "Users cast votes"            ON governance_votes FOR INSERT WITH 
 
 -- ══════════════════════════════════════════════════════════════════════════════
 --  12. SPATIAL REF SYS
+--  spatial_ref_sys is owned by supabase_admin (PostGIS system table).
+--  We cannot ALTER or add RLS policies to it — skip entirely.
 -- ══════════════════════════════════════════════════════════════════════════════
-ALTER TABLE public.spatial_ref_sys ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "spatial_ref_sys public read" ON public.spatial_ref_sys;
-CREATE POLICY "spatial_ref_sys public read" ON public.spatial_ref_sys FOR SELECT USING (true);
 
 
 -- ══════════════════════════════════════════════════════════════════════════════

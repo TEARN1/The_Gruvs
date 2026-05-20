@@ -97,19 +97,37 @@ Return only the corrected answer, and do not add any new information.`;
   }
 }
 
+// ── Timeout helper ────────────────────────────────────────────────────────────
+function withTimeout(promise, ms, label = 'operation') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
+    ),
+  ]);
+}
+
+const TOOL_TIMEOUT_MS = 8000;   // 8 s per individual tool call
+const GATEWAY_TIMEOUT_MS = 30000; // 30 s for gateway round-trip
+
 // ── Rate limiter ─────────────────────────────────────────────────────────────
 const _callLog = {};
 const RATE_LIMIT = 50;         // calls per hour per signed-in user
 const RATE_WINDOW = 3600000;  // 1 hour
 
 function _checkRate(userId) {
-  if (!userId) return true;
+  if (!userId) return { ok: true };
   const now = Date.now();
   if (!_callLog[userId]) _callLog[userId] = [];
   _callLog[userId] = _callLog[userId].filter(t => now - t < RATE_WINDOW);
-  if (_callLog[userId].length >= RATE_LIMIT) return false;
+  if (_callLog[userId].length >= RATE_LIMIT) {
+    const oldestCall = _callLog[userId][0];
+    const resetsInMs = RATE_WINDOW - (now - oldestCall);
+    const resetsInMins = Math.ceil(resetsInMs / 60000);
+    return { ok: false, resetsInMins, used: _callLog[userId].length, limit: RATE_LIMIT };
+  }
   _callLog[userId].push(now);
-  return true;
+  return { ok: true, remaining: RATE_LIMIT - _callLog[userId].length };
 }
 
 // ── Anthropic client (Secure Gateway Bridge) ─────────────────────────────────
@@ -135,9 +153,11 @@ async function createMessage(params) {
 
 async function _createMessageGateway(params) {
   try {
-    const { data, error } = await supabase.functions.invoke('ai-gateway', {
-      body: params,
-    });
+    const { data, error } = await withTimeout(
+      supabase.functions.invoke('ai-gateway', { body: params }),
+      GATEWAY_TIMEOUT_MS,
+      'AI gateway'
+    );
 
     if (error) throw error;
     return data;
@@ -492,7 +512,8 @@ async function _logInteraction({ userId, feature, input, output, model, tokensUs
 
 async function _call({ messages, feature, userId, model = MODEL_HAIKU, systemExtra = '', tools = null, maxTokens = 1024 }) {
   if (!AI_ENABLED) return { text: null, id: null, error: 'AI disabled' };
-  if (!_checkRate(userId)) return { text: null, id: null, error: 'Rate limit reached — try again in an hour.' };
+  const rate = _checkRate(userId);
+  if (!rate.ok) return { text: null, id: null, error: `Rate limit reached (${rate.used}/${rate.limit} calls). Resets in ${rate.resetsInMins} min.` };
 
   const systemBlocks = [
     { type: 'text', text: APP_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
@@ -522,7 +543,8 @@ async function _call({ messages, feature, userId, model = MODEL_HAIKU, systemExt
 // Extended thinking — for deep reasoning tasks (no tool_use in same call)
 async function _callWithThinking({ messages, feature, userId, systemExtra = '', thinkingBudget = 8000 }) {
   if (!AI_ENABLED) return { text: null, id: null, error: 'AI disabled' };
-  if (!_checkRate(userId)) return { text: null, id: null, error: 'Rate limit reached.' };
+  const rate = _checkRate(userId);
+  if (!rate.ok) return { text: null, id: null, error: `Rate limit reached (${rate.used}/${rate.limit} calls). Resets in ${rate.resetsInMins} min.` };
 
   const systemBlocks = [
     { type: 'text', text: APP_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
@@ -561,7 +583,8 @@ async function _agenticLoop({ messages, feature, userId, systemExtra = '', tools
   }
 
   if (!AI_ENABLED) return { text: null, id: null, error: 'AI disabled' };
-  if (!_checkRate(userId)) return { text: null, id: null, error: 'Rate limit reached.' };
+  const rate = _checkRate(userId);
+  if (!rate.ok) return { text: null, id: null, error: `Rate limit reached (${rate.used}/${rate.limit} calls). Resets in ${rate.resetsInMins} min.` };
 
   const systemBlocks = [
     { type: 'text', text: APP_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
@@ -597,18 +620,23 @@ async function _agenticLoop({ messages, feature, userId, systemExtra = '', tools
         break;
       }
 
-      // Execute all tool calls in this turn
+      // Execute all tool calls in this turn (with per-tool timeout)
       const toolResults = [];
       for (const block of response.content) {
         if (block.type === 'tool_use') {
-          const result = await _executeAssistantTool(block.name, block.input, userId);
-          const toolText = _normalizeToolResult(result);
+          let toolText;
+          try {
+            const result = await withTimeout(
+              _executeAssistantTool(block.name, block.input, userId),
+              TOOL_TIMEOUT_MS,
+              `tool:${block.name}`
+            );
+            toolText = _normalizeToolResult(result);
+          } catch (toolErr) {
+            toolText = `Tool error: ${toolErr.message}`;
+          }
           allToolResults += `TOOL ${block.name}: ${toolText}\n`;
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: block.id,
-            content: toolText,
-          });
+          toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: toolText });
         }
       }
 
@@ -1509,11 +1537,20 @@ export async function adminChat(messages, { userId, systemExtra = '' } = {}) {
         return { text: '', toolUse: finalToolUse, id: finalId };
       }
 
-      // Execute tool internally and continue
+      // Execute tool internally and continue (with per-tool timeout)
       const toolResults = [];
       for (const block of response.content) {
         if (block.type === 'tool_use') {
-          const result = await _executeAdminTool(block.name, block.input);
+          let result;
+          try {
+            result = await withTimeout(
+              _executeAdminTool(block.name, block.input),
+              TOOL_TIMEOUT_MS,
+              `admin-tool:${block.name}`
+            );
+          } catch (toolErr) {
+            result = `Tool error: ${toolErr.message}`;
+          }
           toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: result });
         }
       }

@@ -4,12 +4,13 @@
  * volume control, caption expand, duet/stitch concept, mute toggle, speed control,
  * progress bar, double-tap like, swipe-up details, hashtag discovery.
  */
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, memo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback,
   Image, Dimensions, Platform, TextInput, Modal, ScrollView, KeyboardAvoidingView,
   Animated, ActivityIndicator, Share, PanResponder, Alert, RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
@@ -35,6 +36,37 @@ const fmtCount = (n) => {
   if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return String(n);
+};
+
+// ── Skeleton reel card for loading state ──────────────────────────────────────
+const ReelSkeleton = ({ primary }) => {
+  const pulse = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <View style={{ width: REEL_W, height: REEL_H, backgroundColor: '#0a0a0a' }}>
+      {/* right action bar placeholders */}
+      <Animated.View style={{ position: 'absolute', right: 14, bottom: 150, alignItems: 'center', gap: 20, opacity: pulse }}>
+        {[48, 36, 36, 36, 36].map((size, i) => (
+          <View key={i} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: `${primary}30` }} />
+        ))}
+      </Animated.View>
+      {/* bottom caption placeholders */}
+      <Animated.View style={{ position: 'absolute', left: 14, right: 80, bottom: 36, gap: 8, opacity: pulse }}>
+        <View style={{ height: 12, width: '40%', borderRadius: 6, backgroundColor: `${primary}35` }} />
+        <View style={{ height: 10, width: '70%', borderRadius: 5, backgroundColor: `${primary}20` }} />
+        <View style={{ height: 10, width: '55%', borderRadius: 5, backgroundColor: `${primary}15` }} />
+      </Animated.View>
+    </View>
+  );
 };
 
 // ── Comment sheet ─────────────────────────────────────────────────────────────
@@ -146,7 +178,7 @@ const cs = StyleSheet.create({
 });
 
 // ── Single Reel Item ──────────────────────────────────────────────────────────
-const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag }) => {
+const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag }) => {
   const videoRef = useRef(null);
   const lastTap = useRef(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
@@ -168,7 +200,7 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
   const pauseIconAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isActive && !paused) {
+    if (isActive && screenFocused && !paused) {
       videoRef.current?.playAsync().catch(() => {});
       if (user && reel?.id) {
         supabase.from('reel_views').upsert(
@@ -179,7 +211,7 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
     } else {
       videoRef.current?.pauseAsync().catch(() => {});
     }
-  }, [isActive, paused]);
+  }, [isActive, screenFocused, paused]);
 
   const togglePause = () => {
     const next = !paused;
@@ -455,7 +487,7 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
       </View>
     </TouchableWithoutFeedback>
   );
-};
+});
 const ri = StyleSheet.create({
   container: { backgroundColor: '#000' },
   gradient: { ...StyleSheet.absoluteFillObject, backgroundColor: 'transparent', top: '45%',
@@ -508,6 +540,14 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const [createVisible, setCreateVisible] = useState(false);
 
   const flatRef = useRef(null);
+  const [screenFocused, setScreenFocused] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      setScreenFocused(true);
+      return () => setScreenFocused(false);
+    }, [])
+  );
 
   const loadReels = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
@@ -620,10 +660,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     return (
       <View style={[rs.screen, { backgroundColor: '#000' }]}>
         <TabSwitcher />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator color={primary} size="large" />
-          <Text style={{ color: muted, marginTop: 12, fontSize: 13 }}>Loading Reels...</Text>
-        </View>
+        <ReelSkeleton primary={primary} />
       </View>
     );
   }
@@ -657,6 +694,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     <ReelItem
       reel={item}
       isActive={index === activeIndex}
+      screenFocused={screenFocused}
       primary={primary}
       muted={muted}
       textColor={textColor}
@@ -668,7 +706,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       onMessage={onDmMessage}
       onHashtag={onHashtag}
     />
-  ), [activeIndex, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag]);
+  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag]);
 
   const reelFeed = (
     <View style={IS_WEB ? rs.webFeedContainer : rs.screen}>

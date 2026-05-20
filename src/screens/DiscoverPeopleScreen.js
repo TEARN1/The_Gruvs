@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
-  Image, ActivityIndicator, RefreshControl, Platform, ScrollView,
+  Image, ActivityIndicator, RefreshControl, Platform, ScrollView, Animated,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -61,6 +61,30 @@ const getRank = (score = 0) => RANK_LABELS.find(r => score >= r.min && score <= 
 
 const avatarBg = (u = '') =>
   ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u.charCodeAt(0) || 0) % 5];
+
+function ViberSkeleton({ primary, surface }) {
+  const pulse = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={{ opacity: pulse, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderRadius: 14, marginBottom: 6, padding: 12, backgroundColor: surface }}>
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: `${primary}25` }} />
+      <View style={{ flex: 1, gap: 8 }}>
+        <View style={{ height: 10, borderRadius: 5, width: '50%', backgroundColor: `${primary}25` }} />
+        <View style={{ height: 8, borderRadius: 4, width: '35%', backgroundColor: `${primary}15` }} />
+      </View>
+      <View style={{ width: 64, height: 28, borderRadius: 14, backgroundColor: `${primary}20` }} />
+    </Animated.View>
+  );
+}
 
 function ViberRow({ viber, primary, textColor, muted, bg, onPress, onMessage, isFollowing }) {
   const rank = getRank(viber.vibe_score || 0);
@@ -455,9 +479,10 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
 
       {/* List */}
       {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={primary} />
-          <Text style={[{ color: muted, marginTop: 12, fontSize: 13 }]}>Loading Vibers...</Text>
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          {Array.from({ length: 7 }).map((_, i) => (
+            <ViberSkeleton key={i} primary={primary} surface={surface} />
+          ))}
         </View>
       ) : fetchError ? (
         <View style={s.empty}>

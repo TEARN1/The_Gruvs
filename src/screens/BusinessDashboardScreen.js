@@ -466,12 +466,12 @@ export const BusinessDashboardScreen = ({ onClose }) => {
 
   const handleToggleCampaign = async (id, newStatus) => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
-    // Optimistic update
+    const prevStatus = newStatus === 'active' ? 'paused' : 'active';
     setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c));
     const ok = await CampaignManager.updateStatus(id, newStatus);
     if (!ok) {
+      setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: prevStatus } : c));
       showToast('Could not update mission status.', 'error');
-      loadAll();
     }
   };
 
