@@ -3,10 +3,10 @@
  * Blocks: Hero · Text · Gallery · CTA · Countdown · Testimonials · Services · Contact · Socials · Stats · Map · FAQ
  * Each block is stored as JSONB in `business_page_blocks` in Supabase.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  TextInput, ActivityIndicator, Modal, Alert,
+  TextInput, ActivityIndicator, Modal, Alert, Animated,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -420,6 +420,31 @@ const AddBlockModal = ({ visible, onClose, onAdd, primary, textColor, muted, bg 
   </Modal>
 );
 
+// ── Loading skeleton ──────────────────────────────────────────────────────────
+const StoreSkeleton = ({ primary, bg }) => {
+  const pulse = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <View style={{ flex: 1, backgroundColor: bg, padding: 16, gap: 12 }}>
+      <Animated.View style={{ opacity: pulse, gap: 12 }}>
+        <View style={{ height: 160, borderRadius: 14, backgroundColor: `${primary}12` }} />
+        <View style={{ height: 80, borderRadius: 14, backgroundColor: `${primary}10` }} />
+        <View style={{ height: 80, borderRadius: 14, backgroundColor: `${primary}08` }} />
+        <View style={{ height: 80, borderRadius: 14, backgroundColor: `${primary}06` }} />
+      </Animated.View>
+    </View>
+  );
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => {
   const [blocks, setBlocks] = useState([]);
@@ -509,7 +534,7 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
     }
   };
 
-  if (loading) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={primary} /></View>;
+  if (loading) return <StoreSkeleton primary={primary} bg={bg} />;
 
   return (
     <View style={{ flex: 1 }}>

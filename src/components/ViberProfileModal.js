@@ -116,6 +116,40 @@ const UserListModal = ({ visible: v, onClose: oc, title, users, bg, primary, mut
   </Modal>
 );
 
+// ── Profile skeleton ──────────────────────────────────────────────────────────
+const ProfileSkeleton = ({ primary }) => {
+  const pulse = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={{ opacity: pulse, padding: 20, gap: 14, paddingBottom: 60 }}>
+      <View style={{ height: 120, borderRadius: 14, backgroundColor: `${primary}12` }} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: `${primary}20` }} />
+        <View style={{ flex: 1, gap: 8 }}>
+          <View style={{ height: 14, width: '50%', borderRadius: 7, backgroundColor: `${primary}20` }} />
+          <View style={{ height: 10, width: '35%', borderRadius: 5, backgroundColor: `${primary}12` }} />
+        </View>
+      </View>
+      <View style={{ height: 10, borderRadius: 5, backgroundColor: `${primary}10` }} />
+      <View style={{ height: 10, width: '80%', borderRadius: 5, backgroundColor: `${primary}08` }} />
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+        {[1, 2, 3].map(i => (
+          <View key={i} style={{ flex: 1, height: 50, borderRadius: 12, backgroundColor: `${primary}10` }} />
+        ))}
+      </View>
+    </Animated.View>
+  );
+};
+
 // ── Main component ────────────────────────────────────────────────────────────
 export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId, onClose, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
@@ -330,9 +364,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
           </TouchableOpacity>
 
           {loading ? (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 }}>
-              <ActivityIndicator color={primary} size="large" />
-            </View>
+            <ProfileSkeleton primary={primary} />
           ) : !profile ? (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 }}>
               <Feather name="user-x" size={40} color={muted} />

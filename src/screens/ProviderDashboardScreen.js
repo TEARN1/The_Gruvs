@@ -2,10 +2,10 @@
  * ProviderDashboardScreen — Dedicated hub for Service Nodes.
  * Tracks earnings, ratings, SIS score, and active gigs.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Dimensions, Platform, Switch
+  ActivityIndicator, RefreshControl, Dimensions, Platform, Switch, Animated,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -30,6 +30,32 @@ const MiniChart = ({ data, color, textColor, muted }) => {
         </View>
       ))}
     </View>
+  );
+};
+
+const ProviderSkeleton = ({ primary }) => {
+  const pulse = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={{ opacity: pulse, padding: 16, gap: 12, flex: 1 }}>
+      <View style={{ height: 100, borderRadius: 14, backgroundColor: `${primary}12` }} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1, height: 70, borderRadius: 12, backgroundColor: `${primary}10` }} />
+        <View style={{ flex: 1, height: 70, borderRadius: 12, backgroundColor: `${primary}10` }} />
+      </View>
+      {[1, 2, 3].map(i => (
+        <View key={i} style={{ height: 64, borderRadius: 12, backgroundColor: `${primary}08` }} />
+      ))}
+    </Animated.View>
   );
 };
 
@@ -112,9 +138,7 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
       </View>
 
       {loading ? (
-        <View style={s.center}>
-          <ActivityIndicator color={primary} size="large" />
-        </View>
+        <ProviderSkeleton primary={primary} />
       ) : (
         <ScrollView
           contentContainerStyle={{ paddingBottom: 100 }}
