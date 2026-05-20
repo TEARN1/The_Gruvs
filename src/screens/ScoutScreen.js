@@ -220,9 +220,7 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
       })}
     </ScrollView>
     {loading ? (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={primary} />
-      </View>
+      <ScoutSkeleton primary={primary} />
     ) : (
       <ScrollView contentContainerStyle={{ padding: 14, gap: 10, paddingBottom: 40 }}>
         {events.length === 0 && (
@@ -261,6 +259,28 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
     )}
   </View>
 );
+
+// ─── Scout list skeleton ───────────────────────────────────────────────────────
+const ScoutSkeleton = ({ primary }) => {
+  const pulse = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={{ opacity: pulse, padding: 14, gap: 10 }}>
+      {[1, 2, 3, 4].map(i => (
+        <View key={i} style={{ height: 72, borderRadius: 14, backgroundColor: `${primary}10` }} />
+      ))}
+    </Animated.View>
+  );
+};
 
 // ─── ScoutScreen ──────────────────────────────────────────────────────────────
 export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
