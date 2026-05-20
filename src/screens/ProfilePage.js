@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
@@ -705,9 +705,10 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
     }
   };
 
-  const displayed = activeFilter
+  const displayed = useMemo(() => activeFilter
     ? people.filter(p => (p.interests || []).some(i => i === activeFilter || (typeof i === 'string' && i.toLowerCase().includes(activeFilter.toLowerCase()))))
-    : people;
+    : people,
+  [people, activeFilter]);
 
   return (
     <>
@@ -852,8 +853,7 @@ const isVideoUrl = (url) => /\.(mp4|mov|webm|avi|m4v)(\?|$)/i.test(url || '');
 const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
   const [activeVideo, setActiveVideo] = useState(null);
 
-  // Build items with type info
-  const allItems = [
+  const allItems = useMemo(() => [
     ...(profileGallery || []).map(url => ({ url, isVideo: isVideoUrl(url) })),
     ...myEvents.flatMap(ev => {
       if (Array.isArray(ev.media_urls)) return ev.media_urls.map(url => ({ url, isVideo: isVideoUrl(url) }));
@@ -864,7 +864,7 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
           return { url, isVideo: m?.type === 'video' || isVideoUrl(url) };
         });
     }),
-  ].filter(item => item?.url).slice(0, 30);
+  ].filter(item => item?.url).slice(0, 30), [profileGallery, myEvents]);
 
   const cellSize = Math.floor((width - 44) / 3);
 
@@ -1171,7 +1171,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         setMyVibedEvents((data || []).map(r => r.events).filter(Boolean));
       }
     } catch { }
-    setTabLoading(false);
+    finally { setTabLoading(false); }
   }, [user]);
 
   useEffect(() => {
