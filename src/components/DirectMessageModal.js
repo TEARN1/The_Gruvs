@@ -51,6 +51,31 @@ const Ticks = ({ msg, userId, primary }) => {
 };
 
 // ── Animated typing dots ───────────────────────────────────────────────────────
+const MAX_MESSAGES = 200;
+
+const DMSkeleton = ({ primary, muted }) => {
+  const pulse = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={{ opacity: pulse, flex: 1, padding: 16, gap: 14 }}>
+      {[false, true, false, true, false].map((isRight, i) => (
+        <View key={i} style={{ flexDirection: 'row', justifyContent: isRight ? 'flex-end' : 'flex-start' }}>
+          <View style={{ height: 36, width: `${40 + (i % 3) * 15}%`, borderRadius: 16, backgroundColor: `${primary}${isRight ? '25' : '12'}` }} />
+        </View>
+      ))}
+    </Animated.View>
+  );
+};
+
 const TypingDots = ({ primary, bg }) => {
   const anims = [useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current];
   useEffect(() => {
@@ -172,7 +197,8 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const fetchMessages = useCallback(async () => {
     if (!user || !recipient) return;
     const msgs = await MessageManager.fetchThread(user.id, recipient.id);
-    setMessages(msgs.filter(m => !m.deleted_at));
+    const filtered = msgs.filter(m => !m.deleted_at);
+    setMessages(filtered.length > MAX_MESSAGES ? filtered.slice(filtered.length - MAX_MESSAGES) : filtered);
 
     // Determine request status from DB fields
     const myMsg = msgs.find(m => m.sender_id === user.id);
@@ -726,7 +752,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 
         {/* Message list */}
         {loading
-          ? <ActivityIndicator color={primary} size="large" style={{ flex: 1 }} />
+          ? <DMSkeleton primary={primary} muted={muted} />
           : <FlatList
             ref={flatRef}
             data={messages}

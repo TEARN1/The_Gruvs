@@ -16,6 +16,7 @@ import { BrandLogo } from '../components/BrandLogo';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { DiscoveryManager, UserManager, AnalyticsManager, BehavioralEngine, isOnline as checkOnline } from '../services/dataFlow';
+import { resilient, resilientRead } from '../utils/resilience';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { LocationService } from '../services/locationService';
 import * as ImagePicker from 'expo-image-picker';
@@ -1175,29 +1176,110 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     setTabLoading(true);
     try {
       if (tab === 'gruvs') {
-        const { data } = await supabase
-          .from('events')
-          .select('*, profiles(username, avatar_url)')
-          .or(`author_id.eq.${user.id},user_id.eq.${user.id}`)
-          .order('created_at', { ascending: false })
-          .limit(20);
+        const data = await resilientRead(
+          async () => {
+            const { data: d, error } = await supabase
+              .from('events')
+              .select('*, profiles(username, avatar_url)')
+              .or(`author_id.eq.${user.id},user_id.eq.${user.id}`)
+              .order('created_at', { ascending: false })
+              .limit(20);
+            if (error) throw error;
+            return d;
+          },
+          async () => {
+            const { data: d, error } = await supabase
+              .from('events')
+              .select('id, title, date, cover_url, status')
+              .eq('author_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(20);
+            if (error) throw error;
+            return d;
+          },
+          async () => {
+            const { data: d, error } = await supabase
+              .from('events')
+              .select('id, title, date')
+              .eq('author_id', user.id)
+              .limit(10);
+            if (error) throw error;
+            return d;
+          },
+          [],
+          'ProfilePage.loadTab:gruvs'
+        );
         setMyEvents(data || []);
       } else if (tab === 'saved') {
-        const { data } = await supabase
-          .from('saved_events')
-          .select('events(*)')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
-        setMySavedEvents((data || []).map(r => r.events).filter(Boolean));
+        const data = await resilientRead(
+          async () => {
+            const { data: d, error } = await supabase
+              .from('saved_events')
+              .select('events(*)')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(20);
+            if (error) throw error;
+            return (d || []).map(r => r.events).filter(Boolean);
+          },
+          async () => {
+            const { data: d, error } = await supabase
+              .from('saved_events')
+              .select('event_id, created_at')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(20);
+            if (error) throw error;
+            return (d || []).map(r => ({ id: r.event_id }));
+          },
+          async () => {
+            const { data: d, error } = await supabase
+              .from('saved_events')
+              .select('event_id')
+              .eq('user_id', user.id)
+              .limit(10);
+            if (error) throw error;
+            return (d || []).map(r => ({ id: r.event_id }));
+          },
+          [],
+          'ProfilePage.loadTab:saved'
+        );
+        setMySavedEvents(data || []);
       } else if (tab === 'vibed') {
-        const { data } = await supabase
-          .from('event_vibes')
-          .select('events(*)')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
-        setMyVibedEvents((data || []).map(r => r.events).filter(Boolean));
+        const data = await resilientRead(
+          async () => {
+            const { data: d, error } = await supabase
+              .from('event_vibes')
+              .select('events(*)')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(20);
+            if (error) throw error;
+            return (d || []).map(r => r.events).filter(Boolean);
+          },
+          async () => {
+            const { data: d, error } = await supabase
+              .from('event_vibes')
+              .select('event_id, created_at')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(20);
+            if (error) throw error;
+            return (d || []).map(r => ({ id: r.event_id }));
+          },
+          async () => {
+            const { data: d, error } = await supabase
+              .from('event_vibes')
+              .select('event_id')
+              .eq('user_id', user.id)
+              .limit(10);
+            if (error) throw error;
+            return (d || []).map(r => ({ id: r.event_id }));
+          },
+          [],
+          'ProfilePage.loadTab:vibed'
+        );
+        setMyVibedEvents(data || []);
       }
     } catch { }
     finally { setTabLoading(false); }
@@ -1211,9 +1293,22 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     if (!newUsername.trim() || !user) return;
     setSavingUsername(true);
     try {
-      const { error } = await supabase.from('profiles').update({ username: newUsername.trim() }).eq('id', user.id);
-      if (!error) { refreshProfile(); setEditingUsername(false); toast.show('Username updated!', 'success'); }
-      else toast.show('Failed to update: ' + error.message, 'error');
+      const trimmed = newUsername.trim();
+      const ok = await resilient(
+        [
+          () => supabase.from('profiles').update({ username: trimmed }).eq('id', user.id),
+          () => supabase.rpc('update_username', { p_user_id: user.id, p_username: trimmed }),
+          () => supabase.from('profiles').upsert({ id: user.id, username: trimmed }, { onConflict: 'id' }),
+        ],
+        { attemptsPerTier: 3, baseMs: 400, label: 'ProfilePage.saveUsername', fallbackValue: null }
+      );
+      if (ok !== null) {
+        refreshProfile();
+        setEditingUsername(false);
+        toast.show('Username updated!', 'success');
+      } else {
+        toast.show('Failed to update username.', 'error');
+      }
     } catch (e) {
       toast.show('Failed to update.', 'error');
     } finally {
@@ -1223,12 +1318,24 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const handleDeleteEvent = (ev) => {
     const doDelete = async () => {
+      setMyEvents(prev => prev.filter(e => e.id !== ev.id));
       try {
-        const { error } = await supabase.from('events').delete().eq('id', ev.id);
-        if (error) { toast.show('Could not delete event.', 'error'); return; }
-        setMyEvents(prev => prev.filter(e => e.id !== ev.id));
-        toast.show('Event deleted.', 'success');
+        const ok = await resilient(
+          [
+            () => supabase.from('events').delete().eq('id', ev.id).eq('author_id', user.id),
+            () => supabase.from('events').update({ status: 'deleted' }).eq('id', ev.id).eq('author_id', user.id),
+            () => supabase.rpc('delete_event', { p_event_id: ev.id }),
+          ],
+          { attemptsPerTier: 3, baseMs: 400, label: `ProfilePage.deleteEvent:${ev.id}`, fallbackValue: null }
+        );
+        if (ok !== null) {
+          toast.show('Event deleted.', 'success');
+        } else {
+          setMyEvents(prev => [ev, ...prev]);
+          toast.show('Could not delete event.', 'error');
+        }
       } catch {
+        setMyEvents(prev => [ev, ...prev]);
         toast.show('Could not delete event.', 'error');
       }
     };

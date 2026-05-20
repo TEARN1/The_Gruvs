@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Image, ActivityIndicator,
+  Image, ActivityIndicator, Animated,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { log } from '../utils/log';
 import { thumb } from '../utils/storageThumb';
-import { withRetry } from '../utils/retry';
+import { resilient } from '../utils/resilience';
 
 const formatAge = (dateStr) => {
   if (!dateStr) return '';
@@ -22,16 +22,84 @@ const formatAge = (dateStr) => {
   return `${Math.floor(h / 24)}d`;
 };
 
+const EchoSkeleton = ({ primary }) => {
+  const pulse = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={{ opacity: pulse, gap: 10, paddingVertical: 8 }}>
+      {[1, 2, 3].map(i => (
+        <View key={i} style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
+          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: `${primary}20` }} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <View style={{ height: 10, width: '40%', borderRadius: 5, backgroundColor: `${primary}20` }} />
+            <View style={{ height: 10, width: '90%', borderRadius: 5, backgroundColor: `${primary}12` }} />
+            <View style={{ height: 10, width: '70%', borderRadius: 5, backgroundColor: `${primary}10` }} />
+          </View>
+        </View>
+      ))}
+    </Animated.View>
+  );
+};
+
 const RANK_STYLES = [
   { bg: 'rgba(124,58,237,0.3)', color: '#c084fc', label: 'Top' },
   { bg: 'rgba(245,158,11,0.3)', color: '#fbbf24', label: '2nd' },
   { bg: 'rgba(16,185,129,0.2)', color: '#34d399', label: '3rd' },
 ];
 
+const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, onReply }) => {
+  const name = echo.profiles?.username || 'Viber';
+  const colors = ['#0891b2', '#0d9488', '#1d4ed8', '#65a30d', '#dc2626', '#7c3aed'];
+  const bg = colors[(name?.charCodeAt(0) || 0) % colors.length];
+  const initials = name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'G';
+  return (
+    <View style={styles.echoItem}>
+      {echo.profiles?.avatar_url
+        ? <Image source={{ uri: thumb.avatar(echo.profiles.avatar_url) }} style={styles.avatar} />
+        : <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: bg }]}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+      }
+      <View style={[styles.bubble, { backgroundColor: `${primary}08`, borderColor: `${primary}18` }]}>
+        <View style={styles.bubbleHeader}>
+          <Text style={[styles.echoName, { color: primary }]}>{name}</Text>
+          {rank && (
+            <View style={[styles.rankBadge, { backgroundColor: rank.bg }]}>
+              <Text style={[styles.rankText, { color: rank.color }]}>{rank.label}</Text>
+            </View>
+          )}
+          <Text style={[styles.echoTime, { color: muted }]}>{formatAge(echo.created_at)}</Text>
+        </View>
+        <Text style={[styles.echoContent, { color: textColor }]}>{echo.body}</Text>
+        <View style={styles.echoActions}>
+          <TouchableOpacity onPress={() => onLike(echo.id)} style={[styles.likeBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+            <Feather name="heart" size={13} color={isLiked ? '#ef4444' : muted} />
+            <Text style={{ color: isLiked ? '#ef4444' : muted, fontSize: 12 }}>
+              {(echo.likes || 0) + (isLiked ? 1 : 0)}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onReply({ id: echo.id, username: name })}>
+            <Text style={[styles.replyBtn, { color: muted }]}>Reply</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+});
+
 export const EchoSection = ({ eventId, onAuthRequired }) => {
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
-  const [echoes, setEchoes] = useState([]);
+  const [echoes, setEchoes] = useState(null); // null = loading, [] = empty, [...] = loaded
   const [text, setText] = useState('');
   const [sort, setSort] = useState('top');
   const [replyTo, setReplyTo] = useState(null);
@@ -44,6 +112,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
   const surface = currentTheme?.surface || '#1a1a1a';
 
   const fetchEchoes = useCallback(async () => {
+    setEchoes(null);
     try {
       const { data, error } = await supabase
         .from('echoes')
@@ -59,13 +128,14 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
           .eq('event_id', eventId)
           .order(sort === 'top' ? 'likes' : 'created_at', { ascending: false })
           .limit(30);
-        if (fallback) setEchoes(fallback.map(e => ({ ...e, profiles: null })));
+        setEchoes(fallback ? fallback.map(e => ({ ...e, profiles: null })) : []);
         log.error('EchoSection:fetch', error);
         return;
       }
-      if (data) setEchoes(data);
+      setEchoes(data || []);
     } catch (e) {
       log.error('EchoSection:fetch', e);
+      setEchoes([]);
     }
   }, [eventId, sort]);
 
@@ -129,9 +199,20 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
     }));
 
     try {
-      await withRetry(() =>
-        supabase.from('echoes').update({ likes: currentLikes }).eq('id', echoId)
+      const ok = await resilient(
+        [
+          // Tier 1: update likes count directly
+          () => supabase.from('echoes').update({ likes: currentLikes }).eq('id', echoId),
+          // Tier 2: upsert like row — let DB compute count via trigger
+          () => isCurrentlyLiked
+            ? supabase.from('echo_likes').delete().eq('echo_id', echoId).eq('user_id', user.id)
+            : supabase.from('echo_likes').upsert({ echo_id: echoId, user_id: user.id }, { onConflict: 'echo_id,user_id', ignoreDuplicates: true }),
+          // Tier 3: RPC increment/decrement
+          () => supabase.rpc(isCurrentlyLiked ? 'decrement_echo_like' : 'increment_echo_like', { p_echo_id: echoId }),
+        ],
+        { attemptsPerTier: 3, baseMs: 300, label: `EchoSection.likeEcho:${echoId}`, fallbackValue: null }
       );
+      if (ok === null) throw new Error('all tiers failed');
     } catch {
       // Rollback optimistic like/unlike
       setLikedEchoes(prev => {
@@ -154,7 +235,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
     return colors[(name?.charCodeAt(0) || 0) % colors.length];
   };
 
-  const displayEchoes = echoes;
+  const displayEchoes = echoes ?? [];
 
   const myAvatar = thumb.avatar(profile?.avatar_url);
   const myInitials = avatarInitials(profile?.username || user?.email);
@@ -191,47 +272,23 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
       )}
 
       {/* Echo list */}
-      {displayEchoes.length === 0
-        ? <Text style={[styles.empty, { color: muted }]}>No echoes yet. Be the first.</Text>
-        : displayEchoes.map((echo, idx) => {
-          const rank = idx < 3 ? RANK_STYLES[idx] : null;
-          const isLiked = likedEchoes.has(echo.id);
-          const name = echo.profiles?.username || 'Viber';
-          return (
-            <View key={echo.id} style={styles.echoItem}>
-              {/* Avatar */}
-              {echo.profiles?.avatar_url
-                ? <Image source={{ uri: thumb.avatar(echo.profiles.avatar_url) }} style={styles.avatar} />
-                : <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarColor(name) }]}>
-                    <Text style={styles.avatarText}>{avatarInitials(name)}</Text>
-                  </View>
-              }
-              <View style={[styles.bubble, { backgroundColor: `${primary}08`, borderColor: `${primary}18` }]}>
-                <View style={styles.bubbleHeader}>
-                  <Text style={[styles.echoName, { color: primary }]}>{name}</Text>
-                  {rank && (
-                    <View style={[styles.rankBadge, { backgroundColor: rank.bg }]}>
-                      <Text style={[styles.rankText, { color: rank.color }]}>{rank.label}</Text>
-                    </View>
-                  )}
-                  <Text style={[styles.echoTime, { color: muted }]}>{formatAge(echo.created_at)}</Text>
-                </View>
-                <Text style={[styles.echoContent, { color: textColor }]}>{echo.body}</Text>
-                <View style={styles.echoActions}>
-                  <TouchableOpacity onPress={() => likeEcho(echo.id)} style={[styles.likeBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-                    <Feather name="heart" size={13} color={isLiked ? '#ef4444' : muted} />
-                    <Text style={{ color: isLiked ? '#ef4444' : muted, fontSize: 12 }}>
-                      {(echo.likes || 0) + (isLiked ? 1 : 0)}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setReplyTo({ id: echo.id, username: name })}>
-                    <Text style={[styles.replyBtn, { color: muted }]}>Reply</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          );
-        })
+      {echoes === null
+        ? <EchoSkeleton primary={primary} />
+        : displayEchoes.length === 0
+          ? <Text style={[styles.empty, { color: muted }]}>No echoes yet. Be the first.</Text>
+          : displayEchoes.map((echo, idx) => (
+              <EchoRow
+                key={echo.id}
+                echo={echo}
+                rank={idx < 3 ? RANK_STYLES[idx] : null}
+                isLiked={likedEchoes.has(echo.id)}
+                primary={primary}
+                textColor={textColor}
+                muted={muted}
+                onLike={likeEcho}
+                onReply={setReplyTo}
+              />
+            ))
       }
 
       {/* Input */}

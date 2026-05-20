@@ -8,6 +8,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { resilientRead } from '../utils/resilience';
 import { NotificationService } from '../services/notificationService';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { log } from '../utils/log';
@@ -70,13 +71,34 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     if (!user) { setNotifications([]); return; }
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*, actor:profiles!actor_id(username, avatar_url)')
-        .eq('recipient_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      if (error) throw error;
+      const data = await resilientRead(
+        // Tier 1: full select with actor join
+        async () => {
+          const { data: d, error } = await supabase.from('notifications')
+            .select('*, actor:profiles!actor_id(username, avatar_url)')
+            .eq('recipient_id', user.id).order('created_at', { ascending: false }).limit(100);
+          if (error) throw error;
+          return d;
+        },
+        // Tier 2: no actor join — lighter
+        async () => {
+          const { data: d, error } = await supabase.from('notifications')
+            .select('id, type, title, body, read, created_at, actor_id, event_id')
+            .eq('recipient_id', user.id).order('created_at', { ascending: false }).limit(100);
+          if (error) throw error;
+          return (d || []).map(n => ({ ...n, actor: null }));
+        },
+        // Tier 3: unread only — minimal payload
+        async () => {
+          const { data: d, error } = await supabase.from('notifications')
+            .select('id, type, title, body, read, created_at')
+            .eq('recipient_id', user.id).eq('read', false).limit(50);
+          if (error) throw error;
+          return d;
+        },
+        [],
+        'NotificationsScreen.fetch'
+      );
       setNotifications(data || []);
     } catch (e) {
       log.error('NotificationsScreen:fetch', e);

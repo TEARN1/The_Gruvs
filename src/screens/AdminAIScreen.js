@@ -3,7 +3,7 @@
  * Chat with Claude to manage the app: query stats, send notifications,
  * feature events, moderate users, post announcements.
  */
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   FlatList, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -135,13 +135,45 @@ export const AdminAIScreen = ({ onClose }) => {
   }]);
   const [input, setInput]         = useState('');
   const [loading, setLoading]     = useState(false);
-  const flatRef = useRef(null);
+  const flatRef   = useRef(null);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
+
+  const MAX_MESSAGES = 60;
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text       || '#ffffff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
   const surface   = currentTheme?.surface    || '#1a1f21';
+
+  // renderMessage must be before the early return so hook order is stable
+  const renderMessage = useCallback(({ item }) => {
+    const isUser = item.role === 'user';
+    return (
+      <View style={[styles.msgRow, isUser && styles.msgRowUser]}>
+        {!isUser && (
+          <View style={[styles.aiAvatar, { backgroundColor: `${primary}20`, borderColor: `${primary}40` }]}>
+            <Text style={{ fontSize: 10 }}>AI</Text>
+          </View>
+        )}
+        <View style={[
+          styles.bubble,
+          isUser
+            ? [styles.bubbleUser, { backgroundColor: primary }]
+            : [styles.bubbleAI, { backgroundColor: surface, borderColor: `${primary}20` }],
+        ]}>
+          <Text style={[styles.bubbleText, { color: isUser ? '#000' : textColor }]}>
+            {item.text}
+          </Text>
+        </View>
+      </View>
+    );
+  }, [primary, surface, textColor]);
 
   // Guard: only owner
   if (user?.email !== OWNER_EMAIL) {
@@ -165,46 +197,22 @@ export const AdminAIScreen = ({ onClose }) => {
 
     try {
       const result = await runHealthCheck({ userId: user.id });
-
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        text: result.text || 'No response received from the AI.',
-      }] );
+      if (!isMounted.current) return;
+      setMessages(prev => {
+        const next = [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', text: result.text || 'No response received from the AI.' }];
+        return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+      });
     } catch (e) {
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        text: `Diagnostic failed: ${e?.message || 'unknown error'}`,
-      }] );
+      if (!isMounted.current) return;
+      setMessages(prev => {
+        const next = [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', text: `Diagnostic failed: ${e?.message || 'unknown error'}` }];
+        return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+      });
     } finally {
       setLoading(false);
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
     }
   };
-
-  const renderMessage = useCallback(({ item }) => {
-    const isUser = item.role === 'user';
-    return (
-      <View style={[styles.msgRow, isUser && styles.msgRowUser]}>
-        {!isUser && (
-          <View style={[styles.aiAvatar, { backgroundColor: `${primary}20`, borderColor: `${primary}40` }]}>
-            <Text style={{ fontSize: 10 }}>AI</Text>
-          </View>
-        )}
-        <View style={[
-          styles.bubble,
-          isUser
-            ? [styles.bubbleUser, { backgroundColor: primary }]
-            : [styles.bubbleAI, { backgroundColor: surface, borderColor: `${primary}20` }],
-        ]}>
-          <Text style={[styles.bubbleText, { color: isUser ? '#000' : textColor }]}>
-            {item.text}
-          </Text>
-        </View>
-      </View>
-    );
-  }, [primary, surface, textColor]);
 
   const send = async (text) => {
     const trimmed = (text || input).trim();
@@ -234,17 +242,17 @@ export const AdminAIScreen = ({ onClose }) => {
         result = followUp;
       }
 
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        text: result.text || 'No response — check API key.',
-      }]);
+      if (!isMounted.current) return;
+      setMessages(prev => {
+        const next = [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', text: result.text || 'No response — check API key.' }];
+        return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+      });
     } catch (e) {
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        text: `Error: ${e?.message || 'Request failed — check your connection.'}`,
-      }]);
+      if (!isMounted.current) return;
+      setMessages(prev => {
+        const next = [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', text: `Error: ${e?.message || 'Request failed — check your connection.'}` }];
+        return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+      });
     } finally {
       setLoading(false);
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);

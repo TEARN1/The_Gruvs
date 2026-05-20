@@ -48,6 +48,7 @@ import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { SecurityService } from '../services/securityService';
 import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine, isOnline as checkOnline } from '../services/dataFlow';
+import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 import { FONT, RADIUS } from '../constants/DesignTokens';
@@ -582,10 +583,29 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       return n;
     });
     try {
-      if (wasFollowing) {
-        await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profileId);
-      } else {
-        await supabase.from('follows').upsert({ follower_id: user.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
+      const ok = wasFollowing
+        ? await resilient(
+            [
+              () => supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profileId),
+              () => supabase.from('follows').update({ unfollowed_at: new Date().toISOString() }).eq('follower_id', user.id).eq('following_id', profileId),
+              () => supabase.rpc('unfollow_user', { p_follower_id: user.id, p_following_id: profileId }),
+            ],
+            { attemptsPerTier: 2, baseMs: 300, label: `LandingPage.unfollow:${profileId}`, fallbackValue: null }
+          )
+        : await resilient(
+            [
+              () => supabase.from('follows').upsert({ follower_id: user.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
+              () => supabase.from('follows').insert({ follower_id: user.id, following_id: profileId }),
+              () => supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: profileId }),
+            ],
+            { attemptsPerTier: 2, baseMs: 300, label: `LandingPage.follow:${profileId}`, fallbackValue: null }
+          );
+      if (ok === null) {
+        setFollowingSet(prev => {
+          const n = new Set(prev);
+          wasFollowing ? n.add(profileId) : n.delete(profileId);
+          return n;
+        });
       }
     } catch {
       setFollowingSet(prev => {
@@ -681,11 +701,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
     try {
       if (newKey === null) {
-        await supabase.from('event_reactions').delete().eq('event_id', eventId).eq('user_id', user.id);
+        await resilient(
+          [
+            () => supabase.from('event_reactions').delete().eq('event_id', eventId).eq('user_id', user.id),
+            () => supabase.from('event_reactions').update({ reaction_key: null }).eq('event_id', eventId).eq('user_id', user.id),
+            () => supabase.rpc('remove_event_reaction', { p_event_id: eventId, p_user_id: user.id }),
+          ],
+          { attemptsPerTier: 2, baseMs: 200, label: `LandingPage.unreact:${eventId}`, fallbackValue: null }
+        );
       } else {
-        await supabase.from('event_reactions').upsert(
-          { event_id: eventId, user_id: user.id, reaction_key: newKey },
-          { onConflict: 'event_id,user_id' }
+        await resilient(
+          [
+            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user.id, reaction_key: newKey }, { onConflict: 'event_id,user_id' }),
+            () => supabase.from('event_reactions').insert({ event_id: eventId, user_id: user.id, reaction_key: newKey }),
+            () => supabase.rpc('upsert_event_reaction', { p_event_id: eventId, p_user_id: user.id, p_key: newKey }),
+          ],
+          { attemptsPerTier: 2, baseMs: 200, label: `LandingPage.react:${eventId}`, fallbackValue: null }
         );
       }
     } catch { /* best effort */ }
@@ -818,10 +849,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               <Feather name="map" size={18} color={primary} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.iconBtn} onPress={() => setActivityVisible(true)}>
-            <Feather name="bell" size={18} color={primary} />
-            {user && <View style={[styles.bellDot, { backgroundColor: '#ef4444' }]} />}
-          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.postIconBtn, { backgroundColor: `${primary}15`, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}

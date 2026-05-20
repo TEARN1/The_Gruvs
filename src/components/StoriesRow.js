@@ -276,9 +276,14 @@ export const StoriesRow = ({ onAuthRequired }) => {
       videoMaxDuration: 15,
     });
     if (result.canceled || !result.assets?.length) return;
+    const asset = result.assets[0];
+    const MAX_BYTES = 100 * 1024 * 1024;
+    if (asset.fileSize && asset.fileSize > MAX_BYTES) {
+      alert('File too large — max 100 MB for stories.');
+      return;
+    }
     setUploading(true);
     try {
-      const asset = result.assets[0];
       const isVideo = asset.type === 'video';
       const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
       const path = `${user.id}/story_${Date.now()}.${ext}`;

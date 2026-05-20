@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { MessageManager, isOnline as checkOnline } from '../services/dataFlow';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { thumb } from '../utils/storageThumb';
+import { CrewFeedScreen } from './CrewFeedScreen';
 
 const fmtAge = (ts) => {
   if (!ts) return '';
@@ -115,6 +116,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
   const surface   = currentTheme?.surface    || '#1a1f21';
 
+  const [pageMode,    setPageMode]    = useState('chats'); // 'chats' | 'crew'
   const [convos,      setConvos]      = useState([]);
   const [loading,     setLoading]     = useState(false);
   const [refreshing,  setRefreshing]  = useState(false);
@@ -190,7 +192,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
       {/* Header */}
       <View style={ch.header}>
         <Text style={[ch.title, { color: primary }]}>LINKED UP</Text>
-        {pendingCount > 0 && (
+        {pendingCount > 0 && pageMode === 'chats' && (
           <View style={[ch.pendingBadge, { backgroundColor: `${primary}20`, borderColor: `${primary}40` }]}>
             <Feather name="bell" size={12} color={primary} />
             <Text style={[ch.pendingText, { color: primary }]}>{pendingCount} request{pendingCount > 1 ? 's' : ''}</Text>
@@ -198,69 +200,89 @@ export const ChatsScreen = ({ onAuthRequired }) => {
         )}
       </View>
 
-      {/* Search */}
-      <View style={[ch.searchWrap, { backgroundColor: surface, borderColor: `${primary}20` }]}>
-        <Feather name="search" size={15} color={muted} />
-        <TextInput
-          style={[ch.searchInput, { color: textColor }]}
-          placeholder="Search conversations..."
-          placeholderTextColor={muted}
-          value={search}
-          onChangeText={setSearch}
-        />
-        {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch('')}>
-            <Feather name="x" size={15} color={muted} />
+      {/* Segment toggle: Chats | Crew */}
+      <View style={[ch.segWrap, { borderBottomColor: `${primary}18` }]}>
+        {[{ key: 'chats', label: 'Chats', icon: 'message-circle' }, { key: 'crew', label: 'Crew', icon: 'users' }].map(s => (
+          <TouchableOpacity
+            key={s.key}
+            style={[ch.segBtn, pageMode === s.key && { borderBottomColor: primary, borderBottomWidth: 2 }]}
+            onPress={() => setPageMode(s.key)}
+          >
+            <Feather name={s.icon} size={14} color={pageMode === s.key ? primary : muted} />
+            <Text style={[ch.segLabel, { color: pageMode === s.key ? primary : muted }]}>{s.label}</Text>
           </TouchableOpacity>
-        )}
+        ))}
       </View>
 
-      {/* List */}
-      {loading ? (
-        <View style={{ paddingTop: 6 }}>
-          {[...Array(7)].map((_, i) => (
-            <View key={i} style={[cs.row, { borderBottomColor: `${primary}12` }]}>
-              <View style={[cs.avatar, { backgroundColor: `${primary}12` }]} />
-              <View style={{ flex: 1, marginLeft: 14, gap: 10 }}>
-                <View style={{ height: 13, width: '50%', borderRadius: 6, backgroundColor: `${primary}12` }} />
-                <View style={{ height: 11, width: '75%', borderRadius: 6, backgroundColor: `${primary}08` }} />
-              </View>
-            </View>
-          ))}
-        </View>
+      {pageMode === 'crew' ? (
+        <CrewFeedScreen onAuthRequired={onAuthRequired} />
       ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={item => item.id}
-          renderItem={renderConvoRow}
-          showsVerticalScrollIndicator={false}
-          getItemLayout={(_, index) => ({ length: CONVO_ROW_HEIGHT, offset: CONVO_ROW_HEIGHT * index, index })}
-          contentContainerStyle={{ paddingBottom: 140 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => fetchConvos(true)} tintColor={primary} />
-          }
-          ListEmptyComponent={
-            <View style={ch.empty}>
-              <Feather name="message-circle" size={44} color={muted} />
-              <Text style={[ch.emptyTitle, { color: textColor }]}>No conversations yet</Text>
-              <Text style={[ch.emptySub, { color: muted }]}>
-                {search ? 'No chats match that name' : 'Tap a Viber\'s profile and hit the message button to link up'}
-              </Text>
-            </View>
-          }
-        />
-      )}
+        <>
+          {/* Search */}
+          <View style={[ch.searchWrap, { backgroundColor: surface, borderColor: `${primary}20` }]}>
+            <Feather name="search" size={15} color={muted} />
+            <TextInput
+              style={[ch.searchInput, { color: textColor }]}
+              placeholder="Search conversations..."
+              placeholderTextColor={muted}
+              value={search}
+              onChangeText={setSearch}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Feather name="x" size={15} color={muted} />
+              </TouchableOpacity>
+            )}
+          </View>
 
-      {/* DM Modal */}
-      {activeConvo && (
-        <DirectMessageModal
-          visible={!!activeConvo}
-          recipient={activeConvo}
-          onClose={() => {
-            setActiveConvo(null);
-            fetchConvos();
-          }}
-        />
+          {/* List */}
+          {loading ? (
+            <View style={{ paddingTop: 6 }}>
+              {[...Array(7)].map((_, i) => (
+                <View key={i} style={[cs.row, { borderBottomColor: `${primary}12` }]}>
+                  <View style={[cs.avatar, { backgroundColor: `${primary}12` }]} />
+                  <View style={{ flex: 1, marginLeft: 14, gap: 10 }}>
+                    <View style={{ height: 13, width: '50%', borderRadius: 6, backgroundColor: `${primary}12` }} />
+                    <View style={{ height: 11, width: '75%', borderRadius: 6, backgroundColor: `${primary}08` }} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <FlatList
+              data={filtered}
+              keyExtractor={item => item.id}
+              renderItem={renderConvoRow}
+              showsVerticalScrollIndicator={false}
+              getItemLayout={(_, index) => ({ length: CONVO_ROW_HEIGHT, offset: CONVO_ROW_HEIGHT * index, index })}
+              contentContainerStyle={{ paddingBottom: 140 }}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={() => fetchConvos(true)} tintColor={primary} />
+              }
+              ListEmptyComponent={
+                <View style={ch.empty}>
+                  <Feather name="message-circle" size={44} color={muted} />
+                  <Text style={[ch.emptyTitle, { color: textColor }]}>No conversations yet</Text>
+                  <Text style={[ch.emptySub, { color: muted }]}>
+                    {search ? 'No chats match that name' : 'Tap a Viber\'s profile and hit the message button to link up'}
+                  </Text>
+                </View>
+              }
+            />
+          )}
+
+          {/* DM Modal */}
+          {activeConvo && (
+            <DirectMessageModal
+              visible={!!activeConvo}
+              recipient={activeConvo}
+              onClose={() => {
+                setActiveConvo(null);
+                fetchConvos();
+              }}
+            />
+          )}
+        </>
       )}
     </SafeAreaView>
   );
@@ -297,4 +319,7 @@ const ch = StyleSheet.create({
   unauthTitle:  { fontSize: 18, fontWeight: '900' },
   unauthSub:    { fontSize: 14, textAlign: 'center', lineHeight: 20 },
   signInBtn:    { paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14, marginTop: 8 },
+  segWrap:      { flexDirection: 'row', borderBottomWidth: 1 },
+  segBtn:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 },
+  segLabel:     { fontSize: 13, fontWeight: '800' },
 });

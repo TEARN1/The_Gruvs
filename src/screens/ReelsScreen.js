@@ -17,6 +17,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { CreateReelModal } from '../components/CreateReelModal';
@@ -95,8 +96,30 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
     const text = body.trim();
     setBody('');
     try {
-      const { error } = await supabase.from('reel_comments').insert({ reel_id: reel.id, user_id: user.id, body: text });
-      if (!error) {
+      const inserted = await resilient(
+        [
+          // Tier 1: insert + fetch profile
+          async () => {
+            const { error } = await supabase.from('reel_comments').insert({ reel_id: reel.id, user_id: user.id, body: text });
+            if (error) throw error;
+            return true;
+          },
+          // Tier 2: upsert
+          async () => {
+            const { error } = await supabase.from('reel_comments').upsert({ reel_id: reel.id, user_id: user.id, body: text, created_at: new Date().toISOString() });
+            if (error) throw error;
+            return true;
+          },
+          // Tier 3: RPC send comment
+          async () => {
+            const { error } = await supabase.rpc('add_reel_comment', { p_reel_id: reel.id, p_user_id: user.id, p_body: text });
+            if (error) throw error;
+            return true;
+          },
+        ],
+        { attemptsPerTier: 3, baseMs: 300, label: 'CommentsSheet.sendComment', fallbackValue: false }
+      );
+      if (inserted) {
         const { data } = await supabase
           .from('profiles').select('id, username, avatar_url').eq('id', user.id).single();
         setComments(prev => [{ id: Date.now(), body: text, created_at: new Date().toISOString(), profiles: data }, ...prev]);
@@ -282,11 +305,25 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
       ]),
     ]).start();
     try {
-      if (newLiked) {
-        await supabase.from('reel_likes').upsert({ reel_id: reel.id, user_id: user.id }, { onConflict: 'reel_id,user_id', ignoreDuplicates: true });
-      } else {
-        await supabase.from('reel_likes').delete().eq('reel_id', reel.id).eq('user_id', user.id);
-      }
+      const ok = await resilient(
+        newLiked ? [
+          // Tier 1: upsert like row
+          () => supabase.from('reel_likes').upsert({ reel_id: reel.id, user_id: user.id }, { onConflict: 'reel_id,user_id', ignoreDuplicates: true }),
+          // Tier 2: plain insert
+          () => supabase.from('reel_likes').insert({ reel_id: reel.id, user_id: user.id }),
+          // Tier 3: RPC increment
+          () => supabase.rpc('increment_reel_like', { p_reel_id: reel.id, p_user_id: user.id }),
+        ] : [
+          // Tier 1: delete like row
+          () => supabase.from('reel_likes').delete().eq('reel_id', reel.id).eq('user_id', user.id),
+          // Tier 2: soft-flag removal
+          () => supabase.from('reel_likes').update({ removed: true }).eq('reel_id', reel.id).eq('user_id', user.id),
+          // Tier 3: RPC decrement
+          () => supabase.rpc('decrement_reel_like', { p_reel_id: reel.id, p_user_id: user.id }),
+        ],
+        { attemptsPerTier: 3, baseMs: 300, label: 'ReelItem.triggerLike', fallbackValue: null }
+      );
+      if (ok === null) throw new Error('all tiers failed');
     } catch {
       // Rollback optimistic update
       setLiked(!newLiked);
@@ -298,11 +335,18 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
     if (!user) return;
     const newFollowing = !following;
     setFollowing(newFollowing);
-    if (newFollowing) {
-      await supabase.from('follows').upsert({ follower_id: user.id, following_id: reel.user_id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
-    } else {
-      await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', reel.user_id);
-    }
+    await resilient(
+      newFollowing ? [
+        () => supabase.from('follows').upsert({ follower_id: user.id, following_id: reel.user_id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
+        () => supabase.from('follows').insert({ follower_id: user.id, following_id: reel.user_id }),
+        () => supabase.rpc('follow_user', { p_follower: user.id, p_following: reel.user_id }),
+      ] : [
+        () => supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', reel.user_id),
+        () => supabase.from('follows').update({ unfollowed_at: new Date().toISOString() }).eq('follower_id', user.id).eq('following_id', reel.user_id),
+        () => supabase.rpc('unfollow_user', { p_follower: user.id, p_following: reel.user_id }),
+      ],
+      { attemptsPerTier: 3, baseMs: 300, label: 'ReelItem.handleFollow', fallbackValue: null }
+    );
   };
 
   const handleShare = async () => {
@@ -315,11 +359,18 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
     if (!user) return;
     const newSaved = !saved;
     setSaved(newSaved);
-    if (newSaved) {
-      await supabase.from('saved_reels').upsert({ reel_id: reel.id, user_id: user.id }, { onConflict: 'reel_id,user_id', ignoreDuplicates: true });
-    } else {
-      await supabase.from('saved_reels').delete().eq('reel_id', reel.id).eq('user_id', user.id);
-    }
+    await resilient(
+      newSaved ? [
+        () => supabase.from('saved_reels').upsert({ reel_id: reel.id, user_id: user.id }, { onConflict: 'reel_id,user_id', ignoreDuplicates: true }),
+        () => supabase.from('saved_reels').insert({ reel_id: reel.id, user_id: user.id }),
+        () => supabase.rpc('save_reel', { p_reel_id: reel.id, p_user_id: user.id }),
+      ] : [
+        () => supabase.from('saved_reels').delete().eq('reel_id', reel.id).eq('user_id', user.id),
+        () => supabase.from('saved_reels').update({ removed: true }).eq('reel_id', reel.id).eq('user_id', user.id),
+        () => supabase.rpc('unsave_reel', { p_reel_id: reel.id, p_user_id: user.id }),
+      ],
+      { attemptsPerTier: 3, baseMs: 300, label: 'ReelItem.handleSave', fallbackValue: null }
+    );
   };
 
   return (
@@ -551,48 +602,78 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const loadReels = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     setError(null);
-    try {
-      let qb = supabase
-        .from('reels')
-        .select(`
-          id, caption, media_url, media_type, like_count, comment_count, view_count,
-          event_id, event_title, user_id, created_at, sound_name,
-          profiles:user_id(id, username, avatar_url, vibe_score, is_verified)
-        `)
-        .eq('is_deleted', false)
-        .limit(30);
 
-      if (tab === 'following' && user) {
-        const { data: followData } = await supabase.from('follows').select('following_id').eq('follower_id', user.id).limit(200);
-        const ids = (followData || []).map(r => r.following_id);
-        if (ids.length) qb = qb.in('user_id', ids);
-        qb = qb.order('created_at', { ascending: false });
-      } else if (tab === 'trending') {
-        qb = qb.order('like_count', { ascending: false });
-      } else {
-        qb = qb.order('created_at', { ascending: false });
-      }
+    const applyOrder = (qb) => {
+      if (tab === 'trending') return qb.order('like_count', { ascending: false });
+      return qb.order('created_at', { ascending: false });
+    };
 
-      if (hashtagFilter) {
-        qb = qb.ilike('caption', `%${hashtagFilter}%`);
-      }
+    // Resolve followed IDs once for the 'following' tab
+    let followedIds = [];
+    if (tab === 'following' && user) {
+      try {
+        const { data } = await supabase.from('follows').select('following_id').eq('follower_id', user.id).limit(200);
+        followedIds = (data || []).map(r => r.following_id);
+      } catch { followedIds = []; }
+    }
 
-      const { data, error } = await qb;
-      if (error) throw error;
-
+    const enrich = async (data) => {
       let enriched = data || [];
       if (user && enriched.length) {
-        const { data: likedData } = await supabase
-          .from('reel_likes').select('reel_id').eq('user_id', user.id)
-          .in('reel_id', enriched.map(r => r.id));
-        const likedSet = new Set((likedData || []).map(r => r.reel_id));
-        enriched = enriched.map(r => ({ ...r, _liked: likedSet.has(r.id) }));
+        try {
+          const { data: likedData } = await supabase
+            .from('reel_likes').select('reel_id').eq('user_id', user.id)
+            .in('reel_id', enriched.map(r => r.id));
+          const likedSet = new Set((likedData || []).map(r => r.reel_id));
+          enriched = enriched.map(r => ({ ...r, _liked: likedSet.has(r.id) }));
+        } catch { /* likes not critical — show reels without like state */ }
       }
+      return enriched;
+    };
 
+    try {
+      const data = await resilient(
+        [
+          // Tier 1: full select with profile join
+          async () => {
+            let qb = supabase.from('reels')
+              .select('id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
+              .eq('is_deleted', false).limit(30);
+            if (tab === 'following' && followedIds.length) qb = qb.in('user_id', followedIds);
+            if (hashtagFilter) qb = qb.ilike('caption', `%${hashtagFilter}%`);
+            qb = applyOrder(qb);
+            const { data: d, error } = await qb;
+            if (error) throw error;
+            return d;
+          },
+          // Tier 2: no profile join — lighter
+          async () => {
+            let qb = supabase.from('reels')
+              .select('id, caption, media_url, media_type, like_count, comment_count, view_count, user_id, created_at')
+              .eq('is_deleted', false).limit(30);
+            if (tab === 'following' && followedIds.length) qb = qb.in('user_id', followedIds);
+            if (hashtagFilter) qb = qb.ilike('caption', `%${hashtagFilter}%`);
+            qb = applyOrder(qb);
+            const { data: d, error } = await qb;
+            if (error) throw error;
+            return d;
+          },
+          // Tier 3: minimal fields, no filters — always returns something
+          async () => {
+            const { data: d, error } = await supabase.from('reels')
+              .select('id, caption, media_url, media_type, like_count, user_id, created_at')
+              .eq('is_deleted', false).order('created_at', { ascending: false }).limit(15);
+            if (error) throw error;
+            return d;
+          },
+        ],
+        { attemptsPerTier: 3, baseMs: 300, label: 'ReelsScreen.loadReels', fallbackValue: [] }
+      );
+
+      const enriched = await enrich(data);
       setReels(enriched);
       setError(null);
 
-      // If a specific reel was deep-linked, scroll to it after load
       if (initialReelId && enriched.length) {
         const idx = enriched.findIndex(r => r.id === initialReelId);
         if (idx >= 0) {
@@ -605,7 +686,6 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       }
     } catch (e) {
       const message = e?.message || 'Network error';
-      console.error('[ReelsScreen] loadReels failed:', e);
       setError(message);
       toast.show(`Could not load reels — ${message}`, 'error');
     } finally {

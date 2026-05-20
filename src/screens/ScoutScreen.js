@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { LocationService } from '../services/locationService';
 import { DiscoveryManager, UserManager } from '../services/dataFlow';
+import { resilientRead, resilient } from '../utils/resilience';
 import { useToast } from '../components/ToastNotification';
 
 // react-native-maps is native-only — lazy require prevents web crash
@@ -315,7 +316,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
     return () => pulse.stop();
   }, []);
 
-  // Load events — try cache first, then live query
+  // Load events — cache-first, then 3-tier live fetch
   const loadEvents = useCallback(async (coords) => {
     try {
       const cached = await AsyncStorage.getItem(CACHE_KEY);
@@ -329,24 +330,47 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
     } catch { }
 
     try {
-      let evts;
-      if (coords) {
-        evts = await DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50);
-      } else {
-        const { data } = await supabase
-          .from('events')
-          .select('id, title, category, lat, lon, venue_name, event_date, media_urls, image_url, vibe_count, price, max_attendees, profiles(username, avatar_url)')
-          .gte('event_date', new Date().toISOString().split('T')[0])
-          .neq('is_deleted', true)
-          .neq('is_cancelled', true)
-          .order('event_date', { ascending: true })
-          .limit(80);
-        evts = data || [];
-      }
-      setEvents(evts);
-      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({ events: evts, ts: Date.now() }));
-    } catch (err) {
-    } finally {
+      const today = new Date().toISOString().split('T')[0];
+      const evts = await resilientRead(
+        async () => {
+          if (coords) return DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50);
+          const { data, error } = await supabase
+            .from('events')
+            .select('id, title, category, lat, lon, venue_name, event_date, media_urls, image_url, vibe_count, price, max_attendees, profiles(username, avatar_url)')
+            .gte('event_date', today)
+            .neq('is_deleted', true)
+            .neq('is_cancelled', true)
+            .order('event_date', { ascending: true })
+            .limit(80);
+          if (error) throw error;
+          return data;
+        },
+        async () => {
+          const { data, error } = await supabase
+            .from('events')
+            .select('id, title, category, lat, lon, venue_name, event_date, vibe_count')
+            .gte('event_date', today)
+            .order('event_date', { ascending: true })
+            .limit(80);
+          if (error) throw error;
+          return data;
+        },
+        async () => {
+          const { data, error } = await supabase
+            .from('events')
+            .select('id, title, lat, lon, event_date')
+            .gte('event_date', today)
+            .limit(40);
+          if (error) throw error;
+          return data;
+        },
+        [],
+        'ScoutScreen.loadEvents'
+      );
+      setEvents(evts || []);
+      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({ events: evts || [], ts: Date.now() }));
+    } catch { }
+    finally {
       setLoading(false);
     }
   }, []);
@@ -357,11 +381,35 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
     try {
       const followedIds = await UserManager.getFollowedIds(user.id);
       if (!followedIds.length) return;
-      const { data } = await supabase
-        .from('event_rsvps')
-        .select('event_id')
-        .in('user_id', followedIds)
-        .eq('status', 'going');
+      const data = await resilientRead(
+        async () => {
+          const { data: d, error } = await supabase
+            .from('event_rsvps')
+            .select('event_id')
+            .in('user_id', followedIds)
+            .eq('status', 'going');
+          if (error) throw error;
+          return d;
+        },
+        async () => {
+          const { data: d, error } = await supabase
+            .from('event_rsvps')
+            .select('event_id, user_id')
+            .in('user_id', followedIds.slice(0, 50));
+          if (error) throw error;
+          return d;
+        },
+        async () => {
+          const { data: d, error } = await supabase
+            .from('event_rsvps')
+            .select('event_id')
+            .in('user_id', followedIds.slice(0, 20));
+          if (error) throw error;
+          return d;
+        },
+        [],
+        'ScoutScreen.loadCrewEvents'
+      );
       setCrewEventIds(new Set((data || []).map(r => r.event_id)));
     } catch { }
   }, [user]);

@@ -16,18 +16,6 @@ import { ViberProfileModal } from './ViberProfileModal';
 const avatarBg = (u = '') =>
   ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u.charCodeAt(0) || 0) % 5];
 
-const TIME_WINDOWS = [
-  { label: '30 min',   hours: 0.5 },
-  { label: '1 hour',   hours: 1 },
-  { label: '2 hours',  hours: 2 },
-  { label: '3 hours',  hours: 3 },
-  { label: '6 hours',  hours: 6 },
-  { label: '12 hours', hours: 12 },
-  { label: '24 hours', hours: 24 },
-  { label: '2 days',   hours: 48 },
-  { label: '3 days',   hours: 72 },
-  { label: '1 week',   hours: 168 },
-];
 
 const GENDERS = [
   { key: 'male',        label: '♂ Male' },
@@ -106,9 +94,10 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
-  const [venue,          setVenue]          = useState('');
-  const [selectedWindow, setSelectedWindow] = useState(TIME_WINDOWS[2]);
-  const [results,        setResults]        = useState([]);
+  const [venue,    setVenue]    = useState('');
+  const [fromDate, setFromDate] = useState(() => { const d = new Date(); d.setHours(d.getHours() - 2); return d; });
+  const [toDate,   setToDate]   = useState(() => new Date());
+  const [results,  setResults]  = useState([]);
   const [loading,        setLoading]        = useState(false);
   const [hasSearched,    setHasSearched]    = useState(false);
   const [showFilters,    setShowFilters]    = useState(false);
@@ -134,7 +123,8 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
     setLoading(true);
     setHasSearched(true);
     try {
-      const since = new Date(Date.now() - selectedWindow.hours * 3600 * 1000).toISOString();
+      const since = (fromDate < toDate ? fromDate : toDate).toISOString();
+      const until = (fromDate < toDate ? toDate : fromDate).toISOString();
 
       let qb = supabase
         .from('live_checkins')
@@ -147,6 +137,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
             gender, hair_style, body_type, skin_tone, outfit_vibe, age_range, display_name)
         `)
         .gte('checked_in_at', since)
+        .lte('checked_in_at', until)
         .neq('user_id', user.id)
         .order('checked_in_at', { ascending: false })
         .limit(100);
@@ -202,7 +193,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
     } catch { setResults([]); } finally {
       setLoading(false);
     }
-  }, [user, venue, selectedWindow, filterGender, filterHair, filterBodyType, filterSkinTone, filterOutfit, filterAgeRange, filterUsername]);
+  }, [user, venue, fromDate, toDate, filterGender, filterHair, filterBodyType, filterSkinTone, filterOutfit, filterAgeRange, filterUsername]);
 
   const fmtAge = (ts) => {
     if (!ts) return '';
@@ -223,8 +214,16 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
     setVenue('');
     setResults([]);
     setHasSearched(false);
-    setSelectedWindow(TIME_WINDOWS[2]);
+    const now = new Date();
+    const twoHoursAgo = new Date(now.getTime() - 2 * 3600 * 1000);
+    setFromDate(twoHoursAgo);
+    setToDate(now);
     clearFilters();
+  };
+
+  const toLocalDatetimeString = (date) => {
+    const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return d.toISOString().slice(0, 16);
   };
 
 
@@ -284,24 +283,62 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
             )}
           </View>
 
-          {/* Time window */}
-          <Text style={[s.sectionLabel, { color: muted }]}>Time Window</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 14 }}>
-            {TIME_WINDOWS.map(w => (
-              <TouchableOpacity
-                key={w.hours}
-                style={[s.windowBtn, {
-                  backgroundColor: selectedWindow.hours === w.hours ? primary : `${primary}12`,
-                  borderColor: selectedWindow.hours === w.hours ? primary : `${primary}25`,
-                }]}
-                onPress={() => setSelectedWindow(w)}
-              >
-                <Text style={[s.windowText, { color: selectedWindow.hours === w.hours ? '#000' : primary }]}>
-                  {w.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          {/* Date & Time Range */}
+          <Text style={[s.sectionLabel, { color: muted }]}>Date & Time Range</Text>
+          <View style={{ paddingHorizontal: 16, gap: 10, marginBottom: 14 }}>
+            <View style={{ gap: 4 }}>
+              <Text style={{ color: muted, fontSize: 11, fontWeight: '700' }}>FROM</Text>
+              {Platform.OS === 'web' ? (
+                <View style={[s.dtWrap, { borderColor: `${primary}25`, backgroundColor: `${surface}80` }]}>
+                  <Feather name="clock" size={14} color={primary} />
+                  <input
+                    type="datetime-local"
+                    value={toLocalDatetimeString(fromDate)}
+                    onChange={e => e.target.value && setFromDate(new Date(e.target.value))}
+                    style={{ flex: 1, background: 'transparent', border: 'none', color: textColor, fontSize: 13, outline: 'none', fontFamily: 'inherit', minWidth: 0 }}
+                  />
+                </View>
+              ) : (
+                <View style={[s.dtWrap, { borderColor: `${primary}25`, backgroundColor: `${surface}80` }]}>
+                  <Feather name="clock" size={14} color={primary} />
+                  <TextInput
+                    style={[s.input, { color: textColor }]}
+                    placeholder="YYYY-MM-DD HH:MM"
+                    placeholderTextColor={muted}
+                    value={toLocalDatetimeString(fromDate).replace('T', ' ')}
+                    onChangeText={v => { const d = new Date(v); if (!isNaN(d)) setFromDate(d); }}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+              )}
+            </View>
+            <View style={{ gap: 4 }}>
+              <Text style={{ color: muted, fontSize: 11, fontWeight: '700' }}>TO</Text>
+              {Platform.OS === 'web' ? (
+                <View style={[s.dtWrap, { borderColor: `${primary}25`, backgroundColor: `${surface}80` }]}>
+                  <Feather name="clock" size={14} color={primary} />
+                  <input
+                    type="datetime-local"
+                    value={toLocalDatetimeString(toDate)}
+                    onChange={e => e.target.value && setToDate(new Date(e.target.value))}
+                    style={{ flex: 1, background: 'transparent', border: 'none', color: textColor, fontSize: 13, outline: 'none', fontFamily: 'inherit', minWidth: 0 }}
+                  />
+                </View>
+              ) : (
+                <View style={[s.dtWrap, { borderColor: `${primary}25`, backgroundColor: `${surface}80` }]}>
+                  <Feather name="clock" size={14} color={primary} />
+                  <TextInput
+                    style={[s.input, { color: textColor }]}
+                    placeholder="YYYY-MM-DD HH:MM"
+                    placeholderTextColor={muted}
+                    value={toLocalDatetimeString(toDate).replace('T', ' ')}
+                    onChangeText={v => { const d = new Date(v); if (!isNaN(d)) setToDate(d); }}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+              )}
+            </View>
+          </View>
 
           {/* Investigation Filters */}
           {showFilters && (
@@ -358,14 +395,14 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
                 <Feather name="clock" size={40} color={muted} style={{ opacity: 0.4 }} />
                 <Text style={[s.emptyTitle, { color: textColor }]}>Nobody found</Text>
                 <Text style={[s.emptySub, { color: muted }]}>
-                  No checkins match that description in the last {selectedWindow.label.toLowerCase()}.
-                  {'\n'}Try a broader time window, different venue, or fewer filters.
+                  No checkins match that description in the selected time range.
+                  {'\n'}Try a wider range, different venue, or fewer filters.
                 </Text>
               </View>
             ) : (
               <View>
                 <Text style={[s.resultHeader, { color: muted, paddingHorizontal: 16 }]}>
-                  {results.length} Vibe{results.length !== 1 ? 'r' : 'r'}{results.length !== 1 ? 's' : ''} · {selectedWindow.label}
+                  {results.length} Vibe{results.length !== 1 ? 'rs' : 'r'} · {toLocalDatetimeString(fromDate < toDate ? fromDate : toDate).replace('T', ' ')} → {toLocalDatetimeString(fromDate < toDate ? toDate : fromDate).replace('T', ' ')}
                   {venue ? ` · "${venue}"` : ' · All venues'}
                   {activeFilterCount > 0 ? ` · ${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''}` : ''}
                 </Text>
@@ -462,8 +499,7 @@ const s = StyleSheet.create({
     height: 44, borderRadius: 22, borderWidth: 1,
   },
   input: { flex: 1, fontSize: 14 },
-  windowBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, borderWidth: 1.5 },
-  windowText: { fontSize: 11, fontWeight: '800' },
+  dtWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
   filtersBox: { marginHorizontal: 16, marginBottom: 12, borderRadius: 18, borderWidth: 1, padding: 16 },
   filtersTitle: { fontSize: 14, fontWeight: '900' },
   filterLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4, marginBottom: 6 },

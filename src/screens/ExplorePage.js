@@ -13,6 +13,7 @@ import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager, isOnline as checkOnline } from '../services/dataFlow';
+import { resilientRead } from '../utils/resilience';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { LocationService } from '../services/locationService';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
@@ -58,12 +59,14 @@ const MOODS = [
 const HeroCard = ({ event, primary, onPress }) => {
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    Animated.loop(
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1.04, duration: 2000, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 1, duration: 2000, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    anim.start();
+    return () => anim.stop();
   }, []);
 
   const getMediaUrl = (item) => {
@@ -400,11 +403,24 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   // Shared helper: fetch nearby vibers + priority-sort followed+online first
   const loadNearbyVibers = useCallback(async (uid) => {
-    const [nearby, followRes] = await Promise.all([
-      DiscoveryManager.findNearbyVibers(uid, 25),
-      supabase.from('follows').select('following_id').eq('follower_id', uid),
+    const [nearby, followedIds] = await Promise.all([
+      DiscoveryManager.findNearbyVibers(uid, 25).catch(() => []),
+      resilientRead(
+        async () => {
+          const { data, error } = await supabase.from('follows').select('following_id').eq('follower_id', uid);
+          if (error) throw error;
+          return new Set((data || []).map(f => f.following_id));
+        },
+        async () => {
+          const { data, error } = await supabase.from('follows').select('following_id').eq('follower_id', uid).limit(200);
+          if (error) throw error;
+          return new Set((data || []).map(f => f.following_id));
+        },
+        async () => new Set(),
+        new Set(),
+        'ExplorePage.loadFollowedIds'
+      ),
     ]);
-    const followedIds = new Set((followRes.data || []).map(f => f.following_id));
     const list = nearby || [];
     const prioritized = list.filter(v => followedIds.has(v.id || v.profile_id) && checkOnline(v));
     setNearbyVibers(prioritized.length > 0 ? prioritized : list);
@@ -498,11 +514,27 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   }, [user, applyLocationPrivacy, loadNearbyVibers]);
 
   useEffect(() => {
-    supabase.from('app_updates')
-      .select('id, title, description, version, released_at, type')
-      .order('released_at', { ascending: false })
-      .limit(5)
-      .then(({ data }) => setAppUpdates(data || []));
+    resilientRead(
+      async () => {
+        const { data, error } = await supabase.from('app_updates')
+          .select('id, title, description, version, released_at, type')
+          .order('released_at', { ascending: false })
+          .limit(5);
+        if (error) throw error;
+        return data;
+      },
+      async () => {
+        const { data, error } = await supabase.from('app_updates')
+          .select('id, title, released_at')
+          .order('released_at', { ascending: false })
+          .limit(5);
+        if (error) throw error;
+        return data;
+      },
+      async () => [],
+      [],
+      'ExplorePage.appUpdates'
+    ).then(data => setAppUpdates(data || [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -618,13 +650,6 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Text style={[styles.headerSub, { color: muted }]}>Discover your next Gruv</Text>
             </View>
           </View>
-          <TouchableOpacity
-            onPress={() => setMarketplaceVisible(true)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 13, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: primary, backgroundColor: `${primary}18` }}
-          >
-            <Feather name="truck" size={14} color={primary} />
-            <Text style={{ color: primary, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 }}>SERVICES</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Search bar */}
