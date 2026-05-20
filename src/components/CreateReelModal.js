@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator,
@@ -33,8 +33,10 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
   const [soundName, setSoundName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState('pick'); // 'pick' | 'details'
+  const videoRef = useRef(null);
 
   const reset = () => {
+    videoRef.current?.pauseAsync().catch(() => {});
     setAsset(null);
     setCaption('');
     setSoundName('');
@@ -57,7 +59,13 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
       videoMaxDuration: 60,
     });
     if (result.canceled || !result.assets?.length) return;
-    setAsset(result.assets[0]);
+    const picked = result.assets[0];
+    const MAX_BYTES = 150 * 1024 * 1024; // 150 MB
+    if (picked.fileSize && picked.fileSize > MAX_BYTES) {
+      toast.show('File too large — max 150 MB', 'error');
+      return;
+    }
+    setAsset(picked);
     setStep('details');
   }, []);
 
@@ -160,6 +168,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
                 <View style={[s.previewWrap, { backgroundColor: '#000' }]}>
                   {asset.type === 'video'
                     ? <Video
+                        ref={videoRef}
                         source={{ uri: asset.uri }}
                         style={s.preview}
                         resizeMode={ResizeMode.COVER}

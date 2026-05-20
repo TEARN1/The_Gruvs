@@ -26,6 +26,8 @@ const QUICK_PROMPTS = [
 
 const MSG_ROLE = { USER: 'user', AI: 'assistant' };
 
+const MAX_MESSAGES = 60; // 30 turns — prevents unbounded memory growth
+
 export const AIAssistantModal = ({ visible, onClose }) => {
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
@@ -36,6 +38,12 @@ export const AIAssistantModal = ({ visible, onClose }) => {
   const [thinkingPhase, setThinkingPhase] = useState('');  // 'querying' | 'reasoning' | ''
   const flatRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -90,7 +98,10 @@ export const AIAssistantModal = ({ visible, onClose }) => {
     setInput('');
 
     const userMsg = { id: Date.now().toString(), role: MSG_ROLE.USER, text: trimmed };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages(prev => {
+      const next = [...prev, userMsg];
+      return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+    });
     setLoading(true);
     scrollToBottom();
 
@@ -100,7 +111,6 @@ export const AIAssistantModal = ({ visible, onClose }) => {
       .slice(-10)
       .map(m => ({ role: m.role, content: m.text }));
 
-    // Show phase hints for UX
     const isComplex = history.length > 6 || trimmed.length > 200;
     setThinkingPhase(isComplex ? 'reasoning' : 'querying');
 
@@ -110,25 +120,41 @@ export const AIAssistantModal = ({ visible, onClose }) => {
         userId: user?.id,
         systemExtra: sessionContext,
       });
+
+      if (!isMounted.current) return;
+
+      const isRateLimit = result.error?.toLowerCase().includes('rate limit');
       const aiMsg = {
         id: (Date.now() + 1).toString(),
         role: MSG_ROLE.AI,
-        text: result.text || "I'm having trouble connecting right now. Try again in a moment.",
+        text: result.error
+          ? (isRateLimit ? `⏳ ${result.error}` : "I'm having trouble connecting right now. Try again in a moment.")
+          : (result.text || "I'm having trouble connecting right now. Try again in a moment."),
         interactionId: result.id,
         error: !!result.error,
       };
-      setMessages(prev => [...prev, aiMsg]);
+      setMessages(prev => {
+        const next = [...prev, aiMsg];
+        return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+      });
     } catch (e) {
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: MSG_ROLE.AI,
-        text: "I'm having trouble connecting right now. Try again in a moment.",
-        error: true,
-      }]);
+      if (!isMounted.current) return;
+      setMessages(prev => {
+        const errMsg = {
+          id: (Date.now() + 1).toString(),
+          role: MSG_ROLE.AI,
+          text: "I'm having trouble connecting right now. Try again in a moment.",
+          error: true,
+        };
+        const next = [...prev, errMsg];
+        return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+      });
     } finally {
-      setThinkingPhase('');
-      setLoading(false);
-      scrollToBottom();
+      if (isMounted.current) {
+        setThinkingPhase('');
+        setLoading(false);
+        scrollToBottom();
+      }
     }
   };
 

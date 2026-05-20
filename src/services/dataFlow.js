@@ -1623,13 +1623,15 @@ export const MessageManager = {
 
       const rows = data || [];
       // Deduplicate — keep only latest message per conversation partner
+      // Guard against deleted profiles (sender/recipient join returns null)
       const seen = {};
       const convos = [];
       for (const msg of rows) {
         const partnerId = msg.sender_id === userId ? msg.recipient_id : msg.sender_id;
+        const partner = msg.sender_id === userId ? msg.recipient : msg.sender;
+        if (!partner) continue; // deleted account — skip
         if (!seen[partnerId]) {
           seen[partnerId] = true;
-          const partner = msg.sender_id === userId ? msg.recipient : msg.sender;
           convos.push({ ...msg, partner, partnerId });
         }
       }
