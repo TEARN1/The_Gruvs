@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from '../components/GlassView';
@@ -492,11 +493,14 @@ export const PathMapScreen = ({ visible, onClose }) => {
 
   const handleStar = async (toUserId) => {
     if (!user?.id) return;
-    await supabase.from('path_stars').insert({
-      from_user_id: user.id,
-      to_user_id: toUserId,
-      event_id: null,
-    });
+    await resilient(
+      [
+        () => supabase.from('path_stars').insert({ from_user_id: user.id, to_user_id: toUserId, event_id: null }),
+        () => supabase.from('path_stars').upsert({ from_user_id: user.id, to_user_id: toUserId, event_id: null }, { onConflict: 'from_user_id,to_user_id', ignoreDuplicates: true }),
+        () => supabase.rpc('send_path_star', { p_from: user.id, p_to: toUserId }),
+      ],
+      { attemptsPerTier: 2, baseMs: 300, label: `PathMap.star:${toUserId}`, fallbackValue: null }
+    );
   };
 
   const handleCanvasTap = (evt) => {
@@ -512,19 +516,22 @@ export const PathMapScreen = ({ visible, onClose }) => {
   const handleDropTrace = async () => {
     if (!user?.id || !showTraceCreator) return;
     const note = traceNote.trim();
-    try {
-      await supabase.from('path_traces').insert({
-        user_id: user.id,
-        lat: showTraceCreator.lat,
-        lon: showTraceCreator.lon,
-        note: note || null,
-      });
-      showToast('Trace dropped! Vibers crossing this path will see it.', 'success');
-    } catch {
-      showToast('Could not drop trace. Try again.', 'error');
-    }
+    const payload = { user_id: user.id, lat: showTraceCreator.lat, lon: showTraceCreator.lon, note: note || null };
     setShowTraceCreator(null);
     setTraceNote('');
+    const ok = await resilient(
+      [
+        () => supabase.from('path_traces').insert(payload),
+        () => supabase.from('path_traces').upsert(payload),
+        () => supabase.rpc('drop_path_trace', { p_user_id: user.id, p_lat: payload.lat, p_lon: payload.lon, p_note: payload.note }),
+      ],
+      { attemptsPerTier: 2, baseMs: 400, label: 'PathMap.dropTrace', fallbackValue: null }
+    );
+    if (ok !== null) {
+      showToast('Trace dropped! Vibers crossing this path will see it.', 'success');
+    } else {
+      showToast('Could not drop trace. Try again.', 'error');
+    }
   };
 
   // ------------------------------------------------------------------
@@ -769,19 +776,25 @@ export const PathMapScreen = ({ visible, onClose }) => {
                         return;
                       }
                       try {
-                        await Promise.all(
-                          crossings.slice(0, 3).map(c =>
-                            supabase.from('notifications').insert({
-                              user_id: c.other_user_id,
-                              type: 'spark',
-                              title: 'Someone sent you a Spark!',
-                              body: 'You crossed paths — they want to connect.',
-                              data: { sender_id: user.id },
-                              read: false,
-                            })
-                          )
+                        const targets = crossings.slice(0, 3);
+                        const notifications = targets.map(c => ({
+                          user_id: c.other_user_id,
+                          type: 'spark',
+                          title: 'Someone sent you a Spark!',
+                          body: 'You crossed paths — they want to connect.',
+                          data: { sender_id: user.id },
+                          read: false,
+                        }));
+                        const ok = await resilient(
+                          [
+                            () => supabase.from('notifications').insert(notifications),
+                            () => Promise.allSettled(targets.map(c => supabase.from('notifications').insert(notifications.find(n => n.user_id === c.other_user_id)))),
+                            () => supabase.rpc('send_spark_notifications', { p_sender_id: user.id, p_recipient_ids: targets.map(c => c.other_user_id) }),
+                          ],
+                          { attemptsPerTier: 2, baseMs: 400, label: 'PathMap.spark', fallbackValue: null }
                         );
-                        showToast('Spark sent to Vibers you crossed paths with!', 'success');
+                        if (ok !== null) showToast('Spark sent to Vibers you crossed paths with!', 'success');
+                        else showToast('Could not send Spark. Try again.', 'error');
                       } catch {
                         showToast('Could not send Spark. Try again.', 'error');
                       }

@@ -11,6 +11,7 @@ import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { CalendarManager } from '../services/dataFlow';
+import { resilientRead } from '../utils/resilience';
 import { PostEventModal } from '../components/PostEventModal';
 import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
 import { supabase } from '../services/supabase';
@@ -335,8 +336,21 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   // Load user's RSVP'd event IDs for filter
   useEffect(() => {
     if (!user) return;
-    supabase.from('event_rsvps').select('event_id').eq('user_id', user.id).eq('status', 'going')
-      .then(({ data }) => setMyRsvpIds(new Set((data || []).map(r => r.event_id))));
+    resilientRead(
+      async () => {
+        const { data, error } = await supabase.from('event_rsvps').select('event_id').eq('user_id', user.id).eq('status', 'going');
+        if (error) throw error;
+        return data;
+      },
+      async () => {
+        const { data, error } = await supabase.from('event_rsvps').select('event_id').eq('user_id', user.id).limit(200);
+        if (error) throw error;
+        return data;
+      },
+      async () => [],
+      [],
+      'CalendarPage.rsvpIds'
+    ).then(data => setMyRsvpIds(new Set((data || []).map(r => r.event_id)))).catch(() => {});
   }, [user]);
 
   // Real-time: new events appear on calendar instantly

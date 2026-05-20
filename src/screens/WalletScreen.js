@@ -12,6 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
 import { supabase } from '../services/supabase';
+import { resilientRead } from '../utils/resilience';
 import { TrustLedger } from '../services/trustLedger';
 import { EscrowService } from '../services/escrowService';
 import { VibeEconomyEngine } from '../services/revenueEngine';
@@ -64,17 +65,31 @@ export const WalletScreen = ({ visible, onClose }) => {
     if (!user) return;
     setLoading(true);
     try {
-      const [score, history, status, txnRes] = await Promise.all([
-        TrustLedger.getSISScore(user.id),
-        EscrowService.getUserBookings(user.id),
-        VibeEconomyEngine.getSovereignStatus(user.id),
-        supabase.from('wallet_transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
+      const [score, history, status, transactions] = await Promise.all([
+        TrustLedger.getSISScore(user.id).catch(() => 0),
+        EscrowService.getUserBookings(user.id).catch(() => []),
+        VibeEconomyEngine.getSovereignStatus(user.id).catch(() => ({ isRoyal: false })),
+        resilientRead(
+          async () => {
+            const { data, error } = await supabase.from('wallet_transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
+            if (error) throw error;
+            return data;
+          },
+          async () => {
+            const { data, error } = await supabase.from('wallet_transactions').select('id, amount, type, created_at, description').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
+            if (error) throw error;
+            return data;
+          },
+          async () => [],
+          [],
+          'WalletScreen.transactions'
+        ),
       ]);
       setSISScore(score);
       setTier(TrustLedger.getProviderTier(score));
       setBookings(history);
       setIsRoyal(status.isRoyal);
-      setTransactions(txnRes.data || []);
+      setTransactions(transactions || []);
     } catch (e) {
       toast?.show('Failed to load wallet data', 'error');
     } finally {

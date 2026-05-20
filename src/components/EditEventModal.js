@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
 
@@ -98,7 +99,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
     }
 
     try {
-      const { error } = await supabase.from('events').update({
+      const payload = {
         title: title.trim(),
         description: description.trim(),
         venue_name: venueName.trim() || null,
@@ -107,13 +108,21 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
         price: price.trim() || null,
         capacity: capacity ? parseInt(capacity) : null,
         ticket_url: ticketUrl.trim() || null,
-      }).eq('id', event.id);
-      if (error) {
-        toast.show('Failed to save changes', 'error');
-      } else {
+      };
+      const ok = await resilient(
+        [
+          () => supabase.from('events').update(payload).eq('id', event.id),
+          () => supabase.from('events').update({ title: payload.title, description: payload.description, event_date: payload.event_date }).eq('id', event.id),
+          () => supabase.rpc('update_event', { p_event_id: event.id, p_payload: payload }),
+        ],
+        { attemptsPerTier: 3, baseMs: 400, label: `EditEventModal.save:${event.id}`, fallbackValue: null }
+      );
+      if (ok !== null) {
         toast.show('Event updated!', 'success');
         onSaved?.();
         onClose();
+      } else {
+        toast.show('Failed to save changes', 'error');
       }
     } finally {
       setSaving(false);
@@ -135,40 +144,57 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
 
   const confirmCancel = async () => {
     setCancelling(true);
-    const { error } = await supabase.from('events').update({ is_cancelled: true }).eq('id', event.id);
-    if (error) {
-      toast.show('Could not cancel event', 'error');
-      setCancelling(false);
-      return;
-    }
-
-    // Notify everyone who vibed or RSVP'd
     try {
-      const [{ data: vibers }, { data: rsvpers }] = await Promise.all([
-        supabase.from('event_vibes').select('user_id').eq('event_id', event.id),
-        supabase.from('event_rsvps').select('user_id').eq('event_id', event.id),
-      ]);
-      const allIds = [...new Set([
-        ...(vibers || []).map(r => r.user_id),
-        ...(rsvpers || []).map(r => r.user_id),
-      ])];
-      // Batch-insert cancellation notifications
-      if (allIds.length > 0) {
-        const notifications = allIds.map(uid => ({
-          recipient_id: uid,
-          type: 'event_cancelled',
-          title: '🚫 Event Cancelled',
-          body: `"${event.title}" has been cancelled by the organizer.`,
-          data: { event_id: event.id, event_title: event.title },
-        }));
-        await supabase.from('notifications').insert(notifications);
+      const ok = await resilient(
+        [
+          () => supabase.from('events').update({ is_cancelled: true }).eq('id', event.id),
+          () => supabase.from('events').update({ status: 'cancelled' }).eq('id', event.id),
+          () => supabase.rpc('cancel_event', { p_event_id: event.id }),
+        ],
+        { attemptsPerTier: 3, baseMs: 400, label: `EditEventModal.cancel:${event.id}`, fallbackValue: null }
+      );
+      if (ok === null) {
+        toast.show('Could not cancel event', 'error');
+        return;
       }
-    } catch { /* non-critical */ }
 
-    setCancelling(false);
-    toast.show('Event cancelled — attendees notified', 'info');
-    onSaved?.();
-    onClose();
+      // Notify everyone who vibed or RSVP'd — best effort
+      try {
+        const [vibersRes, rsvpersRes] = await Promise.allSettled([
+          supabase.from('event_vibes').select('user_id').eq('event_id', event.id),
+          supabase.from('event_rsvps').select('user_id').eq('event_id', event.id),
+        ]);
+        const vibers = vibersRes.status === 'fulfilled' ? vibersRes.value.data : [];
+        const rsvpers = rsvpersRes.status === 'fulfilled' ? rsvpersRes.value.data : [];
+        const allIds = [...new Set([
+          ...(vibers || []).map(r => r.user_id),
+          ...(rsvpers || []).map(r => r.user_id),
+        ])];
+        if (allIds.length > 0) {
+          const notifications = allIds.map(uid => ({
+            recipient_id: uid,
+            type: 'event_cancelled',
+            title: '🚫 Event Cancelled',
+            body: `"${event.title}" has been cancelled by the organizer.`,
+            data: { event_id: event.id, event_title: event.title },
+          }));
+          await resilient(
+            [
+              () => supabase.from('notifications').insert(notifications),
+              () => supabase.from('notifications').insert(notifications.slice(0, 50)),
+              () => supabase.rpc('bulk_notify_cancel', { p_event_id: event.id }),
+            ],
+            { attemptsPerTier: 2, baseMs: 500, label: `EditEventModal.cancelNotify:${event.id}`, fallbackValue: null }
+          );
+        }
+      } catch { /* non-critical */ }
+
+      toast.show('Event cancelled — attendees notified', 'info');
+      onSaved?.();
+      onClose();
+    } finally {
+      setCancelling(false);
+    }
   };
 
   // ── Delete event ─────────────────────────────────────────────────────────────
@@ -187,13 +213,20 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
   const confirmDelete = async () => {
     setDeleting(true);
     try {
-      const { error } = await supabase.from('events').delete().eq('id', event.id);
-      if (error) {
-        toast.show('Could not delete event', 'error');
-      } else {
+      const ok = await resilient(
+        [
+          () => supabase.from('events').delete().eq('id', event.id),
+          () => supabase.from('events').update({ status: 'deleted', is_deleted: true }).eq('id', event.id),
+          () => supabase.rpc('delete_event', { p_event_id: event.id }),
+        ],
+        { attemptsPerTier: 3, baseMs: 400, label: `EditEventModal.delete:${event.id}`, fallbackValue: null }
+      );
+      if (ok !== null) {
         toast.show('Event deleted', 'info');
         onSaved?.();
         onClose();
+      } else {
+        toast.show('Could not delete event', 'error');
       }
     } finally {
       setDeleting(false);

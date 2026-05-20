@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
 import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { EscrowService } from '../services/escrowService';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -530,13 +531,15 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
   }, []);
 
   const handleAcceptGig = useCallback(async (gig) => {
-    try {
-      await supabase.from('gig_acceptances').insert([
-        { gig_id: gig.id, worker_id: user?.id, status: 'accepted' },
-      ]);
-    } catch {
-      // silently ignore — card already shows accepted state
-    }
+    const payload = { gig_id: gig.id, worker_id: user?.id, status: 'accepted' };
+    await resilient(
+      [
+        () => supabase.from('gig_acceptances').insert([payload]),
+        () => supabase.from('gig_acceptances').upsert([payload], { onConflict: 'gig_id,worker_id', ignoreDuplicates: true }),
+        () => supabase.rpc('accept_gig', { p_gig_id: gig.id, p_worker_id: user?.id }),
+      ],
+      { attemptsPerTier: 2, baseMs: 400, label: `ServiceMarketplace.acceptGig:${gig.id}`, fallbackValue: null }
+    );
     const posterName = gig.poster_username || gig.profiles?.username || 'poster';
     showToast(`Gig accepted! Contact ${posterName}`, 'success');
   }, [user?.id, showToast]);
