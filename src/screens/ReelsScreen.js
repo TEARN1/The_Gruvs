@@ -8,9 +8,8 @@ import React, { useState, useRef, useCallback, useEffect, memo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback,
   Image, Dimensions, Platform, TextInput, Modal, ScrollView, KeyboardAvoidingView,
-  Animated, ActivityIndicator, Share, PanResponder, Alert, RefreshControl,
+  Animated, ActivityIndicator, Share, PanResponder, Alert, RefreshControl, AppState,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
@@ -542,12 +541,12 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const flatRef = useRef(null);
   const [screenFocused, setScreenFocused] = useState(true);
 
-  useFocusEffect(
-    useCallback(() => {
-      setScreenFocused(true);
-      return () => setScreenFocused(false);
-    }, [])
-  );
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      setScreenFocused(state === 'active');
+    });
+    return () => sub.remove();
+  }, []);
 
   const loadReels = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
