@@ -454,36 +454,41 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // Scroll-to + highlight when arriving from Explore
 
-  // Crew signal — who among followed users has RSVP'd to events in the feed
+  // Fetch followed IDs once per session (not on every pagination event)
   useEffect(() => {
-    if (!user || events.length === 0) return;
-    const loadCrewSignal = async () => {
-      try {
-        const { data: follows } = await supabase
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', user.id)
-          .limit(100);
-        if (!follows?.length) return;
-        const followedIds = follows.map(f => f.following_id);
-        followedIdsRef.current = followedIds; // cache for ScoreEngine scoring
-        setFollowingSet(new Set(followedIds));
-        const eventIds = events.map(e => e.id);
-        const { data: crewRsvps } = await supabase
-          .from('event_rsvps')
-          .select('event_id, user_id')
-          .in('event_id', eventIds)
-          .in('user_id', followedIds)
-          .eq('status', 'going');
+    if (!user) return;
+    supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', user.id)
+      .limit(200)
+      .then(({ data }) => {
+        const ids = (data || []).map(f => f.following_id);
+        followedIdsRef.current = ids;
+        setFollowingSet(new Set(ids));
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
+  // Crew signal — who among followed users has RSVP'd. Runs only when event IDs change.
+  const eventIdsKey = useMemo(() => events.map(e => e.id).join(','), [events]);
+  useEffect(() => {
+    const followedIds = followedIdsRef.current;
+    if (!user || !events.length || !followedIds.length) return;
+    const eventIds = events.map(e => e.id);
+    supabase
+      .from('event_rsvps')
+      .select('event_id, user_id')
+      .in('event_id', eventIds)
+      .in('user_id', followedIds)
+      .eq('status', 'going')
+      .then(({ data }) => {
         const map = {};
-        (crewRsvps || []).forEach(r => {
-          map[r.event_id] = (map[r.event_id] || 0) + 1;
-        });
-        setCrewRsvpMap(map);
-      } catch { }
-    };
-    loadCrewSignal();
-  }, [user, events]);
+        (data || []).forEach(r => { map[r.event_id] = (map[r.event_id] || 0) + 1; });
+        setCrewRsvpMap(prev => ({ ...prev, ...map }));
+      })
+      .catch(() => {});
+  }, [user?.id, eventIdsKey]);
 
   // Real-time: new events appear instantly + live vibe counts update
   useEffect(() => {
@@ -731,13 +736,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   const fetchReactors = useCallback(async (eventId) => {
     setReactorsLoading(true);
-    const { data } = await supabase
-      .from('event_reactions')
-      .select('reaction_key, user_id, profiles:user_id(username, avatar_url)')
-      .eq('event_id', eventId)
-      .limit(100);
-    setReactorsList(data || []);
-    setReactorsLoading(false);
+    try {
+      const { data } = await supabase
+        .from('event_reactions')
+        .select('reaction_key, user_id, profiles:user_id(username, avatar_url)')
+        .eq('event_id', eventId)
+        .limit(100);
+      setReactorsList(data || []);
+    } catch { setReactorsList([]); }
+    finally { setReactorsLoading(false); }
   }, []);
 
   const handleShare = (event) => {
