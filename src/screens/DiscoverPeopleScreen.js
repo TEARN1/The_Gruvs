@@ -13,6 +13,7 @@ import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { useToast } from '../components/ToastNotification';
 import { DiscoveryManager, isOnline as checkOnline } from '../services/dataFlow';
+import { resilientRead, resilient } from '../utils/resilience';
 
 const FILTERS = [
   { key: 'all',    label: 'All Vibers', icon: 'users' },
@@ -195,18 +196,37 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const loadSuggested = useCallback(async () => {
     if (!user) return;
     try {
-      const { data } = await supabase.rpc('suggested_follows', { p_user: user.id, p_limit: 6 });
-      if (!data?.length) return;
-      const ids = data.map(r => r.suggested_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url, is_verified, vibe_score, bio')
-        .in('id', ids);
-      const scored = (profiles || []).map(p => ({
-        ...p,
-        mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0,
-      })).sort((a, b) => b.mutual_count - a.mutual_count);
-      setSuggested(scored);
+      const scored = await resilientRead(
+        async () => {
+          const { data, error } = await supabase.rpc('suggested_follows', { p_user: user.id, p_limit: 6 });
+          if (error) throw error;
+          if (!data?.length) return [];
+          const ids = data.map(r => r.suggested_id);
+          const { data: profiles, error: pErr } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, is_verified, vibe_score, bio')
+            .in('id', ids);
+          if (pErr) throw pErr;
+          return (profiles || []).map(p => ({
+            ...p,
+            mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0,
+          })).sort((a, b) => b.mutual_count - a.mutual_count);
+        },
+        async () => {
+          const { data: profiles, error } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, is_verified, vibe_score')
+            .neq('id', user.id)
+            .order('vibe_score', { ascending: false })
+            .limit(6);
+          if (error) throw error;
+          return (profiles || []).map(p => ({ ...p, mutual_count: 0 }));
+        },
+        async () => [],
+        [],
+        'DiscoverPeople.loadSuggested'
+      );
+      if (scored.length) setSuggested(scored);
     } catch { }
   }, [user]);
 
@@ -532,11 +552,27 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
                             pendingFollowIds.current.add(v.id);
                             try {
                               if (followedIds.has(v.id)) {
-                                await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', v.id);
                                 setFollowedIds(prev => { const n = new Set(prev); n.delete(v.id); return n; });
+                                const ok = await resilient(
+                                  [
+                                    () => supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', v.id),
+                                    () => supabase.from('follows').update({ unfollowed_at: new Date().toISOString() }).eq('follower_id', user.id).eq('following_id', v.id),
+                                    () => supabase.rpc('unfollow_user', { p_follower_id: user.id, p_following_id: v.id }),
+                                  ],
+                                  { attemptsPerTier: 2, baseMs: 300, label: `DiscoverPeople.unfollow:${v.id}`, fallbackValue: null }
+                                );
+                                if (ok === null) setFollowedIds(prev => new Set([...prev, v.id]));
                               } else {
-                                await supabase.from('follows').upsert({ follower_id: user.id, following_id: v.id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
                                 setFollowedIds(prev => new Set([...prev, v.id]));
+                                const ok = await resilient(
+                                  [
+                                    () => supabase.from('follows').upsert({ follower_id: user.id, following_id: v.id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
+                                    () => supabase.from('follows').insert({ follower_id: user.id, following_id: v.id }),
+                                    () => supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: v.id }),
+                                  ],
+                                  { attemptsPerTier: 2, baseMs: 300, label: `DiscoverPeople.follow:${v.id}`, fallbackValue: null }
+                                );
+                                if (ok === null) setFollowedIds(prev => { const n = new Set(prev); n.delete(v.id); return n; });
                               }
                             } finally {
                               pendingFollowIds.current.delete(v.id);
