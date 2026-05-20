@@ -42,7 +42,7 @@ export const CrewJourneyPanel = ({ onEventPress }) => {
           .eq('follower_id', user.id)
           .limit(100);
 
-        if (!followData || followData.length === 0) { setLoading(false); return; }
+        if (!followData || followData.length === 0) return;
 
         const followingIds = followData.map(f => f.following_id);
 
@@ -61,7 +61,7 @@ export const CrewJourneyPanel = ({ onEventPress }) => {
           .order('events.event_date', { ascending: true })
           .limit(50);
 
-        if (!rsvpData) { setLoading(false); return; }
+        if (!rsvpData) return;
 
         // Group by event
         const eventMap = {};

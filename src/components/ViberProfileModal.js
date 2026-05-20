@@ -84,6 +84,38 @@ const pec = StyleSheet.create({
   vibeText: { fontSize: 11, fontWeight: '800' },
 });
 
+// ── UserListModal — module-level to preserve component identity across renders ──
+const UserListModal = ({ visible: v, onClose: oc, title, users, bg, primary, muted, textColor }) => (
+  <Modal visible={v} transparent animationType="slide" onRequestClose={oc} statusBarTranslucent>
+    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
+      <TouchableOpacity style={StyleSheet.absoluteFill} onPress={oc} activeOpacity={1} />
+      <View style={{ backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%', paddingTop: 12 }}>
+        <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: `${primary}30`, alignSelf: 'center', marginBottom: 12 }} />
+        <Text style={{ color: primary, fontSize: 14, fontWeight: '900', letterSpacing: 1, textAlign: 'center', marginBottom: 12 }}>{title}</Text>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+          {users.length === 0
+            ? <Text style={{ color: muted, textAlign: 'center', paddingVertical: 24, fontSize: 13 }}>Nobody here yet</Text>
+            : users.map(u => (
+              <View key={u.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: `${primary}10`, gap: 12 }}>
+                {u.avatar_url
+                  ? <Image source={{ uri: thumb.avatar(u.avatar_url) }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: `${primary}40` }} />
+                  : <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: primary, fontWeight: '900', fontSize: 14 }}>{(u.username || '?').slice(0, 2).toUpperCase()}</Text>
+                    </View>
+                }
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>@{u.username}</Text>
+                  <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>{u.vibe_score || 0} pts</Text>
+                </View>
+              </View>
+            ))
+          }
+        </ScrollView>
+      </View>
+    </View>
+  </Modal>
+);
+
 // ── Main component ────────────────────────────────────────────────────────────
 export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId, onClose, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
@@ -252,7 +284,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     }
   };
 
-  const loadFollowersList = async () => {
+  const loadFollowersList = useCallback(async () => {
     if (!targetId) return;
     try {
       const { data } = await supabase
@@ -262,10 +294,10 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         .limit(50);
       setFollowersList((data || []).map(r => r.profiles).filter(Boolean));
     } catch { /* keep existing list on failure */ }
-    setFollowersModalVisible(true);
-  };
+    finally { setFollowersModalVisible(true); }
+  }, [targetId]);
 
-  const loadFollowingList = async () => {
+  const loadFollowingList = useCallback(async () => {
     if (!targetId) return;
     try {
       const { data } = await supabase
@@ -275,41 +307,11 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         .limit(50);
       setFollowingList((data || []).map(r => r.profiles).filter(Boolean));
     } catch { /* keep existing list on failure */ }
-    setFollowingModalVisible(true);
-  };
+    finally { setFollowingModalVisible(true); }
+  }, [targetId]);
 
   const rank = profile ? getRank(profile.vibe_score || 0) : null;
 
-  const UserListModal = ({ visible: v, onClose: oc, title, users }) => (
-    <Modal visible={v} transparent animationType="slide" onRequestClose={oc} statusBarTranslucent>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={oc} activeOpacity={1} />
-        <View style={{ backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%', paddingTop: 12 }}>
-          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: `${primary}30`, alignSelf: 'center', marginBottom: 12 }} />
-          <Text style={{ color: primary, fontSize: 14, fontWeight: '900', letterSpacing: 1, textAlign: 'center', marginBottom: 12 }}>{title}</Text>
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
-            {users.length === 0
-              ? <Text style={{ color: muted, textAlign: 'center', paddingVertical: 24, fontSize: 13 }}>Nobody here yet</Text>
-              : users.map(u => (
-                <View key={u.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: `${primary}10`, gap: 12 }}>
-                  {u.avatar_url
-                    ? <Image source={{ uri: thumb.avatar(u.avatar_url) }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: `${primary}40` }} />
-                    : <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ color: primary, fontWeight: '900', fontSize: 14 }}>{(u.username || '?').slice(0, 2).toUpperCase()}</Text>
-                      </View>
-                  }
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>@{u.username}</Text>
-                    <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>{u.vibe_score || 0} pts</Text>
-                  </View>
-                </View>
-              ))
-            }
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
 
   return (
     <>
@@ -610,12 +612,14 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       onClose={() => setFollowersModalVisible(false)}
       title="FOLLOWERS"
       users={followersList}
+      bg={bg} primary={primary} muted={muted} textColor={textColor}
     />
     <UserListModal
       visible={followingModalVisible}
       onClose={() => setFollowingModalVisible(false)}
       title="FOLLOWING"
       users={followingList}
+      bg={bg} primary={primary} muted={muted} textColor={textColor}
     />
 
     <ReportModal
