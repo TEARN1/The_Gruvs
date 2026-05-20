@@ -66,6 +66,34 @@ const APPROXIMATE_AGES = [
   { key: 'fifty_plus',label: '50+' },
 ];
 
+const ChipRow = ({ label, options, selected, onSelect, renderLabel, primary, muted }) => (
+  <View style={{ marginBottom: 14 }}>
+    <Text style={[s.filterLabel, { color: muted }]}>{label}</Text>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+      {options.map(opt => {
+        const key = typeof opt === 'string' ? opt : opt.key;
+        const display = renderLabel ? renderLabel(opt) : (typeof opt === 'string' ? opt : opt.label);
+        const isActive = selected === key;
+        return (
+          <TouchableOpacity
+            key={key}
+            onPress={() => onSelect(isActive ? null : key)}
+            style={[s.chip, {
+              backgroundColor: isActive ? primary : `${primary}12`,
+              borderColor: isActive ? primary : `${primary}25`,
+            }]}
+          >
+            {typeof opt === 'object' && opt.color && (
+              <View style={[s.skinDot, { backgroundColor: opt.color }]} />
+            )}
+            <Text style={[s.chipText, { color: isActive ? '#000' : primary }]}>{display}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  </View>
+);
+
 export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
@@ -199,33 +227,6 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
     clearFilters();
   };
 
-  const ChipRow = ({ label, options, selected, onSelect, renderLabel }) => (
-    <View style={{ marginBottom: 14 }}>
-      <Text style={[s.filterLabel, { color: muted }]}>{label}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-        {options.map(opt => {
-          const key = typeof opt === 'string' ? opt : opt.key;
-          const display = renderLabel ? renderLabel(opt) : (typeof opt === 'string' ? opt : opt.label);
-          const isActive = selected === key;
-          return (
-            <TouchableOpacity
-              key={key}
-              onPress={() => onSelect(isActive ? null : key)}
-              style={[s.chip, {
-                backgroundColor: isActive ? primary : `${primary}12`,
-                borderColor: isActive ? primary : `${primary}25`,
-              }]}
-            >
-              {typeof opt === 'object' && opt.color && (
-                <View style={[s.skinDot, { backgroundColor: opt.color }]} />
-              )}
-              <Text style={[s.chipText, { color: isActive ? '#000' : primary }]}>{display}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
 
   return (
     <Modal
@@ -326,12 +327,12 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
                 />
               </View>
 
-              <ChipRow label="Gender" options={GENDERS} selected={filterGender} onSelect={setFilterGender} />
-              <ChipRow label="Approximate Age" options={APPROXIMATE_AGES} selected={filterAgeRange} onSelect={setFilterAgeRange} />
-              <ChipRow label="Skin Tone" options={SKIN_TONES} selected={filterSkinTone} onSelect={setFilterSkinTone} />
-              <ChipRow label="Hair Style" options={HAIR_STYLES} selected={filterHair} onSelect={setFilterHair} />
-              <ChipRow label="Body Type" options={BODY_TYPES} selected={filterBodyType} onSelect={setFilterBodyType} />
-              <ChipRow label="Outfit Vibe" options={OUTFIT_VIBES} selected={filterOutfit} onSelect={setFilterOutfit} />
+              <ChipRow label="Gender" options={GENDERS} selected={filterGender} onSelect={setFilterGender} primary={primary} muted={muted} />
+              <ChipRow label="Approximate Age" options={APPROXIMATE_AGES} selected={filterAgeRange} onSelect={setFilterAgeRange} primary={primary} muted={muted} />
+              <ChipRow label="Skin Tone" options={SKIN_TONES} selected={filterSkinTone} onSelect={setFilterSkinTone} primary={primary} muted={muted} />
+              <ChipRow label="Hair Style" options={HAIR_STYLES} selected={filterHair} onSelect={setFilterHair} primary={primary} muted={muted} />
+              <ChipRow label="Body Type" options={BODY_TYPES} selected={filterBodyType} onSelect={setFilterBodyType} primary={primary} muted={muted} />
+              <ChipRow label="Outfit Vibe" options={OUTFIT_VIBES} selected={filterOutfit} onSelect={setFilterOutfit} primary={primary} muted={muted} />
             </View>
           )}
 

@@ -10,6 +10,21 @@ import { supabase } from '../services/supabase';
 import { useToast } from './ToastNotification';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
 
+const Field = ({ label, value, onChange, placeholder, multiline, keyboardType, textColor, muted, primary }) => (
+  <View style={f.fieldWrap}>
+    <Text style={[f.fieldLabel, { color: muted }]}>{label}</Text>
+    <TextInput
+      style={[f.input, { color: textColor, borderColor: `${primary}25` }, multiline && { minHeight: 80, textAlignVertical: 'top' }]}
+      value={value}
+      onChangeText={onChange}
+      placeholder={placeholder || label}
+      placeholderTextColor={muted}
+      multiline={multiline}
+      keyboardType={keyboardType || 'default'}
+    />
+  </View>
+);
+
 export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
   const { currentTheme } = useTheme();
   const toast = useToast();
@@ -185,20 +200,6 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
     }
   };
 
-  const Field = ({ label, value, onChange, placeholder, multiline, keyboardType }) => (
-    <View style={f.fieldWrap}>
-      <Text style={[f.fieldLabel, { color: muted }]}>{label}</Text>
-      <TextInput
-        style={[f.input, { color: textColor, borderColor: `${primary}25` }, multiline && { minHeight: 80, textAlignVertical: 'top' }]}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder || label}
-        placeholderTextColor={muted}
-        multiline={multiline}
-        keyboardType={keyboardType || 'default'}
-      />
-    </View>
-  );
 
   return (
     <>
@@ -216,9 +217,9 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
-                <Field label="Title" value={title} onChange={setTitle} placeholder="Event name" />
-                <Field label="Description" value={description} onChange={setDescription} placeholder="What's the vibe?" multiline />
-                <Field label="Venue" value={venueName} onChange={setVenueName} placeholder="Where is it?" />
+                <Field label="Title" value={title} onChange={setTitle} placeholder="Event name" textColor={textColor} muted={muted} primary={primary} />
+                <Field label="Description" value={description} onChange={setDescription} placeholder="What's the vibe?" multiline textColor={textColor} muted={muted} primary={primary} />
+                <Field label="Venue" value={venueName} onChange={setVenueName} placeholder="Where is it?" textColor={textColor} muted={muted} primary={primary} />
 
                 {/* ── Date picker ── */}
                 <View style={f.fieldWrap}>
@@ -260,13 +261,13 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
 
                 <View style={f.row}>
                   <View style={{ flex: 1 }}>
-                    <Field label="Price" value={price} onChange={setPrice} placeholder="FREE or amount" />
+                    <Field label="Price" value={price} onChange={setPrice} placeholder="FREE or amount" textColor={textColor} muted={muted} primary={primary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Field label="Capacity" value={capacity} onChange={setCapacity} placeholder="Max guests" keyboardType="numeric" />
+                    <Field label="Capacity" value={capacity} onChange={setCapacity} placeholder="Max guests" keyboardType="numeric" textColor={textColor} muted={muted} primary={primary} />
                   </View>
                 </View>
-                <Field label="Ticket URL" value={ticketUrl} onChange={setTicketUrl} placeholder="https://..." />
+                <Field label="Ticket URL" value={ticketUrl} onChange={setTicketUrl} placeholder="https://..." textColor={textColor} muted={muted} primary={primary} />
 
                 {/* Save */}
                 <TouchableOpacity style={[f.saveBtn, { backgroundColor: primary }]} onPress={handleSave} disabled={saving}>
