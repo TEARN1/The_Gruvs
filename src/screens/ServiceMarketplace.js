@@ -193,46 +193,60 @@ function BookingModal({
       return;
     }
     setLoading(true);
-    const id = await EscrowService.lockFunds({
-      requester_id: currentUserId,
-      provider_id: provider?.id,
-      service_type: provider?.service_type ?? 'General',
-      cargo_type: cargoType,
-      origin_address: origin.trim(),
-      destination_address: destination.trim(),
-      scheduled_at: scheduledAt.trim(),
-      amount_cents: estimatedPrice * 100,
-    });
-    setLoading(false);
-
-    if (id) {
-      setBookingId(id);
-      setPhase('proof');
-      showToast('Funds locked in escrow!', 'success');
-    } else {
+    try {
+      const id = await EscrowService.lockFunds({
+        requester_id: currentUserId,
+        provider_id: provider?.id,
+        service_type: provider?.service_type ?? 'General',
+        cargo_type: cargoType,
+        origin_address: origin.trim(),
+        destination_address: destination.trim(),
+        scheduled_at: scheduledAt.trim(),
+        amount_cents: estimatedPrice * 100,
+      });
+      if (id) {
+        setBookingId(id);
+        setPhase('proof');
+        showToast('Funds locked in escrow!', 'success');
+      } else {
+        showToast('Booking failed — please check your connection and try again.', 'error');
+      }
+    } catch {
       showToast('Booking failed — please check your connection and try again.', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleReceived = async () => {
     setLoading(true);
-    const ok = await EscrowService.releaseToProvider(bookingId, provider?.id);
-    setLoading(false);
-    if (ok) {
-      showToast(`R${estimatedPrice} released to ${provider?.username}!`, 'success');
-      onSuccess?.();
-      handleClose();
-    } else {
+    try {
+      const ok = await EscrowService.releaseToProvider(bookingId, provider?.id);
+      if (ok) {
+        showToast(`R${estimatedPrice} released to ${provider?.username}!`, 'success');
+        onSuccess?.();
+        handleClose();
+      } else {
+        showToast('Release failed — please try again or contact support.', 'error');
+      }
+    } catch {
       showToast('Release failed — please try again or contact support.', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDispute = async () => {
     setLoading(true);
-    await EscrowService.initiateDispute(bookingId, 'Requester initiated dispute');
-    setLoading(false);
-    showToast('Dispute opened. Support will contact you.', 'warning');
-    handleClose();
+    try {
+      await EscrowService.initiateDispute(bookingId, 'Requester initiated dispute');
+      showToast('Dispute opened. Support will contact you.', 'warning');
+      handleClose();
+    } catch {
+      showToast('Could not open dispute — try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!visible) return null;

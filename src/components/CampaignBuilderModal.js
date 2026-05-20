@@ -7,14 +7,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  TextInput, ActivityIndicator, Switch, Alert, Dimensions,
+  TextInput, ActivityIndicator, Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { GlassView } from './GlassView';
 
-const { width: SW } = Dimensions.get('window');
 
 // ── Targeting Definitions ────────────────────────────────────────────────────
 const TARGETING = {
@@ -99,10 +98,9 @@ const TARGETING = {
 };
 
 const CAMPAIGN_TYPES = ['awareness', 'engagement', 'lock_in', 'gruv_promo', 'retarget', 'lookalike'];
-const EVENT_PHASES   = ['pre_event', 'during_event', 'post_event'];
 
 // ── Multi-select Chip Field ───────────────────────────────────────────────────
-const MultiSelect = ({ options, selected = [], onChange, primary, textColor, muted }) => (
+const MultiSelect = ({ options, selected = [], onChange, primary, muted }) => (
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
     {options.map(opt => {
       const isSelected = selected.includes(opt);
@@ -180,7 +178,7 @@ const TargetingSection = ({ catKey, category, targeting, setTargeting, primary, 
         return (
           <View key={field.key} style={cms.fieldWrap}>
             <Text style={[cms.fieldLabel, { color: muted }]}>{field.label.toUpperCase()}</Text>
-            {field.type === 'multi' && <MultiSelect options={field.options} selected={val} onChange={set} primary={primary} textColor={textColor} muted={muted} />}
+            {field.type === 'multi' && <MultiSelect options={field.options} selected={val} onChange={set} primary={primary} muted={muted} />}
             {field.type === 'tags'  && <TagsInput tags={val} onChange={set} placeholder={field.placeholder} primary={primary} textColor={textColor} muted={muted} />}
             {field.type === 'number' && (
               <TextInput
@@ -285,7 +283,7 @@ const CAMPAIGN_TEMPLATES = [
 ];
 
 // ── Template Picker ───────────────────────────────────────────────────────────
-const TemplatePicker = ({ onSelect, onSkip, primary, textColor, muted, bg }) => (
+const TemplatePicker = ({ onSelect, onSkip, primary, textColor, muted }) => (
   <View style={{ flex: 1 }}>
     <View style={{ padding: 20, paddingBottom: 8 }}>
       <Text style={[tp.title, { color: textColor }]}>Start from a Template</Text>
@@ -408,13 +406,15 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
       targeting: { ...targeting, event_phases: phases },
     };
 
-    const { error } = existing
-      ? await supabase.from('ad_campaigns').update(payload).eq('id', existing.id)
-      : await supabase.from('ad_campaigns').insert(payload);
-
-    setSaving(false);
-    if (error) { Alert.alert('Error', error.message); return; }
-    onSaved?.();
+    try {
+      const { error } = existing
+        ? await supabase.from('ad_campaigns').update(payload).eq('id', existing.id)
+        : await supabase.from('ad_campaigns').insert(payload);
+      if (error) { Alert.alert('Error', error.message); return; }
+      onSaved?.();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const STEPS = [
@@ -569,7 +569,7 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
           <TemplatePicker
             onSelect={applyTemplate}
             onSkip={() => setTemplatePicker(false)}
-            primary={primary} textColor={textColor} muted={muted} bg={bg}
+            primary={primary} textColor={textColor} muted={muted}
           />
         ) : (
           <>

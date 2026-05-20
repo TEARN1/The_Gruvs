@@ -158,28 +158,32 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
 
   const loadFollowing = useCallback(async () => {
     if (!user) return;
-    const [followRes, blockRes] = await Promise.all([
-      supabase.from('follows').select('following_id').eq('follower_id', user.id),
-      supabase.from('user_blocks').select('blocked_id').eq('blocker_id', user.id),
-    ]);
-    setFollowedIds(new Set((followRes.data || []).map(r => r.following_id)));
-    setBlockedIds(new Set((blockRes.data || []).map(r => r.blocked_id)));
+    try {
+      const [followRes, blockRes] = await Promise.all([
+        supabase.from('follows').select('following_id').eq('follower_id', user.id),
+        supabase.from('user_blocks').select('blocked_id').eq('blocker_id', user.id),
+      ]);
+      setFollowedIds(new Set((followRes.data || []).map(r => r.following_id)));
+      setBlockedIds(new Set((blockRes.data || []).map(r => r.blocked_id)));
+    } catch { }
   }, [user]);
 
   const loadSuggested = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.rpc('suggested_follows', { p_user: user.id, p_limit: 6 });
-    if (!data?.length) return;
-    const ids = data.map(r => r.suggested_id);
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_url, is_verified, vibe_score, bio')
-      .in('id', ids);
-    const scored = (profiles || []).map(p => ({
-      ...p,
-      mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0,
-    })).sort((a, b) => b.mutual_count - a.mutual_count);
-    setSuggested(scored);
+    try {
+      const { data } = await supabase.rpc('suggested_follows', { p_user: user.id, p_limit: 6 });
+      if (!data?.length) return;
+      const ids = data.map(r => r.suggested_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, is_verified, vibe_score, bio')
+        .in('id', ids);
+      const scored = (profiles || []).map(p => ({
+        ...p,
+        mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0,
+      })).sort((a, b) => b.mutual_count - a.mutual_count);
+      setSuggested(scored);
+    } catch { }
   }, [user]);
 
   const fetchAll = useCallback(async (q = '') => {
@@ -252,6 +256,18 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
     return () => clearTimeout(searchTimer.current);
   }, [query]);
 
+  // Real-time: patch online status in-place when profiles.last_seen changes
+  useEffect(() => {
+    const chan = supabase
+      .channel('discover_presence')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: 'is_online=eq.true' }, (payload) => {
+        const updated = payload.new;
+        setVibers(prev => prev.map(v => v.id === updated.id ? { ...v, is_online: updated.is_online, last_seen: updated.last_seen } : v));
+      })
+      .subscribe();
+    return () => supabase.removeChannel(chan);
+  }, []);
+
   const handleMessage = (viber) => {
     if (!user) { onAuthRequired?.(); return; }
     setMsgTarget(viber);
@@ -260,12 +276,16 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
 
   const handleBlock = async (viber) => {
     if (!user) return;
-    await supabase.from('user_blocks').upsert(
-      { blocker_id: user.id, blocked_id: viber.id },
-      { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
-    );
-    setBlockedIds(prev => new Set([...prev, viber.id]));
-    showToast(`@${viber.username} blocked`, 'info');
+    try {
+      await supabase.from('user_blocks').upsert(
+        { blocker_id: user.id, blocked_id: viber.id },
+        { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
+      );
+      setBlockedIds(prev => new Set([...prev, viber.id]));
+      showToast(`@${viber.username} blocked`, 'info');
+    } catch {
+      showToast('Could not block user. Try again.', 'error');
+    }
   };
 
   return (

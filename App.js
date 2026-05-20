@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useFonts } from 'expo-font';
 import {
   View, StyleSheet, TouchableOpacity, Text,
-  StatusBar, Animated, Platform, useWindowDimensions, BackHandler,
+  StatusBar, Animated, Platform, useWindowDimensions, BackHandler, ActivityIndicator,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { BREAKPOINT } from './src/constants/DesignTokens';
@@ -34,6 +34,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { SecurityService } from './src/services/securityService';
 import { VibeEconomyEngine } from './src/services/revenueEngine';
 import { NeuralUI } from './src/services/neuralUI';
+import { supabase } from './src/services/supabase';
 
 // Install before any component mounts so all boot errors are captured
 installGlobalErrorHandler();
@@ -336,45 +337,46 @@ const MainNavigator = () => {
 
   // Auto-launch welcome tutorial on first app open
   useEffect(() => {
-    // Advanced Logic: Check Sovereign Status
     const checkStatus = async () => {
-      const user = authUser;
-      if (user) {
-        const status = await VibeEconomyEngine.getSovereignStatus(user.id);
-        setIsSovereign(status.isRoyal);
+      if (!authUser) {
+        setIsSovereign(false);
+        return;
+      }
 
-        // NEW: Dynamic Sovereign Glow
-        if (status.isRoyal) {
-          // Apply a subtle glow effect to the UI based on equity
-          const glowIntensity = Math.min(1, status.equity / VibeEconomyEngine.ROYAL_THRESHOLD);
-          applyNeuralTheme({ glowIntensity: glowIntensity * 0.5 }); // Max 50% intensity
-        }
+      const status = await VibeEconomyEngine.getSovereignStatus(authUser.id);
+      setIsSovereign(status.isRoyal);
 
-        // Advanced Logic: Neural UI Mutation
-        if (status.isRoyal || status.sis > 90) {
-          NeuralUI.calculateOptimalEnvironment({ sis: status.sis, equity: status.equity })
-            .then(res => applyNeuralTheme(res.custom_tokens))
-            .catch(() => { });
-        }
+      // Dynamic Sovereign Glow
+      if (status.isRoyal) {
+        const glowIntensity = Math.min(1, status.equity / VibeEconomyEngine.ROYAL_THRESHOLD);
+        applyNeuralTheme({ glowIntensity: glowIntensity * 0.5 });
+      }
+
+      // Advanced Neural UI adaptation
+      if (status.isRoyal || status.sis > 90) {
+        NeuralUI.calculateOptimalEnvironment({ sis: status.sis, equity: status.equity })
+          .then(res => applyNeuralTheme(res.custom_tokens))
+          .catch(() => { });
       }
     };
+
     checkStatus();
 
-    // Security check: validate session on mount
     SecurityService.validateSession().then(isValid => {
-      if (!isValid && currentTab !== 'feed') {
-        // Optional: force sign out or redirect if session is invalid
+      if (!isValid) {
+        supabase.auth.signOut().catch(() => {});
       }
     });
 
     if (!hasLaunched) {
-      const t = setTimeout(() => {
+      const timer = setTimeout(() => {
         openTutorial('welcome');
         markLaunched();
       }, 1200);
-      return () => clearTimeout(t);
+      return () => clearTimeout(timer);
     }
-  }, [hasLaunched]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLaunched, authUser, applyNeuralTheme, openTutorial, markLaunched]);
 
   const bg = currentTheme?.background || '#0d1112';
   const primary = currentTheme?.primary || '#00f2ff';
@@ -403,7 +405,7 @@ const MainNavigator = () => {
     document.title = `${tabLabel} — The Gruvs`;
   }, [currentTab]);
 
-  const handleTabChange = (tab) => {
+  const handleTabChange = useCallback((tab) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
     }
@@ -413,7 +415,7 @@ const MainNavigator = () => {
     } else {
       setCurrentTab(tab);
     }
-  };
+  }, [currentTab]);
 
   const handleAuthRequired = () => setAuthModalVisible(true);
 
@@ -588,11 +590,20 @@ const MainNavigator = () => {
 export default function App() {
   // Kick off font load in background. Never block rendering — if the load
   // stalls, the app would be permanently blank. Icons self-load in componentDidMount.
-  useFonts({
-    feather: Platform.OS === 'web'
-      ? 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'
+  const [fontsLoaded] = useFonts({
+    Feather: Platform.OS === 'web'
+      ? { uri: 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf' }
       : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
   });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.loadingScreen}>
+        <StatusBar barStyle="light-content" backgroundColor="#0d1112" translucent={false} />
+        <ActivityIndicator size="large" color="#00f2ff" />
+      </View>
+    );
+  }
 
   return (
     <ErrorBoundary>
@@ -687,5 +698,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.5,
+  },
+  loadingScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0d1112',
   },
 });

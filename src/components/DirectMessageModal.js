@@ -385,16 +385,16 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         parent_id: parentId,
         _pregenId: msgId,
       });
-      setSending(false);
       // Swap the optimistic placeholder with the DB-confirmed row
       setMessages(prev => prev.map(m => m.id === msgId ? { ...newMsg, _optimistic: false } : m));
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     } catch (e) {
-      setSending(false);
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, _failed: true, _optimistic: false } : m));
       showToast(e?.message?.includes('row-level security')
         ? 'Message blocked — run the SQL patch in Supabase to enable messaging.'
         : 'Message failed: ' + (e?.message || 'Unknown error'), 'error');
+    } finally {
+      setSending(false);
     }
   };
 

@@ -92,17 +92,22 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
     setText('');
     setReplyTo(null);
     setPosting(true);
-    const { error } = await supabase.from('echoes').insert({
-      event_id: eventId,
-      user_id: user.id,
-      body,
-      parent_id: optimistic.parent_id,
-    });
-    setPosting(false);
-    if (error) {
+    try {
+      const { error } = await supabase.from('echoes').insert({
+        event_id: eventId,
+        user_id: user.id,
+        body,
+        parent_id: optimistic.parent_id,
+      });
+      if (error) {
+        setEchoes(prev => prev.filter(e => e.id !== tempId));
+      } else {
+        fetchEchoes();
+      }
+    } catch {
       setEchoes(prev => prev.filter(e => e.id !== tempId));
-    } else {
-      fetchEchoes();
+    } finally {
+      setPosting(false);
     }
   };
 

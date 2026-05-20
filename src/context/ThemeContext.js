@@ -50,8 +50,8 @@ export const ThemeProvider = ({ children }) => {
       setCurrentTheme(prev => ({ ...prev, ...neuralOverride }));
       return;
     }
-    const theme = THEMES[gender]?.[themeIndex];
-    if (theme) setCurrentTheme(theme);
+    const theme = THEMES[gender]?.[themeIndex] || THEMES[GENDERS.MALE][0];
+    setCurrentTheme(theme);
   }, [gender, themeIndex, neuralOverride]);
 
   // Items 23-30: Inject CSS custom properties to :root on web

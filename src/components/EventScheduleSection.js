@@ -38,23 +38,27 @@ const CreatePollModal = ({ visible, onClose, eventId, scheduleSlot, primary, bg,
     if (!user?.id) return toast.show('Sign in to create a poll.', 'error');
 
     setLoading(true);
-    const { error } = await supabase.from('event_polls').insert({
-      event_id: eventId,
-      author_id: user.id,
-      question: question.trim(),
-      options: validOptions,
-      schedule_slot: scheduleSlot || null,
-      votes: {},
-      created_at: new Date().toISOString(),
-    });
-    setLoading(false);
-
-    if (error) {
-      toast.show('Could not create poll: ' + error.message, 'error');
-    } else {
-      toast.show('Poll created! 🗳️', 'success');
-      reset();
-      onClose(true); // true = refresh
+    try {
+      const { error } = await supabase.from('event_polls').insert({
+        event_id: eventId,
+        author_id: user.id,
+        question: question.trim(),
+        options: validOptions,
+        schedule_slot: scheduleSlot || null,
+        votes: {},
+        created_at: new Date().toISOString(),
+      });
+      if (error) {
+        toast.show('Could not create poll: ' + error.message, 'error');
+      } else {
+        toast.show('Poll created! 🗳️', 'success');
+        reset();
+        onClose(true);
+      }
+    } catch (e) {
+      toast.show('Could not create poll: ' + (e?.message || 'Unknown error'), 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -223,13 +227,17 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
       votes[option] = [...(votes[option] || []), user.id];
     }
 
-    // Optimistic update
     setPolls(prev => prev.map(p => p.id === pollId ? { ...p, votes } : p));
 
-    const { error } = await supabase.from('event_polls').update({ votes }).eq('id', pollId);
-    if (error) {
-      toast.show('Vote failed: ' + error.message, 'error');
-      loadPolls(); // revert
+    try {
+      const { error } = await supabase.from('event_polls').update({ votes }).eq('id', pollId);
+      if (error) {
+        toast.show('Vote failed: ' + error.message, 'error');
+        loadPolls();
+      }
+    } catch {
+      toast.show('Vote failed — check your connection', 'error');
+      loadPolls();
     }
   };
 

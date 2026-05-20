@@ -17,11 +17,13 @@ import projectDNA from './projectDNA.json';
 // ── INTELLIGENCE MONITORING (Autonomous Training) ──────────────────────────
 export const IntelligenceMonitor = {
   async logSuccess(feature, duration) {
-    if (duration > 500) {
+    if (__DEV__ && duration > 500) {
+      log.warn(`[PerfAlert] ${feature} took ${duration}ms`);
     }
   },
   async logFailure(feature, error) {
-  }
+    log.error(`[Intelligence] ${feature} failed`, error);
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -495,8 +497,8 @@ export const FeedManager = {
       if (ftsEvents) ilikeEvents.forEach(e => { if (!eventMap.has(e.id)) eventMap.set(e.id, e); });
 
       return { events: [...eventMap.values()].slice(0, 20), users };
-    } catch (error) {
-      throw error;
+    } catch {
+      return { events: [], users: [] };
     }
   },
 
@@ -1996,7 +1998,7 @@ export const CapacityManager = {
 
       if (!event.max_attendees) return { hasLimit: false, isSoldOut: false, spotsLeft: null };
       const { count } = await supabase
-        .from('check_ins').select('id', { count: 'exact', head: true })
+        .from('live_checkins').select('id', { count: 'exact', head: true })
         .eq('event_id', eventId);
       const spotsLeft = Math.max(0, event.max_attendees - (count || 0));
       return { hasLimit: true, isSoldOut: event.is_sold_out || spotsLeft === 0, spotsLeft, capacity: event.max_attendees };
@@ -2108,10 +2110,9 @@ export const FollowingFeedManager = {
 export const ActivityFeedManager = {
   async fetchActivity(userId, limit = 40) {
     if (!userId) return { liveNow: [], activity: [] };
-    const followedIds = await UserManager.getFollowedIds(userId);
-    if (!followedIds.length) return { liveNow: [], activity: [] };
-
     try {
+      const followedIds = await UserManager.getFollowedIds(userId);
+      if (!followedIds.length) return { liveNow: [], activity: [] };
       const [rsvpRes, checkinRes, vibeRes] = await Promise.all([
         supabase
           .from('event_rsvps')

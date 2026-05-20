@@ -57,12 +57,15 @@ export const OOS = {
       const result = await NeuralMesh.executeSupremeThought(prompt);
 
       // ── PRECISION ECONOMIC GOVERNANCE ──
-      const { data: stats } = await supabase.rpc('get_precision_economic_metrics');
-      const equilibriumIndex = (stats.total_minted / Math.max(stats.total_burned, 1)).toFixed(8);
-
-      if (parseFloat(equilibriumIndex) > 1.05) {
-         projectDNA.sovereign_mint_params.vibe_burn_rate += 0.005;
-      }
+      try {
+        const { data: stats } = await supabase.rpc('get_precision_economic_metrics');
+        if (stats?.total_minted != null) {
+          const equilibriumIndex = (stats.total_minted / Math.max(stats.total_burned || 0, 1));
+          if (equilibriumIndex > 1.05) {
+            projectDNA.sovereign_mint_params.vibe_burn_rate += 0.005;
+          }
+        }
+      } catch { /* RPC not yet deployed — skip governance adjustment */ }
 
       return result;
     } catch (e) {
@@ -88,13 +91,13 @@ export const OOS = {
   },
 
   async _cfoTreasuryCheck() {
-    // Check Vibe Score distribution
-    const { data: scores } = await supabase.from('profiles').select('vibe_score');
-    const avg = scores.reduce((a, b) => a + b.vibe_score, 0) / scores.length;
-
-    if (avg > 500) {
-      // Logic to update DNA weights here
+    try {
+      const { data: scores } = await supabase.from('profiles').select('vibe_score').limit(1000);
+      if (!scores?.length) return 'CFO: No vibe score data available.';
+      const avg = scores.reduce((a, b) => a + (b.vibe_score || 0), 0) / scores.length;
+      return `CFO: Economy balanced. Average Vibe-Wealth: ${avg.toFixed(2)}`;
+    } catch (e) {
+      return `CFO: Treasury check failed — ${e.message}`;
     }
-    return `CFO: Economy balanced. Average Vibe-Wealth: ${avg}`;
   }
 };

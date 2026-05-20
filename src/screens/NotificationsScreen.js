@@ -307,12 +307,14 @@ export const useUnreadCount = () => {
 
   const fetchCount = useCallback(async () => {
     if (!user) { setCount(0); return; }
-    const { count: c } = await supabase
-      .from('notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('recipient_id', user.id)
-      .eq('read', false);
-    setCount(c || 0);
+    try {
+      const { count: c } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient_id', user.id)
+        .eq('read', false);
+      setCount(c || 0);
+    } catch { /* badge stays at last known value on transient errors */ }
   }, [user]);
 
   useEffect(() => {

@@ -432,6 +432,12 @@ async function buildDeepContext(userId) {
       lines.push(`Categories they vibe to: ${vibeCategories.slice(0, 5).join(', ')}`);
     }
 
+    // Saved events
+    const savedCategories = [...new Set((savedEvents || []).filter(s => s.events?.category).map(s => s.events.category))];
+    if (savedCategories.length) {
+      lines.push(`Saved event categories: ${savedCategories.slice(0, 5).join(', ')}`);
+    }
+
     // Who they follow
     const followedCities = [...new Set((following || []).filter(f => f.profiles?.city).map(f => f.profiles.city))];
     const followedInterests = [...new Set((following || []).flatMap(f => f.profiles?.interests || []))].slice(0, 6);
@@ -802,13 +808,6 @@ ${data.is_featured ? '⭐ FEATURED EVENT' : ''}`;
         if (input.interests?.length) {
           q = q.overlaps('interests', input.interests);
         }
-        // NEW: Prioritize users from path crossings
-        const { data: crossedPaths } = await supabase.from('path_crossings').select('user_id_a, user_id_b').or(`user_id_a.eq.${userId},user_id_b.eq.${userId}`).limit(50);
-        const recentCrossedIds = new Set(crossedPaths?.flatMap(pc => [pc.user_id_a, pc.user_id_b]).filter(id => id !== userId));
-        if (recentCrossedIds.size > 0) {
-          // This is a conceptual boost; actual SQL `IN` clause might be too broad.
-          // For a real implementation, this would be a complex join or a separate RPC.
-        }
         const { data } = await q;
         if (!data?.length) return 'No Vibers found matching those criteria.';
         return data.map(v =>
@@ -945,7 +944,7 @@ export async function chat(messages, { feature = AIFeature.ASSISTANT, userId, sy
 
   if (feature === AIFeature.ARCHITECT) {
     // 40x Logic: Use the Recursive RM-OS Engine
-    constCEOInstruction = messages.at(-1)?.content || '';
+    const CEOInstruction = messages.at(-1)?.content || '';
     return HyperReasoning.initiateDeepThought(enrichedExtra + '\n\n' + CEOInstruction);
   }
 
@@ -1156,7 +1155,7 @@ export async function vibeCoach({ profile = {}, recentActivity = {}, userId } = 
         supabase.from('event_rsvps').select('status, created_at').eq('user_id', userId).gte('created_at', month30),
         supabase.from('event_vibes').select('id').eq('user_id', userId).gte('created_at', month30),
         supabase.from('echoes').select('id').eq('user_id', userId).gte('created_at', month30),
-        supabase.from('event_checkins').select('id').eq('user_id', userId).gte('created_at', month30),
+        supabase.from('live_checkins').select('id').eq('user_id', userId).gte('created_at', month30),
         // Compare to similar-score Vibers
         supabase.from('profiles')
           .select('vibe_score, followers_count')

@@ -74,16 +74,22 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
     const newVal = !stats?.isAvailable;
     setTogglingAvail(true);
     setStats(prev => prev ? { ...prev, isAvailable: newVal } : prev);
-    const { error } = await supabase
-      .from('service_nodes')
-      .upsert({ user_id: user.id, available: newVal, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
-    if (error) {
+    try {
+      const { error } = await supabase
+        .from('service_nodes')
+        .upsert({ user_id: user.id, available: newVal, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      if (error) {
+        setStats(prev => prev ? { ...prev, isAvailable: !newVal } : prev);
+        toast.show('Failed to update status', 'error');
+      } else {
+        toast.show(newVal ? "You're now Open for Business!" : 'Status set to Offline', 'success');
+      }
+    } catch {
       setStats(prev => prev ? { ...prev, isAvailable: !newVal } : prev);
       toast.show('Failed to update status', 'error');
-    } else {
-      toast.show(newVal ? 'You\'re now Open for Business!' : 'Status set to Offline', 'success');
+    } finally {
+      setTogglingAvail(false);
     }
-    setTogglingAvail(false);
   }, [user, stats?.isAvailable, togglingAvail]);
 
   useEffect(() => {

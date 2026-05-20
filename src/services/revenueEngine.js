@@ -77,8 +77,10 @@ export const VibeEconomyEngine = {
       };
     }
 
-    // Recursive Liquidity: 10% of tax goes to the Global War Chest
-    await supabase.rpc('distribute_to_war_chest', { amount: contribution * 0.1 });
+    // Recursive Liquidity: 10% of tax goes to the Global War Chest (best-effort — RPC may not be deployed yet)
+    try {
+      await supabase.rpc('distribute_to_war_chest', { amount: contribution * 0.1 });
+    } catch { /* RPC not deployed — skip silently */ }
 
     return {
       netValue: actionValue - contribution,
@@ -88,7 +90,11 @@ export const VibeEconomyEngine = {
   },
 
   async getGlobalEconomicHealth() {
-    const { data } = await supabase.rpc('get_economic_velocity'); // Assuming this RPC exists
-    return data;
+    try {
+      const { data } = await supabase.rpc('get_economic_velocity');
+      return data;
+    } catch {
+      return null;
+    }
   }
 };

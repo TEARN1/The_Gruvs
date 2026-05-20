@@ -3,17 +3,16 @@
  * Blocks: Hero · Text · Gallery · CTA · Countdown · Testimonials · Services · Contact · Socials · Stats · Map · FAQ
  * Each block is stored as JSONB in `business_page_blocks` in Supabase.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  TextInput, ActivityIndicator, Modal, Switch, Alert, Dimensions,
+  TextInput, ActivityIndicator, Modal, Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { supabase } from '../services/supabase';
 import { GlassView } from '../components/GlassView';
 
-const { width: SW } = Dimensions.get('window');
 
 const BLOCK_TYPES = [
   { type: 'hero', label: 'Hero Banner', icon: 'image', desc: 'Big headline, tagline, and CTA button' },
@@ -422,7 +421,7 @@ const AddBlockModal = ({ visible, onClose, onAdd, primary, textColor, muted, bg 
 );
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg, surface }) => {
+export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => {
   const [blocks, setBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -430,21 +429,25 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg, surfa
   const [editBlock, setEditBlock] = useState(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState(THEME_PRESETS[0]);
-  const [storeEnabled, setStoreEnabled] = useState(biz?.store_enabled || false);
+  const [storeEnabled, setStoreEnabled] = useState(false);
   const [slug, setSlug] = useState(biz?.store_slug || '');
 
   useEffect(() => { if (biz?.id) loadBlocks(); }, [biz?.id]);
 
   const loadBlocks = async () => {
-    // Removed demo mode fallback. Real data required.
     setLoading(true);
-    const { data } = await supabase
-      .from('business_page_blocks')
-      .select('*')
-      .eq('business_id', biz.id)
-      .order('position', { ascending: true });
-    setBlocks(data || []);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from('business_page_blocks')
+        .select('*')
+        .eq('business_id', biz.id)
+        .order('position', { ascending: true });
+      setBlocks(data || []);
+    } catch {
+      // keep existing blocks on transient failure
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addBlock = async (type) => {
@@ -494,10 +497,16 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg, surfa
     if (!slug.trim()) { Alert.alert('Store URL', 'Please set a store URL slug first.'); return; }
     setSaving(true);
     try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
-    await supabase.from('business_profiles').update({ store_enabled: true, store_slug: slug.trim().toLowerCase().replace(/\s+/g, '-') }).eq('id', biz.id);
-    setSaving(false);
-    setStoreEnabled(true);
-    Alert.alert('Published!', `Your store is live at thegruvs.app/store/${slug}`);
+    try {
+      const { error } = await supabase.from('business_profiles')
+        .update({ store_enabled: true, store_slug: slug.trim().toLowerCase().replace(/\s+/g, '-') })
+        .eq('id', biz.id);
+      if (error) { Alert.alert('Error', error.message); return; }
+      setStoreEnabled(true);
+      Alert.alert('Published!', `Your store is live at thegruvs.app/store/${slug}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={primary} /></View>;

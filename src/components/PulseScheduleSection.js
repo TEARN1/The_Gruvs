@@ -50,11 +50,13 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
 
   const fetchMyVotes = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('pulse_votes')
-      .select('request_id')
-      .eq('user_id', user.id);
-    if (data) setMyVotes(new Set(data.map(v => v.request_id)));
+    try {
+      const { data } = await supabase
+        .from('pulse_votes')
+        .select('request_id')
+        .eq('user_id', user.id);
+      if (data) setMyVotes(new Set(data.map(v => v.request_id)));
+    } catch { /* keep existing vote state on transient failure */ }
   }, [user]);
 
   useEffect(() => {
@@ -84,13 +86,21 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
         .sort((a, b) => b.vote_count - a.vote_count)
     );
 
-    const { error } = await supabase.from('pulse_votes').insert({ request_id: requestId, user_id: user.id });
-    if (!error) {
-      await supabase.from('pulse_requests')
-        .update({ vote_count: requests.find(r => r.id === requestId)?.vote_count + 1 })
-        .eq('id', requestId);
-    } else {
-      // Rollback on duplicate
+    try {
+      const { error } = await supabase.from('pulse_votes').insert({ request_id: requestId, user_id: user.id });
+      if (!error) {
+        await supabase.from('pulse_requests')
+          .update({ vote_count: requests.find(r => r.id === requestId)?.vote_count + 1 })
+          .eq('id', requestId);
+      } else {
+        // Rollback on duplicate/error
+        setMyVotes(prev => { const n = new Set(prev); n.delete(requestId); return n; });
+        setRequests(prev =>
+          prev.map(r => r.id === requestId ? { ...r, vote_count: r.vote_count - 1 } : r)
+        );
+      }
+    } catch {
+      // Rollback optimistic update on network failure
       setMyVotes(prev => { const n = new Set(prev); n.delete(requestId); return n; });
       setRequests(prev =>
         prev.map(r => r.id === requestId ? { ...r, vote_count: r.vote_count - 1 } : r)
@@ -109,20 +119,26 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
     setRequests(prev => [optimistic, ...prev]);
     setNewRequest('');
 
-    const { data, error } = await supabase.from('pulse_requests')
-      .insert({ event_id: eventId, user_id: user.id, content, vote_count: 1 })
-      .select().single();
+    try {
+      const { data, error } = await supabase.from('pulse_requests')
+        .insert({ event_id: eventId, user_id: user.id, content, vote_count: 1 })
+        .select().single();
 
-    if (error) {
+      if (error) {
+        setRequests(prev => prev.filter(r => r.id !== tempId));
+        toast.show('Failed to add request', 'error');
+      } else {
+        setRequests(prev => prev.map(r => r.id === tempId ? data : r));
+        if (data) setMyVotes(prev => new Set([...prev, data.id]));
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        toast.show('Request added to the Pulse!', 'success');
+      }
+    } catch {
       setRequests(prev => prev.filter(r => r.id !== tempId));
       toast.show('Failed to add request', 'error');
-    } else {
-      setRequests(prev => prev.map(r => r.id === tempId ? data : r));
-      if (data) setMyVotes(prev => new Set([...prev, data.id]));
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toast.show('Request added to the Pulse!', 'success');
+    } finally {
+      setPosting(false);
     }
-    setPosting(false);
   };
 
   return (

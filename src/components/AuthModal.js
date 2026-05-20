@@ -78,15 +78,20 @@ export const AuthModal = ({ visible, onClose }) => {
     }
     setLoading(true);
     setError('');
-    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      SecurityService.logSecurityEvent(null, 'AUTH_SIGNIN_FAILED', { email: email.trim(), error: error.message });
-    } else {
-      SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNIN_SUCCESS');
-      onClose();
-      setTimeout(() => toast?.show('Welcome back! 👑', 'success'), 300);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        setError(error.message);
+        SecurityService.logSecurityEvent(null, 'AUTH_SIGNIN_FAILED', { email: email.trim(), error: error.message });
+      } else {
+        SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNIN_SUCCESS');
+        onClose();
+        setTimeout(() => toast?.show('Welcome back! 👑', 'success'), 300);
+      }
+    } catch (e) {
+      setError(e?.message || 'Sign in failed — check your connection.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -106,17 +111,26 @@ export const AuthModal = ({ visible, onClose }) => {
     }
     setLoading(true);
     setError('');
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { data: { username: username.trim() } },
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      SecurityService.logSecurityEvent(null, 'AUTH_SIGNUP_FAILED', { email: email.trim(), username: username.trim(), error: error.message });
+    let data;
+    try {
+      const result = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { username: username.trim() } },
+      });
+      if (result.error) {
+        setError(result.error.message);
+        SecurityService.logSecurityEvent(null, 'AUTH_SIGNUP_FAILED', { email: email.trim(), username: username.trim(), error: result.error.message });
+        return;
+      }
+      data = result.data;
+    } catch (e) {
+      setError(e?.message || 'Sign up failed — check your connection.');
       return;
+    } finally {
+      setLoading(false);
     }
+    if (!data) return;
     if (data.user) {
       SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_SUCCESS');
       supabase.from('profiles').upsert({

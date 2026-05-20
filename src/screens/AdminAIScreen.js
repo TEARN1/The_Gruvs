@@ -7,14 +7,14 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   FlatList, KeyboardAvoidingView, Platform, ActivityIndicator,
-  ScrollView, Alert,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
-import { adminChat, chat, runHealthCheck, AIFeature } from '../services/claudeService';
+import { adminChat, runHealthCheck } from '../services/claudeService';
 
 const OWNER_EMAIL = 'asemahlenkwali@gmail.com';
 
@@ -69,7 +69,7 @@ async function executeTool(toolName, toolInput) {
         } else if (segment === 'top_vibers') {
           query = query.order('vibe_score', { ascending: false }).limit(100);
         }
-        const { data: users, count } = await query.limit(500);
+        const { data: users } = await query.limit(500);
 
         // Insert notification rows for each user
         if (users?.length) {
@@ -163,11 +163,6 @@ export const AdminAIScreen = ({ onClose }) => {
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
 
-    const history = [...messages, userMsg]
-      .filter(m => m.role !== 'system')
-      .slice(-12)
-      .map(m => ({ role: m.role, content: m.text }));
-
     try {
       const result = await runHealthCheck({ userId: user.id });
 
@@ -202,27 +197,35 @@ export const AdminAIScreen = ({ onClose }) => {
       .slice(-12)
       .map(m => ({ role: m.role, content: m.text }));
 
-    let result = await adminChat(history, { userId: user.id });
+    try {
+      let result = await adminChat(history, { userId: user.id });
 
-    // If Claude wants to use a tool, execute it and feed result back
-    if (result.toolUse) {
-      const toolResult = await executeTool(result.toolUse.name, result.toolUse.input);
-      // Continue conversation with tool result
-      const followUp = await adminChat([
-        ...history,
-        { role: 'assistant', content: [result.toolUse] },
-        { role: 'user', content: [{ type: 'tool_result', tool_use_id: result.toolUse.id, content: toolResult }] },
-      ], { userId: user.id });
-      result = followUp;
+      // If Claude wants to use a tool, execute it and feed result back
+      if (result.toolUse) {
+        const toolResult = await executeTool(result.toolUse.name, result.toolUse.input);
+        const followUp = await adminChat([
+          ...history,
+          { role: 'assistant', content: [result.toolUse] },
+          { role: 'user', content: [{ type: 'tool_result', tool_use_id: result.toolUse.id, content: toolResult }] },
+        ], { userId: user.id });
+        result = followUp;
+      }
+
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        text: result.text || 'No response — check API key.',
+      }]);
+    } catch (e) {
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        text: `Error: ${e?.message || 'Request failed — check your connection.'}`,
+      }]);
+    } finally {
+      setLoading(false);
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
     }
-
-    setMessages(prev => [...prev, {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      text: result.text || 'No response — check API key.',
-    }]);
-    setLoading(false);
-    setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
   return (

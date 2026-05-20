@@ -42,15 +42,17 @@ export const ReportModal = ({ visible, onClose, targetId, targetType = 'event' }
   const submit = async () => {
     if (!selected || !user) return;
     setSubmitting(true);
-    await supabase.from('reports').insert({
-      reporter_id: user.id,
-      target_id: targetId,
-      target_type: targetType,
-      reason: selected,
-      details: details.trim() || null,
-    });
-    setSubmitting(false);
-    setDone(true);
+    try {
+      await supabase.from('reports').insert({
+        reporter_id: user.id,
+        target_id: targetId,
+        target_type: targetType,
+        reason: selected,
+        details: details.trim() || null,
+      });
+      setDone(true);
+    } catch { /* report failed silently — UI stays open so user can retry */ }
+    finally { setSubmitting(false); }
   };
 
   return (

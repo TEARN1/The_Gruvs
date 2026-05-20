@@ -124,9 +124,14 @@ export const NeuralMesh = {
 
       // Update DNA state
       projectDNA.version = "Sovereign-1.0";
-      projectDNA.topology.core.push("CORONATION_SEAL_ACTIVE");
+      if (!projectDNA.topology.core.includes("CORONATION_SEAL_ACTIVE")) {
+        projectDNA.topology.core.push("CORONATION_SEAL_ACTIVE");
+      }
 
-      return JSON.parse(result.text);
+      // Parse JSON if AI returned it; otherwise wrap the text as the decree
+      let parsed = null;
+      try { parsed = JSON.parse(result.text); } catch { /* not JSON */ }
+      return parsed || { final_decree: result.text || 'Long live the Kingdom.' };
     } catch (e) {
       console.error('[SAI] Coronation failed:', e.message);
       return null;

@@ -73,25 +73,35 @@ export const WalletScreen = ({ visible, onClose }) => {
 
   const handleRelease = async (booking) => {
     setLoading(true);
-    const ok = await EscrowService.releaseToProvider(booking.id, booking.provider_id);
-    if (ok) {
-      toast.show('Funds released!', 'success');
-      setReviewTarget(booking); // Open review modal immediately after release
-      loadData();
-    } else {
+    try {
+      const ok = await EscrowService.releaseToProvider(booking.id, booking.provider_id);
+      if (ok) {
+        toast.show('Funds released!', 'success');
+        setReviewTarget(booking);
+        loadData();
+      } else {
+        toast.show('Failed to release funds', 'error');
+      }
+    } catch {
       toast.show('Failed to release funds', 'error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDispute = async (booking) => {
     setLoading(true);
-    const ok = await EscrowService.initiateDispute(booking.id, 'Dispute from wallet history');
-    if (ok) {
-      toast.show('Dispute opened', 'warning');
-      loadData();
+    try {
+      const ok = await EscrowService.initiateDispute(booking.id, 'Dispute from wallet history');
+      if (ok) {
+        toast.show('Dispute opened', 'warning');
+        loadData();
+      }
+    } catch {
+      toast.show('Could not open dispute', 'error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const renderBooking = (item) => {

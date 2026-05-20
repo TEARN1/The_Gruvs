@@ -82,23 +82,26 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
       eventDate = `${y}-${mo}-${d}`;
     }
 
-    const { error } = await supabase.from('events').update({
-      title: title.trim(),
-      description: description.trim(),
-      venue_name: venueName.trim() || null,
-      event_date: eventDate,
-      event_time: timeSet ? fmtTime() : null,
-      price: price.trim() || null,
-      capacity: capacity ? parseInt(capacity) : null,
-      ticket_url: ticketUrl.trim() || null,
-    }).eq('id', event.id);
-    setSaving(false);
-    if (error) {
-      toast.show('Failed to save changes', 'error');
-    } else {
-      toast.show('Event updated!', 'success');
-      onSaved?.();
-      onClose();
+    try {
+      const { error } = await supabase.from('events').update({
+        title: title.trim(),
+        description: description.trim(),
+        venue_name: venueName.trim() || null,
+        event_date: eventDate,
+        event_time: timeSet ? fmtTime() : null,
+        price: price.trim() || null,
+        capacity: capacity ? parseInt(capacity) : null,
+        ticket_url: ticketUrl.trim() || null,
+      }).eq('id', event.id);
+      if (error) {
+        toast.show('Failed to save changes', 'error');
+      } else {
+        toast.show('Event updated!', 'success');
+        onSaved?.();
+        onClose();
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -168,14 +171,17 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
 
   const confirmDelete = async () => {
     setDeleting(true);
-    const { error } = await supabase.from('events').delete().eq('id', event.id);
-    setDeleting(false);
-    if (error) {
-      toast.show('Could not delete event', 'error');
-    } else {
-      toast.show('Event deleted', 'info');
-      onSaved?.();
-      onClose();
+    try {
+      const { error } = await supabase.from('events').delete().eq('id', event.id);
+      if (error) {
+        toast.show('Could not delete event', 'error');
+      } else {
+        toast.show('Event deleted', 'info');
+        onSaved?.();
+        onClose();
+      }
+    } finally {
+      setDeleting(false);
     }
   };
 

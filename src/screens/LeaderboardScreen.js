@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity, FlatList,
   ActivityIndicator, RefreshControl, SafeAreaView, Image,
@@ -37,6 +37,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const realtimeChanRef = useRef(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -75,6 +76,30 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
   useEffect(() => {
     if (visible) fetchLeaderboard();
   }, [visible, fetchLeaderboard]);
+
+  // Real-time: patch vibe_score changes in-place and re-sort without a full reload
+  useEffect(() => {
+    if (!visible) return;
+    realtimeChanRef.current = supabase
+      .channel('leaderboard_rt')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
+        const { id, vibe_score, username, avatar_url, city } = payload.new;
+        setProfiles(prev => {
+          const exists = prev.some(p => p.id === id);
+          const updated = exists
+            ? prev.map(p => p.id === id ? { ...p, vibe_score, username, avatar_url, city } : p)
+            : prev;
+          return [...updated].sort((a, b) => (b.vibe_score || 0) - (a.vibe_score || 0)).slice(0, 50);
+        });
+      })
+      .subscribe();
+    return () => {
+      if (realtimeChanRef.current) {
+        supabase.removeChannel(realtimeChanRef.current);
+        realtimeChanRef.current = null;
+      }
+    };
+  }, [visible]);
 
   const renderTopThree = () => {
     const top = profiles.slice(0, 3);

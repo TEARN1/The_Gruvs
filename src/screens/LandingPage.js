@@ -4,11 +4,11 @@ import {
   Animated, Linking, RefreshControl, ScrollView, TextInput,
   Share, Modal, Platform, ActivityIndicator, Dimensions,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 const SCREEN_W = Dimensions.get('window').width;
 const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
 const TREND_CARD_H = Math.round(TREND_CARD_W * 0.62);
-import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -334,8 +334,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         }));
         setTrendingEvents(ranked);
       }
-    } catch (err) {
-    }
+    } catch { /* trending load is best-effort — feed still works without it */ }
   }, []);
 
   const loadData = useCallback(async (isRefreshing = false) => {
@@ -491,12 +490,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     if (!eventId || eventCheckins[eventId]) return; // cached
     try {
       const { data } = await supabase
-        .from('checkins')
+        .from('live_checkins')
         .select('*, profiles(username, avatar_url, city, address, home_base)')
         .eq('event_id', eventId)
-        .order('created_at', { ascending: false });
+        .order('checked_in_at', { ascending: false });
       setEventCheckins(prev => ({ ...prev, [eventId]: data || [] }));
-    } catch (e) {
+    } catch {
       setEventCheckins(prev => ({ ...prev, [eventId]: [] }));
     }
   }, [eventCheckins]);
@@ -528,16 +527,26 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   const handleFollowFromFeed = async (profileId) => {
     if (!user || !profileId || profileId === user.id) return;
-    const isFollowing = followingSet.has(profileId);
+    const wasFollowing = followingSet.has(profileId);
+    // Optimistic
     setFollowingSet(prev => {
       const n = new Set(prev);
-      isFollowing ? n.delete(profileId) : n.add(profileId);
+      wasFollowing ? n.delete(profileId) : n.add(profileId);
       return n;
     });
-    if (isFollowing) {
-      await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profileId);
-    } else {
-      await supabase.from('follows').upsert({ follower_id: user.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
+    try {
+      if (wasFollowing) {
+        await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profileId);
+      } else {
+        await supabase.from('follows').upsert({ follower_id: user.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
+      }
+    } catch {
+      // Rollback on failure
+      setFollowingSet(prev => {
+        const n = new Set(prev);
+        wasFollowing ? n.add(profileId) : n.delete(profileId);
+        return n;
+      });
     }
   };
 
@@ -1513,7 +1522,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           ) : null
         }
         contentContainerStyle={{ paddingBottom: 140 }}
-        showsVerticalScrollIndicator={false}
       />
 
       {/* Modals */}

@@ -67,7 +67,6 @@ export const ArchitectAI = {
 
     const res = await chat([{ role: 'user', content: prompt }], {
       feature: AIFeature.ARCHITECT,
-      model: 'claude-3-5-sonnet-20241022' // Fast, precise deconstruction
     });
     return JSON.parse(res.text);
   },

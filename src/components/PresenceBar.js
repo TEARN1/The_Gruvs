@@ -101,25 +101,23 @@ export const PresenceBar = ({
   // ------------------------------------------------------------------
   const fetchCheckins = useCallback(async (loc = userLocation) => {
     if (!eventId) return;
-    const { data, error } = await supabase
-      .from('live_checkins')
-      .select('*, profiles(id, username, avatar_url, interests, lat, lon, identity_mode, is_beacon_active, is_online, last_seen)')
-      .eq('event_id', eventId)
-      .gte('checked_in_at', new Date(Date.now() - 6 * 3600 * 1000).toISOString());
+    try {
+      const { data, error } = await supabase
+        .from('live_checkins')
+        .select('*, profiles(id, username, avatar_url, interests, lat, lon, identity_mode, is_beacon_active, is_online, last_seen)')
+        .eq('event_id', eventId)
+        .gte('checked_in_at', new Date(Date.now() - 6 * 3600 * 1000).toISOString());
 
-    if (error) {
-      setLoading(false);
-      return;
-    }
+      if (error) return;
 
-    const sorted = sortCheckins(data || [], loc);
-    setCheckins(sorted);
+      const sorted = sortCheckins(data || [], loc);
+      setCheckins(sorted);
 
-    if (user?.id) {
-      setAlreadyCheckedIn((data || []).some(c => c.user_id === user.id));
-    }
-
-    setLoading(false);
+      if (user?.id) {
+        setAlreadyCheckedIn((data || []).some(c => c.user_id === user.id));
+      }
+    } catch { /* keep existing checkins on transient failure */ }
+    finally { setLoading(false); }
   }, [eventId, user?.id, userLocation, sortCheckins]);
 
   // ------------------------------------------------------------------
@@ -127,19 +125,19 @@ export const PresenceBar = ({
   // ------------------------------------------------------------------
   const fetchStars = useCallback(async () => {
     if (!user?.id || !eventId) return;
+    try {
+      const [{ data: iStarredData }, { data: theyStarredData }] = await Promise.all([
+        supabase.from('path_stars').select('to_user_id').eq('event_id', eventId).eq('from_user_id', user.id),
+        supabase.from('path_stars').select('from_user_id').eq('event_id', eventId).eq('to_user_id', user.id),
+      ]);
 
-    // Only fetch rows involving the current user — avoids exposing third-party star data
-    const [{ data: iStarredData }, { data: theyStarredData }] = await Promise.all([
-      supabase.from('path_stars').select('to_user_id').eq('event_id', eventId).eq('from_user_id', user.id),
-      supabase.from('path_stars').select('from_user_id').eq('event_id', eventId).eq('to_user_id', user.id),
-    ]);
+      const iStarred    = new Set((iStarredData   || []).map(r => r.to_user_id));
+      const theyStarred = new Set((theyStarredData || []).map(r => r.from_user_id));
+      const mutual = new Set([...iStarred].filter(id => theyStarred.has(id)));
 
-    const iStarred  = new Set((iStarredData  || []).map(r => r.to_user_id));
-    const theyStarred = new Set((theyStarredData || []).map(r => r.from_user_id));
-    const mutual = new Set([...iStarred].filter(id => theyStarred.has(id)));
-
-    setStarredIds(iStarred);
-    setMatchIds(mutual);
+      setStarredIds(iStarred);
+      setMatchIds(mutual);
+    } catch { /* keep existing star state on transient failure */ }
   }, [user?.id, eventId]);
 
   const getCommonTags = (checkin) => {
@@ -160,8 +158,10 @@ export const PresenceBar = ({
           });
           setUserLocation(loc.coords);
           await fetchCheckins(loc.coords);
+          return;
         }
-      } catch (_) { }
+      } catch { /* location unavailable — fall through to load checkins without coords */ }
+      await fetchCheckins();
     })();
 
     // Realtime subcription
@@ -272,28 +272,28 @@ export const PresenceBar = ({
     setStarredIds(prev => new Set([...prev, toUserId]));
     showToast('Star sent!', 'vibe');
 
-    // Check for mutual star
-    const { data: mutual } = await supabase
-      .from('path_stars')
-      .select('id')
-      .eq('from_user_id', toUserId)
-      .eq('to_user_id', user.id)
-      .eq('event_id', eventId)
-      .maybeSingle();
+    try {
+      const { data: mutual } = await supabase
+        .from('path_stars')
+        .select('id')
+        .eq('from_user_id', toUserId)
+        .eq('to_user_id', user.id)
+        .eq('event_id', eventId)
+        .maybeSingle();
 
-    if (mutual) {
-      // Create DM room
-      await supabase.from('dm_rooms').upsert(
-        {
-          participant_1: user.id < toUserId ? user.id : toUserId,
-          participant_2: user.id < toUserId ? toUserId : user.id,
-        },
-        { onConflict: 'participant_1,participant_2', ignoreDuplicates: true }
-      );
-      setMatchIds(prev => new Set([...prev, toUserId]));
-      showToast('💬 Mutual match! A chat room is open for 48h', 'success');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
+      if (mutual) {
+        await supabase.from('dm_rooms').upsert(
+          {
+            participant_1: user.id < toUserId ? user.id : toUserId,
+            participant_2: user.id < toUserId ? toUserId : user.id,
+          },
+          { onConflict: 'participant_1,participant_2', ignoreDuplicates: true }
+        );
+        setMatchIds(prev => new Set([...prev, toUserId]));
+        showToast('💬 Mutual match! A chat room is open for 48h', 'success');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch { /* mutual check failed silently — star still recorded */ }
   };
 
   // ------------------------------------------------------------------

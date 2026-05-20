@@ -370,22 +370,27 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const loadMonth = async (y, m) => {
     setLoading(true);
-    const fromDB = await CalendarManager.fetchMonthEvents(y, m);
-    // Hide events that have already ended (auto-expire)
-    const now = new Date();
-    const active = fromDB.filter(ev => {
-      if (!ev.event_date) return true;
-      const evDate = new Date(ev.event_date);
-      // Keep events that are today or future
-      return evDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-    });
-    setMonthEvents(active);
-    setLoading(false);
+    try {
+      const fromDB = await CalendarManager.fetchMonthEvents(y, m);
+      const now = new Date();
+      const active = (fromDB || []).filter(ev => {
+        if (!ev.event_date) return true;
+        const evDate = new Date(ev.event_date);
+        return evDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      });
+      setMonthEvents(active);
+    } catch {
+      // keep current month view on transient failure
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadUpcoming = async () => {
-    const data = await CalendarManager.fetchUpcoming(10);
-    setUpcomingEvents(data.sort((a, b) => a.event_date?.localeCompare(b.event_date)));
+    try {
+      const data = await CalendarManager.fetchUpcoming(10);
+      setUpcomingEvents(data.sort((a, b) => a.event_date?.localeCompare(b.event_date)));
+    } catch { /* keep existing upcoming events on transient failure */ }
   };
 
   const switchMonth = (dir) => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
-  Modal, Dimensions, TouchableWithoutFeedback, Animated, ActivityIndicator,
+  Modal, TouchableWithoutFeedback, Animated, ActivityIndicator,
   Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -12,7 +12,6 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { uploadToStorage } from '../services/storageService';
 
-const { width: W, height: H } = Dimensions.get('window');
 const STORY_DURATION = 5000;
 
 // ── Story avatar bubble ───────────────────────────────────────────────────────
@@ -213,42 +212,40 @@ export const StoriesRow = ({ onAuthRequired }) => {
 
   const loadStories = useCallback(async () => {
     if (!user) return;
-    // Fetch stories from people the user follows + own stories
-    const { data: follows } = await supabase
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', user.id);
-    const ids = [user.id, ...(follows || []).map(f => f.following_id)];
+    try {
+      const { data: follows } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id);
+      const ids = [user.id, ...(follows || []).map(f => f.following_id)];
 
-    const cutoff = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    const { data: stories } = await supabase
-      .from('stories')
-      .select('*, profiles(username, avatar_url)')
-      .in('user_id', ids)
-      .gte('created_at', cutoff)
-      .order('created_at', { ascending: false });
+      const cutoff = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const { data: stories } = await supabase
+        .from('stories')
+        .select('*, profiles(username, avatar_url)')
+        .in('user_id', ids)
+        .gte('created_at', cutoff)
+        .order('created_at', { ascending: false });
 
-    if (!stories) return;
+      if (!stories) return;
 
-    // Group by user
-    const byUser = {};
-    for (const s of stories) {
-      const uid = s.user_id;
-      if (!byUser[uid]) byUser[uid] = { userId: uid, username: s.profiles?.username, avatar_url: s.profiles?.avatar_url, stories: [] };
-      byUser[uid].stories.push(s);
-    }
-    // Own stories first
-    const sorted = Object.values(byUser).sort((a, b) => a.userId === user.id ? -1 : b.userId === user.id ? 1 : 0);
-    setGrouped(sorted);
+      const byUser = {};
+      for (const s of stories) {
+        const uid = s.user_id;
+        if (!byUser[uid]) byUser[uid] = { userId: uid, username: s.profiles?.username, avatar_url: s.profiles?.avatar_url, stories: [] };
+        byUser[uid].stories.push(s);
+      }
+      const sorted = Object.values(byUser).sort((a, b) => a.userId === user.id ? -1 : b.userId === user.id ? 1 : 0);
+      setGrouped(sorted);
 
-    // Load seen map
-    const { data: seen } = await supabase
-      .from('story_views')
-      .select('story_id')
-      .eq('viewer_id', user.id);
-    const map = {};
-    for (const v of seen || []) map[v.story_id] = true;
-    setSeenMap(map);
+      const { data: seen } = await supabase
+        .from('story_views')
+        .select('story_id')
+        .eq('viewer_id', user.id);
+      const map = {};
+      for (const v of seen || []) map[v.story_id] = true;
+      setSeenMap(map);
+    } catch { /* keep current stories on transient failure */ }
   }, [user]);
 
   useEffect(() => { loadStories(); }, [loadStories]);
@@ -295,12 +292,12 @@ export const StoriesRow = ({ onAuthRequired }) => {
         expires_at: expiresAt,
       });
       await loadStories();
+    } catch {
+      // Story upload failed silently — user sees spinner stop with no partial state
     } finally {
       setUploading(false);
     }
   };
-
-  const hasMyStory = grouped.some(g => g.userId === user?.id);
 
   return (
     <>

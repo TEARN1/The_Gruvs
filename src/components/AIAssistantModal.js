@@ -6,7 +6,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity, TextInput,
   FlatList, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Image, Animated,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -104,23 +104,32 @@ export const AIAssistantModal = ({ visible, onClose }) => {
     const isComplex = history.length > 6 || trimmed.length > 200;
     setThinkingPhase(isComplex ? 'reasoning' : 'querying');
 
-    const result = await chat(history, {
-      feature: AIFeature.ASSISTANT,
-      userId: user?.id,
-      systemExtra: sessionContext,
-    });
-    setThinkingPhase('');
-
-    const aiMsg = {
-      id: (Date.now() + 1).toString(),
-      role: MSG_ROLE.AI,
-      text: result.text || "I'm having trouble connecting right now. Try again in a moment.",
-      interactionId: result.id,
-      error: !!result.error,
-    };
-    setMessages(prev => [...prev, aiMsg]);
-    setLoading(false);
-    scrollToBottom();
+    try {
+      const result = await chat(history, {
+        feature: AIFeature.ASSISTANT,
+        userId: user?.id,
+        systemExtra: sessionContext,
+      });
+      const aiMsg = {
+        id: (Date.now() + 1).toString(),
+        role: MSG_ROLE.AI,
+        text: result.text || "I'm having trouble connecting right now. Try again in a moment.",
+        interactionId: result.id,
+        error: !!result.error,
+      };
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (e) {
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: MSG_ROLE.AI,
+        text: "I'm having trouble connecting right now. Try again in a moment.",
+        error: true,
+      }]);
+    } finally {
+      setThinkingPhase('');
+      setLoading(false);
+      scrollToBottom();
+    }
   };
 
   const handleFeedback = async (msg, thumbs) => {

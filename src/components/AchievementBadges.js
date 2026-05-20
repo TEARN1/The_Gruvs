@@ -116,8 +116,8 @@ export const AchievementBadges = ({ userId }) => {
       const earnedSet = await checkBadges(userId);
       setEarned(earnedSet);
       await saveEarnedBadges(userId, Array.from(earnedSet));
-    } catch {}
-    setLoading(false);
+    } catch { }
+    finally { setLoading(false); }
   }, [userId]);
 
   useEffect(() => { load(); }, [load]);

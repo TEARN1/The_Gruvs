@@ -405,28 +405,16 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     if (!user) return;
     setLoading(true);
     try {
-      // Removed demo mode fallback. Real data required.
-      try {
-        const { data: bizData } = await supabase
-          .from('business_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (!bizData) { setSetupMode(true); return; }
-        setBiz(bizData);
-      } catch (err) {
-        showToast('Failed to load business profile.', 'error');
-        return;
-      }
-
-      // Load or create business profile
-      const { data: bizData } = await supabase
+      const { data: bizData, error: bizErr } = await supabase
         .from('business_profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
+      if (bizErr) {
+        showToast('Failed to load business profile.', 'error');
+        return;
+      }
       if (!bizData) { setSetupMode(true); return; }
       setBiz(bizData);
 
@@ -474,7 +462,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     }
   };
 
-  const onRefresh = async () => { setRefreshing(true); await loadAll(); setRefreshing(false); };
+  const onRefresh = async () => { setRefreshing(true); try { await loadAll(); } finally { setRefreshing(false); } };
 
   const handleToggleCampaign = async (id, newStatus) => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }

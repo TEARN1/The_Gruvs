@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Image, RefreshControl, Platform, Modal,
@@ -10,8 +10,9 @@ import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { SkeletonCard } from '../components/SkeletonCard';
-import { FollowingFeedManager, ActivityFeedManager, TrendingManager } from '../services/dataFlow';
-import { SPACING, RADIUS, FONT } from '../constants/DesignTokens';
+import { FollowingFeedManager, ActivityFeedManager, TrendingManager, UserManager } from '../services/dataFlow';
+import { supabase } from '../services/supabase';
+import { RADIUS } from '../constants/DesignTokens';
 import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 import { StoriesRow } from '../components/StoriesRow';
 
@@ -51,7 +52,7 @@ const avatarBg = (username) =>
   ];
 
 // ── LiveBubble ────────────────────────────────────────────────────────────────
-const LiveBubble = ({ item, primary, textColor, muted, onPress }) => {
+const LiveBubble = ({ item, textColor, muted, onPress }) => {
   const { actor, event } = item;
   return (
     <TouchableOpacity style={lb.wrap} onPress={onPress} activeOpacity={0.8}
@@ -199,7 +200,7 @@ const VisitorBanner = ({ primary, onPress }) => (
 );
 
 // ── Skeleton activity row ─────────────────────────────────────────────────────
-const ActivitySkeleton = ({ muted }) => (
+const ActivitySkeleton = () => (
   <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
     <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.08)' }} />
     <View style={{ flex: 1, marginLeft: 12, gap: 6 }}>
@@ -229,29 +230,79 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [loading,          setLoading]          = useState(true);
   const [refreshing,       setRefreshing]       = useState(false);
   const [discoverVisible,  setDiscoverVisible]  = useState(false);
+  const realtimeChanRef = useRef(null);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#131a1c';
 
   const loadAll = useCallback(async () => {
     if (!user) { setLoading(false); return; }
-    const [feedResult, activityResult, trendingResult] = await Promise.all([
-      FollowingFeedManager.fetch(user.id, 0),
-      ActivityFeedManager.fetchActivity(user.id),
-      TrendingManager.fetch(10),
-    ]);
-    setFollowingEvents(feedResult.events || []);
-    setTrendingEvents(trendingResult || []);
-    setLiveNow(activityResult.liveNow);
-    setActivity(activityResult.activity);
-    setLoading(false);
-    setRefreshing(false);
+    try {
+      const [feedResult, activityResult, trendingResult] = await Promise.all([
+        FollowingFeedManager.fetch(user.id, 0),
+        ActivityFeedManager.fetchActivity(user.id),
+        TrendingManager.fetch(10),
+      ]);
+      setFollowingEvents(feedResult.events || []);
+      setTrendingEvents(trendingResult || []);
+      setLiveNow(activityResult.liveNow);
+      setActivity(activityResult.activity);
+    } catch {
+      // keep existing feed on transient failure
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [user]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Real-time: when any crew member RSVPs or checks in, prepend to activity feed
+  useEffect(() => {
+    if (!user) return;
+    let followedIds = [];
+    UserManager.getFollowedIds(user.id).then(ids => { followedIds = ids; }).catch(() => {});
+
+    realtimeChanRef.current = supabase
+      .channel(`crew_feed_rt_${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'event_rsvps' }, async (payload) => {
+        const r = payload.new;
+        if (!followedIds.includes(r.user_id) || r.status !== 'going') return;
+        try {
+          const [{ data: actor }, { data: event }] = await Promise.all([
+            supabase.from('profiles').select('id, username, avatar_url').eq('id', r.user_id).single(),
+            supabase.from('events').select('id, title, venue_name, event_date').eq('id', r.event_id).single(),
+          ]);
+          if (!actor || !event) return;
+          const newItem = { id: `rsvp_${r.user_id}_${r.event_id}`, type: 'rsvp', actor, event, created_at: r.created_at || new Date().toISOString() };
+          setActivity(prev => [newItem, ...prev.filter(a => a.id !== newItem.id).slice(0, 49)]);
+        } catch { }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_checkins' }, async (payload) => {
+        const r = payload.new;
+        if (!followedIds.includes(r.user_id)) return;
+        try {
+          const [{ data: actor }, { data: event }] = await Promise.all([
+            supabase.from('profiles').select('id, username, avatar_url').eq('id', r.user_id).single(),
+            supabase.from('events').select('id, title, venue_name, event_date').eq('id', r.event_id).single(),
+          ]);
+          if (!actor || !event) return;
+          const newItem = { id: `checkin_${r.user_id}_${r.event_id}`, type: 'checkin', actor, event, created_at: r.created_at || new Date().toISOString() };
+          setActivity(prev => [newItem, ...prev.filter(a => a.id !== newItem.id).slice(0, 49)]);
+          setLiveNow(prev => prev.some(l => l.actor?.id === r.user_id) ? prev : [{ actor, event }, ...prev]);
+        } catch { }
+      })
+      .subscribe();
+
+    return () => {
+      if (realtimeChanRef.current) {
+        supabase.removeChannel(realtimeChanRef.current);
+        realtimeChanRef.current = null;
+      }
+    };
+  }, [user]);
 
   const onRefresh = () => { setRefreshing(true); loadAll(); };
 
@@ -303,7 +354,6 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                   <LiveBubble
                     key={`live-${item.actor?.username}-${i}`}
                     item={item}
-                    primary={primary}
                     textColor={textColor}
                     muted={muted}
                     onPress={() => goToEvent(item.event)}
@@ -359,9 +409,9 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           <SectionLabel label="ACTIVITY" color={muted} style={{ marginTop: 8 }} />
           {loading ? (
             <>
-              <ActivitySkeleton muted={muted} />
-              <ActivitySkeleton muted={muted} />
-              <ActivitySkeleton muted={muted} />
+              <ActivitySkeleton />
+              <ActivitySkeleton />
+              <ActivitySkeleton />
             </>
           ) : activity.length === 0 ? (
             <EmptyState

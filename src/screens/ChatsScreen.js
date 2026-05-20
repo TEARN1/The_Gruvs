@@ -125,10 +125,15 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   const fetchConvos = useCallback(async (isRefresh = false) => {
     if (!user) { setConvos([]); return; }
     if (isRefresh) setRefreshing(true); else setLoading(true);
-    const data = await MessageManager.getConversations(user.id);
-    setConvos(data || []);
-    setLoading(false);
-    setRefreshing(false);
+    try {
+      const data = await MessageManager.getConversations(user.id);
+      setConvos(data || []);
+    } catch {
+      // Convos are best-effort — keep existing list on transient failure
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [user]);
 
   useEffect(() => {

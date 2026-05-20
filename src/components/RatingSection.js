@@ -47,20 +47,25 @@ export const RatingSection = ({ eventId, onAuthRequired }) => {
       return;
     }
     setSubmitting(true);
-    const filled = [stars.overall, stars.atmosphere, stars.organisation].filter(v => v > 0);
-    const avgRating = Math.round(filled.reduce((a, b) => a + b, 0) / filled.length);
-    const { error } = await supabase.from('event_ratings').upsert({
-      event_id: eventId,
-      user_id: user.id,
-      rating: avgRating,
-      review: review.trim() || null,
-    }, { onConflict: 'event_id,user_id' });
-    setSubmitting(false);
-    if (!error) {
-      setSubmitted(true);
-      toast.show('Gruv rated! Thanks for the feedback 🌟', 'success');
-    } else {
+    try {
+      const filled = [stars.overall, stars.atmosphere, stars.organisation].filter(v => v > 0);
+      const avgRating = Math.round(filled.reduce((a, b) => a + b, 0) / filled.length);
+      const { error } = await supabase.from('event_ratings').upsert({
+        event_id: eventId,
+        user_id: user.id,
+        rating: avgRating,
+        review: review.trim() || null,
+      }, { onConflict: 'event_id,user_id' });
+      if (!error) {
+        setSubmitted(true);
+        toast.show('Gruv rated! Thanks for the feedback 🌟', 'success');
+      } else {
+        toast.show('Failed to submit rating.', 'error');
+      }
+    } catch {
       toast.show('Failed to submit rating.', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 

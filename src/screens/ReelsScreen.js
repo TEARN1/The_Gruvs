@@ -53,7 +53,9 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
       .eq('reel_id', reel.id)
       .order('created_at', { ascending: false })
       .limit(50)
-      .then(({ data }) => { setComments(data || []); setLoading(false); });
+      .then(({ data }) => { setComments(data || []); })
+      .catch(() => {})
+      .finally(() => { setLoading(false); });
   }, [visible, reel?.id]);
 
   const sendComment = async () => {
@@ -61,13 +63,15 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
     setSending(true);
     const text = body.trim();
     setBody('');
-    const { error } = await supabase.from('reel_comments').insert({ reel_id: reel.id, user_id: user.id, body: text });
-    if (!error) {
-      const { data } = await supabase
-        .from('profiles').select('id, username, avatar_url').eq('id', user.id).single();
-      setComments(prev => [{ id: Date.now(), body: text, created_at: new Date().toISOString(), profiles: data }, ...prev]);
-    }
-    setSending(false);
+    try {
+      const { error } = await supabase.from('reel_comments').insert({ reel_id: reel.id, user_id: user.id, body: text });
+      if (!error) {
+        const { data } = await supabase
+          .from('profiles').select('id, username, avatar_url').eq('id', user.id).single();
+        setComments(prev => [{ id: Date.now(), body: text, created_at: new Date().toISOString(), profiles: data }, ...prev]);
+      }
+    } catch { /* comment send failed silently */ }
+    finally { setSending(false); }
   };
 
   return (
@@ -197,6 +201,12 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
     });
   };
 
+  // Declarations moved above parsedCaption to avoid temporal dead zone crash
+  const isVideo = reel.media_type === 'video';
+  const author = reel.profiles || {};
+  const caption = reel.caption || '';
+  const hashtags = (caption.match(/#\w+/g) || []);
+
   const parsedCaption = caption.split(/(\s+)/).map((word, i) => {
     if (word.startsWith('#')) {
       return <Text key={i} style={{ color: primary, fontWeight: '800' }} onPress={() => onHashtag?.(word)}>{word}</Text>;
@@ -275,11 +285,6 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
       await supabase.from('saved_reels').delete().eq('reel_id', reel.id).eq('user_id', user.id);
     }
   };
-
-  const isVideo = reel.media_type === 'video';
-  const author = reel.profiles || {};
-  const caption = reel.caption || '';
-  const hashtags = (caption.match(/#\w+/g) || []);
 
   return (
     <TouchableWithoutFeedback onPress={handleTap}>
@@ -373,8 +378,8 @@ const ReelItem = ({ reel, isActive, primary, muted, textColor, bg, surface, user
 
           {/* Save */}
           <TouchableOpacity style={ri.actionBtn} onPress={handleSave} activeOpacity={0.8}>
-            <Feather name={saved ? 'bookmark' : 'bookmark'} size={25} color={saved ? primary : '#fff'} />
-            <Text style={[ri.actionLabel, { color: saved ? primary : '#fff' }]}>Save</Text>
+            <Feather name="bookmark" size={25} color={saved ? primary : '#fff'} style={{ opacity: saved ? 1 : 0.6 }} />
+            <Text style={[ri.actionLabel, { color: saved ? primary : '#fff' }]}>{saved ? 'Saved' : 'Save'}</Text>
           </TouchableOpacity>
 
           {/* View count */}
@@ -498,8 +503,8 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
   const flatRef = useRef(null);
 
-  const loadReels = useCallback(async () => {
-    setLoading(true);
+  const loadReels = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     try {
       let qb = supabase
         .from('reels')
@@ -641,7 +646,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={async () => { setRefreshing(true); await loadReels(); setRefreshing(false); }}
+            onRefresh={async () => { setRefreshing(true); await loadReels(true); setRefreshing(false); }}
             tintColor={primary}
             colors={[primary]}
           />

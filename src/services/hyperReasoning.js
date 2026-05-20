@@ -1,91 +1,82 @@
 /**
  * HYPER-REASONING ENGINE (RM-OS) v1.0
- * 30-Layer Recursive Meta-Cognition
+ * Multi-pass deep reasoning for the ARCHITECT feature.
+ * Uses _callWithThinking directly to avoid circular dependency with claudeService.chat.
  */
-import { TrustLedger } from './trustLedger';
-import { chat, AIFeature } from './claudeService';
 import projectDNA from './projectDNA.json';
+import { supabase } from './supabase';
+
+// 3-pass pipeline: Developer → Security → CEO. Enough depth without 30 API calls.
+const PASSES = [
+  { role: 'ELITE_DEVELOPER',                  label: 'Code & logic optimisation' },
+  { role: 'ADVERSARIAL_SECURITY_HACKER',      label: 'Attack surface & vulnerability scan' },
+  { role: 'CEO_STRATEGIST_WITH_MORAL_COMPASS', label: 'Strategic alignment & ethics' },
+];
+
+async function _callGateway(params) {
+  const { data, error } = await supabase.functions.invoke('ai-gateway', { body: params });
+  if (error) throw error;
+  return data;
+}
 
 export const HyperReasoning = {
-  MAX_RECURSION_DEPTH: 30,
 
   async initiateDeepThought(instruction) {
-
-    let currentThought = {
+    let thought = {
       proposal: instruction,
       logic_chain: [],
       security_vulnerabilities: [],
-      performance_score: 0
+      performance_score: 0,
     };
 
-    // THE 30-LAYER FRACTAL SPIRAL
-    for (let depth = 1; depth <= this.MAX_RECURSION_DEPTH; depth++) {
-      currentThought = await this._processRecursiveLayer(currentThought, depth);
+    for (let i = 0; i < PASSES.length; i++) {
+      const pass = PASSES[i];
+      const prompt = `[ARCHITECT PASS ${i + 1}/${PASSES.length} — ${pass.role}]
+TASK: ${pass.label}
 
-      // Real-time status for the CEO
-      if (depth % 10 === 0) {
+CURRENT PROPOSAL:
+${typeof thought.proposal === 'string' ? thought.proposal : JSON.stringify(thought.proposal)}
+
+DNA WEIGHTS: ${JSON.stringify(projectDNA.neural_weights)}
+
+${i === PASSES.length - 1 ? 'FINAL PASS: Consolidate all findings into a clean, actionable response for the CEO.' : 'Critique and improve the proposal from your role\'s perspective. Be specific.'}
+
+Return a JSON object:
+{
+  "proposal": "improved proposal or final answer",
+  "findings": "what you changed or validated",
+  "security_vulnerabilities": ["any issues found — empty array if none"],
+  "performance_score": 0-100
+}`;
+
+      try {
+        const response = await _callGateway({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8192,
+          thinking: { type: 'enabled', budget_tokens: 8000 },
+          system: [{ type: 'text', text: 'You are the Gruvs ARCHITECT AI. Reason deeply. Return only valid JSON.' }],
+          messages: [{ role: 'user', content: prompt }],
+        });
+
+        const text = (response?.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          thought = {
+            ...parsed,
+            logic_chain: [...thought.logic_chain, `Pass ${i + 1} (${pass.role}): ${parsed.findings || 'processed'}`],
+            security_vulnerabilities: [
+              ...thought.security_vulnerabilities,
+              ...(parsed.security_vulnerabilities || []),
+            ],
+          };
+        }
+      } catch {
+        // Pass failed — carry forward current thought unchanged
+        thought.logic_chain.push(`Pass ${i + 1} (${pass.role}): skipped (API error)`);
       }
     }
 
-    return currentThought;
+    return thought;
   },
-
-  async _processRecursiveLayer(thought, depth) {
-    const role = depth <= 10 ? "ELITE_DEVELOPER" : depth <= 20 ? "ADVERSARIAL_SECURITY_HACKER" : "CEO_STRATEGIST_WITH_MORAL_COMPASS";
-
-    // NEW: Moral Compass Check (Integrity Layer)
-    let moralCompassCheck = '';
-    if (depth > 20) { // Only CEO_STRATEGIST considers moral implications
-      const currentSIS = await TrustLedger.getSISScore('00000000-0000-0000-0000-000000000001'); // System's own SIS
-      if (currentSIS < 70) {
-        moralCompassCheck = `\nMORAL COMPASS ALERT: System Social Integrity Score is ${currentSIS}. Prioritize ethical implications and user trust.`;
-      }
-    }
-
-    const prompt = `[META-COGNITIVE LAYER ${depth}/30]
-    ROLE: ${role}
-    CURRENT_THOUGHT: ${JSON.stringify(thought)}
-    DNA_CONTEXT: ${JSON.stringify(projectDNA.neural_weights)}
-    ${moralCompassCheck}
-
-
-    TASK: Critique the previous layer's output. If you are the developer, optimize the code.
-    If you are the hacker, find a hole. If you are the CEO, ensure it feels "Royale".
-
-    [NUMERICAL RIGOR CHECK]
-    - Verify all formulas against Project DNA mathematical standards.
-    - Check for floating-point precision errors.
-    - Ensure economic multipliers are balanced via Pareto Efficiency.
-
-    ${depth === 30 ? `
-    FINAL TASK: Propose a single, critical adjustment to projectDNA.neural_weights if a systemic imbalance or opportunity is detected.
-    ` : ''}
-
-    NEVER REPEAT A PREVIOUS MISTAKE. Iterate until perfection.`;
-
-    const res = await chat([{ role: 'user', content: prompt }], {
-      feature: AIFeature.ARCHITECT,
-      systemExtra: "Reason with 30x the depth of standard intelligence. Use infinite scratchpad thinking."
-    });
-
-    try {
-      // Extract logic and update thought object
-      const updatedThought = JSON.parse(res.text);
-
-      // NEW: Autonomous DNA Modification Proposal
-      if (depth === 30 && updatedThought.proposed_dna_adjustment) {
-        // In a real system, this would trigger a governance vote or a direct update to projectDNA.json
-        // For now, we just log it.
-      }
-
-      return {
-        ...updatedThought,
-        logic_chain: [...thought.logic_chain, `Layer ${depth} resolved.`],
-        proposed_dna_adjustment: updatedThought.proposed_dna_adjustment || null,
-      };
-    } catch {
-      // Fallback if AI doesn't return JSON in a specific turn
-      return thought;
-    }
-  }
 };

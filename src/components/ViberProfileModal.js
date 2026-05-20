@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, Image, TouchableOpacity,
-  ScrollView, ActivityIndicator, Animated, Linking, Platform,
+  ScrollView, ActivityIndicator, Animated,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -115,7 +115,6 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const bg        = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#131a1c';
 
   const targetId = propUserId || propUser?.id;
   const isOwnProfile = currentUser?.id === targetId;
@@ -186,8 +185,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       if (currentUser && uid !== currentUser.id) {
         recordProfileView(uid, currentUser.id);
       }
-    } catch {}
-    setLoading(false);
+    } catch { }
+    finally { setLoading(false); }
   }, [currentUser, propUser]);
 
   const recordProfileView = async (viewedUserId, viewerUserId) => {
@@ -248,29 +247,34 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         ? 'Follow could not save — database not configured yet.'
         : 'Could not save follow — ' + (e?.message || 'check your connection.');
       toast?.show(msg, 'error');
+    } finally {
+      setFollowLoading(false);
     }
-    setFollowLoading(false);
   };
 
   const loadFollowersList = async () => {
     if (!targetId) return;
-    const { data } = await supabase
-      .from('follows')
-      .select('profiles!follows_follower_id_fkey(id, username, avatar_url, vibe_score)')
-      .eq('following_id', targetId)
-      .limit(50);
-    setFollowersList((data || []).map(r => r.profiles).filter(Boolean));
+    try {
+      const { data } = await supabase
+        .from('follows')
+        .select('profiles!follows_follower_id_fkey(id, username, avatar_url, vibe_score)')
+        .eq('following_id', targetId)
+        .limit(50);
+      setFollowersList((data || []).map(r => r.profiles).filter(Boolean));
+    } catch { /* keep existing list on failure */ }
     setFollowersModalVisible(true);
   };
 
   const loadFollowingList = async () => {
     if (!targetId) return;
-    const { data } = await supabase
-      .from('follows')
-      .select('profiles!follows_following_id_fkey(id, username, avatar_url, vibe_score)')
-      .eq('follower_id', targetId)
-      .limit(50);
-    setFollowingList((data || []).map(r => r.profiles).filter(Boolean));
+    try {
+      const { data } = await supabase
+        .from('follows')
+        .select('profiles!follows_following_id_fkey(id, username, avatar_url, vibe_score)')
+        .eq('follower_id', targetId)
+        .limit(50);
+      setFollowingList((data || []).map(r => r.profiles).filter(Boolean));
+    } catch { /* keep existing list on failure */ }
     setFollowingModalVisible(true);
   };
 

@@ -15,7 +15,7 @@ const buildTicketPayload = (rsvp) =>
   `gruvsticket://${rsvp.event_id}/${rsvp.user_id}/${rsvp.id}`;
 
 // ── Single ticket card ─────────────────────────────────────────────────────────
-const TicketCard = ({ rsvp, event, primary, bg, textColor, muted }) => {
+const TicketCard = ({ rsvp, event, primary, textColor, muted }) => {
   const payload = buildTicketPayload(rsvp);
   const dateStr = event?.event_date
     ? new Date(event.event_date).toLocaleDateString('en-ZA', {
@@ -130,14 +130,16 @@ export const EventTicketModal = ({ visible, onClose }) => {
     if (!visible || !user) return;
     setLoading(true);
     (async () => {
-      const { data } = await supabase
-        .from('event_rsvps')
-        .select('*, events(id, title, event_date, venue_name, media)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      setTickets(data || []);
-      setLoading(false);
+      try {
+        const { data } = await supabase
+          .from('event_rsvps')
+          .select('*, events(id, title, event_date, venue_name, media)')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        setTickets(data || []);
+      } catch { /* keep existing tickets on transient failure */ }
+      finally { setLoading(false); }
     })();
   }, [visible, user]);
 
@@ -176,7 +178,6 @@ export const EventTicketModal = ({ visible, onClose }) => {
                 rsvp={rsvp}
                 event={rsvp.events}
                 primary={primary}
-                bg={bg}
                 textColor={textColor}
                 muted={muted}
               />

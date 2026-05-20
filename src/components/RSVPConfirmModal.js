@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  Image, ActivityIndicator, Linking, Dimensions,
+  Image, ActivityIndicator, Dimensions,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 const SCREEN_W = Dimensions.get('window').width;
-import { Feather } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
@@ -44,21 +44,33 @@ export const RSVPConfirmModal = ({ visible, onClose, event }) => {
   const confirm = async () => {
     if (!selected || !user || !event) return;
     setSubmitting(true);
-    const { data: upserted, error } = await supabase.from('event_rsvps').upsert(
-      { event_id: event.id, user_id: user.id, status: selected },
-      { onConflict: 'event_id,user_id' }
-    ).select('id').single();
-    setSubmitting(false);
-    if (error) {
-      toast.show('Could not save RSVP. Try again.', 'error');
-    } else {
-      setRsvpId(upserted?.id || null);
-      setConfirmed(true);
-      if (selected === 'going') {
-        await supabase.from('events')
-          .update({ going: (event.going || 0) + 1 })
-          .eq('id', event.id);
+    try {
+      const { data: upserted, error } = await supabase.from('event_rsvps').upsert(
+        { event_id: event.id, user_id: user.id, status: selected },
+        { onConflict: 'event_id,user_id' }
+      ).select('id').single();
+      if (error) {
+        toast.show('Could not save RSVP. Try again.', 'error');
+      } else {
+        setRsvpId(upserted?.id || null);
+        setConfirmed(true);
+        // Re-count going from the source of truth rather than blind increment
+        supabase
+          .from('event_rsvps')
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', event.id)
+          .eq('status', 'going')
+          .then(({ count }) => {
+            if (count !== null) {
+              supabase.from('events').update({ going: count }).eq('id', event.id).then(() => {});
+            }
+          })
+          .catch(() => {});
       }
+    } catch {
+      toast.show('Could not save RSVP. Try again.', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 

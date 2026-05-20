@@ -4,9 +4,9 @@ import {
   TouchableOpacity, ScrollView, ActivityIndicator,
   KeyboardAvoidingView, Platform, Image, Dimensions,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 const SCREEN_W = Dimensions.get('window').width;
-import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { GlassView } from './GlassView';
@@ -164,6 +164,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     setLoading(true);
     setError('');
 
+    try {
     let mediaUrls = [];
     if (mediaItems.length > 0) {
       setUploadingMedia(true);
@@ -188,7 +189,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     };
     if (city.trim()) payload.city = city.trim();
     if (pickedDate) {
-      // Store date as YYYY-MM-DD and time as HH:MM separately
       const y = pickedDate.getFullYear();
       const mo = String(pickedDate.getMonth() + 1).padStart(2, '0');
       const d = String(pickedDate.getDate()).padStart(2, '0');
@@ -212,7 +212,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
 
     const { error: dbError } = await supabase.from('events').insert(payload);
 
-    setLoading(false);
     if (dbError) {
       const msg = dbError.message || '';
       // Map DB column names → which step contains that field, so we jump there
@@ -238,15 +237,16 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       if (targetStep && targetStep !== step) {
         setStep(targetStep);
       }
-      // Scroll down to show the error box
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 350);
     } else {
-      // MINT EQUITY: Hosting is the highest value action
       VibeEquityLedger.mintEquity(user.id, 'EVENT_HOSTING').catch(() => {});
-
       reset();
       onPostSuccess?.();
       onClose();
+    }
+    } finally {
+      setLoading(false);
+      setUploadingMedia(false);
     }
   };
 

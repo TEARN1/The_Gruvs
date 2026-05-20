@@ -124,13 +124,15 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
   // Load existing check-ins
   const loadCheckins = useCallback(async () => {
     if (!eventId) return;
-    const { data } = await supabase
-      .from('event_checkins')
-      .select('rsvp_id')
-      .eq('event_id', eventId);
-    const map = {};
-    for (const c of data || []) map[c.rsvp_id] = true;
-    setCheckedIn(map);
+    try {
+      const { data } = await supabase
+        .from('event_checkins')
+        .select('rsvp_id')
+        .eq('event_id', eventId);
+      const map = {};
+      for (const c of data || []) map[c.rsvp_id] = true;
+      setCheckedIn(map);
+    } catch { /* keep existing check-in state on transient failure */ }
   }, [eventId]);
 
   // Verify ticket ref or username and mark checked in

@@ -102,30 +102,34 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
     if (!user) { onAuthRequired?.(); return; }
     if (loadingRsvp) return;
     setLoadingRsvp(true);
-    const { error } = await supabase
-      .from('event_rsvps')
-      .upsert({ event_id: eventId, user_id: user.id, status }, { onConflict: 'event_id,user_id' });
-    setLoadingRsvp(false);
-    if (!error) {
-      setRsvpStatus(status);
-      setRsvpCounts(prev => ({ ...prev, [status]: (prev[status] || 0) + 1 }));
-      updateVibeScore(5);
-    }
+    try {
+      const { error } = await supabase
+        .from('event_rsvps')
+        .upsert({ event_id: eventId, user_id: user.id, status }, { onConflict: 'event_id,user_id' });
+      if (!error) {
+        setRsvpStatus(status);
+        setRsvpCounts(prev => ({ ...prev, [status]: (prev[status] || 0) + 1 }));
+        updateVibeScore(5);
+      }
+    } catch { }
+    finally { setLoadingRsvp(false); }
   };
 
   const postComment = async () => {
     if (!user) { onAuthRequired?.(); return; }
     if (!newComment.trim() || postingComment) return;
     setPostingComment(true);
-    const { error } = await supabase
-      .from('echoes')
-      .insert({ event_id: eventId, user_id: user.id, body: newComment.trim() });
-    setPostingComment(false);
-    if (!error) {
-      setNewComment('');
-      fetchSocialData();
-      updateVibeScore(2);
-    }
+    try {
+      const { error } = await supabase
+        .from('echoes')
+        .insert({ event_id: eventId, user_id: user.id, body: newComment.trim() });
+      if (!error) {
+        setNewComment('');
+        fetchSocialData();
+        updateVibeScore(2);
+      }
+    } catch { }
+    finally { setPostingComment(false); }
   };
 
   return (

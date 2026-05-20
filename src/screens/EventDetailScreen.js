@@ -4,10 +4,10 @@ import {
   Platform, Linking, Share, Animated, Modal, Dimensions, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 
 const SCREEN_W = Dimensions.get('window').width;
 const HERO_H = Math.min(300, Math.max(220, SCREEN_W * 0.72));
-import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
@@ -195,14 +195,18 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const handleFollow = async () => {
     if (!user) { onAuthRequired?.(); return; }
     if (followLoading || !organizer?.id) return;
-    // Optimistic
-    setIsFollowing(!isFollowing);
+    setIsFollowing(!isFollowing); // optimistic
     setFollowLoading(true);
-    const ok = isFollowing
-      ? await UserManager.unfollow(user.id, organizer.id)
-      : await UserManager.follow(user.id, organizer.id);
-    if (!ok) setIsFollowing(isFollowing); // rollback
-    setFollowLoading(false);
+    try {
+      const ok = isFollowing
+        ? await UserManager.unfollow(user.id, organizer.id)
+        : await UserManager.follow(user.id, organizer.id);
+      if (!ok) setIsFollowing(isFollowing); // rollback
+    } catch {
+      setIsFollowing(isFollowing); // rollback on exception
+    } finally {
+      setFollowLoading(false);
+    }
   };
 
   const handleShare = async () => {
@@ -216,16 +220,21 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const handleToggleReminder = async () => {
     if (!user) { onAuthRequired?.(); return; }
     setSettingReminder(true);
-    if (hasReminder) {
-      await ReminderManager.cancel(user.id, event.id);
-      setHasReminder(false);
-      showToast('Reminder cancelled', 'info');
-    } else {
-      const ok = await ReminderManager.set(user.id, event.id, event.event_date, event.event_time || event.start_time, 60);
-      setHasReminder(ok);
-      showToast(ok ? 'Reminder set — 1 hour before' : 'Could not set reminder (event may have passed)', ok ? 'success' : 'error');
+    try {
+      if (hasReminder) {
+        await ReminderManager.cancel(user.id, event.id);
+        setHasReminder(false);
+        showToast('Reminder cancelled', 'info');
+      } else {
+        const ok = await ReminderManager.set(user.id, event.id, event.event_date, event.event_time || event.start_time, 60);
+        setHasReminder(ok);
+        showToast(ok ? 'Reminder set — 1 hour before' : 'Could not set reminder (event may have passed)', ok ? 'success' : 'error');
+      }
+    } catch {
+      showToast('Could not update reminder', 'error');
+    } finally {
+      setSettingReminder(false);
     }
-    setSettingReminder(false);
   };
 
   const handleWhoGoing = async () => {
@@ -271,20 +280,22 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     if (!user) { onAuthRequired?.(); return; }
     if (checkingIn || checkedIn) return;
     setCheckingIn(true);
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch { }
-    const coords = await LocationService.requestAndGet();
-
-    // Apply privacy mode to coordinates
-    const privateCoords = coords ? applyLocationPrivacy(coords.lat, coords.lon) : {};
-
-    const ok = await CheckInManager.touchDown(event.id, user.id, privateCoords || {});
-    setCheckingIn(false);
-    if (ok) {
-      setCheckedIn(true);
-      try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
-      showToast("Touched Down! Your footprint is lit. 🔥", 'success');
-    } else {
+    try {
+      try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch { }
+      const coords = await LocationService.requestAndGet();
+      const privateCoords = coords ? applyLocationPrivacy(coords.lat, coords.lon) : {};
+      const ok = await CheckInManager.touchDown(event.id, user.id, privateCoords || {});
+      if (ok) {
+        setCheckedIn(true);
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
+        showToast("Touched Down! Your footprint is lit. 🔥", 'success');
+      } else {
+        showToast('Touch Down failed. Try again.', 'error');
+      }
+    } catch {
       showToast('Touch Down failed. Try again.', 'error');
+    } finally {
+      setCheckingIn(false);
     }
   };
 

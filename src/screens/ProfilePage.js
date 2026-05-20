@@ -63,7 +63,8 @@ const VibeLevel = ({ score, primary, muted, textColor }) => {
 
   const current = levels.find(l => score >= l.min && score <= l.max) || levels[levels.length - 1];
   const next = levels[levels.indexOf(current) + 1];
-  const progress = next ? ((score - current.min) / (next.max - current.min)) * 100 : 100;
+  const span = next ? (next.min - current.min) : 1;
+  const progress = next ? Math.min(100, ((score - current.min) / span) * 100) : 100;
 
   return (
     <View style={lvl.wrap}>
@@ -254,6 +255,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         setBio(data.bio || '');
         setLocation(data.location || '');
         setInterests(data.interests || []);
+        setSelectedInterests(data.interests || []);
         setLooksDescription(data.looks_description || '');
         setCareerTitle(data.career_title || '');
         setCareerDescription(data.career_description || '');
@@ -280,22 +282,25 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   const saveProfile = async () => {
     if (!user) return;
     setSaving(true);
-    // Build payload — only include columns that are likely to exist
-    const payload = {
-      bio: bio.trim() || null,
-      location: location.trim() || null,
-      interests: selectedInterests,
-    };
-    // Try saving discoverable flag separately so a missing column doesn't block the whole save
-    const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
-    if (!error) {
-      // Best-effort: update discoverable (column may not exist yet)
-      await supabase.from('profiles').update({ is_discoverable: discoverable }).eq('id', user.id).then(() => { });
-      toast?.show('Profile saved!', 'success');
-    } else {
-      toast?.show('Save failed: ' + error.message, 'error');
+    try {
+      const payload = {
+        bio: bio.trim() || null,
+        location: location.trim() || null,
+        interests: selectedInterests,
+      };
+      const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
+      if (!error) {
+        // Best-effort: update discoverable (column may not exist yet)
+        await supabase.from('profiles').update({ is_discoverable: discoverable }).eq('id', user.id).catch(() => {});
+        toast?.show('Profile saved!', 'success');
+      } else {
+        toast?.show('Save failed: ' + error.message, 'error');
+      }
+    } catch (e) {
+      toast?.show('Save failed: ' + (e?.message || 'Unknown error'), 'error');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   return (
@@ -683,17 +688,22 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
   const search = async () => {
     if (!user) { onAuthRequired(); return; }
     setLoading(true);
-    const coords = await LocationService.requestAndGet();
-    if (coords && applyLocationPrivacy) {
-      const privateCoords = applyLocationPrivacy(coords.lat, coords.lon);
-      if (privateCoords) {
-        LocationService.saveToProfile(user.id, privateCoords.lat, privateCoords.lon);
+    try {
+      const coords = await LocationService.requestAndGet();
+      if (coords && applyLocationPrivacy) {
+        const privateCoords = applyLocationPrivacy(coords.lat, coords.lon);
+        if (privateCoords) {
+          LocationService.saveToProfile(user.id, privateCoords.lat, privateCoords.lon);
+        }
       }
+      const data = await DiscoveryManager.findNearbyVibers(user.id, distance);
+      setPeople(data || []);
+      if (!data || data.length === 0) toast.show('No vibers found nearby — try a wider range', 'info');
+    } catch {
+      toast.show('Search failed — check your connection', 'error');
+    } finally {
+      setLoading(false);
     }
-    const data = await DiscoveryManager.findNearbyVibers(user.id, distance);
-    setLoading(false);
-    setPeople(data || []);
-    if (!data || data.length === 0) toast.show('No vibers found nearby — try a wider range', 'info');
   };
 
   const displayed = activeFilter
