@@ -495,6 +495,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const [reels, setReels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [commentTarget, setCommentTarget] = useState(null);
   const [commentsVisible, setCommentsVisible] = useState(false);
@@ -510,6 +511,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
   const loadReels = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
+    setError(null);
     try {
       let qb = supabase
         .from('reels')
@@ -549,11 +551,12 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       }
 
       setReels(enriched);
+      setError(null);
 
       // If a specific reel was deep-linked, scroll to it after load
       if (initialReelId && enriched.length) {
         const idx = enriched.findIndex(r => r.id === initialReelId);
-        if (idx > 0) {
+        if (idx >= 0) {
           setTimeout(() => {
             flatRef.current?.scrollToIndex({ index: idx, animated: false });
             setActiveIndex(idx);
@@ -562,11 +565,14 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         onInitialReelHandled?.();
       }
     } catch (e) {
-      toast.show('Could not load reels', 'error');
+      const message = e?.message || 'Network error';
+      console.error('[ReelsScreen] loadReels failed:', e);
+      setError(message);
+      toast.show(`Could not load reels — ${message}`, 'error');
     } finally {
       setLoading(false);
     }
-  }, [tab, user, hashtagFilter]);
+  }, [tab, user, hashtagFilter, initialReelId, onInitialReelHandled, toast]);
 
   useEffect(() => { loadReels(); }, [loadReels]);
 
@@ -622,16 +628,18 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     );
   }
 
-  if (!reels.length) {
+  if (error) {
     return (
-      <View style={[rs.screen, { backgroundColor: '#000' }]}>
+      <View style={[rs.screen, { backgroundColor: '#000' }]}> 
         <TabSwitcher />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 36 }}>🎬</Text>
-          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, marginTop: 12 }}>No Reels yet</Text>
-          <Text style={{ color: muted, fontSize: 13, marginTop: 6 }}>
-            {tab === 'following' ? "Follow more Vibers to see their reels here" : "Be the first to post a reel on The Gruvs"}
-          </Text>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
+          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, marginBottom: 10 }}>Could not load reels</Text>
+          <Text style={{ color: muted, fontSize: 13, textAlign: 'center', marginBottom: 18 }}>{error}</Text>
+          <TouchableOpacity onPress={() => loadReels()} style={[rs.retryBtn, { borderColor: primary }]}
+            activeOpacity={0.8}
+          >
+            <Text style={{ color: primary, fontWeight: '900' }}>Try Again</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -812,4 +820,5 @@ const rs = StyleSheet.create({
   tabLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 14, fontWeight: '800', letterSpacing: 0.5, textShadowColor: '#000', textShadowRadius: 6 },
   tabActive: { color: '#fff' },
   tabUnderline: { height: 2, borderRadius: 1, marginTop: 3 },
+  retryBtn: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 12 },
 });
