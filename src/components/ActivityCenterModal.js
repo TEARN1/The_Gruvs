@@ -55,7 +55,7 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
       const { data: myEvents } = await supabase
         .from('events')
         .select('id, title')
-        .eq('user_id', user.id)
+        .eq('author_id', user.id)
         .limit(50);
 
       const eventIds = (myEvents || []).map(e => e.id);
