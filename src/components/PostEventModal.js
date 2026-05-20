@@ -13,6 +13,7 @@ import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { uploadToStorage } from '../services/storageService';
 import { CategoryPickerModal } from './CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
@@ -209,11 +210,41 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     if (primaryCat) payload.category = primaryCat;
     if (ticketUrl.trim()) payload.ticket_url = ticketUrl.trim();
 
-    const { error: dbError } = await supabase.from('events').insert(payload);
+    let insertError = null;
+    const result = await resilient(
+      [
+        async () => {
+          const { error } = await supabase.from('events').insert(payload);
+          if (error) throw error;
+          return true;
+        },
+        async () => {
+          const minPayload = { title: payload.title, description: payload.description, author_id: payload.author_id, event_date: payload.event_date, city: payload.city };
+          const { error } = await supabase.from('events').insert(minPayload);
+          if (error) throw error;
+          return true;
+        },
+        async () => {
+          const { error } = await supabase.rpc('create_event', { p_payload: payload });
+          if (error) throw error;
+          return true;
+        },
+      ],
+      {
+        attemptsPerTier: 3, baseMs: 500, label: 'PostEventModal.insert',
+        fallbackValue: null,
+        onExhausted: async () => { insertError = new Error('All save attempts failed'); return null; },
+      }
+    );
 
-    if (dbError) {
-      const msg = dbError.message || '';
-      // Map DB column names → which step contains that field, so we jump there
+    if (result !== null) {
+      VibeEquityLedger.mintEquity(user.id, 'EVENT_HOSTING').catch(() => {});
+      reset();
+      onPostSuccess?.();
+      onClose();
+    } else {
+      const err = insertError || new Error('Could not save event');
+      const msg = err.message || '';
       const fieldStepMap = {
         title: 1, description: 1, address: 1, city: 1, event_date: 1,
         category: 2, media: 2,
@@ -223,7 +254,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
       Object.entries(fieldStepMap).forEach(([col, s]) => {
         if (msg.includes(`"${col}"`)) targetStep = s;
       });
-
       let friendly = msg;
       if (msg.includes('author_id')) {
         friendly = 'You must be signed in to post. Tap your Vibe Card to sign in, then try again.';
@@ -231,17 +261,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
         const fieldNames = { 1: 'title, description or address', 2: 'categories or media', 3: 'ticket link or age setting' };
         friendly = `Check your ${fieldNames[targetStep] || 'details'} — ${msg}`;
       }
-
       setError(friendly);
-      if (targetStep && targetStep !== step) {
-        setStep(targetStep);
-      }
+      if (targetStep && targetStep !== step) setStep(targetStep);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 350);
-    } else {
-      VibeEquityLedger.mintEquity(user.id, 'EVENT_HOSTING').catch(() => {});
-      reset();
-      onPostSuccess?.();
-      onClose();
     }
     } finally {
       setLoading(false);

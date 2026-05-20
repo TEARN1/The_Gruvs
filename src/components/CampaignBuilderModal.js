@@ -12,6 +12,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { GlassView } from './GlassView';
 
 
@@ -407,10 +408,24 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
     };
 
     try {
-      const { error } = existing
-        ? await supabase.from('ad_campaigns').update(payload).eq('id', existing.id)
-        : await supabase.from('ad_campaigns').insert(payload);
-      if (error) { Alert.alert('Error', error.message); return; }
+      const ok = existing
+        ? await resilient(
+            [
+              () => supabase.from('ad_campaigns').update(payload).eq('id', existing.id),
+              () => supabase.from('ad_campaigns').update({ title: payload.title, status: payload.status }).eq('id', existing.id),
+              () => supabase.rpc('update_campaign', { p_campaign_id: existing.id, p_payload: payload }),
+            ],
+            { attemptsPerTier: 3, baseMs: 400, label: `CampaignBuilder.update:${existing.id}`, fallbackValue: null }
+          )
+        : await resilient(
+            [
+              () => supabase.from('ad_campaigns').insert(payload),
+              () => supabase.from('ad_campaigns').upsert(payload),
+              () => supabase.rpc('create_campaign', { p_payload: payload }),
+            ],
+            { attemptsPerTier: 3, baseMs: 400, label: 'CampaignBuilder.insert', fallbackValue: null }
+          );
+      if (ok === null) { Alert.alert('Error', 'Could not save campaign. Please try again.'); return; }
       onSaved?.();
     } finally {
       setSaving(false);

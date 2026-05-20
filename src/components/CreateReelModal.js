@@ -11,6 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { uploadToStorage } from '../services/storageService';
 
 const SW = Dimensions.get('window').width;
@@ -90,8 +91,15 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
       };
       if (soundName.trim()) payload.sound_name = soundName.trim();
 
-      const { error } = await supabase.from('reels').insert(payload);
-      if (error) throw error;
+      const ok = await resilient(
+        [
+          () => supabase.from('reels').insert(payload),
+          () => supabase.from('reels').upsert(payload),
+          () => supabase.rpc('create_reel', { p_user_id: user.id, p_media_url: publicUrl, p_caption: payload.caption }),
+        ],
+        { attemptsPerTier: 3, baseMs: 500, label: 'CreateReelModal.insert', fallbackValue: null }
+      );
+      if (ok === null) throw new Error('Could not save reel');
 
       toast.show('Reel posted! 🎬', 'success');
       onPosted?.();

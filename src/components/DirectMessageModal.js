@@ -13,6 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
+import { resilientRead } from '../utils/resilience';
 import { MessageManager, BlockManager, isOnline as checkOnline } from '../services/dataFlow';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
@@ -221,21 +222,32 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 
     // Fetch Cross Path context — count shared path crossings via paths.user_id
     if (user && recipient) {
-      const [{ data: myPaths }, { data: theirPaths }] = await Promise.all([
-        supabase.from('paths').select('id').eq('user_id', user.id),
-        supabase.from('paths').select('id').eq('user_id', recipient.id),
-      ]);
-      const myIds = (myPaths || []).map(p => p.id);
-      const theirIds = (theirPaths || []).map(p => p.id);
-      if (myIds.length && theirIds.length) {
-        const [{ count: fwd }, { count: rev }] = await Promise.all([
-          supabase.from('path_crossings').select('*', { count: 'exact', head: true })
-            .in('path_id_a', myIds).in('path_id_b', theirIds),
-          supabase.from('path_crossings').select('*', { count: 'exact', head: true })
-            .in('path_id_a', theirIds).in('path_id_b', myIds),
-        ]);
-        setCrossPathCount((fwd || 0) + (rev || 0));
-      }
+      try {
+        const count = await resilientRead(
+          async () => {
+            const [{ data: myPaths }, { data: theirPaths }] = await Promise.all([
+              supabase.from('paths').select('id').eq('user_id', user.id),
+              supabase.from('paths').select('id').eq('user_id', recipient.id),
+            ]);
+            const myIds = (myPaths || []).map(p => p.id);
+            const theirIds = (theirPaths || []).map(p => p.id);
+            if (!myIds.length || !theirIds.length) return 0;
+            const [{ count: fwd }, { count: rev }] = await Promise.all([
+              supabase.from('path_crossings').select('*', { count: 'exact', head: true }).in('path_id_a', myIds).in('path_id_b', theirIds),
+              supabase.from('path_crossings').select('*', { count: 'exact', head: true }).in('path_id_a', theirIds).in('path_id_b', myIds),
+            ]);
+            return (fwd || 0) + (rev || 0);
+          },
+          async () => {
+            const { count: c } = await supabase.rpc('count_path_crossings', { p_user_a: user.id, p_user_b: recipient.id });
+            return c || 0;
+          },
+          async () => 0,
+          0,
+          'DirectMessageModal.crossPaths'
+        );
+        setCrossPathCount(count);
+      } catch { /* non-critical context */ }
     }
   }, [user, recipient]);
 
