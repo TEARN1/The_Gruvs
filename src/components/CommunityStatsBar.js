@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Animated, TouchableOpacity,
   Modal, FlatList, Image, ActivityIndicator,
@@ -147,7 +147,7 @@ export const CommunityStatsBar = () => {
               data={onlineVibers}
               keyExtractor={item => item.id}
               contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 4 }}
-              renderItem={({ item }) => (
+              renderItem={useCallback(({ item }) => (
                 <View style={[ss.viberRow, { borderBottomColor: `${primary}12` }]}>
                   <View style={{ position: 'relative' }}>
                     {item.avatar_url
@@ -177,7 +177,7 @@ export const CommunityStatsBar = () => {
                     <Feather name="message-circle" size={16} color={primary} />
                   </TouchableOpacity>
                 </View>
-              )}
+              ), [primary, surface, textColor, muted])}
             />
           )}
         </View>

@@ -148,7 +148,7 @@ export const CategoryPickerModal = ({
             contentContainerStyle={cp.grid}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => {
+            renderItem={useCallback(({ item }) => {
               const isSelected = picks.has(item.key);
               return (
                 <TouchableOpacity
@@ -179,7 +179,7 @@ export const CategoryPickerModal = ({
                   )}
                 </TouchableOpacity>
               );
-            }}
+            }, [picks, toggle, textColor])}
             ListEmptyComponent={
               <View style={cp.empty}>
                 <Text style={{ fontSize: 32 }}>🔍</Text>
