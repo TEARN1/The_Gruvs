@@ -121,7 +121,6 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
       return next;
     });
 
-    // Use functional updater to avoid stale closure — no extra echoes.find() needed
     let currentLikes = 0;
     setEchoes(prev => prev.map(e => {
       if (e.id !== echoId) return e;
@@ -129,9 +128,22 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
       return { ...e, likes: currentLikes };
     }));
 
-    await withRetry(() =>
-      supabase.from('echoes').update({ likes: currentLikes }).eq('id', echoId)
-    );
+    try {
+      await withRetry(() =>
+        supabase.from('echoes').update({ likes: currentLikes }).eq('id', echoId)
+      );
+    } catch {
+      // Rollback optimistic like/unlike
+      setLikedEchoes(prev => {
+        const next = new Set(prev);
+        isCurrentlyLiked ? next.add(echoId) : next.delete(echoId);
+        return next;
+      });
+      setEchoes(prev => prev.map(e => {
+        if (e.id !== echoId) return e;
+        return { ...e, likes: Math.max(0, (e.likes || 0) + (isCurrentlyLiked ? 1 : -1)) };
+      }));
+    }
   };
 
   const avatarInitials = (name) =>

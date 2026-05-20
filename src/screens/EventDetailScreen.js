@@ -160,8 +160,10 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   const fetchGoingCount = async () => {
     if (!event?.id) return;
-    const count = await RSVPManager.getGoingCount(event.id);
-    setGoingCount(count || 0);
+    try {
+      const count = await RSVPManager.getGoingCount(event.id);
+      setGoingCount(count || 0);
+    } catch { }
   };
 
   const handleRsvp = async (status) => {
