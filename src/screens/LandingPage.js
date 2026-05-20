@@ -573,10 +573,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // ── REMOVED: loadNearby and renderNearby are only used by ExplorePage now ─────
 
-  const handleFollowFromFeed = async (profileId) => {
+  const handleFollowFromFeed = useCallback(async (profileId) => {
     if (!user || !profileId || profileId === user.id) return;
     const wasFollowing = followingSet.has(profileId);
-    // Optimistic
     setFollowingSet(prev => {
       const n = new Set(prev);
       wasFollowing ? n.delete(profileId) : n.add(profileId);
@@ -589,14 +588,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         await supabase.from('follows').upsert({ follower_id: user.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
       }
     } catch {
-      // Rollback on failure
       setFollowingSet(prev => {
         const n = new Set(prev);
         wasFollowing ? n.add(profileId) : n.delete(profileId);
         return n;
       });
     }
-  };
+  }, [user, followingSet]);
 
   const handleVibe = async (eventId) => {
     if (!user) { onAuthRequired(); return; }
@@ -668,7 +666,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     electric: '#00f2ff', goat: '#84cc16', clap: '#fb923c',
   };
 
-  const handleReact = async (eventId, key) => {
+  const handleReact = useCallback(async (eventId, key) => {
     if (!user) { onAuthRequired(); return; }
     const prev_key = reactions[eventId];
     const newKey = prev_key === key ? null : key;
@@ -691,7 +689,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         );
       }
     } catch { /* best effort */ }
-  };
+  }, [user, reactions, primary, toast]);
 
   const handleBookmark = async (eventId) => {
     if (!user) { onAuthRequired(); return; }
@@ -775,11 +773,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
   };
 
-  const openViberProfile = (profile) => {
+  const openViberProfile = useCallback((profile) => {
     if (!profile) return;
     setSelectedViber(profile);
     setViberModalVisible(true);
-  };
+  }, []);
 
   // ── HEADER ──────────────────────────────────────────────────────────────────
   const renderHeader = () => (
@@ -999,8 +997,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     </View>
   );
 
+  // Stable extraData bundle — FlatList only re-renders items when interaction state actually changes
+  const cardExtraData = useMemo(() => ({
+    myVibes, vibeCounts, reactions, savedEvents, openSection,
+    reactionFlash, routeEvents, crewRsvpMap, followingSet, highlightedId, eventCheckins,
+  }), [myVibes, vibeCounts, reactions, savedEvents, openSection, reactionFlash, routeEvents, crewRsvpMap, followingSet, highlightedId, eventCheckins]);
+
   // ── EVENT CARD ────────────────────────────────────────────────────────────────
-  const renderCard = ({ item: event, index }) => {
+  const renderCard = useCallback(({ item: event, index }) => {
     const id = event.id;
     // Insert AdFlywheel every 5 cards (index 4, 9, 14…)
     const showAd = index > 0 && index % 5 === 4;
@@ -1484,7 +1488,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         )}
       </React.Fragment>
     );
-  };
+  }, [myVibes, vibeCounts, reactions, savedEvents, openSection, reactionFlash, routeEvents, crewRsvpMap,
+      followingSet, highlightedId, eventCheckins, user, primary, surface, textColor, muted, mode,
+      onAuthRequired, onNavigateToServices, handleVibe, handleBookmark, handleReact, handleShare,
+      handleToggleRoute, toggleSection, fetchReactors, fetchEventCheckins, openViberProfile,
+      handleFollowFromFeed]);
 
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
@@ -1498,6 +1506,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         numColumns={layoutType === 'grid' ? 2 : 1}
         columnWrapperStyle={layoutType === 'grid' ? { gap: 0 } : undefined}
         keyExtractor={item => String(item.id)}
+        extraData={cardExtraData}
         showsVerticalScrollIndicator={false}
         onScrollToIndexFailed={() => { }}
         removeClippedSubviews={Platform.OS !== 'web'}
