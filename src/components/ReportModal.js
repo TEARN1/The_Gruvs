@@ -8,6 +8,7 @@ import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 
 const REASONS = [
   'Misleading information',
@@ -43,13 +44,15 @@ export const ReportModal = ({ visible, onClose, targetId, targetType = 'event' }
     if (!selected || !user) return;
     setSubmitting(true);
     try {
-      await supabase.from('reports').insert({
-        reporter_id: user.id,
-        target_id: targetId,
-        target_type: targetType,
-        reason: selected,
-        details: details.trim() || null,
-      });
+      const payload = { reporter_id: user.id, target_id: targetId, target_type: targetType, reason: selected, details: details.trim() || null };
+      await resilient(
+        [
+          () => supabase.from('reports').insert(payload),
+          () => supabase.from('reports').upsert(payload, { onConflict: 'reporter_id,target_id,target_type', ignoreDuplicates: true }),
+          () => supabase.rpc('submit_report', { p_reporter_id: user.id, p_target_id: targetId, p_target_type: targetType, p_reason: selected }),
+        ],
+        { attemptsPerTier: 2, baseMs: 300, label: `ReportModal.submit:${targetId}`, fallbackValue: null }
+      );
       setDone(true);
     } catch { /* report failed silently — UI stays open so user can retry */ }
     finally { setSubmitting(false); }

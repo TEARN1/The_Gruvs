@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { uploadToStorage } from '../services/storageService';
 import { GlassView } from './GlassView';
 import { useToast } from './ToastNotification';
@@ -149,16 +150,18 @@ export const EventGallery = ({ eventId }) => {
       const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
       const fileName = `gallery/${eventId}/${user.id}_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'event-media', fileName, { mimeType: asset.mimeType });
-      const { error: dbError } = await supabase.from('event_gallery').insert({
-        event_id: eventId,
-        user_id: user.id,
-        url: publicUrl,
-        media_type: isVideo ? 'video' : 'image',
-      });
-      // If table doesn't exist, the photo still uploaded to storage — inform user
-      if (dbError) {
+      const galleryPayload = { event_id: eventId, user_id: user.id, url: publicUrl, media_type: isVideo ? 'video' : 'image' };
+      const ok = await resilient(
+        [
+          () => supabase.from('event_gallery').insert(galleryPayload),
+          () => supabase.from('event_gallery').upsert(galleryPayload),
+          () => supabase.rpc('add_gallery_item', { p_event_id: eventId, p_user_id: user.id, p_url: publicUrl, p_type: isVideo ? 'video' : 'image' }),
+        ],
+        { attemptsPerTier: 2, baseMs: 400, label: `EventGallery.upload:${eventId}`, fallbackValue: null }
+      );
+      if (ok === null) {
         setTableError(true);
-        toast.show('Photo uploaded but gallery table not set up yet. Contact your admin.', 'info');
+        toast.show('Photo uploaded but gallery save failed. Contact your admin.', 'info');
       } else {
         toast.show('Photo added to gallery!', 'success');
         fetchGallery();

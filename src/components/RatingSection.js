@@ -6,6 +6,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
 
 const RATING_CATEGORIES = [
@@ -50,13 +51,16 @@ export const RatingSection = ({ eventId, onAuthRequired }) => {
     try {
       const filled = [stars.overall, stars.atmosphere, stars.organisation].filter(v => v > 0);
       const avgRating = Math.round(filled.reduce((a, b) => a + b, 0) / filled.length);
-      const { error } = await supabase.from('event_ratings').upsert({
-        event_id: eventId,
-        user_id: user.id,
-        rating: avgRating,
-        review: review.trim() || null,
-      }, { onConflict: 'event_id,user_id' });
-      if (!error) {
+      const ratingPayload = { event_id: eventId, user_id: user.id, rating: avgRating, review: review.trim() || null };
+      const ok = await resilient(
+        [
+          () => supabase.from('event_ratings').upsert(ratingPayload, { onConflict: 'event_id,user_id' }),
+          () => supabase.from('event_ratings').insert(ratingPayload),
+          () => supabase.rpc('submit_event_rating', { p_event_id: eventId, p_user_id: user.id, p_rating: avgRating, p_review: review.trim() || null }),
+        ],
+        { attemptsPerTier: 3, baseMs: 400, label: `RatingSection.submit:${eventId}`, fallbackValue: null }
+      );
+      if (ok !== null) {
         setSubmitted(true);
         toast.show('Gruv rated! Thanks for the feedback 🌟', 'success');
       } else {

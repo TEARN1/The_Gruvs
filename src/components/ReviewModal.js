@@ -11,6 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { TrustLedger } from '../services/trustLedger';
 
 export const ReviewModal = ({ visible, onClose, booking, onReviewSubmitted }) => {
@@ -39,16 +40,16 @@ export const ReviewModal = ({ visible, onClose, booking, onReviewSubmitted }) =>
 
     try {
       // 1. Insert Review
-      const { error: reviewErr } = await supabase.from('service_reviews').insert([{
-        booking_id: booking.id,
-        provider_id: booking.provider_id,
-        reviewer_id: booking.client_id,
-        rating,
-        comment: comment.trim(),
-        created_at: new Date().toISOString()
-      }]);
-
-      if (reviewErr) throw reviewErr;
+      const reviewPayload = { booking_id: booking.id, provider_id: booking.provider_id, reviewer_id: booking.client_id, rating, comment: comment.trim(), created_at: new Date().toISOString() };
+      const ok = await resilient(
+        [
+          () => supabase.from('service_reviews').insert([reviewPayload]),
+          () => supabase.from('service_reviews').upsert([reviewPayload], { onConflict: 'booking_id', ignoreDuplicates: false }),
+          () => supabase.rpc('submit_service_review', { p_booking_id: booking.id, p_rating: rating, p_comment: comment.trim() }),
+        ],
+        { attemptsPerTier: 3, baseMs: 400, label: `ReviewModal.submit:${booking.id}`, fallbackValue: null }
+      );
+      if (ok === null) throw new Error('Could not submit review');
 
       // 2. Adjust SIS Score based on rating
       // 5 stars = bonus, 1-2 stars = penalty

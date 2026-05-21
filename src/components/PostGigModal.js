@@ -9,6 +9,7 @@ import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 
 const GIG_CATEGORIES = [
   { key: 'moving',   label: 'Moving',   icon: 'truck' },
@@ -75,8 +76,15 @@ export const PostGigModal = ({ visible, onClose, onPostSuccess }) => {
     };
 
     try {
-      const { error: dbError } = await supabase.from('gig_posts').insert([payload]);
-      if (dbError) throw dbError;
+      const ok = await resilient(
+        [
+          () => supabase.from('gig_posts').insert([payload]),
+          () => supabase.from('gig_posts').upsert([payload]),
+          () => supabase.rpc('create_gig_post', { p_payload: payload }),
+        ],
+        { attemptsPerTier: 3, baseMs: 400, label: 'PostGigModal.insert', fallbackValue: null }
+      );
+      if (ok === null) throw new Error('Could not post gig');
 
       onPostSuccess?.();
       handleClose();
