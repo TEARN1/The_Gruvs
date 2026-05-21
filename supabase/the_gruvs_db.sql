@@ -2381,59 +2381,59 @@ CREATE POLICY ads_select ON contextual_ads FOR SELECT USING (active = TRUE);
 
 -- ─── event_reactions ─────────────────────────────────────────────────────────
 -- SELECT: anyone can read reactions (public event data)
-CREATE POLICY IF NOT EXISTS "event_reactions_select"
+CREATE POLICY "event_reactions_select"
   ON event_reactions FOR SELECT USING (true);
 
 -- INSERT: authenticated users insert their own reactions
-CREATE POLICY IF NOT EXISTS "event_reactions_insert"
+CREATE POLICY "event_reactions_insert"
   ON event_reactions FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 -- UPDATE: users can only update their own reaction
-CREATE POLICY IF NOT EXISTS "event_reactions_update"
+CREATE POLICY "event_reactions_update"
   ON event_reactions FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
 -- DELETE: users can only delete their own reaction
-CREATE POLICY IF NOT EXISTS "event_reactions_delete"
+CREATE POLICY "event_reactions_delete"
   ON event_reactions FOR DELETE
   USING (auth.uid() = user_id);
 
 -- ─── pulse_requests ──────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "pulse_requests_select"
+CREATE POLICY "pulse_requests_select"
   ON pulse_requests FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "pulse_requests_insert"
+CREATE POLICY "pulse_requests_insert"
   ON pulse_requests FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 -- Only the request author or an admin can update/delete
-CREATE POLICY IF NOT EXISTS "pulse_requests_update"
+CREATE POLICY "pulse_requests_update"
   ON pulse_requests FOR UPDATE
   USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "pulse_requests_delete"
+CREATE POLICY "pulse_requests_delete"
   ON pulse_requests FOR DELETE
   USING (auth.uid() = user_id);
 
 -- ─── pulse_votes ─────────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "pulse_votes_select"
+CREATE POLICY "pulse_votes_select"
   ON pulse_votes FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "pulse_votes_insert"
+CREATE POLICY "pulse_votes_insert"
   ON pulse_votes FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 -- Votes are immutable once cast — no UPDATE policy (intentional)
 
-CREATE POLICY IF NOT EXISTS "pulse_votes_delete"
+CREATE POLICY "pulse_votes_delete"
   ON pulse_votes FOR DELETE
   USING (auth.uid() = user_id);
 
 -- ─── notifications ────────────────────────────────────────────────────────────
 -- SELECT: only the recipient can read their own notifications
-CREATE POLICY IF NOT EXISTS "notifications_select"
+CREATE POLICY "notifications_select"
   ON notifications FOR SELECT
   USING (auth.uid() = recipient_id);
 
@@ -2441,7 +2441,7 @@ CREATE POLICY IF NOT EXISTS "notifications_select"
 -- notificationService with service key). Block direct client inserts.
 -- We use a function-based check: only allow if actor_id matches the caller,
 -- OR caller is service role (uid() IS NULL means service role bypass).
-CREATE POLICY IF NOT EXISTS "notifications_insert"
+CREATE POLICY "notifications_insert"
   ON notifications FOR INSERT
   WITH CHECK (
     auth.uid() IS NULL OR  -- service role
@@ -2449,67 +2449,67 @@ CREATE POLICY IF NOT EXISTS "notifications_insert"
   );
 
 -- UPDATE: only recipient can mark as read
-CREATE POLICY IF NOT EXISTS "notifications_update"
+CREATE POLICY "notifications_update"
   ON notifications FOR UPDATE
   USING (auth.uid() = recipient_id)
   WITH CHECK (auth.uid() = recipient_id);
 
 -- DELETE: only recipient can delete their notifications
-CREATE POLICY IF NOT EXISTS "notifications_delete"
+CREATE POLICY "notifications_delete"
   ON notifications FOR DELETE
   USING (auth.uid() = recipient_id);
 
 -- ─── echoes ───────────────────────────────────────────────────────────────────
 -- Ensure echoes has proper policies (common to be missing update/delete)
-CREATE POLICY IF NOT EXISTS "echoes_select"
+CREATE POLICY "echoes_select"
   ON echoes FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "echoes_insert"
+CREATE POLICY "echoes_insert"
   ON echoes FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "echoes_update"
+CREATE POLICY "echoes_update"
   ON echoes FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "echoes_delete"
+CREATE POLICY "echoes_delete"
   ON echoes FOR DELETE
   USING (auth.uid() = user_id);
 
 -- ─── reel_likes ──────────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "reel_likes_select"
+CREATE POLICY "reel_likes_select"
   ON reel_likes FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "reel_likes_insert"
+CREATE POLICY "reel_likes_insert"
   ON reel_likes FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "reel_likes_delete"
+CREATE POLICY "reel_likes_delete"
   ON reel_likes FOR DELETE
   USING (auth.uid() = user_id);
 
 -- ─── event_vibes ─────────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "event_vibes_select"
+CREATE POLICY "event_vibes_select"
   ON event_vibes FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "event_vibes_insert"
+CREATE POLICY "event_vibes_insert"
   ON event_vibes FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "event_vibes_delete"
+CREATE POLICY "event_vibes_delete"
   ON event_vibes FOR DELETE
   USING (auth.uid() = user_id);
 
 -- ─── follows ─────────────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "follows_select"
+CREATE POLICY "follows_select"
   ON follows FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "follows_insert"
+CREATE POLICY "follows_insert"
   ON follows FOR INSERT
   WITH CHECK (auth.uid() = follower_id);
 
-CREATE POLICY IF NOT EXISTS "follows_delete"
+CREATE POLICY "follows_delete"
   ON follows FOR DELETE
   USING (auth.uid() = follower_id);
 
@@ -2613,13 +2613,13 @@ create index if not exists event_updates_event_id_idx on event_updates(event_id)
 
 alter table event_updates enable row level security;
 
-create policy if not exists "event_updates_select"
+CREATE POLICY "event_updates_select"
   on event_updates for select using (true);
 
-create policy if not exists "event_updates_insert"
+CREATE POLICY "event_updates_insert"
   on event_updates for insert with check (auth.uid() = author_id);
 
-create policy if not exists "event_updates_delete"
+CREATE POLICY "event_updates_delete"
   on event_updates for delete using (auth.uid() = author_id);
 
 -- ─── event_waitlist ───────────────────────────────────────────────────────────
@@ -2636,13 +2636,13 @@ create index if not exists event_waitlist_event_id_idx on event_waitlist(event_i
 
 alter table event_waitlist enable row level security;
 
-create policy if not exists "event_waitlist_select"
+CREATE POLICY "event_waitlist_select"
   on event_waitlist for select using (true);
 
-create policy if not exists "event_waitlist_insert"
+CREATE POLICY "event_waitlist_insert"
   on event_waitlist for insert with check (auth.uid() = user_id);
 
-create policy if not exists "event_waitlist_delete"
+CREATE POLICY "event_waitlist_delete"
   on event_waitlist for delete using (auth.uid() = user_id);
 
 -- ─── event_carpools ───────────────────────────────────────────────────────────
@@ -2662,13 +2662,13 @@ create index if not exists event_carpools_event_id_idx on event_carpools(event_i
 
 alter table event_carpools enable row level security;
 
-create policy if not exists "event_carpools_select"
+CREATE POLICY "event_carpools_select"
   on event_carpools for select using (true);
 
-create policy if not exists "event_carpools_insert"
+CREATE POLICY "event_carpools_insert"
   on event_carpools for insert with check (auth.uid() = driver_id);
 
-create policy if not exists "event_carpools_delete"
+CREATE POLICY "event_carpools_delete"
   on event_carpools for delete using (auth.uid() = driver_id);
 
 -- ─── event_carpool_requests ───────────────────────────────────────────────────
@@ -2687,13 +2687,13 @@ create index if not exists ecr_rider_id_idx   on event_carpool_requests(rider_id
 
 alter table event_carpool_requests enable row level security;
 
-create policy if not exists "event_carpool_requests_select"
+CREATE POLICY "event_carpool_requests_select"
   on event_carpool_requests for select using (true);
 
-create policy if not exists "event_carpool_requests_insert"
+CREATE POLICY "event_carpool_requests_insert"
   on event_carpool_requests for insert with check (auth.uid() = rider_id);
 
-create policy if not exists "event_carpool_requests_delete"
+CREATE POLICY "event_carpool_requests_delete"
   on event_carpool_requests for delete using (auth.uid() = rider_id);
 
 -- ─── events table additions ───────────────────────────────────────────────────
