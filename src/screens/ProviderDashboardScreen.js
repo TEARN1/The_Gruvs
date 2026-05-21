@@ -77,7 +77,7 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const surface = currentTheme?.surface || '#1a1f21';
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -93,7 +93,7 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user, toast]);
 
   const toggleAvailability = useCallback(async () => {
     if (!user || togglingAvail) return;
@@ -120,7 +120,7 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
 
   useEffect(() => {
     if (visible) loadData();
-  }, [visible, user]);
+  }, [visible, loadData]);
 
   if (!visible) return null;
 

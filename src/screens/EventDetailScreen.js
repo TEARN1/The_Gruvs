@@ -17,10 +17,16 @@ import { GlassView } from '../components/GlassView';
 import { EchoSection } from '../components/EchoSection';
 import { RatingSection } from '../components/RatingSection';
 import { EventGallery } from '../components/EventGallery';
+import { WaitlistButton } from '../components/WaitlistButton';
+import { EventReactions } from '../components/EventReactions';
+import { LiveEventUpdates } from '../components/LiveEventUpdates';
+import { EventWeather } from '../components/EventWeather';
+import { VIPTierSelector } from '../components/VIPTierSelector';
+import { CarpoolBoard } from '../components/CarpoolBoard';
 import { MediaViewer } from '../components/MediaViewer';
 import { useToast } from '../components/ToastNotification';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
-import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, ScoreEngine } from '../services/dataFlow';
+import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, ScoreEngine, VibeManager } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
 import { EventContextualAds } from '../components/EventContextualAds';
@@ -74,6 +80,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [goingCount, setGoingCount] = useState(0);
   const [vibeCount, setVibeCount] = useState(event?.vibe_count || 0);
+  const [hasVibed, setHasVibed] = useState(false);
+  const [vibeSending, setVibeSending] = useState(false);
   const [capacityStatus, setCapacityStatus] = useState({ hasLimit: false, isSoldOut: false, spotsLeft: null });
   const [hasReminder, setHasReminder] = useState(false);
   const [settingReminder, setSettingReminder] = useState(false);
@@ -82,6 +90,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [reportVisible, setReportVisible] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [countdown, setCountdown] = useState(null);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -99,6 +108,27 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       : event?.image_url
         ? [{ type: 'image', url: event.image_url }]
         : [];
+
+  // Countdown clock — ticks every second while event is in the future
+  useEffect(() => {
+    const target = event?.event_date
+      ? new Date(`${event.event_date}${event.event_time ? 'T' + event.event_time : 'T00:00:00'}`)
+      : null;
+    if (!target || isNaN(target.getTime())) { setCountdown(null); return; }
+
+    const tick = () => {
+      const diff = target.getTime() - Date.now();
+      if (diff <= 0) { setCountdown({ over: true }); return; }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setCountdown({ d, h, m, s, over: false });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [event?.event_date, event?.event_time]);
 
   const fetchUserState = useCallback(async () => {
     if (!user || !event?.id) return;
@@ -190,6 +220,31 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       setRsvpLoading(false);
     }
   }, [user, rsvpStatus, rsvpLoading, event?.id, onAuthRequired, showToast]);
+
+  const handleVibe = useCallback(async () => {
+    if (!user) { onAuthRequired?.(); return; }
+    if (vibeSending) return;
+    const wasVibed = hasVibed;
+    setHasVibed(!wasVibed);
+    setVibeCount(c => wasVibed ? Math.max(0, c - 1) : c + 1);
+    setVibeSending(true);
+    try {
+      const ok = wasVibed
+        ? await VibeManager.removeVibe(event.id, user.id)
+        : await VibeManager.sendVibe(event.id, user.id);
+      if (!ok) throw new Error('vibe failed');
+      if (!wasVibed) {
+        if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        showToast('⚡ Vibe sent!', 'success');
+      }
+    } catch {
+      setHasVibed(wasVibed);
+      setVibeCount(c => wasVibed ? c + 1 : Math.max(0, c - 1));
+      showToast('Could not send vibe. Try again.', 'error');
+    } finally {
+      setVibeSending(false);
+    }
+  }, [user, event?.id, hasVibed, vibeSending, onAuthRequired, showToast]);
 
   const handleFollow = async () => {
     if (!user) { onAuthRequired?.(); return; }
@@ -445,12 +500,59 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             )}
           </View>
 
+          {/* Weather forecast */}
+          {event && (
+            <EventWeather
+              event={event}
+              primary={primary}
+              textColor={textColor}
+              muted={textMuted}
+              surface={surface}
+            />
+          )}
+
+          {/* Countdown Timer */}
+          {countdown && !countdown.over && (
+            <View style={[styles.countdownBar, { backgroundColor: `${primary}10`, borderColor: `${primary}25` }]}>
+              <Feather name="clock" size={13} color={primary} />
+              {countdown.d > 0 ? (
+                <>
+                  <CountdownUnit value={countdown.d} label="D" primary={primary} textColor={textColor} />
+                  <Text style={[styles.countdownSep, { color: primary }]}>:</Text>
+                  <CountdownUnit value={countdown.h} label="H" primary={primary} textColor={textColor} />
+                  <Text style={[styles.countdownSep, { color: primary }]}>:</Text>
+                  <CountdownUnit value={countdown.m} label="M" primary={primary} textColor={textColor} />
+                </>
+              ) : (
+                <>
+                  <CountdownUnit value={countdown.h} label="H" primary={primary} textColor={textColor} />
+                  <Text style={[styles.countdownSep, { color: primary }]}>:</Text>
+                  <CountdownUnit value={countdown.m} label="M" primary={primary} textColor={textColor} />
+                  <Text style={[styles.countdownSep, { color: primary }]}>:</Text>
+                  <CountdownUnit value={countdown.s} label="S" primary={primary} textColor={textColor} />
+                </>
+              )}
+              <Text style={[styles.countdownLabel, { color: textMuted }]}>until the Gruv</Text>
+            </View>
+          )}
+          {countdown?.over && (
+            <View style={[styles.countdownBar, { backgroundColor: '#10b98115', borderColor: '#10b98130' }]}>
+              <Feather name="zap" size={13} color="#10b981" />
+              <Text style={{ color: '#10b981', fontWeight: '900', fontSize: 13 }}>Happening Now!</Text>
+            </View>
+          )}
+
           {/* Vibe count + Who's Going */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <View style={[styles.vibePill, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
+            <TouchableOpacity
+              style={[styles.vibePill, { backgroundColor: hasVibed ? `${primary}30` : `${primary}15`, borderColor: hasVibed ? primary : `${primary}30` }]}
+              onPress={handleVibe}
+              disabled={vibeSending}
+              activeOpacity={0.7}
+            >
               <Feather name="zap" size={13} color={primary} />
-              <Text style={[styles.vibeCountText, { color: primary }]}>{vibeCount} Vibes</Text>
-            </View>
+              <Text style={[styles.vibeCountText, { color: primary }]}>{vibeCount} Vibe{vibeCount !== 1 ? 's' : ''}</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.vibePill, { backgroundColor: `${primary}08`, borderColor: `${primary}20` }]}
               onPress={handleWhoGoing}
@@ -505,6 +607,26 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </View>
           </GlassView>
 
+          {event?.rsvp_tiers?.length > 0 && (
+            <VIPTierSelector
+              event={event}
+              primary={primary}
+              textColor={textColor}
+              muted={textMuted}
+              surface={surface}
+              onBooked={() => {}}
+            />
+          )}
+
+          {isSoldOut && event?.id && (
+            <WaitlistButton
+              eventId={event.id}
+              primary={primary}
+              muted={textMuted}
+              surface={surface}
+            />
+          )}
+
           {Array.isArray(event?.tags) && event.tags.length > 0 && (
             <View style={styles.tagsRow}>
               {event.tags.map((tag, i) => (
@@ -513,6 +635,10 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 </View>
               ))}
             </View>
+          )}
+
+          {event?.id && (
+            <EventReactions eventId={event.id} primary={primary} muted={textMuted} />
           )}
 
           {!!event?.ticket_url && (
@@ -566,17 +692,24 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {/* Contextual ads based on event phase */}
           {event && <EventContextualAds event={event} />}
 
-          {(event?.schedule?.length > 0) && (
-            <>
-              <View style={styles.sectionDivider} />
-              <EventScheduleSection
-                event={event}
-                primary={primary}
-                textColor={textColor}
-                muted={textMuted}
-                bg={background}
-              />
-            </>
+          <View style={styles.sectionDivider} />
+          <EventScheduleSection
+            event={event}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            bg={background}
+          />
+
+          <View style={styles.sectionDivider} />
+          {event?.id && (
+            <CarpoolBoard
+              event={event}
+              primary={primary}
+              textColor={textColor}
+              muted={textMuted}
+              surface={surface}
+            />
           )}
 
           <View style={styles.sectionDivider} />
@@ -586,6 +719,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {event?.id && <RatingSection eventId={event.id} onAuthRequired={onAuthRequired} />}
 
           <View style={styles.sectionDivider} />
+          {event?.id && (
+            <LiveEventUpdates
+              eventId={event.id}
+              organiserId={organizer?.id}
+              primary={primary}
+              textColor={textColor}
+              muted={textMuted}
+              surface={surface}
+            />
+          )}
+
           {event?.id && <EventGallery eventId={event.id} />}
 
           <View style={styles.sectionDivider} />
@@ -657,6 +801,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     </Modal>
   );
 };
+
+const CountdownUnit = ({ value, label, primary, textColor }) => (
+  <View style={{ alignItems: 'center', minWidth: 28 }}>
+    <Text style={{ color: primary, fontSize: 18, fontWeight: '900', lineHeight: 20 }}>
+      {String(value).padStart(2, '0')}
+    </Text>
+    <Text style={{ color: textColor, fontSize: 8, fontWeight: '700', opacity: 0.5, letterSpacing: 0.5 }}>{label}</Text>
+  </View>
+);
 
 const MetaChip = ({ icon, label, color, pressable }) => (
   <View style={[styles.metaChip, pressable && { borderBottomWidth: 1, borderBottomColor: color + '88' }]}>
@@ -936,6 +1089,9 @@ const styles = StyleSheet.create({
   },
   vibePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
   vibeCountText: { fontSize: 12, fontWeight: '800' },
+  countdownBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, borderWidth: 1, marginBottom: 12 },
+  countdownSep: { fontSize: 16, fontWeight: '900', marginBottom: 6 },
+  countdownLabel: { fontSize: 11, fontWeight: '600', marginLeft: 4 },
   whoGoingSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '70%' },
   whoGoingTitle: { fontSize: 17, fontWeight: '900' },
   whoGoingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },

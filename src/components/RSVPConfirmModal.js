@@ -141,7 +141,9 @@ export const RSVPConfirmModal = ({ visible, onClose, event }) => {
             </View>
           ) : (
             <>
-              {/* Event preview */}
+              <TouchableOpacity style={s.backBtn} onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Feather name="x" size={20} color={muted} />
+              </TouchableOpacity>
               {event.media?.[0]?.url && (
                 <Image source={{ uri: event.media[0].url }} style={s.eventThumb} resizeMode="cover" />
               )}
@@ -225,6 +227,7 @@ export const RSVPConfirmModal = ({ visible, onClose, event }) => {
 const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 36 },
+  backBtn: { position: 'absolute', top: 20, right: 20, zIndex: 10, padding: 4 },
   pill: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 16 },
   eventThumb: { width: '100%', height: Math.min(140, SCREEN_W * 0.35), borderRadius: 16, marginBottom: 14 },
   eventTitle: { fontSize: 20, fontWeight: '900', marginBottom: 10 },

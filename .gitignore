@@ -12,3 +12,6 @@ out/
 build/
 .claude/
 .idea/
+google-service-account.json
+*.keystore
+*.jks

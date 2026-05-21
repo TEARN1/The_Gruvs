@@ -23,6 +23,7 @@ export const EventGallery = ({ eventId }) => {
   const toast = useToast();
   const [gallery, setGallery] = useState([]);
   const [hostMedia, setHostMedia] = useState([]);
+  const [previewCount, setPreviewCount] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [lightboxItem, setLightboxItem] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -32,6 +33,15 @@ export const EventGallery = ({ eventId }) => {
   const primary = currentTheme?.primary || '#00f2ff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const textColor = currentTheme?.text || '#fff';
+
+  useEffect(() => {
+    if (!eventId) return;
+    supabase
+      .from('event_gallery')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .then(({ count }) => { if (count != null) setPreviewCount(count); });
+  }, [eventId]);
 
   useEffect(() => {
     if (isModalVisible) fetchGallery();
@@ -173,11 +183,13 @@ export const EventGallery = ({ eventId }) => {
     }
   };
 
-  const previewCount = Math.min(gallery.length, 3);
+  const displayCount = isModalVisible
+    ? gallery.length + hostMedia.length
+    : previewCount;
 
   return (
     <View style={styles.container}>
-      {/* Preview strip — lazy, only load count without opening modal */}
+      {/* Preview strip — shows count fetched on mount */}
       <TouchableOpacity
         style={styles.triggerRow}
         onPress={() => setIsModalVisible(true)}
@@ -186,7 +198,9 @@ export const EventGallery = ({ eventId }) => {
           📸 Community Gallery
         </Text>
         <View style={[styles.badge, { backgroundColor: `${primary}22`, borderColor: `${primary}50` }]}>
-          <Text style={[styles.badgeText, { color: primary }]}>View All</Text>
+          <Text style={[styles.badgeText, { color: primary }]}>
+            {displayCount != null ? `${displayCount} photo${displayCount !== 1 ? 's' : ''}` : 'View All'}
+          </Text>
         </View>
       </TouchableOpacity>
 

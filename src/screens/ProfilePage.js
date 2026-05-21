@@ -28,6 +28,7 @@ import { PostEventModal } from '../components/PostEventModal';
 import { EditEventModal } from '../components/EditEventModal';
 import { StreakBadge, useStreak } from '../components/StreakBadge';
 import { AchievementBadges } from '../components/AchievementBadges';
+import { StreakBadges } from '../components/StreakBadges';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ReferralCard } from '../components/ReferralCard';
 import { LeaderboardScreen } from './LeaderboardScreen';
@@ -1043,6 +1044,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [location, setLocation] = useState(profile?.location || '');
   const [website, setWebsite] = useState(profile?.website || '');
   const [interests, setInterests] = useState(profile?.interests || []);
+  const [profileGender, setProfileGender] = useState(profile?.gender || '');
+  const [birthYear, setBirthYear] = useState(profile?.birth_year ? String(profile.birth_year) : '');
+  const [lookingFor, setLookingFor] = useState(profile?.looking_for || '');
+  const [preferredAreas, setPreferredAreas] = useState(profile?.preferred_areas || '');
 
   useEffect(() => {
     if (profile) {
@@ -1054,6 +1059,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       setCareerTitle(profile.career_title || '');
       setCareerDescription(profile.career_description || '');
       setProfileGallery(profile.profile_gallery || []);
+      setProfileGender(profile.gender || '');
+      setBirthYear(profile.birth_year ? String(profile.birth_year) : '');
+      setLookingFor(profile.looking_for || '');
+      setPreferredAreas(profile.preferred_areas || '');
     }
   }, [profile]);
   const [savedCount, setSavedCount] = useState(0);
@@ -1144,11 +1153,16 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const handleSaveProfile = async () => {
     try {
       setSaving(true);
+      const parsedBirthYear = birthYear.trim() ? parseInt(birthYear.trim(), 10) : null;
       const { error } = await supabase.from('profiles').update({
         bio, location, website, interests,
         looks_description: looksDescription,
         career_title: careerTitle,
-        career_description: careerDescription
+        career_description: careerDescription,
+        gender: profileGender || null,
+        birth_year: parsedBirthYear && !isNaN(parsedBirthYear) ? parsedBirthYear : null,
+        looking_for: lookingFor || null,
+        preferred_areas: preferredAreas || null,
       }).eq('id', user.id);
       if (error) throw error;
       toast.show('Profile updated!', 'success');
@@ -1676,6 +1690,15 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         {user && (
           <ErrorBoundary inline label="Invite Friends" primary={primary}>
             <ReferralCard userId={user.id} />
+          </ErrorBoundary>
+        )}
+
+        {/* Check-in streak + event-attendance badges */}
+        {user && (
+          <ErrorBoundary inline label="Streak" primary={primary}>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+              <StreakBadges userId={user.id} primary={primary} textColor={textColor} muted={muted} surface={surface} />
+            </View>
           </ErrorBoundary>
         )}
 
@@ -2356,13 +2379,63 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               {/* Website */}
               <Text style={{ color: primary, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>Website / Link</Text>
               <TextInput
-                style={{ color: textColor, borderWidth: 1, borderColor: `${primary}25`, borderRadius: 12, padding: 12, fontSize: 13, marginBottom: 22 }}
+                style={{ color: textColor, borderWidth: 1, borderColor: `${primary}25`, borderRadius: 12, padding: 12, fontSize: 13, marginBottom: 14 }}
                 value={website}
                 onChangeText={setWebsite}
                 placeholder="https://..."
                 placeholderTextColor={muted}
                 autoCapitalize="none"
                 keyboardType="url"
+              />
+
+              {/* Gender */}
+              <Text style={{ color: primary, fontSize: 12, fontWeight: '700', marginBottom: 8 }}>Gender</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                {['Male', 'Female', 'Non-binary', 'Other'].map(g => (
+                  <TouchableOpacity
+                    key={g}
+                    onPress={() => setProfileGender(profileGender === g.toLowerCase() ? '' : g.toLowerCase())}
+                    style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: profileGender === g.toLowerCase() ? primary : `${primary}30`, backgroundColor: profileGender === g.toLowerCase() ? `${primary}20` : 'transparent' }}
+                  >
+                    <Text style={{ color: profileGender === g.toLowerCase() ? primary : muted, fontSize: 12, fontWeight: '700' }}>{g}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Birth Year */}
+              <Text style={{ color: primary, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>Birth Year</Text>
+              <TextInput
+                style={{ color: textColor, borderWidth: 1, borderColor: `${primary}25`, borderRadius: 12, padding: 12, fontSize: 13, marginBottom: 14 }}
+                value={birthYear}
+                onChangeText={setBirthYear}
+                placeholder="e.g. 1998"
+                placeholderTextColor={muted}
+                keyboardType="numeric"
+                maxLength={4}
+              />
+
+              {/* Looking For */}
+              <Text style={{ color: primary, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>What are you looking for?</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                {['Friends', 'Dating', 'Networking', 'Event Crew', 'Collaborations', 'Just Vibing'].map(opt => (
+                  <TouchableOpacity
+                    key={opt}
+                    onPress={() => setLookingFor(lookingFor === opt ? '' : opt)}
+                    style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: lookingFor === opt ? primary : `${primary}30`, backgroundColor: lookingFor === opt ? `${primary}20` : 'transparent' }}
+                  >
+                    <Text style={{ color: lookingFor === opt ? primary : muted, fontSize: 12, fontWeight: '700' }}>{opt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Preferred Areas */}
+              <Text style={{ color: primary, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>Preferred Areas / Neighbourhoods</Text>
+              <TextInput
+                style={{ color: textColor, borderWidth: 1, borderColor: `${primary}25`, borderRadius: 12, padding: 12, fontSize: 13, marginBottom: 22 }}
+                value={preferredAreas}
+                onChangeText={setPreferredAreas}
+                placeholder="e.g. Sandton, Melville, Soweto..."
+                placeholderTextColor={muted}
               />
 
               <TouchableOpacity

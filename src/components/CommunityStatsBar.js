@@ -11,6 +11,38 @@ import { DirectMessageModal } from './DirectMessageModal';
 
 const REFRESH_MS = 30000;
 
+const ViberRow = React.memo(({ item, primary, surface, textColor, muted, onMessage }) => (
+  <View style={[ss.viberRow, { borderBottomColor: `${primary}12` }]}>
+    <View style={{ position: 'relative' }}>
+      {item.avatar_url
+        ? <Image source={{ uri: item.avatar_url }} style={ss.avatar} />
+        : <View style={[ss.avatar, { backgroundColor: avatarBg(item.username), alignItems: 'center', justifyContent: 'center' }]}>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>
+              {(item.username || 'V')[0].toUpperCase()}
+            </Text>
+          </View>
+      }
+      <View style={[ss.onlineDot, { borderColor: surface }]} />
+    </View>
+    <View style={{ flex: 1, gap: 2 }}>
+      <Text style={[ss.viberName, { color: textColor }]} numberOfLines={1}>
+        @{item.username}
+      </Text>
+      {item.bio
+        ? <Text style={[ss.viberBio, { color: muted }]} numberOfLines={1}>{item.bio}</Text>
+        : null
+      }
+    </View>
+    <TouchableOpacity
+      style={[ss.msgBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+      onPress={() => onMessage(item)}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
+      <Feather name="message-circle" size={16} color={primary} />
+    </TouchableOpacity>
+  </View>
+));
+
 const fmt = (n) => {
   if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
   if (n >= 1000)     return `${(n / 1000).toFixed(1)}K`;
@@ -99,6 +131,23 @@ export const CommunityStatsBar = () => {
     fetchOnlineVibers();
   };
 
+  const handleMessage = useCallback((item) => {
+    setMsgTarget(item);
+    setMsgVisible(true);
+    setModalVisible(false);
+  }, []);
+
+  const renderViberRow = useCallback(({ item }) => (
+    <ViberRow
+      item={item}
+      primary={primary}
+      surface={surface}
+      textColor={textColor}
+      muted={muted}
+      onMessage={handleMessage}
+    />
+  ), [primary, surface, textColor, muted, handleMessage]);
+
   if (!user) return null;
 
   return (
@@ -147,37 +196,7 @@ export const CommunityStatsBar = () => {
               data={onlineVibers}
               keyExtractor={item => item.id}
               contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 4 }}
-              renderItem={useCallback(({ item }) => (
-                <View style={[ss.viberRow, { borderBottomColor: `${primary}12` }]}>
-                  <View style={{ position: 'relative' }}>
-                    {item.avatar_url
-                      ? <Image source={{ uri: item.avatar_url }} style={ss.avatar} />
-                      : <View style={[ss.avatar, { backgroundColor: avatarBg(item.username), alignItems: 'center', justifyContent: 'center' }]}>
-                          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>
-                            {(item.username || 'V')[0].toUpperCase()}
-                          </Text>
-                        </View>
-                    }
-                    <View style={[ss.onlineDot, { borderColor: surface }]} />
-                  </View>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={[ss.viberName, { color: textColor }]} numberOfLines={1}>
-                      @{item.username}
-                    </Text>
-                    {item.bio
-                      ? <Text style={[ss.viberBio, { color: muted }]} numberOfLines={1}>{item.bio}</Text>
-                      : null
-                    }
-                  </View>
-                  <TouchableOpacity
-                    style={[ss.msgBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-                    onPress={() => { setMsgTarget(item); setMsgVisible(true); setModalVisible(false); }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Feather name="message-circle" size={16} color={primary} />
-                  </TouchableOpacity>
-                </View>
-              ), [primary, surface, textColor, muted])}
+              renderItem={renderViberRow}
             />
           )}
         </View>

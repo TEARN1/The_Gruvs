@@ -7,6 +7,31 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { ALL_CATEGORIES, CATEGORY_GROUPS, searchCategories } from '../constants/AllCategories';
 
+const CategoryCell = React.memo(({ item, isSelected, color, textColor, onPress }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.75}
+    style={[
+      cp.cell,
+      {
+        backgroundColor: isSelected ? `${color}22` : `${color}0A`,
+        borderColor: isSelected ? color : `${color}22`,
+        ...(Platform.OS === 'web' && isSelected ? { boxShadow: `0 0 10px ${color}50` } : {}),
+      },
+    ]}
+  >
+    <Text style={cp.cellIcon}>{item.icon}</Text>
+    <Text style={[cp.cellLabel, { color: isSelected ? color : textColor }]} numberOfLines={2}>
+      {item.label}
+    </Text>
+    {isSelected && (
+      <View style={[cp.checkBadge, { backgroundColor: color }]}>
+        <Feather name="check" size={8} color="#000" />
+      </View>
+    )}
+  </TouchableOpacity>
+));
+
 export const CategoryPickerModal = ({
   visible,
   onClose,
@@ -46,6 +71,16 @@ export const CategoryPickerModal = ({
       return next;
     });
   }, [maxSelect]);
+
+  const renderCategoryItem = useCallback(({ item }) => (
+    <CategoryCell
+      item={item}
+      isSelected={picks.has(item.key)}
+      color={item.color}
+      textColor={textColor}
+      onPress={() => toggle(item.key)}
+    />
+  ), [picks, toggle, textColor]);
 
   const addCustom = () => {
     const trimmed = customInput.trim();
@@ -148,38 +183,7 @@ export const CategoryPickerModal = ({
             contentContainerStyle={cp.grid}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            renderItem={useCallback(({ item }) => {
-              const isSelected = picks.has(item.key);
-              return (
-                <TouchableOpacity
-                  onPress={() => toggle(item.key)}
-                  activeOpacity={0.75}
-                  style={[
-                    cp.cell,
-                    {
-                      backgroundColor: isSelected ? `${item.color}22` : `${item.color}0A`,
-                      borderColor: isSelected ? item.color : `${item.color}22`,
-                      ...(Platform.OS === 'web' && isSelected
-                        ? { boxShadow: `0 0 10px ${item.color}50` }
-                        : {}),
-                    },
-                  ]}
-                >
-                  <Text style={cp.cellIcon}>{item.icon}</Text>
-                  <Text
-                    style={[cp.cellLabel, { color: isSelected ? item.color : textColor }]}
-                    numberOfLines={2}
-                  >
-                    {item.label}
-                  </Text>
-                  {isSelected && (
-                    <View style={[cp.checkBadge, { backgroundColor: item.color }]}>
-                      <Feather name="check" size={8} color="#000" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            }, [picks, toggle, textColor])}
+            renderItem={renderCategoryItem}
             ListEmptyComponent={
               <View style={cp.empty}>
                 <Text style={{ fontSize: 32 }}>🔍</Text>

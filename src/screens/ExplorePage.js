@@ -464,7 +464,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         const { data: reelCaps } = await supabase
           .from('reels')
           .select('caption')
-          .eq('is_deleted', false)
+          .neq('is_deleted', true)
           .gte('created_at', cutoff)
           .limit(200);
         const tagCounts = {};

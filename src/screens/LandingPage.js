@@ -33,6 +33,7 @@ import { RSVPConfirmModal } from '../components/RSVPConfirmModal';
 import { ReportModal } from '../components/ReportModal';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { CommunityStatsBar } from '../components/CommunityStatsBar';
+import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { SearchHistoryBar, saveSearch } from '../components/SearchHistoryBar';
 import { DateFilterStrip, dateFilterToRange } from '../components/DateFilterStrip';
 import { TonightAlert } from '../components/TonightAlert';
@@ -863,6 +864,20 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       {/* Community stats — live platform numbers for everyone */}
       <CommunityStatsBar />
+
+      {/* Friend activity feed — recent actions from followed users */}
+      {!!user && (
+        <FriendActivityFeed
+          onPressActivity={async item => {
+            if (item.target_type === 'event' && item.target_id) {
+              const local = events.find(e => e.id === item.target_id);
+              if (local) { setSelectedEvent(local); return; }
+              const { data } = await supabase.from('events').select('*').eq('id', item.target_id).maybeSingle();
+              if (data) setSelectedEvent(data);
+            }
+          }}
+        />
+      )}
 
       {/* Visitor banner — only if no user */}
       {!user && <VisitorBanner onSignIn={onAuthRequired} primary={primary} muted={muted} />}

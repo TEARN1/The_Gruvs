@@ -2,7 +2,60 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
   Image, ActivityIndicator, RefreshControl, Platform, ScrollView, Animated,
+  PanResponder, Dimensions,
 } from 'react-native';
+
+const SCREEN_W = Dimensions.get('window').width;
+
+// Simple single-thumb slider — no external dep needed
+const SimpleSlider = ({ min, max, value, onChange, primary, muted, unit = '' }) => {
+  const trackW = SCREEN_W - 64;
+  const pct = (value - min) / (max - min);
+  const thumbX = useRef(new Animated.Value(pct * trackW)).current;
+  const currentX = useRef(pct * trackW);
+
+  const responder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => {},
+    onPanResponderMove: (_, gs) => {
+      const next = Math.max(0, Math.min(trackW, currentX.current + gs.dx));
+      thumbX.setValue(next);
+      const val = Math.round(min + (next / trackW) * (max - min));
+      onChange(val);
+    },
+    onPanResponderRelease: (_, gs) => {
+      currentX.current = Math.max(0, Math.min(trackW, currentX.current + gs.dx));
+    },
+  })).current;
+
+  const fillW = thumbX.interpolate({ inputRange: [0, trackW], outputRange: [0, trackW], extrapolate: 'clamp' });
+
+  return (
+    <View style={{ paddingVertical: 8 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+        <Text style={{ color: muted, fontSize: 11 }}>{min}{unit}</Text>
+        <Text style={{ color: primary, fontSize: 13, fontWeight: '800' }}>{value}{unit}</Text>
+        <Text style={{ color: muted, fontSize: 11 }}>{max}{unit}</Text>
+      </View>
+      <View style={{ height: 4, borderRadius: 2, backgroundColor: `${primary}20`, width: trackW, alignSelf: 'center' }}>
+        <Animated.View style={{ height: 4, borderRadius: 2, backgroundColor: primary, width: fillW }} />
+      </View>
+      <Animated.View
+        {...responder.panHandlers}
+        style={{
+          position: 'absolute',
+          top: 24,
+          left: 16,
+          transform: [{ translateX: thumbX }],
+          width: 22, height: 22, borderRadius: 11,
+          backgroundColor: primary, borderWidth: 3, borderColor: '#0d1112',
+          shadowColor: primary, shadowOpacity: 0.6, shadowRadius: 4, shadowOffset: { width: 0, height: 0 },
+        }}
+      />
+    </View>
+  );
+};
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
@@ -177,6 +230,8 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const [descBody, setDescBody] = useState(null);
   const [descSkin, setDescSkin] = useState(null);
   const [descInterest, setDescInterest] = useState(null);
+  const [minAge, setMinAge] = useState(18);
+  const [maxAge, setMaxAge] = useState(45);
   const [nearbyRadius, setNearbyRadius] = useState(25);
 
   const searchTimer = useRef(null);
@@ -277,14 +332,23 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   }, [filter, fetchAll, fetchNearby]);
 
   const displayVibers = useMemo(() => {
+    const currentYear = new Date().getFullYear();
     let result = vibers.filter(v => !blockedIds.has(v.id));
     if (descGender) result = result.filter(v => !v.gender || v.gender === descGender);
     if (descHair)   result = result.filter(v => !v.hair_style || v.hair_style?.toLowerCase().includes(descHair.toLowerCase()));
     if (descBody)   result = result.filter(v => !v.body_type || v.body_type === descBody);
     if (descSkin)   result = result.filter(v => !v.skin_tone || v.skin_tone === descSkin);
     if (descInterest) result = result.filter(v => !v.interests || (Array.isArray(v.interests) ? v.interests.some(i => i?.toLowerCase() === descInterest.toLowerCase()) : v.interests?.toLowerCase().includes(descInterest.toLowerCase())));
+    // Age filter: birth_year is stored on profile; skip users without it
+    if (minAge !== 18 || maxAge !== 45) {
+      result = result.filter(v => {
+        if (!v.birth_year) return true;
+        const age = currentYear - v.birth_year;
+        return age >= minAge && age <= maxAge;
+      });
+    }
     return result;
-  }, [vibers, blockedIds, descGender, descHair, descBody, descSkin, descInterest]);
+  }, [vibers, blockedIds, descGender, descHair, descBody, descSkin, descInterest, minAge, maxAge]);
 
   // Re-run when filter changes OR when auth resolves (user goes from null → logged in)
   useEffect(() => {
@@ -406,29 +470,15 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
           <Feather name="sliders" size={12} color={primary} />
           <Text style={[s.filterText, { color: primary }]}>
             Describe
-            {(descGender || descHair || descBody || descSkin || descInterest) ? ' ✦' : ''}
+            {(descGender || descHair || descBody || descSkin || descInterest || minAge !== 18 || maxAge !== 45) ? ' ✦' : ''}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Nearby radius selector */}
       {filter === 'nearby' && (
         <View style={{ paddingHorizontal: 16, marginBottom: 10 }}>
-          <Text style={[s.sectionLabel, { color: muted }]}>Search Radius</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {RADIUS_OPTIONS.map(r => (
-              <TouchableOpacity
-                key={r}
-                onPress={() => setNearbyRadius(r)}
-                style={[s.filterBtn, {
-                  backgroundColor: nearbyRadius === r ? primary : `${primary}12`,
-                  borderColor: nearbyRadius === r ? primary : `${primary}25`,
-                }]}
-              >
-                <Text style={[s.filterText, { color: nearbyRadius === r ? '#000' : primary }]}>{r}km</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <Text style={[s.sectionLabel, { color: muted }]}>SEARCH RADIUS</Text>
+          <SimpleSlider min={1} max={150} value={nearbyRadius} onChange={setNearbyRadius} primary={primary} muted={muted} unit="km" />
         </View>
       )}
 
@@ -437,14 +487,19 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
         <View style={[s.descPanel, { backgroundColor: `${surface}80`, borderColor: `${primary}15` }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Text style={{ color: textColor, fontSize: 13, fontWeight: '900' }}>Describe who you're looking for</Text>
-            {(descGender || descHair || descBody || descSkin || descInterest) && (
-              <TouchableOpacity onPress={() => { setDescGender(null); setDescHair(null); setDescBody(null); setDescSkin(null); setDescInterest(null); }}>
-                <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '800' }}>Clear</Text>
+            {(descGender || descHair || descBody || descSkin || descInterest || minAge !== 18 || maxAge !== 45) && (
+              <TouchableOpacity onPress={() => { setDescGender(null); setDescHair(null); setDescBody(null); setDescSkin(null); setDescInterest(null); setMinAge(18); setMaxAge(45); }}>
+                <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '800' }}>Clear All</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          <Text style={[s.descLabel, { color: muted }]}>Gender</Text>
+          <Text style={[s.descLabel, { color: muted }]}>Age Range — Min</Text>
+          <SimpleSlider min={18} max={60} value={minAge} onChange={v => setMinAge(Math.min(v, maxAge - 1))} primary={primary} muted={muted} unit=" yrs" />
+          <Text style={[s.descLabel, { color: muted, marginTop: 4 }]}>Age Range — Max</Text>
+          <SimpleSlider min={18} max={70} value={maxAge} onChange={v => setMaxAge(Math.max(v, minAge + 1))} primary={primary} muted={muted} unit=" yrs" />
+
+          <Text style={[s.descLabel, { color: muted, marginTop: 8 }]}>Gender</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
             {DESC_GENDERS.map(g => (
               <TouchableOpacity key={g.key} onPress={() => setDescGender(descGender === g.key ? null : g.key)}

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions,
+  Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
@@ -208,6 +208,42 @@ export const TimePicker = ({
     const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
     setMinute(Math.max(0, Math.min(59, idx)));
   };
+
+  if (Platform.OS === 'web') {
+    return (
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+        <TouchableOpacity style={tp.overlay} activeOpacity={1} onPress={onClose}>
+          <TouchableOpacity activeOpacity={1} style={[tp.card, { backgroundColor: bg }]}>
+            <Text style={[tp.title, { color: textColor }]}>Pick a Time</Text>
+            <input
+              type="time"
+              value={`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`}
+              onChange={e => {
+                const [h, m] = e.target.value.split(':').map(Number);
+                if (!isNaN(h)) setHour(h);
+                if (!isNaN(m)) setMinute(m);
+              }}
+              style={{
+                fontSize: 28, padding: 12, borderRadius: 12,
+                border: `2px solid ${primary}`, color: textColor,
+                backgroundColor: bg, width: '100%', textAlign: 'center',
+                outline: 'none', marginTop: 8,
+              }}
+            />
+            <Text style={[tp.preview, { color: primary }]}>
+              {String(hour).padStart(2, '0')}:{String(minute).padStart(2, '0')}
+            </Text>
+            <TouchableOpacity
+              style={[tp.confirmBtn, { backgroundColor: primary }]}
+              onPress={() => onConfirm(hour, minute)}
+            >
+              <Text style={tp.confirmText}>Confirm Time</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    );
+  }
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

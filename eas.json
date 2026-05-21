@@ -13,14 +13,18 @@
     },
     "preview": {
       "distribution": "internal",
-      "ios": { "simulator": false },
-      "android": { "buildType": "apk" },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
       "env": { "APP_ENV": "preview" }
     },
     "production": {
       "autoIncrement": true,
-      "ios": { "buildConfiguration": "Release" },
-      "android": { "buildType": "app-bundle" },
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
+      },
       "env": { "APP_ENV": "production" }
     }
   },
@@ -30,11 +34,6 @@
         "serviceAccountKeyPath": "./google-service-account.json",
         "track": "internal",
         "releaseStatus": "draft"
-      },
-      "ios": {
-        "appleId": "asemahlenkwali@gmail.com",
-        "ascAppId": "YOUR_ASC_APP_ID",
-        "appleTeamId": "YOUR_APPLE_TEAM_ID"
       }
     }
   }

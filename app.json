@@ -36,9 +36,7 @@
       },
       "package": "com.thegruvs.app",
       "versionCode": 1,
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34,
-      "minSdkVersion": 21,
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -47,7 +45,6 @@
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.VIBRATE",
         "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
@@ -85,7 +82,8 @@
           "photosPermission": "The Gruvs needs photo library access to upload event media.",
           "cameraPermission": "The Gruvs needs camera access to post event photos."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "privacyPolicyUrl": "https://thegruvs.app/privacy",

@@ -2,7 +2,7 @@
  * WalletScreen — The financial hub of the Movement OS.
  * Displays balance, integrity tier, and real-time gig history.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, RefreshControl, Platform, Animated,
@@ -61,7 +61,7 @@ export const WalletScreen = ({ visible, onClose }) => {
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const surface = currentTheme?.surface || '#1a1f21';
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -96,11 +96,11 @@ export const WalletScreen = ({ visible, onClose }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user, toast]);
 
   useEffect(() => {
     loadData();
-  }, [user]);
+  }, [loadData]);
 
   const onRefresh = () => {
     setRefreshing(true);

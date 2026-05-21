@@ -9,6 +9,7 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback,
   Image, Dimensions, Platform, TextInput, Modal, ScrollView, KeyboardAvoidingView,
   Animated, ActivityIndicator, Share, PanResponder, Alert, RefreshControl, AppState,
+  useWindowDimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,11 +23,9 @@ import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { CreateReelModal } from '../components/CreateReelModal';
 
-const { width: SW, height: SH } = Dimensions.get('window');
 const IS_WEB = Platform.OS === 'web';
-// On web constrain reel to phone-like frame
-const REEL_W = IS_WEB ? Math.min(SW, 420) : SW;
-const REEL_H = IS_WEB ? Math.min(SH, 820) : SH;
+// Mobile fallback (used outside component for getItemLayout)
+const { width: SW, height: SH } = Dimensions.get('window');
 
 const avatarBg = (u = '') =>
   ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u.charCodeAt(0) || 0) % 5];
@@ -74,7 +73,7 @@ const ReelTabSwitcher = ({ absolute, insetsTop, onClose, hashtagFilter, setHasht
 );
 
 // ── Skeleton reel card for loading state ──────────────────────────────────────
-const ReelSkeleton = ({ primary }) => {
+const ReelSkeleton = ({ primary, reelW, reelH }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
     const anim = Animated.loop(
@@ -87,7 +86,7 @@ const ReelSkeleton = ({ primary }) => {
     return () => anim.stop();
   }, [pulse]);
   return (
-    <View style={{ width: REEL_W, height: REEL_H, backgroundColor: '#0a0a0a' }}>
+    <View style={{ width: reelW ?? SW, height: reelH ?? SH, backgroundColor: '#0a0a0a' }}>
       {/* right action bar placeholders */}
       <Animated.View style={{ position: 'absolute', right: 14, bottom: 150, alignItems: 'center', gap: 20, opacity: pulse }}>
         {[48, 36, 36, 36, 36].map((size, i) => (
@@ -235,7 +234,7 @@ const cs = StyleSheet.create({
 });
 
 // ── Single Reel Item ──────────────────────────────────────────────────────────
-const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag }) => {
+const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, reelW, reelH }) => {
   const videoRef = useRef(null);
   const lastTap = useRef(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
@@ -410,7 +409,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
 
   return (
     <TouchableWithoutFeedback onPress={handleTap}>
-      <View style={[ri.container, { width: REEL_W, height: REEL_H }]}>
+      <View style={[ri.container, { width: reelW ?? SW, height: reelH ?? SH }]}>
         {/* Media */}
         {isVideo ? (
           <Video
@@ -609,6 +608,12 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
   const surface   = currentTheme?.surface    || '#1a1f21';
 
+  const { width: winW, height: winH } = useWindowDimensions();
+  // Responsive reel dimensions — recalculate on resize
+  const REEL_W = IS_WEB ? Math.min(winW, 420) : winW;
+  const REEL_H = IS_WEB ? Math.min(winH, 880) : winH;
+  const isWide = IS_WEB && winW > 800;
+
   const [reels, setReels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -673,7 +678,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
           async () => {
             let qb = supabase.from('reels')
               .select('id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
-              .eq('is_deleted', false).limit(30);
+              .neq('is_deleted', true).limit(30);
             if (tab === 'following' && followedIds.length) qb = qb.in('user_id', followedIds);
             if (hashtagFilter) qb = qb.ilike('caption', `%${hashtagFilter}%`);
             qb = applyOrder(qb);
@@ -685,7 +690,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
           async () => {
             let qb = supabase.from('reels')
               .select('id, caption, media_url, media_type, like_count, comment_count, view_count, user_id, created_at')
-              .eq('is_deleted', false).limit(30);
+              .neq('is_deleted', true).limit(30);
             if (tab === 'following' && followedIds.length) qb = qb.in('user_id', followedIds);
             if (hashtagFilter) qb = qb.ilike('caption', `%${hashtagFilter}%`);
             qb = applyOrder(qb);
@@ -697,7 +702,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
           async () => {
             const { data: d, error } = await supabase.from('reels')
               .select('id, caption, media_url, media_type, like_count, user_id, created_at')
-              .eq('is_deleted', false).order('created_at', { ascending: false }).limit(15);
+              .neq('is_deleted', true).order('created_at', { ascending: false }).limit(15);
             if (error) throw error;
             return d;
           },
@@ -761,14 +766,16 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       onProfile={onProfile}
       onMessage={onDmMessage}
       onHashtag={onHashtag}
+      reelW={REEL_W}
+      reelH={REEL_H}
     />
-  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag]);
+  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag, REEL_W, REEL_H]);
 
   if (loading) {
     return (
       <View style={[rs.screen, { backgroundColor: '#000' }]}>
         <ReelTabSwitcher {...tabSwitcherProps} />
-        <ReelSkeleton primary={primary} />
+        <ReelSkeleton primary={primary} reelW={REEL_W} reelH={REEL_H} />
       </View>
     );
   }
@@ -789,7 +796,10 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   }
 
   const reelFeed = (
-    <View style={IS_WEB ? rs.webFeedContainer : rs.screen}>
+    <View style={IS_WEB
+      ? { width: REEL_W, height: REEL_H, overflow: 'hidden', backgroundColor: '#000', borderRadius: IS_WEB ? 16 : 0 }
+      : rs.screen
+    }>
       <ReelTabSwitcher {...tabSwitcherProps} absolute />
       <FlatList
         ref={flatRef}
@@ -820,14 +830,23 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   );
 
   return (
-    <View style={[rs.screen, IS_WEB && rs.webRoot]}>
-      {IS_WEB && SW > 800 && (
-        <View style={rs.webSidebar}>
+    <View style={[rs.screen, IS_WEB && {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#050505',
+      minHeight: '100vh',
+    }]}>
+
+      {/* Left sidebar — trending */}
+      {isWide && (
+        <View style={[rs.webSidebar, { borderColor: `${primary}12` }]}>
           <Text style={[rs.sidebarHeading, { color: primary }]}>Trending</Text>
-          {reels.slice(0, 5).map(r => (
+          {reels.slice(0, 6).map(r => (
             <TouchableOpacity
               key={r.id}
-              style={[rs.sidebarItem, { borderColor: `${primary}20` }]}
+              style={[rs.sidebarItem, { borderColor: `${primary}18`, backgroundColor: `${primary}06` }]}
+              activeOpacity={0.8}
               onPress={() => {
                 const idx = reels.findIndex(x => x.id === r.id);
                 if (idx >= 0) {
@@ -836,21 +855,38 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
                 }
               }}
             >
-              <Image source={{ uri: r.media_url }} style={rs.sidebarThumb} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }} numberOfLines={1}>
+              {r.media_url
+                ? <Image source={{ uri: r.media_url }} style={rs.sidebarThumb} />
+                : <View style={[rs.sidebarThumb, { backgroundColor: `${primary}20` }]} />
+              }
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }} numberOfLines={1}>
                   @{r.profiles?.username}
                 </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }} numberOfLines={1}>{r.caption}</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, lineHeight: 14 }} numberOfLines={2}>{r.caption}</Text>
               </View>
             </TouchableOpacity>
           ))}
         </View>
       )}
 
-      {reelFeed}
+      {/* Centre reel feed + FAB wrapper */}
+      <View style={{ position: 'relative', flex: IS_WEB ? undefined : 1 }}>
+        {reelFeed}
+        {/* Create Reel FAB — anchored to the feed frame */}
+        {user && (
+          <TouchableOpacity
+            style={[rs.fab, { backgroundColor: primary, bottom: IS_WEB ? 24 : (insets.bottom || 16) + 16 }]}
+            onPress={() => setCreateVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Feather name="plus" size={22} color="#000" />
+          </TouchableOpacity>
+        )}
+      </View>
 
-      {IS_WEB && SW > 800 && (
+      {/* Right — scroll nav + post button */}
+      {isWide && (
         <View style={rs.webSideRight}>
           <TouchableOpacity
             style={[rs.sideNavBtn, { borderColor: `${primary}30` }]}
@@ -902,17 +938,6 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         />
       )}
 
-      {/* Create Reel FAB */}
-      {user && (
-        <TouchableOpacity
-          style={[rs.fab, { backgroundColor: primary, bottom: (insets.bottom || 16) + 16 }]}
-          onPress={() => setCreateVisible(true)}
-          activeOpacity={0.85}
-        >
-          <Feather name="plus" size={22} color="#000" />
-        </TouchableOpacity>
-      )}
-
       <CreateReelModal
         visible={createVisible}
         onClose={() => setCreateVisible(false)}
@@ -924,13 +949,20 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
 const rs = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
-  webRoot: { flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch', backgroundColor: '#000' },
-  webFeedContainer: { width: REEL_W, height: REEL_H, overflow: 'hidden', backgroundColor: '#000' },
-  webSidebar: { width: 220, paddingTop: 60, paddingHorizontal: 16, gap: 10 },
-  webSideRight: { width: 80, justifyContent: 'center', alignItems: 'center', gap: 16 },
+  webSidebar: {
+    width: 240,
+    paddingTop: 24,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+    gap: 8,
+    borderRightWidth: 1,
+    alignSelf: 'stretch',
+    justifyContent: 'flex-start',
+  },
+  webSideRight: { width: 100, justifyContent: 'center', alignItems: 'center', gap: 16, alignSelf: 'stretch' },
   sidebarHeading: { fontSize: 12, fontWeight: '900', letterSpacing: 1.5, marginBottom: 8 },
-  sidebarItem: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 10, borderWidth: 1 },
-  sidebarThumb: { width: 44, height: 60, borderRadius: 6, backgroundColor: '#111' },
+  sidebarItem: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 12, borderWidth: 1 },
+  sidebarThumb: { width: 48, height: 64, borderRadius: 8, backgroundColor: '#111' },
   sideNavBtn: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
   fab: { position: 'absolute', right: 18, width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', elevation: 6, shadowColor: '#000', shadowOpacity: 0.4, shadowOffset: { width: 0, height: 3 }, shadowRadius: 6 },
   tabBar: { flexDirection: 'row', justifyContent: 'center', gap: 32, paddingBottom: 12, backgroundColor: 'rgba(0,0,0,0.4)' },

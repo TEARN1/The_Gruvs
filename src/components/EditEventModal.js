@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Platform, KeyboardAvoidingView,
@@ -45,6 +45,8 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
   const [ticketUrl, setTicketUrl]   = useState('');
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [tiers, setTiers] = useState([]);
+  const [tierForm, setTierForm] = useState(null); // null = hidden, {} = new, {id} = editing
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -59,6 +61,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
       setPrice(event.price ? String(event.price) : '');
       setCapacity(event.capacity ? String(event.capacity) : '');
       setTicketUrl(event.ticket_url || '');
+      setTiers(Array.isArray(event.rsvp_tiers) ? event.rsvp_tiers : []);
 
       // Parse stored date/time back into picker state
       if (event.event_date) {
@@ -108,6 +111,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
         price: price.trim() || null,
         capacity: capacity ? parseInt(capacity) : null,
         ticket_url: ticketUrl.trim() || null,
+        rsvp_tiers: tiers.length > 0 ? tiers : null,
       };
       const ok = await resilient(
         [
@@ -302,6 +306,102 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
                 </View>
                 <Field label="Ticket URL" value={ticketUrl} onChange={setTicketUrl} placeholder="https://..." textColor={textColor} muted={muted} primary={primary} />
 
+                {/* VIP Tier Builder */}
+                <View style={f.tierSection}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text style={[f.fieldLabel, { color: muted }]}>VIP TIERS</Text>
+                    <TouchableOpacity
+                      onPress={() => setTierForm({ id: `tier_${Date.now()}`, name: '', description: '', price: '', capacity: '' })}
+                      style={[f.addTierBtn, { borderColor: `${primary}40` }]}
+                    >
+                      <Feather name="plus" size={12} color={primary} />
+                      <Text style={[{ fontSize: 11, color: primary, fontWeight: '800' }]}>Add Tier</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {tiers.map(tier => (
+                    <View key={tier.id} style={[f.tierRow, { borderColor: `${primary}25` }]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[{ fontSize: 13, fontWeight: '800', color: textColor }]}>{tier.name || 'Unnamed'}</Text>
+                        <Text style={[{ fontSize: 11, color: muted }]}>
+                          {tier.price > 0 ? `R${tier.price}` : 'Free'}{tier.capacity > 0 ? ` · ${tier.capacity} spots` : ''}
+                        </Text>
+                      </View>
+                      <TouchableOpacity onPress={() => setTierForm({ ...tier, price: String(tier.price || ''), capacity: String(tier.capacity || '') })} style={{ padding: 4 }}>
+                        <Feather name="edit-2" size={13} color={muted} />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => setTiers(prev => prev.filter(t => t.id !== tier.id))} style={{ padding: 4 }}>
+                        <Feather name="trash-2" size={13} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+
+                  {tierForm && (
+                    <View style={[f.tierForm, { borderColor: `${primary}30` }]}>
+                      <TextInput
+                        value={tierForm.name}
+                        onChangeText={v => setTierForm(p => ({ ...p, name: v }))}
+                        placeholder="Tier name (e.g. VIP, Table)"
+                        placeholderTextColor={muted}
+                        style={[f.input, { color: textColor, borderColor: `${primary}25`, marginBottom: 6 }]}
+                      />
+                      <TextInput
+                        value={tierForm.description}
+                        onChangeText={v => setTierForm(p => ({ ...p, description: v }))}
+                        placeholder="Description (optional)"
+                        placeholderTextColor={muted}
+                        style={[f.input, { color: textColor, borderColor: `${primary}25`, marginBottom: 6 }]}
+                      />
+                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
+                        <TextInput
+                          value={tierForm.price}
+                          onChangeText={v => setTierForm(p => ({ ...p, price: v }))}
+                          placeholder="Price (0 = Free)"
+                          placeholderTextColor={muted}
+                          keyboardType="numeric"
+                          style={[f.input, { color: textColor, borderColor: `${primary}25`, flex: 1 }]}
+                        />
+                        <TextInput
+                          value={tierForm.capacity}
+                          onChangeText={v => setTierForm(p => ({ ...p, capacity: v }))}
+                          placeholder="Capacity (0 = ∞)"
+                          placeholderTextColor={muted}
+                          keyboardType="numeric"
+                          style={[f.input, { color: textColor, borderColor: `${primary}25`, flex: 1 }]}
+                        />
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity onPress={() => setTierForm(null)} style={[f.tierCancelBtn, { borderColor: `${primary}30` }]}>
+                          <Text style={[{ fontSize: 12, color: muted, fontWeight: '700' }]}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[f.tierSaveBtn, { backgroundColor: `${primary}20`, borderColor: `${primary}50`, flex: 1 }]}
+                          onPress={() => {
+                            if (!tierForm.name.trim()) return;
+                            const newTier = {
+                              id: tierForm.id,
+                              name: tierForm.name.trim(),
+                              description: tierForm.description.trim() || null,
+                              price: parseFloat(tierForm.price) || 0,
+                              capacity: parseInt(tierForm.capacity) || 0,
+                            };
+                            setTiers(prev => {
+                              const idx = prev.findIndex(t => t.id === newTier.id);
+                              if (idx >= 0) { const n = [...prev]; n[idx] = newTier; return n; }
+                              return [...prev, newTier];
+                            });
+                            setTierForm(null);
+                          }}
+                        >
+                          <Text style={[{ fontSize: 12, color: primary, fontWeight: '900' }]}>
+                            {tiers.find(t => t.id === tierForm.id) ? 'Update Tier' : 'Add Tier'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </View>
+
                 {/* Save */}
                 <TouchableOpacity style={[f.saveBtn, { backgroundColor: primary }]} onPress={handleSave} disabled={saving}>
                   {saving
@@ -378,4 +478,10 @@ const f = StyleSheet.create({
   actionBtn:   { paddingVertical: 14, borderRadius: 30, alignItems: 'center', borderWidth: 1, marginBottom: 10 },
   btnInner:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
   actionBtnText: { fontWeight: '800', fontSize: 14 },
+  tierSection: { marginBottom: 14 },
+  addTierBtn:  { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5 },
+  tierRow:     { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, padding: 10, marginBottom: 6 },
+  tierForm:    { borderWidth: 1, borderRadius: 14, padding: 12, marginTop: 6, gap: 0 },
+  tierCancelBtn: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
+  tierSaveBtn:   { borderWidth: 1, borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
 });

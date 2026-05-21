@@ -4,7 +4,7 @@
  * Uses Linking to open directions in the device's native maps app (free).
  * No react-native-maps. No Google Maps API. No billing.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal,
   ScrollView, Image, Dimensions, Linking, Platform,
@@ -198,6 +198,24 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = fa
   );
 };
 
+// Geocode a venue address using Nominatim (free OSM, no API key)
+const geocodeCache = {};
+const geocodeAddress = async (query) => {
+  if (!query) return null;
+  if (geocodeCache[query]) return geocodeCache[query];
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'TheGruvs/1.0' } });
+    const data = await res.json();
+    if (data?.[0]) {
+      const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      geocodeCache[query] = coords;
+      return coords;
+    }
+  } catch {}
+  return null;
+};
+
 export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, onClose, isRoute = false }) => {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -205,6 +223,32 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
   const bg      = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text || '#fff';
   const muted   = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
+  const [geocodedEvents, setGeocodedEvents] = useState(events);
+  const geocodingRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible || geocodingRef.current) return;
+    const missing = events.filter(e => e.lat == null || e.lon == null);
+    if (!missing.length) { setGeocodedEvents(events); return; }
+    geocodingRef.current = true;
+    Promise.all(
+      missing.map(async e => {
+        const addr = [e.venue_name, e.city, e.address].filter(Boolean).join(', ');
+        const coords = await geocodeAddress(addr);
+        return coords ? { ...e, lat: coords.lat, lon: coords.lon } : e;
+      })
+    ).then(resolved => {
+      const resolvedMap = {};
+      resolved.forEach(e => { resolvedMap[e.id] = e; });
+      setGeocodedEvents(events.map(e => resolvedMap[e.id] || e));
+      geocodingRef.current = false;
+    });
+  }, [visible, events]);
+
+  useEffect(() => {
+    setGeocodedEvents(events);
+    geocodingRef.current = false;
+  }, [events]);
 
   const handleSelect = (event) => {
     onSelectEvent?.(event);
@@ -222,7 +266,7 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
               {isRoute ? 'Royal Journey' : 'Events Near You'}
             </Text>
             <Text style={[s.headerSub, { color: muted }]}>
-              {events.filter(e => e.lat != null).length} pinned · {events.length} total
+              {geocodedEvents.filter(e => e.lat != null).length} pinned · {geocodedEvents.length} total
             </Text>
           </View>
           <TouchableOpacity style={[s.closeBtn, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]} onPress={onClose}>
@@ -234,7 +278,7 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
 
           {/* Self-built coordinate map */}
           <MapGrid
-            events={events}
+            events={geocodedEvents}
             userCoords={userCoords}
             primaryColor={primary}
             onSelectEvent={handleSelect}
@@ -255,7 +299,7 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
 
           {/* Event list below map */}
           <Text style={[s.listHeader, { color: muted }]}>ALL EVENTS</Text>
-          {events.map(event => {
+          {geocodedEvents.map(event => {
             const color = event.category_color || primary;
             const thumb = event.media?.[0]?.url;
             return (
