@@ -18,7 +18,7 @@ export const ContentHive = {
     // 1. Fetch Event DNA
     const { data: event } = await supabase
       .from('events')
-      .select('*, profiles(*)')
+      .select('id, title, city, category, vibe_count, description, venue_name, event_date, price, profiles(id, username, display_name, avatar_url)')
       .eq('id', eventId)
       .single();
 
