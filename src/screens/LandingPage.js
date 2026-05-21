@@ -34,6 +34,7 @@ import { ReportModal } from '../components/ReportModal';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { CommunityStatsBar } from '../components/CommunityStatsBar';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
+import { StoriesRow } from '../components/StoriesRow';
 import { SearchHistoryBar, saveSearch } from '../components/SearchHistoryBar';
 import { DateFilterStrip, dateFilterToRange } from '../components/DateFilterStrip';
 import { TonightAlert } from '../components/TonightAlert';
@@ -861,6 +862,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Stories row — 24h stories from followed users */}
+      <StoriesRow onAuthRequired={onAuthRequired} />
 
       {/* Community stats — live platform numbers for everyone */}
       <CommunityStatsBar />

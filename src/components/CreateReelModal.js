@@ -78,7 +78,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     }
     setUploading(true);
     try {
-      const isVideo = asset.type === 'video';
+      const isVideo = asset.type === 'video' || asset.mimeType?.startsWith('video/');
       const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
       const storagePath = `${user.id}/reel_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'reels', storagePath, { mimeType: asset.mimeType });
@@ -174,7 +174,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
               <View style={s.detailsArea}>
                 {/* Preview */}
                 <View style={[s.previewWrap, { backgroundColor: '#000' }]}>
-                  {asset.type === 'video'
+                  {(asset.type === 'video' || asset.mimeType?.startsWith('video/'))
                     ? <Video
                         ref={videoRef}
                         source={{ uri: asset.uri }}
@@ -187,9 +187,9 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
                     : <Image source={{ uri: asset.uri }} style={s.preview} resizeMode="cover" />
                   }
                   <View style={[s.previewBadge, { backgroundColor: `${primary}22`, borderColor: `${primary}40` }]}>
-                    <Feather name={asset.type === 'video' ? 'video' : 'image'} size={10} color={primary} />
+                    <Feather name={(asset.type === 'video' || asset.mimeType?.startsWith('video/')) ? 'video' : 'image'} size={10} color={primary} />
                     <Text style={{ color: primary, fontSize: 9, fontWeight: '800' }}>
-                      {asset.type === 'video' ? 'VIDEO' : 'PHOTO'}
+                      {(asset.type === 'video' || asset.mimeType?.startsWith('video/')) ? 'VIDEO' : 'PHOTO'}
                     </Text>
                   </View>
                 </View>

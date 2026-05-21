@@ -292,7 +292,7 @@ export const StoriesRow = ({ onAuthRequired }) => {
     }
     setUploading(true);
     try {
-      const isVideo = asset.type === 'video';
+      const isVideo = asset.type === 'video' || asset.mimeType?.startsWith('video/');
       const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
       const path = `${user.id}/story_${Date.now()}.${ext}`;
       const url = await uploadToStorage(asset.uri, 'stories', path, { mimeType: asset.mimeType });

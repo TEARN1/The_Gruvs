@@ -290,7 +290,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
   };
 
   // Declarations moved above parsedCaption to avoid temporal dead zone crash
-  const isVideo = reel.media_type === 'video';
+  const isVideo = reel.media_type === 'video' || (!reel.media_type && /\.(mp4|mov|m4v|webm)/i.test(reel.media_url || ''));
   const author = reel.profiles || {};
   const caption = reel.caption || '';
   const hashtags = (caption.match(/#\w+/g) || []);

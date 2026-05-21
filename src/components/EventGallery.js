@@ -154,7 +154,7 @@ export const EventGallery = ({ eventId }) => {
     });
     if (result.canceled) return;
     const asset = result.assets[0];
-    const isVideo = asset.type === 'video';
+    const isVideo = asset.type === 'video' || asset.mimeType?.startsWith('video/');
     setUploading(true);
     try {
       const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
