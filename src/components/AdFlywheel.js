@@ -4,7 +4,7 @@
  * Celebrity mode: ads suppressed (read-only gallery users don't see promotions).
  * Ghost mode: ads shown but not personalized (no userId passed to impression tracker).
  */
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
 } from 'react-native';
@@ -36,9 +36,9 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
   useEffect(() => {
     if (identityMode === 'celebrity') return;
     selectAd();
-  }, [intentTag, eventId, identityMode]);
+  }, [intentTag, eventId, identityMode, selectAd]);
 
-  const selectAd = async () => {
+  const selectAd = useCallback(async () => {
     // Removed demo mode fallback. Real ads required.
 
     // Try to fetch a contextual ad from Supabase
@@ -62,7 +62,7 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
     } catch (_) {}
 
     // No real ads available — hide the unit
-  };
+  }, [intentTag]);
 
   const fadeIn = () => {
     Animated.timing(fadeAnim, {

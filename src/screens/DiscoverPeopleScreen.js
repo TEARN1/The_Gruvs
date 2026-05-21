@@ -291,7 +291,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
     load();
     loadFollowing();
     if (!query) loadSuggested();
-  }, [filter, user?.id]);
+  }, [filter, user?.id, load, loadFollowing, loadSuggested]);
 
   useEffect(() => {
     if (!query.trim()) { load(); return; }
