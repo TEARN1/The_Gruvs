@@ -225,18 +225,20 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       try {
         const count = await resilientRead(
           async () => {
-            const [{ data: myPaths }, { data: theirPaths }] = await Promise.all([
+            const [myPathsRes, theirPathsRes] = await Promise.allSettled([
               supabase.from('paths').select('id').eq('user_id', user.id),
               supabase.from('paths').select('id').eq('user_id', recipient.id),
             ]);
-            const myIds = (myPaths || []).map(p => p.id);
-            const theirIds = (theirPaths || []).map(p => p.id);
+            const myIds = (myPathsRes.status === 'fulfilled' ? myPathsRes.value?.data || [] : []).map(p => p.id);
+            const theirIds = (theirPathsRes.status === 'fulfilled' ? theirPathsRes.value?.data || [] : []).map(p => p.id);
             if (!myIds.length || !theirIds.length) return 0;
-            const [{ count: fwd }, { count: rev }] = await Promise.all([
+            const [fwdRes, revRes] = await Promise.allSettled([
               supabase.from('path_crossings').select('*', { count: 'exact', head: true }).in('path_id_a', myIds).in('path_id_b', theirIds),
               supabase.from('path_crossings').select('*', { count: 'exact', head: true }).in('path_id_a', theirIds).in('path_id_b', myIds),
             ]);
-            return (fwd || 0) + (rev || 0);
+            const fwd = fwdRes.status === 'fulfilled' ? fwdRes.value?.count || 0 : 0;
+            const rev = revRes.status === 'fulfilled' ? revRes.value?.count || 0 : 0;
+            return fwd + rev;
           },
           async () => {
             const { count: c } = await supabase.rpc('count_path_crossings', { p_user_a: user.id, p_user_b: recipient.id });

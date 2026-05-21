@@ -184,12 +184,12 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const loadFollowing = useCallback(async () => {
     if (!user) return;
     try {
-      const [followRes, blockRes] = await Promise.all([
+      const [followSettled, blockSettled] = await Promise.allSettled([
         supabase.from('follows').select('following_id').eq('follower_id', user.id),
         supabase.from('user_blocks').select('blocked_id').eq('blocker_id', user.id),
       ]);
-      setFollowedIds(new Set((followRes.data || []).map(r => r.following_id)));
-      setBlockedIds(new Set((blockRes.data || []).map(r => r.blocked_id)));
+      if (followSettled.status === 'fulfilled') setFollowedIds(new Set((followSettled.value?.data || []).map(r => r.following_id)));
+      if (blockSettled.status === 'fulfilled') setBlockedIds(new Set((blockSettled.value?.data || []).map(r => r.blocked_id)));
     } catch { }
   }, [user]);
 

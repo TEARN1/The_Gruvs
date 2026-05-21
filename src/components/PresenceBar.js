@@ -127,13 +127,13 @@ export const PresenceBar = ({
   const fetchStars = useCallback(async () => {
     if (!user?.id || !eventId) return;
     try {
-      const [{ data: iStarredData }, { data: theyStarredData }] = await Promise.all([
+      const [iStarRes, theyStarRes] = await Promise.allSettled([
         supabase.from('path_stars').select('to_user_id').eq('event_id', eventId).eq('from_user_id', user.id),
         supabase.from('path_stars').select('from_user_id').eq('event_id', eventId).eq('to_user_id', user.id),
       ]);
 
-      const iStarred    = new Set((iStarredData   || []).map(r => r.to_user_id));
-      const theyStarred = new Set((theyStarredData || []).map(r => r.from_user_id));
+      const iStarred    = new Set((iStarRes.status === 'fulfilled' ? iStarRes.value?.data || [] : []).map(r => r.to_user_id));
+      const theyStarred = new Set((theyStarRes.status === 'fulfilled' ? theyStarRes.value?.data || [] : []).map(r => r.from_user_id));
       const mutual = new Set([...iStarred].filter(id => theyStarred.has(id)));
 
       setStarredIds(iStarred);
