@@ -75,45 +75,53 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at             TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS username           TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name       TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url         TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cover_url          TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio                TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS location           TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS website            TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_verified        BOOLEAN     DEFAULT false;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_online          BOOLEAN     DEFAULT false;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen          TIMESTAMPTZ DEFAULT now();
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen_at       TIMESTAMPTZ DEFAULT now();
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vibe_score         INTEGER     DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS followers_count    INTEGER     DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS following_count    INTEGER     DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS saved_count        INTEGER     DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS events_posted      INTEGER     DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS interests          TEXT[];
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS coords             geography(Point, 4326);
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lat                FLOAT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lon                FLOAT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS push_token         TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS identity_mode      TEXT DEFAULT 'public';
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_title       TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_description TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS looks_description  TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_gallery    TEXT[];
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak          INTEGER DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wallet_balance          NUMERIC DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_integrity_score  INTEGER     DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active             DATE;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gender                  TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS birth_year              INTEGER;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_discoverable         BOOLEAN     DEFAULT true;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at              TIMESTAMPTZ DEFAULT now();
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS city                    TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_online             BOOLEAN     DEFAULT true;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS share_events            BOOLEAN     DEFAULT false;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_code           TEXT        UNIQUE;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_count          INTEGER     DEFAULT 0;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS username           TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name       TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url         TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cover_url          TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio                TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS location           TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS website            TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_verified        BOOLEAN     DEFAULT false;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_online          BOOLEAN     DEFAULT false;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen          TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen_at       TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vibe_score         INTEGER     DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS followers_count    INTEGER     DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS following_count    INTEGER     DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS saved_count        INTEGER     DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS events_posted      INTEGER     DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS interests          TEXT[];
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS coords             geography(Point, 4326);
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lat                FLOAT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lon                FLOAT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS push_token         TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS identity_mode      TEXT DEFAULT 'public';
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_title       TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_description TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS looks_description  TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_gallery    TEXT[];
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak          INTEGER DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wallet_balance          NUMERIC DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_integrity_score  INTEGER     DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active             DATE;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gender                  TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS birth_year              INTEGER;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_discoverable         BOOLEAN     DEFAULT true;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at              TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS city                    TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_online             BOOLEAN     DEFAULT true;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS share_events            BOOLEAN     DEFAULT false;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_code           TEXT        UNIQUE;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_count          INTEGER     DEFAULT 0;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS profiles_coords_gist   ON profiles USING gist(coords);
 CREATE INDEX IF NOT EXISTS profiles_username_trgm ON profiles USING gin(username gin_trgm_ops);
@@ -213,8 +221,16 @@ CREATE TABLE IF NOT EXISTS follows (
   CHECK (follower_id <> following_id)
 );
 
-ALTER TABLE follows ADD COLUMN IF NOT EXISTS follower_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE follows ADD COLUMN IF NOT EXISTS following_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'follows') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'follows') THEN
+    ALTER TABLE follows ADD COLUMN IF NOT EXISTS follower_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE follows ADD COLUMN IF NOT EXISTS following_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS follows_following_id ON follows(following_id);
 CREATE INDEX IF NOT EXISTS follows_follower_id  ON follows(follower_id);
@@ -260,8 +276,16 @@ CREATE TABLE IF NOT EXISTS blocked_users (
   CHECK (blocker_id <> blocked_id)
 );
 
-ALTER TABLE blocked_users ADD COLUMN IF NOT EXISTS blocker_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE blocked_users ADD COLUMN IF NOT EXISTS blocked_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'blocked_users') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'blocked_users') THEN
+    ALTER TABLE blocked_users ADD COLUMN IF NOT EXISTS blocker_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE blocked_users ADD COLUMN IF NOT EXISTS blocked_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS blocked_users_blocker ON blocked_users(blocker_id);
 CREATE INDEX IF NOT EXISTS blocked_users_blocked ON blocked_users(blocked_id);
@@ -282,8 +306,16 @@ CREATE TABLE IF NOT EXISTS muted_users (
   UNIQUE (muter_id, muted_id)
 );
 
-ALTER TABLE muted_users ADD COLUMN IF NOT EXISTS muter_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE muted_users ADD COLUMN IF NOT EXISTS muted_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'muted_users') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'muted_users') THEN
+    ALTER TABLE muted_users ADD COLUMN IF NOT EXISTS muter_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE muted_users ADD COLUMN IF NOT EXISTS muted_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE muted_users ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own mutes" ON muted_users;
@@ -339,46 +371,54 @@ CREATE TABLE IF NOT EXISTS events (
   updated_at      TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE events ADD COLUMN IF NOT EXISTS author_id       UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS user_id         UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS slug            TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS description     TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS category        TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS category_color  TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS tags            TEXT[];
-ALTER TABLE events ADD COLUMN IF NOT EXISTS event_date      DATE;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS event_time      TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS end_date        DATE;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time        TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS address         TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS venue_name      TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS city            TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS country         TEXT DEFAULT 'ZA';
-ALTER TABLE events ADD COLUMN IF NOT EXISTS price           TEXT DEFAULT 'FREE';
-ALTER TABLE events ADD COLUMN IF NOT EXISTS price_min       NUMERIC;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS price_max       NUMERIC;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS capacity        INTEGER;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS going           INTEGER DEFAULT 0;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS vibe_count      INTEGER DEFAULT 0;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS echo_count      INTEGER DEFAULT 0;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS reaction_count  INTEGER DEFAULT 0;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS save_count      INTEGER DEFAULT 0;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS ticket_url      TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS media           JSONB;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS media_urls      TEXT[];
-ALTER TABLE events ADD COLUMN IF NOT EXISTS coords          geography(Point, 4326);
-ALTER TABLE events ADD COLUMN IF NOT EXISTS lat             FLOAT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS lon             FLOAT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS date_time       TIMESTAMPTZ;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS is_featured     BOOLEAN DEFAULT false;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS is_cancelled    BOOLEAN DEFAULT false;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS age_restriction INTEGER DEFAULT 0;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS search_vector   TSVECTOR;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS max_attendees   INTEGER;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS is_sold_out     BOOLEAN     DEFAULT false;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url       TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_image     TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ DEFAULT now();
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS author_id       UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS user_id         UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS slug            TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS description     TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS category        TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS category_color  TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS tags            TEXT[];
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS event_date      DATE;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS event_time      TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS end_date        DATE;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time        TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS address         TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS venue_name      TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS city            TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS country         TEXT DEFAULT 'ZA';
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS price           TEXT DEFAULT 'FREE';
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS price_min       NUMERIC;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS price_max       NUMERIC;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS capacity        INTEGER;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS going           INTEGER DEFAULT 0;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS vibe_count      INTEGER DEFAULT 0;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS echo_count      INTEGER DEFAULT 0;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS reaction_count  INTEGER DEFAULT 0;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS save_count      INTEGER DEFAULT 0;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS ticket_url      TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS media           JSONB;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS media_urls      TEXT[];
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS coords          geography(Point, 4326);
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS lat             FLOAT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS lon             FLOAT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS date_time       TIMESTAMPTZ;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS is_featured     BOOLEAN DEFAULT false;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS is_cancelled    BOOLEAN DEFAULT false;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS age_restriction INTEGER DEFAULT 0;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS search_vector   TSVECTOR;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS max_attendees   INTEGER;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS is_sold_out     BOOLEAN     DEFAULT false;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url       TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_image     TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 DO $$ BEGIN
   IF NOT EXISTS (
@@ -472,10 +512,18 @@ CREATE TABLE IF NOT EXISTS event_reminders (
   UNIQUE (event_id, user_id)
 );
 
-ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS event_id  UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS user_id   UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS remind_at TIMESTAMPTZ;
-ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS sent      BOOLEAN DEFAULT false;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reminders') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reminders') THEN
+    ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS event_id  UUID REFERENCES events(id)   ON DELETE CASCADE;
+    ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS user_id   UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS remind_at TIMESTAMPTZ;
+    ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS sent      BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS event_reminders_user    ON event_reminders(user_id);
 CREATE INDEX IF NOT EXISTS event_reminders_pending ON event_reminders(remind_at) WHERE sent = false;
@@ -503,8 +551,16 @@ CREATE TABLE IF NOT EXISTS event_vibes (
   UNIQUE (event_id, user_id)
 );
 
-ALTER TABLE event_vibes ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE event_vibes ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_vibes') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_vibes') THEN
+    ALTER TABLE event_vibes ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
+    ALTER TABLE event_vibes ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS event_vibes_event_id ON event_vibes(event_id);
 CREATE INDEX IF NOT EXISTS event_vibes_user_id  ON event_vibes(user_id);
@@ -555,9 +611,17 @@ CREATE TABLE IF NOT EXISTS event_rsvps (
   UNIQUE (event_id, user_id)
 );
 
-ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS status   TEXT DEFAULT 'going';
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
+    ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
+    ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS status   TEXT DEFAULT 'going';
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS event_rsvps_event_id ON event_rsvps(event_id);
 CREATE INDEX IF NOT EXISTS event_rsvps_user_id  ON event_rsvps(user_id);
@@ -580,8 +644,16 @@ CREATE TABLE IF NOT EXISTS check_ins (
   UNIQUE (event_id, user_id)
 );
 
-ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'check_ins') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'check_ins') THEN
+    ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
+    ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS check_ins_event_id ON check_ins(event_id);
 CREATE INDEX IF NOT EXISTS check_ins_user_id  ON check_ins(user_id);
@@ -626,12 +698,20 @@ CREATE TABLE IF NOT EXISTS live_checkins (
   UNIQUE (user_id, event_id)
 );
 
-ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS user_id       UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS event_id      UUID REFERENCES events(id)   ON DELETE SET NULL;
-ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS lat           FLOAT;
-ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS lon           FLOAT;
-ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS venue_name    TEXT;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
+    ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS user_id       UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS event_id      UUID REFERENCES events(id)   ON DELETE SET NULL;
+    ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS lat           FLOAT;
+    ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS lon           FLOAT;
+    ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS venue_name    TEXT;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS live_checkins_user_id  ON live_checkins(user_id);
 CREATE INDEX IF NOT EXISTS live_checkins_event_id ON live_checkins(event_id);
@@ -654,8 +734,16 @@ CREATE TABLE IF NOT EXISTS saved_events (
   UNIQUE (event_id, user_id)
 );
 
-ALTER TABLE saved_events ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE saved_events ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'saved_events') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'saved_events') THEN
+    ALTER TABLE saved_events ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
+    ALTER TABLE saved_events ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS saved_events_user_id  ON saved_events(user_id);
 CREATE INDEX IF NOT EXISTS saved_events_event_id ON saved_events(event_id);
@@ -695,9 +783,17 @@ CREATE TABLE IF NOT EXISTS event_reactions (
   UNIQUE (event_id, user_id)
 );
 
-ALTER TABLE event_reactions ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE event_reactions ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE event_reactions ADD COLUMN IF NOT EXISTS reaction_key TEXT;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reactions') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reactions') THEN
+    ALTER TABLE event_reactions ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES events(id)   ON DELETE CASCADE;
+    ALTER TABLE event_reactions ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE event_reactions ADD COLUMN IF NOT EXISTS reaction_key TEXT;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS event_reactions_event_id ON event_reactions(event_id);
 
@@ -737,12 +833,20 @@ CREATE TABLE IF NOT EXISTS echoes (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE echoes ADD COLUMN IF NOT EXISTS event_id  UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE echoes ADD COLUMN IF NOT EXISTS user_id   UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE echoes ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES echoes(id)   ON DELETE CASCADE;
-ALTER TABLE echoes ADD COLUMN IF NOT EXISTS body      TEXT;
-ALTER TABLE echoes ADD COLUMN IF NOT EXISTS likes     INTEGER DEFAULT 0;
-ALTER TABLE echoes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echoes') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echoes') THEN
+    ALTER TABLE echoes ADD COLUMN IF NOT EXISTS event_id  UUID REFERENCES events(id)   ON DELETE CASCADE;
+    ALTER TABLE echoes ADD COLUMN IF NOT EXISTS user_id   UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE echoes ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES echoes(id)   ON DELETE CASCADE;
+    ALTER TABLE echoes ADD COLUMN IF NOT EXISTS body      TEXT;
+    ALTER TABLE echoes ADD COLUMN IF NOT EXISTS likes     INTEGER DEFAULT 0;
+    ALTER TABLE echoes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS echoes_event_id  ON echoes(event_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS echoes_parent_id ON echoes(parent_id) WHERE parent_id IS NOT NULL;
@@ -783,8 +887,16 @@ CREATE TABLE IF NOT EXISTS echo_likes (
   PRIMARY KEY (echo_id, user_id)
 );
 
-ALTER TABLE echo_likes ADD COLUMN IF NOT EXISTS echo_id UUID REFERENCES echoes(id)   ON DELETE CASCADE;
-ALTER TABLE echo_likes ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echo_likes') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echo_likes') THEN
+    ALTER TABLE echo_likes ADD COLUMN IF NOT EXISTS echo_id UUID REFERENCES echoes(id)   ON DELETE CASCADE;
+    ALTER TABLE echo_likes ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE echo_likes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Echo likes readable"         ON echo_likes;
@@ -819,10 +931,18 @@ CREATE TABLE IF NOT EXISTS event_ratings (
   UNIQUE (event_id, user_id)
 );
 
-ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS rating   SMALLINT;
-ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS review   TEXT;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_ratings') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_ratings') THEN
+    ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
+    ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS rating   SMALLINT;
+    ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS review   TEXT;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS event_ratings_event_id ON event_ratings(event_id);
 
@@ -847,12 +967,20 @@ CREATE TABLE IF NOT EXISTS event_gallery (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
-ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS url      TEXT;
-ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS caption  TEXT;
-ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS width    INTEGER;
-ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS height   INTEGER;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_gallery') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_gallery') THEN
+    ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
+    ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS url      TEXT;
+    ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS caption  TEXT;
+    ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS width    INTEGER;
+    ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS height   INTEGER;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS event_gallery_event_id ON event_gallery(event_id);
 
@@ -875,8 +1003,16 @@ CREATE TABLE IF NOT EXISTS hashtags (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE hashtags ADD COLUMN IF NOT EXISTS tag       TEXT;
-ALTER TABLE hashtags ADD COLUMN IF NOT EXISTS use_count INTEGER DEFAULT 1;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'hashtags') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'hashtags') THEN
+    ALTER TABLE hashtags ADD COLUMN IF NOT EXISTS tag       TEXT;
+    ALTER TABLE hashtags ADD COLUMN IF NOT EXISTS use_count INTEGER DEFAULT 1;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS hashtags_tag ON hashtags(tag);
 CREATE INDEX IF NOT EXISTS hashtags_popular ON hashtags(use_count DESC);
@@ -916,15 +1052,23 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS actor_id     UUID REFERENCES profiles(id) ON DELETE SET NULL;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type         TEXT;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS title        TEXT;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS body         TEXT;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS data         JSONB DEFAULT '{}';
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES events(id) ON DELETE CASCADE;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS echo_id      UUID REFERENCES echoes(id) ON DELETE CASCADE;
-ALTER TABLE notifications ADD COLUMN IF NOT EXISTS read         BOOLEAN DEFAULT false;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS actor_id     UUID REFERENCES profiles(id) ON DELETE SET NULL;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type         TEXT;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS title        TEXT;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS body         TEXT;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS data         JSONB DEFAULT '{}';
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES events(id) ON DELETE CASCADE;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS echo_id      UUID REFERENCES echoes(id) ON DELETE CASCADE;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS read         BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 DROP INDEX IF EXISTS notifications_user_id;
 DROP INDEX IF EXISTS notifications_unread;
@@ -994,21 +1138,29 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at       TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS sender_id        UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS recipient_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS body             TEXT;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS message_type     TEXT DEFAULT 'text';
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_url        TEXT;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_id        UUID REFERENCES messages(id) ON DELETE SET NULL;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS event_id         UUID REFERENCES events(id)   ON DELETE SET NULL;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS latitude         DOUBLE PRECISION;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS longitude        DOUBLE PRECISION;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN DEFAULT false;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN DEFAULT false;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS reaction         TEXT;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS sender_id        UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS recipient_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS body             TEXT;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS message_type     TEXT DEFAULT 'text';
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_url        TEXT;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_id        UUID REFERENCES messages(id) ON DELETE SET NULL;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS event_id         UUID REFERENCES events(id)   ON DELETE SET NULL;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS latitude         DOUBLE PRECISION;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS longitude        DOUBLE PRECISION;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN DEFAULT false;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN DEFAULT false;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS reaction         TEXT;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS messages_sender      ON messages(sender_id,    created_at DESC);
 CREATE INDEX IF NOT EXISTS messages_recipient   ON messages(recipient_id, created_at DESC);
@@ -1050,13 +1202,21 @@ CREATE TABLE IF NOT EXISTS dm_rooms (
 CREATE UNIQUE INDEX IF NOT EXISTS dm_rooms_pair_uniq
   ON dm_rooms (LEAST(CAST(participant_1 AS text), CAST(participant_2 AS text)), GREATEST(CAST(participant_1 AS text), CAST(participant_2 AS text)));
 
-ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS participant_1    UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS participant_2    UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS last_message     TEXT;
-ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS last_message_at  TIMESTAMPTZ;
-ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS unread_count_1   INTEGER DEFAULT 0;
-ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS unread_count_2   INTEGER DEFAULT 0;
-ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS updated_at       TIMESTAMPTZ DEFAULT now();
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_rooms') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_rooms') THEN
+    ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS participant_1    UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS participant_2    UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS last_message     TEXT;
+    ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS last_message_at  TIMESTAMPTZ;
+    ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS unread_count_1   INTEGER DEFAULT 0;
+    ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS unread_count_2   INTEGER DEFAULT 0;
+    ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS updated_at       TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS dm_rooms_p1 ON dm_rooms(participant_1, last_message_at DESC);
 CREATE INDEX IF NOT EXISTS dm_rooms_p2 ON dm_rooms(participant_2, last_message_at DESC);
@@ -1101,14 +1261,22 @@ CREATE TABLE IF NOT EXISTS routes (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE routes ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE routes ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE routes ADD COLUMN IF NOT EXISTS steps       JSONB   DEFAULT '[]';
-ALTER TABLE routes ADD COLUMN IF NOT EXISTS color       TEXT    DEFAULT '#00f2ff';
-ALTER TABLE routes ADD COLUMN IF NOT EXISTS icon        TEXT;
-ALTER TABLE routes ADD COLUMN IF NOT EXISTS join_count  INTEGER DEFAULT 0;
-ALTER TABLE routes ADD COLUMN IF NOT EXISTS vibe_score  INTEGER DEFAULT 0;
-ALTER TABLE routes ADD COLUMN IF NOT EXISTS active      BOOLEAN DEFAULT true;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'routes') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'routes') THEN
+    ALTER TABLE routes ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE routes ADD COLUMN IF NOT EXISTS description TEXT;
+    ALTER TABLE routes ADD COLUMN IF NOT EXISTS steps       JSONB   DEFAULT '[]';
+    ALTER TABLE routes ADD COLUMN IF NOT EXISTS color       TEXT    DEFAULT '#00f2ff';
+    ALTER TABLE routes ADD COLUMN IF NOT EXISTS icon        TEXT;
+    ALTER TABLE routes ADD COLUMN IF NOT EXISTS join_count  INTEGER DEFAULT 0;
+    ALTER TABLE routes ADD COLUMN IF NOT EXISTS vibe_score  INTEGER DEFAULT 0;
+    ALTER TABLE routes ADD COLUMN IF NOT EXISTS active      BOOLEAN DEFAULT true;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS routes_active  ON routes(active, join_count DESC);
 CREATE INDEX IF NOT EXISTS routes_user_id ON routes(user_id);
@@ -1126,8 +1294,16 @@ CREATE TABLE IF NOT EXISTS route_joins (
   PRIMARY KEY (route_id, user_id)
 );
 
-ALTER TABLE route_joins ADD COLUMN IF NOT EXISTS route_id UUID REFERENCES routes(id)   ON DELETE CASCADE;
-ALTER TABLE route_joins ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'route_joins') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'route_joins') THEN
+    ALTER TABLE route_joins ADD COLUMN IF NOT EXISTS route_id UUID REFERENCES routes(id)   ON DELETE CASCADE;
+    ALTER TABLE route_joins ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE route_joins ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Route joins readable"         ON route_joins;
@@ -1147,13 +1323,21 @@ CREATE TABLE IF NOT EXISTS route_steps (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS route_id UUID REFERENCES routes(id) ON DELETE CASCADE;
-ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id) ON DELETE SET NULL;
-ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;
-ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS title    TEXT;
-ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS lat      FLOAT;
-ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS lon      FLOAT;
-ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS notes    TEXT;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'route_steps') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'route_steps') THEN
+    ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS route_id UUID REFERENCES routes(id) ON DELETE CASCADE;
+    ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id) ON DELETE SET NULL;
+    ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;
+    ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS title    TEXT;
+    ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS lat      FLOAT;
+    ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS lon      FLOAT;
+    ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS notes    TEXT;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS route_steps_route ON route_steps(route_id, position);
 
@@ -1176,12 +1360,20 @@ CREATE TABLE IF NOT EXISTS paths (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE paths ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE paths ADD COLUMN IF NOT EXISTS title       TEXT;
-ALTER TABLE paths ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE paths ADD COLUMN IF NOT EXISTS color       TEXT    DEFAULT '#00f2ff';
-ALTER TABLE paths ADD COLUMN IF NOT EXISTS is_public   BOOLEAN DEFAULT true;
-ALTER TABLE paths ADD COLUMN IF NOT EXISTS star_count  INTEGER DEFAULT 0;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
+    ALTER TABLE paths ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE paths ADD COLUMN IF NOT EXISTS title       TEXT;
+    ALTER TABLE paths ADD COLUMN IF NOT EXISTS description TEXT;
+    ALTER TABLE paths ADD COLUMN IF NOT EXISTS color       TEXT    DEFAULT '#00f2ff';
+    ALTER TABLE paths ADD COLUMN IF NOT EXISTS is_public   BOOLEAN DEFAULT true;
+    ALTER TABLE paths ADD COLUMN IF NOT EXISTS star_count  INTEGER DEFAULT 0;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS paths_user ON paths(user_id);
 CREATE INDEX IF NOT EXISTS paths_public ON paths(is_public, created_at DESC) WHERE is_public = true;
@@ -1202,12 +1394,20 @@ CREATE TABLE IF NOT EXISTS path_traces (
   recorded_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS path_id    UUID REFERENCES paths(id)    ON DELETE CASCADE;
-ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS lat        FLOAT;
-ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS lon        FLOAT;
-ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS event_id   UUID REFERENCES events(id)   ON DELETE SET NULL;
-ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMPTZ DEFAULT now();
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_traces') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_traces') THEN
+    ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS path_id    UUID REFERENCES paths(id)    ON DELETE CASCADE;
+    ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS lat        FLOAT;
+    ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS lon        FLOAT;
+    ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS event_id   UUID REFERENCES events(id)   ON DELETE SET NULL;
+    ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS path_traces_path ON path_traces(path_id, recorded_at);
 CREATE INDEX IF NOT EXISTS path_traces_user ON path_traces(user_id);
@@ -1225,8 +1425,16 @@ CREATE TABLE IF NOT EXISTS path_stars (
   PRIMARY KEY (path_id, user_id)
 );
 
-ALTER TABLE path_stars ADD COLUMN IF NOT EXISTS path_id UUID REFERENCES paths(id)    ON DELETE CASCADE;
-ALTER TABLE path_stars ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_stars') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_stars') THEN
+    ALTER TABLE path_stars ADD COLUMN IF NOT EXISTS path_id UUID REFERENCES paths(id)    ON DELETE CASCADE;
+    ALTER TABLE path_stars ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE path_stars ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Path stars readable"         ON path_stars;
@@ -1256,10 +1464,18 @@ CREATE TABLE IF NOT EXISTS path_crossings (
   crossed_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS path_id_a UUID REFERENCES paths(id) ON DELETE CASCADE;
-ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS path_id_b UUID REFERENCES paths(id) ON DELETE CASCADE;
-ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS lat       FLOAT;
-ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS lon       FLOAT;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_crossings') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_crossings') THEN
+    ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS path_id_a UUID REFERENCES paths(id) ON DELETE CASCADE;
+    ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS path_id_b UUID REFERENCES paths(id) ON DELETE CASCADE;
+    ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS lat       FLOAT;
+    ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS lon       FLOAT;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS path_crossings_a ON path_crossings(path_id_a);
 CREATE INDEX IF NOT EXISTS path_crossings_b ON path_crossings(path_id_b);
@@ -1277,9 +1493,17 @@ CREATE TABLE IF NOT EXISTS user_paths (
   PRIMARY KEY (user_id, path_id)
 );
 
-ALTER TABLE user_paths ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE user_paths ADD COLUMN IF NOT EXISTS path_id UUID REFERENCES paths(id)    ON DELETE CASCADE;
-ALTER TABLE user_paths ADD COLUMN IF NOT EXISTS role    TEXT DEFAULT 'follower';
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_paths') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_paths') THEN
+    ALTER TABLE user_paths ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE user_paths ADD COLUMN IF NOT EXISTS path_id UUID REFERENCES paths(id)    ON DELETE CASCADE;
+    ALTER TABLE user_paths ADD COLUMN IF NOT EXISTS role    TEXT DEFAULT 'follower';
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE user_paths ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "User paths readable"         ON user_paths;
@@ -1312,22 +1536,30 @@ CREATE TABLE IF NOT EXISTS service_nodes (
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS name         TEXT;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS category     TEXT;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS service_type TEXT;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS description  TEXT;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price        NUMERIC;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_min    NUMERIC;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_max    NUMERIC;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_unit   TEXT DEFAULT 'trip';
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS tab          TEXT DEFAULT 'Moving Help';
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS location     TEXT;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS coords       geography(Point, 4326);
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS rating       FLOAT DEFAULT 0;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS review_count INTEGER DEFAULT 0;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS available    BOOLEAN DEFAULT true;
-ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS media        JSONB;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_nodes') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_nodes') THEN
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS name         TEXT;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS category     TEXT;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS service_type TEXT;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS description  TEXT;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price        NUMERIC;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_min    NUMERIC;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_max    NUMERIC;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS price_unit   TEXT DEFAULT 'trip';
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS tab          TEXT DEFAULT 'Moving Help';
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS location     TEXT;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS coords       geography(Point, 4326);
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS rating       FLOAT DEFAULT 0;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS review_count INTEGER DEFAULT 0;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS available    BOOLEAN DEFAULT true;
+    ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS media        JSONB;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE service_nodes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Services readable"         ON service_nodes;
@@ -1355,21 +1587,29 @@ CREATE TABLE IF NOT EXISTS service_bookings (
   updated_at           TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS service_id          UUID REFERENCES service_nodes(id) ON DELETE SET NULL;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS client_id           UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS provider_id         UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS event_id            UUID REFERENCES events(id) ON DELETE SET NULL;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS status              TEXT DEFAULT 'pending';
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS service_type        TEXT;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS cargo_type          TEXT;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS origin_address      TEXT;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS destination_address TEXT;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS amount_cents        INTEGER DEFAULT 0;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS price               NUMERIC;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS notes               TEXT;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS scheduled_at        TIMESTAMPTZ;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS completed_at        TIMESTAMPTZ;
-ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS updated_at          TIMESTAMPTZ DEFAULT now();
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS service_id          UUID REFERENCES service_nodes(id) ON DELETE SET NULL;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS client_id           UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS provider_id         UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS event_id            UUID REFERENCES events(id) ON DELETE SET NULL;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS status              TEXT DEFAULT 'pending';
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS service_type        TEXT;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS cargo_type          TEXT;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS origin_address      TEXT;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS destination_address TEXT;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS amount_cents        INTEGER DEFAULT 0;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS price               NUMERIC;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS notes               TEXT;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS scheduled_at        TIMESTAMPTZ;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS completed_at        TIMESTAMPTZ;
+    ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS updated_at          TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS service_bookings_client   ON service_bookings(client_id);
 CREATE INDEX IF NOT EXISTS service_bookings_provider ON service_bookings(provider_id);
@@ -1414,20 +1654,28 @@ CREATE TABLE IF NOT EXISTS gig_posts (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS description     TEXT;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS pay             NUMERIC;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS pay_rands       NUMERIC;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS category        TEXT DEFAULT 'moving';
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS tab             TEXT DEFAULT 'Moving Help';
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS time_window     TEXT DEFAULT 'Flexible';
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS poster_username TEXT;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS distance_km     FLOAT;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS location        TEXT;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS event_id        UUID REFERENCES events(id) ON DELETE SET NULL;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS slots           INTEGER DEFAULT 1;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS filled          INTEGER DEFAULT 0;
-ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS active          BOOLEAN DEFAULT true;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_posts') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_posts') THEN
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS description     TEXT;
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS pay             NUMERIC;
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS pay_rands       NUMERIC;
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS category        TEXT DEFAULT 'moving';
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS tab             TEXT DEFAULT 'Moving Help';
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS time_window     TEXT DEFAULT 'Flexible';
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS poster_username TEXT;
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS distance_km     FLOAT;
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS location        TEXT;
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS event_id        UUID REFERENCES events(id) ON DELETE SET NULL;
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS slots           INTEGER DEFAULT 1;
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS filled          INTEGER DEFAULT 0;
+    ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS active          BOOLEAN DEFAULT true;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE gig_posts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Gigs readable"         ON gig_posts;
@@ -1445,11 +1693,19 @@ CREATE TABLE IF NOT EXISTS gig_acceptances (
   UNIQUE (gig_id, worker_id)
 );
 
-ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS gig_id    UUID REFERENCES gig_posts(id) ON DELETE CASCADE;
-ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS worker_id UUID REFERENCES profiles(id)  ON DELETE CASCADE;
-ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS status    TEXT DEFAULT 'applied';
-ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS message   TEXT;
-ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_acceptances') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_acceptances') THEN
+    ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS gig_id    UUID REFERENCES gig_posts(id) ON DELETE CASCADE;
+    ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS worker_id UUID REFERENCES profiles(id)  ON DELETE CASCADE;
+    ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS status    TEXT DEFAULT 'applied';
+    ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS message   TEXT;
+    ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS gig_acceptances_gig    ON gig_acceptances(gig_id);
 CREATE INDEX IF NOT EXISTS gig_acceptances_worker ON gig_acceptances(worker_id);
@@ -1479,11 +1735,19 @@ CREATE TABLE IF NOT EXISTS referrals (
   UNIQUE (referrer_id, referred_id)
 );
 
-ALTER TABLE referrals ADD COLUMN IF NOT EXISTS referrer_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE referrals ADD COLUMN IF NOT EXISTS referred_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE referrals ADD COLUMN IF NOT EXISTS code        TEXT;
-ALTER TABLE referrals ADD COLUMN IF NOT EXISTS status      TEXT    DEFAULT 'pending';
-ALTER TABLE referrals ADD COLUMN IF NOT EXISTS reward      NUMERIC DEFAULT 0;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'referrals') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'referrals') THEN
+    ALTER TABLE referrals ADD COLUMN IF NOT EXISTS referrer_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE referrals ADD COLUMN IF NOT EXISTS referred_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE referrals ADD COLUMN IF NOT EXISTS code        TEXT;
+    ALTER TABLE referrals ADD COLUMN IF NOT EXISTS status      TEXT    DEFAULT 'pending';
+    ALTER TABLE referrals ADD COLUMN IF NOT EXISTS reward      NUMERIC DEFAULT 0;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Referrals readable by owner" ON referrals;
@@ -1505,12 +1769,20 @@ CREATE TABLE IF NOT EXISTS reports (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE reports ADD COLUMN IF NOT EXISTS reporter_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE reports ADD COLUMN IF NOT EXISTS target_type TEXT;
-ALTER TABLE reports ADD COLUMN IF NOT EXISTS target_id   UUID;
-ALTER TABLE reports ADD COLUMN IF NOT EXISTS reason      TEXT;
-ALTER TABLE reports ADD COLUMN IF NOT EXISTS details     TEXT;
-ALTER TABLE reports ADD COLUMN IF NOT EXISTS status      TEXT DEFAULT 'pending';
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reports') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reports') THEN
+    ALTER TABLE reports ADD COLUMN IF NOT EXISTS reporter_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE reports ADD COLUMN IF NOT EXISTS target_type TEXT;
+    ALTER TABLE reports ADD COLUMN IF NOT EXISTS target_id   UUID;
+    ALTER TABLE reports ADD COLUMN IF NOT EXISTS reason      TEXT;
+    ALTER TABLE reports ADD COLUMN IF NOT EXISTS details     TEXT;
+    ALTER TABLE reports ADD COLUMN IF NOT EXISTS status      TEXT DEFAULT 'pending';
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS reports_reporter ON reports(reporter_id);
 CREATE INDEX IF NOT EXISTS reports_status   ON reports(status);
@@ -1531,11 +1803,19 @@ CREATE TABLE IF NOT EXISTS disputes (
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE disputes ADD COLUMN IF NOT EXISTS booking_id UUID REFERENCES service_bookings(id) ON DELETE CASCADE;
-ALTER TABLE disputes ADD COLUMN IF NOT EXISTS raised_by  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE disputes ADD COLUMN IF NOT EXISTS reason     TEXT;
-ALTER TABLE disputes ADD COLUMN IF NOT EXISTS status     TEXT DEFAULT 'open';
-ALTER TABLE disputes ADD COLUMN IF NOT EXISTS resolution TEXT;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'disputes') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'disputes') THEN
+    ALTER TABLE disputes ADD COLUMN IF NOT EXISTS booking_id UUID REFERENCES service_bookings(id) ON DELETE CASCADE;
+    ALTER TABLE disputes ADD COLUMN IF NOT EXISTS raised_by  UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE disputes ADD COLUMN IF NOT EXISTS reason     TEXT;
+    ALTER TABLE disputes ADD COLUMN IF NOT EXISTS status     TEXT DEFAULT 'open';
+    ALTER TABLE disputes ADD COLUMN IF NOT EXISTS resolution TEXT;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE disputes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Dispute parties can see" ON disputes;
@@ -1571,27 +1851,35 @@ CREATE TABLE IF NOT EXISTS business_profiles (
   updated_at     TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS user_id        UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS business_name  TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS business_type  TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS tagline        TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS description    TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS logo_url       TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cover_url      TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS primary_color  TEXT DEFAULT '#00f2ff';
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS accent_color   TEXT DEFAULT '#8b5cf6';
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS verified       BOOLEAN DEFAULT false;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS tier           TEXT DEFAULT 'starter';
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_enabled  BOOLEAN DEFAULT false;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_slug     TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_config   JSONB DEFAULT '{}';
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS website        TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS phone          TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS email          TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS location       TEXT;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS total_revenue  NUMERIC DEFAULT 0;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS follower_count INTEGER DEFAULT 0;
-ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS updated_at     TIMESTAMPTZ DEFAULT now();
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_profiles') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_profiles') THEN
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS user_id        UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS business_name  TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS business_type  TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS tagline        TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS description    TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS logo_url       TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cover_url      TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS primary_color  TEXT DEFAULT '#00f2ff';
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS accent_color   TEXT DEFAULT '#8b5cf6';
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS verified       BOOLEAN DEFAULT false;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS tier           TEXT DEFAULT 'starter';
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_enabled  BOOLEAN DEFAULT false;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_slug     TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_config   JSONB DEFAULT '{}';
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS website        TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS phone          TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS email          TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS location       TEXT;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS total_revenue  NUMERIC DEFAULT 0;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS follower_count INTEGER DEFAULT 0;
+    ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS updated_at     TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE business_profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "business_profiles_owner"       ON business_profiles;
@@ -1617,12 +1905,20 @@ CREATE TABLE IF NOT EXISTS business_team_members (
   UNIQUE (business_id, user_id)
 );
 
-ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
-ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS role        TEXT DEFAULT 'staff';
-ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '{}';
-ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS invited_by  UUID REFERENCES profiles(id) ON DELETE SET NULL;
-ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS accepted    BOOLEAN DEFAULT false;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_team_members') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_team_members') THEN
+    ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
+    ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS role        TEXT DEFAULT 'staff';
+    ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '{}';
+    ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS invited_by  UUID REFERENCES profiles(id) ON DELETE SET NULL;
+    ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS accepted    BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS biz_team_business ON business_team_members(business_id);
 CREATE INDEX IF NOT EXISTS biz_team_user     ON business_team_members(user_id);
@@ -1652,10 +1948,18 @@ CREATE TABLE IF NOT EXISTS business_partnerships (
 CREATE UNIQUE INDEX IF NOT EXISTS business_partnerships_pair_uniq
   ON business_partnerships (LEAST(CAST(requester_id AS text), CAST(partner_id AS text)), GREATEST(CAST(requester_id AS text), CAST(partner_id AS text)));
 
-ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS requester_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
-ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS partner_id   UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
-ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS status       TEXT DEFAULT 'pending';
-ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS terms        TEXT;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_partnerships') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_partnerships') THEN
+    ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS requester_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
+    ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS partner_id   UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
+    ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS status       TEXT DEFAULT 'pending';
+    ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS terms        TEXT;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE business_partnerships ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Partnership parties can read" ON business_partnerships;
@@ -1675,11 +1979,19 @@ CREATE TABLE IF NOT EXISTS business_page_blocks (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
-ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS block_type  TEXT;
-ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS position    INTEGER DEFAULT 0;
-ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS config      JSONB   DEFAULT '{}';
-ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS visible     BOOLEAN DEFAULT true;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_page_blocks') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_page_blocks') THEN
+    ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
+    ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS block_type  TEXT;
+    ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS position    INTEGER DEFAULT 0;
+    ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS config      JSONB   DEFAULT '{}';
+    ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS visible     BOOLEAN DEFAULT true;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS business_page_blocks_business_id ON business_page_blocks(business_id, position);
 
@@ -1722,21 +2034,29 @@ CREATE TABLE IF NOT EXISTS ad_campaigns (
   updated_at   TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS business_id  UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS title        TEXT;
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS type         TEXT DEFAULT 'awareness';
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS status       TEXT DEFAULT 'draft';
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS budget       NUMERIC DEFAULT 0;
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS spent        NUMERIC DEFAULT 0;
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS reach        INTEGER DEFAULT 0;
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS clicks       INTEGER DEFAULT 0;
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS conversions  INTEGER DEFAULT 0;
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS target       JSONB DEFAULT '{}';
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS creative     JSONB DEFAULT '{}';
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS starts_at    TIMESTAMPTZ;
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS ends_at      TIMESTAMPTZ;
-ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS updated_at   TIMESTAMPTZ DEFAULT now();
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_campaigns') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_campaigns') THEN
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS business_id  UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS title        TEXT;
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS type         TEXT DEFAULT 'awareness';
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS status       TEXT DEFAULT 'draft';
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS budget       NUMERIC DEFAULT 0;
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS spent        NUMERIC DEFAULT 0;
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS reach        INTEGER DEFAULT 0;
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS clicks       INTEGER DEFAULT 0;
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS conversions  INTEGER DEFAULT 0;
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS target       JSONB DEFAULT '{}';
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS creative     JSONB DEFAULT '{}';
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS starts_at    TIMESTAMPTZ;
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS ends_at      TIMESTAMPTZ;
+    ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS updated_at   TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS ad_campaigns_business_id ON ad_campaigns(business_id);
 CREATE INDEX IF NOT EXISTS ad_campaigns_status      ON ad_campaigns(status);
@@ -1766,11 +2086,19 @@ CREATE TABLE IF NOT EXISTS campaign_analytics (
   recorded_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS campaign_id UUID REFERENCES ad_campaigns(id) ON DELETE CASCADE;
-ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS event_type  TEXT;
-ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE SET NULL;
-ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS metadata    JSONB DEFAULT '{}';
-ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMPTZ DEFAULT now();
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'campaign_analytics') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'campaign_analytics') THEN
+    ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS campaign_id UUID REFERENCES ad_campaigns(id) ON DELETE CASCADE;
+    ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS event_type  TEXT;
+    ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE SET NULL;
+    ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS metadata    JSONB DEFAULT '{}';
+    ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS campaign_analytics_campaign ON campaign_analytics(campaign_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS campaign_analytics_type     ON campaign_analytics(event_type);
@@ -1796,10 +2124,18 @@ CREATE TABLE IF NOT EXISTS audience_segments (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
-ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS name        TEXT;
-ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS criteria    JSONB DEFAULT '{}';
-ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS size        INTEGER DEFAULT 0;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'audience_segments') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'audience_segments') THEN
+    ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
+    ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS name        TEXT;
+    ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS criteria    JSONB DEFAULT '{}';
+    ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS size        INTEGER DEFAULT 0;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE audience_segments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Segments owner only" ON audience_segments;
@@ -1825,16 +2161,24 @@ CREATE TABLE IF NOT EXISTS contextual_ads (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS type     TEXT DEFAULT 'event';
-ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS headline TEXT;
-ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS subline  TEXT;
-ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS cta      TEXT DEFAULT 'View';
-ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS badge    TEXT DEFAULT 'PROMOTED';
-ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS icon     TEXT DEFAULT 'zap';
-ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS color    TEXT DEFAULT '#00f2ff';
-ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id) ON DELETE SET NULL;
-ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 0;
-ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS active   BOOLEAN DEFAULT true;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'contextual_ads') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'contextual_ads') THEN
+    ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS type     TEXT DEFAULT 'event';
+    ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS headline TEXT;
+    ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS subline  TEXT;
+    ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS cta      TEXT DEFAULT 'View';
+    ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS badge    TEXT DEFAULT 'PROMOTED';
+    ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS icon     TEXT DEFAULT 'zap';
+    ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS color    TEXT DEFAULT '#00f2ff';
+    ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id) ON DELETE SET NULL;
+    ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 0;
+    ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS active   BOOLEAN DEFAULT true;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS contextual_ads_active ON contextual_ads(active, priority DESC);
 
@@ -2741,36 +3085,44 @@ alter publication supabase_realtime add table event_updates;
 -- ══════════════════════════════════════════════════════════════
 --  1. PROFILES — columns + RLS
 -- ══════════════════════════════════════════════════════════════
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name           TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url             TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cover_url              TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio                    TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS location               TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS website                TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_verified            BOOLEAN     DEFAULT false;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_online              BOOLEAN     DEFAULT false;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen              TIMESTAMPTZ DEFAULT now();
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vibe_score             INTEGER     DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS interests              TEXT[];
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lat                    FLOAT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lon                    FLOAT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS city                   TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_online            BOOLEAN     DEFAULT true;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS share_events           BOOLEAN     DEFAULT false;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_code          TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_count         INTEGER     DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_gallery        TEXT[];
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_title           TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_description     TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS looks_description      TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS birth_year             INTEGER;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gender                 TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_discoverable        BOOLEAN     DEFAULT true;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS push_token             TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS identity_mode          TEXT        DEFAULT 'public';
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak         INTEGER     DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_integrity_score FLOAT       DEFAULT 100;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at             TIMESTAMPTZ DEFAULT now();
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name           TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url             TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cover_url              TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio                    TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS location               TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS website                TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_verified            BOOLEAN     DEFAULT false;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_online              BOOLEAN     DEFAULT false;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen              TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vibe_score             INTEGER     DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS interests              TEXT[];
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lat                    FLOAT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lon                    FLOAT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS city                   TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_online            BOOLEAN     DEFAULT true;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS share_events           BOOLEAN     DEFAULT false;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_code          TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_count         INTEGER     DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_gallery        TEXT[];
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_title           TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS career_description     TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS looks_description      TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS birth_year             INTEGER;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gender                 TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_discoverable        BOOLEAN     DEFAULT true;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS push_token             TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS identity_mode          TEXT        DEFAULT 'public';
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_streak         INTEGER     DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_integrity_score FLOAT       DEFAULT 100;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at             TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public profiles readable" ON profiles;
@@ -2794,18 +3146,26 @@ CREATE POLICY "Users manage own follows" ON follows FOR ALL    USING (auth.uid()
 -- ══════════════════════════════════════════════════════════════
 --  3. MESSAGES — columns + RLS
 -- ══════════════════════════════════════════════════════════════
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS message_type     TEXT             DEFAULT 'text';
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_url        TEXT;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_id        UUID             REFERENCES messages(id) ON DELETE SET NULL;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS event_id         UUID;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS latitude         DOUBLE PRECISION;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS longitude        DOUBLE PRECISION;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN          DEFAULT false;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN          DEFAULT false;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS reaction         TEXT;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS message_type     TEXT             DEFAULT 'text';
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_url        TEXT;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_id        UUID             REFERENCES messages(id) ON DELETE SET NULL;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS event_id         UUID;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS latitude         DOUBLE PRECISION;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS longitude        DOUBLE PRECISION;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN          DEFAULT false;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN          DEFAULT false;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS reaction         TEXT;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Message participants can read" ON messages;
@@ -2897,8 +3257,16 @@ CREATE POLICY "Users update own notifications" ON notifications FOR UPDATE
 -- ══════════════════════════════════════════════════════════════
 --  10. LIVE CHECKINS — columns + RLS
 -- ══════════════════════════════════════════════════════════════
-ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS venue_name    TEXT;
-ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ DEFAULT now();
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
+    ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS venue_name    TEXT;
+    ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 ALTER TABLE live_checkins ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Checkins readable"         ON live_checkins;
@@ -2910,8 +3278,16 @@ CREATE POLICY "Users manage own checkins" ON live_checkins FOR ALL    USING (aut
 -- ══════════════════════════════════════════════════════════════
 --  11. APP UPDATES — columns + RLS
 -- ══════════════════════════════════════════════════════════════
-ALTER TABLE app_updates ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE app_updates ADD COLUMN IF NOT EXISTS type        TEXT DEFAULT 'feature';
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'app_updates') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'app_updates') THEN
+    ALTER TABLE app_updates ADD COLUMN IF NOT EXISTS description TEXT;
+    ALTER TABLE app_updates ADD COLUMN IF NOT EXISTS type        TEXT DEFAULT 'feature';
+  END IF;
+END $$;
+  END IF;
+END $$;
 ALTER TABLE app_updates ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Anyone can read app_updates" ON app_updates;
 CREATE POLICY "Anyone can read app_updates" ON app_updates FOR SELECT USING (true);
@@ -3199,7 +3575,15 @@ CREATE POLICY "Service manages moderation" ON ai_moderation_queue FOR ALL USING 
 
 
 -- Add sound_name to reels (used by CreateReelModal audio pill)
-ALTER TABLE reels ADD COLUMN IF NOT EXISTS sound_name TEXT;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
+    ALTER TABLE reels ADD COLUMN IF NOT EXISTS sound_name TEXT;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 -- Add reel_reports table for in-app reporting
 CREATE TABLE IF NOT EXISTS reel_reports (
@@ -3231,32 +3615,48 @@ CREATE POLICY "Users can report reels" ON reel_reports
 -- ══════════════════════════════════════════════════════════════
 --  §1  PROFILES — missing columns
 -- ══════════════════════════════════════════════════════════════
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS looking_for       TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS preferred_areas   TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wallet_balance    NUMERIC  DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_events_posted INTEGER DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_check_ins    INTEGER DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS streak_last_date  DATE;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS badges            JSONB    DEFAULT '[]';
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notification_prefs JSONB   DEFAULT '{}';
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS looking_for       TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS preferred_areas   TEXT;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wallet_balance    NUMERIC  DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_events_posted INTEGER DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_check_ins    INTEGER DEFAULT 0;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS streak_last_date  DATE;
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS badges            JSONB    DEFAULT '[]';
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notification_prefs JSONB   DEFAULT '{}';
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 
 -- ══════════════════════════════════════════════════════════════
 --  §2  EVENTS — missing columns
 -- ══════════════════════════════════════════════════════════════
-ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_url      TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url      TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_image    TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS rsvp_tiers     JSONB;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS capacity       INTEGER;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS ticket_price   NUMERIC;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS dress_code     TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS age_restriction TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS playlist_url   TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS lineup         JSONB  DEFAULT '[]';
-ALTER TABLE events ADD COLUMN IF NOT EXISTS sponsors       JSONB  DEFAULT '[]';
-ALTER TABLE events ADD COLUMN IF NOT EXISTS weather_cache  JSONB;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS weather_cached_at TIMESTAMPTZ;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_url      TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url      TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_image    TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS rsvp_tiers     JSONB;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS capacity       INTEGER;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS ticket_price   NUMERIC;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS dress_code     TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS age_restriction TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS playlist_url   TEXT;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS lineup         JSONB  DEFAULT '[]';
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS sponsors       JSONB  DEFAULT '[]';
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS weather_cache  JSONB;
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS weather_cached_at TIMESTAMPTZ;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 -- Sync cover_url from existing media records (one-time backfill)
 UPDATE events
@@ -3275,12 +3675,20 @@ WHERE cover_url IS NULL
 -- ══════════════════════════════════════════════════════════════
 --  §3  EVENT_RSVPS — tier support
 -- ══════════════════════════════════════════════════════════════
-ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS tier_id      TEXT;
-ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS ticket_ref   TEXT;
-ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS amount_paid  NUMERIC DEFAULT 0;
-ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS is_early_bird BOOLEAN DEFAULT false;
-ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checked_in   BOOLEAN DEFAULT false;
-ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
+    ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS tier_id      TEXT;
+    ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS ticket_ref   TEXT;
+    ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS amount_paid  NUMERIC DEFAULT 0;
+    ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS is_early_bird BOOLEAN DEFAULT false;
+    ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checked_in   BOOLEAN DEFAULT false;
+    ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 
 -- ══════════════════════════════════════════════════════════════
@@ -3367,11 +3775,19 @@ CREATE TABLE IF NOT EXISTS reels (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE reels ADD COLUMN IF NOT EXISTS sound_name    TEXT;
-ALTER TABLE reels ADD COLUMN IF NOT EXISTS hashtags      TEXT[];
-ALTER TABLE reels ADD COLUMN IF NOT EXISTS share_count   INTEGER DEFAULT 0;
-ALTER TABLE reels ADD COLUMN IF NOT EXISTS is_featured   BOOLEAN DEFAULT false;
-ALTER TABLE reels ADD COLUMN IF NOT EXISTS is_removed    BOOLEAN DEFAULT false;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
+    ALTER TABLE reels ADD COLUMN IF NOT EXISTS sound_name    TEXT;
+    ALTER TABLE reels ADD COLUMN IF NOT EXISTS hashtags      TEXT[];
+    ALTER TABLE reels ADD COLUMN IF NOT EXISTS share_count   INTEGER DEFAULT 0;
+    ALTER TABLE reels ADD COLUMN IF NOT EXISTS is_featured   BOOLEAN DEFAULT false;
+    ALTER TABLE reels ADD COLUMN IF NOT EXISTS is_removed    BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS reels_user_id_idx    ON reels(user_id);
 CREATE INDEX IF NOT EXISTS reels_created_at_idx ON reels(created_at DESC);
