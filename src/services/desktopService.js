@@ -20,7 +20,7 @@ export const DesktopService = {
 
   // Mock for native desktop notifications
   async showNotification(title, body) {
-    if (!isDesktop) return;
+    if (!isDesktop || typeof Notification === 'undefined') return;
 
     if (Notification.permission === 'granted') {
       new Notification(title, { body });

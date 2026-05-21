@@ -578,8 +578,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       setSearching(true);
       try {
         const { events, users } = await FeedManager.searchAll(query);
-        setSearchResults(events);
-        setUserResults(users);
+        setSearchResults(events || []);
+        setUserResults(users || []);
       } catch { setSearchResults([]); setUserResults([]); }
       finally { setSearching(false); }
     }, 350);
