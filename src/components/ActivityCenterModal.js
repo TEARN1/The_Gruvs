@@ -144,8 +144,8 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
       results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       setActivities(results);
       setUnreadCount(results.filter(r => Date.now() - new Date(r.created_at) < 3600000).length);
-    } catch (e) {
-      setActivities([]);
+    } catch {
+      // Keep existing activities on transient failure — don't reset to empty
     } finally {
       setLoading(false);
       setRefreshing(false);

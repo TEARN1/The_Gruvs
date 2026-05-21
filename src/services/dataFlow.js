@@ -2517,7 +2517,7 @@ export const RewardEngine = {
 
   async checkMilestones(userId) {
     try {
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      const { data: prof } = await supabase.from('profiles').select('id, badges, current_streak, social_integrity_score, vibe_score').eq('id', userId).single();
       if (!prof) return [];
 
       const earned = prof.badges || [];

@@ -412,6 +412,13 @@ function BookingModal({
 }
 
 // ---------------------------------------------------------------------------
+const EmptyStateView = ({ icon, message, muted }) => (
+  <View style={styles.emptyState}>
+    <Feather name={icon} size={48} color={muted} style={{ opacity: 0.5 }} />
+    <Text style={[styles.emptyText, { color: muted }]}>{message}</Text>
+  </View>
+);
+
 // Main Screen
 // ---------------------------------------------------------------------------
 
@@ -566,13 +573,6 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
     />
   ), [handleBook, primary, muted, textColor, surface]);
 
-  const EmptyState = ({ icon, message }) => (
-    <View style={styles.emptyState}>
-      <Feather name={icon} size={48} color={muted} style={{ opacity: 0.5 }} />
-      <Text style={[styles.emptyText, { color: muted }]}>{message}</Text>
-    </View>
-  );
-
   return (
     <View style={[styles.screen, { backgroundColor: background, paddingTop: insets.top }]}>
       {/* ── Header ── */}
@@ -706,9 +706,10 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
           }
           renderItem={renderGigCard}
           ListEmptyComponent={
-            <EmptyState
+            <EmptyStateView
               icon="alert-circle"
               message={`No gigs available within ${activeRadius}.\nPull to refresh or expand radius.`}
+              muted={muted}
             />
           }
         />
@@ -729,9 +730,10 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
           }
           renderItem={renderServiceCard}
           ListEmptyComponent={
-            <EmptyState
+            <EmptyStateView
               icon="truck"
               message={`No providers found within ${activeRadius}.\nTry expanding the radius.`}
+              muted={muted}
             />
           }
         />

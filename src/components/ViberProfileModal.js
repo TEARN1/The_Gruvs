@@ -205,14 +205,17 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       presenceUnsubRef.current?.();
       presenceUnsubRef.current = null;
     }
-    return () => { presenceUnsubRef.current?.(); presenceUnsubRef.current = null; };
+    return () => {
+      presenceUnsubRef.current?.();
+      presenceUnsubRef.current = null;
+    };
   }, [visible, targetId]);
 
   const loadProfile = useCallback(async (uid) => {
     setLoading(true);
     try {
       const [profileRes, eventsRes, followersRes, followingRes, isFollowingRes, mutualRes] = await Promise.allSettled([
-        supabase.from('profiles').select('*').eq('id', uid).single(),
+        supabase.from('profiles').select('id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, career_title, looks_description, interests, location').eq('id', uid).single(),
         supabase.from('events').select('id,title,media,media_urls,event_date,venue_name,category,category_color,vibe_count').eq('author_id', uid).order('created_at', { ascending: false }).limit(10),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', uid),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', uid),
@@ -365,15 +368,10 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
           {loading ? (
             <ProfileSkeleton primary={primary} />
-          ) : !profile ? (
+          ) : !profile?.id ? (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 }}>
               <Feather name="user-x" size={40} color={muted} />
               <Text style={{ color: muted, marginTop: 12, fontSize: 14 }}>Profile not found</Text>
-            </View>
-          ) : !profile || !profile.id ? (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 }}>
-              <Feather name="alert-circle" size={40} color={muted} />
-              <Text style={{ color: muted, marginTop: 12, fontSize: 14 }}>Unable to load profile</Text>
             </View>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>

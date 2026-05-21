@@ -113,7 +113,7 @@ async function executeTool(toolName, toolInput) {
         if (!u) return `User @${username} not found.`;
         if (action === 'flag') {
           const flagPayload = { target_type: 'profile', target_id: u.id, reporter_id: u.id, reason: reason || 'Admin flagged', status: 'pending' };
-          await resilient(
+          const flagged = await resilient(
             [
               () => supabase.from('reports').insert(flagPayload),
               () => supabase.from('reports').upsert(flagPayload),
@@ -121,10 +121,10 @@ async function executeTool(toolName, toolInput) {
             ],
             { attemptsPerTier: 2, baseMs: 300, label: `AdminAI.flag_user:${u.id}`, fallbackValue: null }
           );
-          return `User @${username} flagged for review.`;
+          return flagged !== null ? `User @${username} flagged for review.` : `Failed to flag @${username} — all tiers exhausted.`;
         }
         if (action === 'suspend') {
-          await resilient(
+          const suspended = await resilient(
             [
               () => supabase.from('profiles').update({ is_discoverable: false, is_online: false }).eq('id', u.id),
               () => supabase.from('profiles').update({ is_discoverable: false }).eq('id', u.id),
@@ -132,7 +132,7 @@ async function executeTool(toolName, toolInput) {
             ],
             { attemptsPerTier: 2, baseMs: 300, label: `AdminAI.suspend_user:${u.id}`, fallbackValue: null }
           );
-          return `User @${username} suspended (hidden from discovery).`;
+          return suspended !== null ? `User @${username} suspended (hidden from discovery).` : `Failed to suspend @${username} — all tiers exhausted.`;
         }
         return `Unknown action: ${action}`;
       }

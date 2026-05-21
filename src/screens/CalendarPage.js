@@ -404,7 +404,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const loadUpcoming = async () => {
     try {
       const data = await CalendarManager.fetchUpcoming(10);
-      setUpcomingEvents(data.sort((a, b) => a.event_date?.localeCompare(b.event_date)));
+      setUpcomingEvents(data.sort((a, b) => (a.event_date || '').localeCompare(b.event_date || '')));
     } catch { /* keep existing upcoming events on transient failure */ }
   };
 

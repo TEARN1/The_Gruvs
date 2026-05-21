@@ -311,7 +311,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             : [...prev, payload.new]
         );
         setRequestStatus('accepted');
-        await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', payload.new.id);
+        supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', payload.new.id).catch(() => {});
         try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
       })
       .on('postgres_changes', {

@@ -159,7 +159,7 @@ export const WalletScreen = ({ visible, onClose }) => {
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={[s.bookingTitle, { color: textColor }]}>
-              {item.service_type.toUpperCase()}
+              {(item.service_type || 'Service').toUpperCase()}
             </Text>
             <Text style={[s.bookingSub, { color: muted }]}>
               {isProvider ? `from @${item.client?.username}` : `to @${item.provider?.username}`} · {date}

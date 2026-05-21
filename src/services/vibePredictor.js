@@ -22,7 +22,7 @@ export const VibePredictor = {
       { data: memory },
       { data: recentEvents }
     ] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.from('profiles').select('id, username, interests, vibe_score, career_title, location, identity_mode').eq('id', userId).single(),
       supabase.from('live_checkins').select('*, events(*)').eq('user_id', userId).order('checked_in_at', { ascending: false }).limit(20),
       supabase.from('ai_user_memory').select('*').eq('user_id', userId).single(),
       supabase.from('events').select('*').gte('event_date', new Date().toISOString().split('T')[0]).limit(30)

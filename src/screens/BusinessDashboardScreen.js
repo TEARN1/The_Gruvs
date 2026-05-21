@@ -447,7 +447,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       setNotifications(notifData);
 
       // Build analytics summary from raw events
-      const raw = await CampaignManager.getPerformance(bizData.id);
+      const raw = (await CampaignManager.getPerformance(bizData.id)) || [];
       const impressions = raw.filter(e => e.event_type === 'impression').length;
       const clicks = raw.filter(e => e.event_type === 'click').length;
       const conversions = raw.filter(e => e.event_type === 'conversion').length;

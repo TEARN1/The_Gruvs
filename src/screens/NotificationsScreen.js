@@ -153,7 +153,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const filtered = notifications.filter(n => isInSegment(n.created_at, segment));
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const handleNotifPress = (item) => {
+  const handleNotifPress = useCallback((item) => {
     if (!item.read) markRead(item.id);
     const viewerId = item.data?.viewer_id || item.data?.actor_id;
     if ((item.type === 'profile_view' || item.type === 'follow') && viewerId) {
@@ -161,7 +161,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     } else if (['vibe', 'rsvp', 'echo', 'comment', 'event_day'].includes(item.type) && item.data?.event_id && onNavigateToEvent) {
       onNavigateToEvent({ id: item.data.event_id });
     }
-  };
+  }, [markRead, onNavigateToEvent]);
 
   const renderItem = useCallback(({ item }) => {
     const meta = TYPE_META[item.type] || TYPE_META.vibe;

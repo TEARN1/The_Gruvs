@@ -145,7 +145,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
     unsubRef.current = MessageManager.subscribeUnreadCount(user.id, () => {
       fetchConvos();
     });
-    return () => unsubRef.current?.();
+    return () => { unsubRef.current?.(); unsubRef.current = null; };
   }, [fetchConvos, user]);
 
   const filtered = useMemo(() => search.trim()

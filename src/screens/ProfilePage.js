@@ -251,7 +251,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     try {
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      const { data } = await supabase.from('profiles').select('id, username, display_name, avatar_url, bio, location, interests, career_title, career_description, looks_description, profile_gallery, vibe_score, is_verified, share_events, show_online, identity_mode, is_discoverable, is_beacon_active, push_token').eq('id', user.id).single();
       if (data) {
         setBio(data.bio || '');
         setLocation(data.location || '');

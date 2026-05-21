@@ -135,9 +135,9 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
   const renderTopThree = () => {
     const top = profiles.slice(0, 3);
     if (top.length === 0) return null;
-    const order = top.length >= 3 ? [top[1], top[0], top[2]] : [top[0]];
-    const rankOrder = top.length >= 3 ? [2, 1, 3] : [1];
-    const sizeOrder = top.length >= 3 ? [72, 88, 72] : [88];
+    const order = top.length >= 3 ? [top[1], top[0], top[2]] : top.length === 2 ? [top[1], top[0]] : [top[0]];
+    const rankOrder = top.length >= 3 ? [2, 1, 3] : top.length === 2 ? [2, 1] : [1];
+    const sizeOrder = top.length >= 3 ? [72, 88, 72] : top.length === 2 ? [72, 88] : [88];
 
     return (
       <View style={lb.podium}>
