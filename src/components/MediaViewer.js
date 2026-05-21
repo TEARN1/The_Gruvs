@@ -43,6 +43,13 @@ export const MediaViewer = ({ media, containerWidth }) => {
   const MEDIA_WIDTH = width;
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
+    if (viewableItems.length > 0) {
+      const newIndex = viewableItems[0].index;
+      setActiveIndex(newIndex);
+    }
+  }, []);
+
   if (!media || media.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: '#111a1c', alignItems: 'center', justifyContent: 'center' }]}>
@@ -53,13 +60,6 @@ export const MediaViewer = ({ media, containerWidth }) => {
       </View>
     );
   }
-
-  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
-    if (viewableItems.length > 0) {
-      const newIndex = viewableItems[0].index;
-      setActiveIndex(newIndex);
-    }
-  }, []);
 
   const viewabilityConfig = { itemVisiblePercentThreshold: 60 };
 
