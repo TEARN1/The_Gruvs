@@ -176,6 +176,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [platformStats, setPlatformStats] = useState({ vibers: 0, gruvs: 0 });
   const slideAnim = useRef(new Animated.Value(300)).current;
   const presenceUnsubRef = useRef(null);
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -228,6 +230,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('events').select('id', { count: 'exact', head: true }),
       ]).then(([vRes, gRes]) => {
+        if (!mountedRef.current) return;
         setPlatformStats({
           vibers: vRes.status === 'fulfilled' ? (vRes.value.count || 0) : 0,
           gruvs:  gRes.status === 'fulfilled' ? (gRes.value.count || 0) : 0,
