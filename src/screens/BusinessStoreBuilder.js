@@ -11,6 +11,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { GlassView } from '../components/GlassView';
 
 
@@ -489,9 +490,16 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
 
   const saveBlock = async (blockId, config) => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
-    await supabase.from('business_page_blocks').update({ config }).eq('id', blockId);
     setBlocks(p => p.map(b => b.id === blockId ? { ...b, config } : b));
     setEditBlock(null);
+    await resilient(
+      [
+        () => supabase.from('business_page_blocks').update({ config }).eq('id', blockId),
+        () => supabase.from('business_page_blocks').update({ config: JSON.stringify(config) }).eq('id', blockId),
+        () => supabase.rpc('update_page_block', { p_block_id: blockId, p_config: config }),
+      ],
+      { attemptsPerTier: 2, baseMs: 400, label: `StoreBuilder.saveBlock:${blockId}`, fallbackValue: null }
+    );
   };
 
   const deleteBlock = async (blockId) => {
@@ -499,8 +507,15 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
-          await supabase.from('business_page_blocks').delete().eq('id', blockId);
           setBlocks(p => p.filter(b => b.id !== blockId));
+          await resilient(
+            [
+              () => supabase.from('business_page_blocks').delete().eq('id', blockId),
+              () => supabase.from('business_page_blocks').update({ deleted: true }).eq('id', blockId),
+              () => supabase.rpc('delete_page_block', { p_block_id: blockId }),
+            ],
+            { attemptsPerTier: 2, baseMs: 400, label: `StoreBuilder.deleteBlock:${blockId}`, fallbackValue: null }
+          );
         }
       },
     ]);
@@ -515,7 +530,14 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
     // Re-index positions
     const updated = newBlocks.map((b, i) => ({ ...b, position: i }));
     setBlocks(updated);
-    await Promise.all(updated.map(b => supabase.from('business_page_blocks').update({ position: b.position }).eq('id', b.id)));
+    await resilient(
+      [
+        () => Promise.all(updated.map(b => supabase.from('business_page_blocks').update({ position: b.position }).eq('id', b.id))),
+        () => Promise.allSettled(updated.map(b => supabase.from('business_page_blocks').update({ position: b.position }).eq('id', b.id))),
+        () => supabase.rpc('reorder_page_blocks', { p_blocks: updated.map(b => ({ id: b.id, position: b.position })) }),
+      ],
+      { attemptsPerTier: 2, baseMs: 300, label: 'StoreBuilder.reorder', fallbackValue: null }
+    );
   };
 
   const publishStore = async () => {
@@ -523,12 +545,18 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
     setSaving(true);
     try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
     try {
-      const { error } = await supabase.from('business_profiles')
-        .update({ store_enabled: true, store_slug: slug.trim().toLowerCase().replace(/\s+/g, '-') })
-        .eq('id', biz.id);
-      if (error) { Alert.alert('Error', error.message); return; }
+      const storeSlug = slug.trim().toLowerCase().replace(/\s+/g, '-');
+      const ok = await resilient(
+        [
+          () => supabase.from('business_profiles').update({ store_enabled: true, store_slug: storeSlug }).eq('id', biz.id),
+          () => supabase.from('business_profiles').update({ store_slug: storeSlug }).eq('id', biz.id),
+          () => supabase.rpc('publish_store', { p_biz_id: biz.id, p_slug: storeSlug }),
+        ],
+        { attemptsPerTier: 3, baseMs: 500, label: `StoreBuilder.publish:${biz.id}`, fallbackValue: null }
+      );
+      if (ok === null) { Alert.alert('Error', 'Could not publish store. Please try again.'); return; }
       setStoreEnabled(true);
-      Alert.alert('Published!', `Your store is live at thegruvs.app/store/${slug}`);
+      Alert.alert('Published!', `Your store is live at thegruvs.app/store/${storeSlug}`);
     } finally {
       setSaving(false);
     }

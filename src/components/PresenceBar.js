@@ -13,6 +13,7 @@ import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { UserManager, GeoUtils } from '../services/dataFlow';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
@@ -225,7 +226,7 @@ export const PresenceBar = ({
       }
 
       const identityMode = (await AsyncStorage.getItem('gruv_identity_mode')) || 'public';
-      const { error } = await supabase.from('live_checkins').insert({
+      const checkInPayload = {
         event_id: eventId,
         user_id: user.id,
         checked_in_at: new Date().toISOString(),
@@ -233,8 +234,16 @@ export const PresenceBar = ({
         expires_at: expiresAt(),
         lat: loc.coords.latitude,
         lon: loc.coords.longitude,
-      });
-      if (error) throw error;
+      };
+      const ok = await resilient(
+        [
+          () => supabase.from('live_checkins').insert(checkInPayload),
+          () => supabase.from('live_checkins').upsert(checkInPayload, { onConflict: 'event_id,user_id' }),
+          () => supabase.rpc('check_in_live', { p_event_id: eventId, p_user_id: user.id, p_lat: loc.coords.latitude, p_lon: loc.coords.longitude }),
+        ],
+        { attemptsPerTier: 3, baseMs: 400, label: `PresenceBar.checkIn:${eventId}`, fallbackValue: null }
+      );
+      if (ok === null) throw new Error('Check-in failed. Try again.');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast('Checked in!', 'success');
       setAlreadyCheckedIn(true);
@@ -258,13 +267,17 @@ export const PresenceBar = ({
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const { error } = await supabase.from('path_stars').insert({
-      from_user_id: user.id,
-      to_user_id: toUserId,
-      event_id: eventId,
-    });
+    const starPayload = { from_user_id: user.id, to_user_id: toUserId, event_id: eventId };
+    const ok = await resilient(
+      [
+        () => supabase.from('path_stars').insert(starPayload),
+        () => supabase.from('path_stars').upsert(starPayload, { onConflict: 'from_user_id,to_user_id,event_id', ignoreDuplicates: true }),
+        () => supabase.rpc('send_path_star', { p_from: user.id, p_to: toUserId, p_event_id: eventId }),
+      ],
+      { attemptsPerTier: 2, baseMs: 300, label: `PresenceBar.star:${toUserId}`, fallbackValue: null }
+    );
 
-    if (error) {
+    if (ok === null) {
       showToast('Could not star — try again', 'error');
       return;
     }
@@ -282,12 +295,16 @@ export const PresenceBar = ({
         .maybeSingle();
 
       if (mutual) {
-        await supabase.from('dm_rooms').upsert(
-          {
-            participant_1: user.id < toUserId ? user.id : toUserId,
-            participant_2: user.id < toUserId ? toUserId : user.id,
-          },
-          { onConflict: 'participant_1,participant_2', ignoreDuplicates: true }
+        await resilient(
+          [
+            () => supabase.from('dm_rooms').upsert(
+              { participant_1: user.id < toUserId ? user.id : toUserId, participant_2: user.id < toUserId ? toUserId : user.id },
+              { onConflict: 'participant_1,participant_2', ignoreDuplicates: true }
+            ),
+            () => supabase.from('dm_rooms').insert({ participant_1: user.id < toUserId ? user.id : toUserId, participant_2: user.id < toUserId ? toUserId : user.id }),
+            () => supabase.rpc('create_dm_room', { p_user_a: user.id, p_user_b: toUserId }),
+          ],
+          { attemptsPerTier: 2, baseMs: 300, label: `PresenceBar.dmRoom:${toUserId}`, fallbackValue: null }
         );
         setMatchIds(prev => new Set([...prev, toUserId]));
         showToast('💬 Mutual match! A chat room is open for 48h', 'success');
