@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Platform, KeyboardAvoidingView,
+  TextInput, ActivityIndicator, Alert, Platform, KeyboardAvoidingView, Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
+import { uploadToStorage } from '../services/storageService';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
 
 const Field = ({ label, value, onChange, placeholder, multiline, keyboardType, textColor, muted, primary }) => (
@@ -47,6 +49,9 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [tiers, setTiers] = useState([]);
   const [tierForm, setTierForm] = useState(null); // null = hidden, {} = new, {id} = editing
+  const [coverUri, setCoverUri] = useState(null);   // local URI of newly picked image
+  const [coverUrl, setCoverUrl] = useState(null);   // existing remote URL
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -62,6 +67,9 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
       setCapacity(event.capacity ? String(event.capacity) : '');
       setTicketUrl(event.ticket_url || '');
       setTiers(Array.isArray(event.rsvp_tiers) ? event.rsvp_tiers : []);
+      const existing = event.cover_url || event.image_url || event.cover_image || (Array.isArray(event.media) && event.media[0]?.url) || null;
+      setCoverUrl(existing);
+      setCoverUri(null);
 
       // Parse stored date/time back into picker state
       if (event.event_date) {
@@ -89,6 +97,19 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
   const fmtTime = () =>
     `${String(pickedHour).padStart(2, '0')}:${String(pickedMinute).padStart(2, '0')}`;
 
+  const pickCover = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') { toast.show('Photo library permission required', 'error'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    setCoverUri(result.assets[0].uri);
+  };
+
   const handleSave = async () => {
     if (!title.trim()) { toast.show('Event title is required', 'error'); return; }
     setSaving(true);
@@ -102,6 +123,22 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
     }
 
     try {
+      let finalCoverUrl = coverUrl;
+      if (coverUri) {
+        setUploadingCover(true);
+        try {
+          const ext = coverUri.split('.').pop()?.toLowerCase() || 'jpg';
+          const path = `events/${event.id}/cover_${Date.now()}.${ext}`;
+          finalCoverUrl = await uploadToStorage(coverUri, 'event-media', path, { mimeType: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
+          setCoverUrl(finalCoverUrl);
+          setCoverUri(null);
+        } catch (e) {
+          toast.show('Cover upload failed: ' + e.message, 'error');
+        } finally {
+          setUploadingCover(false);
+        }
+      }
+
       const payload = {
         title: title.trim(),
         description: description.trim(),
@@ -112,6 +149,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
         capacity: capacity ? parseInt(capacity) : null,
         ticket_url: ticketUrl.trim() || null,
         rsvp_tiers: tiers.length > 0 ? tiers : null,
+        ...(finalCoverUrl ? { cover_url: finalCoverUrl, media: [{ url: finalCoverUrl, type: 'image' }], media_urls: [finalCoverUrl] } : {}),
       };
       const ok = await resilient(
         [
@@ -254,6 +292,26 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+                {/* Cover Photo */}
+                <Text style={[em.sectionLabel, { color: muted }]}>COVER PHOTO</Text>
+                <TouchableOpacity onPress={pickCover} activeOpacity={0.8}
+                  style={[em.coverWrap, { borderColor: `${primary}30`, backgroundColor: `${primary}08` }]}
+                >
+                  {uploadingCover ? (
+                    <ActivityIndicator color={primary} />
+                  ) : coverUri || coverUrl ? (
+                    <Image source={{ uri: coverUri || coverUrl }} style={em.coverImg} resizeMode="cover" />
+                  ) : (
+                    <View style={{ alignItems: 'center', gap: 8 }}>
+                      <Feather name="image" size={28} color={primary} />
+                      <Text style={{ color: muted, fontSize: 12 }}>Tap to add cover photo</Text>
+                    </View>
+                  )}
+                  <View style={[em.coverEditBadge, { backgroundColor: primary }]}>
+                    <Feather name="camera" size={11} color="#000" />
+                  </View>
+                </TouchableOpacity>
+
                 <Field label="Title" value={title} onChange={setTitle} placeholder="Event name" textColor={textColor} muted={muted} primary={primary} />
                 <Field label="Description" value={description} onChange={setDescription} placeholder="What's the vibe?" multiline textColor={textColor} muted={muted} primary={primary} />
                 <Field label="Venue" value={venueName} onChange={setVenueName} placeholder="Where is it?" textColor={textColor} muted={muted} primary={primary} />
@@ -460,6 +518,20 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
     </>
   );
 };
+
+const em = StyleSheet.create({
+  sectionLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5, marginBottom: 8, marginTop: 4 },
+  coverWrap: {
+    width: '100%', aspectRatio: 16 / 9, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16, overflow: 'hidden', position: 'relative',
+  },
+  coverImg: { width: '100%', height: '100%' },
+  coverEditBadge: {
+    position: 'absolute', bottom: 8, right: 8,
+    width: 26, height: 26, borderRadius: 13,
+    alignItems: 'center', justifyContent: 'center',
+  },
+});
 
 const f = StyleSheet.create({
   overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'flex-end' },
