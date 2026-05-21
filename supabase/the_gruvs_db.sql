@@ -119,10 +119,26 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS profiles_coords_gist   ON profiles USING gist(coords);
-CREATE INDEX IF NOT EXISTS profiles_username_trgm ON profiles USING gin(username gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS profiles_interests_gin ON profiles USING gin(interests);
-CREATE INDEX IF NOT EXISTS profiles_online        ON profiles(is_online) WHERE is_online = true;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    CREATE INDEX IF NOT EXISTS profiles_coords_gist   ON profiles USING gist(coords);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    CREATE INDEX IF NOT EXISTS profiles_username_trgm ON profiles USING gin(username gin_trgm_ops);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    CREATE INDEX IF NOT EXISTS profiles_interests_gin ON profiles USING gin(interests);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    CREATE INDEX IF NOT EXISTS profiles_online        ON profiles(is_online) WHERE is_online = true;
+  END IF;
+END $$;
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public profiles readable" ON profiles;
@@ -224,8 +240,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS follows_following_id ON follows(following_id);
-CREATE INDEX IF NOT EXISTS follows_follower_id  ON follows(follower_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'follows') THEN
+    CREATE INDEX IF NOT EXISTS follows_following_id ON follows(following_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'follows') THEN
+    CREATE INDEX IF NOT EXISTS follows_follower_id  ON follows(follower_id);
+  END IF;
+END $$;
 
 ALTER TABLE follows ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Follows readable"         ON follows;
@@ -275,8 +299,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS blocked_users_blocker ON blocked_users(blocker_id);
-CREATE INDEX IF NOT EXISTS blocked_users_blocked ON blocked_users(blocked_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'blocked_users') THEN
+    CREATE INDEX IF NOT EXISTS blocked_users_blocker ON blocked_users(blocker_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'blocked_users') THEN
+    CREATE INDEX IF NOT EXISTS blocked_users_blocked ON blocked_users(blocked_id);
+  END IF;
+END $$;
 
 ALTER TABLE blocked_users ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own blocks" ON blocked_users;
@@ -409,12 +441,36 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS events_coords_gist ON events USING gist(coords);
-CREATE INDEX IF NOT EXISTS events_search_gin  ON events USING gin(search_vector);
-CREATE INDEX IF NOT EXISTS events_tags_gin    ON events USING gin(tags);
-CREATE INDEX IF NOT EXISTS events_category    ON events(category);
-CREATE INDEX IF NOT EXISTS events_trending    ON events(trending_score DESC);
-CREATE INDEX IF NOT EXISTS events_upcoming    ON events(event_date ASC)  WHERE is_cancelled = false;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    CREATE INDEX IF NOT EXISTS events_coords_gist ON events USING gist(coords);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    CREATE INDEX IF NOT EXISTS events_search_gin  ON events USING gin(search_vector);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    CREATE INDEX IF NOT EXISTS events_tags_gin    ON events USING gin(tags);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    CREATE INDEX IF NOT EXISTS events_category    ON events(category);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    CREATE INDEX IF NOT EXISTS events_trending    ON events(trending_score DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    CREATE INDEX IF NOT EXISTS events_upcoming    ON events(event_date ASC)  WHERE is_cancelled = false;
+  END IF;
+END $$;
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Events readable by all"            ON events;
@@ -501,8 +557,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS event_reminders_user    ON event_reminders(user_id);
-CREATE INDEX IF NOT EXISTS event_reminders_pending ON event_reminders(remind_at) WHERE sent = false;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reminders') THEN
+    CREATE INDEX IF NOT EXISTS event_reminders_user    ON event_reminders(user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reminders') THEN
+    CREATE INDEX IF NOT EXISTS event_reminders_pending ON event_reminders(remind_at) WHERE sent = false;
+  END IF;
+END $$;
 
 ALTER TABLE event_reminders ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own reminders" ON event_reminders;
@@ -534,8 +598,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS event_vibes_event_id ON event_vibes(event_id);
-CREATE INDEX IF NOT EXISTS event_vibes_user_id  ON event_vibes(user_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_vibes') THEN
+    CREATE INDEX IF NOT EXISTS event_vibes_event_id ON event_vibes(event_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_vibes') THEN
+    CREATE INDEX IF NOT EXISTS event_vibes_user_id  ON event_vibes(user_id);
+  END IF;
+END $$;
 
 ALTER TABLE event_vibes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Event vibes readable"         ON event_vibes;
@@ -591,8 +663,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS event_rsvps_event_id ON event_rsvps(event_id);
-CREATE INDEX IF NOT EXISTS event_rsvps_user_id  ON event_rsvps(user_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
+    CREATE INDEX IF NOT EXISTS event_rsvps_event_id ON event_rsvps(event_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
+    CREATE INDEX IF NOT EXISTS event_rsvps_user_id  ON event_rsvps(user_id);
+  END IF;
+END $$;
 
 ALTER TABLE event_rsvps ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "RSVPs readable"         ON event_rsvps;
@@ -619,8 +699,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS check_ins_event_id ON check_ins(event_id);
-CREATE INDEX IF NOT EXISTS check_ins_user_id  ON check_ins(user_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'check_ins') THEN
+    CREATE INDEX IF NOT EXISTS check_ins_event_id ON check_ins(event_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'check_ins') THEN
+    CREATE INDEX IF NOT EXISTS check_ins_user_id  ON check_ins(user_id);
+  END IF;
+END $$;
 
 ALTER TABLE check_ins ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Check-ins readable"         ON check_ins;
@@ -673,8 +761,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS live_checkins_user_id  ON live_checkins(user_id);
-CREATE INDEX IF NOT EXISTS live_checkins_event_id ON live_checkins(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
+    CREATE INDEX IF NOT EXISTS live_checkins_user_id  ON live_checkins(user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
+    CREATE INDEX IF NOT EXISTS live_checkins_event_id ON live_checkins(event_id);
+  END IF;
+END $$;
 
 ALTER TABLE live_checkins ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Live checkins readable"         ON live_checkins;
@@ -701,8 +797,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS saved_events_user_id  ON saved_events(user_id);
-CREATE INDEX IF NOT EXISTS saved_events_event_id ON saved_events(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'saved_events') THEN
+    CREATE INDEX IF NOT EXISTS saved_events_user_id  ON saved_events(user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'saved_events') THEN
+    CREATE INDEX IF NOT EXISTS saved_events_event_id ON saved_events(event_id);
+  END IF;
+END $$;
 
 ALTER TABLE saved_events ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own saves" ON saved_events;
@@ -747,7 +851,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS event_reactions_event_id ON event_reactions(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reactions') THEN
+    CREATE INDEX IF NOT EXISTS event_reactions_event_id ON event_reactions(event_id);
+  END IF;
+END $$;
 
 ALTER TABLE event_reactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Reactions readable"         ON event_reactions;
@@ -796,9 +904,21 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS echoes_event_id  ON echoes(event_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS echoes_parent_id ON echoes(parent_id) WHERE parent_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS echoes_user_id   ON echoes(user_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echoes') THEN
+    CREATE INDEX IF NOT EXISTS echoes_event_id  ON echoes(event_id, created_at DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echoes') THEN
+    CREATE INDEX IF NOT EXISTS echoes_parent_id ON echoes(parent_id) WHERE parent_id IS NOT NULL;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echoes') THEN
+    CREATE INDEX IF NOT EXISTS echoes_user_id   ON echoes(user_id);
+  END IF;
+END $$;
 
 ALTER TABLE echoes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Echoes readable"         ON echoes;
@@ -884,7 +1004,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS event_ratings_event_id ON event_ratings(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_ratings') THEN
+    CREATE INDEX IF NOT EXISTS event_ratings_event_id ON event_ratings(event_id);
+  END IF;
+END $$;
 
 ALTER TABLE event_ratings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Ratings readable"         ON event_ratings;
@@ -918,7 +1042,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS event_gallery_event_id ON event_gallery(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_gallery') THEN
+    CREATE INDEX IF NOT EXISTS event_gallery_event_id ON event_gallery(event_id);
+  END IF;
+END $$;
 
 ALTER TABLE event_gallery ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Gallery readable"     ON event_gallery;
@@ -946,8 +1074,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS hashtags_tag ON hashtags(tag);
-CREATE INDEX IF NOT EXISTS hashtags_popular ON hashtags(use_count DESC);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'hashtags') THEN
+    CREATE INDEX IF NOT EXISTS hashtags_tag ON hashtags(tag);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'hashtags') THEN
+    CREATE INDEX IF NOT EXISTS hashtags_popular ON hashtags(use_count DESC);
+  END IF;
+END $$;
 
 ALTER TABLE hashtags ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Hashtags readable" ON hashtags;
@@ -1000,8 +1136,16 @@ END $$;
 
 DROP INDEX IF EXISTS notifications_user_id;
 DROP INDEX IF EXISTS notifications_unread;
-CREATE INDEX IF NOT EXISTS notifications_recipient_id ON notifications(recipient_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS notifications_unread       ON notifications(recipient_id) WHERE read = false;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
+    CREATE INDEX IF NOT EXISTS notifications_recipient_id ON notifications(recipient_id, created_at DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
+    CREATE INDEX IF NOT EXISTS notifications_unread       ON notifications(recipient_id) WHERE read = false;
+  END IF;
+END $$;
 
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users read own notifications" ON notifications;
@@ -1086,10 +1230,26 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS messages_sender      ON messages(sender_id,    created_at DESC);
-CREATE INDEX IF NOT EXISTS messages_recipient   ON messages(recipient_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS messages_convo       ON messages(LEAST(sender_id, recipient_id), GREATEST(sender_id, recipient_id), created_at DESC);
-CREATE INDEX IF NOT EXISTS messages_unread      ON messages(recipient_id, read_at) WHERE read_at IS NULL AND deleted_at IS NULL;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
+    CREATE INDEX IF NOT EXISTS messages_sender      ON messages(sender_id,    created_at DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
+    CREATE INDEX IF NOT EXISTS messages_recipient   ON messages(recipient_id, created_at DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
+    CREATE INDEX IF NOT EXISTS messages_convo       ON messages(LEAST(sender_id, recipient_id), GREATEST(sender_id, recipient_id), created_at DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
+    CREATE INDEX IF NOT EXISTS messages_unread      ON messages(recipient_id, read_at) WHERE read_at IS NULL AND deleted_at IS NULL;
+  END IF;
+END $$;
 
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Message participants can read"  ON messages;
@@ -1123,8 +1283,12 @@ CREATE TABLE IF NOT EXISTS dm_rooms (
   updated_at     TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS dm_rooms_pair_uniq
-  ON dm_rooms (LEAST(CAST(participant_1 AS text), CAST(participant_2 AS text)), GREATEST(CAST(participant_1 AS text), CAST(participant_2 AS text)));
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_rooms') THEN
+    CREATE UNIQUE INDEX IF NOT EXISTS dm_rooms_pair_uniq
+      ON dm_rooms (LEAST(CAST(participant_1 AS text), CAST(participant_2 AS text)), GREATEST(CAST(participant_1 AS text), CAST(participant_2 AS text)));
+  END IF;
+END $$;
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_rooms') THEN
@@ -1138,8 +1302,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS dm_rooms_p1 ON dm_rooms(participant_1, last_message_at DESC);
-CREATE INDEX IF NOT EXISTS dm_rooms_p2 ON dm_rooms(participant_2, last_message_at DESC);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_rooms') THEN
+    CREATE INDEX IF NOT EXISTS dm_rooms_p1 ON dm_rooms(participant_1, last_message_at DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_rooms') THEN
+    CREATE INDEX IF NOT EXISTS dm_rooms_p2 ON dm_rooms(participant_2, last_message_at DESC);
+  END IF;
+END $$;
 
 ALTER TABLE dm_rooms ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "DM room participants can read"   ON dm_rooms;
@@ -1194,8 +1366,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS routes_active  ON routes(active, join_count DESC);
-CREATE INDEX IF NOT EXISTS routes_user_id ON routes(user_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'routes') THEN
+    CREATE INDEX IF NOT EXISTS routes_active  ON routes(active, join_count DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'routes') THEN
+    CREATE INDEX IF NOT EXISTS routes_user_id ON routes(user_id);
+  END IF;
+END $$;
 
 ALTER TABLE routes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Routes readable"         ON routes;
@@ -1247,7 +1427,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS route_steps_route ON route_steps(route_id, position);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'route_steps') THEN
+    CREATE INDEX IF NOT EXISTS route_steps_route ON route_steps(route_id, position);
+  END IF;
+END $$;
 
 ALTER TABLE route_steps ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Route steps readable" ON route_steps;
@@ -1279,8 +1463,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS paths_user ON paths(user_id);
-CREATE INDEX IF NOT EXISTS paths_public ON paths(is_public, created_at DESC) WHERE is_public = true;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
+    CREATE INDEX IF NOT EXISTS paths_user ON paths(user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
+    CREATE INDEX IF NOT EXISTS paths_public ON paths(is_public, created_at DESC) WHERE is_public = true;
+  END IF;
+END $$;
 
 ALTER TABLE paths ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public paths readable" ON paths;
@@ -1309,8 +1501,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS path_traces_path ON path_traces(path_id, recorded_at);
-CREATE INDEX IF NOT EXISTS path_traces_user ON path_traces(user_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_traces') THEN
+    CREATE INDEX IF NOT EXISTS path_traces_path ON path_traces(path_id, recorded_at);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_traces') THEN
+    CREATE INDEX IF NOT EXISTS path_traces_user ON path_traces(user_id);
+  END IF;
+END $$;
 
 ALTER TABLE path_traces ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Path traces readable" ON path_traces;
@@ -1369,8 +1569,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS path_crossings_a ON path_crossings(path_id_a);
-CREATE INDEX IF NOT EXISTS path_crossings_b ON path_crossings(path_id_b);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_crossings') THEN
+    CREATE INDEX IF NOT EXISTS path_crossings_a ON path_crossings(path_id_a);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_crossings') THEN
+    CREATE INDEX IF NOT EXISTS path_crossings_b ON path_crossings(path_id_b);
+  END IF;
+END $$;
 
 ALTER TABLE path_crossings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Path crossings readable" ON path_crossings;
@@ -1491,9 +1699,21 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS service_bookings_client   ON service_bookings(client_id);
-CREATE INDEX IF NOT EXISTS service_bookings_provider ON service_bookings(provider_id);
-CREATE INDEX IF NOT EXISTS service_bookings_status   ON service_bookings(status);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
+    CREATE INDEX IF NOT EXISTS service_bookings_client   ON service_bookings(client_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
+    CREATE INDEX IF NOT EXISTS service_bookings_provider ON service_bookings(provider_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
+    CREATE INDEX IF NOT EXISTS service_bookings_status   ON service_bookings(status);
+  END IF;
+END $$;
 
 ALTER TABLE service_bookings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Booking participants can see" ON service_bookings;
@@ -1579,8 +1799,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS gig_acceptances_gig    ON gig_acceptances(gig_id);
-CREATE INDEX IF NOT EXISTS gig_acceptances_worker ON gig_acceptances(worker_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_acceptances') THEN
+    CREATE INDEX IF NOT EXISTS gig_acceptances_gig    ON gig_acceptances(gig_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_acceptances') THEN
+    CREATE INDEX IF NOT EXISTS gig_acceptances_worker ON gig_acceptances(worker_id);
+  END IF;
+END $$;
 
 ALTER TABLE gig_acceptances ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Gig acceptances visible to poster and worker" ON gig_acceptances;
@@ -1648,8 +1876,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS reports_reporter ON reports(reporter_id);
-CREATE INDEX IF NOT EXISTS reports_status   ON reports(status);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reports') THEN
+    CREATE INDEX IF NOT EXISTS reports_reporter ON reports(reporter_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reports') THEN
+    CREATE INDEX IF NOT EXISTS reports_status   ON reports(status);
+  END IF;
+END $$;
 
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users insert own reports" ON reports;
@@ -1772,8 +2008,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS biz_team_business ON business_team_members(business_id);
-CREATE INDEX IF NOT EXISTS biz_team_user     ON business_team_members(user_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_team_members') THEN
+    CREATE INDEX IF NOT EXISTS biz_team_business ON business_team_members(business_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_team_members') THEN
+    CREATE INDEX IF NOT EXISTS biz_team_user     ON business_team_members(user_id);
+  END IF;
+END $$;
 
 ALTER TABLE business_team_members ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Team readable by members"     ON business_team_members;
@@ -1797,8 +2041,12 @@ CREATE TABLE IF NOT EXISTS business_partnerships (
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS business_partnerships_pair_uniq
-  ON business_partnerships (LEAST(CAST(requester_id AS text), CAST(partner_id AS text)), GREATEST(CAST(requester_id AS text), CAST(partner_id AS text)));
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_partnerships') THEN
+    CREATE UNIQUE INDEX IF NOT EXISTS business_partnerships_pair_uniq
+      ON business_partnerships (LEAST(CAST(requester_id AS text), CAST(partner_id AS text)), GREATEST(CAST(requester_id AS text), CAST(partner_id AS text)));
+  END IF;
+END $$;
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_partnerships') THEN
@@ -1837,7 +2085,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS business_page_blocks_business_id ON business_page_blocks(business_id, position);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_page_blocks') THEN
+    CREATE INDEX IF NOT EXISTS business_page_blocks_business_id ON business_page_blocks(business_id, position);
+  END IF;
+END $$;
 
 ALTER TABLE business_page_blocks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Blocks public readable"        ON business_page_blocks;
@@ -1898,8 +2150,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS ad_campaigns_business_id ON ad_campaigns(business_id);
-CREATE INDEX IF NOT EXISTS ad_campaigns_status      ON ad_campaigns(status);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_campaigns') THEN
+    CREATE INDEX IF NOT EXISTS ad_campaigns_business_id ON ad_campaigns(business_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_campaigns') THEN
+    CREATE INDEX IF NOT EXISTS ad_campaigns_status      ON ad_campaigns(status);
+  END IF;
+END $$;
 
 ALTER TABLE ad_campaigns ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Campaigns owner only" ON ad_campaigns;
@@ -1936,8 +2196,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS campaign_analytics_campaign ON campaign_analytics(campaign_id, recorded_at DESC);
-CREATE INDEX IF NOT EXISTS campaign_analytics_type     ON campaign_analytics(event_type);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'campaign_analytics') THEN
+    CREATE INDEX IF NOT EXISTS campaign_analytics_campaign ON campaign_analytics(campaign_id, recorded_at DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'campaign_analytics') THEN
+    CREATE INDEX IF NOT EXISTS campaign_analytics_type     ON campaign_analytics(event_type);
+  END IF;
+END $$;
 
 ALTER TABLE campaign_analytics ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Campaign analytics owner only" ON campaign_analytics;
@@ -2008,7 +2276,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS contextual_ads_active ON contextual_ads(active, priority DESC);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'contextual_ads') THEN
+    CREATE INDEX IF NOT EXISTS contextual_ads_active ON contextual_ads(active, priority DESC);
+  END IF;
+END $$;
 
 ALTER TABLE contextual_ads ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Ads readable" ON contextual_ads;
@@ -2277,10 +2549,26 @@ CREATE TABLE IF NOT EXISTS paths (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS paths_user_id_idx  ON paths(user_id);
-CREATE INDEX IF NOT EXISTS paths_event_id_idx ON paths(event_id);
-CREATE INDEX IF NOT EXISTS paths_dest_lat_idx ON paths(dest_lat);
-CREATE INDEX IF NOT EXISTS paths_dest_lon_idx ON paths(dest_lon);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
+    CREATE INDEX IF NOT EXISTS paths_user_id_idx  ON paths(user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
+    CREATE INDEX IF NOT EXISTS paths_event_id_idx ON paths(event_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
+    CREATE INDEX IF NOT EXISTS paths_dest_lat_idx ON paths(dest_lat);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
+    CREATE INDEX IF NOT EXISTS paths_dest_lon_idx ON paths(dest_lon);
+  END IF;
+END $$;
 
 -- ── Live Check-ins (Presence Ledger, TTL-based) ───────────────────────────────
 
@@ -2297,8 +2585,16 @@ CREATE TABLE IF NOT EXISTS live_checkins (
   UNIQUE(user_id, event_id)
 );
 
-CREATE INDEX IF NOT EXISTS live_checkins_event_idx   ON live_checkins(event_id);
-CREATE INDEX IF NOT EXISTS live_checkins_expires_idx ON live_checkins(expires_at);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
+    CREATE INDEX IF NOT EXISTS live_checkins_event_idx   ON live_checkins(event_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
+    CREATE INDEX IF NOT EXISTS live_checkins_expires_idx ON live_checkins(expires_at);
+  END IF;
+END $$;
 
 -- Auto-expire: delete stale checkins (call from a cron job or edge function)
 CREATE OR REPLACE FUNCTION purge_expired_checkins() RETURNS void LANGUAGE sql AS $$
@@ -2343,10 +2639,26 @@ CREATE TABLE IF NOT EXISTS service_nodes (
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS service_nodes_provider_idx ON service_nodes(provider_id);
-CREATE INDEX IF NOT EXISTS service_nodes_type_idx     ON service_nodes(service_type);
-CREATE INDEX IF NOT EXISTS service_nodes_lat_idx      ON service_nodes(lat);
-CREATE INDEX IF NOT EXISTS service_nodes_lon_idx      ON service_nodes(lon);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_nodes') THEN
+    CREATE INDEX IF NOT EXISTS service_nodes_provider_idx ON service_nodes(provider_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_nodes') THEN
+    CREATE INDEX IF NOT EXISTS service_nodes_type_idx     ON service_nodes(service_type);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_nodes') THEN
+    CREATE INDEX IF NOT EXISTS service_nodes_lat_idx      ON service_nodes(lat);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_nodes') THEN
+    CREATE INDEX IF NOT EXISTS service_nodes_lon_idx      ON service_nodes(lon);
+  END IF;
+END $$;
 
 -- ── Service Bookings (Escrow) ─────────────────────────────────────────────────
 
@@ -2368,9 +2680,21 @@ CREATE TABLE IF NOT EXISTS service_bookings (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS bookings_client_idx   ON service_bookings(client_id);
-CREATE INDEX IF NOT EXISTS bookings_provider_idx ON service_bookings(provider_id);
-CREATE INDEX IF NOT EXISTS bookings_status_idx   ON service_bookings(status);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
+    CREATE INDEX IF NOT EXISTS bookings_client_idx   ON service_bookings(client_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
+    CREATE INDEX IF NOT EXISTS bookings_provider_idx ON service_bookings(provider_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
+    CREATE INDEX IF NOT EXISTS bookings_status_idx   ON service_bookings(status);
+  END IF;
+END $$;
 
 -- ── Disputes ──────────────────────────────────────────────────────────────────
 
@@ -2400,8 +2724,16 @@ CREATE TABLE IF NOT EXISTS gig_posts (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS gig_posts_event_idx    ON gig_posts(event_id);
-CREATE INDEX IF NOT EXISTS gig_posts_active_idx   ON gig_posts(active);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_posts') THEN
+    CREATE INDEX IF NOT EXISTS gig_posts_event_idx    ON gig_posts(event_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_posts') THEN
+    CREATE INDEX IF NOT EXISTS gig_posts_active_idx   ON gig_posts(active);
+  END IF;
+END $$;
 
 -- ── Gig Acceptances ───────────────────────────────────────────────────────────
 
@@ -2433,9 +2765,21 @@ CREATE TABLE IF NOT EXISTS dm_messages (
   sent_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS dm_rooms_user_a_idx ON dm_rooms(user_a);
-CREATE INDEX IF NOT EXISTS dm_rooms_user_b_idx ON dm_rooms(user_b);
-CREATE INDEX IF NOT EXISTS dm_messages_room_idx ON dm_messages(room_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_rooms') THEN
+    CREATE INDEX IF NOT EXISTS dm_rooms_user_a_idx ON dm_rooms(user_a);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_rooms') THEN
+    CREATE INDEX IF NOT EXISTS dm_rooms_user_b_idx ON dm_rooms(user_b);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_messages') THEN
+    CREATE INDEX IF NOT EXISTS dm_messages_room_idx ON dm_messages(room_id);
+  END IF;
+END $$;
 
 -- ── User Paths (alias for paths, referenced by PathMapScreen) ─────────────────
 -- user_paths is a view over the paths table for convenience
@@ -2537,7 +2881,11 @@ CREATE TABLE IF NOT EXISTS contextual_ads (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS contextual_ads_active_idx ON contextual_ads(active, priority DESC);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'contextual_ads') THEN
+    CREATE INDEX IF NOT EXISTS contextual_ads_active_idx ON contextual_ads(active, priority DESC);
+  END IF;
+END $$;
 
 ALTER TABLE contextual_ads ENABLE ROW LEVEL SECURITY;
 CREATE POLICY ads_select ON contextual_ads FOR SELECT USING (active = TRUE);
@@ -2746,7 +3094,11 @@ create table if not exists event_reactions (
   unique (event_id, user_id, reaction)
 );
 
-create index if not exists event_reactions_event_id_idx on event_reactions(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reactions') THEN
+    create index if not exists event_reactions_event_id_idx on event_reactions(event_id);
+  END IF;
+END $$;
 
 alter table event_reactions enable row level security;
 
@@ -2781,7 +3133,11 @@ create table if not exists event_updates (
   created_at  timestamptz not null default now()
 );
 
-create index if not exists event_updates_event_id_idx on event_updates(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_updates') THEN
+    create index if not exists event_updates_event_id_idx on event_updates(event_id);
+  END IF;
+END $$;
 
 alter table event_updates enable row level security;
 
@@ -2804,7 +3160,11 @@ create table if not exists event_waitlist (
   unique (event_id, user_id)
 );
 
-create index if not exists event_waitlist_event_id_idx on event_waitlist(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_waitlist') THEN
+    create index if not exists event_waitlist_event_id_idx on event_waitlist(event_id);
+  END IF;
+END $$;
 
 alter table event_waitlist enable row level security;
 
@@ -2830,7 +3190,11 @@ create table if not exists event_carpools (
   created_at       timestamptz not null default now()
 );
 
-create index if not exists event_carpools_event_id_idx on event_carpools(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_carpools') THEN
+    create index if not exists event_carpools_event_id_idx on event_carpools(event_id);
+  END IF;
+END $$;
 
 alter table event_carpools enable row level security;
 
@@ -2854,8 +3218,16 @@ create table if not exists event_carpool_requests (
   unique (carpool_id, rider_id)
 );
 
-create index if not exists ecr_carpool_id_idx on event_carpool_requests(carpool_id);
-create index if not exists ecr_rider_id_idx   on event_carpool_requests(rider_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_carpool_requests') THEN
+    create index if not exists ecr_carpool_id_idx on event_carpool_requests(carpool_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_carpool_requests') THEN
+    create index if not exists ecr_rider_id_idx   on event_carpool_requests(rider_id);
+  END IF;
+END $$;
 
 alter table event_carpool_requests enable row level security;
 
@@ -3366,7 +3738,11 @@ CREATE POLICY "User reads own interactions"  ON ai_interactions FOR SELECT USING
 CREATE POLICY "Service inserts interactions" ON ai_interactions FOR INSERT WITH CHECK (true);
 
 -- Auto-purge interactions older than 90 days
-CREATE INDEX IF NOT EXISTS ai_interactions_created ON ai_interactions(created_at);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ai_interactions') THEN
+    CREATE INDEX IF NOT EXISTS ai_interactions_created ON ai_interactions(created_at);
+  END IF;
+END $$;
 
 -- Content moderation queue
 CREATE TABLE IF NOT EXISTS ai_moderation_queue (
@@ -3501,10 +3877,22 @@ CREATE TABLE IF NOT EXISTS stories (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS stories_user_id_idx    ON stories(user_id);
-CREATE INDEX IF NOT EXISTS stories_expires_at_idx ON stories(expires_at DESC);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'stories') THEN
+    CREATE INDEX IF NOT EXISTS stories_user_id_idx    ON stories(user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'stories') THEN
+    CREATE INDEX IF NOT EXISTS stories_expires_at_idx ON stories(expires_at DESC);
+  END IF;
+END $$;
 -- Partial index: only live stories
-CREATE INDEX IF NOT EXISTS stories_live_idx ON stories(user_id, created_at DESC)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'stories') THEN
+    CREATE INDEX IF NOT EXISTS stories_live_idx ON stories(user_id, created_at DESC)
+  END IF;
+END $$;
   WHERE expires_at > now();
 
 ALTER TABLE stories ENABLE ROW LEVEL SECURITY;
@@ -3527,8 +3915,16 @@ CREATE TABLE IF NOT EXISTS story_views (
   UNIQUE (story_id, viewer_id)
 );
 
-CREATE INDEX IF NOT EXISTS story_views_story_id_idx  ON story_views(story_id);
-CREATE INDEX IF NOT EXISTS story_views_viewer_id_idx ON story_views(viewer_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'story_views') THEN
+    CREATE INDEX IF NOT EXISTS story_views_story_id_idx  ON story_views(story_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'story_views') THEN
+    CREATE INDEX IF NOT EXISTS story_views_viewer_id_idx ON story_views(viewer_id);
+  END IF;
+END $$;
 
 ALTER TABLE story_views ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "story_views_select"  ON story_views;
@@ -3581,10 +3977,22 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS reels_user_id_idx    ON reels(user_id);
-CREATE INDEX IF NOT EXISTS reels_created_at_idx ON reels(created_at DESC);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
+    CREATE INDEX IF NOT EXISTS reels_user_id_idx    ON reels(user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
+    CREATE INDEX IF NOT EXISTS reels_created_at_idx ON reels(created_at DESC);
+  END IF;
+END $$;
 -- Partial index: only live reels
-CREATE INDEX IF NOT EXISTS reels_live_idx ON reels(created_at DESC)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
+    CREATE INDEX IF NOT EXISTS reels_live_idx ON reels(created_at DESC)
+  END IF;
+END $$;
   WHERE is_removed = false;
 
 ALTER TABLE reels ENABLE ROW LEVEL SECURITY;
@@ -3610,8 +4018,16 @@ CREATE TABLE IF NOT EXISTS reel_likes (
   UNIQUE (reel_id, user_id)
 );
 
-CREATE INDEX IF NOT EXISTS reel_likes_reel_id_idx ON reel_likes(reel_id);
-CREATE INDEX IF NOT EXISTS reel_likes_user_id_idx ON reel_likes(user_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reel_likes') THEN
+    CREATE INDEX IF NOT EXISTS reel_likes_reel_id_idx ON reel_likes(reel_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reel_likes') THEN
+    CREATE INDEX IF NOT EXISTS reel_likes_user_id_idx ON reel_likes(user_id);
+  END IF;
+END $$;
 
 ALTER TABLE reel_likes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "reel_likes_select"  ON reel_likes;
@@ -3652,7 +4068,11 @@ CREATE TABLE IF NOT EXISTS reel_views (
   UNIQUE (reel_id, user_id)
 );
 
-CREATE INDEX IF NOT EXISTS reel_views_reel_id_idx ON reel_views(reel_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reel_views') THEN
+    CREATE INDEX IF NOT EXISTS reel_views_reel_id_idx ON reel_views(reel_id);
+  END IF;
+END $$;
 
 ALTER TABLE reel_views ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "reel_views_select"  ON reel_views;
@@ -3687,7 +4107,11 @@ CREATE TABLE IF NOT EXISTS reel_comments (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS reel_comments_reel_id_idx ON reel_comments(reel_id, created_at DESC);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reel_comments') THEN
+    CREATE INDEX IF NOT EXISTS reel_comments_reel_id_idx ON reel_comments(reel_id, created_at DESC);
+  END IF;
+END $$;
 
 ALTER TABLE reel_comments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "reel_comments_select"  ON reel_comments;
@@ -3728,7 +4152,11 @@ CREATE TABLE IF NOT EXISTS saved_reels (
   UNIQUE (reel_id, user_id)
 );
 
-CREATE INDEX IF NOT EXISTS saved_reels_user_id_idx ON saved_reels(user_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'saved_reels') THEN
+    CREATE INDEX IF NOT EXISTS saved_reels_user_id_idx ON saved_reels(user_id);
+  END IF;
+END $$;
 
 ALTER TABLE saved_reels ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "saved_reels_select"  ON saved_reels;
@@ -3776,7 +4204,11 @@ CREATE TABLE IF NOT EXISTS event_reactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (event_id, user_id, reaction)
 );
-CREATE INDEX IF NOT EXISTS event_reactions_event_id_idx ON event_reactions(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reactions') THEN
+    CREATE INDEX IF NOT EXISTS event_reactions_event_id_idx ON event_reactions(event_id);
+  END IF;
+END $$;
 ALTER TABLE event_reactions ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='event_reactions' AND policyname='event_reactions_select') THEN
@@ -3797,7 +4229,11 @@ CREATE TABLE IF NOT EXISTS event_updates (
     CHECK (update_type IN ('info','hype','change','shoutout')),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS event_updates_event_id_idx ON event_updates(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_updates') THEN
+    CREATE INDEX IF NOT EXISTS event_updates_event_id_idx ON event_updates(event_id);
+  END IF;
+END $$;
 ALTER TABLE event_updates ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "event_updates_select" ON event_updates;
 DROP POLICY IF EXISTS "event_updates_insert" ON event_updates;
@@ -3814,7 +4250,11 @@ CREATE TABLE IF NOT EXISTS event_waitlist (
   joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (event_id, user_id)
 );
-CREATE INDEX IF NOT EXISTS event_waitlist_event_id_idx ON event_waitlist(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_waitlist') THEN
+    CREATE INDEX IF NOT EXISTS event_waitlist_event_id_idx ON event_waitlist(event_id);
+  END IF;
+END $$;
 ALTER TABLE event_waitlist ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "event_waitlist_select" ON event_waitlist;
 DROP POLICY IF EXISTS "event_waitlist_insert" ON event_waitlist;
@@ -3834,7 +4274,11 @@ CREATE TABLE IF NOT EXISTS event_carpools (
   note             TEXT,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS event_carpools_event_id_idx ON event_carpools(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_carpools') THEN
+    CREATE INDEX IF NOT EXISTS event_carpools_event_id_idx ON event_carpools(event_id);
+  END IF;
+END $$;
 ALTER TABLE event_carpools ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "event_carpools_select" ON event_carpools;
 DROP POLICY IF EXISTS "event_carpools_insert" ON event_carpools;
@@ -3852,8 +4296,16 @@ CREATE TABLE IF NOT EXISTS event_carpool_requests (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (carpool_id, rider_id)
 );
-CREATE INDEX IF NOT EXISTS ecr_carpool_id_idx ON event_carpool_requests(carpool_id);
-CREATE INDEX IF NOT EXISTS ecr_rider_id_idx   ON event_carpool_requests(rider_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_carpool_requests') THEN
+    CREATE INDEX IF NOT EXISTS ecr_carpool_id_idx ON event_carpool_requests(carpool_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_carpool_requests') THEN
+    CREATE INDEX IF NOT EXISTS ecr_rider_id_idx   ON event_carpool_requests(rider_id);
+  END IF;
+END $$;
 ALTER TABLE event_carpool_requests ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "event_carpool_requests_select" ON event_carpool_requests;
 DROP POLICY IF EXISTS "event_carpool_requests_insert" ON event_carpool_requests;
@@ -3878,9 +4330,21 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS wallet_tx_user_id_idx    ON wallet_transactions(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS wallet_tx_status_idx     ON wallet_transactions(status);
-CREATE INDEX IF NOT EXISTS wallet_tx_type_idx       ON wallet_transactions(type);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'wallet_transactions') THEN
+    CREATE INDEX IF NOT EXISTS wallet_tx_user_id_idx    ON wallet_transactions(user_id, created_at DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'wallet_transactions') THEN
+    CREATE INDEX IF NOT EXISTS wallet_tx_status_idx     ON wallet_transactions(status);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'wallet_transactions') THEN
+    CREATE INDEX IF NOT EXISTS wallet_tx_type_idx       ON wallet_transactions(type);
+  END IF;
+END $$;
 
 ALTER TABLE wallet_transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "wallet_tx_owner"   ON wallet_transactions;
@@ -3895,56 +4359,112 @@ CREATE POLICY "wallet_tx_service" ON wallet_transactions FOR INSERT
 -- ══════════════════════════════════════════════════════════════
 
 -- Events: full-text search vector (GIN)
-CREATE INDEX IF NOT EXISTS events_search_vector_idx ON events USING GIN(search_vector)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    CREATE INDEX IF NOT EXISTS events_search_vector_idx ON events USING GIN(search_vector)
+  END IF;
+END $$;
   WHERE search_vector IS NOT NULL;
 
 -- Events: trending score for feed sorting
-CREATE INDEX IF NOT EXISTS events_trending_idx ON events(trending_score DESC NULLS LAST, event_date DESC)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    CREATE INDEX IF NOT EXISTS events_trending_idx ON events(trending_score DESC NULLS LAST, event_date DESC)
+  END IF;
+END $$;
   WHERE is_cancelled = false;
 
 -- Events: upcoming events by date
-CREATE INDEX IF NOT EXISTS events_upcoming_idx ON events(event_date ASC, event_time ASC)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    CREATE INDEX IF NOT EXISTS events_upcoming_idx ON events(event_date ASC, event_time ASC)
+  END IF;
+END $$;
   WHERE is_cancelled = false AND event_date >= CURRENT_DATE;
 
 -- Events: geo lookup (GiST — requires postgis)
-CREATE INDEX IF NOT EXISTS events_geo_idx ON events USING GIST(
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    CREATE INDEX IF NOT EXISTS events_geo_idx ON events USING GIST(
+  END IF;
+END $$;
   CAST(ST_MakePoint(lon, lat) AS geography)
 ) WHERE lat IS NOT NULL AND lon IS NOT NULL;
 
 -- Profiles: geo lookup
-CREATE INDEX IF NOT EXISTS profiles_geo_idx ON profiles USING GIST(
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    CREATE INDEX IF NOT EXISTS profiles_geo_idx ON profiles USING GIST(
+  END IF;
+END $$;
   CAST(ST_MakePoint(lon, lat) AS geography)
 ) WHERE lat IS NOT NULL AND lon IS NOT NULL;
 
 -- Notifications: unread count (most common query)
-CREATE INDEX IF NOT EXISTS notifications_unread_idx ON notifications(recipient_id, created_at DESC)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
+    CREATE INDEX IF NOT EXISTS notifications_unread_idx ON notifications(recipient_id, created_at DESC)
+  END IF;
+END $$;
   WHERE is_read = false;
 
 -- Messages: conversation view
-CREATE INDEX IF NOT EXISTS messages_conversation_idx ON messages(sender_id, recipient_id, created_at DESC)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
+    CREATE INDEX IF NOT EXISTS messages_conversation_idx ON messages(sender_id, recipient_id, created_at DESC)
+  END IF;
+END $$;
   WHERE deleted_at IS NULL;
 
 -- Event vibes: per-event count
-CREATE INDEX IF NOT EXISTS event_vibes_event_idx ON event_vibes(event_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_vibes') THEN
+    CREATE INDEX IF NOT EXISTS event_vibes_event_idx ON event_vibes(event_id);
+  END IF;
+END $$;
 
 -- Echoes: per-event comment feed
-CREATE INDEX IF NOT EXISTS echoes_event_idx ON echoes(event_id, created_at DESC);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echoes') THEN
+    CREATE INDEX IF NOT EXISTS echoes_event_idx ON echoes(event_id, created_at DESC);
+  END IF;
+END $$;
 
 -- Reels: hashtag search (GIN on array)
-CREATE INDEX IF NOT EXISTS reels_hashtags_gin ON reels USING GIN(hashtags)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
+    CREATE INDEX IF NOT EXISTS reels_hashtags_gin ON reels USING GIN(hashtags)
+  END IF;
+END $$;
   WHERE hashtags IS NOT NULL AND is_removed = false;
 
 -- Stories: live stories per user
-CREATE INDEX IF NOT EXISTS stories_live_user_idx ON stories(user_id, expires_at DESC)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'stories') THEN
+    CREATE INDEX IF NOT EXISTS stories_live_user_idx ON stories(user_id, expires_at DESC)
+  END IF;
+END $$;
   WHERE expires_at > CURRENT_TIMESTAMP;
 
 -- Service bookings: provider queue
-CREATE INDEX IF NOT EXISTS service_bookings_provider_idx ON service_bookings(provider_id, status, created_at DESC)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
+    CREATE INDEX IF NOT EXISTS service_bookings_provider_idx ON service_bookings(provider_id, status, created_at DESC)
+  END IF;
+END $$;
   WHERE status IN ('pending','confirmed');
 
 -- Follows: follower/following lookups
-CREATE INDEX IF NOT EXISTS follows_follower_idx  ON follows(follower_id);
-CREATE INDEX IF NOT EXISTS follows_following_idx ON follows(following_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'follows') THEN
+    CREATE INDEX IF NOT EXISTS follows_follower_idx  ON follows(follower_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'follows') THEN
+    CREATE INDEX IF NOT EXISTS follows_following_idx ON follows(following_id);
+  END IF;
+END $$;
 
 
 -- ══════════════════════════════════════════════════════════════
@@ -4240,7 +4760,11 @@ DROP POLICY IF EXISTS "User reads own interactions"  ON ai_interactions;
 DROP POLICY IF EXISTS "Service inserts interactions" ON ai_interactions;
 CREATE POLICY "User reads own interactions"  ON ai_interactions FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Service inserts interactions" ON ai_interactions FOR INSERT WITH CHECK (true);
-CREATE INDEX IF NOT EXISTS ai_interactions_created ON ai_interactions(created_at);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ai_interactions') THEN
+    CREATE INDEX IF NOT EXISTS ai_interactions_created ON ai_interactions(created_at);
+  END IF;
+END $$;
 
 
 -- ══════════════════════════════════════════════════════════════
