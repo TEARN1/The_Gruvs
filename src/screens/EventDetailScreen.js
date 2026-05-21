@@ -269,8 +269,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   const handleShare = async () => {
     try {
-      const eventUrl = `https://thegruvs.com/event/${event?.id}`;
-      const shareText = `🎉 ${event?.title || 'Check out this Gruv'}\n📅 ${formatDate(event?.event_date)}${event?.venue_name ? `\n📍 ${event.venue_name}` : ''}\n\nThe Gruvs — ${eventUrl}`;
+      const eventUrl = `https://thegruvs.app?event=${event?.id}`;
+      const freeTag = (!event?.price || event?.price === 0 || event?.price === 'FREE') ? '\n🆓 FREE entry' : (event?.price ? `\n🎟 R${event.price}` : '');
+      const shareText = `🎉 ${event?.title || 'Check out this Gruv'}\n📅 ${formatDate(event?.event_date)}${event?.venue_name ? `\n📍 ${event.venue_name}` : ''}${freeTag}\n\nDownload The Gruvs 👉 ${eventUrl}`;
       await Share.share({ message: shareText, title: event?.title });
     } catch { }
   };

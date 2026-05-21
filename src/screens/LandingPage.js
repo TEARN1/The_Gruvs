@@ -786,11 +786,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       toast.show('Share is not available on this platform', 'info');
       return;
     }
-
-    Share.share({ message: `Check out "${event.title}" on The Gruvs — I got you!` })
-      .catch(() => {
-        toast.show('Unable to share this Gruv right now', 'error');
-      });
+    const dateStr = event.event_date
+      ? new Date(event.event_date + 'T00:00:00').toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })
+      : '';
+    const venue = event.venue_name || event.city || '';
+    const parts = [`🎉 "${event.title}" on The Gruvs`];
+    if (dateStr) parts.push(`📅 ${dateStr}`);
+    if (venue) parts.push(`📍 ${venue}`);
+    if (event.price === 0 || event.price === 'FREE' || !event.price) parts.push('🆓 FREE entry');
+    parts.push(`\nDownload The Gruvs 👉 https://thegruvs.app?event=${event.id}`);
+    Share.share({ message: parts.join('\n') })
+      .catch(() => { toast.show('Unable to share this Gruv right now', 'error'); });
   };
 
   const handleToggleRoute = (event) => {
