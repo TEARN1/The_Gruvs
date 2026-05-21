@@ -158,7 +158,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
       likes: 0,
       profiles: { username: profile?.username || user.user_metadata?.username || 'You', avatar_url: profile?.avatar_url || null },
     };
-    setEchoes(prev => [optimistic, ...prev]);
+    setEchoes(prev => [optimistic, ...(prev ?? [])]);
     setText('');
     setReplyTo(null);
     setPosting(true);
@@ -170,12 +170,12 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
         parent_id: optimistic.parent_id,
       });
       if (error) {
-        setEchoes(prev => prev.filter(e => e.id !== tempId));
+        setEchoes(prev => (prev ?? []).filter(e => e.id !== tempId));
       } else {
         fetchEchoes();
       }
     } catch {
-      setEchoes(prev => prev.filter(e => e.id !== tempId));
+      setEchoes(prev => (prev ?? []).filter(e => e.id !== tempId));
     } finally {
       setPosting(false);
     }
@@ -192,7 +192,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
     });
 
     let currentLikes = 0;
-    setEchoes(prev => prev.map(e => {
+    setEchoes(prev => (prev ?? []).map(e => {
       if (e.id !== echoId) return e;
       currentLikes = Math.max(0, (e.likes || 0) + (isCurrentlyLiked ? -1 : 1));
       return { ...e, likes: currentLikes };
@@ -220,7 +220,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
         isCurrentlyLiked ? next.add(echoId) : next.delete(echoId);
         return next;
       });
-      setEchoes(prev => prev.map(e => {
+      setEchoes(prev => (prev ?? []).map(e => {
         if (e.id !== echoId) return e;
         return { ...e, likes: Math.max(0, (e.likes || 0) + (isCurrentlyLiked ? 1 : -1)) };
       }));

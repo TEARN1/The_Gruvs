@@ -384,6 +384,22 @@ const MainNavigator = () => {
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const isDark = !bg.startsWith('#f') && !bg.startsWith('#e');
 
+  const handleTabChange = useCallback((tab) => {
+    if (Platform.OS !== 'web') {
+      const now = Date.now();
+      if (now - lastHapticRef.current > 300) {
+        lastHapticRef.current = now;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
+      }
+    }
+
+    if (tab === currentTab && tab === 'feed') {
+      setFeedRefreshKey(k => k + 1);
+    } else {
+      setCurrentTab(tab);
+    }
+  }, [currentTab]);
+
   // Item 35: keyboard navigation 1-7 on web desktop
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -406,22 +422,6 @@ const MainNavigator = () => {
     if (Platform.OS !== 'web') return;
     const tabLabel = TABS.find(t => t.key === currentTab)?.label || 'The Drop';
     document.title = `${tabLabel} — The Gruvs`;
-  }, [currentTab]);
-
-  const handleTabChange = useCallback((tab) => {
-    if (Platform.OS !== 'web') {
-      const now = Date.now();
-      if (now - lastHapticRef.current > 300) {
-        lastHapticRef.current = now;
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
-      }
-    }
-
-    if (tab === currentTab && tab === 'feed') {
-      setFeedRefreshKey(k => k + 1);
-    } else {
-      setCurrentTab(tab);
-    }
   }, [currentTab]);
 
   const handleAuthRequired = () => setAuthModalVisible(true);
