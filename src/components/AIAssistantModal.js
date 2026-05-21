@@ -39,6 +39,7 @@ export const AIAssistantModal = ({ visible, onClose }) => {
   const flatRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const isMounted = useRef(true);
+  const welcomedRef = useRef(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -78,9 +79,10 @@ export const AIAssistantModal = ({ visible, onClose }) => {
 
   useEffect(() => {
     if (visible) {
-      buildContext().then(setSessionContext);
+      buildContext().then(ctx => { if (isMounted.current) setSessionContext(ctx); });
       Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-      if (messages.length === 0) {
+      if (!welcomedRef.current) {
+        welcomedRef.current = true;
         setMessages([{
           id: 'welcome',
           role: MSG_ROLE.AI,
@@ -88,7 +90,7 @@ export const AIAssistantModal = ({ visible, onClose }) => {
         }]);
       }
     }
-  }, [visible]);
+  }, [visible, buildContext, fadeAnim, profile?.display_name]);
 
   const scrollToBottom = () => {
     setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
