@@ -397,12 +397,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const tabScrollRef = useRef(null);
   const headerAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    loadAll();
-    Animated.timing(headerAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
-  }, []);
-
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -471,11 +466,16 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       const totalConversions = (campData || []).reduce((a, c) => a + (c.conversions || 0), 0) || conversions;
 
       setAnalytics({ impressions: totalImpressions, clicks: totalClicks, conversions: totalConversions, rsvps, totalRevenue, totalSpent, chart });
-    } catch (e) {
+    } catch {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadAll();
+    Animated.timing(headerAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+  }, [loadAll]);
 
   const onRefresh = async () => { setRefreshing(true); try { await loadAll(); } finally { setRefreshing(false); } };
 
