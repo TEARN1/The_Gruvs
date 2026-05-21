@@ -101,13 +101,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const surface = currentTheme?.surface || 'rgba(255,255,255,0.06)';
 
   const organizer = event?.profiles || {};
-  const media = event?.media_urls?.length
-    ? event.media_urls.map((u) => ({ type: 'video', url: u }))
-    : event?.media?.length
-      ? event.media
-      : event?.image_url
-        ? [{ type: 'image', url: event.image_url }]
-        : [];
+  const media = event?.media?.length
+    ? event.media
+    : event?.media_urls?.length
+      ? event.media_urls.map(u => ({ type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image', url: u }))
+      : event?.cover_url
+        ? [{ type: 'image', url: event.cover_url }]
+        : event?.image_url
+          ? [{ type: 'image', url: event.image_url }]
+          : event?.cover_image
+            ? [{ type: 'image', url: event.cover_image }]
+            : [];
 
   // Countdown clock — ticks every second while event is in the future
   useEffect(() => {

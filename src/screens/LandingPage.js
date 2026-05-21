@@ -1133,10 +1133,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 // media is JSONB — Supabase may return it as array or as string
                 let m = event.media;
                 if (typeof m === 'string') { try { m = JSON.parse(m); } catch { m = null; } }
-                // Also check media_urls (TEXT[] fallback column)
-                if ((!m || !m.length) && event.media_urls?.length) {
-                  m = event.media_urls.map(u => ({ url: u, type: 'image' }));
+                if (!m?.length && event.media_urls?.length) {
+                  m = event.media_urls.map(u => ({ url: u, type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image' }));
                 }
+                if (!m?.length && event.cover_url) m = [{ url: event.cover_url, type: 'image' }];
+                if (!m?.length && event.cover_image) m = [{ url: event.cover_image, type: 'image' }];
+                if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
                 return m?.length ? m : null;
               })()} />
               {/* Item 48: vignette gradient instead of flat scrim */}

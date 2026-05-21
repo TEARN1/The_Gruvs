@@ -149,7 +149,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
         failCount++;
       }
     }
-    if (failCount > 0) setError(`${failCount} media file${failCount > 1 ? 's' : ''} failed to upload — continuing with ${uploaded.length} uploaded.`);
+    if (failCount > 0 && uploaded.length === 0) {
+      throw new Error('Photo upload failed. Check your connection and try again, or post without a photo.');
+    }
+    if (failCount > 0) setError(`${failCount} of ${mediaItems.length} photos failed — continuing with ${uploaded.length}.`);
     return uploaded;
   };
 
@@ -203,6 +206,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     if (mediaUrls.length > 0) {
       payload.media = mediaUrls;
       payload.media_urls = mediaUrls.map(m => m.url);
+      payload.cover_url = mediaUrls[0].url;
     }
     if (scheduleItems.length > 0) payload.schedule = scheduleItems.map(({ id, ...rest }) => rest);
     if (ageMin > 0) payload.age_restriction = ageMin;
