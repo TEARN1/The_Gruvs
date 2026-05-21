@@ -287,6 +287,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [feedMode, setFeedMode] = useState('all'); // 'all' | 'following'
   const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
+  const fetchedCheckinIds = useRef(new Set());
 
   const primary = currentTheme?.primary || '#00f2ff';
   const bg = currentTheme?.background || '#0d1112';
@@ -536,7 +537,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // Fetch checkins for event (for ReturnPathCard)
   const fetchEventCheckins = useCallback(async (eventId) => {
-    if (!eventId || eventCheckins[eventId]) return; // cached
+    if (!eventId || fetchedCheckinIds.current.has(eventId)) return; // cached
+    fetchedCheckinIds.current.add(eventId);
     try {
       const { data } = await supabase
         .from('live_checkins')
@@ -545,9 +547,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         .order('checked_in_at', { ascending: false });
       setEventCheckins(prev => ({ ...prev, [eventId]: data || [] }));
     } catch {
+      fetchedCheckinIds.current.delete(eventId); // allow retry on failure
       setEventCheckins(prev => ({ ...prev, [eventId]: [] }));
     }
-  }, [eventCheckins]);
+  }, []);
 
 
 
