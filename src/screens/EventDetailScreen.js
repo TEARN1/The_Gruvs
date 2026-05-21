@@ -146,14 +146,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const fetchUserState = async () => {
     if (!user || !event?.id) return;
     try {
-      const [rsvpStatus, isFollowingResult, alreadyCheckedIn] = await Promise.all([
+      const [rsvpRes, followRes, checkinRes] = await Promise.allSettled([
         RSVPManager.getUserStatus(event.id, user.id),
         UserManager.isFollowing(user.id, organizer?.id),
         CheckInManager.hasCheckedIn(event.id, user.id),
       ]);
-      if (rsvpStatus) setRsvpStatus(rsvpStatus);
-      setIsFollowing(isFollowingResult);
-      if (alreadyCheckedIn) setCheckedIn(true);
+      if (rsvpRes.status === 'fulfilled' && rsvpRes.value) setRsvpStatus(rsvpRes.value);
+      if (followRes.status === 'fulfilled') setIsFollowing(followRes.value);
+      if (checkinRes.status === 'fulfilled' && checkinRes.value) setCheckedIn(true);
     } catch (err) {
     }
   };

@@ -81,12 +81,12 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
     if (!user) return;
     setLoading(true);
     try {
-      const [sData, score] = await Promise.all([
+      const [sRes, scoreRes] = await Promise.allSettled([
         AnalyticsManager.getProviderStats(user.id),
         TrustLedger.getSISScore(user.id)
       ]);
-      setStats(sData);
-      setSISScore(score);
+      if (sRes.status === 'fulfilled') setStats(sRes.value);
+      if (scoreRes.status === 'fulfilled') setSISScore(scoreRes.value);
     } catch (e) {
       toast.show('Failed to load provider stats', 'error');
     } finally {
