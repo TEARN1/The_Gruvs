@@ -429,12 +429,15 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [trending, happening, counts] = await Promise.all([
+      const [trendingRes, happeningRes, countsRes] = await Promise.allSettled([
         TrendingManager.fetch(8),
         TrendingManager.fetchHappeningNow(),
         TrendingManager.fetchCategoryCounts(),
       ]);
 
+      const trending = trendingRes.status === 'fulfilled' ? trendingRes.value : [];
+      const happening = happeningRes.status === 'fulfilled' ? happeningRes.value : [];
+      const counts = countsRes.status === 'fulfilled' ? countsRes.value : {};
       setTrendingEvents(trending);
       setHappeningNow(happening);
       setCategoryCounts(counts);

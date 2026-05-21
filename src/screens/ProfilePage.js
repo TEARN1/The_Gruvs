@@ -111,7 +111,7 @@ const AnalyticsChart = ({ primary, muted, textColor, userId }) => {
       // Removed demo mode fallback. Real data required.
       try {
         const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-        const [rsvpRes, vibeRes] = await Promise.all([
+        const [rsvpSettled, vibeSettled] = await Promise.allSettled([
           supabase
             .from('event_rsvps')
             .select('created_at, events!inner(author_id)')
@@ -123,8 +123,8 @@ const AnalyticsChart = ({ primary, muted, textColor, userId }) => {
             .eq('events.author_id', userId)
             .gte('created_at', since),
         ]);
-        const rsvps = rsvpRes.data || [];
-        const vibes = vibeRes.data || [];
+        const rsvps = rsvpSettled.status === 'fulfilled' ? (rsvpSettled.value?.data || []) : [];
+        const vibes = vibeSettled.status === 'fulfilled' ? (vibeSettled.value?.data || []) : [];
         const dayCounts = [0, 0, 0, 0, 0, 0, 0];
         [...rsvps, ...vibes].forEach(item => {
           const day = new Date(item.created_at).getDay();
@@ -523,10 +523,12 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       supabase.from('governance_proposals').select('*').eq('status', 'voting_open'),
       supabase.from('profiles').select('vibe_equity', { count: 'exact', head: true })
-    ]).then(([{ data: propData }, { count: totalSupply }]) => {
+    ]).then(([propSettled, supplySettled]) => {
+      const propData = propSettled.status === 'fulfilled' ? propSettled.value?.data : null;
+      const totalSupply = supplySettled.status === 'fulfilled' ? supplySettled.value?.count : 0;
       setProposals(propData || []);
       const halvingInterval = projectDNA.sovereign_mint_params.halving_interval_equity;
       const phase = Math.floor((totalSupply || 0) / halvingInterval);
