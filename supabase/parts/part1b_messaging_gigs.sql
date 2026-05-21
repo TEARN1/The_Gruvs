@@ -54,7 +54,7 @@ DO $$ BEGIN
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
-    CREATE INDEX IF NOT EXISTS notifications_unread       ON notifications(recipient_id) WHERE read = false;
+    EXECUTE 'CREATE INDEX IF NOT EXISTS notifications_unread       ON notifications(recipient_id) WHERE read = false;';
   END IF;
 END $$;
 
@@ -158,7 +158,7 @@ DO $$ BEGIN
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
-    CREATE INDEX IF NOT EXISTS messages_unread      ON messages(recipient_id, read_at) WHERE read_at IS NULL AND deleted_at IS NULL;
+    EXECUTE 'CREATE INDEX IF NOT EXISTS messages_unread      ON messages(recipient_id, read_at) WHERE read_at IS NULL AND deleted_at IS NULL;';
   END IF;
 END $$;
 
@@ -381,7 +381,7 @@ DO $$ BEGIN
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
-    CREATE INDEX IF NOT EXISTS paths_public ON paths(is_public, created_at DESC) WHERE is_public = true;
+    EXECUTE 'CREATE INDEX IF NOT EXISTS paths_public ON paths(is_public, created_at DESC) WHERE is_public = true;';
   END IF;
 END $$;
 

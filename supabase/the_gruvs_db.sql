@@ -136,7 +136,7 @@ DO $$ BEGIN
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
-    CREATE INDEX IF NOT EXISTS profiles_online        ON profiles(is_online) WHERE is_online = true;
+    EXECUTE 'CREATE INDEX IF NOT EXISTS profiles_online        ON profiles(is_online) WHERE is_online = true;';
   END IF;
 END $$;
 
@@ -468,7 +468,7 @@ DO $$ BEGIN
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
-    CREATE INDEX IF NOT EXISTS events_upcoming    ON events(event_date ASC)  WHERE is_cancelled = false;
+    EXECUTE 'CREATE INDEX IF NOT EXISTS events_upcoming    ON events(event_date ASC)  WHERE is_cancelled = false;';
   END IF;
 END $$;
 
@@ -564,7 +564,7 @@ DO $$ BEGIN
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reminders') THEN
-    CREATE INDEX IF NOT EXISTS event_reminders_pending ON event_reminders(remind_at) WHERE sent = false;
+    EXECUTE 'CREATE INDEX IF NOT EXISTS event_reminders_pending ON event_reminders(remind_at) WHERE sent = false;';
   END IF;
 END $$;
 
@@ -911,7 +911,7 @@ DO $$ BEGIN
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echoes') THEN
-    CREATE INDEX IF NOT EXISTS echoes_parent_id ON echoes(parent_id) WHERE parent_id IS NOT NULL;
+    EXECUTE 'CREATE INDEX IF NOT EXISTS echoes_parent_id ON echoes(parent_id) WHERE parent_id IS NOT NULL;';
   END IF;
 END $$;
 DO $$ BEGIN
@@ -1143,7 +1143,7 @@ DO $$ BEGIN
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
-    CREATE INDEX IF NOT EXISTS notifications_unread       ON notifications(recipient_id) WHERE read = false;
+    EXECUTE 'CREATE INDEX IF NOT EXISTS notifications_unread       ON notifications(recipient_id) WHERE read = false;';
   END IF;
 END $$;
 
@@ -1247,7 +1247,7 @@ DO $$ BEGIN
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
-    CREATE INDEX IF NOT EXISTS messages_unread      ON messages(recipient_id, read_at) WHERE read_at IS NULL AND deleted_at IS NULL;
+    EXECUTE 'CREATE INDEX IF NOT EXISTS messages_unread      ON messages(recipient_id, read_at) WHERE read_at IS NULL AND deleted_at IS NULL;';
   END IF;
 END $$;
 
@@ -1470,7 +1470,7 @@ DO $$ BEGIN
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
-    CREATE INDEX IF NOT EXISTS paths_public ON paths(is_public, created_at DESC) WHERE is_public = true;
+    EXECUTE 'CREATE INDEX IF NOT EXISTS paths_public ON paths(is_public, created_at DESC) WHERE is_public = true;';
   END IF;
 END $$;
 
