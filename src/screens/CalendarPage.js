@@ -377,7 +377,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([loadMonth(viewYear, viewMonth), loadUpcoming()]);
+      await Promise.allSettled([loadMonth(viewYear, viewMonth), loadUpcoming()]);
     } catch { } finally {
       setRefreshing(false);
     }

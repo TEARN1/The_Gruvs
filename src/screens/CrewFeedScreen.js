@@ -240,15 +240,17 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const loadAll = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     try {
-      const [feedResult, activityResult, trendingResult] = await Promise.all([
+      const [feedRes, activityRes, trendingRes] = await Promise.allSettled([
         FollowingFeedManager.fetch(user.id, 0),
         ActivityFeedManager.fetchActivity(user.id),
         TrendingManager.fetch(10),
       ]);
-      setFollowingEvents(feedResult.events || []);
-      setTrendingEvents(trendingResult || []);
-      setLiveNow(activityResult.liveNow);
-      setActivity(activityResult.activity);
+      if (feedRes.status === 'fulfilled') setFollowingEvents(feedRes.value?.events || []);
+      if (trendingRes.status === 'fulfilled') setTrendingEvents(trendingRes.value || []);
+      if (activityRes.status === 'fulfilled') {
+        setLiveNow(activityRes.value?.liveNow);
+        setActivity(activityRes.value?.activity);
+      }
     } catch {
       // keep existing feed on transient failure
     } finally {
@@ -271,10 +273,12 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         const r = payload.new;
         if (!followedIds.includes(r.user_id) || r.status !== 'going') return;
         try {
-          const [{ data: actor }, { data: event }] = await Promise.all([
+          const [actorRes, eventRes] = await Promise.allSettled([
             supabase.from('profiles').select('id, username, avatar_url').eq('id', r.user_id).single(),
             supabase.from('events').select('id, title, venue_name, event_date').eq('id', r.event_id).single(),
           ]);
+          const actor = actorRes.status === 'fulfilled' ? actorRes.value?.data : null;
+          const event = eventRes.status === 'fulfilled' ? eventRes.value?.data : null;
           if (!actor || !event) return;
           const newItem = { id: `rsvp_${r.user_id}_${r.event_id}`, type: 'rsvp', actor, event, created_at: r.created_at || new Date().toISOString() };
           setActivity(prev => [newItem, ...prev.filter(a => a.id !== newItem.id).slice(0, 49)]);
@@ -284,10 +288,12 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         const r = payload.new;
         if (!followedIds.includes(r.user_id)) return;
         try {
-          const [{ data: actor }, { data: event }] = await Promise.all([
+          const [actorRes2, eventRes2] = await Promise.allSettled([
             supabase.from('profiles').select('id, username, avatar_url').eq('id', r.user_id).single(),
             supabase.from('events').select('id, title, venue_name, event_date').eq('id', r.event_id).single(),
           ]);
+          const actor = actorRes2.status === 'fulfilled' ? actorRes2.value?.data : null;
+          const event = eventRes2.status === 'fulfilled' ? eventRes2.value?.data : null;
           if (!actor || !event) return;
           const newItem = { id: `checkin_${r.user_id}_${r.event_id}`, type: 'checkin', actor, event, created_at: r.created_at || new Date().toISOString() };
           setActivity(prev => [newItem, ...prev.filter(a => a.id !== newItem.id).slice(0, 49)]);
