@@ -735,32 +735,6 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={[rs.screen, { backgroundColor: '#000' }]}>
-        <TabSwitcher />
-        <ReelSkeleton primary={primary} />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={[rs.screen, { backgroundColor: '#000' }]}> 
-        <TabSwitcher />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
-          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, marginBottom: 10 }}>Could not load reels</Text>
-          <Text style={{ color: muted, fontSize: 13, textAlign: 'center', marginBottom: 18 }}>{error}</Text>
-          <TouchableOpacity onPress={() => loadReels()} style={[rs.retryBtn, { borderColor: primary }]}
-            activeOpacity={0.8}
-          >
-            <Text style={{ color: primary, fontWeight: '900' }}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   const onComment = useCallback((r) => { setCommentTarget(r); setCommentsVisible(true); }, []);
   const onProfile = useCallback((p) => { setProfileTarget(p); setProfileVisible(true); }, []);
   const onDmMessage = useCallback((p) => { setDmTarget(p); setDmVisible(true); }, []);
@@ -786,6 +760,30 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       onHashtag={onHashtag}
     />
   ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag]);
+
+  if (loading) {
+    return (
+      <View style={[rs.screen, { backgroundColor: '#000' }]}>
+        <TabSwitcher />
+        <ReelSkeleton primary={primary} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[rs.screen, { backgroundColor: '#000' }]}>
+        <TabSwitcher />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
+          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, marginBottom: 10 }}>Could not load reels</Text>
+          <Text style={{ color: muted, fontSize: 13, textAlign: 'center', marginBottom: 18 }}>{error}</Text>
+          <TouchableOpacity onPress={() => loadReels()} style={[rs.retryBtn, { borderColor: primary }]} activeOpacity={0.8}>
+            <Text style={{ color: primary, fontWeight: '900' }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   const reelFeed = (
     <View style={IS_WEB ? rs.webFeedContainer : rs.screen}>
