@@ -15,6 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { adminChat, runHealthCheck } from '../services/claudeService';
+import { resilient } from '../utils/resilience';
 
 const OWNER_EMAIL = 'asemahlenkwali@gmail.com';
 
@@ -80,15 +81,30 @@ async function executeTool(toolName, toolInput) {
             body,
             data: { segment },
           }));
-          await supabase.from('notifications').insert(rows);
+          await resilient(
+            [
+              () => supabase.from('notifications').insert(rows),
+              () => supabase.from('notifications').upsert(rows),
+              () => supabase.rpc('bulk_send_notifications', { p_rows: rows }),
+            ],
+            { attemptsPerTier: 2, baseMs: 400, label: 'AdminAI.send_notification', fallbackValue: null }
+          );
         }
         return `Notification sent to ${users?.length || 0} users (segment: ${segment}).`;
       }
 
       case 'feature_event': {
         const { event_id, featured } = toolInput;
-        const { data } = await supabase.from('events').update({ is_featured: featured }).eq('id', event_id).select('title').single();
-        return `Event "${data?.title || event_id}" is now ${featured ? 'featured ⭐' : 'unfeatured'}.`;
+        const result = await resilient(
+          [
+            async () => { const { data, error } = await supabase.from('events').update({ is_featured: featured }).eq('id', event_id).select('title').single(); if (error) throw error; return data; },
+            () => supabase.from('events').update({ is_featured: featured }).eq('id', event_id),
+            () => supabase.rpc('set_event_featured', { p_event_id: event_id, p_featured: featured }),
+          ],
+          { attemptsPerTier: 2, baseMs: 300, label: `AdminAI.feature_event:${event_id}`, fallbackValue: null }
+        );
+        const title = typeof result === 'object' ? result?.title : null;
+        return `Event "${title || event_id}" is now ${featured ? 'featured ⭐' : 'unfeatured'}.`;
       }
 
       case 'moderate_user': {
@@ -96,11 +112,26 @@ async function executeTool(toolName, toolInput) {
         const { data: u } = await supabase.from('profiles').select('id').eq('username', username).single();
         if (!u) return `User @${username} not found.`;
         if (action === 'flag') {
-          await supabase.from('reports').insert({ target_type: 'profile', target_id: u.id, reporter_id: u.id, reason: reason || 'Admin flagged', status: 'pending' });
+          const flagPayload = { target_type: 'profile', target_id: u.id, reporter_id: u.id, reason: reason || 'Admin flagged', status: 'pending' };
+          await resilient(
+            [
+              () => supabase.from('reports').insert(flagPayload),
+              () => supabase.from('reports').upsert(flagPayload),
+              () => supabase.rpc('admin_flag_user', { p_user_id: u.id, p_reason: reason || 'Admin flagged' }),
+            ],
+            { attemptsPerTier: 2, baseMs: 300, label: `AdminAI.flag_user:${u.id}`, fallbackValue: null }
+          );
           return `User @${username} flagged for review.`;
         }
         if (action === 'suspend') {
-          await supabase.from('profiles').update({ is_discoverable: false, is_online: false }).eq('id', u.id);
+          await resilient(
+            [
+              () => supabase.from('profiles').update({ is_discoverable: false, is_online: false }).eq('id', u.id),
+              () => supabase.from('profiles').update({ is_discoverable: false }).eq('id', u.id),
+              () => supabase.rpc('admin_suspend_user', { p_user_id: u.id }),
+            ],
+            { attemptsPerTier: 2, baseMs: 300, label: `AdminAI.suspend_user:${u.id}`, fallbackValue: null }
+          );
           return `User @${username} suspended (hidden from discovery).`;
         }
         return `Unknown action: ${action}`;
@@ -108,12 +139,21 @@ async function executeTool(toolName, toolInput) {
 
       case 'generate_announcement': {
         const { title, description, type = 'feature', version } = toolInput;
-        const { data } = await supabase.from('app_updates').insert({
+        const annoPayload = {
           title, description, type,
           version: version || `v${new Date().toISOString().split('T')[0]}`,
           released_at: new Date().toISOString(),
-        }).select().single();
-        return `Announcement published! ID: ${data?.id}. Title: "${title}". It will appear in the App Upgrades section immediately.`;
+        };
+        const annoResult = await resilient(
+          [
+            async () => { const { data, error } = await supabase.from('app_updates').insert(annoPayload).select().single(); if (error) throw error; return data; },
+            async () => { const { data, error } = await supabase.from('app_updates').upsert(annoPayload).select().single(); if (error) throw error; return data; },
+            () => supabase.rpc('create_app_update', { p_payload: annoPayload }),
+          ],
+          { attemptsPerTier: 2, baseMs: 400, label: 'AdminAI.generate_announcement', fallbackValue: null }
+        );
+        const annoData = typeof annoResult === 'object' ? annoResult : null;
+        return `Announcement published! ID: ${annoData?.id || 'N/A'}. Title: "${title}". It will appear in the App Upgrades section immediately.`;
       }
 
       default:
