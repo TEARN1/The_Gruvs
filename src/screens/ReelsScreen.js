@@ -38,6 +38,41 @@ const fmtCount = (n) => {
   return String(n);
 };
 
+// ── Tab switcher bar ─────────────────────────────────────────────────────────
+const ReelTabSwitcher = ({ absolute, insetsTop, onClose, hashtagFilter, setHashtagFilter, primary, tab, setTab }) => (
+  <View style={[rs.tabBar, absolute && rs.tabBarAbsolute, { paddingTop: insetsTop }]}>
+    {onClose && (
+      <TouchableOpacity onPress={onClose} style={{ position: 'absolute', left: 16, top: insetsTop + 10 }}>
+        <Feather name="x" size={22} color="#fff" />
+      </TouchableOpacity>
+    )}
+    {hashtagFilter ? (
+      <TouchableOpacity
+        onPress={() => setHashtagFilter(null)}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: `${primary}25`, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 14, borderWidth: 1, borderColor: `${primary}50` }}
+      >
+        <Text style={{ color: primary, fontWeight: '900', fontSize: 13 }}>{hashtagFilter}</Text>
+        <Feather name="x" size={12} color={primary} />
+      </TouchableOpacity>
+    ) : (
+      <>
+        <TouchableOpacity onPress={() => setTab('foryou')}>
+          <Text style={[rs.tabLabel, tab === 'foryou' && rs.tabActive]}>For You</Text>
+          {tab === 'foryou' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setTab('following')}>
+          <Text style={[rs.tabLabel, tab === 'following' && rs.tabActive]}>Following</Text>
+          {tab === 'following' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setTab('trending')}>
+          <Text style={[rs.tabLabel, tab === 'trending' && rs.tabActive]}>🔥 Trending</Text>
+          {tab === 'trending' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
+        </TouchableOpacity>
+      </>
+    )}
+  </View>
+);
+
 // ── Skeleton reel card for loading state ──────────────────────────────────────
 const ReelSkeleton = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
@@ -701,39 +736,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
   const viewConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
 
-  const TabSwitcher = ({ absolute = false }) => (
-    <View style={[rs.tabBar, absolute && rs.tabBarAbsolute, { paddingTop: insets.top }]}>
-      {onClose && (
-        <TouchableOpacity onPress={onClose} style={{ position: 'absolute', left: 16, top: insets.top + 10 }}>
-          <Feather name="x" size={22} color="#fff" />
-        </TouchableOpacity>
-      )}
-      {hashtagFilter ? (
-        <TouchableOpacity
-          onPress={() => setHashtagFilter(null)}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: `${primary}25`, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 14, borderWidth: 1, borderColor: `${primary}50` }}
-        >
-          <Text style={{ color: primary, fontWeight: '900', fontSize: 13 }}>{hashtagFilter}</Text>
-          <Feather name="x" size={12} color={primary} />
-        </TouchableOpacity>
-      ) : (
-        <>
-          <TouchableOpacity onPress={() => setTab('foryou')}>
-            <Text style={[rs.tabLabel, tab === 'foryou' && rs.tabActive]}>For You</Text>
-            {tab === 'foryou' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setTab('following')}>
-            <Text style={[rs.tabLabel, tab === 'following' && rs.tabActive]}>Following</Text>
-            {tab === 'following' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setTab('trending')}>
-            <Text style={[rs.tabLabel, tab === 'trending' && rs.tabActive]}>🔥 Trending</Text>
-            {tab === 'trending' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
-          </TouchableOpacity>
-        </>
-      )}
-    </View>
-  );
+  const tabSwitcherProps = { insetsTop: insets.top, onClose, hashtagFilter, setHashtagFilter, primary, tab, setTab };
 
   const onComment = useCallback((r) => { setCommentTarget(r); setCommentsVisible(true); }, []);
   const onProfile = useCallback((p) => { setProfileTarget(p); setProfileVisible(true); }, []);
@@ -764,7 +767,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   if (loading) {
     return (
       <View style={[rs.screen, { backgroundColor: '#000' }]}>
-        <TabSwitcher />
+        <ReelTabSwitcher {...tabSwitcherProps} />
         <ReelSkeleton primary={primary} />
       </View>
     );
@@ -773,7 +776,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   if (error) {
     return (
       <View style={[rs.screen, { backgroundColor: '#000' }]}>
-        <TabSwitcher />
+        <ReelTabSwitcher {...tabSwitcherProps} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
           <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, marginBottom: 10 }}>Could not load reels</Text>
           <Text style={{ color: muted, fontSize: 13, textAlign: 'center', marginBottom: 18 }}>{error}</Text>
@@ -787,7 +790,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
   const reelFeed = (
     <View style={IS_WEB ? rs.webFeedContainer : rs.screen}>
-      <TabSwitcher absolute />
+      <ReelTabSwitcher {...tabSwitcherProps} absolute />
       <FlatList
         ref={flatRef}
         data={reels}

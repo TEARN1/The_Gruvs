@@ -6,7 +6,7 @@ import { SecurityService } from '../services/securityService';
 export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, componentStack: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -16,6 +16,8 @@ export class ErrorBoundary extends React.Component {
   componentDidCatch(error, info) {
     console.error('[ErrorBoundary] Caught in:', this.props.label || 'unknown');
     console.error(error?.message || error);
+    console.error('[ComponentStack]', info?.componentStack);
+    this.setState({ componentStack: info?.componentStack });
     SecurityService.logSecurityEvent(null, 'UI_CRASH', {
       label: this.props.label || 'unknown',
       message: error?.message || String(error)
@@ -53,6 +55,11 @@ export class ErrorBoundary extends React.Component {
         <Text style={[s.sub, { color: '#f59e0b' }]} selectable>
           {this.state.error?.message || String(this.state.error || '')}
         </Text>
+        {this.state.componentStack ? (
+          <Text style={[s.sub, { color: 'rgba(255,255,255,0.3)', fontSize: 10 }]} selectable numberOfLines={8}>
+            {this.state.componentStack.trim()}
+          </Text>
+        ) : null}
         <TouchableOpacity style={[s.btn, { borderColor: primary }]} onPress={this.reset}>
           <Feather name="refresh-cw" size={13} color={primary} />
           <Text style={[s.btnText, { color: primary }]}>Try again</Text>
