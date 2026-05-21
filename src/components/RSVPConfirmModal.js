@@ -11,6 +11,7 @@ import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
 import { SecurityService } from '../services/securityService';
 
@@ -45,27 +46,37 @@ export const RSVPConfirmModal = ({ visible, onClose, event }) => {
     if (!selected || !user || !event) return;
     setSubmitting(true);
     try {
-      const { data: upserted, error } = await supabase.from('event_rsvps').upsert(
-        { event_id: event.id, user_id: user.id, status: selected },
-        { onConflict: 'event_id,user_id' }
-      ).select('id').single();
-      if (error) {
-        toast.show('Could not save RSVP. Try again.', 'error');
-      } else {
-        setRsvpId(upserted?.id || null);
+      const result = await resilient(
+        [
+          async () => {
+            const { data, error } = await supabase.from('event_rsvps')
+              .upsert({ event_id: event.id, user_id: user.id, status: selected }, { onConflict: 'event_id,user_id' })
+              .select('id').single();
+            if (error) throw error;
+            return data;
+          },
+          async () => {
+            const { data, error } = await supabase.from('event_rsvps')
+              .insert({ event_id: event.id, user_id: user.id, status: selected })
+              .select('id').single();
+            if (error) throw error;
+            return data;
+          },
+          () => supabase.rpc('upsert_rsvp', { p_event_id: event.id, p_user_id: user.id, p_status: selected }),
+        ],
+        { attemptsPerTier: 3, baseMs: 400, label: `RSVPConfirmModal.confirm:${event.id}`, fallbackValue: null }
+      );
+      if (result !== null) {
+        setRsvpId(result?.id || null);
         setConfirmed(true);
-        // Re-count going from the source of truth rather than blind increment
-        supabase
-          .from('event_rsvps')
-          .select('id', { count: 'exact', head: true })
-          .eq('event_id', event.id)
-          .eq('status', 'going')
+        // Best-effort: sync going count from DB
+        supabase.from('event_rsvps').select('id', { count: 'exact', head: true })
+          .eq('event_id', event.id).eq('status', 'going')
           .then(({ count }) => {
-            if (count !== null) {
-              supabase.from('events').update({ going: count }).eq('id', event.id).then(() => {});
-            }
-          })
-          .catch(() => {});
+            if (count !== null) supabase.from('events').update({ going: count }).eq('id', event.id).then(() => {});
+          }).catch(() => {});
+      } else {
+        toast.show('Could not save RSVP. Try again.', 'error');
       }
     } catch {
       toast.show('Could not save RSVP. Try again.', 'error');

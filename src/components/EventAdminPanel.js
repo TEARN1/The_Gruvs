@@ -7,6 +7,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 
 const buildCSV = (rsvps) => {
   const header = 'Username,Status,RSVP Date\n';
@@ -84,12 +85,13 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
     if (!eventId) return;
     setLoading(true);
     try {
-      const [vibeRes, rsvpRes, echoRes, ratingRes] = await Promise.all([
+      const settled = await Promise.allSettled([
         supabase.from('event_vibes').select('created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(50),
         supabase.from('event_rsvps').select('id, status, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(200),
         supabase.from('echoes').select('body, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(50),
         supabase.from('event_ratings').select('rating, review, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(50),
       ]);
+      const [vibeRes, rsvpRes, echoRes, ratingRes] = settled.map(r => r.status === 'fulfilled' ? r.value : { data: null });
 
       const vibes = (vibeRes.data || []).map(r => ({ ...r, type: 'vibe' }));
       const rsvps = (rsvpRes.data || []).map(r => ({ ...r, type: 'rsvp' }));
@@ -177,7 +179,14 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
         setCheckInResult({ ok: false, msg: `@${rsvp.profiles?.username} is already checked in.`, username: rsvp.profiles?.username, avatar: rsvp.profiles?.avatar_url });
         return;
       }
-      await supabase.from('event_checkins').upsert({ event_id: eventId, rsvp_id: rsvp.id, user_id: rsvp.user_id }, { onConflict: 'rsvp_id' });
+      await resilient(
+        [
+          () => supabase.from('event_checkins').upsert({ event_id: eventId, rsvp_id: rsvp.id, user_id: rsvp.user_id }, { onConflict: 'rsvp_id' }),
+          () => supabase.from('event_checkins').insert({ event_id: eventId, rsvp_id: rsvp.id, user_id: rsvp.user_id }),
+          () => supabase.rpc('check_in_attendee', { p_event_id: eventId, p_rsvp_id: rsvp.id, p_user_id: rsvp.user_id }),
+        ],
+        { attemptsPerTier: 2, baseMs: 300, label: `EventAdminPanel.checkIn:${rsvp.id}`, fallbackValue: null }
+      );
       setCheckedIn(prev => ({ ...prev, [rsvp.id]: true }));
       setCheckInResult({ ok: true, msg: `@${rsvp.profiles?.username} checked in!`, username: rsvp.profiles?.username, avatar: rsvp.profiles?.avatar_url });
       setCheckInQuery('');
