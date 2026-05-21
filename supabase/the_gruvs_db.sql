@@ -77,8 +77,6 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS username           TEXT;
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name       TEXT;
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url         TEXT;
@@ -118,8 +116,6 @@ DO $$ BEGIN
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS share_events            BOOLEAN     DEFAULT false;
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_code           TEXT        UNIQUE;
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referral_count          INTEGER     DEFAULT 0;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -223,12 +219,8 @@ CREATE TABLE IF NOT EXISTS follows (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'follows') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'follows') THEN
     ALTER TABLE follows ADD COLUMN IF NOT EXISTS follower_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE follows ADD COLUMN IF NOT EXISTS following_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -278,12 +270,8 @@ CREATE TABLE IF NOT EXISTS blocked_users (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'blocked_users') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'blocked_users') THEN
     ALTER TABLE blocked_users ADD COLUMN IF NOT EXISTS blocker_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE blocked_users ADD COLUMN IF NOT EXISTS blocked_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -308,12 +296,8 @@ CREATE TABLE IF NOT EXISTS muted_users (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'muted_users') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'muted_users') THEN
     ALTER TABLE muted_users ADD COLUMN IF NOT EXISTS muter_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE muted_users ADD COLUMN IF NOT EXISTS muted_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -373,8 +357,6 @@ CREATE TABLE IF NOT EXISTS events (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
     ALTER TABLE events ADD COLUMN IF NOT EXISTS author_id       UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE events ADD COLUMN IF NOT EXISTS user_id         UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE events ADD COLUMN IF NOT EXISTS slug            TEXT;
@@ -415,8 +397,6 @@ DO $$ BEGIN
     ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url       TEXT;
     ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_image     TEXT;
     ALTER TABLE events ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ DEFAULT now();
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -514,14 +494,10 @@ CREATE TABLE IF NOT EXISTS event_reminders (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reminders') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reminders') THEN
     ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS event_id  UUID REFERENCES events(id)   ON DELETE CASCADE;
     ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS user_id   UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS remind_at TIMESTAMPTZ;
     ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS sent      BOOLEAN DEFAULT false;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -553,12 +529,8 @@ CREATE TABLE IF NOT EXISTS event_vibes (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_vibes') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_vibes') THEN
     ALTER TABLE event_vibes ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
     ALTER TABLE event_vibes ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -613,13 +585,9 @@ CREATE TABLE IF NOT EXISTS event_rsvps (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
     ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
     ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS status   TEXT DEFAULT 'going';
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -646,12 +614,8 @@ CREATE TABLE IF NOT EXISTS check_ins (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'check_ins') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'check_ins') THEN
     ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
     ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -700,16 +664,12 @@ CREATE TABLE IF NOT EXISTS live_checkins (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
     ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS user_id       UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS event_id      UUID REFERENCES events(id)   ON DELETE SET NULL;
     ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS lat           FLOAT;
     ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS lon           FLOAT;
     ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ DEFAULT now();
     ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS venue_name    TEXT;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -736,12 +696,8 @@ CREATE TABLE IF NOT EXISTS saved_events (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'saved_events') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'saved_events') THEN
     ALTER TABLE saved_events ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
     ALTER TABLE saved_events ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -785,13 +741,9 @@ CREATE TABLE IF NOT EXISTS event_reactions (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reactions') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reactions') THEN
     ALTER TABLE event_reactions ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES events(id)   ON DELETE CASCADE;
     ALTER TABLE event_reactions ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE event_reactions ADD COLUMN IF NOT EXISTS reaction_key TEXT;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -835,16 +787,12 @@ CREATE TABLE IF NOT EXISTS echoes (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echoes') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echoes') THEN
     ALTER TABLE echoes ADD COLUMN IF NOT EXISTS event_id  UUID REFERENCES events(id)   ON DELETE CASCADE;
     ALTER TABLE echoes ADD COLUMN IF NOT EXISTS user_id   UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE echoes ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES echoes(id)   ON DELETE CASCADE;
     ALTER TABLE echoes ADD COLUMN IF NOT EXISTS body      TEXT;
     ALTER TABLE echoes ADD COLUMN IF NOT EXISTS likes     INTEGER DEFAULT 0;
     ALTER TABLE echoes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -889,12 +837,8 @@ CREATE TABLE IF NOT EXISTS echo_likes (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echo_likes') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echo_likes') THEN
     ALTER TABLE echo_likes ADD COLUMN IF NOT EXISTS echo_id UUID REFERENCES echoes(id)   ON DELETE CASCADE;
     ALTER TABLE echo_likes ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -933,14 +877,10 @@ CREATE TABLE IF NOT EXISTS event_ratings (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_ratings') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_ratings') THEN
     ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
     ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS rating   SMALLINT;
     ALTER TABLE event_ratings ADD COLUMN IF NOT EXISTS review   TEXT;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -969,16 +909,12 @@ CREATE TABLE IF NOT EXISTS event_gallery (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_gallery') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_gallery') THEN
     ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id)   ON DELETE CASCADE;
     ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS url      TEXT;
     ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS caption  TEXT;
     ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS width    INTEGER;
     ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS height   INTEGER;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1005,12 +941,8 @@ CREATE TABLE IF NOT EXISTS hashtags (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'hashtags') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'hashtags') THEN
     ALTER TABLE hashtags ADD COLUMN IF NOT EXISTS tag       TEXT;
     ALTER TABLE hashtags ADD COLUMN IF NOT EXISTS use_count INTEGER DEFAULT 1;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1054,8 +986,6 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
     ALTER TABLE notifications ADD COLUMN IF NOT EXISTS recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE notifications ADD COLUMN IF NOT EXISTS actor_id     UUID REFERENCES profiles(id) ON DELETE SET NULL;
     ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type         TEXT;
@@ -1065,8 +995,6 @@ DO $$ BEGIN
     ALTER TABLE notifications ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES events(id) ON DELETE CASCADE;
     ALTER TABLE notifications ADD COLUMN IF NOT EXISTS echo_id      UUID REFERENCES echoes(id) ON DELETE CASCADE;
     ALTER TABLE notifications ADD COLUMN IF NOT EXISTS read         BOOLEAN DEFAULT false;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1140,8 +1068,6 @@ CREATE TABLE IF NOT EXISTS messages (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS sender_id        UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS recipient_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS body             TEXT;
@@ -1157,8 +1083,6 @@ DO $$ BEGIN
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS reaction         TEXT;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1204,8 +1128,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS dm_rooms_pair_uniq
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_rooms') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_rooms') THEN
     ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS participant_1    UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS participant_2    UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS last_message     TEXT;
@@ -1213,8 +1135,6 @@ DO $$ BEGIN
     ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS unread_count_1   INTEGER DEFAULT 0;
     ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS unread_count_2   INTEGER DEFAULT 0;
     ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS updated_at       TIMESTAMPTZ DEFAULT now();
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1263,8 +1183,6 @@ CREATE TABLE IF NOT EXISTS routes (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'routes') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'routes') THEN
     ALTER TABLE routes ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE routes ADD COLUMN IF NOT EXISTS description TEXT;
     ALTER TABLE routes ADD COLUMN IF NOT EXISTS steps       JSONB   DEFAULT '[]';
@@ -1273,8 +1191,6 @@ DO $$ BEGIN
     ALTER TABLE routes ADD COLUMN IF NOT EXISTS join_count  INTEGER DEFAULT 0;
     ALTER TABLE routes ADD COLUMN IF NOT EXISTS vibe_score  INTEGER DEFAULT 0;
     ALTER TABLE routes ADD COLUMN IF NOT EXISTS active      BOOLEAN DEFAULT true;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1296,12 +1212,8 @@ CREATE TABLE IF NOT EXISTS route_joins (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'route_joins') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'route_joins') THEN
     ALTER TABLE route_joins ADD COLUMN IF NOT EXISTS route_id UUID REFERENCES routes(id)   ON DELETE CASCADE;
     ALTER TABLE route_joins ADD COLUMN IF NOT EXISTS user_id  UUID REFERENCES profiles(id) ON DELETE CASCADE;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1325,8 +1237,6 @@ CREATE TABLE IF NOT EXISTS route_steps (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'route_steps') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'route_steps') THEN
     ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS route_id UUID REFERENCES routes(id) ON DELETE CASCADE;
     ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id) ON DELETE SET NULL;
     ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;
@@ -1334,8 +1244,6 @@ DO $$ BEGIN
     ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS lat      FLOAT;
     ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS lon      FLOAT;
     ALTER TABLE route_steps ADD COLUMN IF NOT EXISTS notes    TEXT;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1362,16 +1270,12 @@ CREATE TABLE IF NOT EXISTS paths (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'paths') THEN
     ALTER TABLE paths ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE paths ADD COLUMN IF NOT EXISTS title       TEXT;
     ALTER TABLE paths ADD COLUMN IF NOT EXISTS description TEXT;
     ALTER TABLE paths ADD COLUMN IF NOT EXISTS color       TEXT    DEFAULT '#00f2ff';
     ALTER TABLE paths ADD COLUMN IF NOT EXISTS is_public   BOOLEAN DEFAULT true;
     ALTER TABLE paths ADD COLUMN IF NOT EXISTS star_count  INTEGER DEFAULT 0;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1396,16 +1300,12 @@ CREATE TABLE IF NOT EXISTS path_traces (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_traces') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_traces') THEN
     ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS path_id    UUID REFERENCES paths(id)    ON DELETE CASCADE;
     ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS lat        FLOAT;
     ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS lon        FLOAT;
     ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS event_id   UUID REFERENCES events(id)   ON DELETE SET NULL;
     ALTER TABLE path_traces ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMPTZ DEFAULT now();
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1427,12 +1327,8 @@ CREATE TABLE IF NOT EXISTS path_stars (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_stars') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_stars') THEN
     ALTER TABLE path_stars ADD COLUMN IF NOT EXISTS path_id UUID REFERENCES paths(id)    ON DELETE CASCADE;
     ALTER TABLE path_stars ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1466,14 +1362,10 @@ CREATE TABLE IF NOT EXISTS path_crossings (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_crossings') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'path_crossings') THEN
     ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS path_id_a UUID REFERENCES paths(id) ON DELETE CASCADE;
     ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS path_id_b UUID REFERENCES paths(id) ON DELETE CASCADE;
     ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS lat       FLOAT;
     ALTER TABLE path_crossings ADD COLUMN IF NOT EXISTS lon       FLOAT;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1495,13 +1387,9 @@ CREATE TABLE IF NOT EXISTS user_paths (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_paths') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_paths') THEN
     ALTER TABLE user_paths ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE user_paths ADD COLUMN IF NOT EXISTS path_id UUID REFERENCES paths(id)    ON DELETE CASCADE;
     ALTER TABLE user_paths ADD COLUMN IF NOT EXISTS role    TEXT DEFAULT 'follower';
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1538,8 +1426,6 @@ CREATE TABLE IF NOT EXISTS service_nodes (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_nodes') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_nodes') THEN
     ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS name         TEXT;
     ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS category     TEXT;
@@ -1556,8 +1442,6 @@ DO $$ BEGIN
     ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS review_count INTEGER DEFAULT 0;
     ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS available    BOOLEAN DEFAULT true;
     ALTER TABLE service_nodes ADD COLUMN IF NOT EXISTS media        JSONB;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1589,8 +1473,6 @@ CREATE TABLE IF NOT EXISTS service_bookings (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
     ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS service_id          UUID REFERENCES service_nodes(id) ON DELETE SET NULL;
     ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS client_id           UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS provider_id         UUID REFERENCES profiles(id) ON DELETE CASCADE;
@@ -1606,8 +1488,6 @@ DO $$ BEGIN
     ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS scheduled_at        TIMESTAMPTZ;
     ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS completed_at        TIMESTAMPTZ;
     ALTER TABLE service_bookings ADD COLUMN IF NOT EXISTS updated_at          TIMESTAMPTZ DEFAULT now();
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1656,8 +1536,6 @@ CREATE TABLE IF NOT EXISTS gig_posts (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_posts') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_posts') THEN
     ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS description     TEXT;
     ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS pay             NUMERIC;
@@ -1672,8 +1550,6 @@ DO $$ BEGIN
     ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS slots           INTEGER DEFAULT 1;
     ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS filled          INTEGER DEFAULT 0;
     ALTER TABLE gig_posts ADD COLUMN IF NOT EXISTS active          BOOLEAN DEFAULT true;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1695,15 +1571,11 @@ CREATE TABLE IF NOT EXISTS gig_acceptances (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_acceptances') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gig_acceptances') THEN
     ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS gig_id    UUID REFERENCES gig_posts(id) ON DELETE CASCADE;
     ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS worker_id UUID REFERENCES profiles(id)  ON DELETE CASCADE;
     ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS status    TEXT DEFAULT 'applied';
     ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS message   TEXT;
     ALTER TABLE gig_acceptances ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1737,15 +1609,11 @@ CREATE TABLE IF NOT EXISTS referrals (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'referrals') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'referrals') THEN
     ALTER TABLE referrals ADD COLUMN IF NOT EXISTS referrer_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE referrals ADD COLUMN IF NOT EXISTS referred_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE referrals ADD COLUMN IF NOT EXISTS code        TEXT;
     ALTER TABLE referrals ADD COLUMN IF NOT EXISTS status      TEXT    DEFAULT 'pending';
     ALTER TABLE referrals ADD COLUMN IF NOT EXISTS reward      NUMERIC DEFAULT 0;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1771,16 +1639,12 @@ CREATE TABLE IF NOT EXISTS reports (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reports') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reports') THEN
     ALTER TABLE reports ADD COLUMN IF NOT EXISTS reporter_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE reports ADD COLUMN IF NOT EXISTS target_type TEXT;
     ALTER TABLE reports ADD COLUMN IF NOT EXISTS target_id   UUID;
     ALTER TABLE reports ADD COLUMN IF NOT EXISTS reason      TEXT;
     ALTER TABLE reports ADD COLUMN IF NOT EXISTS details     TEXT;
     ALTER TABLE reports ADD COLUMN IF NOT EXISTS status      TEXT DEFAULT 'pending';
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1805,15 +1669,11 @@ CREATE TABLE IF NOT EXISTS disputes (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'disputes') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'disputes') THEN
     ALTER TABLE disputes ADD COLUMN IF NOT EXISTS booking_id UUID REFERENCES service_bookings(id) ON DELETE CASCADE;
     ALTER TABLE disputes ADD COLUMN IF NOT EXISTS raised_by  UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE disputes ADD COLUMN IF NOT EXISTS reason     TEXT;
     ALTER TABLE disputes ADD COLUMN IF NOT EXISTS status     TEXT DEFAULT 'open';
     ALTER TABLE disputes ADD COLUMN IF NOT EXISTS resolution TEXT;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1853,8 +1713,6 @@ CREATE TABLE IF NOT EXISTS business_profiles (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_profiles') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_profiles') THEN
     ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS user_id        UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS business_name  TEXT;
     ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS business_type  TEXT;
@@ -1876,8 +1734,6 @@ DO $$ BEGIN
     ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS total_revenue  NUMERIC DEFAULT 0;
     ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS follower_count INTEGER DEFAULT 0;
     ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS updated_at     TIMESTAMPTZ DEFAULT now();
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1907,16 +1763,12 @@ CREATE TABLE IF NOT EXISTS business_team_members (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_team_members') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_team_members') THEN
     ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
     ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS role        TEXT DEFAULT 'staff';
     ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '{}';
     ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS invited_by  UUID REFERENCES profiles(id) ON DELETE SET NULL;
     ALTER TABLE business_team_members ADD COLUMN IF NOT EXISTS accepted    BOOLEAN DEFAULT false;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1950,14 +1802,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS business_partnerships_pair_uniq
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_partnerships') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_partnerships') THEN
     ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS requester_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
     ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS partner_id   UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
     ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS status       TEXT DEFAULT 'pending';
     ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS terms        TEXT;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -1981,15 +1829,11 @@ CREATE TABLE IF NOT EXISTS business_page_blocks (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_page_blocks') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_page_blocks') THEN
     ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
     ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS block_type  TEXT;
     ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS position    INTEGER DEFAULT 0;
     ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS config      JSONB   DEFAULT '{}';
     ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS visible     BOOLEAN DEFAULT true;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -2036,8 +1880,6 @@ CREATE TABLE IF NOT EXISTS ad_campaigns (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_campaigns') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_campaigns') THEN
     ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS business_id  UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
     ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE;
     ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS title        TEXT;
@@ -2053,8 +1895,6 @@ DO $$ BEGIN
     ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS starts_at    TIMESTAMPTZ;
     ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS ends_at      TIMESTAMPTZ;
     ALTER TABLE ad_campaigns ADD COLUMN IF NOT EXISTS updated_at   TIMESTAMPTZ DEFAULT now();
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -2088,15 +1928,11 @@ CREATE TABLE IF NOT EXISTS campaign_analytics (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'campaign_analytics') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'campaign_analytics') THEN
     ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS campaign_id UUID REFERENCES ad_campaigns(id) ON DELETE CASCADE;
     ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS event_type  TEXT;
     ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES profiles(id) ON DELETE SET NULL;
     ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS metadata    JSONB DEFAULT '{}';
     ALTER TABLE campaign_analytics ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMPTZ DEFAULT now();
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -2126,14 +1962,10 @@ CREATE TABLE IF NOT EXISTS audience_segments (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'audience_segments') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'audience_segments') THEN
     ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
     ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS name        TEXT;
     ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS criteria    JSONB DEFAULT '{}';
     ALTER TABLE audience_segments ADD COLUMN IF NOT EXISTS size        INTEGER DEFAULT 0;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -2163,8 +1995,6 @@ CREATE TABLE IF NOT EXISTS contextual_ads (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'contextual_ads') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'contextual_ads') THEN
     ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS type     TEXT DEFAULT 'event';
     ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS headline TEXT;
     ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS subline  TEXT;
@@ -2175,8 +2005,6 @@ DO $$ BEGIN
     ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id) ON DELETE SET NULL;
     ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 0;
     ALTER TABLE contextual_ads ADD COLUMN IF NOT EXISTS active   BOOLEAN DEFAULT true;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -3087,8 +2915,6 @@ alter publication supabase_realtime add table event_updates;
 -- ══════════════════════════════════════════════════════════════
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name           TEXT;
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url             TEXT;
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cover_url              TEXT;
@@ -3121,8 +2947,6 @@ DO $$ BEGIN
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at             TIMESTAMPTZ DEFAULT now();
   END IF;
 END $$;
-  END IF;
-END $$;
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public profiles readable" ON profiles;
@@ -3148,8 +2972,6 @@ CREATE POLICY "Users manage own follows" ON follows FOR ALL    USING (auth.uid()
 -- ══════════════════════════════════════════════════════════════
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS message_type     TEXT             DEFAULT 'text';
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_url        TEXT;
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_id        UUID             REFERENCES messages(id) ON DELETE SET NULL;
@@ -3162,8 +2984,6 @@ DO $$ BEGIN
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -3259,12 +3079,8 @@ CREATE POLICY "Users update own notifications" ON notifications FOR UPDATE
 -- ══════════════════════════════════════════════════════════════
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
     ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS venue_name    TEXT;
     ALTER TABLE live_checkins ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ DEFAULT now();
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -3280,12 +3096,8 @@ CREATE POLICY "Users manage own checkins" ON live_checkins FOR ALL    USING (aut
 -- ══════════════════════════════════════════════════════════════
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'app_updates') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'app_updates') THEN
     ALTER TABLE app_updates ADD COLUMN IF NOT EXISTS description TEXT;
     ALTER TABLE app_updates ADD COLUMN IF NOT EXISTS type        TEXT DEFAULT 'feature';
-  END IF;
-END $$;
   END IF;
 END $$;
 ALTER TABLE app_updates ENABLE ROW LEVEL SECURITY;
@@ -3577,11 +3389,7 @@ CREATE POLICY "Service manages moderation" ON ai_moderation_queue FOR ALL USING 
 -- Add sound_name to reels (used by CreateReelModal audio pill)
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
     ALTER TABLE reels ADD COLUMN IF NOT EXISTS sound_name TEXT;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -3617,8 +3425,6 @@ CREATE POLICY "Users can report reels" ON reel_reports
 -- ══════════════════════════════════════════════════════════════
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS looking_for       TEXT;
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS preferred_areas   TEXT;
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wallet_balance    NUMERIC  DEFAULT 0;
@@ -3629,15 +3435,11 @@ DO $$ BEGIN
     ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notification_prefs JSONB   DEFAULT '{}';
   END IF;
 END $$;
-  END IF;
-END $$;
 
 
 -- ══════════════════════════════════════════════════════════════
 --  §2  EVENTS — missing columns
 -- ══════════════════════════════════════════════════════════════
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
     ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_url      TEXT;
@@ -3653,8 +3455,6 @@ DO $$ BEGIN
     ALTER TABLE events ADD COLUMN IF NOT EXISTS sponsors       JSONB  DEFAULT '[]';
     ALTER TABLE events ADD COLUMN IF NOT EXISTS weather_cache  JSONB;
     ALTER TABLE events ADD COLUMN IF NOT EXISTS weather_cached_at TIMESTAMPTZ;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -3677,16 +3477,12 @@ WHERE cover_url IS NULL
 -- ══════════════════════════════════════════════════════════════
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
     ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS tier_id      TEXT;
     ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS ticket_ref   TEXT;
     ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS amount_paid  NUMERIC DEFAULT 0;
     ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS is_early_bird BOOLEAN DEFAULT false;
     ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checked_in   BOOLEAN DEFAULT false;
     ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
-  END IF;
-END $$;
   END IF;
 END $$;
 
@@ -3777,15 +3573,11 @@ CREATE TABLE IF NOT EXISTS reels (
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
     ALTER TABLE reels ADD COLUMN IF NOT EXISTS sound_name    TEXT;
     ALTER TABLE reels ADD COLUMN IF NOT EXISTS hashtags      TEXT[];
     ALTER TABLE reels ADD COLUMN IF NOT EXISTS share_count   INTEGER DEFAULT 0;
     ALTER TABLE reels ADD COLUMN IF NOT EXISTS is_featured   BOOLEAN DEFAULT false;
     ALTER TABLE reels ADD COLUMN IF NOT EXISTS is_removed    BOOLEAN DEFAULT false;
-  END IF;
-END $$;
   END IF;
 END $$;
 
