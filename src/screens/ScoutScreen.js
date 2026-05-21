@@ -430,7 +430,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
     };
     init();
     loadCrewEvents();
-  }, []);
+  }, [loadEvents, loadCrewEvents]);
 
   // Real-time: new event drops appear on the map instantly
   useEffect(() => {

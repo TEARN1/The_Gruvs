@@ -191,7 +191,7 @@ export const PresenceBar = ({
     if (userLocation && checkins.length > 0) {
       fetchCheckins(userLocation);
     }
-  }, [userLocation]);
+  }, [userLocation, fetchCheckins]);
 
   // ------------------------------------------------------------------
   // Check In

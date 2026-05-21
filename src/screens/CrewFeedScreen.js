@@ -262,16 +262,16 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   useEffect(() => { loadAll(); }, [loadAll]);
 
   // Real-time: when any crew member RSVPs or checks in, prepend to activity feed
+  const followedIdsRef = useRef([]);
   useEffect(() => {
     if (!user) return;
-    let followedIds = [];
-    UserManager.getFollowedIds(user.id).then(ids => { followedIds = ids; }).catch(() => {});
+    UserManager.getFollowedIds(user.id).then(ids => { followedIdsRef.current = ids; }).catch(() => {});
 
     realtimeChanRef.current = supabase
       .channel(`crew_feed_rt_${user.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'event_rsvps' }, async (payload) => {
         const r = payload.new;
-        if (!followedIds.includes(r.user_id) || r.status !== 'going') return;
+        if (!followedIdsRef.current.includes(r.user_id) || r.status !== 'going') return;
         try {
           const [actorRes, eventRes] = await Promise.allSettled([
             supabase.from('profiles').select('id, username, avatar_url').eq('id', r.user_id).single(),
@@ -286,7 +286,7 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_checkins' }, async (payload) => {
         const r = payload.new;
-        if (!followedIds.includes(r.user_id)) return;
+        if (!followedIdsRef.current.includes(r.user_id)) return;
         try {
           const [actorRes2, eventRes2] = await Promise.allSettled([
             supabase.from('profiles').select('id, username, avatar_url').eq('id', r.user_id).single(),
