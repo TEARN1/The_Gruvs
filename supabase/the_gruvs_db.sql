@@ -3890,10 +3890,9 @@ END $$;
 -- Partial index: only live stories
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'stories') THEN
-    CREATE INDEX IF NOT EXISTS stories_live_idx ON stories(user_id, created_at DESC)
+    EXECUTE 'CREATE INDEX IF NOT EXISTS stories_live_idx ON stories(user_id, created_at DESC) WHERE expires_at > now()';
   END IF;
 END $$;
-  WHERE expires_at > now();
 
 ALTER TABLE stories ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "stories_select"  ON stories;
@@ -3990,10 +3989,9 @@ END $$;
 -- Partial index: only live reels
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
-    CREATE INDEX IF NOT EXISTS reels_live_idx ON reels(created_at DESC)
+    EXECUTE 'CREATE INDEX IF NOT EXISTS reels_live_idx ON reels(created_at DESC) WHERE is_removed = false';
   END IF;
 END $$;
-  WHERE is_removed = false;
 
 ALTER TABLE reels ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "reels_select"  ON reels;
@@ -4361,26 +4359,23 @@ CREATE POLICY "wallet_tx_service" ON wallet_transactions FOR INSERT
 -- Events: full-text search vector (GIN)
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
-    CREATE INDEX IF NOT EXISTS events_search_vector_idx ON events USING GIN(search_vector)
+    EXECUTE 'CREATE INDEX IF NOT EXISTS events_search_vector_idx ON events USING GIN(search_vector) WHERE search_vector IS NOT NULL';
   END IF;
 END $$;
-  WHERE search_vector IS NOT NULL;
 
 -- Events: trending score for feed sorting
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
-    CREATE INDEX IF NOT EXISTS events_trending_idx ON events(trending_score DESC NULLS LAST, event_date DESC)
+    EXECUTE 'CREATE INDEX IF NOT EXISTS events_trending_idx ON events(trending_score DESC NULLS LAST, event_date DESC) WHERE is_cancelled = false';
   END IF;
 END $$;
-  WHERE is_cancelled = false;
 
 -- Events: upcoming events by date
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
-    CREATE INDEX IF NOT EXISTS events_upcoming_idx ON events(event_date ASC, event_time ASC)
+    EXECUTE 'CREATE INDEX IF NOT EXISTS events_upcoming_idx ON events(event_date ASC, event_time ASC) WHERE is_cancelled = false AND event_date >= CURRENT_DATE';
   END IF;
 END $$;
-  WHERE is_cancelled = false AND event_date >= CURRENT_DATE;
 
 -- Events: geo lookup (GiST — requires postgis)
 DO $$ BEGIN
@@ -4403,18 +4398,16 @@ END $$;
 -- Notifications: unread count (most common query)
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
-    CREATE INDEX IF NOT EXISTS notifications_unread_idx ON notifications(recipient_id, created_at DESC)
+    EXECUTE 'CREATE INDEX IF NOT EXISTS notifications_unread_idx ON notifications(recipient_id, created_at DESC) WHERE is_read = false';
   END IF;
 END $$;
-  WHERE is_read = false;
 
 -- Messages: conversation view
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'messages') THEN
-    CREATE INDEX IF NOT EXISTS messages_conversation_idx ON messages(sender_id, recipient_id, created_at DESC)
+    EXECUTE 'CREATE INDEX IF NOT EXISTS messages_conversation_idx ON messages(sender_id, recipient_id, created_at DESC) WHERE deleted_at IS NULL';
   END IF;
 END $$;
-  WHERE deleted_at IS NULL;
 
 -- Event vibes: per-event count
 DO $$ BEGIN
@@ -4433,26 +4426,23 @@ END $$;
 -- Reels: hashtag search (GIN on array)
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
-    CREATE INDEX IF NOT EXISTS reels_hashtags_gin ON reels USING GIN(hashtags)
+    EXECUTE 'CREATE INDEX IF NOT EXISTS reels_hashtags_gin ON reels USING GIN(hashtags) WHERE hashtags IS NOT NULL AND is_removed = false';
   END IF;
 END $$;
-  WHERE hashtags IS NOT NULL AND is_removed = false;
 
 -- Stories: live stories per user
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'stories') THEN
-    CREATE INDEX IF NOT EXISTS stories_live_user_idx ON stories(user_id, expires_at DESC)
+    EXECUTE 'CREATE INDEX IF NOT EXISTS stories_live_user_idx ON stories(user_id, expires_at DESC) WHERE expires_at > CURRENT_TIMESTAMP';
   END IF;
 END $$;
-  WHERE expires_at > CURRENT_TIMESTAMP;
 
 -- Service bookings: provider queue
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
-    CREATE INDEX IF NOT EXISTS service_bookings_provider_idx ON service_bookings(provider_id, status, created_at DESC)
+    EXECUTE 'CREATE INDEX IF NOT EXISTS service_bookings_provider_idx ON service_bookings(provider_id, status, created_at DESC) WHERE status IN (''pending'',''confirmed'')';
   END IF;
 END $$;
-  WHERE status IN ('pending','confirmed');
 
 -- Follows: follower/following lookups
 DO $$ BEGIN
