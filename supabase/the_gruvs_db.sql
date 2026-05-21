@@ -1048,7 +1048,7 @@ CREATE TABLE IF NOT EXISTS dm_rooms (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS dm_rooms_pair_uniq
-  ON dm_rooms (LEAST(participant_1::text, participant_2::text), GREATEST(participant_1::text, participant_2::text));
+  ON dm_rooms (LEAST(CAST(participant_1 AS text), CAST(participant_2 AS text)), GREATEST(CAST(participant_1 AS text), CAST(participant_2 AS text)));
 
 ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS participant_1    UUID REFERENCES profiles(id) ON DELETE CASCADE;
 ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS participant_2    UUID REFERENCES profiles(id) ON DELETE CASCADE;
@@ -1650,7 +1650,7 @@ CREATE TABLE IF NOT EXISTS business_partnerships (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS business_partnerships_pair_uniq
-  ON business_partnerships (LEAST(requester_id::text, partner_id::text), GREATEST(requester_id::text, partner_id::text));
+  ON business_partnerships (LEAST(CAST(requester_id AS text), CAST(partner_id AS text)), GREATEST(CAST(requester_id AS text), CAST(partner_id AS text)));
 
 ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS requester_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
 ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS partner_id   UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
@@ -3700,12 +3700,12 @@ CREATE INDEX IF NOT EXISTS events_upcoming_idx ON events(event_date ASC, event_t
 
 -- Events: geo lookup (GiST — requires postgis)
 CREATE INDEX IF NOT EXISTS events_geo_idx ON events USING GIST(
-  ST_MakePoint(lon, lat)::geography
+  CAST(ST_MakePoint(lon, lat) AS geography)
 ) WHERE lat IS NOT NULL AND lon IS NOT NULL;
 
 -- Profiles: geo lookup
 CREATE INDEX IF NOT EXISTS profiles_geo_idx ON profiles USING GIST(
-  ST_MakePoint(lon, lat)::geography
+  CAST(ST_MakePoint(lon, lat) AS geography)
 ) WHERE lat IS NOT NULL AND lon IS NOT NULL;
 
 -- Notifications: unread count (most common query)
