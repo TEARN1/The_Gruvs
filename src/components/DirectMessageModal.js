@@ -464,13 +464,18 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   // ── Share Event ──────────────────────────────────────────────────────────────
   const handleShareEvent = async (evId) => {
     setShowAttachmentMenu(false);
-    setMediaLoading(true); // This should probably be a separate state for event sharing
-    const newMsg = await MessageManager.send(user.id, recipient.id, 'Check out this Gruv!', { event_id: evId });
-    if (newMsg) {
-      setMessages(prev => [...prev, newMsg]);
-      if (requestStatus === 'none') setRequestStatus('pending');
+    setMediaLoading(true);
+    try {
+      const newMsg = await MessageManager.send(user.id, recipient.id, 'Check out this Gruv!', { event_id: evId });
+      if (newMsg) {
+        setMessages(prev => [...prev, newMsg]);
+        if (requestStatus === 'none') setRequestStatus('pending');
+      }
+    } catch {
+      showToast('Could not share event.', 'error');
+    } finally {
+      setMediaLoading(false);
     }
-    setMediaLoading(false);
   };
 
   // ── Render Shared Event ──────────────────────────────────────────────────────
@@ -544,10 +549,14 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const handleAccept = async () => {
     setRequestStatus('accepted');
     try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
-    await MessageManager.acceptRequest(recipient.id, user.id);
-    const welcomeMsg = await MessageManager.send(user.id, recipient.id, "🔒 Locked in! Let's talk.");
-    if (welcomeMsg) setMessages(prev => [...prev, welcomeMsg]);
-    await fetchMessages();
+    try {
+      await MessageManager.acceptRequest(recipient.id, user.id);
+      const welcomeMsg = await MessageManager.send(user.id, recipient.id, "🔒 Locked in! Let's talk.");
+      if (welcomeMsg) setMessages(prev => [...prev, welcomeMsg]);
+      await fetchMessages();
+    } catch {
+      showToast('Could not accept request. Try again.', 'error');
+    }
   };
 
   // ── Decline / block ───────────────────────────────────────────────────────────

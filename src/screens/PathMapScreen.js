@@ -474,13 +474,13 @@ export const PathMapScreen = ({ visible, onClose }) => {
         .eq('user_id', user.id)
         .order('cross_count', { ascending: false });
       setCrossings(crossData || []);
-    } catch (e) {
+    } catch {
       showToast('Could not load footprint data.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.id]);
+  }, [user?.id, showToast]);
 
   useEffect(() => {
     if (visible) fetchData();

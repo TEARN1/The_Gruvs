@@ -137,6 +137,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   // ── Upload all media to Supabase Storage ─────────────────────────────────
   const uploadAllMedia = async () => {
     const uploaded = [];
+    let failCount = 0;
     for (const item of mediaItems) {
       try {
         const ext = (item.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
@@ -144,9 +145,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
         const mimeType = item.mimeType || (item.type === 'video' ? `video/${ext}` : `image/${ext}`);
         const publicUrl = await uploadToStorage(item.uri, 'event-media', fileName, { mimeType });
         uploaded.push({ url: publicUrl, type: item.type });
-      } catch (e) {
+      } catch {
+        failCount++;
       }
     }
+    if (failCount > 0) setError(`${failCount} media file${failCount > 1 ? 's' : ''} failed to upload — continuing with ${uploaded.length} uploaded.`);
     return uploaded;
   };
 
