@@ -1,4 +1,3 @@
---  SECTION: RLS POLICIES COMPLETE
 --============================================================
 
 -- ─── Migration 003: Complete RLS policies ────────────────────────────────────
@@ -181,3 +180,4 @@ CREATE POLICY "pulse_requests_insert"
 
 
 --============================================================
+--  SECTION: NEW FEATURES (reactions, updates, waitlist, carpools)

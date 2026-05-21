@@ -1,4 +1,3 @@
---  SECTION: MASTER ADVANCE (stories, reels, wallets, indexes, RPCs)
 --============================================================
 
 -- ============================================================
@@ -107,15 +106,17 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE stories ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "stories_select"  ON stories;
-DROP POLICY IF EXISTS "stories_insert"  ON stories;
-DROP POLICY IF EXISTS "stories_delete"  ON stories;
-CREATE POLICY "stories_select" ON stories FOR SELECT USING (true);
-CREATE POLICY "stories_insert" ON stories FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "stories_delete" ON stories FOR DELETE USING (auth.uid() = user_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'stories') THEN
+    ALTER TABLE stories ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "stories_select"  ON stories;
+    DROP POLICY IF EXISTS "stories_insert"  ON stories;
+    DROP POLICY IF EXISTS "stories_delete"  ON stories;
+    CREATE POLICY "stories_select" ON stories FOR SELECT USING (true);
+    CREATE POLICY "stories_insert" ON stories FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "stories_delete" ON stories FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- ══════════════════════════════════════════════════════════════
 --  §5  STORY_VIEWS
 -- ══════════════════════════════════════════════════════════════
@@ -138,13 +139,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE story_views ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "story_views_select"  ON story_views;
-DROP POLICY IF EXISTS "story_views_insert"  ON story_views;
-CREATE POLICY "story_views_select" ON story_views FOR SELECT USING (true);
-CREATE POLICY "story_views_insert" ON story_views FOR INSERT
-  WITH CHECK (auth.uid() = viewer_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'story_views') THEN
+    ALTER TABLE story_views ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "story_views_select"  ON story_views;
+    DROP POLICY IF EXISTS "story_views_insert"  ON story_views;
+    CREATE POLICY "story_views_select" ON story_views FOR SELECT USING (true);
+    CREATE POLICY "story_views_insert" ON story_views FOR INSERT
+      WITH CHECK (auth.uid() = viewer_id);
+  END IF;
+END $$;
 -- Auto-increment view_count on stories when a view is recorded
 CREATE OR REPLACE FUNCTION sync_story_view_count()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
@@ -206,17 +210,19 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE reels ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "reels_select"  ON reels;
-DROP POLICY IF EXISTS "reels_insert"  ON reels;
-DROP POLICY IF EXISTS "reels_update"  ON reels;
-DROP POLICY IF EXISTS "reels_delete"  ON reels;
-CREATE POLICY "reels_select" ON reels FOR SELECT USING (is_removed = false OR auth.uid() = user_id);
-CREATE POLICY "reels_insert" ON reels FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "reels_update" ON reels FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "reels_delete" ON reels FOR DELETE USING (auth.uid() = user_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reels') THEN
+    ALTER TABLE reels ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "reels_select"  ON reels;
+    DROP POLICY IF EXISTS "reels_insert"  ON reels;
+    DROP POLICY IF EXISTS "reels_update"  ON reels;
+    DROP POLICY IF EXISTS "reels_delete"  ON reels;
+    CREATE POLICY "reels_select" ON reels FOR SELECT USING (is_removed = false OR auth.uid() = user_id);
+    CREATE POLICY "reels_insert" ON reels FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "reels_update" ON reels FOR UPDATE USING (auth.uid() = user_id);
+    CREATE POLICY "reels_delete" ON reels FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- ══════════════════════════════════════════════════════════════
 --  §7  REEL_LIKES
 -- ══════════════════════════════════════════════════════════════
@@ -240,16 +246,19 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE reel_likes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "reel_likes_select"  ON reel_likes;
-DROP POLICY IF EXISTS "reel_likes_insert"  ON reel_likes;
-DROP POLICY IF EXISTS "reel_likes_update"  ON reel_likes;
-DROP POLICY IF EXISTS "reel_likes_delete"  ON reel_likes;
-CREATE POLICY "reel_likes_select" ON reel_likes FOR SELECT USING (true);
-CREATE POLICY "reel_likes_insert" ON reel_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "reel_likes_update" ON reel_likes FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "reel_likes_delete" ON reel_likes FOR DELETE USING (auth.uid() = user_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reel_likes') THEN
+    ALTER TABLE reel_likes ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "reel_likes_select"  ON reel_likes;
+    DROP POLICY IF EXISTS "reel_likes_insert"  ON reel_likes;
+    DROP POLICY IF EXISTS "reel_likes_update"  ON reel_likes;
+    DROP POLICY IF EXISTS "reel_likes_delete"  ON reel_likes;
+    CREATE POLICY "reel_likes_select" ON reel_likes FOR SELECT USING (true);
+    CREATE POLICY "reel_likes_insert" ON reel_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "reel_likes_update" ON reel_likes FOR UPDATE USING (auth.uid() = user_id);
+    CREATE POLICY "reel_likes_delete" ON reel_likes FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- Sync like_count on reels
 CREATE OR REPLACE FUNCTION sync_reel_like_count()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
@@ -285,12 +294,15 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE reel_views ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "reel_views_select"  ON reel_views;
-DROP POLICY IF EXISTS "reel_views_insert"  ON reel_views;
-CREATE POLICY "reel_views_select" ON reel_views FOR SELECT USING (true);
-CREATE POLICY "reel_views_insert" ON reel_views FOR INSERT WITH CHECK (true);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reel_views') THEN
+    ALTER TABLE reel_views ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "reel_views_select"  ON reel_views;
+    DROP POLICY IF EXISTS "reel_views_insert"  ON reel_views;
+    CREATE POLICY "reel_views_select" ON reel_views FOR SELECT USING (true);
+    CREATE POLICY "reel_views_insert" ON reel_views FOR INSERT WITH CHECK (true);
+  END IF;
+END $$;
 -- Sync view_count on reels
 CREATE OR REPLACE FUNCTION sync_reel_view_count()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
@@ -324,14 +336,17 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE reel_comments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "reel_comments_select"  ON reel_comments;
-DROP POLICY IF EXISTS "reel_comments_insert"  ON reel_comments;
-DROP POLICY IF EXISTS "reel_comments_delete"  ON reel_comments;
-CREATE POLICY "reel_comments_select" ON reel_comments FOR SELECT USING (true);
-CREATE POLICY "reel_comments_insert" ON reel_comments FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "reel_comments_delete" ON reel_comments FOR DELETE USING (auth.uid() = user_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reel_comments') THEN
+    ALTER TABLE reel_comments ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "reel_comments_select"  ON reel_comments;
+    DROP POLICY IF EXISTS "reel_comments_insert"  ON reel_comments;
+    DROP POLICY IF EXISTS "reel_comments_delete"  ON reel_comments;
+    CREATE POLICY "reel_comments_select" ON reel_comments FOR SELECT USING (true);
+    CREATE POLICY "reel_comments_insert" ON reel_comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "reel_comments_delete" ON reel_comments FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- Sync comment_count on reels
 CREATE OR REPLACE FUNCTION sync_reel_comment_count()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
@@ -369,17 +384,19 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE saved_reels ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "saved_reels_select"  ON saved_reels;
-DROP POLICY IF EXISTS "saved_reels_insert"  ON saved_reels;
-DROP POLICY IF EXISTS "saved_reels_update"  ON saved_reels;
-DROP POLICY IF EXISTS "saved_reels_delete"  ON saved_reels;
-CREATE POLICY "saved_reels_select" ON saved_reels FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "saved_reels_insert" ON saved_reels FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "saved_reels_update" ON saved_reels FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "saved_reels_delete" ON saved_reels FOR DELETE USING (auth.uid() = user_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'saved_reels') THEN
+    ALTER TABLE saved_reels ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "saved_reels_select"  ON saved_reels;
+    DROP POLICY IF EXISTS "saved_reels_insert"  ON saved_reels;
+    DROP POLICY IF EXISTS "saved_reels_update"  ON saved_reels;
+    DROP POLICY IF EXISTS "saved_reels_delete"  ON saved_reels;
+    CREATE POLICY "saved_reels_select" ON saved_reels FOR SELECT USING (auth.uid() = user_id);
+    CREATE POLICY "saved_reels_insert" ON saved_reels FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "saved_reels_update" ON saved_reels FOR UPDATE USING (auth.uid() = user_id);
+    CREATE POLICY "saved_reels_delete" ON saved_reels FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- ══════════════════════════════════════════════════════════════
 --  §11  REEL_REPORTS
 -- ══════════════════════════════════════════════════════════════
@@ -392,15 +409,17 @@ CREATE TABLE IF NOT EXISTS reel_reports (
   UNIQUE (reel_id, reporter_id)
 );
 
-ALTER TABLE reel_reports ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can report reels" ON reel_reports;
-CREATE POLICY "Users can report reels" ON reel_reports
-  FOR INSERT WITH CHECK (auth.uid() = reporter_id);
-DROP POLICY IF EXISTS "reel_reports_service"   ON reel_reports;
-CREATE POLICY "reel_reports_service" ON reel_reports
-  FOR SELECT USING (auth.role() IN ('service_role','postgres'));
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reel_reports') THEN
+    ALTER TABLE reel_reports ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Users can report reels" ON reel_reports;
+    CREATE POLICY "Users can report reels" ON reel_reports
+      FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+    DROP POLICY IF EXISTS "reel_reports_service"   ON reel_reports;
+    CREATE POLICY "reel_reports_service" ON reel_reports
+      FOR SELECT USING (auth.role() IN ('service_role','postgres'));
+  END IF;
+END $$;
 -- ══════════════════════════════════════════════════════════════
 --  §12  EVENT FEATURE TABLES (from 20260521_new_features.sql)
 --       Idempotent re-run is safe.
@@ -420,7 +439,11 @@ DO $$ BEGIN
     CREATE INDEX IF NOT EXISTS event_reactions_event_id_idx ON event_reactions(event_id);
   END IF;
 END $$;
-ALTER TABLE event_reactions ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reactions') THEN
+    ALTER TABLE event_reactions ENABLE ROW LEVEL SECURITY;
+  END IF;
+END $$;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='event_reactions' AND policyname='event_reactions_select') THEN
     EXECUTE 'CREATE POLICY "event_reactions_select" ON event_reactions FOR SELECT USING (true)'; END IF;
@@ -445,14 +468,17 @@ DO $$ BEGIN
     CREATE INDEX IF NOT EXISTS event_updates_event_id_idx ON event_updates(event_id);
   END IF;
 END $$;
-ALTER TABLE event_updates ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "event_updates_select" ON event_updates;
-DROP POLICY IF EXISTS "event_updates_insert" ON event_updates;
-DROP POLICY IF EXISTS "event_updates_delete" ON event_updates;
-CREATE POLICY "event_updates_select" ON event_updates FOR SELECT USING (true);
-CREATE POLICY "event_updates_insert" ON event_updates FOR INSERT WITH CHECK (auth.uid() = author_id);
-CREATE POLICY "event_updates_delete" ON event_updates FOR DELETE USING (auth.uid() = author_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_updates') THEN
+    ALTER TABLE event_updates ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "event_updates_select" ON event_updates;
+    DROP POLICY IF EXISTS "event_updates_insert" ON event_updates;
+    DROP POLICY IF EXISTS "event_updates_delete" ON event_updates;
+    CREATE POLICY "event_updates_select" ON event_updates FOR SELECT USING (true);
+    CREATE POLICY "event_updates_insert" ON event_updates FOR INSERT WITH CHECK (auth.uid() = author_id);
+    CREATE POLICY "event_updates_delete" ON event_updates FOR DELETE USING (auth.uid() = author_id);
+  END IF;
+END $$;
 -- event_waitlist
 CREATE TABLE IF NOT EXISTS event_waitlist (
   id        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -466,14 +492,17 @@ DO $$ BEGIN
     CREATE INDEX IF NOT EXISTS event_waitlist_event_id_idx ON event_waitlist(event_id);
   END IF;
 END $$;
-ALTER TABLE event_waitlist ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "event_waitlist_select" ON event_waitlist;
-DROP POLICY IF EXISTS "event_waitlist_insert" ON event_waitlist;
-DROP POLICY IF EXISTS "event_waitlist_delete" ON event_waitlist;
-CREATE POLICY "event_waitlist_select" ON event_waitlist FOR SELECT USING (true);
-CREATE POLICY "event_waitlist_insert" ON event_waitlist FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "event_waitlist_delete" ON event_waitlist FOR DELETE USING (auth.uid() = user_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_waitlist') THEN
+    ALTER TABLE event_waitlist ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "event_waitlist_select" ON event_waitlist;
+    DROP POLICY IF EXISTS "event_waitlist_insert" ON event_waitlist;
+    DROP POLICY IF EXISTS "event_waitlist_delete" ON event_waitlist;
+    CREATE POLICY "event_waitlist_select" ON event_waitlist FOR SELECT USING (true);
+    CREATE POLICY "event_waitlist_insert" ON event_waitlist FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "event_waitlist_delete" ON event_waitlist FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- event_carpools
 CREATE TABLE IF NOT EXISTS event_carpools (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -490,14 +519,17 @@ DO $$ BEGIN
     CREATE INDEX IF NOT EXISTS event_carpools_event_id_idx ON event_carpools(event_id);
   END IF;
 END $$;
-ALTER TABLE event_carpools ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "event_carpools_select" ON event_carpools;
-DROP POLICY IF EXISTS "event_carpools_insert" ON event_carpools;
-DROP POLICY IF EXISTS "event_carpools_delete" ON event_carpools;
-CREATE POLICY "event_carpools_select" ON event_carpools FOR SELECT USING (true);
-CREATE POLICY "event_carpools_insert" ON event_carpools FOR INSERT WITH CHECK (auth.uid() = driver_id);
-CREATE POLICY "event_carpools_delete" ON event_carpools FOR DELETE USING (auth.uid() = driver_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_carpools') THEN
+    ALTER TABLE event_carpools ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "event_carpools_select" ON event_carpools;
+    DROP POLICY IF EXISTS "event_carpools_insert" ON event_carpools;
+    DROP POLICY IF EXISTS "event_carpools_delete" ON event_carpools;
+    CREATE POLICY "event_carpools_select" ON event_carpools FOR SELECT USING (true);
+    CREATE POLICY "event_carpools_insert" ON event_carpools FOR INSERT WITH CHECK (auth.uid() = driver_id);
+    CREATE POLICY "event_carpools_delete" ON event_carpools FOR DELETE USING (auth.uid() = driver_id);
+  END IF;
+END $$;
 -- event_carpool_requests
 CREATE TABLE IF NOT EXISTS event_carpool_requests (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -517,15 +549,17 @@ DO $$ BEGIN
     CREATE INDEX IF NOT EXISTS ecr_rider_id_idx   ON event_carpool_requests(rider_id);
   END IF;
 END $$;
-ALTER TABLE event_carpool_requests ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "event_carpool_requests_select" ON event_carpool_requests;
-DROP POLICY IF EXISTS "event_carpool_requests_insert" ON event_carpool_requests;
-DROP POLICY IF EXISTS "event_carpool_requests_delete" ON event_carpool_requests;
-CREATE POLICY "event_carpool_requests_select" ON event_carpool_requests FOR SELECT USING (true);
-CREATE POLICY "event_carpool_requests_insert" ON event_carpool_requests FOR INSERT WITH CHECK (auth.uid() = rider_id);
-CREATE POLICY "event_carpool_requests_delete" ON event_carpool_requests FOR DELETE USING (auth.uid() = rider_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_carpool_requests') THEN
+    ALTER TABLE event_carpool_requests ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "event_carpool_requests_select" ON event_carpool_requests;
+    DROP POLICY IF EXISTS "event_carpool_requests_insert" ON event_carpool_requests;
+    DROP POLICY IF EXISTS "event_carpool_requests_delete" ON event_carpool_requests;
+    CREATE POLICY "event_carpool_requests_select" ON event_carpool_requests FOR SELECT USING (true);
+    CREATE POLICY "event_carpool_requests_insert" ON event_carpool_requests FOR INSERT WITH CHECK (auth.uid() = rider_id);
+    CREATE POLICY "event_carpool_requests_delete" ON event_carpool_requests FOR DELETE USING (auth.uid() = rider_id);
+  END IF;
+END $$;
 -- ══════════════════════════════════════════════════════════════
 --  §13  WALLET / TRANSACTIONS
 -- ══════════════════════════════════════════════════════════════
@@ -557,14 +591,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE wallet_transactions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "wallet_tx_owner"   ON wallet_transactions;
-DROP POLICY IF EXISTS "wallet_tx_service" ON wallet_transactions;
-CREATE POLICY "wallet_tx_owner"   ON wallet_transactions FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "wallet_tx_service" ON wallet_transactions FOR INSERT
-  WITH CHECK (auth.role() IN ('service_role','postgres','authenticated'));
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'wallet_transactions') THEN
+    ALTER TABLE wallet_transactions ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "wallet_tx_owner"   ON wallet_transactions;
+    DROP POLICY IF EXISTS "wallet_tx_service" ON wallet_transactions;
+    CREATE POLICY "wallet_tx_owner"   ON wallet_transactions FOR SELECT USING (auth.uid() = user_id);
+    CREATE POLICY "wallet_tx_service" ON wallet_transactions FOR INSERT
+      WITH CHECK (auth.role() IN ('service_role','postgres','authenticated'));
+  END IF;
+END $$;
 -- ══════════════════════════════════════════════════════════════
 --  §14  ADVANCED PERFORMANCE INDEXES
 -- ══════════════════════════════════════════════════════════════
@@ -922,13 +958,16 @@ CREATE TABLE IF NOT EXISTS ai_user_memory (
   summary     TEXT,
   updated_at  TIMESTAMPTZ DEFAULT now()
 );
-ALTER TABLE ai_user_memory ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "User reads own ai memory"  ON ai_user_memory;
-DROP POLICY IF EXISTS "Service manages ai memory" ON ai_user_memory;
-CREATE POLICY "User reads own ai memory"  ON ai_user_memory FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Service manages ai memory" ON ai_user_memory FOR ALL
-  USING (auth.role() IN ('service_role','postgres'));
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ai_user_memory') THEN
+    ALTER TABLE ai_user_memory ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "User reads own ai memory"  ON ai_user_memory;
+    DROP POLICY IF EXISTS "Service manages ai memory" ON ai_user_memory;
+    CREATE POLICY "User reads own ai memory"  ON ai_user_memory FOR SELECT USING (auth.uid() = user_id);
+    CREATE POLICY "Service manages ai memory" ON ai_user_memory FOR ALL
+      USING (auth.role() IN ('service_role','postgres'));
+  END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS ai_recommendations_cache (
   user_id      UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
   event_ids    UUID[]      DEFAULT '{}',
@@ -936,13 +975,16 @@ CREATE TABLE IF NOT EXISTS ai_recommendations_cache (
   reasoning    TEXT,
   generated_at TIMESTAMPTZ DEFAULT now()
 );
-ALTER TABLE ai_recommendations_cache ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "User reads own recs"  ON ai_recommendations_cache;
-DROP POLICY IF EXISTS "Service manages recs" ON ai_recommendations_cache;
-CREATE POLICY "User reads own recs"  ON ai_recommendations_cache FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Service manages recs" ON ai_recommendations_cache FOR ALL
-  USING (auth.role() IN ('service_role','postgres'));
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ai_recommendations_cache') THEN
+    ALTER TABLE ai_recommendations_cache ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "User reads own recs"  ON ai_recommendations_cache;
+    DROP POLICY IF EXISTS "Service manages recs" ON ai_recommendations_cache;
+    CREATE POLICY "User reads own recs"  ON ai_recommendations_cache FOR SELECT USING (auth.uid() = user_id);
+    CREATE POLICY "Service manages recs" ON ai_recommendations_cache FOR ALL
+      USING (auth.role() IN ('service_role','postgres'));
+  END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS ai_interactions (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID        REFERENCES profiles(id) ON DELETE SET NULL,
@@ -954,11 +996,15 @@ CREATE TABLE IF NOT EXISTS ai_interactions (
   feedback    INTEGER,
   created_at  TIMESTAMPTZ DEFAULT now()
 );
-ALTER TABLE ai_interactions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "User reads own interactions"  ON ai_interactions;
-DROP POLICY IF EXISTS "Service inserts interactions" ON ai_interactions;
-CREATE POLICY "User reads own interactions"  ON ai_interactions FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Service inserts interactions" ON ai_interactions FOR INSERT WITH CHECK (true);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ai_interactions') THEN
+    ALTER TABLE ai_interactions ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "User reads own interactions"  ON ai_interactions;
+    DROP POLICY IF EXISTS "Service inserts interactions" ON ai_interactions;
+    CREATE POLICY "User reads own interactions"  ON ai_interactions FOR SELECT USING (auth.uid() = user_id);
+    CREATE POLICY "Service inserts interactions" ON ai_interactions FOR INSERT WITH CHECK (true);
+  END IF;
+END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ai_interactions') THEN
     CREATE INDEX IF NOT EXISTS ai_interactions_created ON ai_interactions(created_at);

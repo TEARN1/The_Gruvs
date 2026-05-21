@@ -140,14 +140,17 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public profiles readable" ON profiles;
-DROP POLICY IF EXISTS "Users update own profile" ON profiles;
-DROP POLICY IF EXISTS "Users insert own profile" ON profiles;
-CREATE POLICY "Public profiles readable" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Users update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Public profiles readable" ON profiles;
+    DROP POLICY IF EXISTS "Users update own profile" ON profiles;
+    DROP POLICY IF EXISTS "Users insert own profile" ON profiles;
+    CREATE POLICY "Public profiles readable" ON profiles FOR SELECT USING (true);
+    CREATE POLICY "Users update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+    CREATE POLICY "Users insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+  END IF;
+END $$;
 DROP TRIGGER IF EXISTS profiles_touch ON profiles;
 CREATE TRIGGER profiles_touch BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
@@ -251,12 +254,15 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE follows ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Follows readable"         ON follows;
-DROP POLICY IF EXISTS "Users manage own follows" ON follows;
-CREATE POLICY "Follows readable"         ON follows FOR SELECT USING (true);
-CREATE POLICY "Users manage own follows" ON follows FOR ALL    USING (auth.uid() = follower_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'follows') THEN
+    ALTER TABLE follows ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Follows readable"         ON follows;
+    DROP POLICY IF EXISTS "Users manage own follows" ON follows;
+    CREATE POLICY "Follows readable"         ON follows FOR SELECT USING (true);
+    CREATE POLICY "Users manage own follows" ON follows FOR ALL    USING (auth.uid() = follower_id);
+  END IF;
+END $$;
 -- Compat view so any old code using "followers" still works
 DROP VIEW IF EXISTS followers CASCADE;
 CREATE OR REPLACE VIEW followers AS SELECT * FROM follows;
@@ -310,11 +316,13 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE blocked_users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users manage own blocks" ON blocked_users;
-CREATE POLICY "Users manage own blocks" ON blocked_users FOR ALL USING (auth.uid() = blocker_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'blocked_users') THEN
+    ALTER TABLE blocked_users ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Users manage own blocks" ON blocked_users;
+    CREATE POLICY "Users manage own blocks" ON blocked_users FOR ALL USING (auth.uid() = blocker_id);
+  END IF;
+END $$;
 -- ============================================================
 --  MUTED USERS
 -- ============================================================
@@ -333,11 +341,13 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE muted_users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users manage own mutes" ON muted_users;
-CREATE POLICY "Users manage own mutes" ON muted_users FOR ALL USING (auth.uid() = muter_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'muted_users') THEN
+    ALTER TABLE muted_users ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Users manage own mutes" ON muted_users;
+    CREATE POLICY "Users manage own mutes" ON muted_users FOR ALL USING (auth.uid() = muter_id);
+  END IF;
+END $$;
 -- ============================================================
 --  EVENTS
 -- ============================================================
@@ -472,19 +482,22 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Events readable by all"            ON events;
-DROP POLICY IF EXISTS "Authenticated users insert events" ON events;
-DROP POLICY IF EXISTS "Users update own events"           ON events;
-DROP POLICY IF EXISTS "Users delete own events"           ON events;
-CREATE POLICY "Events readable by all"            ON events FOR SELECT USING (true);
-CREATE POLICY "Authenticated users insert events" ON events FOR INSERT
-  WITH CHECK (auth.uid() = author_id OR auth.uid() = user_id);
-CREATE POLICY "Users update own events"           ON events FOR UPDATE
-  USING (auth.uid() = author_id OR auth.uid() = user_id);
-CREATE POLICY "Users delete own events"           ON events FOR DELETE
-  USING (auth.uid() = author_id OR auth.uid() = user_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
+    ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Events readable by all"            ON events;
+    DROP POLICY IF EXISTS "Authenticated users insert events" ON events;
+    DROP POLICY IF EXISTS "Users update own events"           ON events;
+    DROP POLICY IF EXISTS "Users delete own events"           ON events;
+    CREATE POLICY "Events readable by all"            ON events FOR SELECT USING (true);
+    CREATE POLICY "Authenticated users insert events" ON events FOR INSERT
+      WITH CHECK (auth.uid() = author_id OR auth.uid() = user_id);
+    CREATE POLICY "Users update own events"           ON events FOR UPDATE
+      USING (auth.uid() = author_id OR auth.uid() = user_id);
+    CREATE POLICY "Users delete own events"           ON events FOR DELETE
+      USING (auth.uid() = author_id OR auth.uid() = user_id);
+  END IF;
+END $$;
 CREATE OR REPLACE FUNCTION events_set_slug()
 RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE base_slug TEXT;
@@ -568,11 +581,13 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE event_reminders ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users manage own reminders" ON event_reminders;
-CREATE POLICY "Users manage own reminders" ON event_reminders FOR ALL USING (auth.uid() = user_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reminders') THEN
+    ALTER TABLE event_reminders ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Users manage own reminders" ON event_reminders;
+    CREATE POLICY "Users manage own reminders" ON event_reminders FOR ALL USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- ============================================================
 --  EVENT VIBES  (likes)
 -- ============================================================
@@ -609,12 +624,15 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE event_vibes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Event vibes readable"         ON event_vibes;
-DROP POLICY IF EXISTS "Users manage own event vibes" ON event_vibes;
-CREATE POLICY "Event vibes readable"         ON event_vibes FOR SELECT USING (true);
-CREATE POLICY "Users manage own event vibes" ON event_vibes FOR ALL    USING (auth.uid() = user_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_vibes') THEN
+    ALTER TABLE event_vibes ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Event vibes readable"         ON event_vibes;
+    DROP POLICY IF EXISTS "Users manage own event vibes" ON event_vibes;
+    CREATE POLICY "Event vibes readable"         ON event_vibes FOR SELECT USING (true);
+    CREATE POLICY "Users manage own event vibes" ON event_vibes FOR ALL    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 DROP VIEW IF EXISTS vibes;
 CREATE OR REPLACE VIEW vibes
   WITH (security_invoker = true)
@@ -674,13 +692,15 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE event_rsvps ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "RSVPs readable"         ON event_rsvps;
-DROP POLICY IF EXISTS "Users manage own RSVPs" ON event_rsvps;
-CREATE POLICY "RSVPs readable"         ON event_rsvps FOR SELECT USING (true);
-CREATE POLICY "Users manage own RSVPs" ON event_rsvps FOR ALL    USING (auth.uid() = user_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_rsvps') THEN
+    ALTER TABLE event_rsvps ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "RSVPs readable"         ON event_rsvps;
+    DROP POLICY IF EXISTS "Users manage own RSVPs" ON event_rsvps;
+    CREATE POLICY "RSVPs readable"         ON event_rsvps FOR SELECT USING (true);
+    CREATE POLICY "Users manage own RSVPs" ON event_rsvps FOR ALL    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- ============================================================
 --  CHECK-INS (physical attendance)
 -- ============================================================
@@ -710,12 +730,15 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE check_ins ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Check-ins readable"         ON check_ins;
-DROP POLICY IF EXISTS "Users manage own check-ins" ON check_ins;
-CREATE POLICY "Check-ins readable"         ON check_ins FOR SELECT USING (true);
-CREATE POLICY "Users manage own check-ins" ON check_ins FOR ALL    USING (auth.uid() = user_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'check_ins') THEN
+    ALTER TABLE check_ins ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Check-ins readable"         ON check_ins;
+    DROP POLICY IF EXISTS "Users manage own check-ins" ON check_ins;
+    CREATE POLICY "Check-ins readable"         ON check_ins FOR SELECT USING (true);
+    CREATE POLICY "Users manage own check-ins" ON check_ins FOR ALL    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- Alias for legacy "checkins" queries
 DROP VIEW IF EXISTS checkins;
 CREATE OR REPLACE VIEW checkins AS SELECT * FROM check_ins;
@@ -772,13 +795,15 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE live_checkins ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Live checkins readable"         ON live_checkins;
-DROP POLICY IF EXISTS "Users manage own live checkins" ON live_checkins;
-CREATE POLICY "Live checkins readable"         ON live_checkins FOR SELECT USING (true);
-CREATE POLICY "Users manage own live checkins" ON live_checkins FOR ALL    USING (auth.uid() = user_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'live_checkins') THEN
+    ALTER TABLE live_checkins ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Live checkins readable"         ON live_checkins;
+    DROP POLICY IF EXISTS "Users manage own live checkins" ON live_checkins;
+    CREATE POLICY "Live checkins readable"         ON live_checkins FOR SELECT USING (true);
+    CREATE POLICY "Users manage own live checkins" ON live_checkins FOR ALL    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- ============================================================
 --  SAVED EVENTS
 -- ============================================================
@@ -808,10 +833,13 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE saved_events ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users manage own saves" ON saved_events;
-CREATE POLICY "Users manage own saves" ON saved_events FOR ALL USING (auth.uid() = user_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'saved_events') THEN
+    ALTER TABLE saved_events ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Users manage own saves" ON saved_events;
+    CREATE POLICY "Users manage own saves" ON saved_events FOR ALL USING (auth.uid() = user_id);
+  END IF;
+END $$;
 CREATE OR REPLACE FUNCTION sync_save_counts()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
@@ -857,12 +885,15 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE event_reactions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Reactions readable"         ON event_reactions;
-DROP POLICY IF EXISTS "Users manage own reactions" ON event_reactions;
-CREATE POLICY "Reactions readable"         ON event_reactions FOR SELECT USING (true);
-CREATE POLICY "Users manage own reactions" ON event_reactions FOR ALL    USING (auth.uid() = user_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reactions') THEN
+    ALTER TABLE event_reactions ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Reactions readable"         ON event_reactions;
+    DROP POLICY IF EXISTS "Users manage own reactions" ON event_reactions;
+    CREATE POLICY "Reactions readable"         ON event_reactions FOR SELECT USING (true);
+    CREATE POLICY "Users manage own reactions" ON event_reactions FOR ALL    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 CREATE OR REPLACE FUNCTION sync_reaction_count()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
@@ -920,16 +951,19 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE echoes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Echoes readable"         ON echoes;
-DROP POLICY IF EXISTS "Users insert own echoes" ON echoes;
-DROP POLICY IF EXISTS "Users update own echoes" ON echoes;
-DROP POLICY IF EXISTS "Users delete own echoes" ON echoes;
-CREATE POLICY "Echoes readable"         ON echoes FOR SELECT USING (true);
-CREATE POLICY "Users insert own echoes" ON echoes FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users update own echoes" ON echoes FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users delete own echoes" ON echoes FOR DELETE USING (auth.uid() = user_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echoes') THEN
+    ALTER TABLE echoes ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Echoes readable"         ON echoes;
+    DROP POLICY IF EXISTS "Users insert own echoes" ON echoes;
+    DROP POLICY IF EXISTS "Users update own echoes" ON echoes;
+    DROP POLICY IF EXISTS "Users delete own echoes" ON echoes;
+    CREATE POLICY "Echoes readable"         ON echoes FOR SELECT USING (true);
+    CREATE POLICY "Users insert own echoes" ON echoes FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "Users update own echoes" ON echoes FOR UPDATE USING (auth.uid() = user_id);
+    CREATE POLICY "Users delete own echoes" ON echoes FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 CREATE OR REPLACE FUNCTION sync_echo_counts()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE v_owner UUID;
@@ -962,12 +996,15 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE echo_likes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Echo likes readable"         ON echo_likes;
-DROP POLICY IF EXISTS "Users manage own echo likes" ON echo_likes;
-CREATE POLICY "Echo likes readable"         ON echo_likes FOR SELECT USING (true);
-CREATE POLICY "Users manage own echo likes" ON echo_likes FOR ALL    USING (auth.uid() = user_id);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'echo_likes') THEN
+    ALTER TABLE echo_likes ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Echo likes readable"         ON echo_likes;
+    DROP POLICY IF EXISTS "Users manage own echo likes" ON echo_likes;
+    CREATE POLICY "Echo likes readable"         ON echo_likes FOR SELECT USING (true);
+    CREATE POLICY "Users manage own echo likes" ON echo_likes FOR ALL    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 CREATE OR REPLACE FUNCTION sync_echo_likes()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
@@ -1010,13 +1047,15 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE event_ratings ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Ratings readable"         ON event_ratings;
-DROP POLICY IF EXISTS "Users manage own ratings" ON event_ratings;
-CREATE POLICY "Ratings readable"         ON event_ratings FOR SELECT USING (true);
-CREATE POLICY "Users manage own ratings" ON event_ratings FOR ALL    USING (auth.uid() = user_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_ratings') THEN
+    ALTER TABLE event_ratings ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Ratings readable"         ON event_ratings;
+    DROP POLICY IF EXISTS "Users manage own ratings" ON event_ratings;
+    CREATE POLICY "Ratings readable"         ON event_ratings FOR SELECT USING (true);
+    CREATE POLICY "Users manage own ratings" ON event_ratings FOR ALL    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- ============================================================
 --  EVENT GALLERY
 -- ============================================================
@@ -1048,15 +1087,17 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE event_gallery ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Gallery readable"     ON event_gallery;
-DROP POLICY IF EXISTS "Users insert gallery" ON event_gallery;
-DROP POLICY IF EXISTS "Users delete gallery" ON event_gallery;
-CREATE POLICY "Gallery readable"     ON event_gallery FOR SELECT USING (true);
-CREATE POLICY "Users insert gallery" ON event_gallery FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users delete gallery" ON event_gallery FOR DELETE USING (auth.uid() = user_id);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_gallery') THEN
+    ALTER TABLE event_gallery ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Gallery readable"     ON event_gallery;
+    DROP POLICY IF EXISTS "Users insert gallery" ON event_gallery;
+    DROP POLICY IF EXISTS "Users delete gallery" ON event_gallery;
+    CREATE POLICY "Gallery readable"     ON event_gallery FOR SELECT USING (true);
+    CREATE POLICY "Users insert gallery" ON event_gallery FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "Users delete gallery" ON event_gallery FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 -- ============================================================
 --  HASHTAGS
 -- ============================================================
@@ -1085,5 +1126,75 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE hashtags ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Hashtags readable" ON hashtags;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'hashtags') THEN
+    ALTER TABLE hashtags ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Hashtags readable" ON hashtags;
+    CREATE POLICY "Hashtags readable" ON hashtags FOR SELECT USING (true);
+  END IF;
+END $$;
+-- ============================================================
+--  NOTIFICATIONS
+-- ============================================================
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='user_id')
+  AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='recipient_id') THEN
+    ALTER TABLE notifications RENAME COLUMN user_id TO recipient_id;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='is_read')
+  AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='read') THEN
+    ALTER TABLE notifications RENAME COLUMN is_read TO read;
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_id UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  actor_id     UUID        REFERENCES profiles(id) ON DELETE SET NULL,
+  type         TEXT        NOT NULL,
+  title        TEXT,
+  body         TEXT,
+  data         JSONB       DEFAULT '{}',
+  event_id     UUID        REFERENCES events(id) ON DELETE CASCADE,
+  echo_id      UUID        REFERENCES echoes(id) ON DELETE CASCADE,
+  read         BOOLEAN     DEFAULT false,
+  created_at   TIMESTAMPTZ DEFAULT now()
+);
+
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS actor_id     UUID REFERENCES profiles(id) ON DELETE SET NULL;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type         TEXT;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS title        TEXT;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS body         TEXT;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS data         JSONB DEFAULT '{}';
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES events(id) ON DELETE CASCADE;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS echo_id      UUID REFERENCES echoes(id) ON DELETE CASCADE;
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS read         BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+
+DROP INDEX IF EXISTS notifications_user_id;
+DROP INDEX IF EXISTS notifications_unread;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
+    CREATE INDEX IF NOT EXISTS notifications_recipient_id ON notifications(recipient_id, created_at DESC);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS notifications_unread       ON notifications(recipient_id) WHERE read = false;';
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
+    ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Users read own notifications" ON notifications;
+    DROP POLICY IF EXISTS "System insert notifications"  ON notifications;
+    DROP POLICY IF EXISTS "Users mark own as read"       ON notifications;
+    CREATE POLICY "Users read own notifications" ON notifications FOR SELECT USING (auth.uid() = recipient_id);
+    CREATE POLICY "System insert notifications"  ON notifications FOR INSERT WITH CHECK (true);

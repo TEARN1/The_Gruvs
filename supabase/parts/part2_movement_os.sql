@@ -1,4 +1,3 @@
---  SECTION: MOVEMENT OS (paths, service nodes, gig mode)
 --============================================================
 
 -- Movement OS: Path objects, Presence Ledger, Service Nodes, Gig Mode, Trust Ledger
@@ -301,7 +300,11 @@ ALTER TABLE live_checkins    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE path_crossings   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE path_stars       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE service_nodes    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE service_bookings ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'service_bookings') THEN
+    ALTER TABLE service_bookings ENABLE ROW LEVEL SECURITY;
+  END IF;
+END $$;
 ALTER TABLE disputes         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gig_posts        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gig_acceptances  ENABLE ROW LEVEL SECURITY;
@@ -339,8 +342,11 @@ CREATE POLICY disputes_raised ON disputes FOR ALL USING (auth.uid() = raised_by)
 
 -- DM rooms: only participants
 ALTER TABLE dm_rooms    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE dm_messages ENABLE ROW LEVEL SECURITY;
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'dm_messages') THEN
+    ALTER TABLE dm_messages ENABLE ROW LEVEL SECURITY;
+  END IF;
+END $$;
 CREATE POLICY dm_rooms_parties   ON dm_rooms    FOR ALL    USING (auth.uid() = user_a OR auth.uid() = user_b);
 CREATE POLICY dm_messages_sender ON dm_messages FOR INSERT USING (auth.uid() = sender_id);
 CREATE POLICY dm_messages_select ON dm_messages FOR SELECT
@@ -371,8 +377,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE contextual_ads ENABLE ROW LEVEL SECURITY;
-CREATE POLICY ads_select ON contextual_ads FOR SELECT USING (active = TRUE);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'contextual_ads') THEN
+    ALTER TABLE contextual_ads ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY ads_select ON contextual_ads FOR SELECT USING (active = TRUE);
+  END IF;
+END $$;
 --============================================================
+--  SECTION: RLS POLICIES COMPLETE

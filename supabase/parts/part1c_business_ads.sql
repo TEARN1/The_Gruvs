@@ -1,39 +1,6 @@
---  BUSINESS PAGE BLOCKS  (Store builder)
--- ============================================================
-CREATE TABLE IF NOT EXISTS business_page_blocks (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id UUID        REFERENCES business_profiles(id) ON DELETE CASCADE,
-  block_type  TEXT        NOT NULL,
-  position    INTEGER     DEFAULT 0,
-  config      JSONB       DEFAULT '{}',
-  visible     BOOLEAN     DEFAULT true,
-  created_at  TIMESTAMPTZ DEFAULT now()
-);
-
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_page_blocks') THEN
-    ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
-    ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS block_type  TEXT;
-    ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS position    INTEGER DEFAULT 0;
-    ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS config      JSONB   DEFAULT '{}';
-    ALTER TABLE business_page_blocks ADD COLUMN IF NOT EXISTS visible     BOOLEAN DEFAULT true;
+      USING (EXISTS (SELECT 1 FROM business_profiles bp WHERE bp.id = business_id AND bp.user_id = auth.uid()));
   END IF;
 END $$;
-
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'business_page_blocks') THEN
-    CREATE INDEX IF NOT EXISTS business_page_blocks_business_id ON business_page_blocks(business_id, position);
-  END IF;
-END $$;
-
-ALTER TABLE business_page_blocks ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Blocks public readable"        ON business_page_blocks;
-DROP POLICY IF EXISTS "Business owner manages blocks" ON business_page_blocks;
-CREATE POLICY "Blocks public readable"        ON business_page_blocks FOR SELECT USING (true);
-CREATE POLICY "Business owner manages blocks" ON business_page_blocks FOR ALL
-  USING (EXISTS (SELECT 1 FROM business_profiles bp WHERE bp.id = business_id AND bp.user_id = auth.uid()));
-
-
 -- ============================================================
 --  AD CAMPAIGNS  (app uses "ad_campaigns")
 -- ============================================================
@@ -96,13 +63,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE ad_campaigns ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Campaigns owner only" ON ad_campaigns;
-CREATE POLICY "Campaigns owner only" ON ad_campaigns FOR ALL
-  USING (auth.uid() = user_id OR EXISTS (
-    SELECT 1 FROM business_profiles bp WHERE bp.id = business_id AND bp.user_id = auth.uid()
-  ));
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_campaigns') THEN
+    ALTER TABLE ad_campaigns ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Campaigns owner only" ON ad_campaigns;
+    CREATE POLICY "Campaigns owner only" ON ad_campaigns FOR ALL
+      USING (auth.uid() = user_id OR EXISTS (
+        SELECT 1 FROM business_profiles bp WHERE bp.id = business_id AND bp.user_id = auth.uid()
+      ));
+  END IF;
+END $$;
 DROP TRIGGER IF EXISTS ad_campaigns_touch ON ad_campaigns;
 CREATE TRIGGER ad_campaigns_touch BEFORE UPDATE ON ad_campaigns
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
@@ -142,17 +112,20 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE campaign_analytics ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Campaign analytics owner only" ON campaign_analytics;
-CREATE POLICY "Campaign analytics owner only" ON campaign_analytics FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM ad_campaigns c
-    JOIN business_profiles bp ON bp.id = c.business_id
-    WHERE c.id = campaign_id AND bp.user_id = auth.uid()
-  ));
-DROP POLICY IF EXISTS "System inserts campaign analytics" ON campaign_analytics;
-CREATE POLICY "System inserts campaign analytics" ON campaign_analytics FOR INSERT WITH CHECK (true);
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'campaign_analytics') THEN
+    ALTER TABLE campaign_analytics ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Campaign analytics owner only" ON campaign_analytics;
+    CREATE POLICY "Campaign analytics owner only" ON campaign_analytics FOR SELECT
+      USING (EXISTS (
+        SELECT 1 FROM ad_campaigns c
+        JOIN business_profiles bp ON bp.id = c.business_id
+        WHERE c.id = campaign_id AND bp.user_id = auth.uid()
+      ));
+    DROP POLICY IF EXISTS "System inserts campaign analytics" ON campaign_analytics;
+    CREATE POLICY "System inserts campaign analytics" ON campaign_analytics FOR INSERT WITH CHECK (true);
+  END IF;
+END $$;
 -- Audience segments
 CREATE TABLE IF NOT EXISTS audience_segments (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -172,12 +145,14 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE audience_segments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Segments owner only" ON audience_segments;
-CREATE POLICY "Segments owner only" ON audience_segments FOR ALL
-  USING (EXISTS (SELECT 1 FROM business_profiles bp WHERE bp.id = business_id AND bp.user_id = auth.uid()));
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'audience_segments') THEN
+    ALTER TABLE audience_segments ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Segments owner only" ON audience_segments;
+    CREATE POLICY "Segments owner only" ON audience_segments FOR ALL
+      USING (EXISTS (SELECT 1 FROM business_profiles bp WHERE bp.id = business_id AND bp.user_id = auth.uid()));
+  END IF;
+END $$;
 -- ============================================================
 --  CONTEXTUAL ADS  (AdFlywheel)
 -- ============================================================
@@ -217,11 +192,13 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE contextual_ads ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Ads readable" ON contextual_ads;
-CREATE POLICY "Ads readable" ON contextual_ads FOR SELECT USING (active = true);
-
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'contextual_ads') THEN
+    ALTER TABLE contextual_ads ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Ads readable" ON contextual_ads;
+    CREATE POLICY "Ads readable" ON contextual_ads FOR SELECT USING (active = true);
+  END IF;
+END $$;
 -- ============================================================
 --  RPC FUNCTIONS
 -- ============================================================
@@ -358,8 +335,12 @@ CREATE TABLE IF NOT EXISTS app_updates (
   released_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE app_updates ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Anyone can read app_updates" ON app_updates;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'app_updates') THEN
+    ALTER TABLE app_updates ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Anyone can read app_updates" ON app_updates;
+  END IF;
+END $$;
 CREATE POLICY "Anyone can read app_updates"
   ON app_updates FOR SELECT USING (true);
 
@@ -449,3 +430,4 @@ CREATE POLICY "Auth delete chat_media"
 
 
 --============================================================
+--  SECTION: MOVEMENT OS (paths, service nodes, gig mode)

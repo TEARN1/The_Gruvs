@@ -1,4 +1,3 @@
---  SECTION: NEW FEATURES (reactions, updates, waitlist, carpools)
 --============================================================
 
 -- ─── New Features Migration ───────────────────────────────────────────────────
@@ -23,8 +22,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-alter table event_reactions enable row level security;
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_reactions') THEN
+    alter table event_reactions enable row level security;
+  END IF;
+END $$;
 -- RLS (safe to run even if 003 already added these — IF NOT EXISTS guards them)
 do $$ begin
   if not exists (
@@ -62,8 +64,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-alter table event_updates enable row level security;
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_updates') THEN
+    alter table event_updates enable row level security;
+  END IF;
+END $$;
 CREATE POLICY "event_updates_select"
   on event_updates for select using (true);
 
@@ -89,8 +94,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-alter table event_waitlist enable row level security;
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_waitlist') THEN
+    alter table event_waitlist enable row level security;
+  END IF;
+END $$;
 CREATE POLICY "event_waitlist_select"
   on event_waitlist for select using (true);
 
@@ -119,8 +127,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-alter table event_carpools enable row level security;
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_carpools') THEN
+    alter table event_carpools enable row level security;
+  END IF;
+END $$;
 CREATE POLICY "event_carpools_select"
   on event_carpools for select using (true);
 
@@ -152,8 +163,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
-alter table event_carpool_requests enable row level security;
-
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'event_carpool_requests') THEN
+    alter table event_carpool_requests enable row level security;
+  END IF;
+END $$;
 CREATE POLICY "event_carpool_requests_select"
   on event_carpool_requests for select using (true);
 
@@ -195,3 +209,4 @@ alter publication supabase_realtime add table event_updates;
 
 
 --============================================================
+--  SECTION: LIVE DB PATCH (columns, security, AI layer)
