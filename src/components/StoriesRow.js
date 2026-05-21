@@ -11,6 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { uploadToStorage } from '../services/storageService';
+import { resilient } from '../utils/resilience';
 
 const STORY_DURATION = 5000;
 
@@ -259,7 +260,14 @@ export const StoriesRow = ({ onAuthRequired }) => {
     if (user) {
       const unseen = group.stories.filter(s => !seenMap[s.id]).map(s => ({ story_id: s.id, viewer_id: user.id }));
       if (unseen.length > 0) {
-        await supabase.from('story_views').upsert(unseen, { onConflict: 'story_id,viewer_id' });
+        await resilient(
+          [
+            () => supabase.from('story_views').upsert(unseen, { onConflict: 'story_id,viewer_id' }),
+            () => supabase.from('story_views').insert(unseen),
+            () => supabase.rpc('mark_stories_seen', { p_story_ids: unseen.map(u => u.story_id), p_viewer_id: user.id }),
+          ],
+          { attemptsPerTier: 2, baseMs: 300, label: 'StoriesRow.markSeen', fallbackValue: null }
+        );
         const updated = { ...seenMap };
         for (const u of unseen) updated[u.story_id] = true;
         setSeenMap(updated);
@@ -289,13 +297,15 @@ export const StoriesRow = ({ onAuthRequired }) => {
       const path = `${user.id}/story_${Date.now()}.${ext}`;
       const url = await uploadToStorage(asset.uri, 'stories', path, { mimeType: asset.mimeType });
       const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
-      await supabase.from('stories').insert({
-        user_id: user.id,
-        media_url: url,
-        media_type: isVideo ? 'video' : 'image',
-        caption: '',
-        expires_at: expiresAt,
-      });
+      const storyPayload = { user_id: user.id, media_url: url, media_type: isVideo ? 'video' : 'image', caption: '', expires_at: expiresAt };
+      await resilient(
+        [
+          () => supabase.from('stories').insert(storyPayload),
+          () => supabase.from('stories').upsert(storyPayload),
+          () => supabase.rpc('create_story', { p_user_id: user.id, p_url: url, p_type: isVideo ? 'video' : 'image', p_expires_at: expiresAt }),
+        ],
+        { attemptsPerTier: 2, baseMs: 400, label: 'StoriesRow.addStory', fallbackValue: null }
+      );
       await loadStories();
     } catch {
       // Story upload failed silently — user sees spinner stop with no partial state

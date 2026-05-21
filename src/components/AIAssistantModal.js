@@ -55,7 +55,7 @@ export const AIAssistantModal = ({ visible, onClose }) => {
   const buildContext = useCallback(async () => {
     if (!user) return '';
     try {
-      const [{ data: mem }, { data: events }] = await Promise.all([
+      const [memRes, eventsRes] = await Promise.allSettled([
         supabase.from('ai_user_memory').select('summary').eq('user_id', user.id).single(),
         supabase.from('events')
           .select('title, city, category, event_date, trending_score')
@@ -63,6 +63,8 @@ export const AIAssistantModal = ({ visible, onClose }) => {
           .order('trending_score', { ascending: false })
           .limit(10),
       ]);
+      const mem = memRes.status === 'fulfilled' ? memRes.value?.data : null;
+      const events = eventsRes.status === 'fulfilled' ? eventsRes.value?.data : null;
       const userPart = profile
         ? `USER: ${profile.display_name || profile.username}, interests: ${(profile.interests || []).join(', ')}, city: ${profile.city || 'unknown'}, vibe score: ${profile.vibe_score || 0}`
         : '';

@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 
@@ -39,7 +40,7 @@ const CreatePollModal = ({ visible, onClose, eventId, scheduleSlot, primary, bg,
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('event_polls').insert({
+      const pollPayload = {
         event_id: eventId,
         author_id: user.id,
         question: question.trim(),
@@ -47,9 +48,17 @@ const CreatePollModal = ({ visible, onClose, eventId, scheduleSlot, primary, bg,
         schedule_slot: scheduleSlot || null,
         votes: {},
         created_at: new Date().toISOString(),
-      });
-      if (error) {
-        toast.show('Could not create poll: ' + error.message, 'error');
+      };
+      const ok = await resilient(
+        [
+          () => supabase.from('event_polls').insert(pollPayload),
+          () => supabase.from('event_polls').upsert(pollPayload),
+          () => supabase.rpc('create_event_poll', { p_event_id: eventId, p_author_id: user.id, p_question: question.trim(), p_options: validOptions }),
+        ],
+        { attemptsPerTier: 2, baseMs: 400, label: `EventSchedule.createPoll:${eventId}`, fallbackValue: null }
+      );
+      if (ok === null) {
+        toast.show('Could not create poll — try again.', 'error');
       } else {
         toast.show('Poll created! 🗳️', 'success');
         reset();
@@ -230,9 +239,16 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
     setPolls(prev => prev.map(p => p.id === pollId ? { ...p, votes } : p));
 
     try {
-      const { error } = await supabase.from('event_polls').update({ votes }).eq('id', pollId);
-      if (error) {
-        toast.show('Vote failed: ' + error.message, 'error');
+      const ok = await resilient(
+        [
+          () => supabase.from('event_polls').update({ votes }).eq('id', pollId),
+          async () => { const { error } = await supabase.from('event_polls').update({ votes }).eq('id', pollId); if (error) throw error; },
+          () => supabase.rpc('cast_poll_vote', { p_poll_id: pollId, p_votes: votes }),
+        ],
+        { attemptsPerTier: 2, baseMs: 300, label: `EventSchedule.vote:${pollId}`, fallbackValue: null }
+      );
+      if (ok === null) {
+        toast.show('Vote failed — try again', 'error');
         loadPolls();
       }
     } catch {

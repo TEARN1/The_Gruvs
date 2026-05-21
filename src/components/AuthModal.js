@@ -10,6 +10,7 @@ const SCREEN_W = Dimensions.get('window').width;
 const HM = SCREEN_W < 375 ? 12 : 25;
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { SecurityService } from '../services/securityService';
 import { useToast } from './ToastNotification';
 
@@ -133,7 +134,7 @@ export const AuthModal = ({ visible, onClose }) => {
     if (!data) return;
     if (data.user) {
       SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_SUCCESS');
-      supabase.from('profiles').upsert({
+      const profilePayload = {
         id: data.user.id,
         username: username.trim(),
         display_name: displayName.trim() || username.trim(),
@@ -146,7 +147,15 @@ export const AuthModal = ({ visible, onClose }) => {
         wants_email: wantsEmail,
         email_confirmed: false,
         confirm_later: confirmLater,
-      }).then(() => {});
+      };
+      resilient(
+        [
+          () => supabase.from('profiles').upsert(profilePayload),
+          () => supabase.from('profiles').insert(profilePayload),
+          () => supabase.rpc('create_user_profile', { p_payload: profilePayload }),
+        ],
+        { attemptsPerTier: 3, baseMs: 500, label: `AuthModal.createProfile:${data.user.id}`, fallbackValue: null }
+      ).then(() => {});
     }
 
     const hasSession = !!data.session;
