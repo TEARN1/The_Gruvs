@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
 import * as Haptics from 'expo-haptics';
 
@@ -87,24 +88,25 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
     );
 
     try {
-      const { error } = await supabase.from('pulse_votes').insert({ request_id: requestId, user_id: user.id });
-      if (!error) {
-        await supabase.from('pulse_requests')
-          .update({ vote_count: requests.find(r => r.id === requestId)?.vote_count + 1 })
-          .eq('id', requestId);
+      const ok = await resilient(
+        [
+          () => supabase.from('pulse_votes').insert({ request_id: requestId, user_id: user.id }),
+          () => supabase.from('pulse_votes').upsert({ request_id: requestId, user_id: user.id }, { onConflict: 'request_id,user_id', ignoreDuplicates: true }),
+          () => supabase.rpc('cast_pulse_vote', { p_request_id: requestId, p_user_id: user.id }),
+        ],
+        { attemptsPerTier: 2, baseMs: 300, label: `PulseSchedule.vote:${requestId}`, fallbackValue: null }
+      );
+      if (ok !== null) {
+        // best-effort count sync
+        const cur = requests.find(r => r.id === requestId);
+        if (cur) supabase.from('pulse_requests').update({ vote_count: cur.vote_count }).eq('id', requestId).then(() => {}).catch(() => {});
       } else {
-        // Rollback on duplicate/error
         setMyVotes(prev => { const n = new Set(prev); n.delete(requestId); return n; });
-        setRequests(prev =>
-          prev.map(r => r.id === requestId ? { ...r, vote_count: r.vote_count - 1 } : r)
-        );
+        setRequests(prev => prev.map(r => r.id === requestId ? { ...r, vote_count: r.vote_count - 1 } : r));
       }
     } catch {
-      // Rollback optimistic update on network failure
       setMyVotes(prev => { const n = new Set(prev); n.delete(requestId); return n; });
-      setRequests(prev =>
-        prev.map(r => r.id === requestId ? { ...r, vote_count: r.vote_count - 1 } : r)
-      );
+      setRequests(prev => prev.map(r => r.id === requestId ? { ...r, vote_count: r.vote_count - 1 } : r));
     }
   };
 
@@ -120,16 +122,31 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
     setNewRequest('');
 
     try {
-      const { data, error } = await supabase.from('pulse_requests')
-        .insert({ event_id: eventId, user_id: user.id, content, vote_count: 1 })
-        .select().single();
+      const payload = { event_id: eventId, user_id: user.id, content, vote_count: 1 };
+      const result = await resilient(
+        [
+          async () => {
+            const { data, error } = await supabase.from('pulse_requests').insert(payload).select().single();
+            if (error) throw error;
+            return data;
+          },
+          async () => {
+            const { data, error } = await supabase.from('pulse_requests').upsert(payload).select().single();
+            if (error) throw error;
+            return data;
+          },
+          () => supabase.rpc('add_pulse_request', { p_event_id: eventId, p_user_id: user.id, p_content: content }),
+        ],
+        { attemptsPerTier: 2, baseMs: 400, label: `PulseSchedule.request:${eventId}`, fallbackValue: null }
+      );
 
-      if (error) {
+      if (result === null) {
         setRequests(prev => prev.filter(r => r.id !== tempId));
         toast.show('Failed to add request', 'error');
       } else {
-        setRequests(prev => prev.map(r => r.id === tempId ? data : r));
-        if (data) setMyVotes(prev => new Set([...prev, data.id]));
+        const data = typeof result === 'object' ? result : null;
+        setRequests(prev => prev.map(r => r.id === tempId ? (data || { ...optimistic, id: `confirmed-${Date.now()}` }) : r));
+        if (data?.id) setMyVotes(prev => new Set([...prev, data.id]));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         toast.show('Request added to the Pulse!', 'success');
       }
