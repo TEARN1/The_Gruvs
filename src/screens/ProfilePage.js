@@ -127,6 +127,7 @@ const AnalyticsChart = ({ primary, muted, textColor, userId }) => {
         const vibes = vibeSettled.status === 'fulfilled' ? (vibeSettled.value?.data || []) : [];
         const dayCounts = [0, 0, 0, 0, 0, 0, 0];
         [...rsvps, ...vibes].forEach(item => {
+          if (!item.created_at) return;
           const day = new Date(item.created_at).getDay();
           const idx = day === 0 ? 6 : day - 1;
           dayCounts[idx]++;
