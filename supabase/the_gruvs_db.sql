@@ -4380,20 +4380,16 @@ END $$;
 -- Events: geo lookup (GiST — requires postgis)
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'events') THEN
-    CREATE INDEX IF NOT EXISTS events_geo_idx ON events USING GIST(
+    EXECUTE 'CREATE INDEX IF NOT EXISTS events_geo_idx ON events USING GIST( CAST(ST_MakePoint(lon, lat) AS geography) ) WHERE lat IS NOT NULL AND lon IS NOT NULL';
   END IF;
 END $$;
-  CAST(ST_MakePoint(lon, lat) AS geography)
-) WHERE lat IS NOT NULL AND lon IS NOT NULL;
 
 -- Profiles: geo lookup
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
-    CREATE INDEX IF NOT EXISTS profiles_geo_idx ON profiles USING GIST(
+    EXECUTE 'CREATE INDEX IF NOT EXISTS profiles_geo_idx ON profiles USING GIST( CAST(ST_MakePoint(lon, lat) AS geography) ) WHERE lat IS NOT NULL AND lon IS NOT NULL';
   END IF;
 END $$;
-  CAST(ST_MakePoint(lon, lat) AS geography)
-) WHERE lat IS NOT NULL AND lon IS NOT NULL;
 
 -- Notifications: unread count (most common query)
 DO $$ BEGIN
