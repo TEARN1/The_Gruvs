@@ -6,9 +6,9 @@
 -- ============================================================
 
 
-============================================================
+--============================================================
 --  SECTION: BASE SCHEMA
-============================================================
+--============================================================
 
 -- ============================================================
 --  THE GRUVS — Complete Supabase Schema  (v4 — canonical)
@@ -2065,9 +2065,9 @@ CREATE POLICY "Auth delete chat_media"
   ON storage.objects FOR DELETE USING (bucket_id = 'chat_media' AND auth.role() = 'authenticated');
 
 
-============================================================
+--============================================================
 --  SECTION: MOVEMENT OS (paths, service nodes, gig mode)
-============================================================
+--============================================================
 
 -- Movement OS: Path objects, Presence Ledger, Service Nodes, Gig Mode, Trust Ledger
 -- Run this in the Supabase SQL editor after 001_initial and 002_upgrades
@@ -2367,9 +2367,9 @@ ALTER TABLE contextual_ads ENABLE ROW LEVEL SECURITY;
 CREATE POLICY ads_select ON contextual_ads FOR SELECT USING (active = TRUE);
 
 
-============================================================
+--============================================================
 --  SECTION: RLS POLICIES COMPLETE
-============================================================
+--============================================================
 
 -- ─── Migration 003: Complete RLS policies ────────────────────────────────────
 -- Fills the gaps where tables had RLS enabled but were missing UPDATE/DELETE
@@ -2550,9 +2550,9 @@ CREATE POLICY "pulse_requests_insert"
   );
 
 
-============================================================
+--============================================================
 --  SECTION: NEW FEATURES (reactions, updates, waitlist, carpools)
-============================================================
+--============================================================
 
 -- ─── New Features Migration ───────────────────────────────────────────────────
 -- Covers: event_reactions, event_updates (live updates), event_waitlist,
@@ -2723,9 +2723,9 @@ alter publication supabase_realtime add table event_reactions;
 alter publication supabase_realtime add table event_updates;
 
 
-============================================================
+--============================================================
 --  SECTION: LIVE DB PATCH (columns, security, AI layer)
-============================================================
+--============================================================
 
 -- ============================================================
 --  THE GRUVS — Master Live Database Patch  (v3)
@@ -3212,9 +3212,9 @@ CREATE POLICY "Users can report reels" ON reel_reports
   FOR INSERT WITH CHECK (auth.uid() = reporter_id);
 
 
-============================================================
+--============================================================
 --  SECTION: MASTER ADVANCE (stories, reels, wallets, indexes, RPCs)
-============================================================
+--============================================================
 
 -- ============================================================
 --  THE GRUVS — Master Advance Migration  v5 × 5
