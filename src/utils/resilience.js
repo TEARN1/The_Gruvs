@@ -109,10 +109,10 @@ export async function resilient(tiers, opts = {}) {
     fallbackValue   = null,
   } = opts;
 
-  const tierNames = ['primary', 'secondary', 'tertiary'];
+  const tierNames = ['primary', 'secondary', 'tertiary', 'quaternary', 'quinary'];
 
-  for (let t = 0; t < Math.min(tiers.length, 3); t++) {
-    const result = await runTier(tiers[t], attemptsPerTier, baseMs, `${label}:${tierNames[t]}`);
+  for (let t = 0; t < tiers.length; t++) {
+    const result = await runTier(tiers[t], attemptsPerTier, baseMs, `${label}:${tierNames[t] ?? `tier${t + 1}`}`);
     if (result.ok) return result.value;
     // If transient, the next tier may succeed with a simpler strategy
     // If fatal, skip remaining tiers — wrong input, not a connectivity issue

@@ -27,6 +27,10 @@ export const useNotifications = ({ onNavigate } = {}) => {
   }, [user?.id]);
 
   useEffect(() => {
+    // Guard: remove any stale listeners before re-registering (handles StrictMode double-mount)
+    try { receivedListener.current?.remove(); } catch {}
+    try { responseListener.current?.remove(); } catch {}
+
     try {
       receivedListener.current = Notifications.addNotificationReceivedListener(
         (notification) => {
@@ -57,12 +61,10 @@ export const useNotifications = ({ onNavigate } = {}) => {
     }
 
     return () => {
-      try {
-        receivedListener.current?.remove();
-        responseListener.current?.remove();
-      } catch {}
+      try { receivedListener.current?.remove(); } catch {}
+      try { responseListener.current?.remove(); } catch {}
     };
-  }, []);
+  }, [showToast]);
 
   return { expoPushToken };
 };

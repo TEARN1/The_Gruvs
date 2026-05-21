@@ -311,12 +311,12 @@ export const ScoreEngine = {
       await VibeEconomyEngine.getGlobalEconomicHealth(); // Check economic health
 
       const [posts, vibes, rsvps, checkins, follows, bookings] = await Promise.all([
-        supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId),
-        supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', userId),
-        supabase.from('service_bookings').select('id', { count: 'exact', head: true }).eq('provider_id', userId).eq('status', 'completed'),
+        supabase.from('events').select('id', { count: 'estimated', head: true }).eq('author_id', userId),
+        supabase.from('event_vibes').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
+        supabase.from('event_rsvps').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
+        supabase.from('live_checkins').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
+        supabase.from('follows').select('id', { count: 'estimated', head: true }).eq('following_id', userId),
+        supabase.from('service_bookings').select('id', { count: 'estimated', head: true }).eq('provider_id', userId).eq('status', 'completed'),
       ]);
 
       // Decay-weighted contribution scoring.
@@ -416,7 +416,8 @@ export const FeedManager = {
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
       if (category !== 'all') q = q.eq('category', category);
       if (query.trim()) {
-        const s = query.trim();
+        // Escape ilike special chars so user input is treated as a literal string
+        const s = query.trim().replace(/[%_\\]/g, c => `\\${c}`);
         q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%,venue_name.ilike.%${s}%`).order('vibe_count', { ascending: false });
       } else {
         q = q.order('created_at', { ascending: false });
@@ -444,7 +445,7 @@ export const FeedManager = {
       if (aiRecommendedIds.size > 0) {
         events = events.map(e => aiRecommendedIds.has(e.id) ? { ...e, _aiRecommended: true } : e);
       }
-      const result = { events, total: count || 0, page, hasMore: events.length === this.PAGE_SIZE };
+      const result = { events, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
       cache.set(cacheKey, result);
       return result;
     };
@@ -736,13 +737,18 @@ export const TrendingManager = {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const week = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      // End of the current calendar week (Sunday), capped at 7 days out
+      const endOfWeek = new Date(now);
+      const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
+      endOfWeek.setDate(now.getDate() + daysUntilSunday);
+      const weekEnd = endOfWeek.toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
-        .select('*, profiles(username, avatar_url)')
+        .select('id, title, media, vibe_count, going, event_date, event_time, venue_name, category, created_at, profiles(username, avatar_url)')
         .gte('event_date', today)
-        .lte('event_date', week)
+        .lte('event_date', weekEnd)
         .neq('is_deleted', true)
         .neq('is_cancelled', true)
         .order('vibe_count', { ascending: false })
@@ -1043,7 +1049,7 @@ export const UserManager = {
     try {
       const { count } = await supabase
         .from('follows')
-        .select('id', { count: 'exact', head: true })
+        .select('id', { count: 'estimated', head: true })
         .eq('following_id', userId);
       return count || 0;
     } catch { return 0; }
@@ -1055,14 +1061,16 @@ export const UserManager = {
     if (cached) return cached;
 
     return resilientRead(
-      // Tier 1: full profile
+      // Tier 1: public profile fields (no sensitive columns)
       async () => {
-        const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+        const { data, error } = await supabase.from('profiles')
+          .select('id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, interests, location, career_title, is_discoverable, share_events')
+          .eq('id', userId).single();
         if (error) throw error;
         if (data) cache.set(cacheKey, data);
         return data;
       },
-      // Tier 2: public fields only
+      // Tier 2: minimal public fields
       async () => {
         const { data, error } = await supabase.from('profiles')
           .select('id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen')
@@ -1078,11 +1086,14 @@ export const UserManager = {
   },
 
   async updateProfile(userId, updates) {
-    const shieldedUpdates = SecurityService.obfuscateIdentity(updates);
-    const sanitizedUpdates = { ...shieldedUpdates };
+    // Sanitize user-provided text fields; strip _shield_* metadata before DB write
+    const sanitizedUpdates = { ...updates };
     if (sanitizedUpdates.display_name) sanitizedUpdates.display_name = SecurityService.sanitizeContent(sanitizedUpdates.display_name);
-    if (sanitizedUpdates.bio) sanitizedUpdates.bio = SecurityService.sanitizeContent(sanitizedUpdates.bio);
-    if (sanitizedUpdates.username) sanitizedUpdates.username = SecurityService.sanitizeContent(sanitizedUpdates.username);
+    if (sanitizedUpdates.bio)          sanitizedUpdates.bio          = SecurityService.sanitizeContent(sanitizedUpdates.bio);
+    if (sanitizedUpdates.username)     sanitizedUpdates.username     = SecurityService.sanitizeContent(sanitizedUpdates.username);
+    // Remove internal keys that must never reach the database
+    delete sanitizedUpdates._shield_ts;
+    delete sanitizedUpdates._shield_entropy;
     const payload = { ...sanitizedUpdates, updated_at: new Date().toISOString() };
 
     const data = await resilient(
@@ -1348,11 +1359,11 @@ export const AnalyticsManager = {
     // Removed demo mode fallback.
     try {
       const [posts, saves, vibes, checkins, followers] = await Promise.all([
-        supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId),
-        supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', userId),
+        supabase.from('events').select('id', { count: 'estimated', head: true }).eq('author_id', userId),
+        supabase.from('saved_events').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
+        supabase.from('event_vibes').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
+        supabase.from('live_checkins').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
+        supabase.from('follows').select('id', { count: 'estimated', head: true }).eq('following_id', userId),
       ]);
       const result = {
         gruvCount: posts.count || 0,
@@ -1462,8 +1473,9 @@ export const AnalyticsManager = {
       const { data } = await supabase
         .from('events')
         .select('created_at')
-        .eq('author_id', userId)   // fixed: was user_id
-        .gte('created_at', weekAgo);
+        .eq('author_id', userId)
+        .gte('created_at', weekAgo)
+        .limit(500);
       const days = [0, 0, 0, 0, 0, 0, 0];
       (data || []).forEach(e => {
         const dow = new Date(e.created_at).getDay();

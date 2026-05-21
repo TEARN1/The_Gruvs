@@ -272,6 +272,7 @@ const MainNavigator = () => {
   const screenOpacity = useRef(new Animated.Value(1)).current;
   const backPressCount = useRef(0);
   const backPressTimer = useRef(null);
+  const lastHapticRef = useRef(0);
 
   const isWide = width >= WIDE_BREAKPOINT;
 
@@ -279,8 +280,8 @@ const MainNavigator = () => {
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const handler = () => {
-      if (currentTab !== 'feed') {
-        setCurrentTab('feed');
+      if (currentTab !== TABS[0].key) {
+        setCurrentTab(TABS[0].key);
         return true;
       }
       if (backPressCount.current === 1) {
@@ -383,7 +384,7 @@ const MainNavigator = () => {
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const isDark = !bg.startsWith('#f') && !bg.startsWith('#e');
 
-  // Item 35: keyboard navigation 1-6 on web desktop
+  // Item 35: keyboard navigation 1-7 on web desktop
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const handler = (e) => {
@@ -391,12 +392,14 @@ const MainNavigator = () => {
       if (idx >= 1 && idx <= TABS.length && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const target = e.target?.tagName;
         if (target === 'INPUT' || target === 'TEXTAREA') return;
+        // Suppress when a modal is open — keyboard nav would navigate behind the modal
+        if (authModalVisible || godViewVisible || !!targetProfile) return;
         handleTabChange(TABS[idx - 1].key);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [currentTab]);
+  }, [handleTabChange, authModalVisible, godViewVisible, targetProfile]);
 
   // Item 36: update document.title on tab change
   useEffect(() => {
@@ -407,7 +410,11 @@ const MainNavigator = () => {
 
   const handleTabChange = useCallback((tab) => {
     if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
+      const now = Date.now();
+      if (now - lastHapticRef.current > 300) {
+        lastHapticRef.current = now;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
+      }
     }
 
     if (tab === currentTab && tab === 'feed') {

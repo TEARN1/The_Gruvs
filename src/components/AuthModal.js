@@ -73,17 +73,24 @@ export const AuthModal = ({ visible, onClose }) => {
   };
 
   const handleSignIn = async () => {
-    if (!email.trim() || !password.trim()) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password.trim()) {
       setError('Please enter your email and password.');
+      return;
+    }
+    // Basic email format check before hitting the server
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Please enter a valid email address.');
       return;
     }
     setLoading(true);
     setError('');
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
       if (error) {
-        setError(error.message);
-        SecurityService.logSecurityEvent(null, 'AUTH_SIGNIN_FAILED', { email: email.trim(), error: error.message });
+        // Return a generic message to prevent account enumeration
+        setError('Incorrect email or password. Please try again.');
+        SecurityService.logSecurityEvent(null, 'AUTH_SIGNIN_FAILED', { error: error.message });
       } else {
         SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNIN_SUCCESS');
         onClose();
@@ -105,9 +112,15 @@ export const AuthModal = ({ visible, onClose }) => {
       setError('Password must be at least 6 characters.');
       return;
     }
+    const trimmedEmail2 = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail2)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
     const year = parseInt(birthYear, 10);
-    if (birthYear && (isNaN(year) || year < 1920 || year > new Date().getFullYear() - 13)) {
-      setError('Please enter a valid birth year (you must be 13+).');
+    const currentYear = new Date().getFullYear(); // evaluated at call-time, not parse-time
+    if (birthYear && (isNaN(year) || year < 1920 || year > currentYear - 13)) {
+      setError('Please enter a valid birth year (you must be 13 or older).');
       return;
     }
     setLoading(true);

@@ -77,9 +77,16 @@ export const IdentityProvider = ({ children }) => {
 
   // Sync to Supabase when user/mode changes
   useEffect(() => {
-    if (user?.id && !loading) {
-      (async () => { try { await supabase.from('profiles').update({ identity_mode: identityMode, is_beacon_active: beaconActive }).eq('id', user.id); } catch {} })();
-    }
+    if (!user?.id || loading) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await supabase.from('profiles').update({ identity_mode: identityMode, is_beacon_active: beaconActive }).eq('id', user.id);
+      } catch {
+        // Non-fatal — local state is source of truth, DB sync is best-effort
+      }
+    })();
+    return () => { cancelled = true; };
   }, [user?.id, identityMode, beaconActive, loading]);
 
   const setIdentityMode = useCallback(async (mode) => {

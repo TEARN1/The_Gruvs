@@ -59,8 +59,24 @@ export const NotificationService = {
       return () => {};
     }
   },
+  // Lightweight in-memory rate limiter: max 10 sends per recipient per minute
+  _sendCounts: new Map(),
+  _isRateLimited(recipientId) {
+    const now = Date.now();
+    const entry = this._sendCounts.get(recipientId) || { count: 0, windowStart: now };
+    if (now - entry.windowStart > 60_000) {
+      this._sendCounts.set(recipientId, { count: 1, windowStart: now });
+      return false;
+    }
+    if (entry.count >= 10) return true;
+    entry.count++;
+    this._sendCounts.set(recipientId, entry);
+    return false;
+  },
+
   async send(recipientId, { type, title, body, data = {}, actorId = null, eventId = null }) {
     if (!recipientId) return;
+    if (this._isRateLimited(recipientId)) return;
     try {
       await supabase.from('notifications').insert({
         recipient_id: recipientId,
@@ -82,18 +98,25 @@ export const NotificationService = {
         .maybeSingle();
       const token = profile?.push_token;
       if (!token || !token.startsWith('ExponentPushToken')) return;
-      await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          to: token,
-          title,
-          body,
-          data: { type, ...data },
-          sound: 'default',
-          priority: 'high',
-        }),
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      try {
+        await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            to: token,
+            title,
+            body,
+            data: { type, ...data },
+            sound: 'default',
+            priority: 'high',
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
     } catch {}
   },
 

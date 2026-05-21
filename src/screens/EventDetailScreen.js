@@ -141,22 +141,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       unsubCheckin();
       if (rsvpChan) supabase.removeChannel(rsvpChan);
     };
-  }, [visible, event?.id]);
+  }, [visible, event?.id, fetchUserState]);
 
-  const fetchUserState = async () => {
+  const fetchUserState = useCallback(async () => {
     if (!user || !event?.id) return;
-    try {
-      const [rsvpRes, followRes, checkinRes] = await Promise.allSettled([
-        RSVPManager.getUserStatus(event.id, user.id),
-        UserManager.isFollowing(user.id, organizer?.id),
-        CheckInManager.hasCheckedIn(event.id, user.id),
-      ]);
-      if (rsvpRes.status === 'fulfilled' && rsvpRes.value) setRsvpStatus(rsvpRes.value);
-      if (followRes.status === 'fulfilled') setIsFollowing(followRes.value);
-      if (checkinRes.status === 'fulfilled' && checkinRes.value) setCheckedIn(true);
-    } catch (err) {
-    }
-  };
+    const [rsvpRes, followRes, checkinRes] = await Promise.allSettled([
+      RSVPManager.getUserStatus(event.id, user.id),
+      UserManager.isFollowing(user.id, organizer?.id),
+      CheckInManager.hasCheckedIn(event.id, user.id),
+    ]);
+    if (rsvpRes.status === 'fulfilled' && rsvpRes.value != null) setRsvpStatus(rsvpRes.value);
+    if (followRes.status === 'fulfilled' && followRes.value != null) setIsFollowing(followRes.value);
+    if (checkinRes.status === 'fulfilled' && checkinRes.value) setCheckedIn(true);
+  }, [user, event?.id, organizer?.id]);
 
   const fetchGoingCount = async () => {
     if (!event?.id) return;
@@ -166,7 +163,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     } catch { }
   };
 
-  const handleRsvp = async (status) => {
+  const handleRsvp = useCallback(async (status) => {
     if (!user) { onAuthRequired?.(); return; }
     if (rsvpLoading) return;
     // Optimistic update
@@ -192,7 +189,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     } finally {
       setRsvpLoading(false);
     }
-  };
+  }, [user, rsvpStatus, rsvpLoading, event?.id, onAuthRequired, showToast]);
 
   const handleFollow = async () => {
     if (!user) { onAuthRequired?.(); return; }
