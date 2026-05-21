@@ -1044,9 +1044,11 @@ CREATE TABLE IF NOT EXISTS dm_rooms (
   unread_count_1 INTEGER     DEFAULT 0,
   unread_count_2 INTEGER     DEFAULT 0,
   created_at     TIMESTAMPTZ DEFAULT now(),
-  updated_at     TIMESTAMPTZ DEFAULT now(),
-  UNIQUE (LEAST(participant_1, participant_2), GREATEST(participant_1, participant_2))
+  updated_at     TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS dm_rooms_pair_uniq
+  ON dm_rooms (LEAST(participant_1::text, participant_2::text), GREATEST(participant_1::text, participant_2::text));
 
 ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS participant_1    UUID REFERENCES profiles(id) ON DELETE CASCADE;
 ALTER TABLE dm_rooms ADD COLUMN IF NOT EXISTS participant_2    UUID REFERENCES profiles(id) ON DELETE CASCADE;
@@ -1644,9 +1646,11 @@ CREATE TABLE IF NOT EXISTS business_partnerships (
   partner_id   UUID        NOT NULL REFERENCES business_profiles(id) ON DELETE CASCADE,
   status       TEXT        DEFAULT 'pending' CHECK (status IN ('pending','active','declined','ended')),
   terms        TEXT,
-  created_at   TIMESTAMPTZ DEFAULT now(),
-  UNIQUE (LEAST(requester_id::text, partner_id::text), GREATEST(requester_id::text, partner_id::text))
+  created_at   TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS business_partnerships_pair_uniq
+  ON business_partnerships (LEAST(requester_id::text, partner_id::text), GREATEST(requester_id::text, partner_id::text));
 
 ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS requester_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
 ALTER TABLE business_partnerships ADD COLUMN IF NOT EXISTS partner_id   UUID REFERENCES business_profiles(id) ON DELETE CASCADE;
