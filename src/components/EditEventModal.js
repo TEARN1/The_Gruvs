@@ -42,7 +42,10 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
   const [pickedHour, setPickedHour] = useState(20);
   const [pickedMinute, setPickedMinute] = useState(0);
   const [timeSet, setTimeSet]       = useState(false);
-  const [price, setPrice]           = useState('');
+  const [entryPrice, setEntryPrice] = useState('');
+  const [vipPrice, setVipPrice]     = useState('');
+  const [vvipPrice, setVvipPrice]   = useState('');
+  const [otherTickets, setOtherTickets] = useState('');
   const [capacity, setCapacity]     = useState('');
   const [ticketUrl, setTicketUrl]   = useState('');
   const [calendarVisible, setCalendarVisible] = useState(false);
@@ -63,13 +66,37 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
       setTitle(event.title || '');
       setDescription(event.description || '');
       setVenueName(event.venue_name || '');
-      setPrice(event.price ? String(event.price) : '');
       setCapacity(event.capacity ? String(event.capacity) : '');
       setTicketUrl(event.ticket_url || '');
       setTiers(Array.isArray(event.rsvp_tiers) ? event.rsvp_tiers : []);
       const existing = event.cover_url || event.image_url || event.cover_image || (Array.isArray(event.media) && event.media[0]?.url) || null;
       setCoverUrl(existing);
       setCoverUri(null);
+
+      // Parse JSON prices if applicable
+      let genP = '';
+      let vipP = '';
+      let vvipP = '';
+      let otherP = '';
+      if (event.price) {
+        if (event.price.trim().startsWith('{')) {
+          try {
+            const parsed = JSON.parse(event.price);
+            genP = parsed.general ? String(parsed.general) : '';
+            vipP = parsed.vip ? String(parsed.vip) : '';
+            vvipP = parsed.vvip ? String(parsed.vvip) : '';
+            otherP = parsed.other ? String(parsed.other) : '';
+          } catch (e) {
+            genP = String(event.price);
+          }
+        } else {
+          genP = event.price === 'FREE' ? '' : String(event.price);
+        }
+      }
+      setEntryPrice(genP);
+      setVipPrice(vipP);
+      setVvipPrice(vvipP);
+      setOtherTickets(otherP);
 
       // Parse stored date/time back into picker state
       if (event.event_date) {
@@ -139,13 +166,39 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
         }
       }
 
+      // Ticket Tiers & Prices
+      let computedPrice = 'FREE';
+      let minP = null;
+      let maxP = null;
+
+      const parsedEntry = entryPrice.trim() ? parseFloat(entryPrice) : null;
+      const parsedVip = vipPrice.trim() ? parseFloat(vipPrice) : null;
+      const parsedVvip = vvipPrice.trim() ? parseFloat(vvipPrice) : null;
+
+      const pricesList = [parsedEntry, parsedVip, parsedVvip].filter(p => p !== null && !isNaN(p));
+      if (pricesList.length > 0) {
+        minP = Math.min(...pricesList);
+        maxP = Math.max(...pricesList);
+      }
+
+      if (entryPrice.trim() || vipPrice.trim() || vvipPrice.trim() || otherTickets.trim()) {
+        const tiersObj = {};
+        if (entryPrice.trim()) tiersObj.general = entryPrice.trim();
+        if (vipPrice.trim()) tiersObj.vip = vipPrice.trim();
+        if (vvipPrice.trim()) tiersObj.vvip = vvipPrice.trim();
+        if (otherTickets.trim()) tiersObj.other = otherTickets.trim();
+        computedPrice = JSON.stringify(tiersObj);
+      }
+
       const payload = {
         title: title.trim(),
         description: description.trim(),
         venue_name: venueName.trim() || null,
         event_date: eventDate,
         event_time: timeSet ? fmtTime() : null,
-        price: price.trim() || null,
+        price: computedPrice,
+        price_min: minP,
+        price_max: maxP,
         capacity: capacity ? parseInt(capacity) : null,
         ticket_url: ticketUrl.trim() || null,
         rsvp_tiers: tiers.length > 0 ? tiers : null,
@@ -354,15 +407,62 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
                   </TouchableOpacity>
                 </View>
 
-                <View style={f.row}>
+                <Text style={[f.fieldLabel, { color: muted, marginTop: 12 }]}>Ticket Prices & Entry (Optional)</Text>
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
                   <View style={{ flex: 1 }}>
-                    <Field label="Price" value={price} onChange={setPrice} placeholder="FREE or amount" textColor={textColor} muted={muted} primary={primary} />
+                    <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>ENTRY / GEN (R)</Text>
+                    <TextInput
+                      style={[f.input, { color: textColor, borderColor: `${primary}25`, fontSize: 13, height: 40, paddingVertical: 8 }]}
+                      placeholder="e.g. 150"
+                      placeholderTextColor={muted}
+                      value={entryPrice}
+                      onChangeText={setEntryPrice}
+                      keyboardType="numeric"
+                    />
                   </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>VIP (R)</Text>
+                    <TextInput
+                      style={[f.input, { color: textColor, borderColor: `${primary}25`, fontSize: 13, height: 40, paddingVertical: 8 }]}
+                      placeholder="e.g. 350"
+                      placeholderTextColor={muted}
+                      value={vipPrice}
+                      onChangeText={setVipPrice}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>VVIP (R)</Text>
+                    <TextInput
+                      style={[f.input, { color: textColor, borderColor: `${primary}25`, fontSize: 13, height: 40, paddingVertical: 8 }]}
+                      placeholder="e.g. 600"
+                      placeholderTextColor={muted}
+                      value={vvipPrice}
+                      onChangeText={setVvipPrice}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+
+                <View style={f.fieldWrap}>
+                  <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>OTHER PACKAGES (Optional)</Text>
+                  <TextInput
+                    style={[f.input, { color: textColor, borderColor: `${primary}25`, fontSize: 13, height: 40, paddingVertical: 8 }]}
+                    placeholder="e.g. Table bookings / packages / early birds..."
+                    placeholderTextColor={muted}
+                    value={otherTickets}
+                    onChangeText={setOtherTickets}
+                  />
+                </View>
+
+                <View style={f.row}>
                   <View style={{ flex: 1 }}>
                     <Field label="Capacity" value={capacity} onChange={setCapacity} placeholder="Max guests" keyboardType="numeric" textColor={textColor} muted={muted} primary={primary} />
                   </View>
+                  <View style={{ flex: 1.5 }}>
+                    <Field label="Ticket URL" value={ticketUrl} onChange={setTicketUrl} placeholder="https://..." textColor={textColor} muted={muted} primary={primary} />
+                  </View>
                 </View>
-                <Field label="Ticket URL" value={ticketUrl} onChange={setTicketUrl} placeholder="https://..." textColor={textColor} muted={muted} primary={primary} />
 
                 {/* VIP Tier Builder */}
                 <View style={f.tierSection}>

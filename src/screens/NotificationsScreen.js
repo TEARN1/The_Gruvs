@@ -306,7 +306,6 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               </Text>
             </View>
           }
-          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 140 }}
         />
       )}

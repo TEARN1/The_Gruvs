@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, startTransiti
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image,
   Animated, Linking, RefreshControl, ScrollView, TextInput,
-  Share, Modal, Platform, ActivityIndicator, Dimensions,
+  Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -290,6 +290,60 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [feedMode, setFeedMode] = useState('all'); // 'all' | 'following'
   const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
   const fetchedCheckinIds = useRef(new Set());
+
+  // Handle native Android hardware back button inside LandingPage
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const handleBackButton = () => {
+      if (selectedEvent) {
+        setSelectedEvent(null);
+        return true;
+      }
+      if (routeModalVisible) {
+        setRouteModalVisible(false);
+        return true;
+      }
+      if (trendingModalVisible) {
+        setTrendingModalVisible(false);
+        return true;
+      }
+      if (viberModalVisible) {
+        setViberModalVisible(false);
+        return true;
+      }
+      if (activityVisible) {
+        setActivityVisible(false);
+        return true;
+      }
+      if (postModalVisible) {
+        setPostModalVisible(false);
+        return true;
+      }
+      if (editEvent) {
+        setEditEvent(null);
+        return true;
+      }
+      if (rsvpEvent) {
+        setRsvpEvent(null);
+        return true;
+      }
+      if (reportTarget) {
+        setReportTarget(null);
+        return true;
+      }
+      if (reactorsEvent) {
+        setReactorsEvent(null);
+        return true;
+      }
+      return false; // let it bubble to App.js
+    };
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', handleBackButton);
+    return () => sub.remove();
+  }, [
+    selectedEvent, routeModalVisible, trendingModalVisible, viberModalVisible,
+    activityVisible, postModalVisible, editEvent, rsvpEvent, reportTarget, reactorsEvent
+  ]);
 
   const primary = currentTheme?.primary || '#00f2ff';
   const bg = currentTheme?.background || '#0d1112';

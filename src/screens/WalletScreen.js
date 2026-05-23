@@ -76,7 +76,7 @@ export const WalletScreen = ({ visible, onClose }) => {
             return data;
           },
           async () => {
-            const { data, error } = await supabase.from('wallet_transactions').select('id, amount, type, created_at, description').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
+            const { data, error } = await supabase.from('wallet_transactions').select('id, amount, direction, created_at, reason').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
             if (error) throw error;
             return data;
           },
@@ -128,7 +128,7 @@ export const WalletScreen = ({ visible, onClose }) => {
   const handleDispute = async (booking) => {
     setLoading(true);
     try {
-      const ok = await EscrowService.initiateDispute(booking.id, 'Dispute from wallet history');
+      const ok = await EscrowService.initiateDispute(booking.id, 'Dispute from wallet history', user.id); // FIX: supply callerId
       if (ok) {
         toast.show('Dispute opened', 'warning');
         loadData();

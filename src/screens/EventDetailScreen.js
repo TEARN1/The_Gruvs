@@ -61,8 +61,25 @@ const formatTime = (timeStr) => {
 };
 
 const formatPrice = (price) => {
-  if (!price || price === 0) return 'FREE';
-  return `R${parseFloat(price).toFixed(2)}`;
+  if (!price || price === 0 || price === '0' || price === 'FREE') return 'FREE';
+  if (typeof price === 'string' && price.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(price);
+      if (parsed.general !== undefined) {
+        const genVal = parseFloat(parsed.general);
+        if (!isNaN(genVal)) {
+          if (parsed.vip || parsed.vvip) {
+            return `R${genVal.toFixed(2)}+`;
+          }
+          return `R${genVal.toFixed(2)}`;
+        }
+      }
+      return 'TICKETS';
+    } catch (e) {}
+  }
+  const parsed = parseFloat(price);
+  if (isNaN(parsed)) return price;
+  return `R${parsed.toFixed(2)}`;
 };
 
 export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) => {
@@ -504,6 +521,50 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               />
             )}
           </View>
+
+          {/* Ticket Tiers Section */}
+          {(() => {
+            if (!event?.price) return null;
+            if (typeof event.price === 'string' && event.price.trim().startsWith('{')) {
+              try {
+                const parsed = JSON.parse(event.price);
+                const hasTiers = parsed.general || parsed.vip || parsed.vvip || parsed.other;
+                if (!hasTiers) return null;
+                return (
+                  <View style={[styles.ticketSection, { backgroundColor: `${primary}06`, borderColor: `${primary}18` }]}>
+                    <Text style={[styles.ticketSectionTitle, { color: primary }]}>🎟️ TICKET OPTIONS</Text>
+                    <View style={styles.ticketGrid}>
+                      {parsed.general ? (
+                        <View style={styles.ticketTier}>
+                          <Text style={[styles.ticketLabel, { color: textMuted }]}>General / Entry</Text>
+                          <Text style={[styles.ticketValue, { color: textColor }]}>R{parseFloat(parsed.general).toFixed(2)}</Text>
+                        </View>
+                      ) : null}
+                      {parsed.vip ? (
+                        <View style={styles.ticketTier}>
+                          <Text style={[styles.ticketLabel, { color: '#f59e0b' }]}>👑 VIP</Text>
+                          <Text style={[styles.ticketValue, { color: '#f59e0b' }]}>R{parseFloat(parsed.vip).toFixed(2)}</Text>
+                        </View>
+                      ) : null}
+                      {parsed.vvip ? (
+                        <View style={styles.ticketTier}>
+                          <Text style={[styles.ticketLabel, { color: '#d946ef' }]}>💎 VVIP</Text>
+                          <Text style={[styles.ticketValue, { color: '#d946ef' }]}>R{parseFloat(parsed.vvip).toFixed(2)}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    {parsed.other ? (
+                      <View style={{ marginTop: 10, borderTopWidth: 1, borderTopColor: `${primary}12`, paddingTop: 8 }}>
+                        <Text style={[styles.ticketLabel, { color: textMuted }]}>Other Packages</Text>
+                        <Text style={[styles.ticketValue, { color: textColor, fontSize: 13, fontWeight: '700' }]}>{parsed.other}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              } catch (e) {}
+            }
+            return null;
+          })()}
 
           {/* Weather forecast */}
           {event && (
@@ -1117,5 +1178,39 @@ const styles = StyleSheet.create({
   },
   reportText: {
     fontSize: 12,
+  },
+  ticketSection: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginVertical: 14,
+  },
+  ticketSectionTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  ticketGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  ticketTier: {
+    flex: 1,
+    minWidth: 100,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  ticketLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  ticketValue: {
+    fontSize: 15,
+    fontWeight: '900',
   },
 });

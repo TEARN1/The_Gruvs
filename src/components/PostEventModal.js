@@ -39,6 +39,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const [pickedMinute, setPickedMinute] = useState(0);
   const [timeSet, setTimeSet] = useState(false);
   const [ticketUrl, setTicketUrl] = useState('');
+  const [entryPrice, setEntryPrice] = useState('');
+  const [vipPrice, setVipPrice] = useState('');
+  const [vvipPrice, setVvipPrice] = useState('');
+  const [otherTickets, setOtherTickets] = useState('');
   const [eventType, setEventType] = useState('');
   const [lat, setLat] = useState(null);
   const [lon, setLon] = useState(null);
@@ -61,6 +65,12 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [step, setStep] = useState(1);
   const scrollRef = useRef(null);
+  const titleRef = useRef(null);
+  const descriptionRef = useRef(null);
+  const addressRef = useRef(null);
+  const dateRef = useRef(null);
+  // Tracks the Y offset of each required field within the ScrollView
+  const fieldY = useRef({});
 
   const primary = currentTheme?.primary || '#00f2ff';
   const bg = currentTheme?.background || '#0d1112';
@@ -70,7 +80,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   const reset = () => {
     setTitle(''); setDescription(''); setAddress(''); setCity('');
     setPickedDate(null); setPickedHour(20); setPickedMinute(0); setTimeSet(false);
-    setTicketUrl(''); setEventType('');
+    setTicketUrl(''); setEntryPrice(''); setVipPrice(''); setVvipPrice(''); setOtherTickets(''); setEventType('');
     setLat(null); setLon(null);
     setAgeMin(0); setAgeMax(0); setSelectedCategories([]); setMediaItems([]);
     setEndHour(null); setEndMinute(null); setEndTimeSet(false); setEndTimePickerVisible(false);
@@ -137,33 +147,68 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
   // ── Upload all media to Supabase Storage ─────────────────────────────────
   const uploadAllMedia = async () => {
     const uploaded = [];
-    let failCount = 0;
+    const failed = [];
     for (const item of mediaItems) {
       try {
-        const ext = (item.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
+        // Normalize extension — strip query params and get last segment
+        const cleanUri = item.uri.split('?')[0];
+        let ext = (cleanUri.split('.').pop() || 'jpg').toLowerCase();
+        // expo-image-picker sometimes returns content:// URIs without extension
+        if (!ext || ext.length > 5) ext = item.type === 'video' ? 'mp4' : 'jpg';
         const fileName = `events/${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const mimeType = item.mimeType || (item.type === 'video' ? `video/${ext}` : `image/${ext}`);
+        const mimeType = item.mimeType
+          || (item.type === 'video' ? (ext === 'mov' ? 'video/quicktime' : 'video/mp4') : `image/${ext === 'jpg' ? 'jpeg' : ext}`);
         const publicUrl = await uploadToStorage(item.uri, 'event-media', fileName, { mimeType });
         uploaded.push({ url: publicUrl, type: item.type });
-      } catch {
-        failCount++;
+      } catch (e) {
+        failed.push(e.message || 'Upload failed');
       }
     }
-    if (failCount > 0 && uploaded.length === 0) {
-      throw new Error('Photo upload failed. Check your connection and try again, or post without a photo.');
+    if (uploaded.length === 0 && failed.length > 0) {
+      // Surface the most actionable error message
+      const firstErr = failed[0] || '';
+      if (firstErr.includes('Bucket not found') || firstErr.includes('bucket')) {
+        throw new Error(
+          'Storage not set up yet. Run supabase/patch_storage_media.sql in your Supabase SQL Editor, then try again.'
+        );
+      }
+      if (firstErr.includes('not authorized') || firstErr.includes('policy')) {
+        throw new Error('Upload blocked by storage policy. Make sure you are signed in and storage policies are applied.');
+      }
+      throw new Error(`Media upload failed: ${firstErr}`);
     }
-    if (failCount > 0) setError(`${failCount} of ${mediaItems.length} photos failed — continuing with ${uploaded.length}.`);
+    if (failed.length > 0) {
+      setError(`${failed.length} of ${mediaItems.length} files failed to upload — posting with ${uploaded.length} file(s).`);
+    }
     return uploaded;
   };
 
   // ── Submit ────────────────────────────────────────────────────────────────
+  const scrollAndFocus = (fieldKey, ref) => {
+    const y = fieldY.current[fieldKey] ?? 0;
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 20), animated: true });
+    setTimeout(() => ref?.current?.focus(), 320);
+  };
+
   const handlePost = async () => {
-    if (!title.trim() || !description.trim() || !address.trim()) {
-      setError('Title, description and address are required.');
+    if (!title.trim()) {
+      setError('Event title is required — give your Gruv a name.');
+      scrollAndFocus('title', titleRef);
+      return;
+    }
+    if (!description.trim()) {
+      setError('Describe the vibe — what makes this Gruv special?');
+      scrollAndFocus('description', descriptionRef);
+      return;
+    }
+    if (!address.trim()) {
+      setError('Venue / address is required so people know where to show up.');
+      scrollAndFocus('address', addressRef);
       return;
     }
     if (!pickedDate) {
-      setError('Event date is required.');
+      setError('Pick a date so people can plan ahead.');
+      scrollAndFocus('date', dateRef);
       return;
     }
     if (!user?.id) { setError('Sign in required to post a Gruv.'); return; }
@@ -217,6 +262,34 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     if (primaryCat) payload.category = primaryCat;
     if (ticketUrl.trim()) payload.ticket_url = ticketUrl.trim();
 
+    // Ticket Tiers & Prices
+    let computedPrice = 'FREE';
+    let minP = null;
+    let maxP = null;
+
+    const parsedEntry = entryPrice.trim() ? parseFloat(entryPrice) : null;
+    const parsedVip = vipPrice.trim() ? parseFloat(vipPrice) : null;
+    const parsedVvip = vvipPrice.trim() ? parseFloat(vvipPrice) : null;
+
+    const pricesList = [parsedEntry, parsedVip, parsedVvip].filter(p => p !== null && !isNaN(p));
+    if (pricesList.length > 0) {
+      minP = Math.min(...pricesList);
+      maxP = Math.max(...pricesList);
+    }
+
+    if (entryPrice.trim() || vipPrice.trim() || vvipPrice.trim() || otherTickets.trim()) {
+      const tiersObj = {};
+      if (entryPrice.trim()) tiersObj.general = entryPrice.trim();
+      if (vipPrice.trim()) tiersObj.vip = vipPrice.trim();
+      if (vvipPrice.trim()) tiersObj.vvip = vvipPrice.trim();
+      if (otherTickets.trim()) tiersObj.other = otherTickets.trim();
+      computedPrice = JSON.stringify(tiersObj);
+    }
+
+    payload.price = computedPrice;
+    if (minP !== null) payload.price_min = minP;
+    if (maxP !== null) payload.price_max = maxP;
+
     let insertError = null;
     const result = await resilient(
       [
@@ -226,7 +299,16 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
           return true;
         },
         async () => {
-          const minPayload = { title: payload.title, description: payload.description, author_id: payload.author_id, event_date: payload.event_date, city: payload.city };
+          const minPayload = { 
+            title: payload.title, 
+            description: payload.description, 
+            author_id: payload.author_id, 
+            event_date: payload.event_date, 
+            city: payload.city,
+            price: payload.price,
+            price_min: payload.price_min,
+            price_max: payload.price_max
+          };
           const { error } = await supabase.from('events').insert(minPayload);
           if (error) throw error;
           return true;
@@ -452,36 +534,42 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
               {/* ── STEP 1: Core info ────────────────────────────────────── */}
               {step === 1 && (
                 <>
-                  <Text style={[pm.label, { color: muted }]}>Event Title *</Text>
+                  <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.title = e.nativeEvent.layout.y; }}>Event Title *</Text>
                   <TextInput
-                    style={[pm.input, { color: textColor, borderColor: `${primary}35` }]}
+                    ref={titleRef}
+                    style={[pm.input, { color: textColor, borderColor: !title.trim() && error ? '#ef4444' : `${primary}35` }]}
                     placeholder="Give your event a name..."
                     placeholderTextColor={muted}
                     value={title}
-                    onChangeText={setTitle}
+                    onChangeText={v => { setTitle(v); if (error) setError(''); }}
                     maxLength={100}
+                    returnKeyType="next"
+                    onSubmitEditing={() => descriptionRef.current?.focus()}
                   />
 
-                  <Text style={[pm.label, { color: muted }]}>What's the vibe? *</Text>
+                  <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.description = e.nativeEvent.layout.y; }}>What's the vibe? *</Text>
                   <TextInput
-                    style={[pm.input, pm.textarea, { color: textColor, borderColor: `${primary}35` }]}
+                    ref={descriptionRef}
+                    style={[pm.input, pm.textarea, { color: textColor, borderColor: !description.trim() && error ? '#ef4444' : `${primary}35` }]}
                     placeholder="Describe your event — make it sound elite..."
                     placeholderTextColor={muted}
                     multiline
                     numberOfLines={4}
                     value={description}
-                    onChangeText={setDescription}
+                    onChangeText={v => { setDescription(v); if (error) setError(''); }}
                     maxLength={600}
                   />
                   <Text style={[pm.charCount, { color: muted }]}>{description.length}/600</Text>
 
-                  <Text style={[pm.label, { color: muted }]}>Venue / Address *</Text>
+                  <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.address = e.nativeEvent.layout.y; }}>Venue / Address *</Text>
                   <TextInput
-                    style={[pm.input, { color: textColor, borderColor: `${primary}35` }]}
+                    ref={addressRef}
+                    style={[pm.input, { color: textColor, borderColor: !address.trim() && error ? '#ef4444' : `${primary}35` }]}
                     placeholder="Full address or venue name..."
                     placeholderTextColor={muted}
                     value={address}
-                    onChangeText={setAddress}
+                    onChangeText={v => { setAddress(v); if (error) setError(''); }}
+                    returnKeyType="done"
                   />
 
                   <TouchableOpacity
@@ -506,7 +594,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                     onChangeText={setCity}
                   />
 
-                  <Text style={[pm.label, { color: muted }]}>Date & Time</Text>
+                  <Text ref={dateRef} style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.date = e.nativeEvent.layout.y; }}>Date & Time *</Text>
                   <View style={pm.pickerRow}>
                     {/* Date picker button */}
                     <TouchableOpacity
@@ -553,9 +641,19 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                   <TouchableOpacity
                     style={[pm.nextBtn, { backgroundColor: canProceedStep1 ? primary : `${primary}20` }]}
                     onPress={() => {
-                      if (!canProceedStep1) {
-                        setError('Fill in title, description and address first.');
-                        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200);
+                      if (!title.trim()) {
+                        setError('Event title is required — give your Gruv a name.');
+                        scrollAndFocus('title', titleRef);
+                        return;
+                      }
+                      if (!description.trim()) {
+                        setError('Describe the vibe — what makes this Gruv special?');
+                        scrollAndFocus('description', descriptionRef);
+                        return;
+                      }
+                      if (!address.trim()) {
+                        setError('Venue / address is required so people know where to show up.');
+                        scrollAndFocus('address', addressRef);
                         return;
                       }
                       setError(''); setStep(2);
@@ -714,10 +812,56 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                     </View>
                   </View>
                   {ageMin > 0 && (
-                    <Text style={{ color: primary, fontSize: 11, fontWeight: '800', marginTop: 4 }}>
+                    <Text style={{ color: primary, fontSize: 11, fontWeight: '800', marginTop: 4, marginBottom: 12 }}>
                       Allowed: {ageMin}{ageMax > 0 ? `–${ageMax === 99 ? '99+' : ageMax}` : '+'}
                     </Text>
                   )}
+
+                  <Text style={[pm.label, { color: muted, marginTop: 12 }]}>Ticket Prices & Entry (Optional)</Text>
+                  <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>ENTRY / GEN (R)</Text>
+                      <TextInput
+                        style={[pm.input, { color: textColor, borderColor: `${primary}35`, fontSize: 13, height: 40, paddingVertical: 8 }]}
+                        placeholder="e.g. 150"
+                        placeholderTextColor={muted}
+                        value={entryPrice}
+                        onChangeText={setEntryPrice}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>VIP (R)</Text>
+                      <TextInput
+                        style={[pm.input, { color: textColor, borderColor: `${primary}35`, fontSize: 13, height: 40, paddingVertical: 8 }]}
+                        placeholder="e.g. 350"
+                        placeholderTextColor={muted}
+                        value={vipPrice}
+                        onChangeText={setVipPrice}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>VVIP (R)</Text>
+                      <TextInput
+                        style={[pm.input, { color: textColor, borderColor: `${primary}35`, fontSize: 13, height: 40, paddingVertical: 8 }]}
+                        placeholder="e.g. 600"
+                        placeholderTextColor={muted}
+                        value={vvipPrice}
+                        onChangeText={setVvipPrice}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  </View>
+
+                  <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>OTHER PACKAGES (Optional)</Text>
+                  <TextInput
+                    style={[pm.input, { color: textColor, borderColor: `${primary}35`, fontSize: 13, height: 40, paddingVertical: 8, marginBottom: 18 }]}
+                    placeholder="e.g. Table bookings / packages / early birds..."
+                    placeholderTextColor={muted}
+                    value={otherTickets}
+                    onChangeText={setOtherTickets}
+                  />
 
                   {/* Summary card */}
                   <GlassView style={[pm.summary, { borderColor: `${primary}20` }]}>
@@ -731,6 +875,16 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                         {endTimeSet && endHour !== null ? ` – ${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}` : ''}
                       </Text>
                     ) : null}
+                    {entryPrice || vipPrice || vvipPrice || otherTickets ? (
+                      <Text style={[pm.summaryLine, { color: muted }]}>
+                        🎟️ {entryPrice ? `Gen: R${entryPrice} ` : ''}
+                        {vipPrice ? `VIP: R${vipPrice} ` : ''}
+                        {vvipPrice ? `VVIP: R${vvipPrice} ` : ''}
+                        {otherTickets ? `(${otherTickets})` : ''}
+                      </Text>
+                    ) : (
+                      <Text style={[pm.summaryLine, { color: muted }]}>🎟️ FREE entry</Text>
+                    )}
                     {ageMin > 0 && (
                       <Text style={[pm.summaryLine, { color: muted }]}>
                         🔞 Ages {ageMin}{ageMax > 0 ? `–${ageMax === 99 ? '99+' : ageMax}` : '+'}

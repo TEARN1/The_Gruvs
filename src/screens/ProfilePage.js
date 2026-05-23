@@ -1136,8 +1136,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const fileName = asset.fileName || asset.uri.split('/').pop().split('?')[0];
       const rawExt = fileName.includes('.') ? fileName.split('.').pop() : '';
       const ext = (rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'jpg').toLowerCase().slice(0, 5);
-      const storagePath = `${user.id}/gallery_${Date.now()}.${ext}`;
-      const publicUrl = await uploadToStorage(asset.uri, 'avatars', storagePath, { mimeType: asset.mimeType });
+      // Gallery images live in event-media/gallery/<user_id>/ so the new
+      // storage policy (folder[1]='gallery', filename starts with user_id) allows it.
+      const storagePath = `gallery/${user.id}/${user.id}_${Date.now()}.${ext}`;
+      const publicUrl = await uploadToStorage(asset.uri, 'event-media', storagePath, { mimeType: asset.mimeType });
       const newGallery = [...(profileGallery || []), publicUrl];
       const { error: updateErr } = await supabase.from('profiles').update({ profile_gallery: newGallery }).eq('id', user.id);
       if (updateErr) throw new Error(updateErr.message);

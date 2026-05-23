@@ -1,8 +1,10 @@
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseUrl    = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 export const isSupabaseEnabled = !!supabaseUrl && !!supabaseAnonKey;
 
@@ -13,14 +15,29 @@ if (!isSupabaseEnabled) {
   );
 }
 
-// Auth tokens are stored in plain AsyncStorage (unencrypted on Android).
-// For production builds, migrate to expo-secure-store:
-//   import * as SecureStore from 'expo-secure-store';
-//   const customStorage = { getItem: SecureStore.getItemAsync, setItem: SecureStore.setItemAsync, removeItem: SecureStore.deleteItemAsync };
-const customStorage = {
-  getItem:    (key) => AsyncStorage.getItem(key),
-  setItem:    (key, value) => AsyncStorage.setItem(key, value),
-  removeItem: (key) => AsyncStorage.removeItem(key),
+// On native (iOS / Android) we store auth tokens in the device's hardware-backed
+// secure keychain / keystore via expo-secure-store, which provides AES-256 encryption
+// at rest.  On Web, AsyncStorage (localStorage) is used as a safe fallback because
+// SecureStore is not available in browser environments.
+const secureStorage = {
+  getItem: async (key) => {
+    if (Platform.OS === 'web') {
+      return AsyncStorage.getItem(key);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  setItem: async (key, value) => {
+    if (Platform.OS === 'web') {
+      return AsyncStorage.setItem(key, value);
+    }
+    return SecureStore.setItemAsync(key, value);
+  },
+  removeItem: async (key) => {
+    if (Platform.OS === 'web') {
+      return AsyncStorage.removeItem(key);
+    }
+    return SecureStore.deleteItemAsync(key);
+  },
 };
 
 export const supabase = createClient(
@@ -28,9 +45,9 @@ export const supabase = createClient(
   supabaseAnonKey || 'placeholder-key',
   {
     auth: {
-      storage: customStorage,
+      storage:          secureStorage,
       autoRefreshToken: true,
-      persistSession: true,
+      persistSession:   true,
       detectSessionInUrl: false,
     },
   }

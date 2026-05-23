@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { NotificationService } from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
+import { MessageManager } from '../services/dataFlow';
 
 export const useNotifications = ({ onNavigate } = {}) => {
   const { user } = useAuth();
@@ -40,9 +41,25 @@ export const useNotifications = ({ onNavigate } = {}) => {
       );
 
       responseListener.current = Notifications.addNotificationResponseReceivedListener(
-        (response) => {
+        async (response) => {
+          const actionIdentifier = response.actionIdentifier;
+          const userText = response.userText;
           const data = response.notification.request.content.data || {};
           const nav = onNavigateRef.current;
+
+          if (actionIdentifier === 'reply' && userText) {
+            try {
+              const partnerId = data.sender_id;
+              if (partnerId && user?.id) {
+                await MessageManager.send(user.id, partnerId, userText);
+                showToast('Reply sent! 💬', 'success');
+              }
+            } catch (e) {
+              showToast('Could not send reply: ' + e.message, 'error');
+            }
+            return;
+          }
+
           if (!nav) return;
 
           if (data.event_id) {

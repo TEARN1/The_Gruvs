@@ -1,4 +1,4 @@
-﻿/**
+/**
  * The Gruvs — Data Flow Engine v2
  * Centralised data layer: caching, real-time, optimistic updates, managers for
  * every domain (Feed, Trending, Vibe, RSVP, Bookmark, User, Notification,
@@ -13,6 +13,7 @@ import { SecurityService } from './securityService';
 import { VibeEquityLedger } from './vibeEquityLedger';
 import { VibeEconomyEngine } from './revenueEngine';
 import projectDNA from './projectDNA.json';
+import { NotificationService } from './notificationService';
 
 // ── INTELLIGENCE MONITORING (Autonomous Training) ──────────────────────────
 export const IntelligenceMonitor = {
@@ -1722,17 +1723,28 @@ async function _notifyEventAuthor(eventId, actorId, type) {
   } catch { }
 }
 
-async function _notify(recipientId, actorId, type, title, body) {
+async function _notify(recipientId, actorId, type, title, body, data = {}) {
   try {
-    await supabase.from('notifications').insert({
-      recipient_id: recipientId,
-      actor_id: actorId,
+    await NotificationService.send(recipientId, {
       type,
       title,
       body,
-      read: false,
+      actorId,
+      data,
     });
-  } catch { }
+  } catch {
+    try {
+      await supabase.from('notifications').insert({
+        recipient_id: recipientId,
+        actor_id: actorId,
+        type,
+        title,
+        body,
+        data,
+        read: false,
+      });
+    } catch { }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1878,7 +1890,7 @@ export const MessageManager = {
         : msgType === 'location' ? 'Shared a location'
           : msgType === 'vibe_card' ? 'Sent a Vibe Card'
             : (trimmedBody || '').slice(0, 80);
-      _notify(recipientId, senderId, 'message', 'New Message', notifyText).catch(() => { });
+      _notify(recipientId, senderId, 'message', 'New Message', notifyText, { sender_id: senderId }).catch(() => { });
 
       return data;
     } catch (e) { throw e; }

@@ -15,10 +15,25 @@ export const NotificationService = {
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
           shouldShowAlert: true,
-          shouldPlaySound: false,
-          shouldSetBadge: false,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
         }),
       });
+
+      // Register interactive category for notification quick replies
+      Notifications.setNotificationCategoryAsync('message_reply', [
+        {
+          identifier: 'reply',
+          buttonTitle: 'Reply',
+          options: {
+            opensAppToKeyboard: false,
+          },
+          textInput: {
+            submitButtonTitle: 'Send',
+            placeholder: 'Type reply...',
+          },
+        },
+      ]);
     } catch {
       // expo-notifications not available on web — safe to ignore
     }
@@ -111,6 +126,7 @@ export const NotificationService = {
             data: { type, ...data },
             sound: 'default',
             priority: 'high',
+            categoryId: type === 'message' ? 'message_reply' : undefined,
           }),
           signal: controller.signal,
         });

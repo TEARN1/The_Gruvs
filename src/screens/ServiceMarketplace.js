@@ -198,8 +198,8 @@ function BookingModal({
     try {
       const id = await EscrowService.lockFunds({
         requester_id: currentUserId,
-        provider_id: provider?.id,
-        service_type: provider?.service_type ?? 'General',
+        provider_id: provider?.user_id, // FIX: provider's user profile ID
+        service_node_id: provider?.id,  // FIX: service node row ID
         cargo_type: cargoType,
         origin_address: origin.trim(),
         destination_address: destination.trim(),
@@ -223,7 +223,7 @@ function BookingModal({
   const handleReceived = async () => {
     setLoading(true);
     try {
-      const ok = await EscrowService.releaseToProvider(bookingId, provider?.id);
+      const ok = await EscrowService.releaseToProvider(bookingId, provider?.user_id); // FIX: provider's user profile ID
       if (ok) {
         showToast(`R${estimatedPrice} released to ${provider?.username}!`, 'success');
         onSuccess?.();
@@ -241,7 +241,7 @@ function BookingModal({
   const handleDispute = async () => {
     setLoading(true);
     try {
-      await EscrowService.initiateDispute(bookingId, 'Requester initiated dispute');
+      await EscrowService.initiateDispute(bookingId, 'Requester initiated dispute', currentUserId); // FIX: supply callerId
       showToast('Dispute opened. Support will contact you.', 'warning');
       handleClose();
     } catch {

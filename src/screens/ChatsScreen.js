@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Image,
-  StyleSheet, RefreshControl, TextInput,
+  StyleSheet, RefreshControl, TextInput, BackHandler, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -123,6 +123,20 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   const [search,      setSearch]      = useState('');
   const [activeConvo, setActiveConvo] = useState(null);  // partner profile for DM modal
   const unsubRef = useRef(null);
+
+  // Close direct messaging modal on Android hardware back press
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const handleBackButton = () => {
+      if (activeConvo) {
+        setActiveConvo(null);
+        return true;
+      }
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', handleBackButton);
+    return () => sub.remove();
+  }, [activeConvo]);
 
   const fetchConvos = useCallback(async (isRefresh = false) => {
     if (!user) { setConvos([]); return; }

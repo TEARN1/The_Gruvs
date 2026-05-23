@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useFonts } from 'expo-font';
 import {
   View, StyleSheet, TouchableOpacity, Text,
-  StatusBar, Animated, Platform, useWindowDimensions, BackHandler, ActivityIndicator,
+  StatusBar, Animated, Platform, useWindowDimensions, BackHandler, ActivityIndicator, Linking,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { BREAKPOINT } from './src/constants/DesignTokens';
@@ -274,14 +274,46 @@ const MainNavigator = () => {
   const backPressTimer = useRef(null);
   const lastHapticRef = useRef(0);
 
+  const handleTabChange = useCallback((tab) => {
+    if (Platform.OS !== 'web') {
+      const now = Date.now();
+      if (now - lastHapticRef.current > 300) {
+        lastHapticRef.current = now;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
+      }
+    }
+
+    if (tab === currentTab && tab === 'feed') {
+      setFeedRefreshKey(k => k + 1);
+    } else {
+      setCurrentTab(tab);
+    }
+  }, [currentTab]);
+
   const isWide = width >= WIDE_BREAKPOINT;
 
-  // Android hardware back: single press → go to feed; double press within 2s → exit app
+  // Android hardware back: close open overlays first, then tab-switch to feed, else double-press to exit
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const handler = () => {
+      if (godViewVisible) {
+        setGodViewVisible(false);
+        return true;
+      }
+      if (authModalVisible) {
+        setAuthModalVisible(false);
+        return true;
+      }
+      if (targetProfile) {
+        setTargetProfile(null);
+        return true;
+      }
+      if (targetEvent) {
+        setTargetEvent(null);
+        return true;
+      }
       if (currentTab !== TABS[0].key) {
-        setCurrentTab(TABS[0].key);
+        handleTabChange(TABS[0].key);
         return true;
       }
       if (backPressCount.current === 1) {
@@ -295,7 +327,7 @@ const MainNavigator = () => {
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', handler);
     return () => { sub.remove(); clearTimeout(backPressTimer.current); };
-  }, [currentTab]);
+  }, [currentTab, godViewVisible, authModalVisible, targetProfile, targetEvent, handleTabChange]);
 
   const handleNotifNavigate = useCallback((type, data) => {
     if (type === 'event' && data?.event_id) {
@@ -310,29 +342,75 @@ const MainNavigator = () => {
 
   useNotifications({ onNavigate: handleNotifNavigate });
 
-  // Web deep-link: read ?event=, ?profile=, ?reel= from og-meta redirect URLs
+  // Native and Web deep-linking route handler
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const eventId   = params.get('event');
-      const profileId = params.get('profile');
-      const reelId    = params.get('reel');
-      if (eventId) {
-        setTargetEvent({ id: eventId });
-        setCurrentTab('feed');
-        // Clean URL without reload
-        window.history.replaceState({}, '', window.location.pathname);
-      } else if (profileId) {
-        setTargetProfile(profileId);
-        setCurrentTab('profile');
-        window.history.replaceState({}, '', window.location.pathname);
-      } else if (reelId) {
-        setTargetReel(reelId);
-        setCurrentTab('reels');
-        window.history.replaceState({}, '', window.location.pathname);
+    const parseAndRouteUrl = (url) => {
+      if (!url) return;
+      try {
+        // Parse native schemes (thegruvs://) and web links
+        const cleanUrl = url.replace(/.*?:\/\//, '');
+        const parts = cleanUrl.split('/');
+
+        if (cleanUrl.includes('event/')) {
+          const eventId = parts[parts.indexOf('event') + 1]?.split('?')[0];
+          if (eventId) {
+            setTargetEvent({ id: eventId });
+            setCurrentTab('feed');
+          }
+        } else if (cleanUrl.includes('profile/')) {
+          const profileId = parts[parts.indexOf('profile') + 1]?.split('?')[0];
+          if (profileId) {
+            setTargetProfile(profileId);
+            setCurrentTab('profile');
+          }
+        } else if (cleanUrl.includes('reel/')) {
+          const reelId = parts[parts.indexOf('reel') + 1]?.split('?')[0];
+          if (reelId) {
+            setTargetReel(reelId);
+            setCurrentTab('reels');
+          }
+        }
+      } catch (err) {
+        console.warn('[DeepLink] failed to parse native link:', err);
       }
-    } catch {}
+    };
+
+    // Handle initial launch deep links
+    Linking.getInitialURL().then(url => {
+      if (url) parseAndRouteUrl(url);
+    }).catch(() => {});
+
+    // Listen to deep link events while app is open
+    const sub = Linking.addEventListener('url', (event) => {
+      if (event.url) parseAndRouteUrl(event.url);
+    });
+
+    // Web deep link parameter listener
+    if (Platform.OS === 'web') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const eventId   = params.get('event');
+        const profileId = params.get('profile');
+        const reelId    = params.get('reel');
+        if (eventId) {
+          setTargetEvent({ id: eventId });
+          setCurrentTab('feed');
+          window.history.replaceState({}, '', window.location.pathname);
+        } else if (profileId) {
+          setTargetProfile(profileId);
+          setCurrentTab('profile');
+          window.history.replaceState({}, '', window.location.pathname);
+        } else if (reelId) {
+          setTargetReel(reelId);
+          setCurrentTab('reels');
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      } catch {}
+    }
+
+    return () => {
+      if (sub && sub.remove) sub.remove();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -383,22 +461,6 @@ const MainNavigator = () => {
   const primary = currentTheme?.primary || '#00f2ff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const isDark = !bg.startsWith('#f') && !bg.startsWith('#e');
-
-  const handleTabChange = useCallback((tab) => {
-    if (Platform.OS !== 'web') {
-      const now = Date.now();
-      if (now - lastHapticRef.current > 300) {
-        lastHapticRef.current = now;
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
-      }
-    }
-
-    if (tab === currentTab && tab === 'feed') {
-      setFeedRefreshKey(k => k + 1);
-    } else {
-      setCurrentTab(tab);
-    }
-  }, [currentTab]);
 
   // Item 35: keyboard navigation 1-7 on web desktop
   useEffect(() => {
@@ -601,6 +663,15 @@ export default function App() {
     Feather: Platform.OS === 'web'
       ? { uri: 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf' }
       : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
+    feather: Platform.OS === 'web'
+      ? { uri: 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf' }
+      : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
+    MaterialCommunityIcons: Platform.OS === 'web'
+      ? { uri: 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf' }
+      : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
+    'material-community': Platform.OS === 'web'
+      ? { uri: 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf' }
+      : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
   });
 
   if (!fontsLoaded) {

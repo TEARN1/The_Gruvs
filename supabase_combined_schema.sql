@@ -996,7 +996,7 @@ CREATE TABLE IF NOT EXISTS event_rsvps (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id   UUID        NOT NULL REFERENCES events(id)   ON DELETE CASCADE,
   user_id    UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  status     TEXT        DEFAULT 'going' CHECK (status IN ('going','interested','not_going')),
+  status     TEXT        DEFAULT 'going' CHECK (status IN ('going','interested','not_going','maybe')),
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE (event_id, user_id)
 );
@@ -1064,6 +1064,114 @@ CREATE INDEX IF NOT EXISTS hashtags_popular ON hashtags(use_count DESC);
 ALTER TABLE hashtags ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Hashtags readable" ON hashtags;
 CREATE POLICY "Hashtags readable" ON hashtags FOR SELECT USING (true);
+
+-- ══════════════════════════════════════════════════════════════
+--  ADVANCED FEATURES TABLES (Roles, Activity, Playlists)
+-- ══════════════════════════════════════════════════════════════
+
+-- 1. Event Roles
+CREATE TABLE IF NOT EXISTS public.event_roles (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id    UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL CHECK (role IN ('co_host','moderator','scanner','vip_manager')),
+  granted_by  UUID REFERENCES public.profiles(id),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (event_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_event_roles_event ON public.event_roles(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_roles_user  ON public.event_roles(user_id);
+
+ALTER TABLE public.event_roles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "event_roles_select" ON public.event_roles;
+CREATE POLICY "event_roles_select" ON public.event_roles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "event_roles_insert" ON public.event_roles;
+CREATE POLICY "event_roles_insert" ON public.event_roles FOR INSERT
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND author_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM public.event_roles er2 WHERE er2.event_id = event_roles.event_id AND er2.user_id = auth.uid() AND er2.role = 'co_host')
+  );
+DROP POLICY IF EXISTS "event_roles_delete" ON public.event_roles;
+CREATE POLICY "event_roles_delete" ON public.event_roles FOR DELETE
+  USING (
+    granted_by = auth.uid()
+    OR EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND author_id = auth.uid())
+  );
+
+-- 2. Activity Feed
+CREATE TABLE IF NOT EXISTS public.activity_feed (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_id   UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  actor_id       UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  action_type    TEXT NOT NULL,
+  target_id      UUID,
+  target_type    TEXT,
+  target_title   TEXT,
+  actor_username TEXT,
+  actor_avatar   TEXT,
+  read           BOOLEAN NOT NULL DEFAULT false,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_activity_recipient ON public.activity_feed(recipient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_unread    ON public.activity_feed(recipient_id, read) WHERE read = false;
+
+ALTER TABLE public.activity_feed ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "activity_select" ON public.activity_feed;
+CREATE POLICY "activity_select" ON public.activity_feed FOR SELECT USING (auth.uid() = recipient_id);
+DROP POLICY IF EXISTS "activity_insert" ON public.activity_feed;
+CREATE POLICY "activity_insert" ON public.activity_feed FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "activity_update" ON public.activity_feed;
+CREATE POLICY "activity_update" ON public.activity_feed FOR UPDATE USING (auth.uid() = recipient_id);
+
+-- 3. Event Playlists + Tracks
+CREATE TABLE IF NOT EXISTS public.event_playlists (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id     UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  created_by   UUID NOT NULL REFERENCES public.profiles(id),
+  name         TEXT NOT NULL DEFAULT 'Event Playlist',
+  spotify_url  TEXT,
+  youtube_url  TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (event_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.event_playlist_tracks (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  playlist_id UUID NOT NULL REFERENCES public.event_playlists(id) ON DELETE CASCADE,
+  added_by    UUID NOT NULL REFERENCES public.profiles(id),
+  track_id    TEXT NOT NULL,
+  platform    TEXT NOT NULL CHECK (platform IN ('spotify','youtube')),
+  title       TEXT NOT NULL,
+  artist      TEXT,
+  thumbnail   TEXT,
+  duration_ms INT,
+  votes       INT NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (playlist_id, track_id, platform)
+);
+CREATE INDEX IF NOT EXISTS idx_playlist_tracks_votes ON public.event_playlist_tracks(playlist_id, votes DESC);
+
+CREATE TABLE IF NOT EXISTS public.event_track_votes (
+  track_id UUID NOT NULL REFERENCES public.event_playlist_tracks(id) ON DELETE CASCADE,
+  user_id  UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  PRIMARY KEY (track_id, user_id)
+);
+
+ALTER TABLE public.event_playlists ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "playlists_select" ON public.event_playlists;
+CREATE POLICY "playlists_select" ON public.event_playlists FOR SELECT USING (true);
+DROP POLICY IF EXISTS "playlists_insert" ON public.event_playlists;
+CREATE POLICY "playlists_insert" ON public.event_playlists FOR INSERT WITH CHECK (auth.uid() = created_by);
+DROP POLICY IF EXISTS "playlists_update" ON public.event_playlists;
+CREATE POLICY "playlists_update" ON public.event_playlists FOR UPDATE
+  USING (auth.uid() = created_by OR EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND author_id = auth.uid()));
+
+ALTER TABLE public.event_playlist_tracks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "tracks_select" ON public.event_playlist_tracks;
+CREATE POLICY "tracks_select" ON public.event_playlist_tracks FOR SELECT USING (true);
+DROP POLICY IF EXISTS "tracks_insert" ON public.event_playlist_tracks;
+CREATE POLICY "tracks_insert" ON public.event_playlist_tracks FOR INSERT WITH CHECK (auth.uid() = added_by);
+
 
 -- ============================================================
 --  PATHS (user journey trails)
@@ -1706,15 +1814,18 @@ DROP POLICY IF EXISTS "Reels readable by all"           ON public.reels;
 DROP POLICY IF EXISTS "Authenticated users insert reels" ON public.reels;
 DROP POLICY IF EXISTS "Users update own reels"           ON public.reels;
 DROP POLICY IF EXISTS "Users delete own reels"           ON public.reels;
-CREATE POLICY "Reels readable by all"            ON public.reels FOR SELECT USING (is_deleted = false);
+CREATE POLICY "Reels readable by all"            ON public.reels FOR SELECT USING (is_deleted = false AND (is_hidden = false OR auth.uid() = user_id));
 CREATE POLICY "Authenticated users insert reels" ON public.reels FOR INSERT WITH CHECK (auth.uid() = user_id AND auth.role() = 'authenticated');
-CREATE POLICY "Users update own reels"           ON public.reels FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users update own reels"           ON public.reels FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users delete own reels"           ON public.reels FOR DELETE USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Reel likes readable by all" ON public.reel_likes;
 DROP POLICY IF EXISTS "Users manage own likes"     ON public.reel_likes;
+DROP POLICY IF EXISTS "Users insert own likes"     ON public.reel_likes;
+DROP POLICY IF EXISTS "Users delete own likes"     ON public.reel_likes;
 CREATE POLICY "Reel likes readable by all" ON public.reel_likes FOR SELECT USING (true);
-CREATE POLICY "Users manage own likes"     ON public.reel_likes FOR ALL    USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own likes"     ON public.reel_likes FOR INSERT WITH CHECK (auth.uid() = user_id AND auth.role() = 'authenticated');
+CREATE POLICY "Users delete own likes"     ON public.reel_likes FOR DELETE USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Reel comments readable by all" ON public.reel_comments;
 DROP POLICY IF EXISTS "Users insert own comments"     ON public.reel_comments;
@@ -1722,15 +1833,32 @@ DROP POLICY IF EXISTS "Users update own comments"     ON public.reel_comments;
 DROP POLICY IF EXISTS "Users delete own comments"     ON public.reel_comments;
 CREATE POLICY "Reel comments readable by all" ON public.reel_comments FOR SELECT USING (true);
 CREATE POLICY "Users insert own comments"     ON public.reel_comments FOR INSERT WITH CHECK (auth.uid() = user_id AND auth.role() = 'authenticated');
-CREATE POLICY "Users update own comments"     ON public.reel_comments FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users update own comments"     ON public.reel_comments FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users delete own comments"     ON public.reel_comments FOR DELETE USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users log own views"          ON public.reel_views;
+DROP POLICY IF EXISTS "Users log own views"   ON public.reel_views;
+DROP POLICY IF EXISTS "Reel views readable by all" ON public.reel_views;
+DROP POLICY IF EXISTS "Users insert own views"     ON public.reel_views;
+DROP POLICY IF EXISTS "Users update own views"     ON public.reel_views;
+CREATE POLICY "Reel views readable by all" ON public.reel_views FOR SELECT USING (true);
+CREATE POLICY "Users insert own views"     ON public.reel_views FOR INSERT WITH CHECK (auth.uid() = viewer_id AND auth.role() = 'authenticated');
+CREATE POLICY "Users update own views"     ON public.reel_views FOR UPDATE USING (auth.uid() = viewer_id);
+
 DROP POLICY IF EXISTS "Users manage own saved reels" ON public.saved_reels;
-DROP POLICY IF EXISTS "Users can report reels"       ON public.reel_reports;
-CREATE POLICY "Users log own views"          ON public.reel_views   FOR ALL    USING (auth.uid() = viewer_id);
-CREATE POLICY "Users manage own saved reels" ON public.saved_reels  FOR ALL    USING (auth.uid() = user_id);
-CREATE POLICY "Users can report reels"       ON public.reel_reports FOR INSERT WITH CHECK (auth.uid() = reporter_id AND auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Users select own saved reels" ON public.saved_reels;
+DROP POLICY IF EXISTS "Users insert own saved reels" ON public.saved_reels;
+DROP POLICY IF EXISTS "Users delete own saved reels" ON public.saved_reels;
+CREATE POLICY "Users select own saved reels" ON public.saved_reels FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own saved reels" ON public.saved_reels FOR INSERT WITH CHECK (auth.uid() = user_id AND auth.role() = 'authenticated');
+CREATE POLICY "Users delete own saved reels" ON public.saved_reels FOR DELETE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can report reels" ON public.reel_reports;
+DROP POLICY IF EXISTS "Reel reports select"    ON public.reel_reports;
+DROP POLICY IF EXISTS "Reel reports insert"    ON public.reel_reports;
+DROP POLICY IF EXISTS "Reel reports update"    ON public.reel_reports;
+CREATE POLICY "Reel reports select" ON public.reel_reports FOR SELECT USING (auth.uid() = reporter_id);
+CREATE POLICY "Reel reports insert" ON public.reel_reports FOR INSERT WITH CHECK (auth.uid() = reporter_id AND auth.role() = 'authenticated');
+CREATE POLICY "Reel reports update" ON public.reel_reports FOR UPDATE USING (auth.uid() = reporter_id);
 
 
 -- ══════════════════════════════════════════════════════════════════════════════
@@ -2175,9 +2303,11 @@ CREATE POLICY "analytics_insert" ON public.campaign_analytics FOR INSERT WITH CH
 --  11b. ECONOMY, WALLET & GOVERNANCE
 -- ══════════════════════════════════════════════════════════════════════════════
 CREATE TABLE IF NOT EXISTS global_economy_params (
-  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  vibe_tax_rate FLOAT       DEFAULT 0.05,
-  updated_at    TIMESTAMPTZ DEFAULT now()
+  id                 UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  vibe_tax_rate      FLOAT       DEFAULT 0.05,
+  war_chest_balance  NUMERIC     DEFAULT 0.0,
+  last_decay_at      TIMESTAMPTZ,
+  updated_at         TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE global_economy_params ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "global_economy_params readable" ON global_economy_params;
@@ -2587,7 +2717,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 CREATE OR REPLACE FUNCTION increment_vibe(ev_id uuid, uid uuid)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
-  INSERT INTO vibes (event_id, user_id) VALUES (ev_id, uid)
+  INSERT INTO public.event_vibes (event_id, user_id) VALUES (ev_id, uid)
   ON CONFLICT (event_id, user_id) DO NOTHING;
 END;
 $$;
@@ -2596,7 +2726,7 @@ $$;
 CREATE OR REPLACE FUNCTION decrement_vibe(ev_id uuid, uid uuid)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
-  DELETE FROM vibes WHERE event_id = ev_id AND user_id = uid;
+  DELETE FROM public.event_vibes WHERE event_id = ev_id AND user_id = uid;
 END;
 $$;
 
@@ -2911,18 +3041,20 @@ DECLARE
   msg_count INTEGER;
   is_accepted BOOLEAN;
 BEGIN
-  -- Check if there is an existing conversation that was accepted
-  SELECT request_accepted INTO is_accepted
-  FROM messages
-  WHERE (sender_id = NEW.sender_id AND recipient_id = NEW.recipient_id)
-     OR (sender_id = NEW.recipient_id AND recipient_id = NEW.sender_id)
-     AND request_accepted = true
-  LIMIT 1;
+  -- Check whether any accepted message exists between these two users (either direction)
+  SELECT EXISTS (
+    SELECT 1 FROM public.messages
+    WHERE (
+            (sender_id = NEW.sender_id AND recipient_id = NEW.recipient_id)
+         OR (sender_id = NEW.recipient_id AND recipient_id = NEW.sender_id)
+          )
+      AND request_accepted = true
+  ) INTO is_accepted;
 
   -- If not accepted yet, count how many messages the sender has sent
   IF is_accepted IS NOT TRUE THEN
     SELECT count(*) INTO msg_count
-    FROM messages
+    FROM public.messages
     WHERE sender_id = NEW.sender_id AND recipient_id = NEW.recipient_id AND request_accepted = false;
 
     IF msg_count >= 3 THEN
@@ -2938,6 +3070,54 @@ DROP TRIGGER IF EXISTS dm_limit_trigger ON messages;
 CREATE TRIGGER dm_limit_trigger
   BEFORE INSERT ON messages
   FOR EACH ROW EXECUTE FUNCTION enforce_message_limits();
+
+-- Auto-resolve DM room on INSERT (room_id fix)
+CREATE OR REPLACE FUNCTION public.resolve_message_room()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_room_id UUID;
+  p1        UUID;
+  p2        UUID;
+BEGIN
+  -- Already has a room_id — nothing to do
+  IF NEW.room_id IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.sender_id IS NULL OR NEW.recipient_id IS NULL THEN
+    RAISE EXCEPTION 'sender_id and recipient_id are required to resolve a DM room.';
+  END IF;
+
+  -- Canonical ordering matches the unique index on dm_rooms
+  IF NEW.sender_id < NEW.recipient_id THEN
+    p1 := NEW.sender_id;  p2 := NEW.recipient_id;
+  ELSE
+    p1 := NEW.recipient_id; p2 := NEW.sender_id;
+  END IF;
+
+  -- Look up existing room
+  SELECT id INTO v_room_id
+  FROM public.dm_rooms
+  WHERE participant_1 = p1 AND participant_2 = p2;
+
+  -- Create it if missing
+  IF v_room_id IS NULL THEN
+    INSERT INTO public.dm_rooms (participant_1, participant_2)
+    VALUES (p1, p2)
+    ON CONFLICT (LEAST(participant_1, participant_2), GREATEST(participant_1, participant_2))
+    DO UPDATE SET updated_at = now()
+    RETURNING id INTO v_room_id;
+  END IF;
+
+  NEW.room_id := v_room_id;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_resolve_message_room ON public.messages;
+CREATE TRIGGER trg_resolve_message_room
+  BEFORE INSERT ON public.messages
+  FOR EACH ROW EXECUTE FUNCTION public.resolve_message_room();
 
 -- ============================================================
 --  RECIPROCITY LOGIC (Reward Connection Acceptance)
@@ -3462,25 +3642,39 @@ DECLARE
   v_day    DATE;
   v_prev   DATE;
 BEGIN
-  INSERT INTO daily_activity(user_id, day)
+  -- Upsert today's activity record
+  INSERT INTO public.daily_activity (user_id, day)
   VALUES (p_user, CURRENT_DATE)
   ON CONFLICT (user_id, day)
   DO UPDATE SET action_count = daily_activity.action_count + 1;
 
+  -- Walk backwards through activity days to compute current streak
   FOR v_day IN
-    SELECT day FROM daily_activity WHERE user_id = p_user ORDER BY day DESC
+    SELECT day FROM public.daily_activity
+    WHERE user_id = p_user
+    ORDER BY day DESC
   LOOP
     IF v_streak = 0 THEN
+      -- Allow today OR yesterday to start a streak
       IF v_day = CURRENT_DATE OR v_day = CURRENT_DATE - 1 THEN
         v_streak := 1; v_prev := v_day;
       ELSE EXIT;
       END IF;
     ELSE
-      IF v_day = v_prev - 1 THEN v_streak := v_streak + 1; v_prev := v_day;
+      IF v_day = v_prev - 1 THEN
+        v_streak := v_streak + 1; v_prev := v_day;
       ELSE EXIT;
       END IF;
     END IF;
   END LOOP;
+
+  -- Persist the computed streak and refresh last_active on the profile
+  UPDATE public.profiles
+  SET
+    current_streak = v_streak,
+    last_active    = CURRENT_DATE
+  WHERE id = p_user;
+
   RETURN v_streak;
 END;
 $$;
@@ -3812,12 +4006,12 @@ $$;
 
 -- #43  Trending reels view (top 50 by discovery score)
 DROP VIEW IF EXISTS trending_reels CASCADE;
-CREATE OR REPLACE VIEW trending_reels AS
+CREATE OR REPLACE VIEW trending_reels WITH (security_invoker = true) AS
 SELECT
   r.*,
   reel_discovery_score(r.like_count, r.comment_count, r.view_count, r.created_at) AS score
 FROM reels r
-WHERE r.is_deleted = false
+WHERE r.is_deleted = false AND r.is_hidden = false
 ORDER BY score DESC
 LIMIT 50;
 
@@ -3976,21 +4170,125 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage RLS policies
-DROP POLICY IF EXISTS "Avatar public read"    ON storage.objects;
-DROP POLICY IF EXISTS "Avatar auth upload"    ON storage.objects;
-DROP POLICY IF EXISTS "Cover public read"     ON storage.objects;
-DROP POLICY IF EXISTS "Cover auth upload"     ON storage.objects;
-DROP POLICY IF EXISTS "EventMedia public read" ON storage.objects;
-DROP POLICY IF EXISTS "EventMedia auth upload" ON storage.objects;
-DROP POLICY IF EXISTS "ChatMedia auth access"  ON storage.objects;
+DROP POLICY IF EXISTS "Avatar public read"              ON storage.objects;
+DROP POLICY IF EXISTS "Avatar auth upload"              ON storage.objects;
+DROP POLICY IF EXISTS "Avatar auth write"               ON storage.objects;
+DROP POLICY IF EXISTS "Avatar owner write"              ON storage.objects;
+DROP POLICY IF EXISTS "Cover public read"               ON storage.objects;
+DROP POLICY IF EXISTS "Cover auth upload"               ON storage.objects;
+DROP POLICY IF EXISTS "Cover auth write"                ON storage.objects;
+DROP POLICY IF EXISTS "Cover owner write"               ON storage.objects;
+DROP POLICY IF EXISTS "EventMedia public read"          ON storage.objects;
+DROP POLICY IF EXISTS "EventMedia auth upload"          ON storage.objects;
+DROP POLICY IF EXISTS "EventMedia auth write"           ON storage.objects;
+DROP POLICY IF EXISTS "EventMedia owner write"          ON storage.objects;
+DROP POLICY IF EXISTS "ChatMedia auth access"           ON storage.objects;
+DROP POLICY IF EXISTS "ChatMedia public read"           ON storage.objects;
+DROP POLICY IF EXISTS "ChatMedia auth write"            ON storage.objects;
+DROP POLICY IF EXISTS "ChatMedia owner write"           ON storage.objects;
 
-CREATE POLICY "Avatar public read"    ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
-CREATE POLICY "Avatar auth upload"    ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.role() = 'authenticated');
-CREATE POLICY "Cover public read"     ON storage.objects FOR SELECT USING (bucket_id = 'covers');
-CREATE POLICY "Cover auth upload"     ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'covers' AND auth.role() = 'authenticated');
-CREATE POLICY "EventMedia public read" ON storage.objects FOR SELECT USING (bucket_id = 'event-media');
-CREATE POLICY "EventMedia auth upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'event-media' AND auth.role() = 'authenticated');
-CREATE POLICY "ChatMedia auth access"  ON storage.objects FOR ALL   USING (bucket_id = 'chat_media' AND auth.role() = 'authenticated');
+-- ── 1. Avatars ──────────────────────────────────────────────
+CREATE POLICY "Avatar public read" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+CREATE POLICY "Avatar owner write" ON storage.objects
+  FOR ALL USING (
+    bucket_id = 'avatars'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  )
+  WITH CHECK (
+    bucket_id = 'avatars'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- ── 2. Covers ───────────────────────────────────────────────
+CREATE POLICY "Cover public read" ON storage.objects
+  FOR SELECT USING (bucket_id = 'covers');
+
+CREATE POLICY "Cover owner write" ON storage.objects
+  FOR ALL USING (
+    bucket_id = 'covers'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  )
+  WITH CHECK (
+    bucket_id = 'covers'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- ── 3. Event Media ──────────────────────────────────────────
+CREATE POLICY "EventMedia public read" ON storage.objects
+  FOR SELECT USING (bucket_id = 'event-media');
+
+CREATE POLICY "EventMedia owner write" ON storage.objects
+  FOR ALL USING (
+    bucket_id = 'event-media'
+    AND auth.role() = 'authenticated'
+    AND (
+      (
+        (storage.foldername(name))[1] = 'events'
+        AND (
+          (storage.foldername(name))[2] = auth.uid()::text
+          OR EXISTS (
+            SELECT 1 FROM public.events
+            WHERE id::text = (storage.foldername(name))[2]
+              AND author_id = auth.uid()
+          )
+        )
+      )
+      OR
+      (
+        (storage.foldername(name))[1] = 'gallery'
+        AND split_part(name, '/', 3) LIKE auth.uid()::text || '_%'
+      )
+    )
+  )
+  WITH CHECK (
+    bucket_id = 'event-media'
+    AND auth.role() = 'authenticated'
+    AND (
+      (
+        (storage.foldername(name))[1] = 'events'
+        AND (
+          (storage.foldername(name))[2] = auth.uid()::text
+          OR EXISTS (
+            SELECT 1 FROM public.events
+            WHERE id::text = (storage.foldername(name))[2]
+              AND author_id = auth.uid()
+          )
+        )
+      )
+      OR
+      (
+        (storage.foldername(name))[1] = 'gallery'
+        AND split_part(name, '/', 3) LIKE auth.uid()::text || '_%'
+      )
+    )
+  );
+
+-- ── 4. Chat Media ───────────────────────────────────────────
+CREATE POLICY "ChatMedia authenticated read" ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'chat_media'
+    AND auth.role() = 'authenticated'
+  );
+
+CREATE POLICY "ChatMedia owner write" ON storage.objects
+  FOR ALL USING (
+    bucket_id = 'chat_media'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = 'dms'
+    AND split_part(name, '/', 2) LIKE auth.uid()::text || '_%'
+  )
+  WITH CHECK (
+    bucket_id = 'chat_media'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = 'dms'
+    AND split_part(name, '/', 2) LIKE auth.uid()::text || '_%'
+  );
 
 
 -- ══════════════════════════════════════════════════════════════════════════════
@@ -4073,3 +4371,1272 @@ DO $$ BEGIN
   BEGIN REVOKE EXECUTE ON FUNCTION public.refresh_trending_events()               FROM anon; EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN REVOKE EXECUTE ON FUNCTION public.purge_expired_checkins()                FROM anon; EXCEPTION WHEN OTHERS THEN NULL; END;
 END $$;
+
+
+-- ══════════════════════════════════════════════════════════════════════════════
+--  20. ADDITIONAL FUNCTIONS (SECURITY FIXES & MISSING RPCS)
+-- ══════════════════════════════════════════════════════════════════════════════
+
+-- ────────────────────────────────────────────────────────────
+-- 1. update_profile() RPC (from patch_security_fixes.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.update_profile(
+  p_user_id UUID,
+  p_updates  JSONB
+)
+RETURNS public.profiles
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_profile public.profiles;
+BEGIN
+  SELECT * INTO v_profile FROM public.profiles WHERE id = p_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Profile not found: %', p_user_id;
+  END IF;
+
+  v_profile := jsonb_populate_record(v_profile, p_updates);
+  v_profile.id := p_user_id;
+
+  UPDATE public.profiles
+  SET
+    username           = v_profile.username,
+    display_name       = v_profile.display_name,
+    avatar_url         = v_profile.avatar_url,
+    cover_url          = v_profile.cover_url,
+    bio                = v_profile.bio,
+    location           = v_profile.location,
+    website            = v_profile.website,
+    interests          = v_profile.interests,
+    looks_description  = v_profile.looks_description,
+    career_title       = v_profile.career_title,
+    career_description = v_profile.career_description,
+    gender             = v_profile.gender,
+    birth_year         = v_profile.birth_year,
+    looking_for        = v_profile.looking_for,
+    preferred_areas    = v_profile.preferred_areas,
+    profile_gallery    = v_profile.profile_gallery,
+    wallet_balance     = v_profile.wallet_balance,
+    current_streak     = v_profile.current_streak,
+    last_active        = v_profile.last_active,
+    updated_at         = now()
+  WHERE id = p_user_id;
+
+  RETURN v_profile;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 2. get_follower_integrity_aggregate() RPC (from patch_security_fixes.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.get_follower_integrity_aggregate(u_id UUID)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_score NUMERIC;
+BEGIN
+  SELECT COALESCE(AVG(p.social_integrity_score), 0.0)
+  INTO v_score
+  FROM public.follows f
+  JOIN public.profiles p ON p.id = f.follower_id
+  WHERE f.following_id = u_id;
+
+  RETURN jsonb_build_object('aggregate_score', v_score);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 3. get_economic_velocity() RPC (from patch_security_fixes.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.get_economic_velocity()
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_volume   NUMERIC;
+  v_supply   NUMERIC;
+  v_velocity NUMERIC;
+BEGIN
+  SELECT COALESCE(SUM(amount), 0.0) INTO v_volume
+  FROM public.wallet_transactions
+  WHERE created_at >= now() - INTERVAL '1 day';
+
+  SELECT COALESCE(SUM(wallet_balance), 0.0) INTO v_supply
+  FROM public.profiles;
+
+  IF v_supply = 0 THEN
+    v_velocity := 0.0;
+  ELSE
+    v_velocity := ABS(v_volume) / v_supply;
+  END IF;
+
+  RETURN jsonb_build_object('velocity', v_velocity);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 4. get_precision_economic_metrics() RPC (from patch_security_fixes.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.get_precision_economic_metrics()
+RETURNS TABLE (total_minted NUMERIC, total_burned NUMERIC)
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    COALESCE(SUM(amount) FILTER (WHERE direction = 'credit'), 0.0)::NUMERIC AS total_minted,
+    COALESCE(SUM(amount) FILTER (WHERE direction = 'debit'),  0.0)::NUMERIC AS total_burned
+  FROM public.wallet_transactions;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 5. distribute_to_war_chest() RPC (from patch_security_fixes.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.distribute_to_war_chest(amount NUMERIC)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  UPDATE public.global_economy_params
+  SET war_chest_balance = COALESCE(war_chest_balance, 0.0) + amount;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 6. apply_vibe_decay() RPC (from patch_security_fixes.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.apply_vibe_decay()
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_last_decay TIMESTAMPTZ;
+  v_decay_rate FLOAT;
+BEGIN
+  SELECT last_decay_at, vibe_tax_rate
+  INTO v_last_decay, v_decay_rate
+  FROM public.global_economy_params
+  LIMIT 1;
+
+  IF v_decay_rate IS NULL THEN
+    v_decay_rate := 0.05;
+  END IF;
+
+  IF v_last_decay IS NULL OR v_last_decay <= now() - INTERVAL '1 day' THEN
+    UPDATE public.profiles
+    SET vibe_score = GREATEST(0, ROUND(vibe_score * (1.0 - v_decay_rate)))::INTEGER;
+
+    IF EXISTS (SELECT 1 FROM public.global_economy_params) THEN
+      UPDATE public.global_economy_params
+      SET last_decay_at = now();
+    ELSE
+      INSERT INTO public.global_economy_params (vibe_tax_rate, last_decay_at)
+      VALUES (v_decay_rate, now());
+    END IF;
+  END IF;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 7. increment_wallet_balance() RPC (from patch_security_fixes.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.increment_wallet_balance(
+  user_id UUID,
+  amount  NUMERIC
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_new_bal NUMERIC;
+BEGIN
+  UPDATE public.profiles
+  SET wallet_balance = COALESCE(wallet_balance, 0.0) + amount
+  WHERE id = user_id
+  RETURNING wallet_balance INTO v_new_bal;
+
+  INSERT INTO public.wallet_transactions
+    (user_id, amount, direction, reason, balance_after)
+  VALUES
+    (user_id, amount, 'credit', 'Escrow Release / Earnings', v_new_bal);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 8. follow_user() overloaded RPC (from patch_security_fixes.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.follow_user(
+  p_follower    UUID DEFAULT NULL,
+  p_following   UUID DEFAULT NULL,
+  p_follower_id UUID DEFAULT NULL,
+  p_following_id UUID DEFAULT NULL
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_follower  UUID;
+  v_following UUID;
+BEGIN
+  v_follower  := COALESCE(p_follower,  p_follower_id);
+  v_following := COALESCE(p_following, p_following_id);
+
+  IF v_follower IS NULL OR v_following IS NULL THEN
+    RAISE EXCEPTION 'Both follower and following IDs must be provided.';
+  END IF;
+
+  INSERT INTO public.follows (follower_id, following_id)
+  VALUES (v_follower, v_following)
+  ON CONFLICT (follower_id, following_id) DO NOTHING;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 9. unfollow_user() overloaded RPC (from patch_security_fixes.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.unfollow_user(
+  p_follower    UUID DEFAULT NULL,
+  p_following   UUID DEFAULT NULL,
+  p_follower_id UUID DEFAULT NULL,
+  p_following_id UUID DEFAULT NULL
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_follower  UUID;
+  v_following UUID;
+BEGIN
+  v_follower  := COALESCE(p_follower,  p_follower_id);
+  v_following := COALESCE(p_following, p_following_id);
+
+  IF v_follower IS NULL OR v_following IS NULL THEN
+    RAISE EXCEPTION 'Both follower and following IDs must be provided.';
+  END IF;
+
+  DELETE FROM public.follows
+  WHERE follower_id = v_follower AND following_id = v_following;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 10. create_user_profile() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.create_user_profile(p_payload JSONB)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.profiles (
+    id, username, display_name, city, gender, birth_year,
+    interests, vibe_score, is_discoverable, wants_email,
+    email_confirmed, confirm_later
+  )
+  VALUES (
+    (p_payload->>'id')::UUID,
+    p_payload->>'username',
+    p_payload->>'display_name',
+    p_payload->>'city',
+    p_payload->>'gender',
+    (p_payload->>'birth_year')::INTEGER,
+    ARRAY(SELECT jsonb_array_elements_text(COALESCE(p_payload->'interests', '[]'::jsonb))),
+    COALESCE((p_payload->>'vibe_score')::INTEGER, 0),
+    COALESCE((p_payload->>'is_discoverable')::BOOLEAN, true),
+    COALESCE((p_payload->>'wants_email')::BOOLEAN, true),
+    COALESCE((p_payload->>'email_confirmed')::BOOLEAN, false),
+    COALESCE((p_payload->>'confirm_later')::BOOLEAN, true)
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET username     = EXCLUDED.username,
+        display_name = EXCLUDED.display_name,
+        city         = EXCLUDED.city,
+        gender       = EXCLUDED.gender,
+        birth_year   = EXCLUDED.birth_year,
+        interests    = EXCLUDED.interests,
+        updated_at   = now();
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 11. update_username() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.update_username(p_user_id UUID, p_username TEXT)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.profiles WHERE username = p_username AND id <> p_user_id) THEN
+    RAISE EXCEPTION 'Username is already taken.';
+  END IF;
+  UPDATE public.profiles SET username = p_username, updated_at = now()
+  WHERE id = p_user_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 12. update_sis_score() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.update_sis_score(p_user_id UUID)
+RETURNS NUMERIC LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_score NUMERIC;
+BEGIN
+  v_score := public.calculate_sis_score(p_user_id);
+  UPDATE public.profiles
+  SET social_integrity_score = v_score, updated_at = now()
+  WHERE id = p_user_id;
+  RETURN v_score;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 13. send_message() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.send_message(
+  p_sender    UUID,
+  p_recipient UUID,
+  p_body      TEXT DEFAULT NULL,
+  p_type      TEXT DEFAULT 'text'
+)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_msg public.messages;
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM public.user_blocks
+    WHERE blocker_id = p_recipient AND blocked_id = p_sender
+  ) THEN
+    RAISE EXCEPTION 'Blocked';
+  END IF;
+
+  INSERT INTO public.messages (sender_id, recipient_id, body, message_type)
+  VALUES (p_sender, p_recipient, p_body, p_type)
+  RETURNING * INTO v_msg;
+
+  RETURN row_to_json(v_msg)::JSONB;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 14. create_dm_room() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.create_dm_room(p_user_a UUID, p_user_b UUID)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_p1      UUID;
+  v_p2      UUID;
+  v_room_id UUID;
+BEGIN
+  IF p_user_a < p_user_b THEN v_p1 := p_user_a; v_p2 := p_user_b;
+  ELSE                        v_p1 := p_user_b; v_p2 := p_user_a;
+  END IF;
+
+  SELECT id INTO v_room_id FROM public.dm_rooms
+  WHERE participant_1 = v_p1 AND participant_2 = v_p2;
+
+  IF v_room_id IS NULL THEN
+    INSERT INTO public.dm_rooms (participant_1, participant_2)
+    VALUES (v_p1, v_p2)
+    RETURNING id INTO v_room_id;
+  END IF;
+
+  RETURN v_room_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 15. create_event() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.create_event(p_payload JSONB)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_id UUID;
+BEGIN
+  INSERT INTO public.events (
+    author_id, title, description, address, city,
+    lat, lon, event_date, event_time, end_time,
+    cover_url, media_urls, category, ticket_url,
+    age_restriction, age_max, capacity, is_published, is_cancelled,
+    schedule
+  )
+  VALUES (
+    (p_payload->>'author_id')::UUID,
+    p_payload->>'title',
+    p_payload->>'description',
+    p_payload->>'address',
+    p_payload->>'city',
+    (p_payload->>'lat')::FLOAT,
+    (p_payload->>'lon')::FLOAT,
+    (p_payload->>'event_date')::DATE,
+    p_payload->>'event_time',
+    p_payload->>'end_time',
+    p_payload->>'cover_url',
+    ARRAY(SELECT jsonb_array_elements_text(COALESCE(p_payload->'media_urls', '[]'::jsonb))),
+    p_payload->>'category',
+    p_payload->>'ticket_url',
+    (p_payload->>'age_restriction')::INTEGER,
+    (p_payload->>'age_max')::INTEGER,
+    (p_payload->>'capacity')::INTEGER,
+    COALESCE((p_payload->>'is_published')::BOOLEAN, true),
+    COALESCE((p_payload->>'is_cancelled')::BOOLEAN, false),
+    p_payload->'schedule'
+  )
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 16. update_event() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.update_event(p_event_id UUID, p_payload JSONB)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_ev public.events;
+BEGIN
+  SELECT * INTO v_ev FROM public.events WHERE id = p_event_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Event not found'; END IF;
+  IF v_ev.author_id <> auth.uid() THEN RAISE EXCEPTION 'Not authorized'; END IF;
+
+  UPDATE public.events
+  SET
+    title         = COALESCE(p_payload->>'title',        title),
+    description   = COALESCE(p_payload->>'description',  description),
+    venue_name    = COALESCE(p_payload->>'venue_name',   venue_name),
+    event_date    = COALESCE((p_payload->>'event_date')::DATE, event_date),
+    event_time    = COALESCE(p_payload->>'event_time',   event_time),
+    end_time      = COALESCE(p_payload->>'end_time',     end_time),
+    cover_url     = COALESCE(p_payload->>'cover_url',    cover_url),
+    ticket_url    = COALESCE(p_payload->>'ticket_url',   ticket_url),
+    capacity      = COALESCE((p_payload->>'capacity')::INTEGER, capacity),
+    updated_at    = now()
+  WHERE id = p_event_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 17. cancel_event() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.cancel_event(p_event_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  UPDATE public.events SET is_cancelled = true, updated_at = now()
+  WHERE id = p_event_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 18. delete_event() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.delete_event(p_event_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  DELETE FROM public.events WHERE id = p_event_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 19. bulk_notify_cancel() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.bulk_notify_cancel(p_event_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_title TEXT;
+  v_ids   UUID[];
+BEGIN
+  SELECT title INTO v_title FROM public.events WHERE id = p_event_id;
+
+  SELECT ARRAY(
+    SELECT DISTINCT user_id FROM (
+      SELECT user_id FROM public.event_vibes WHERE event_id = p_event_id
+      UNION
+      SELECT user_id FROM public.event_rsvps WHERE event_id = p_event_id
+    ) combined
+  ) INTO v_ids;
+
+  IF array_length(v_ids, 1) > 0 THEN
+    INSERT INTO public.notifications (recipient_id, type, title, body, data)
+    SELECT uid, 'event_cancelled',
+      '🚫 Event Cancelled',
+      format('"%s" has been cancelled by the organizer.', v_title),
+      jsonb_build_object('event_id', p_event_id, 'event_title', v_title)
+    FROM unnest(v_ids) AS uid;
+  END IF;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 20. upsert_rsvp() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.upsert_rsvp(
+  p_event_id UUID, p_user_id UUID, p_status TEXT
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.event_rsvps (event_id, user_id, status)
+  VALUES (p_event_id, p_user_id, p_status)
+  ON CONFLICT (event_id, user_id)
+  DO UPDATE SET status = EXCLUDED.status, updated_at = now();
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 21. remove_rsvp() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.remove_rsvp(p_event_id UUID, p_user_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  DELETE FROM public.event_rsvps WHERE event_id = p_event_id AND user_id = p_user_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 22. upsert_event_reaction() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.upsert_event_reaction(
+  p_event_id UUID, p_user_id UUID, p_key TEXT
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.event_reactions (event_id, user_id, reaction_key)
+  VALUES (p_event_id, p_user_id, p_key)
+  ON CONFLICT (event_id, user_id)
+  DO UPDATE SET reaction_key = EXCLUDED.reaction_key, updated_at = now();
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 23. remove_event_reaction() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.remove_event_reaction(p_event_id UUID, p_user_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  DELETE FROM public.event_reactions WHERE event_id = p_event_id AND user_id = p_user_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 24. submit_event_rating() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.submit_event_rating(
+  p_event_id UUID, p_user_id UUID, p_rating FLOAT, p_review TEXT DEFAULT NULL
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.event_ratings (event_id, user_id, rating, review)
+  VALUES (p_event_id, p_user_id, p_rating, p_review)
+  ON CONFLICT (event_id, user_id)
+  DO UPDATE SET rating = EXCLUDED.rating, review = EXCLUDED.review, updated_at = now();
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 25. add_gallery_item() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.add_gallery_item(
+  p_event_id UUID, p_user_id UUID, p_url TEXT, p_type TEXT DEFAULT 'image'
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.event_gallery (event_id, user_id, url, media_type)
+  VALUES (p_event_id, p_user_id, p_url, p_type);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 26. create_reel() RPC (secured, from patch_reels_security.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.create_reel(
+  p_user_id UUID,
+  p_media_url TEXT,
+  p_caption TEXT,
+  p_sound_name TEXT DEFAULT NULL,
+  p_metadata JSONB DEFAULT '{}'::jsonb,
+  p_visibility TEXT DEFAULT 'public'
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_reel_id UUID;
+BEGIN
+  IF auth.uid() <> p_user_id THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  INSERT INTO public.reels (user_id, media_url, caption, sound_name, metadata, visibility)
+  VALUES (p_user_id, p_media_url, p_caption, p_sound_name, p_metadata, p_visibility)
+  RETURNING id INTO v_reel_id;
+
+  RETURN v_reel_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 27. add_reel_comment() RPC (secured, from patch_reels_security.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.add_reel_comment(
+  p_reel_id UUID,
+  p_user_id UUID,
+  p_body TEXT
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_comment_id UUID;
+BEGIN
+  IF auth.uid() <> p_user_id THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  INSERT INTO public.reel_comments (reel_id, user_id, body)
+  VALUES (p_reel_id, p_user_id, p_body)
+  RETURNING id INTO v_comment_id;
+
+  RETURN v_comment_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 28. increment_reel_like() RPC (secured, from patch_reels_security.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.increment_reel_like(
+  p_reel_id UUID,
+  p_user_id UUID
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() <> p_user_id THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  INSERT INTO public.reel_likes (reel_id, user_id)
+  VALUES (p_reel_id, p_user_id)
+  ON CONFLICT (reel_id, user_id) DO NOTHING;
+
+  RETURN TRUE;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 29. decrement_reel_like() RPC (secured, from patch_reels_security.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.decrement_reel_like(
+  p_reel_id UUID,
+  p_user_id UUID
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() <> p_user_id THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  DELETE FROM public.reel_likes
+  WHERE reel_id = p_reel_id AND user_id = p_user_id;
+
+  RETURN TRUE;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 30. save_reel() RPC (secured, from patch_reels_security.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.save_reel(
+  p_reel_id UUID,
+  p_user_id UUID
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() <> p_user_id THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  INSERT INTO public.saved_reels (reel_id, user_id)
+  VALUES (p_reel_id, p_user_id)
+  ON CONFLICT (reel_id, user_id) DO NOTHING;
+
+  RETURN TRUE;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 31. unsave_reel() RPC (secured, from patch_reels_security.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.unsave_reel(
+  p_reel_id UUID,
+  p_user_id UUID
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() <> p_user_id THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  DELETE FROM public.saved_reels
+  WHERE reel_id = p_reel_id AND user_id = p_user_id;
+
+  RETURN TRUE;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 32. increment_vibe_count() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.increment_vibe_count(p_event_id UUID, p_user_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  PERFORM public.increment_vibe(p_event_id, p_user_id);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 33. decrement_vibe_count() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.decrement_vibe_count(p_event_id UUID, p_user_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  PERFORM public.decrement_vibe(p_event_id, p_user_id);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 34. create_story() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.create_story(
+  p_user_id   UUID,
+  p_url       TEXT,
+  p_type      TEXT DEFAULT 'image',
+  p_expires_at TIMESTAMPTZ DEFAULT NULL
+)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE v_id UUID;
+BEGIN
+  INSERT INTO public.stories (user_id, url, media_type, expires_at)
+  VALUES (p_user_id, p_url, p_type, COALESCE(p_expires_at, now() + INTERVAL '24 hours'))
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 35. mark_stories_seen() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.mark_stories_seen(
+  p_story_ids UUID[], p_viewer_id UUID
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.story_views (story_id, viewer_id)
+  SELECT unnest(p_story_ids), p_viewer_id
+  ON CONFLICT (story_id, viewer_id) DO NOTHING;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 36. check_in_live() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.check_in_live(
+  p_event_id UUID, p_user_id UUID, p_lat FLOAT, p_lon FLOAT
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.event_check_ins (event_id, user_id, lat, lon)
+  VALUES (p_event_id, p_user_id, p_lat, p_lon)
+  ON CONFLICT (event_id, user_id) DO UPDATE
+    SET lat = EXCLUDED.lat, lon = EXCLUDED.lon, checked_in_at = now();
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 37. check_in_attendee() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.check_in_attendee(
+  p_event_id UUID, p_rsvp_id UUID, p_user_id UUID
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  UPDATE public.event_rsvps
+  SET checked_in = true, checked_in_at = now()
+  WHERE id = p_rsvp_id AND event_id = p_event_id AND user_id = p_user_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 38. send_path_star() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.send_path_star(
+  p_from     UUID,
+  p_to       UUID,
+  p_event_id UUID DEFAULT NULL
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.path_stars (from_user_id, to_user_id, event_id)
+  VALUES (p_from, p_to, p_event_id)
+  ON CONFLICT DO NOTHING;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 39. drop_path_trace() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.drop_path_trace(
+  p_user_id UUID, p_lat FLOAT, p_lon FLOAT, p_note TEXT DEFAULT NULL
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.path_traces (user_id, lat, lon, note)
+  VALUES (p_user_id, p_lat, p_lon, p_note);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 40. count_path_crossings() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.count_path_crossings(p_user_a UUID, p_user_b UUID)
+RETURNS INTEGER LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE v_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO v_count
+  FROM public.path_crossings
+  WHERE (user_a = p_user_a AND user_b = p_user_b)
+     OR (user_a = p_user_b AND user_b = p_user_a);
+  RETURN COALESCE(v_count, 0);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 41. submit_report() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.submit_report(
+  p_reporter_id UUID, p_target_id UUID, p_target_type TEXT, p_reason TEXT
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.reports (reporter_id, target_id, target_type, reason)
+  VALUES (p_reporter_id, p_target_id, p_target_type, p_reason);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 42. increment_echo_like() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.increment_echo_like(p_echo_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.echo_likes (echo_id, user_id)
+  VALUES (p_echo_id, auth.uid())
+  ON CONFLICT DO NOTHING;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 43. decrement_echo_like() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.decrement_echo_like(p_echo_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  DELETE FROM public.echo_likes WHERE echo_id = p_echo_id AND user_id = auth.uid();
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 44. add_pulse_request() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.add_pulse_request(
+  p_event_id UUID, p_user_id UUID, p_content TEXT
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.pulse_requests (event_id, user_id, content)
+  VALUES (p_event_id, p_user_id, p_content);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 45. cast_pulse_vote() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.cast_pulse_vote(p_request_id UUID, p_user_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.pulse_votes (request_id, user_id)
+  VALUES (p_request_id, p_user_id)
+  ON CONFLICT (request_id, user_id) DO NOTHING;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 46. create_event_poll() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.create_event_poll(
+  p_event_id  UUID,
+  p_author_id UUID,
+  p_question  TEXT,
+  p_options   TEXT[]
+)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE v_id UUID;
+BEGIN
+  INSERT INTO public.event_polls (event_id, author_id, question, options)
+  VALUES (p_event_id, p_author_id, p_question, p_options)
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 47. cast_poll_vote() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.cast_poll_vote(p_poll_id UUID, p_votes JSONB)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  UPDATE public.event_polls
+  SET votes = p_votes
+  WHERE id = p_poll_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 48. post_event_update() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.post_event_update(
+  p_event_id UUID, p_author UUID, p_message TEXT, p_type TEXT DEFAULT 'info'
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.event_updates (event_id, author_id, message, update_type)
+  VALUES (p_event_id, p_author, p_message, p_type);
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 49. join_route() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.join_route(p_route_id UUID, p_user_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.route_members (route_id, user_id)
+  VALUES (p_route_id, p_user_id)
+  ON CONFLICT DO NOTHING;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 50. leave_route() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.leave_route(p_route_id UUID, p_user_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  DELETE FROM public.route_members WHERE route_id = p_route_id AND user_id = p_user_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 51. submit_service_review() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.submit_service_review(
+  p_booking_id UUID, p_rating FLOAT, p_comment TEXT DEFAULT NULL
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  UPDATE public.bookings
+  SET review_rating = p_rating, review_comment = p_comment, review_at = now()
+  WHERE id = p_booking_id;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 52. accept_gig() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.accept_gig(p_gig_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  UPDATE public.gig_posts
+  SET status = 'accepted', accepted_by = auth.uid(), accepted_at = now()
+  WHERE id = p_gig_id AND status = 'open';
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 53. send_spark_notifications() RPC (from patch_missing_rpcs.sql)
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.send_spark_notifications(p_rows JSONB)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.notifications (recipient_id, type, title, body, data)
+  SELECT
+    (row->>'recipient_id')::UUID,
+    row->>'type',
+    row->>'title',
+    row->>'body',
+    row->'data'
+  FROM jsonb_array_elements(p_rows) AS row;
+END;
+$$;
+
+-- ────────────────────────────────────────────────────────────
+-- 54. ADVANCED FEATURES FUNCTIONS (from patch_advanced_features.sql)
+-- ────────────────────────────────────────────────────────────
+
+-- Fanout function
+CREATE OR REPLACE FUNCTION public.fanout_activity_to_followers(
+  p_actor_id    UUID,
+  p_action_type TEXT,
+  p_target_id   UUID,
+  p_target_type TEXT,
+  p_target_title TEXT
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_username TEXT;
+  v_avatar   TEXT;
+BEGIN
+  SELECT username, avatar_url INTO v_username, v_avatar
+  FROM public.profiles WHERE id = p_actor_id;
+
+  INSERT INTO public.activity_feed (recipient_id, actor_id, action_type, target_id, target_type, target_title, actor_username, actor_avatar)
+  SELECT
+    f.follower_id,
+    p_actor_id,
+    p_action_type,
+    p_target_id,
+    p_target_type,
+    p_target_title,
+    v_username,
+    v_avatar
+  FROM public.follows f
+  WHERE f.following_id = p_actor_id
+    AND f.follower_id != p_actor_id
+  ON CONFLICT DO NOTHING;
+END;
+$$;
+
+-- RSVP fanout trigger
+CREATE OR REPLACE FUNCTION public.trg_fanout_rsvp_fn() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_title TEXT;
+BEGIN
+  IF NEW.status = 'going' THEN
+    SELECT title INTO v_title FROM public.events WHERE id = NEW.event_id;
+    PERFORM public.fanout_activity_to_followers(NEW.user_id, 'rsvp_going', NEW.event_id, 'event', v_title);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_fanout_rsvp ON public.event_rsvps;
+CREATE TRIGGER trg_fanout_rsvp
+  AFTER INSERT OR UPDATE ON public.event_rsvps
+  FOR EACH ROW EXECUTE FUNCTION public.trg_fanout_rsvp_fn();
+
+-- Vibe fanout trigger
+CREATE OR REPLACE FUNCTION public.trg_fanout_vibe_fn() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_title TEXT;
+BEGIN
+  SELECT title INTO v_title FROM public.events WHERE id = NEW.event_id;
+  PERFORM public.fanout_activity_to_followers(NEW.user_id, 'vibe_sent', NEW.event_id, 'event', v_title);
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_fanout_vibe ON public.event_vibes;
+CREATE TRIGGER trg_fanout_vibe
+  AFTER INSERT ON public.event_vibes
+  FOR EACH ROW EXECUTE FUNCTION public.trg_fanout_vibe_fn();
+
+-- New event fanout trigger
+CREATE OR REPLACE FUNCTION public.trg_fanout_event_fn() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  PERFORM public.fanout_activity_to_followers(NEW.author_id, 'new_event', NEW.id, 'event', NEW.title);
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_fanout_event ON public.events;
+CREATE TRIGGER trg_fanout_event
+  AFTER INSERT ON public.events
+  FOR EACH ROW EXECUTE FUNCTION public.trg_fanout_event_fn();
+
+-- Co-host invite: insert into activity_feed directly (called from app via RPC)
+CREATE OR REPLACE FUNCTION public.notify_cohost_invite(
+  p_event_id    UUID,
+  p_invitee_id  UUID,
+  p_inviter_id  UUID,
+  p_event_title TEXT
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_username TEXT; v_avatar TEXT;
+BEGIN
+  SELECT username, avatar_url INTO v_username, v_avatar FROM public.profiles WHERE id = p_inviter_id;
+  INSERT INTO public.activity_feed (recipient_id, actor_id, action_type, target_id, target_type, target_title, actor_username, actor_avatar)
+  VALUES (p_invitee_id, p_inviter_id, 'co_host_invite', p_event_id, 'event', p_event_title, v_username, v_avatar);
+END;
+$$;
+
+-- Mark all read RPC
+CREATE OR REPLACE FUNCTION public.mark_activity_read(p_user_id UUID)
+RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
+  UPDATE public.activity_feed SET read = true WHERE recipient_id = p_user_id AND read = false;
+$$;
+
+-- Atomic track vote (upvote only, one per user per track)
+CREATE OR REPLACE FUNCTION public.vote_track(p_track_id UUID, p_user_id UUID)
+RETURNS INT LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_new_votes INT;
+BEGIN
+  INSERT INTO public.event_track_votes(track_id, user_id) VALUES (p_track_id, p_user_id)
+  ON CONFLICT DO NOTHING;
+
+  IF FOUND THEN
+    UPDATE public.event_playlist_tracks SET votes = votes + 1 WHERE id = p_track_id
+    RETURNING votes INTO v_new_votes;
+  ELSE
+    SELECT votes INTO v_new_votes FROM public.event_playlist_tracks WHERE id = p_track_id;
+  END IF;
+
+  RETURN v_new_votes;
+END;
+$$;
+
+-- Unvote track
+CREATE OR REPLACE FUNCTION public.unvote_track(p_track_id UUID, p_user_id UUID)
+RETURNS INT LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_new_votes INT;
+BEGIN
+  DELETE FROM public.event_track_votes WHERE track_id = p_track_id AND user_id = p_user_id;
+  IF FOUND THEN
+    UPDATE public.event_playlist_tracks SET votes = GREATEST(0, votes - 1) WHERE id = p_track_id
+    RETURNING votes INTO v_new_votes;
+  ELSE
+    SELECT votes INTO v_new_votes FROM public.event_playlist_tracks WHERE id = p_track_id;
+  END IF;
+  RETURN v_new_votes;
+END;
+$$;
+
+-- Get or create playlist for an event
+CREATE OR REPLACE FUNCTION public.get_or_create_playlist(p_event_id UUID, p_user_id UUID)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_id UUID;
+BEGIN
+  SELECT id INTO v_id FROM public.event_playlists WHERE event_id = p_event_id;
+  IF NOT FOUND THEN
+    INSERT INTO public.event_playlists(event_id, created_by)
+    VALUES (p_event_id, p_user_id)
+    RETURNING id INTO v_id;
+  END IF;
+  RETURN v_id;
+END;
+$$;
+
+-- Enable realtime for tables
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND tablename='event_roles') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.event_roles;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND tablename='activity_feed') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.activity_feed;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND tablename='event_playlists') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.event_playlists;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND tablename='event_playlist_tracks') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.event_playlist_tracks;
+  END IF;
+END $$;
+
+-- ────────────────────────────────────────────────────────────
+-- 55. Pin search_path for safety on all these routines
+-- ────────────────────────────────────────────────────────────
+DO $$
+DECLARE
+  f RECORD;
+BEGIN
+  FOR f IN
+    SELECT routine_name FROM information_schema.routines
+    WHERE routine_schema = 'public' AND routine_type = 'FUNCTION'
+      AND routine_name IN (
+        'update_profile', 'get_follower_integrity_aggregate',
+        'get_economic_velocity', 'get_precision_economic_metrics',
+        'distribute_to_war_chest', 'apply_vibe_decay',
+        'increment_wallet_balance', 'follow_user', 'unfollow_user',
+        'create_user_profile', 'update_username', 'update_sis_score',
+        'send_message', 'create_dm_room', 'create_event', 'update_event',
+        'cancel_event', 'delete_event', 'bulk_notify_cancel', 'upsert_rsvp',
+        'remove_rsvp', 'upsert_event_reaction', 'remove_event_reaction',
+        'submit_event_rating', 'add_gallery_item', 'create_reel',
+        'add_reel_comment', 'increment_reel_like', 'decrement_reel_like',
+        'save_reel', 'unsave_reel', 'increment_vibe_count', 'decrement_vibe_count',
+        'create_story', 'mark_stories_seen', 'check_in_live', 'check_in_attendee',
+        'send_path_star', 'drop_path_trace', 'count_path_crossings', 'submit_report',
+        'increment_echo_like', 'decrement_echo_like', 'add_pulse_request',
+        'cast_pulse_vote', 'create_event_poll', 'cast_poll_vote', 'post_event_update',
+        'join_route', 'leave_route', 'submit_service_review', 'accept_gig',
+        'send_spark_notifications',
+        'fanout_activity_to_followers', 'notify_cohost_invite', 'mark_activity_read',
+        'vote_track', 'unvote_track', 'get_or_create_playlist'
+      )
+  LOOP
+    BEGIN
+      EXECUTE format('ALTER FUNCTION public.%I SET search_path = public', f.routine_name);
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+  END LOOP;
+END $$;
+
+-- ══════════════════════════════════════════════════════════════════════════════
+--  17. ADVANCED REELS COLUMNS
+-- ══════════════════════════════════════════════════════════════════════════════
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS visibility TEXT DEFAULT 'public';
+

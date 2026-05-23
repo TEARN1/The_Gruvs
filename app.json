@@ -2,6 +2,7 @@
   "expo": {
     "name": "The Gruvs",
     "slug": "the-gruvs",
+    "scheme": "thegruvs",
     "version": "1.0.0",
     "runtimeVersion": {
       "policy": "sdkVersion"
@@ -26,7 +27,19 @@
         "NSCameraUsageDescription": "The Gruvs needs camera access to post event photos.",
         "NSPhotoLibraryUsageDescription": "The Gruvs needs photo library access to upload event media.",
         "NSMicrophoneUsageDescription": "The Gruvs uses the microphone for video recording.",
-        "NSUserTrackingUsageDescription": "We use this to show you relevant events near you."
+        "NSUserTrackingUsageDescription": "We use this to show you relevant events near you.",
+        "UIApplicationShortcutItems": [
+          {
+            "UIApplicationShortcutItemType": "com.thegruvs.app.search",
+            "UIApplicationShortcutItemTitle": "Search Events",
+            "UIApplicationShortcutItemIconType": "UIApplicationShortcutIconTypeSearch"
+          },
+          {
+            "UIApplicationShortcutItemType": "com.thegruvs.app.createreel",
+            "UIApplicationShortcutItemTitle": "Create Reel",
+            "UIApplicationShortcutItemIconType": "UIApplicationShortcutIconTypeCaptureVideo"
+          }
+        ]
       }
     },
     "android": {
@@ -83,7 +96,8 @@
           "cameraPermission": "The Gruvs needs camera access to post event photos."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "extra": {
       "privacyPolicyUrl": "https://thegruvs.app/privacy",
