@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Image, Dimensions, StyleSheet,
+  KeyboardAvoidingView, Platform, Image, Dimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
