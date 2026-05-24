@@ -2313,64 +2313,7 @@ export const FollowingFeedManager = {
   },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ACTIVITY FEED MANAGER  (what your followed users are doing)
-// ─────────────────────────────────────────────────────────────────────────────
-export const ActivityFeedManager = {
-  async fetchActivity(userId, limit = 40) {
-    if (!userId) return { liveNow: [], activity: [] };
-    try {
-      const followedIds = await UserManager.getFollowedIds(userId);
-      if (!followedIds.length) return { liveNow: [], activity: [] };
-      const [rsvpRes, checkinRes, vibeRes] = await Promise.all([
-        supabase
-          .from('event_rsvps')
-          .select('user_id, event_id, status, created_at, profiles(username, avatar_url, is_online), events(id, title, event_date, media, venue_name, category, going)')
-          .in('user_id', followedIds)
-          .eq('status', 'going')
-          .order('created_at', { ascending: false })
-          .limit(limit),
-        supabase
-          .from('live_checkins')
-          .select('user_id, event_id, checked_in_at, profiles(username, avatar_url, is_online), events(id, title, event_date, media, venue_name, category, going)')
-          .in('user_id', followedIds)
-          .order('checked_in_at', { ascending: false })
-          .limit(20),
-        supabase
-          .from('event_vibes')
-          .select('user_id, event_id, created_at, profiles(username, avatar_url, is_online), events(id, title, event_date, media, venue_name, category, going)')
-          .in('user_id', followedIds)
-          .order('created_at', { ascending: false })
-          .limit(limit),
-      ]);
-
-      const toRow = (type, row, ts) => ({
-        id: `${type}-${row.user_id}-${row.event_id}-${ts}`,
-        type,
-        actor: row.profiles,
-        event: row.events,
-        timestamp: ts,
-      });
-
-      const activity = [
-        ...(rsvpRes.data || []).map(r => toRow('rsvp', r, r.created_at)),
-        ...(checkinRes.data || []).map(r => toRow('checkin', r, r.checked_in_at)),
-        ...(vibeRes.data || []).map(r => toRow('vibe', r, r.created_at)),
-      ]
-        .filter(r => r.actor && r.event)
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-        .slice(0, limit);
-
-      const liveNow = (checkinRes.data || [])
-        .filter(r => r.profiles?.is_online && r.events)
-        .map(r => ({ actor: r.profiles, event: r.events, checkedInAt: r.checked_in_at }));
-
-      return { liveNow, activity };
-    } catch {
-      return { liveNow: [], activity: [] };
-    }
-  },
-};
+// ActivityFeedManager — defined below (merged with real-time feed manager)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GLOBAL CACHE CLEAR  (call on sign-out)
@@ -2853,6 +2796,35 @@ export const ActivityFeedManager = {
       .eq('recipient_id', userId)
       .eq('read', false);
     return count || 0;
+  },
+
+  // Legacy: what followed users are doing (used by CrewFeedScreen)
+  async fetchActivity(userId, limit = 40) {
+    if (!userId) return { liveNow: [], activity: [] };
+    try {
+      const followedIds = await UserManager.getFollowedIds(userId);
+      if (!followedIds.length) return { liveNow: [], activity: [] };
+      const [rsvpRes, checkinRes, vibeRes] = await Promise.all([
+        supabase.from('event_rsvps')
+          .select('user_id, event_id, status, created_at, profiles(username, avatar_url, is_online), events(id, title, event_date, media, venue_name, category, going)')
+          .in('user_id', followedIds).eq('status', 'going').order('created_at', { ascending: false }).limit(limit),
+        supabase.from('live_checkins')
+          .select('user_id, event_id, checked_in_at, profiles(username, avatar_url, is_online), events(id, title, event_date, media, venue_name, category, going)')
+          .in('user_id', followedIds).order('checked_in_at', { ascending: false }).limit(20),
+        supabase.from('event_vibes')
+          .select('user_id, event_id, created_at, profiles(username, avatar_url, is_online), events(id, title, event_date, media, venue_name, category, going)')
+          .in('user_id', followedIds).order('created_at', { ascending: false }).limit(limit),
+      ]);
+      const toRow = (type, row, ts) => ({ id: `${type}-${row.user_id}-${row.event_id}-${ts}`, type, actor: row.profiles, event: row.events, timestamp: ts });
+      const activity = [
+        ...(rsvpRes.data || []).map(r => toRow('rsvp', r, r.created_at)),
+        ...(checkinRes.data || []).map(r => toRow('checkin', r, r.checked_in_at)),
+        ...(vibeRes.data || []).map(r => toRow('vibe', r, r.created_at)),
+      ].filter(r => r.actor && r.event).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, limit);
+      const liveNow = (checkinRes.data || []).filter(r => r.profiles?.is_online && r.events)
+        .map(r => ({ actor: r.profiles, event: r.events, checkedInAt: r.checked_in_at }));
+      return { liveNow, activity };
+    } catch { return { liveNow: [], activity: [] }; }
   },
 };
 
