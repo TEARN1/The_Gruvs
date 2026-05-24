@@ -11,9 +11,9 @@ import {
   Image, ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { ActivityFeedManager } from '../services/dataFlow';
 
 const avatarBg = (u = '') =>
   ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u?.charCodeAt(0) || 0) % 5];
@@ -77,7 +77,39 @@ export const FriendActivityFeed = ({ onPressActivity }) => {
 
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [unread, setUnread] = useState(0);
 
+  const load = useCallback(async () => {
+    if (!user) { setLoading(false); return; }
+    try {
+      const [items, count] = await Promise.all([
+        ActivityFeedManager.fetch(user.id, { limit: 20 }),
+        ActivityFeedManager.unreadCount(user.id),
+      ]);
+      setActivities(items);
+      setUnread(count);
+    } catch {}
+    finally { setLoading(false); }
+  }, [user?.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = ActivityFeedManager.subscribe(user.id, (newItem) => {
+      setActivities(prev => [newItem, ...prev].slice(0, 20));
+      setUnread(n => n + 1);
+    });
+    return unsub;
+  }, [user?.id]);
+
+  const handlePressItem = (item) => {
+    ActivityFeedManager.markAllRead(user?.id).catch(() => {});
+    setUnread(0);
+    onPressActivity?.(item);
+  };
+
+  // Legacy path kept as fallback in case activity_feed table doesn't exist yet
   const buildActivities = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     try {
@@ -201,6 +233,11 @@ export const FriendActivityFeed = ({ onPressActivity }) => {
       <View style={ac.headerRow}>
         <Feather name="activity" size={13} color={primary} />
         <Text style={[ac.headerText, { color: primary }]}>Friend Activity</Text>
+        {unread > 0 && (
+          <View style={[ac.unreadBadge, { backgroundColor: primary }]}>
+            <Text style={ac.unreadText}>{unread > 9 ? '9+' : unread}</Text>
+          </View>
+        )}
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
         {activities.map(item => (
@@ -211,7 +248,7 @@ export const FriendActivityFeed = ({ onPressActivity }) => {
             textColor={textColor}
             muted={muted}
             surface={surface}
-            onPress={onPressActivity}
+            onPress={handlePressItem}
           />
         ))}
       </ScrollView>
@@ -224,6 +261,8 @@ const ac = StyleSheet.create({
   loadingRow: { paddingHorizontal: 16, paddingVertical: 8 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   headerText: { fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  unreadBadge: { minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  unreadText: { color: '#000', fontSize: 9, fontWeight: '900' },
   card: {
     width: 130, borderRadius: 14, borderWidth: 1,
     padding: 10, gap: 6,

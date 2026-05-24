@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   events_posted          INTEGER     DEFAULT 0,
   current_streak         INTEGER     DEFAULT 0,
   wallet_balance         NUMERIC     DEFAULT 0,
-  social_integrity_score FLOAT       DEFAULT 100,
+  social_integrity_score FLOAT       DEFAULT 50,
   interests              TEXT[],
   badges                 TEXT[]      DEFAULT '{}',
   profile_gallery        TEXT[],
@@ -115,7 +115,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS saved_count            INTE
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS events_posted          INTEGER     DEFAULT 0;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS current_streak         INTEGER     DEFAULT 0;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS wallet_balance         NUMERIC     DEFAULT 0;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS social_integrity_score FLOAT       DEFAULT 100;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS social_integrity_score FLOAT       DEFAULT 50;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS interests              TEXT[];
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS badges                 TEXT[]      DEFAULT '{}';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS profile_gallery        TEXT[];
@@ -918,11 +918,13 @@ CREATE TABLE IF NOT EXISTS event_gallery (
   caption    TEXT        CHECK (length(caption) <= 200),
   width      INTEGER,
   height     INTEGER,
+  media_type TEXT        DEFAULT 'image',
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS event_id   UUID REFERENCES events(id)   ON DELETE CASCADE;
 ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE event_gallery ADD COLUMN IF NOT EXISTS media_type TEXT DEFAULT 'image';
 
 CREATE TABLE IF NOT EXISTS pulse_requests (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1884,6 +1886,7 @@ CREATE TABLE IF NOT EXISTS public.pulse_requests (
   id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id     UUID        REFERENCES public.events(id) ON DELETE CASCADE,
   schedule_id  UUID        REFERENCES public.pulse_schedules(id) ON DELETE CASCADE,
+  user_id      UUID        REFERENCES public.profiles(id) ON DELETE CASCADE,
   requested_by UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
   content      TEXT        NOT NULL,
   request_type TEXT        NOT NULL,
@@ -1893,6 +1896,8 @@ CREATE TABLE IF NOT EXISTS public.pulse_requests (
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE public.pulse_requests ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.pulse_requests ADD COLUMN IF NOT EXISTS requested_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
 ALTER TABLE public.pulse_requests ADD COLUMN IF NOT EXISTS request_type TEXT;
 ALTER TABLE public.pulse_requests ADD COLUMN IF NOT EXISTS status       TEXT DEFAULT 'pending';
 ALTER TABLE public.pulse_requests ADD COLUMN IF NOT EXISTS schedule_id  UUID REFERENCES public.pulse_schedules(id) ON DELETE CASCADE;
@@ -4754,7 +4759,7 @@ BEGIN
     lat, lon, event_date, event_time, end_time,
     cover_url, media_urls, category, ticket_url,
     age_restriction, age_max, capacity, is_published, is_cancelled,
-    schedule
+    schedule, price, price_min, price_max
   )
   VALUES (
     (p_payload->>'author_id')::UUID,
@@ -4776,7 +4781,10 @@ BEGIN
     (p_payload->>'capacity')::INTEGER,
     COALESCE((p_payload->>'is_published')::BOOLEAN, true),
     COALESCE((p_payload->>'is_cancelled')::BOOLEAN, false),
-    p_payload->'schedule'
+    p_payload->'schedule',
+    COALESCE(p_payload->>'price', 'FREE'),
+    (p_payload->>'price_min')::NUMERIC,
+    (p_payload->>'price_max')::NUMERIC
   )
   RETURNING id INTO v_id;
   RETURN v_id;
@@ -4807,6 +4815,9 @@ BEGIN
     cover_url     = COALESCE(p_payload->>'cover_url',    cover_url),
     ticket_url    = COALESCE(p_payload->>'ticket_url',   ticket_url),
     capacity      = COALESCE((p_payload->>'capacity')::INTEGER, capacity),
+    price         = COALESCE(p_payload->>'price',        price),
+    price_min     = COALESCE((p_payload->>'price_min')::NUMERIC, price_min),
+    price_max     = COALESCE((p_payload->>'price_max')::NUMERIC, price_max),
     updated_at    = now()
   WHERE id = p_event_id;
 END;

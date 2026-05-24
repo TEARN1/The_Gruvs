@@ -1,0 +1,64 @@
+# ────────────────────────────────────────────────────────────────────────────
+# Web Deploy — Expo web → Vercel
+# Triggers: push to main  →  production deploy
+#           push to other  →  preview deploy (URL posted as PR comment)
+# ────────────────────────────────────────────────────────────────────────────
+name: Web Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Build & Deploy Web
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Expo web
+        run: npx expo export --platform web
+        env:
+          EXPO_PUBLIC_SUPABASE_URL:            ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY:       ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_SPOTIFY_CLIENT_ID:       ${{ secrets.EXPO_PUBLIC_SPOTIFY_CLIENT_ID }}
+          EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET:   ${{ secrets.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET }}
+          EXPO_PUBLIC_YOUTUBE_API_KEY:         ${{ secrets.EXPO_PUBLIC_YOUTUBE_API_KEY }}
+
+      - name: Deploy to Vercel (production)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token:   ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id:  ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./dist
+          vercel-args: "--prod"
+
+      - name: Deploy to Vercel (preview)
+        if: github.event_name == 'pull_request'
+        id: preview
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token:   ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id:  ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./dist
+
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            🌐 **Web Preview**: ${{ steps.preview.outputs.preview-url }}

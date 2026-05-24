@@ -59,7 +59,7 @@ const UpdateCard = React.memo(({ item, primary, textColor, muted, surface }) => 
   );
 });
 
-export const LiveEventUpdates = ({ eventId, organiserId, primary, textColor, muted, surface }) => {
+export const LiveEventUpdates = ({ eventId, organiserId, canPost: canPostProp, primary, textColor, muted, surface }) => {
   const { user } = useAuth();
   const toast = useToast();
   const [updates, setUpdates] = useState([]);
@@ -67,7 +67,8 @@ export const LiveEventUpdates = ({ eventId, organiserId, primary, textColor, mut
   const [updateType, setUpdateType] = useState('info');
   const [posting, setPosting] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const isOrganiser = user?.id === organiserId;
+  // canPost prop from useEventRole takes precedence; fall back to organiser check
+  const isOrganiser = canPostProp !== undefined ? canPostProp : user?.id === organiserId;
 
   const renderUpdateItem = useCallback(({ item }) => (
     <UpdateCard item={item} primary={primary} textColor={textColor} muted={muted} surface={surface} />

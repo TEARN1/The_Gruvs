@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
   Switch, Dimensions, Share, Platform, RefreshControl, Modal,
-  KeyboardAvoidingView,
+  KeyboardAvoidingView, Pressable,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -15,7 +15,7 @@ import { THEMES, GENDERS } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
-import { DiscoveryManager, UserManager, AnalyticsManager, BehavioralEngine, isOnline as checkOnline } from '../services/dataFlow';
+import { DiscoveryManager, UserManager, AnalyticsManager, BehavioralEngine, ActivityFeedManager, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient, resilientRead } from '../utils/resilience';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { LocationService } from '../services/locationService';
@@ -885,20 +885,29 @@ const mec = StyleSheet.create({
 const isVideoUrl = (url) => /\.(mp4|mov|webm|avi|m4v)(\?|$)/i.test(url || '');
 
 const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
-  const [activeVideo, setActiveVideo] = useState(null);
+  const [lightboxItem, setLightboxItem] = useState(null); // { url, isVideo }
 
-  const allItems = useMemo(() => [
-    ...(profileGallery || []).map(url => ({ url, isVideo: isVideoUrl(url) })),
-    ...myEvents.flatMap(ev => {
-      if (Array.isArray(ev.media_urls)) return ev.media_urls.map(url => ({ url, isVideo: isVideoUrl(url) }));
-      return (ev.media || [])
-        .filter(m => m?.url || typeof m === 'string')
-        .map(m => {
-          const url = typeof m === 'string' ? m : m.url;
-          return { url, isVideo: m?.type === 'video' || isVideoUrl(url) };
-        });
-    }),
-  ].filter(item => item?.url).slice(0, 30), [profileGallery, myEvents]);
+  const allItems = useMemo(() => {
+    const items = [
+      ...(profileGallery || []).map(url => ({ url, isVideo: isVideoUrl(url) })),
+      ...myEvents.flatMap(ev => {
+        let mediaArr = ev.media;
+        if (typeof mediaArr === 'string') { try { mediaArr = JSON.parse(mediaArr); } catch { mediaArr = null; } }
+        if (Array.isArray(mediaArr) && mediaArr.length > 0) {
+          return mediaArr.map(m => {
+            const url = typeof m === 'string' ? m : m?.url;
+            return url ? { url, isVideo: m?.type === 'video' || isVideoUrl(url) } : null;
+          }).filter(Boolean);
+        }
+        if (Array.isArray(ev.media_urls) && ev.media_urls.length > 0) {
+          return ev.media_urls.map(url => ({ url, isVideo: isVideoUrl(url) }));
+        }
+        if (ev.cover_url) return [{ url: ev.cover_url, isVideo: false }];
+        return [];
+      }),
+    ];
+    return items.filter(item => item?.url).slice(0, 60);
+  }, [profileGallery, myEvents]);
 
   const cellSize = Math.floor((width - 44) / 3);
 
@@ -912,36 +921,55 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
   }
 
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-      {allItems.map((item, i) => (
-        <TouchableOpacity
-          key={i}
-          onPress={() => setActiveVideo(item.isVideo ? (activeVideo === item.url ? null : item.url) : null)}
-          activeOpacity={0.85}
-          style={{ width: cellSize, height: cellSize, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}15` }}
-        >
-          {item.isVideo ? (
-            <>
-              <Video
-                source={{ uri: item.url }}
-                style={{ width: cellSize, height: cellSize }}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay={activeVideo === item.url}
-                isLooping
-                isMuted={activeVideo !== item.url}
-              />
-              {activeVideo !== item.url && (
-                <View style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                  <Feather name="play-circle" size={28} color="#fff" />
-                </View>
-              )}
-            </>
-          ) : (
+    <>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {allItems.map((item, i) => (
+          <TouchableOpacity
+            key={i}
+            onPress={() => setLightboxItem(item)}
+            activeOpacity={0.85}
+            style={{ width: cellSize, height: cellSize, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}15` }}
+          >
             <Image source={{ uri: item.url }} style={{ width: cellSize, height: cellSize }} resizeMode="cover" />
+            {item.isVideo && (
+              <View style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                <Feather name="play-circle" size={28} color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Lightbox */}
+      <Modal visible={!!lightboxItem} transparent animationType="fade" onRequestClose={() => setLightboxItem(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' }} onPress={() => setLightboxItem(null)}>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 10 }}
+            onPress={() => setLightboxItem(null)}
+          >
+            <Feather name="x" size={28} color="#fff" />
+          </TouchableOpacity>
+          {lightboxItem?.isVideo ? (
+            <Pressable onPress={e => e.stopPropagation()}>
+              <Video
+                source={{ uri: lightboxItem.url }}
+                style={{ width: width - 32, height: (width - 32) * 9 / 16, borderRadius: 12 }}
+                resizeMode={ResizeMode.CONTAIN}
+                shouldPlay
+                isLooping
+                useNativeControls
+              />
+            </Pressable>
+          ) : (
+            <Image
+              source={{ uri: lightboxItem?.url }}
+              style={{ width: width - 32, height: width - 32, borderRadius: 12 }}
+              resizeMode="contain"
+            />
           )}
-        </TouchableOpacity>
-      ))}
-    </View>
+        </Pressable>
+      </Modal>
+    </>
   );
 };
 
@@ -1030,6 +1058,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [createReelVisible, setCreateReelVisible] = useState(false);
   const { identityMode, modeConfig, setIdentityMode, applyLocationPrivacy } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs');
+  const [myCoHostEvents, setMyCoHostEvents] = useState([]);
+  const [activityItems, setActivityItems] = useState([]);
   const [settingsTab, setSettingsTab] = useState('discover');
   const [eventCount, setEventCount] = useState(0);
   const [followerCount, setFollowerCount] = useState(0);
@@ -1069,6 +1099,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [editingUsername, setEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [savingUsername, setSavingUsername] = useState(false);
+  const [editingDisplayName, setEditingDisplayName] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [savingDisplayName, setSavingDisplayName] = useState(false);
   const [myEvents, setMyEvents] = useState([]);
   const [mySavedEvents, setMySavedEvents] = useState([]);
   const [myVibedEvents, setMyVibedEvents] = useState([]);
@@ -1299,6 +1332,19 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           'ProfilePage.loadTab:vibed'
         );
         setMyVibedEvents(data || []);
+      } else if (tab === 'cohost') {
+        // Events where the current user is a co_host in event_roles
+        const { data: d } = await supabase
+          .from('event_roles')
+          .select('events(id, title, date, cover_url, status, category, author_id, profiles:author_id(username))')
+          .eq('user_id', user.id)
+          .eq('role', 'co_host')
+          .order('created_at', { ascending: false })
+          .limit(20);
+        setMyCoHostEvents((d || []).map(r => r.events).filter(Boolean));
+      } else if (tab === 'activity') {
+        const items = await ActivityFeedManager.fetch(user.id, { limit: 40 });
+        setActivityItems(items || []);
       }
     } catch { }
     finally { setTabLoading(false); }
@@ -1332,6 +1378,22 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       toast.show('Failed to update.', 'error');
     } finally {
       setSavingUsername(false);
+    }
+  };
+
+  const handleSaveDisplayName = async () => {
+    if (!newDisplayName.trim() || !user) return;
+    setSavingDisplayName(true);
+    try {
+      const { error } = await supabase.from('profiles').update({ display_name: newDisplayName.trim() }).eq('id', user.id);
+      if (error) throw error;
+      refreshProfile();
+      setEditingDisplayName(false);
+      toast.show('Name updated!', 'success');
+    } catch {
+      toast.show('Failed to update name.', 'error');
+    } finally {
+      setSavingDisplayName(false);
     }
   };
 
@@ -1601,8 +1663,41 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
         {/* Name + bio */}
         <View style={styles.nameSection}>
+          {/* Display name row */}
+          {editingDisplayName ? (
+            <View style={[styles.editRow, { marginBottom: 4 }]}>
+              <TextInput
+                style={[styles.usernameInput, { color: textColor, borderColor: `${primary}60`, fontSize: 18, fontWeight: '900' }]}
+                value={newDisplayName}
+                onChangeText={setNewDisplayName}
+                autoFocus
+                placeholder="Your display name..."
+                placeholderTextColor={muted}
+                maxLength={40}
+              />
+              <TouchableOpacity onPress={handleSaveDisplayName} disabled={savingDisplayName}>
+                {savingDisplayName ? <ActivityIndicator color={primary} size="small" /> : <Text style={[styles.saveText, { color: primary }]}>Save</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setEditingDisplayName(false)}>
+                <Text style={[styles.cancelText, { color: muted }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={() => { setNewDisplayName(profile?.display_name || ''); setEditingDisplayName(true); }}
+              activeOpacity={0.7}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+            >
+              <Text style={[styles.profileName, { color: textColor }]}>
+                {profile?.display_name || username}
+              </Text>
+              <Feather name="edit-2" size={13} color={muted} />
+            </TouchableOpacity>
+          )}
+
+          {/* Username row */}
           {editingUsername ? (
-            <View style={styles.editRow}>
+            <View style={[styles.editRow, { marginTop: 4 }]}>
               <TextInput
                 style={[styles.usernameInput, { color: textColor, borderColor: `${primary}60` }]}
                 value={newUsername}
@@ -1612,19 +1707,19 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 placeholderTextColor={muted}
               />
               <TouchableOpacity onPress={handleSaveUsername} disabled={savingUsername}>
-                {savingUsername
-                  ? <ActivityIndicator color={primary} size="small" />
-                  : <Text style={[styles.saveText, { color: primary }]}>Save</Text>
-                }
+                {savingUsername ? <ActivityIndicator color={primary} size="small" /> : <Text style={[styles.saveText, { color: primary }]}>Save</Text>}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setEditingUsername(false)}>
                 <Text style={[styles.cancelText, { color: muted }]}>Cancel</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <Text style={[styles.profileName, { color: textColor }]}>@{username}</Text>
+            <TouchableOpacity onPress={() => { setNewUsername(username); setEditingUsername(true); }} activeOpacity={0.7}>
+              <Text style={[styles.profileBio, { color: primary, fontWeight: '700', marginTop: 2 }]}>@{username} ✎</Text>
+            </TouchableOpacity>
           )}
-          <Text style={[styles.profileBio, { color: muted }]}>
+
+          <Text style={[styles.profileBio, { color: muted, marginTop: 4 }]}>
             {profile?.bio || 'The Gruvs — I got you ✦'}
           </Text>
         </View>
@@ -1967,6 +2062,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             { key: 'gruvs', label: 'My Gruvs', icon: 'calendar' },
             { key: 'saved', label: 'Saved', icon: 'bookmark' },
             { key: 'vibed', label: 'Vibed', icon: 'zap' },
+            { key: 'cohost', label: 'Co-Host', icon: 'users' },
+            { key: 'activity', label: 'Activity', icon: 'activity' },
             { key: 'gallery', label: 'Gallery', icon: 'image' },
           ].map(t => {
             const isActive = activeTab === t.key;
@@ -2045,6 +2142,69 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 ) : (
                   <View style={{ gap: 10 }}>
                     {myVibedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={`${ev.vibe_count || 0} vibes`} badgeIcon="zap" onPress={() => onNavigateToEvent?.(ev)} />)}
+                  </View>
+                )
+              )}
+              {activeTab === 'cohost' && (
+                myCoHostEvents.length === 0 ? (
+                  <View style={[styles.emptyTab, { borderColor: `${primary}20` }]}>
+                    <Feather name="users" size={32} color={primary} style={{ opacity: 0.6 }} />
+                    <Text style={[styles.emptyTabText, { color: muted }]}>Not co-hosting any events yet{'\n'}Get invited by an organiser</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 10 }}>
+                    {myCoHostEvents.map(ev => (
+                      <View key={ev.id}>
+                        <MiniEventCard ev={ev} primary={primary} textColor={textColor} muted={muted} badge="Co-Host" badgeIcon="users" onPress={() => onNavigateToEvent?.(ev)} />
+                        {ev.profiles?.username && (
+                          <Text style={{ color: muted, fontSize: 11, marginTop: 3, paddingHorizontal: 4 }}>
+                            Organiser: @{ev.profiles.username}
+                          </Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )
+              )}
+              {activeTab === 'activity' && (
+                activityItems.length === 0 ? (
+                  <View style={[styles.emptyTab, { borderColor: `${primary}20` }]}>
+                    <Feather name="activity" size={32} color={primary} style={{ opacity: 0.6 }} />
+                    <Text style={[styles.emptyTabText, { color: muted }]}>No activity yet{'\n'}Your interactions will appear here</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 8 }}>
+                    {activityItems.map(item => {
+                      const iconMap = {
+                        rsvp: 'calendar', vibe: 'zap', comment: 'message-circle',
+                        follow: 'user-plus', reel: 'film', checkin: 'map-pin',
+                        poll_vote: 'bar-chart-2', track_vote: 'music',
+                      };
+                      const icon = iconMap[item.activity_type] || 'bell';
+                      const timeAgo = item.created_at ? (() => {
+                        const d = Math.floor((Date.now() - new Date(item.created_at)) / 1000);
+                        if (d < 60) return `${d}s ago`;
+                        if (d < 3600) return `${Math.floor(d / 60)}m ago`;
+                        if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
+                        return `${Math.floor(d / 86400)}d ago`;
+                      })() : '';
+                      return (
+                        <View key={item.id} style={[af.row, { borderColor: `${primary}15` }]}>
+                          <View style={[af.iconWrap, { backgroundColor: `${primary}20` }]}>
+                            <Feather name={icon} size={14} color={primary} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[af.bodyText, { color: textColor }]} numberOfLines={2}>
+                              {item.body || item.title || item.activity_type}
+                            </Text>
+                            <Text style={[af.time, { color: muted }]}>{timeAgo}</Text>
+                          </View>
+                          {!item.is_read && (
+                            <View style={[af.unreadDot, { backgroundColor: primary }]} />
+                          )}
+                        </View>
+                      );
+                    })}
                   </View>
                 )
               )}
@@ -2571,4 +2731,12 @@ const styles = StyleSheet.create({
   editLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6, opacity: 0.7 },
   editInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 13, backgroundColor: 'rgba(255,255,255,0.04)', textAlignVertical: 'top' },
   mintStatRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
+});
+
+const af = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, borderBottomWidth: 1 },
+  iconWrap: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  bodyText: { fontSize: 13, lineHeight: 18 },
+  time: { fontSize: 11, marginTop: 3 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
 });

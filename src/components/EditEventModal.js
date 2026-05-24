@@ -310,8 +310,9 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
     try {
       const ok = await resilient(
         [
-          () => supabase.from('events').delete().eq('id', event.id),
-          () => supabase.from('events').update({ status: 'deleted', is_deleted: true }).eq('id', event.id),
+          // IDOR guard: always pin author_id so RLS + extra check prevents deleting others' events
+          () => supabase.from('events').delete().eq('id', event.id).eq('author_id', user?.id),
+          () => supabase.from('events').update({ status: 'deleted', is_deleted: true }).eq('id', event.id).eq('author_id', user?.id),
           () => supabase.rpc('delete_event', { p_event_id: event.id }),
         ],
         { attemptsPerTier: 3, baseMs: 400, label: `EditEventModal.delete:${event.id}`, fallbackValue: null }

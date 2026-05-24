@@ -135,11 +135,12 @@ const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, 
           style: 'destructive',
           onPress: async () => {
             onClose();
+            if (!user || reel.user_id !== user.id) return; // IDOR guard — never delete another user's reel
             try {
               await resilient(
                 [
-                  () => supabase.from('reels').update({ is_deleted: true }).eq('id', reel.id),
-                  () => supabase.from('reels').delete().eq('id', reel.id),
+                  () => supabase.from('reels').update({ is_deleted: true }).eq('id', reel.id).eq('user_id', user.id),
+                  () => supabase.from('reels').delete().eq('id', reel.id).eq('user_id', user.id),
                 ],
                 { attemptsPerTier: 3, baseMs: 400, label: 'ReelManageSheet.delete', fallbackValue: null }
               );
@@ -154,11 +155,13 @@ const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, 
   const handleSaveCaption = async () => {
     if (saving) return;
     setSaving(true);
+    if (!user || reel.user_id !== user.id) { setSaving(false); return; } // IDOR guard
     try {
+      const cleanCaption = caption.trim().slice(0, 500); // max length guard
       await resilient(
         [
-          () => supabase.from('reels').update({ caption: caption.trim() }).eq('id', reel.id),
-          () => supabase.rpc('update_reel_caption', { p_reel_id: reel.id, p_caption: caption.trim() }),
+          () => supabase.from('reels').update({ caption: cleanCaption }).eq('id', reel.id).eq('user_id', user.id),
+          () => supabase.rpc('update_reel_caption', { p_reel_id: reel.id, p_caption: cleanCaption }),
         ],
         { attemptsPerTier: 3, baseMs: 400, label: 'ReelManageSheet.editCaption', fallbackValue: null }
       );

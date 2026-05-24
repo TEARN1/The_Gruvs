@@ -155,4 +155,121 @@ export const SecurityService = {
     const TEN_MINUTES = 10 * 60 * 1000;
     return (Date.now() - new Date(lastRefreshAt).getTime()) < TEN_MINUTES;
   },
+
+  // ── Input validation ────────────────────────────────────────────────────
+
+  /** Hard-limit text inputs. Returns trimmed string or throws. */
+  validateTextInput(value, { field = 'Field', minLen = 1, maxLen = 1000 } = {}) {
+    if (typeof value !== 'string') throw new Error(`${field} must be text.`);
+    const v = value.trim();
+    if (v.length < minLen) throw new Error(`${field} is too short (min ${minLen} chars).`);
+    if (v.length > maxLen) throw new Error(`${field} is too long (max ${maxLen} chars).`);
+    return this.sanitizeContent(v);
+  },
+
+  /** Validate and normalise a URL field. Throws on invalid input. */
+  validateUrl(url, { field = 'URL', allowEmpty = true } = {}) {
+    if (!url || !url.trim()) {
+      if (allowEmpty) return null;
+      throw new Error(`${field} is required.`);
+    }
+    const trimmed = url.trim();
+    if (!this.isValidUrl(trimmed)) throw new Error(`${field} is not a valid URL.`);
+    return trimmed;
+  },
+
+  /** Validate a ticket price string. Allows numbers or "FREE". */
+  validatePrice(price) {
+    if (!price || price === 'FREE') return 'FREE';
+    const n = parseFloat(price);
+    if (isNaN(n) || n < 0) throw new Error('Price must be a positive number or FREE.');
+    if (n > 100000) throw new Error('Price seems unreasonably high — check the value.');
+    return n.toFixed(2);
+  },
+
+  // ── Rate limiting — layered (per-key + per-user) ────────────────────────
+
+  /** Per-action token-bucket rate limiter. Fires onBlocked callback when exceeded. */
+  _buckets: new Map(),
+  rateLimitCheck(key, { maxPerWindow = 10, windowMs = 60_000, onBlocked } = {}) {
+    const now = Date.now();
+    const bucket = this._buckets.get(key) || { count: 0, windowStart: now };
+
+    if (now - bucket.windowStart > windowMs) {
+      bucket.count = 0;
+      bucket.windowStart = now;
+    }
+
+    bucket.count++;
+    this._buckets.set(key, bucket);
+
+    if (bucket.count > maxPerWindow) {
+      const waitSec = Math.ceil((windowMs - (now - bucket.windowStart)) / 1000);
+      const msg = `Too many requests. Wait ${waitSec}s before trying again.`;
+      onBlocked?.(msg);
+      return { allowed: false, message: msg };
+    }
+    return { allowed: true };
+  },
+
+  // ── Payload integrity — prevent prototype pollution ─────────────────────
+
+  /** Strip dangerous keys from any object before it touches the DB. */
+  sanitizePayload(obj) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+    const dangerous = ['__proto__', 'constructor', 'prototype'];
+    const clean = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (dangerous.includes(k)) continue;
+      clean[k] = typeof v === 'object' && v !== null ? this.sanitizePayload(v) : v;
+    }
+    return clean;
+  },
+
+  // ── Auth guard helper ────────────────────────────────────────────────────
+
+  /** Throws a user-visible error if the session is invalid. */
+  async requireAuth(onAuthRequired) {
+    const valid = await this.validateSession();
+    if (!valid) {
+      onAuthRequired?.();
+      throw new Error('Sign in required to perform this action.');
+    }
+  },
+
+  // ── Deep-link / URL scheme guard ────────────────────────────────────────
+
+  /** Whitelist of allowed deep-link hosts. Opens only these from external links. */
+  ALLOWED_HOSTS: ['thegruvs.app', 'open.spotify.com', 'www.youtube.com', 'youtube.com', 'supabase.co'],
+
+  isTrustedExternalUrl(url) {
+    try {
+      const { protocol, hostname } = new URL(url);
+      if (!['http:', 'https:'].includes(protocol)) return false;
+      return this.ALLOWED_HOSTS.some(h => hostname === h || hostname.endsWith(`.${h}`));
+    } catch { return false; }
+  },
+
+  // ── Content moderation helpers ───────────────────────────────────────────
+
+  /** Basic profanity / spam signal (returns score 0–1). */
+  spamScore(text) {
+    if (!text) return 0;
+    let score = 0;
+    // Repeated chars: aaaaaaa
+    if (/(.)\1{6,}/.test(text)) score += 0.4;
+    // All caps
+    if (text.length > 10 && text === text.toUpperCase()) score += 0.2;
+    // Excessive punctuation
+    if ((text.match(/[!?]{3,}/g) || []).length > 1) score += 0.2;
+    // URL spam
+    const urlCount = (text.match(/https?:\/\//g) || []).length;
+    if (urlCount > 3) score += 0.5;
+    return Math.min(1, score);
+  },
+
+  /** Returns true if text should be blocked as likely spam. */
+  isSpam(text, threshold = 0.6) {
+    return this.spamScore(text) >= threshold;
+  },
 };

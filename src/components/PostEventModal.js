@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Image, Dimensions,
+  KeyboardAvoidingView, Platform, Image, Dimensions, StyleSheet,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
@@ -220,9 +220,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     let mediaUrls = [];
     if (mediaItems.length > 0) {
       setUploadingMedia(true);
-      mediaUrls = await uploadAllMedia();
+      try {
+        mediaUrls = await uploadAllMedia();
+      } catch (uploadErr) {
+        setUploadingMedia(false);
+        setError(`Media upload failed: ${uploadErr.message || 'Unknown error'}. Fix the storage issue or remove the photos and try again.`);
+        setLoading(false);
+        return;
+      }
       setUploadingMedia(false);
-      // If all uploads failed, continue anyway without media
     }
 
     const primaryCat = selectedCategories[0] || eventType?.toLowerCase() || null;
@@ -896,9 +902,30 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
                         {selectedCategories.length > 5 ? ` +${selectedCategories.length - 5} more` : ''}
                       </Text>
                     )}
-                    <Text style={[pm.summaryLine, { color: muted }]}>
-                      🖼️ {mediaItems.length} media item{mediaItems.length !== 1 ? 's' : ''}
-                    </Text>
+                    {mediaItems.length > 0 && (
+                      <View style={{ marginTop: 6 }}>
+                        <Text style={[pm.summaryLine, { color: muted }]}>
+                          🖼️ {mediaItems.length} media item{mediaItems.length !== 1 ? 's' : ''}
+                        </Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }} contentContainerStyle={{ gap: 6 }}>
+                          {mediaItems.slice(0, 10).map((item, idx) => (
+                            <View key={idx} style={{ width: 56, height: 56, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}30` }}>
+                              <Image source={{ uri: item.uri }} style={{ width: 56, height: 56 }} resizeMode="cover" />
+                              {item.type === 'video' && (
+                                <View style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' }}>
+                                  <Feather name="play" size={14} color="#fff" />
+                                </View>
+                              )}
+                            </View>
+                          ))}
+                          {mediaItems.length > 10 && (
+                            <View style={{ width: 56, height: 56, borderRadius: 8, backgroundColor: `${primary}15`, alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ color: primary, fontWeight: '900', fontSize: 13 }}>+{mediaItems.length - 10}</Text>
+                            </View>
+                          )}
+                        </ScrollView>
+                      </View>
+                    )}
                     {scheduleItems.length > 0 && (
                       <Text style={[pm.summaryLine, { color: muted }]}>
                         🗓️ {scheduleItems.length} schedule slot{scheduleItems.length !== 1 ? 's' : ''}

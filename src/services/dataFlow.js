@@ -2728,3 +2728,202 @@ export const BehavioralEngine = {
     }
   },
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHAT MANAGER  — real-time event chat with presence, pinning, moderation
+// ─────────────────────────────────────────────────────────────────────────────
+export const ChatManager = {
+  _channels: new Map(),
+
+  subscribe(eventId, onMessage, onPresence) {
+    if (this._channels.has(eventId)) this.unsubscribe(eventId);
+    const channel = supabase
+      .channel(`event_chat:${eventId}`, { config: { presence: { key: eventId } } })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'event_chat_messages', filter: `event_id=eq.${eventId}` },
+        payload => onMessage?.({ type: 'new', message: payload.new }))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'event_chat_messages', filter: `event_id=eq.${eventId}` },
+        payload => onMessage?.({ type: 'update', message: payload.new }))
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        onPresence?.(Object.values(state).flat());
+      })
+      .subscribe();
+    this._channels.set(eventId, channel);
+    return () => this.unsubscribe(eventId);
+  },
+
+  async joinPresence(eventId, userId, username, avatarUrl) {
+    const ch = this._channels.get(eventId);
+    if (ch) await ch.track({ user_id: userId, username, avatar_url: avatarUrl, online_at: new Date().toISOString() });
+  },
+
+  async leavePresence(eventId) {
+    const ch = this._channels.get(eventId);
+    if (ch) await ch.untrack();
+  },
+
+  unsubscribe(eventId) {
+    const ch = this._channels.get(eventId);
+    if (ch) { supabase.removeChannel(ch); this._channels.delete(eventId); }
+  },
+
+  async fetchMessages(eventId, limit = 60) {
+    const { data, error } = await supabase
+      .from('event_chat_messages')
+      .select('id, message, created_at, reply_to, pinned, pinned_by, deleted, user_id, profiles:user_id(id, username, avatar_url, is_verified)')
+      .eq('event_id', eventId)
+      .eq('deleted', false)
+      .order('created_at', { ascending: true })
+      .limit(limit);
+    if (error) throw error;
+    return data || [];
+  },
+
+  async send(eventId, userId, message, replyTo = null) {
+    const { SecurityService } = await import('./securityService');
+    // Rate-limit: max 20 messages per 60s per user+event
+    const rl = SecurityService.rateLimitCheck(`chat:${userId}:${eventId}`, { maxPerWindow: 20, windowMs: 60_000 });
+    if (!rl.allowed) throw new Error(rl.message);
+    // Spam gate
+    if (SecurityService.isSpam(message)) throw new Error('Message flagged as spam. Try again with different content.');
+    // Length + XSS strip
+    const clean = SecurityService.validateTextInput(message, { field: 'Message', minLen: 1, maxLen: 500 });
+    const { data: canSend } = await supabase.rpc('can_send_chat', { p_user_id: userId, p_event_id: eventId });
+    if (canSend === false) throw new Error('You are not allowed to chat in this event.');
+    const { data, error } = await supabase
+      .from('event_chat_messages')
+      .insert({ event_id: eventId, user_id: userId, message: clean, reply_to: replyTo })
+      .select('id, message, created_at, reply_to, pinned, deleted, user_id')
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteMessage(messageId) {
+    const { error } = await supabase.from('event_chat_messages').update({ deleted: true }).eq('id', messageId);
+    if (error) throw error;
+  },
+
+  async setPinned(messageId, pinned, pinnedBy) {
+    const { error } = await supabase.from('event_chat_messages')
+      .update({ pinned, pinned_by: pinned ? pinnedBy : null }).eq('id', messageId);
+    if (error) throw error;
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTIVITY FEED MANAGER  — single query + Realtime subscription
+// ─────────────────────────────────────────────────────────────────────────────
+export const ActivityFeedManager = {
+  _channel: null,
+
+  async fetch(userId, { limit = 50, afterId = null } = {}) {
+    let qb = supabase
+      .from('activity_feed')
+      .select('id, action_type, target_id, target_type, target_title, actor_username, actor_avatar, created_at, read')
+      .eq('recipient_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (afterId) qb = qb.lt('id', afterId);
+    const { data, error } = await qb;
+    if (error) throw error;
+    return data || [];
+  },
+
+  subscribe(userId, onActivity) {
+    if (this._channel) { supabase.removeChannel(this._channel); this._channel = null; }
+    this._channel = supabase
+      .channel(`activity_feed:${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_feed', filter: `recipient_id=eq.${userId}` },
+        payload => onActivity?.(payload.new))
+      .subscribe();
+    return () => {
+      if (this._channel) { supabase.removeChannel(this._channel); this._channel = null; }
+    };
+  },
+
+  async markAllRead(userId) {
+    await supabase.rpc('mark_activity_read', { p_user_id: userId });
+  },
+
+  async unreadCount(userId) {
+    const { count } = await supabase
+      .from('activity_feed')
+      .select('id', { count: 'exact', head: true })
+      .eq('recipient_id', userId)
+      .eq('read', false);
+    return count || 0;
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PLAYLIST MANAGER  — event playlist with track voting + Realtime
+// ─────────────────────────────────────────────────────────────────────────────
+export const PlaylistManager = {
+  _channels: new Map(),
+
+  async getOrCreate(eventId, userId) {
+    const { data, error } = await supabase.rpc('get_or_create_playlist', { p_event_id: eventId, p_user_id: userId });
+    if (error) throw error;
+    return data;
+  },
+
+  async fetchTracks(playlistId) {
+    const { data, error } = await supabase
+      .from('event_playlist_tracks')
+      .select('id, track_id, platform, title, artist, thumbnail, duration_ms, votes, added_by, created_at, profiles:added_by(username, avatar_url)')
+      .eq('playlist_id', playlistId)
+      .order('votes', { ascending: false })
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addTrack(playlistId, userId, track) {
+    const { data, error } = await supabase
+      .from('event_playlist_tracks')
+      .insert({ playlist_id: playlistId, added_by: userId, track_id: track.id, platform: track.platform, title: track.title, artist: track.artist, thumbnail: track.thumbnail || null, duration_ms: track.duration_ms || null, votes: 0 })
+      .select('id, track_id, platform, title, artist, thumbnail, duration_ms, votes, added_by, created_at')
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async removeTrack(trackRowId, userId) {
+    // userId passed so RLS `added_by = auth.uid()` is reinforced client-side too
+    const qb = supabase.from('event_playlist_tracks').delete().eq('id', trackRowId);
+    const { error } = userId ? await qb.eq('added_by', userId) : await qb;
+    if (error) throw error;
+  },
+
+  async vote(trackRowId, userId) {
+    const { error } = await supabase.rpc('vote_track', { p_track_id: trackRowId, p_user_id: userId });
+    if (error) throw error;
+  },
+
+  async unvote(trackRowId, userId) {
+    const { error } = await supabase.rpc('unvote_track', { p_track_id: trackRowId, p_user_id: userId });
+    if (error) throw error;
+  },
+
+  async fetchUserVotes(playlistId, userId) {
+    const { data: trackRows } = await supabase.from('event_playlist_tracks').select('id').eq('playlist_id', playlistId);
+    const ids = (trackRows || []).map(r => r.id);
+    if (!ids.length) return new Set();
+    const { data } = await supabase.from('event_track_votes').select('track_id').in('track_id', ids).eq('user_id', userId);
+    return new Set((data || []).map(r => r.track_id));
+  },
+
+  subscribe(playlistId, onChange) {
+    if (this._channels.has(playlistId)) supabase.removeChannel(this._channels.get(playlistId));
+    const ch = supabase
+      .channel(`playlist_tracks:${playlistId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_playlist_tracks', filter: `playlist_id=eq.${playlistId}` },
+        payload => onChange?.(payload))
+      .subscribe();
+    this._channels.set(playlistId, ch);
+    return () => {
+      if (this._channels.has(playlistId)) { supabase.removeChannel(this._channels.get(playlistId)); this._channels.delete(playlistId); }
+    };
+  },
+};

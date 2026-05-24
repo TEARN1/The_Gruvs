@@ -1,0 +1,32 @@
+# ────────────────────────────────────────────────────────────────────────────
+# CI — runs on every push / PR
+# Checks: dependency install, TypeScript type-check, lint (if configured)
+# ────────────────────────────────────────────────────────────────────────────
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Type-check & lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type-check
+        run: npx tsc --noEmit
+
+      - name: Expo Doctor (config validation)
+        run: npx expo-doctor@latest || true   # non-blocking — surfaced in logs

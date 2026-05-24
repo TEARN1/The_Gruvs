@@ -508,8 +508,30 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
     );
   }
 
-  // ── Native: real map ──────────────────────────────────────────────────────
-  if (!RNMapView) return null;
+  // ── Native: real map (needs dev build / EAS) ─────────────────────────────
+  if (!RNMapView) {
+    return (
+      <View style={{ flex: 1, backgroundColor: background }}>
+        <WebScoutList
+          events={filteredEvents}
+          primary={primary}
+          insets={insets}
+          activeCategory={activeCategory}
+          setActiveCategory={setActiveCategory}
+          loading={loading}
+          onNavigateToEvent={onNavigateToEvent}
+        />
+        <View style={{ padding: 16, paddingBottom: 8 }}>
+          <View style={{ backgroundColor: `${primary}12`, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: `${primary}25` }}>
+            <Text style={{ color: primary, fontSize: 12, fontWeight: '800', marginBottom: 4 }}>Map Unavailable</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, lineHeight: 16 }}>
+              The interactive map requires a dev build (EAS). Showing list view instead.
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={s.root}>

@@ -33,6 +33,11 @@ import { EventContextualAds } from '../components/EventContextualAds';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
 import { EventScheduleSection } from '../components/EventScheduleSection';
+import { EventChatRoom } from '../components/EventChatRoom';
+import { EventPollSection } from '../components/EventPollSection';
+import { EventPlaylistSection } from '../components/EventPlaylistSection';
+import { EventRoleManager } from '../components/EventRoleManager';
+import { useEventRole } from '../hooks/useEventRole';
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -108,6 +113,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [dmOpen, setDmOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(null);
+  const [chatVisible, setChatVisible] = useState(false);
+  const [roleManagerVisible, setRoleManagerVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState('info'); // 'info' | 'polls' | 'playlist'
+
+  const { isOrganiser, isCoHost, canPost, canModerate } = useEventRole(
+    event?.id, user?.id, event?.author_id ?? event?.profiles?.id
+  );
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -784,11 +796,63 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           <View style={styles.sectionDivider} />
           {event?.id && <RatingSection eventId={event.id} onAuthRequired={onAuthRequired} />}
 
-          <View style={styles.sectionDivider} />
+          {/* ── Co-management action bar ──────────────────────────── */}
+          {event?.id && (isOrganiser || isCoHost) && (
+            <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 16 }}>
+              {isOrganiser && (
+                <TouchableOpacity
+                  style={[styles.mgmtBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}10` }]}
+                  onPress={() => setRoleManagerVisible(true)}
+                >
+                  <Feather name="users" size={14} color={primary} />
+                  <Text style={[styles.mgmtBtnText, { color: primary }]}>Manage Team</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[styles.mgmtBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}10` }]}
+                onPress={() => setChatVisible(true)}
+              >
+                <Feather name="message-square" size={14} color={primary} />
+                <Text style={[styles.mgmtBtnText, { color: primary }]}>Event Chat</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* ── Tab switcher: Info / Polls / Playlist ──────────────── */}
           {event?.id && (
+            <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}20` }}>
+              {['info', 'polls', 'playlist'].map(tab => (
+                <TouchableOpacity
+                  key={tab}
+                  style={{ flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: activeTab === tab ? `${primary}20` : 'transparent' }}
+                  onPress={() => setActiveTab(tab)}
+                >
+                  <Text style={{ color: activeTab === tab ? primary : textMuted, fontSize: 12, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {tab === 'info' ? 'Info' : tab === 'polls' ? 'Polls' : 'Playlist'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.sectionDivider} />
+
+          {/* ── Polls tab ──────────────────────────────────────────── */}
+          {activeTab === 'polls' && event?.id && (
+            <EventPollSection eventId={event.id} canPost={canPost} />
+          )}
+
+          {/* ── Playlist tab ───────────────────────────────────────── */}
+          {activeTab === 'playlist' && event?.id && (
+            <EventPlaylistSection eventId={event.id} canModerate={canModerate} />
+          )}
+
+          {/* ── Info tab: existing sections ────────────────────────── */}
+          {(activeTab === 'info') && event?.id && (
             <LiveEventUpdates
               eventId={event.id}
               organiserId={organizer?.id}
+              canPost={canPost}
               primary={primary}
               textColor={textColor}
               muted={textMuted}
@@ -819,6 +883,34 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           targetId={event?.id}
           targetType="event"
         />
+
+        {/* Chat FAB — always visible for signed-in users */}
+        {user && event?.id && (
+          <TouchableOpacity
+            style={[styles.chatFab, { backgroundColor: primary, bottom: insets.bottom + 16 }]}
+            onPress={() => setChatVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Feather name="message-circle" size={22} color="#000" />
+          </TouchableOpacity>
+        )}
+
+        <EventChatRoom
+          visible={chatVisible}
+          onClose={() => setChatVisible(false)}
+          eventId={event?.id}
+          eventTitle={event?.title}
+          canModerate={canModerate}
+        />
+
+        {isOrganiser && event?.id && (
+          <EventRoleManager
+            visible={roleManagerVisible}
+            onClose={() => setRoleManagerVisible(false)}
+            eventId={event.id}
+            organiserId={event.author_id ?? event.profiles?.id}
+          />
+        )}
 
         {/* Who's Going Modal */}
         <Modal visible={whoGoingVisible} animationType="slide" transparent onRequestClose={() => setWhoGoingVisible(false)}>
@@ -1175,6 +1267,30 @@ const styles = StyleSheet.create({
     gap: 5,
     marginTop: 24,
     paddingVertical: 8,
+  },
+  mgmtBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  mgmtBtnText: { fontSize: 12, fontWeight: '900' },
+  chatFab: {
+    position: 'absolute',
+    right: 18,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
   },
   reportText: {
     fontSize: 12,
