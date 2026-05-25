@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS public.disputes (
   status     TEXT DEFAULT 'open' CHECK (status IN ('open','resolved','dismissed')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.disputes ADD COLUMN IF NOT EXISTS filed_by UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 -- ── GIG POSTS ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.gig_posts (
