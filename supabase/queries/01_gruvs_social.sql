@@ -151,6 +151,8 @@ CREATE TRIGGER follows_sync_counts AFTER INSERT OR DELETE ON public.follows
   FOR EACH ROW EXECUTE FUNCTION public.sync_follow_counts();
 
 -- ── BLOCKED / MUTED ──────────────────────────────────────────
+DROP VIEW IF EXISTS public.blocked_users CASCADE;
+DROP VIEW IF EXISTS public.muted_users CASCADE;
 CREATE TABLE IF NOT EXISTS public.blocked_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,

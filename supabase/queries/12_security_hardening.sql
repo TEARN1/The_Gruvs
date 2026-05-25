@@ -94,32 +94,12 @@ BEGIN
 END;
 $$;
 
--- ── Blocked users table ───────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.blocked_users (
-  blocker_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  blocked_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  PRIMARY KEY(blocker_id, blocked_id),
-  CHECK(blocker_id <> blocked_id)
-);
-CREATE INDEX IF NOT EXISTS idx_blocked_users_blocker ON public.blocked_users(blocker_id);
+-- ── Blocked / muted users (tables defined in 01_gruvs_social.sql) ──
+-- Ensure indexes exist
+CREATE INDEX IF NOT EXISTS idx_blocked_users_user    ON public.blocked_users(user_id);
 CREATE INDEX IF NOT EXISTS idx_blocked_users_blocked ON public.blocked_users(blocked_id);
-
-ALTER TABLE public.blocked_users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "blocks_own" ON public.blocked_users;
-CREATE POLICY "blocks_own" ON public.blocked_users FOR ALL USING (blocker_id = auth.uid());
-
--- ── Muted users table ─────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.muted_users (
-  muter_id   UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  muted_id   UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  PRIMARY KEY(muter_id, muted_id),
-  CHECK(muter_id <> muted_id)
-);
-ALTER TABLE public.muted_users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "mutes_own" ON public.muted_users;
-CREATE POLICY "mutes_own" ON public.muted_users FOR ALL USING (muter_id = auth.uid());
+CREATE INDEX IF NOT EXISTS idx_muted_users_user      ON public.muted_users(user_id);
+CREATE INDEX IF NOT EXISTS idx_muted_users_muted     ON public.muted_users(muted_id);
 
 -- ── Verify admin helper (used by admin-only RPCs) ─────────────
 CREATE OR REPLACE FUNCTION public.assert_admin()
