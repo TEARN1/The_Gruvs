@@ -189,6 +189,9 @@ CREATE TABLE IF NOT EXISTS public.gig_acceptances (
   accepted_at TIMESTAMPTZ DEFAULT now(),
   created_at  TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.gig_acceptances ADD COLUMN IF NOT EXISTS worker_id  UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.gig_acceptances ADD COLUMN IF NOT EXISTS user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.gig_acceptances ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ DEFAULT now();
 CREATE UNIQUE INDEX IF NOT EXISTS idx_gig_acceptances_worker
   ON public.gig_acceptances(gig_id, worker_id) WHERE worker_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_gig_acceptances_user
