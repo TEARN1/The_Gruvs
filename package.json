@@ -6,7 +6,8 @@
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
-    "build": "npx expo export --platform web",
+    "build": "npx expo export --platform web && npm run postbuild",
+    "postbuild": "node -e \"const fs=require('fs'),path=require('path');const src=path.join(__dirname,'public','.well-known');const dst=path.join(__dirname,'dist','.well-known');if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});fs.readdirSync(src).forEach(f=>fs.copyFileSync(path.join(src,f),path.join(dst,f)));console.log('Copied .well-known to dist/');}\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -21,6 +22,7 @@
     "@types/react": "~18.2.79",
     "expo": "~51.0.0",
     "expo-av": "~14.0.5",
+    "expo-camera": "^56.0.7",
     "expo-font": "~12.0.10",
     "expo-haptics": "~13.0.1",
     "expo-image-picker": "~15.1.0",

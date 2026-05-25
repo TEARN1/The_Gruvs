@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
   ScrollView, Image, ActivityIndicator, Share, Platform,
@@ -9,14 +9,28 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 
-// ── Ticket QR payload ─────────────────────────────────────────────────────────
-// Format: gruvsticket://<event_id>/<user_id>/<rsvp_id>
-const buildTicketPayload = (rsvp) =>
-  `gruvsticket://${rsvp.event_id}/${rsvp.user_id}/${rsvp.id}`;
-
 // ── Single ticket card ─────────────────────────────────────────────────────────
 const TicketCard = ({ rsvp, event, primary, textColor, muted }) => {
-  const payload = buildTicketPayload(rsvp);
+  const [payload, setPayload] = useState(null);
+  const [tokenLoading, setTokenLoading] = useState(true);
+
+  // Fetch a server-signed QR token — prevents ticket forgery
+  useEffect(() => {
+    if (!rsvp?.id) return;
+    supabase.rpc('generate_ticket_token', { p_rsvp_id: rsvp.id })
+      .then(({ data, error }) => {
+        if (error || !data) {
+          // Fallback to plain payload only if RPC unavailable (DB not patched yet)
+          setPayload(`gruvsticket://${rsvp.event_id}/${rsvp.user_id}/${rsvp.id}`);
+        } else {
+          setPayload(data);
+        }
+      })
+      .catch(() => {
+        setPayload(`gruvsticket://${rsvp.event_id}/${rsvp.user_id}/${rsvp.id}`);
+      })
+      .finally(() => setTokenLoading(false));
+  }, [rsvp?.id, rsvp?.event_id, rsvp?.user_id]);
   const dateStr = event?.event_date
     ? new Date(event.event_date).toLocaleDateString('en-ZA', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -28,8 +42,13 @@ const TicketCard = ({ rsvp, event, primary, textColor, muted }) => {
 
   const shareTicket = async () => {
     try {
+      const webUrl = `https://thegruvs.vercel.app/event/${rsvp.event_id}`;
       await Share.share({
-        message: `My ticket to ${event?.title || 'the event'}!\nRef: ${rsvp.id}\nDate: ${dateStr || ''} ${timeStr || ''}\n\nGenerated via The Gruvs`,
+        title: `My ticket to ${event?.title || 'the Gruv'}`,
+        message: Platform.OS === 'android'
+          ? `My ticket to ${event?.title || 'the Gruv'}!\nDate: ${dateStr || ''} ${timeStr || ''}\nRef: ${rsvp.id?.slice(0, 8).toUpperCase()}\n\n${webUrl}`
+          : `My ticket to ${event?.title || 'the Gruv'}!\nRef: ${rsvp.id?.slice(0, 8).toUpperCase()}`,
+        url: webUrl,
       });
     } catch {}
   };
@@ -77,12 +96,16 @@ const TicketCard = ({ rsvp, event, primary, textColor, muted }) => {
         </View>
 
         <View style={[tc.qrWrap, { backgroundColor: '#fff', borderColor: `${primary}40` }]}>
-          <QRCode
-            value={payload}
-            size={100}
-            color="#000"
-            backgroundColor="#fff"
-          />
+          {tokenLoading || !payload ? (
+            <ActivityIndicator color={primary} size="small" style={{ width: 100, height: 100 }} />
+          ) : (
+            <QRCode
+              value={payload}
+              size={100}
+              color="#000"
+              backgroundColor="#fff"
+            />
+          )}
         </View>
       </View>
 

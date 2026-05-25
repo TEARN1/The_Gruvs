@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.thegruvs.app",
+        "paths": [
+          "/event/*",
+          "/profile/*",
+          "/reel/*",
+          "/ticket/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.com.thegruvs.app"]
+  }
+}
