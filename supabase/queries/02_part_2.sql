@@ -24,6 +24,17 @@ CREATE TABLE IF NOT EXISTS public.paths (
   ghost_alias    TEXT,
   created_at     TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.paths ADD COLUMN IF NOT EXISTS event_id       UUID REFERENCES public.events(id) ON DELETE SET NULL;
+ALTER TABLE public.paths ADD COLUMN IF NOT EXISTS origin_lat     FLOAT;
+ALTER TABLE public.paths ADD COLUMN IF NOT EXISTS origin_lon     FLOAT;
+ALTER TABLE public.paths ADD COLUMN IF NOT EXISTS origin_label   TEXT;
+ALTER TABLE public.paths ADD COLUMN IF NOT EXISTS dest_lat       FLOAT;
+ALTER TABLE public.paths ADD COLUMN IF NOT EXISTS dest_lon       FLOAT;
+ALTER TABLE public.paths ADD COLUMN IF NOT EXISTS dest_label     TEXT;
+ALTER TABLE public.paths ADD COLUMN IF NOT EXISTS intent_tag     TEXT DEFAULT 'attending';
+ALTER TABLE public.paths ADD COLUMN IF NOT EXISTS identity_layer TEXT DEFAULT 'public';
+ALTER TABLE public.paths ADD COLUMN IF NOT EXISTS ghost_alias    TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_paths_user    ON public.paths(user_id);
 CREATE INDEX IF NOT EXISTS idx_paths_event   ON public.paths(event_id);
 CREATE INDEX IF NOT EXISTS idx_paths_dest    ON public.paths(dest_lat, dest_lon);
@@ -76,6 +87,20 @@ CREATE TABLE IF NOT EXISTS public.service_nodes (
   event_id     UUID REFERENCES public.events(id) ON DELETE SET NULL,
   created_at   TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES public.events(id) ON DELETE SET NULL;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS provider_id  UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS title        TEXT;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS name         TEXT;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS vehicle_type TEXT;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS capacity_kg  INTEGER;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS price        NUMERIC(10,2);
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS price_per_km NUMERIC(8,2);
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS base_price   NUMERIC(8,2);
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS price_min    NUMERIC;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS price_max    NUMERIC;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS is_active    BOOLEAN DEFAULT true;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS available    BOOLEAN DEFAULT true;
+
 CREATE INDEX IF NOT EXISTS idx_service_nodes_user     ON public.service_nodes(user_id);
 CREATE INDEX IF NOT EXISTS idx_service_nodes_type     ON public.service_nodes(service_type);
 CREATE INDEX IF NOT EXISTS idx_service_nodes_location ON public.service_nodes(lat, lon);
@@ -171,6 +196,12 @@ CREATE TABLE IF NOT EXISTS public.dm_rooms (
   created_at      TIMESTAMPTZ DEFAULT now(),
   UNIQUE(user_a, user_b, event_id)
 );
+ALTER TABLE public.dm_rooms ADD COLUMN IF NOT EXISTS event_id        UUID REFERENCES public.events(id) ON DELETE SET NULL;
+ALTER TABLE public.dm_rooms ADD COLUMN IF NOT EXISTS participant_ids UUID[];
+ALTER TABLE public.dm_rooms ADD COLUMN IF NOT EXISTS last_message    TEXT;
+ALTER TABLE public.dm_rooms ADD COLUMN IF NOT EXISTS last_message_at TIMESTAMPTZ;
+ALTER TABLE public.dm_rooms ADD COLUMN IF NOT EXISTS expires_at      TIMESTAMPTZ;
+
 CREATE INDEX IF NOT EXISTS idx_dm_rooms_user_a ON public.dm_rooms(user_a);
 CREATE INDEX IF NOT EXISTS idx_dm_rooms_user_b ON public.dm_rooms(user_b);
 
