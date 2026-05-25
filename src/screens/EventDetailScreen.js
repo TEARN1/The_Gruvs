@@ -111,6 +111,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [settingReminder, setSettingReminder] = useState(false);
   const [whoGoingVisible, setWhoGoingVisible] = useState(false);
   const [whoGoing, setWhoGoing] = useState([]);
+  const [attendeePreview, setAttendeePreview] = useState([]);
   const [reportVisible, setReportVisible] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -183,6 +184,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       if (event?.id) {
         fetchUserState();
         fetchGoingCount();
+        fetchAttendeePreview();
         setVibeCount(event?.vibe_count || 0);
         CapacityManager.getStatus(event.id).then(setCapacityStatus);
         if (user) ReminderManager.hasReminder(user.id, event.id).then(setHasReminder);
@@ -218,7 +220,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       unsubCheckin();
       if (rsvpChan) supabase.removeChannel(rsvpChan);
     };
-  }, [visible, event?.id, fetchUserState]);
+  }, [visible, event?.id, fetchUserState, fetchAttendeePreview]);
 
   const fetchGoingCount = async () => {
     if (!event?.id) return;
@@ -227,6 +229,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       setGoingCount(count || 0);
     } catch { }
   };
+
+  const fetchAttendeePreview = useCallback(async () => {
+    if (!event?.id) return;
+    try {
+      const { data } = await supabase
+        .from('event_rsvps')
+        .select('profiles:user_id(id, username, avatar_url)')
+        .eq('event_id', event.id)
+        .eq('status', 'going')
+        .limit(7);
+      setAttendeePreview((data || []).map(r => r.profiles).filter(Boolean));
+    } catch { }
+  }, [event?.id]);
 
   const handleRsvp = useCallback(async (status) => {
     if (!user) { onAuthRequired?.(); return; }
@@ -629,6 +644,33 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <Feather name="zap" size={13} color="#10b981" />
               <Text style={{ color: '#10b981', fontWeight: '900', fontSize: 13 }}>Happening Now!</Text>
             </View>
+          )}
+
+          {/* Attendee preview strip */}
+          {attendeePreview.length > 0 && (
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14, paddingHorizontal: 2 }}
+              onPress={handleWhoGoing}
+              activeOpacity={0.8}
+            >
+              <View style={{ flexDirection: 'row' }}>
+                {attendeePreview.slice(0, 6).map((p, i) => (
+                  <View key={p.id || i} style={{ marginLeft: i === 0 ? 0 : -10, zIndex: 10 - i, borderRadius: 18, borderWidth: 2, borderColor: background }}>
+                    {p.avatar_url
+                      ? <Image source={{ uri: p.avatar_url }} style={{ width: 32, height: 32, borderRadius: 16 }} />
+                      : <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: ['#0891b2','#7c3aed','#059669','#d97706','#db2777','#dc2626'][i % 6], alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>{(p.username || '?')[0].toUpperCase()}</Text>
+                        </View>
+                    }
+                  </View>
+                ))}
+              </View>
+              <Text style={{ color: textMuted, fontSize: 12, fontWeight: '700', flex: 1 }}>
+                {attendeePreview[0]?.username && `@${attendeePreview[0].username}`}
+                {attendeePreview.length > 1 && ` and ${goingCount - 1} others are vibing`}
+              </Text>
+              <Feather name="chevron-right" size={14} color={primary} />
+            </TouchableOpacity>
           )}
 
           {/* Vibe count + Who's Going */}

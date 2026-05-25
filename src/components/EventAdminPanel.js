@@ -8,6 +8,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
+import { QRCheckInScanner } from './QRCheckInScanner';
 
 const buildCSV = (rsvps) => {
   const header = 'Username,Status,RSVP Date\n';
@@ -51,7 +52,8 @@ const TYPES = [
 
 const TABS = [
   { key: 'feed',    label: 'Live Feed', icon: 'activity' },
-  { key: 'checkin', label: 'Check-In',  icon: 'user-check' },
+  { key: 'scan',    label: 'QR Scan',   icon: 'camera' },
+  { key: 'checkin', label: 'Manual',    icon: 'user-check' },
   { key: 'rsvps',   label: 'Guest List',icon: 'list' },
 ];
 
@@ -338,7 +340,23 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
             </>
           )}
 
-          {/* Check-In tab */}
+          {/* QR Scan tab */}
+          {activeTab === 'scan' && (
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+              <QRCheckInScanner
+                eventId={eventId}
+                primary={primary}
+                textColor={textColor}
+                muted={muted}
+                onCheckedIn={({ rsvpId, userId }) => {
+                  setCheckedIn(prev => ({ ...prev, [rsvpId]: true }));
+                  setStats(prev => ({ ...prev, checkins: (prev.checkins || 0) + 1 }));
+                }}
+              />
+            </ScrollView>
+          )}
+
+          {/* Check-In tab — manual fallback */}
           {activeTab === 'checkin' && (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
               <Text style={[ad.sectionTitle, { color: muted }]}>VERIFY TICKET AT DOOR</Text>
