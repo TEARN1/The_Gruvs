@@ -533,6 +533,11 @@ CREATE TABLE IF NOT EXISTS public.routes (
   active     BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS is_public  BOOLEAN DEFAULT false;
+ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS active     BOOLEAN DEFAULT true;
+ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS color      TEXT DEFAULT '#00f2ff';
+ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS icon       TEXT;
+ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS join_count INTEGER DEFAULT 0;
 CREATE TABLE IF NOT EXISTS public.route_steps (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   route_id   UUID NOT NULL REFERENCES public.routes(id) ON DELETE CASCADE,
