@@ -210,6 +210,8 @@ CREATE TABLE IF NOT EXISTS public.dm_rooms (
   created_at      TIMESTAMPTZ DEFAULT now(),
   UNIQUE(user_a, user_b, event_id)
 );
+ALTER TABLE public.dm_rooms ADD COLUMN IF NOT EXISTS user_a          UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.dm_rooms ADD COLUMN IF NOT EXISTS user_b          UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.dm_rooms ADD COLUMN IF NOT EXISTS event_id        UUID REFERENCES public.events(id) ON DELETE SET NULL;
 ALTER TABLE public.dm_rooms ADD COLUMN IF NOT EXISTS participant_ids UUID[];
 ALTER TABLE public.dm_rooms ADD COLUMN IF NOT EXISTS last_message    TEXT;
