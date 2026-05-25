@@ -151,8 +151,16 @@ CREATE TRIGGER follows_sync_counts AFTER INSERT OR DELETE ON public.follows
   FOR EACH ROW EXECUTE FUNCTION public.sync_follow_counts();
 
 -- ── BLOCKED / MUTED ──────────────────────────────────────────
-DROP VIEW IF EXISTS public.blocked_users CASCADE;
-DROP VIEW IF EXISTS public.muted_users CASCADE;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE n.nspname = 'public' AND c.relname = 'blocked_users' AND c.relkind = 'v') THEN
+    DROP VIEW public.blocked_users CASCADE;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE n.nspname = 'public' AND c.relname = 'muted_users' AND c.relkind = 'v') THEN
+    DROP VIEW public.muted_users CASCADE;
+  END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS public.blocked_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
