@@ -152,8 +152,11 @@ CREATE TABLE IF NOT EXISTS public.gig_acceptances (
   user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   accepted_at TIMESTAMPTZ DEFAULT now(),
   created_at  TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(gig_id, COALESCE(worker_id, user_id))
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gig_acceptances_worker
+  ON public.gig_acceptances(gig_id, worker_id) WHERE worker_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gig_acceptances_user
+  ON public.gig_acceptances(gig_id, user_id) WHERE user_id IS NOT NULL AND worker_id IS NULL;
 
 -- ── DM ROOMS ──────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.dm_rooms (
