@@ -317,6 +317,7 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.increment_wallet_balance(uuid, numeric);
 CREATE OR REPLACE FUNCTION public.increment_wallet_balance(p_user_id UUID, p_amount NUMERIC)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
