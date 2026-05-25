@@ -61,6 +61,12 @@ CREATE TABLE IF NOT EXISTS public.path_stars (
 );
 
 -- user_paths view for PathMapScreen
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE n.nspname = 'public' AND c.relname = 'user_paths' AND c.relkind = 'r') THEN
+    DROP TABLE public.user_paths CASCADE;
+  END IF;
+END $$;
 CREATE OR REPLACE VIEW public.user_paths AS SELECT * FROM public.paths;
 
 -- ── SERVICE NODES (Bakkie Marketplace) ───────────────────────
