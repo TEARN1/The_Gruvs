@@ -106,6 +106,11 @@ ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS price_min    NUMERIC;
 ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS price_max    NUMERIC;
 ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS is_active    BOOLEAN DEFAULT true;
 ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS available    BOOLEAN DEFAULT true;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS lat          DOUBLE PRECISION;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS lon          DOUBLE PRECISION;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS location     TEXT;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS description  TEXT;
+ALTER TABLE public.service_nodes ADD COLUMN IF NOT EXISTS service_type TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_service_nodes_user     ON public.service_nodes(user_id);
 CREATE INDEX IF NOT EXISTS idx_service_nodes_type     ON public.service_nodes(service_type);
