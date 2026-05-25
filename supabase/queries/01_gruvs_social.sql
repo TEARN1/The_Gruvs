@@ -217,16 +217,7 @@ CREATE TABLE IF NOT EXISTS public.events (
   created_at      TIMESTAMPTZ DEFAULT now(),
   updated_at      TIMESTAMPTZ DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_events_author     ON public.events(author_id);
-CREATE INDEX IF NOT EXISTS idx_events_date       ON public.events(event_date);
-CREATE INDEX IF NOT EXISTS idx_events_city       ON public.events(city);
-CREATE INDEX IF NOT EXISTS idx_events_published  ON public.events(is_published, event_date);
-CREATE INDEX IF NOT EXISTS idx_events_search     ON public.events USING gin(search_vector);
-CREATE INDEX IF NOT EXISTS idx_events_tags       ON public.events USING gin(tags);
-CREATE INDEX IF NOT EXISTS idx_events_title_trgm ON public.events USING gin(title gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_events_coords     ON public.events USING gist(coords);
-
--- Patch missing columns on pre-existing events table
+-- Patch missing columns on pre-existing events table (must run before indexes)
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_published   BOOLEAN DEFAULT true;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_featured    BOOLEAN DEFAULT false;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_cancelled   BOOLEAN DEFAULT false;
@@ -250,6 +241,15 @@ ALTER TABLE public.events ADD COLUMN IF NOT EXISTS price_max      NUMERIC;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS max_attendees  INTEGER;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS starts_at      TIMESTAMPTZ;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS ends_at        TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_events_author     ON public.events(author_id);
+CREATE INDEX IF NOT EXISTS idx_events_date       ON public.events(event_date);
+CREATE INDEX IF NOT EXISTS idx_events_city       ON public.events(city);
+CREATE INDEX IF NOT EXISTS idx_events_published  ON public.events(is_published, event_date);
+CREATE INDEX IF NOT EXISTS idx_events_search     ON public.events USING gin(search_vector);
+CREATE INDEX IF NOT EXISTS idx_events_tags       ON public.events USING gin(tags);
+CREATE INDEX IF NOT EXISTS idx_events_title_trgm ON public.events USING gin(title gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_events_coords     ON public.events USING gist(coords);
 
 DROP TRIGGER IF EXISTS touch_events_updated_at ON public.events;
 CREATE TRIGGER touch_events_updated_at
