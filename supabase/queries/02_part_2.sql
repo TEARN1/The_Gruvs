@@ -179,6 +179,20 @@ CREATE TABLE IF NOT EXISTS public.gig_posts (
   active      BOOLEAN DEFAULT true,
   created_at  TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS poster_id   UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS event_id    UUID REFERENCES public.events(id) ON DELETE SET NULL;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS title       TEXT;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS category    TEXT;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS pay         NUMERIC;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS pay_rands   NUMERIC;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS pay_amount  NUMERIC(8,2);
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS time_window TEXT DEFAULT 'Flexible';
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS lat         FLOAT;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS lon         FLOAT;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS slots       INTEGER DEFAULT 1;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS filled      INTEGER DEFAULT 0;
+ALTER TABLE public.gig_posts ADD COLUMN IF NOT EXISTS active      BOOLEAN DEFAULT true;
 CREATE INDEX IF NOT EXISTS idx_gig_posts_event  ON public.gig_posts(event_id);
 CREATE INDEX IF NOT EXISTS idx_gig_posts_active ON public.gig_posts(active);
 
