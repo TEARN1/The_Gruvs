@@ -104,36 +104,9 @@ export const NotificationService = {
         read: false,
       });
     } catch {}
-    // Fire real device push if recipient has a token
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('push_token')
-        .eq('id', recipientId)
-        .maybeSingle();
-      const token = profile?.push_token;
-      if (!token || !token.startsWith('ExponentPushToken')) return;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      try {
-        await fetch('https://exp.host/--/api/v2/push/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            to: token,
-            title,
-            body,
-            data: { type, ...data },
-            sound: 'default',
-            priority: 'high',
-            categoryId: type === 'message' ? 'message_reply' : undefined,
-          }),
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timeout);
-      }
-    } catch {}
+    // Device push is delivered server-side by the push-notify Supabase Edge Function,
+    // which fires on every notifications INSERT via a DB webhook.  No client-side
+    // Expo Push API call is needed here.
   },
 
   async notifyVibe(recipientId, actorId, actorUsername, eventId, eventTitle) {

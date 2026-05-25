@@ -40,6 +40,7 @@ import { EventRoleManager } from '../components/EventRoleManager';
 import { useEventRole } from '../hooks/useEventRole';
 import { EventMomentsSection } from '../components/EventMomentsSection';
 import { OrganizerDashboard } from '../components/OrganizerDashboard';
+import { LiveEventBanner } from '../components/LiveEventBanner';
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -119,6 +120,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [chatVisible, setChatVisible] = useState(false);
   const [roleManagerVisible, setRoleManagerVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'polls' | 'playlist'
+  const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
+  const scrollRef = useRef(null);
 
   const { isOrganiser, isCoHost, canPost, canModerate } = useEventRole(
     event?.id, user?.id, event?.author_id ?? event?.profiles?.id
@@ -450,6 +453,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         </View>
 
         <ScrollView
+          ref={scrollRef}
           style={styles.body}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.bodyContent}
@@ -472,6 +476,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               primary={primary}
               textColor={textColor}
               surface={surface}
+              triggerCapture={momentCaptureOpen}
+              onCaptureHandled={() => setMomentCaptureOpen(false)}
             />
           )}
 
@@ -640,10 +646,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </View>
           )}
           {countdown?.over && (
-            <View style={[styles.countdownBar, { backgroundColor: '#10b98115', borderColor: '#10b98130' }]}>
-              <Feather name="zap" size={13} color="#10b981" />
-              <Text style={{ color: '#10b981', fontWeight: '900', fontSize: 13 }}>Happening Now!</Text>
-            </View>
+            <LiveEventBanner
+              event={event}
+              primary={primary}
+              textColor={textColor}
+              surface={surface}
+              capacity={event?.max_attendees || event?.capacity || 0}
+              onAddMoment={user ? () => setMomentCaptureOpen(true) : null}
+            />
           )}
 
           {/* Attendee preview strip */}

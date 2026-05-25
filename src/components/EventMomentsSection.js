@@ -389,7 +389,8 @@ const as = StyleSheet.create({
 
 // ─── EventMomentsSection ──────────────────────────────────────────────────────
 
-export const EventMomentsSection = ({ eventId, primary, textColor, muted, surface }) => {
+export const EventMomentsSection = ({ event, eventId: eventIdProp, primary, textColor, muted, surface, triggerCapture, onCaptureHandled }) => {
+  const eventId = eventIdProp || event?.id;
   const { user } = useAuth();
   const toast = useToast();
   const [moments, setMoments] = useState([]);
@@ -398,6 +399,14 @@ export const EventMomentsSection = ({ eventId, primary, textColor, muted, surfac
   const [viewerIndex, setViewerIndex] = useState(0);
   const [addSheetVisible, setAddSheetVisible] = useState(false);
   const [seenIds, setSeenIds] = useState(new Set());
+
+  // Allow LiveEventBanner to open the capture sheet externally
+  useEffect(() => {
+    if (triggerCapture && !addSheetVisible) {
+      setAddSheetVisible(true);
+      onCaptureHandled?.();
+    }
+  }, [triggerCapture]);
 
   const fetchMoments = useCallback(async () => {
     if (!eventId) return;
