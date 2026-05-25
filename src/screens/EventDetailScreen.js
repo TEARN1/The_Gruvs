@@ -38,6 +38,8 @@ import { EventPollSection } from '../components/EventPollSection';
 import { EventPlaylistSection } from '../components/EventPlaylistSection';
 import { EventRoleManager } from '../components/EventRoleManager';
 import { useEventRole } from '../hooks/useEventRole';
+import { EventMomentsSection } from '../components/EventMomentsSection';
+import { OrganizerDashboard } from '../components/OrganizerDashboard';
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -449,6 +451,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           }
         >
 
+          {event?.id && (
+            <EventMomentsSection
+              event={event}
+              primary={primary}
+              textColor={textColor}
+              surface={surface}
+            />
+          )}
+
           <View style={styles.organizerRow}>
             <View style={styles.avatarWrap}>
               {organizer.avatar_url
@@ -795,6 +806,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
           <View style={styles.sectionDivider} />
           {event?.id && <RatingSection eventId={event.id} onAuthRequired={onAuthRequired} />}
+
+          {/* ── Organizer live dashboard ──────────────────────────── */}
+          {event?.id && isOrganiser && (
+            <OrganizerDashboard
+              event={event}
+              primary={primary}
+              textColor={textColor}
+              surface={surface}
+              muted={textMuted}
+            />
+          )}
 
           {/* ── Co-management action bar ──────────────────────────── */}
           {event?.id && (isOrganiser || isCoHost) && (
