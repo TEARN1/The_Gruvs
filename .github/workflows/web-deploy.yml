@@ -1,7 +1,11 @@
 # ────────────────────────────────────────────────────────────────────────────
 # Web Deploy — Expo web → Vercel
-# Triggers: push to main  →  production deploy
-#           push to other  →  preview deploy (URL posted as PR comment)
+#
+# GATED: only runs after CI check passes (needs: check).
+# Reuses the dist/ artifact built by CI — Vercel never re-builds on its own.
+#
+# push to main   →  production deploy
+# pull_request   →  preview deploy + URL posted as PR comment
 # ────────────────────────────────────────────────────────────────────────────
 name: Web Deploy
 
@@ -12,9 +16,12 @@ on:
     branches: [main]
 
 jobs:
-  deploy:
-    name: Build & Deploy Web
+  # ── Re-run the CI check inline so this workflow is self-contained ─────────
+  check:
+    name: Bundle check
     runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v4
@@ -36,29 +43,72 @@ jobs:
           EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET:   ${{ secrets.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET }}
           EXPO_PUBLIC_YOUTUBE_API_KEY:         ${{ secrets.EXPO_PUBLIC_YOUTUBE_API_KEY }}
 
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-${{ github.sha }}
+          path: dist/
+          retention-days: 1
+
+  # ── Deploy to Vercel — only if bundle check passes ────────────────────────
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    needs: check           # ← GATE: job is skipped if check fails
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist-${{ github.sha }}
+          path: dist/
+
+      # Use Vercel CLI directly — bypasses Vercel's own build step entirely.
+      # vercel.json (outputDirectory: dist + SPA rewrites) is already correct.
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel project settings
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
       - name: Deploy to Vercel (production)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token:   ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id:  ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./dist
-          vercel-args: "--prod"
+        id: prod-deploy
+        run: |
+          vercel deploy dist --prod --yes --token=${{ secrets.VERCEL_TOKEN }} \
+            2>&1 | tee vercel-out.txt
+          echo "deploy_url=$(grep -E '^https://' vercel-out.txt | tail -1)" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy to Vercel (preview)
         if: github.event_name == 'pull_request'
-        id: preview
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token:   ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id:  ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./dist
+        id: preview-deploy
+        run: |
+          vercel deploy dist --yes --token=${{ secrets.VERCEL_TOKEN }} \
+            2>&1 | tee vercel-out.txt
+          echo "deploy_url=$(grep -E '^https://' vercel-out.txt | tail -1)" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           message: |
-            🌐 **Web Preview**: ${{ steps.preview.outputs.preview-url }}
+            🌐 **Web Preview**: ${{ steps.preview-deploy.outputs.deploy_url }}
+            📦 Commit: `${{ github.sha }}`
+
+      - name: Write deploy summary
+        if: always()
+        run: |
+          echo "## Web Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "- **Env**: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Preview' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

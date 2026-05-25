@@ -1,11 +1,18 @@
 {
   "compilerOptions": {
-    "ignoreDeprecations": "5.0"
+    "ignoreDeprecations": "5.0",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "skipLibCheck": true
   },
   "extends": "expo/tsconfig.base",
+  "include": ["src/**/*", "App.js", "app.config.js"],
   "exclude": [
     "node_modules",
     "supabase",
-    "dist"
+    "dist",
+    ".expo"
   ]
 }

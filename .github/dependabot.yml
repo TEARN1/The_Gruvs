@@ -1,0 +1,41 @@
+# Dependabot — keeps GitHub Actions and npm packages up to date automatically.
+# Opens PRs when new versions are available; CI gates the merge.
+version: 2
+
+updates:
+  # ── GitHub Actions ────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Johannesburg
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
+
+  # ── npm packages ──────────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: Africa/Johannesburg
+    open-pull-requests-limit: 5
+    groups:
+      expo:
+        patterns: ["expo*", "@expo/*"]
+      supabase:
+        patterns: ["@supabase/*"]
+      react-native:
+        patterns: ["react-native*", "@react-native*"]
+    ignore:
+      # Expo SDK major versions need manual testing — don't auto-bump
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "deps"

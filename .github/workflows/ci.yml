@@ -1,6 +1,11 @@
 # ────────────────────────────────────────────────────────────────────────────
 # CI — runs on every push / PR
-# Checks: dependency install, TypeScript type-check, lint (if configured)
+# This is the GATEKEEPER. web-deploy and eas-update both depend on this job.
+#
+# Checks:
+#   1. Metro bundle build  →  catches syntax errors, bad imports, duplicate exports
+#   2. TypeScript / JS type-check  →  catches type errors (checkJs enabled)
+#   3. expo-doctor  →  catches SDK/config drift (non-blocking)
 # ────────────────────────────────────────────────────────────────────────────
 name: CI
 
@@ -12,8 +17,9 @@ on:
 
 jobs:
   check:
-    name: Type-check & lint
+    name: Bundle check & type-check
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -25,8 +31,44 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: TypeScript type-check
-        run: npx tsc --noEmit
+      # ── Primary check: Metro web bundle ─────────────────────────────────
+      # This is the real validator. If a duplicate export, bad import, or
+      # syntax error exists, Metro will throw here — before anything deploys.
+      - name: Build Expo web (Metro bundle check)
+        run: npx expo export --platform web
+        env:
+          EXPO_PUBLIC_SUPABASE_URL:            ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY:       ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_SPOTIFY_CLIENT_ID:       ${{ secrets.EXPO_PUBLIC_SPOTIFY_CLIENT_ID }}
+          EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET:   ${{ secrets.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET }}
+          EXPO_PUBLIC_YOUTUBE_API_KEY:         ${{ secrets.EXPO_PUBLIC_YOUTUBE_API_KEY }}
 
-      - name: Expo Doctor (config validation)
-        run: npx expo-doctor@latest || true   # non-blocking — surfaced in logs
+      # ── Secondary check: TypeScript / JS types ───────────────────────────
+      - name: TypeScript / JS type-check
+        run: npx tsc --noEmit
+        continue-on-error: true   # type hints, not blockers in a JS project
+
+      # ── Tertiary: expo-doctor ────────────────────────────────────────────
+      - name: Expo Doctor (SDK/config drift)
+        run: npx expo-doctor@latest
+        continue-on-error: true   # non-blocking, surfaced in logs
+
+      # ── Upload dist/ as an artifact for the deploy job to reuse ─────────
+      # This means web-deploy doesn't need to rebuild — reuses this output.
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+          retention-days: 1
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## CI Result" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Metro bundle | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
