@@ -226,6 +226,31 @@ CREATE INDEX IF NOT EXISTS idx_events_tags       ON public.events USING gin(tags
 CREATE INDEX IF NOT EXISTS idx_events_title_trgm ON public.events USING gin(title gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_events_coords     ON public.events USING gist(coords);
 
+-- Patch missing columns on pre-existing events table
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_published   BOOLEAN DEFAULT true;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_featured    BOOLEAN DEFAULT false;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_cancelled   BOOLEAN DEFAULT false;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS slug           TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS search_vector  TSVECTOR;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS date_time      TIMESTAMPTZ;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS vibe_count     INTEGER DEFAULT 0;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS echo_count     INTEGER DEFAULT 0;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS reaction_count INTEGER DEFAULT 0;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS save_count     INTEGER DEFAULT 0;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS going          INTEGER DEFAULT 0;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS rsvp_tiers     JSONB;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS categories     TEXT[];
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS media_urls     TEXT[];
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS cover_image    TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS coords         geography(Point, 4326);
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS age_min        INTEGER DEFAULT 0;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS age_max        INTEGER DEFAULT 99;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS price_min      NUMERIC;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS price_max      NUMERIC;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS max_attendees  INTEGER;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS starts_at      TIMESTAMPTZ;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS ends_at        TIMESTAMPTZ;
+
 DROP TRIGGER IF EXISTS touch_events_updated_at ON public.events;
 CREATE TRIGGER touch_events_updated_at
   BEFORE UPDATE ON public.events
@@ -404,7 +429,7 @@ CREATE TABLE IF NOT EXISTS public.event_checkins (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id      UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
   user_id       UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  rsvp_id       UUID REFERENCES public.event_rsvps(id) ON DELETE SET NULL,
+  rsvp_id       UUID, -- FK to event_rsvps added in 07_gruvs_social.sql
   lat           DOUBLE PRECISION,
   lon           DOUBLE PRECISION,
   checked_in_at TIMESTAMPTZ DEFAULT now(),
