@@ -152,13 +152,21 @@ CREATE TRIGGER follows_sync_counts AFTER INSERT OR DELETE ON public.follows
 
 -- ── BLOCKED / MUTED ──────────────────────────────────────────
 DO $$ BEGIN
+  -- Drop blocked_users if it's a view OR has wrong column name (blocker_id instead of user_id)
   IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
              WHERE n.nspname = 'public' AND c.relname = 'blocked_users' AND c.relkind = 'v') THEN
     DROP VIEW public.blocked_users CASCADE;
+  ELSIF EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'blocked_users' AND column_name = 'blocker_id') THEN
+    DROP TABLE public.blocked_users CASCADE;
   END IF;
+  -- Drop muted_users if it's a view OR has wrong column name (muter_id instead of user_id)
   IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
              WHERE n.nspname = 'public' AND c.relname = 'muted_users' AND c.relkind = 'v') THEN
     DROP VIEW public.muted_users CASCADE;
+  ELSIF EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'muted_users' AND column_name = 'muter_id') THEN
+    DROP TABLE public.muted_users CASCADE;
   END IF;
 END $$;
 CREATE TABLE IF NOT EXISTS public.blocked_users (
