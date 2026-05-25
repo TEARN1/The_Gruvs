@@ -51,14 +51,24 @@ export const SecurityService = {
   },
 
   // Log a security event (e.g., failed login attempts, password changes)
+  // Whitelist approach: only safe, non-PII fields are persisted.
   async logSecurityEvent(userId, eventType, details = {}) {
-    if (!userId && !details.email) return;
+    if (!eventType) return;
     try {
-      const safeDetails = this.redactObject(details);
+      const safe = {
+        event_type: String(eventType).slice(0, 80),
+        action:        typeof details.action        === 'string' ? details.action.slice(0, 100)        : undefined,
+        resource_type: typeof details.resource_type === 'string' ? details.resource_type.slice(0, 50)  : undefined,
+        event_id:      typeof details.event_id      === 'string' ? details.event_id                    : undefined,
+        rsvp_id:       typeof details.rsvp_id       === 'string' ? details.rsvp_id                     : undefined,
+        reason:        typeof details.reason        === 'string' ? details.reason.slice(0, 200)        : undefined,
+      };
+      // Strip undefined keys
+      Object.keys(safe).forEach(k => safe[k] === undefined && delete safe[k]);
       await supabase.from('security_logs').insert({
-        user_id: userId,
-        event_type: eventType,
-        details: safeDetails,
+        user_id: userId || null,
+        event_type: safe.event_type,
+        details: safe,
         ip_address: null,
         user_agent: Platform.OS,
       });

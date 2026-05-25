@@ -63,6 +63,9 @@ const avatarBg = (name) => {
 };
 
 export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
+  // SECURITY: reject immediately if caller is not the event owner
+  const isAuthorized = !!(event?.author_id && userId && event.author_id === userId);
+
   const { currentTheme } = useTheme();
   const primary = currentTheme?.primary || '#00f2ff';
   const bg = currentTheme?.background || '#0d1112';
@@ -143,6 +146,11 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
   const doCheckIn = async () => {
     const q = checkInQuery.trim().toUpperCase().replace(/^#/, '');
     if (!q || !eventId) return;
+    // SECURITY: double-check authorisation server-side before any write
+    if (!isAuthorized) {
+      setCheckInResult({ ok: false, msg: 'Not authorized to manage this event.' });
+      return;
+    }
     setCheckInLoading(true);
     setCheckInResult(null);
     try {
@@ -198,8 +206,11 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
   };
 
   useEffect(() => {
-    if (visible && eventId) { loadData(); loadCheckins(); }
-  }, [visible, eventId, loadData, loadCheckins]);
+    if (visible && eventId) {
+      if (!isAuthorized) { onClose(); return; }
+      loadData(); loadCheckins();
+    }
+  }, [visible, eventId, loadData, loadCheckins, isAuthorized, onClose]);
 
   // Real-time subscription
   useEffect(() => {
@@ -345,6 +356,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
               <QRCheckInScanner
                 eventId={eventId}
+                organizerId={userId}
                 primary={primary}
                 textColor={textColor}
                 muted={muted}

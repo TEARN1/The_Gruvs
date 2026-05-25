@@ -788,6 +788,9 @@ export const VibeManager = {
   async sendVibe(eventId, userId) {
     if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return true;
     if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
+    // SECURITY: prevent self-vibe (organiser gaming engagement metrics)
+    const { data: evt } = await supabase.from('events').select('author_id').eq('id', eventId).maybeSingle();
+    if (evt?.author_id === userId) throw new Error('You cannot vibe your own events.');
 
     const result = await resilient(
       [
@@ -855,6 +858,9 @@ export const RSVPManager = {
   async upsert(eventId, userId, status) {
     if (SecurityService.isThrottled(`rsvp_${eventId}_${userId}`, 1500)) return true;
     if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
+    // SECURITY: prevent self-RSVP (organiser inflating own attendance)
+    const { data: evt } = await supabase.from('events').select('author_id').eq('id', eventId).maybeSingle();
+    if (evt?.author_id === userId) throw new Error('Organisers cannot RSVP to their own events.');
 
     const ok = await resilient(
       [

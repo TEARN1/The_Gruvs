@@ -12,6 +12,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
+import { SecurityService } from '../services/securityService';
 
 // expo-camera is optional — if unavailable we fall back to manual entry
 let CameraView = null;
@@ -214,7 +215,7 @@ const sf = StyleSheet.create({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const QRCheckInScanner = ({ eventId, primary, textColor, muted, onCheckedIn }) => {
+export const QRCheckInScanner = ({ eventId, organizerId, primary, textColor, muted, onCheckedIn }) => {
   const [permState, requestPerm] = useCameraPermissions ? useCameraPermissions() : [null, null];
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -248,6 +249,15 @@ export const QRCheckInScanner = ({ eventId, primary, textColor, muted, onChecked
     if (parsed.eventId !== eventId) {
       setResult({ ok: false, msg: 'This ticket is for a different event.' });
       return;
+    }
+    // SECURITY: verify the scanning user is the event organizer server-side
+    if (organizerId) {
+      const { data: evt } = await supabase
+        .from('events').select('author_id').eq('id', eventId).single();
+      if (!evt || evt.author_id !== organizerId) {
+        setResult({ ok: false, msg: 'Not authorized to check in guests for this event.' });
+        return;
+      }
     }
     if (checkedInIds[parsed.rsvpId]) {
       setResult({ ok: false, msg: 'Already checked in at this door.', username: lastScan.current?.username });
@@ -296,11 +306,24 @@ export const QRCheckInScanner = ({ eventId, primary, textColor, muted, onChecked
         return;
       }
 
-      // Mark checked in
+      // SECURITY: validate QR payload user_id matches DB rsvp.user_id
+      if (parsed.userId && parsed.userId !== rsvp.user_id) {
+        setResult({ ok: false, msg: 'Ticket mismatch — possible forgery attempt.' });
+        SecurityService.logSecurityEvent(null, 'qr_forgery_attempt', {
+          event_id: eventId, rsvp_id: parsed.rsvpId, claimed_user: parsed.userId,
+        });
+        return;
+      }
+
+      // Mark checked in via secure server-side RPC (validates organiser role + status)
       await resilient(
         [
+          () => supabase.rpc('secure_check_in', {
+            p_event_id: eventId,
+            p_rsvp_id: rsvp.id,
+            p_user_id: rsvp.user_id,
+          }),
           () => supabase.from('event_checkins').upsert({ event_id: eventId, rsvp_id: rsvp.id, user_id: rsvp.user_id }, { onConflict: 'rsvp_id' }),
-          () => supabase.from('event_checkins').insert({ event_id: eventId, rsvp_id: rsvp.id, user_id: rsvp.user_id }),
         ],
         { attemptsPerTier: 2, baseMs: 300, label: `QRCheckIn:${rsvp.id}`, fallbackValue: null }
       );
