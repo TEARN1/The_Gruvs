@@ -18,6 +18,10 @@ CREATE TABLE IF NOT EXISTS public.event_rsvps (
   updated_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(event_id, user_id)
 );
+ALTER TABLE public.event_rsvps ADD COLUMN IF NOT EXISTS user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.event_rsvps ADD COLUMN IF NOT EXISTS tier       TEXT;
+ALTER TABLE public.event_rsvps ADD COLUMN IF NOT EXISTS tier_id    TEXT;
+ALTER TABLE public.event_rsvps ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 CREATE INDEX IF NOT EXISTS idx_rsvps_event ON public.event_rsvps(event_id, status);
 CREATE INDEX IF NOT EXISTS idx_rsvps_user  ON public.event_rsvps(user_id);
 
@@ -178,6 +182,12 @@ CREATE TABLE IF NOT EXISTS public.activity_feed (
   is_read       BOOLEAN DEFAULT false,
   created_at    TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.activity_feed ADD COLUMN IF NOT EXISTS actor_id      UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.activity_feed ADD COLUMN IF NOT EXISTS activity_type TEXT;
+ALTER TABLE public.activity_feed ADD COLUMN IF NOT EXISTS event_id      UUID REFERENCES public.events(id) ON DELETE SET NULL;
+ALTER TABLE public.activity_feed ADD COLUMN IF NOT EXISTS body          TEXT;
+ALTER TABLE public.activity_feed ADD COLUMN IF NOT EXISTS title         TEXT;
+ALTER TABLE public.activity_feed ADD COLUMN IF NOT EXISTS is_read       BOOLEAN DEFAULT false;
 CREATE INDEX IF NOT EXISTS idx_activity_recipient ON public.activity_feed(recipient_id, created_at DESC);
 
 -- ── SECURITY LOGS ─────────────────────────────────────────────
@@ -193,6 +203,14 @@ CREATE TABLE IF NOT EXISTS public.security_logs (
   ip_hash       TEXT,
   created_at    TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.security_logs ADD COLUMN IF NOT EXISTS user_id       UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.security_logs ADD COLUMN IF NOT EXISTS event_type    TEXT;
+ALTER TABLE public.security_logs ADD COLUMN IF NOT EXISTS action        TEXT;
+ALTER TABLE public.security_logs ADD COLUMN IF NOT EXISTS resource_type TEXT;
+ALTER TABLE public.security_logs ADD COLUMN IF NOT EXISTS event_id      UUID REFERENCES public.events(id) ON DELETE SET NULL;
+ALTER TABLE public.security_logs ADD COLUMN IF NOT EXISTS rsvp_id       UUID;
+ALTER TABLE public.security_logs ADD COLUMN IF NOT EXISTS reason        TEXT;
+ALTER TABLE public.security_logs ADD COLUMN IF NOT EXISTS ip_hash       TEXT;
 CREATE INDEX IF NOT EXISTS idx_security_logs_user ON public.security_logs(user_id, created_at DESC);
 
 -- ── CAPACITY ENFORCEMENT TRIGGER ─────────────────────────────
