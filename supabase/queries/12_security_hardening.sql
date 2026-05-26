@@ -21,7 +21,7 @@ SELECT
   p.bio,
   p.location,
   p.role,
-  p.sis_score,
+  p.vibe_score,
   p.followers_count,
   p.following_count,
   p.xp,
