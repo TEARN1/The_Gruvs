@@ -29,7 +29,7 @@ SELECT
   p.verified,
   p.show_online,
   CASE WHEN p.show_online THEN p.last_seen ELSE NULL END AS last_seen,
-  p.created_at
+  p.updated_at
 FROM public.profiles p;
 
 GRANT SELECT ON public.public_profiles TO anon, authenticated;
