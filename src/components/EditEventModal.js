@@ -28,7 +28,7 @@ const Field = ({ label, value, onChange, placeholder, multiline, keyboardType, t
   </View>
 );
 
-export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
+export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted }) => {
   const { currentTheme } = useTheme();
   const toast = useToast();
   const [saving, setSaving] = useState(false);
@@ -319,6 +319,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved }) => {
       );
       if (ok !== null) {
         toast.show('Event deleted', 'info');
+        onDeleted?.(event.id);
         onSaved?.();
         onClose();
       } else {

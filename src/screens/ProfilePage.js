@@ -2398,6 +2398,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             visible={!!editingEvent}
             event={editingEvent}
             onClose={() => setEditingEvent(null)}
+            onDeleted={(id) => { setMyEvents(prev => prev.filter(e => e.id !== id)); setEditingEvent(null); }}
             onSaved={() => { setEditingEvent(null); loadTab('gruvs'); }}
           />
         </SafeSection>

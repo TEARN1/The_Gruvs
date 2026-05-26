@@ -1744,6 +1744,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             visible={!!editEvent}
             onClose={() => setEditEvent(null)}
             event={editEvent}
+            onDeleted={(id) => {
+              setEvents(prev => prev.filter(e => e.id !== id));
+              setEditEvent(null);
+              if (selectedEvent?.id === id) setSelectedEvent(null);
+            }}
             onSaved={() => loadData(true)}
           />
         </SafeSection>
