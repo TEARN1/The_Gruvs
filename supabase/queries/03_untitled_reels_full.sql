@@ -69,6 +69,8 @@ CREATE TABLE IF NOT EXISTS public.reel_reports (
   reason      TEXT NOT NULL,
   created_at  TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.reel_reports ADD COLUMN IF NOT EXISTS reporter_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.reel_reports ADD COLUMN IF NOT EXISTS user_id     UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reel_reports_reporter
   ON public.reel_reports(reel_id, reporter_id) WHERE reporter_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reel_reports_user
