@@ -16,6 +16,10 @@ CREATE TABLE IF NOT EXISTS public.ai_recommendations_cache (
   created_at   TIMESTAMPTZ DEFAULT now(),
   UNIQUE(user_id, rec_type)
 );
+ALTER TABLE public.ai_recommendations_cache ADD COLUMN IF NOT EXISTS rec_type   TEXT DEFAULT 'events';
+ALTER TABLE public.ai_recommendations_cache ADD COLUMN IF NOT EXISTS payload    JSONB DEFAULT '[]';
+ALTER TABLE public.ai_recommendations_cache ADD COLUMN IF NOT EXISTS model_ver  TEXT DEFAULT 'v1';
+ALTER TABLE public.ai_recommendations_cache ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ DEFAULT now() + interval '6 hours';
 CREATE INDEX IF NOT EXISTS idx_ai_recs_user   ON public.ai_recommendations_cache(user_id);
 CREATE INDEX IF NOT EXISTS idx_ai_recs_expiry ON public.ai_recommendations_cache(expires_at);
 
