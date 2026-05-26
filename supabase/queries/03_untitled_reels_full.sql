@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS public.reel_views (
   created_at TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY(reel_id, viewer_id)
 );
+ALTER TABLE public.reel_views ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 CREATE TABLE IF NOT EXISTS public.saved_reels (
   reel_id    UUID NOT NULL REFERENCES public.reels(id) ON DELETE CASCADE,
