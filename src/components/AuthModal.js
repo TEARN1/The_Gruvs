@@ -6,13 +6,14 @@ import {
   Platform, ScrollView, ActivityIndicator, Dimensions,
 } from 'react-native';
 
-const SCREEN_W = Dimensions.get('window').width;
-const HM = SCREEN_W < 375 ? 12 : 25;
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { SecurityService } from '../services/securityService';
 import { useToast } from './ToastNotification';
+
+const SCREEN_W = Dimensions.get('window').width;
+const HM = SCREEN_W < 375 ? 12 : 25;
 
 const QUICK_INTERESTS = [
   { label: 'Music', icon: '🎵' },

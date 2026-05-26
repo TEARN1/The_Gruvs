@@ -4,10 +4,20 @@ import {
   Image, ActivityIndicator, RefreshControl, Platform, ScrollView, Animated,
   PanResponder, Dimensions,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { supabase } from '../services/supabase';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { useIdentity } from '../context/IdentityContext';
+import { ViberProfileModal } from '../components/ViberProfileModal';
+import { DirectMessageModal } from '../components/DirectMessageModal';
+import { useToast } from '../components/ToastNotification';
+import { DiscoveryManager, isOnline as checkOnline } from '../services/dataFlow';
+import { resilientRead, resilient } from '../utils/resilience';
 
 const SCREEN_W = Dimensions.get('window').width;
 
-// Simple single-thumb slider — no external dep needed
 const SimpleSlider = ({ min, max, value, onChange, primary, muted, unit = '' }) => {
   const trackW = SCREEN_W - 64;
   const pct = (value - min) / (max - min);
@@ -56,17 +66,6 @@ const SimpleSlider = ({ min, max, value, onChange, primary, muted, unit = '' }) 
     </View>
   );
 };
-import { Feather } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { supabase } from '../services/supabase';
-import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
-import { useIdentity } from '../context/IdentityContext';
-import { ViberProfileModal } from '../components/ViberProfileModal';
-import { DirectMessageModal } from '../components/DirectMessageModal';
-import { useToast } from '../components/ToastNotification';
-import { DiscoveryManager, isOnline as checkOnline } from '../services/dataFlow';
-import { resilientRead, resilient } from '../utils/resilience';
 
 const FILTERS = [
   { key: 'all',    label: 'All Vibers', icon: 'users' },

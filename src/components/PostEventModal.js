@@ -6,7 +6,6 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-const SCREEN_W = Dimensions.get('window').width;
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { GlassView } from './GlassView';
@@ -19,6 +18,8 @@ import { CategoryPickerModal } from './CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
+
+const SCREEN_W = Dimensions.get('window').width;
 
 const MAX_MEDIA = 30;
 const EVENT_TYPES = ['Social', 'Concert', 'Workshop', 'Festival', 'Meetup', 'Party', 'Conference', 'Pop-Up', 'Rave', 'Market', 'Retreat', 'Competition'];

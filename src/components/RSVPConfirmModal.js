@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-const SCREEN_W = Dimensions.get('window').width;
 import QRCode from 'react-native-qrcode-svg';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
@@ -14,6 +13,8 @@ import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
 import { SecurityService } from '../services/securityService';
+
+const SCREEN_W = Dimensions.get('window').width;
 
 const OPTIONS = [
   { status: 'going',     label: 'Going',     icon: 'check-circle', color: '#10b981' },

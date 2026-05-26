@@ -5,10 +5,6 @@ import {
   Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-
-const SCREEN_W = Dimensions.get('window').width;
-const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
-const TREND_CARD_H = Math.round(TREND_CARD_W * 0.62);
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -55,6 +51,10 @@ import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 import { FONT, RADIUS } from '../constants/DesignTokens';
 import { SkeletonCard as SkeletonCardImported } from '../components/SkeletonCard';
+
+const SCREEN_W = Dimensions.get('window').width;
+const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
+const TREND_CARD_H = Math.round(TREND_CARD_W * 0.62);
 
 // Safe haptic wrapper for web compatibility
 const safeHaptic = (fn) => {

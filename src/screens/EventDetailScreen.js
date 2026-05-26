@@ -7,9 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
-
-const SCREEN_W = Dimensions.get('window').width;
-const HERO_H = Math.min(300, Math.max(220, SCREEN_W * 0.72));
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
@@ -41,6 +38,9 @@ import { useEventRole } from '../hooks/useEventRole';
 import { EventMomentsSection } from '../components/EventMomentsSection';
 import { OrganizerDashboard } from '../components/OrganizerDashboard';
 import { LiveEventBanner } from '../components/LiveEventBanner';
+
+const SCREEN_W = Dimensions.get('window').width;
+const HERO_H = Math.min(300, Math.max(220, SCREEN_W * 0.72));
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
