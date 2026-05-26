@@ -66,6 +66,9 @@ CREATE TABLE IF NOT EXISTS public.event_polls (
   ends_at    TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.event_polls ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.event_polls ADD COLUMN IF NOT EXISTS options    JSONB DEFAULT '[]';
+ALTER TABLE public.event_polls ADD COLUMN IF NOT EXISTS ends_at    TIMESTAMPTZ;
 CREATE TABLE IF NOT EXISTS public.event_poll_votes (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   poll_id      UUID NOT NULL REFERENCES public.event_polls(id) ON DELETE CASCADE,
