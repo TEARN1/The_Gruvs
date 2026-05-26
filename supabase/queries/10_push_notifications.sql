@@ -42,7 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_notif_queue_scheduled ON public.notification_queu
 -- ── TICKET TOKENS ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.ticket_tokens (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  rsvp_id     UUID NOT NULL REFERENCES public.event_rsvps(id) ON DELETE CASCADE,
+  rsvp_id     UUID NOT NULL, -- FK to event_rsvps(id) omitted: table may pre-exist without id PK
   user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   event_id    UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
   token       TEXT NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
