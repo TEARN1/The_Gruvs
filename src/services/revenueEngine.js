@@ -7,7 +7,14 @@
  */
 import { supabase } from './supabase';
 import { VibeEquityLedger } from './vibeEquityLedger';
-import { IntelligenceMonitor } from './dataFlow';
+// Deferred import to break circular dep with dataFlow.js
+let _IntelligenceMonitor = null;
+const getIM = () => {
+  if (!_IntelligenceMonitor) {
+    try { _IntelligenceMonitor = require('./dataFlow').IntelligenceMonitor; } catch {}
+  }
+  return _IntelligenceMonitor || { logFailure: () => {} };
+};
 
 export const VibeEconomyEngine = {
   ROYAL_THRESHOLD: 1000, // Amount of Vibe-Equity needed to stake for Royal status
@@ -52,7 +59,7 @@ export const VibeEconomyEngine = {
       const { data: params } = await supabase.from('global_economy_params').select('vibe_tax_rate').single();
       taxRate = params?.vibe_tax_rate || taxRate;
     } catch (e) {
-      IntelligenceMonitor.logFailure('VibeEconomyEngine.getGlobalEconomyParams', e);
+      getIM().logFailure('VibeEconomyEngine.getGlobalEconomyParams', e);
     }
 
     if (status.equity > 10000) taxRate = Math.max(taxRate, 0.15); // Wealth Tax, ensures it's at least 15%
@@ -69,7 +76,7 @@ export const VibeEconomyEngine = {
 
     // Ensure contribution is non-negative
     if (contribution < 0) {
-      IntelligenceMonitor.logFailure('VibeEconomyEngine.calculateProtocolContribution', 'Negative tax calculated');
+      getIM().logFailure('VibeEconomyEngine.calculateProtocolContribution', 'Negative tax calculated');
       return {
         netValue: actionValue,
         taxedAmount: 0,

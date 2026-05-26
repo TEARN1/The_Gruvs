@@ -19,7 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
-import { ViberProfileModal } from './ViberProfileModal';
+const ViberProfileModal = React.lazy(() => import('./ViberProfileModal').then(m => ({ default: m.ViberProfileModal })));
 import { LocationService } from '../services/locationService';
 import { uploadToStorage } from '../services/storageService';
 
@@ -886,13 +886,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-      <ViberProfileModal
-        visible={profileModalVisible}
-        user={recipient}
-        userId={recipient?.id}
-        onClose={() => setProfileModalVisible(false)}
-        onNavigateToEvent={onNavigateToEvent}
-      />
+      <React.Suspense fallback={null}>
+        <ViberProfileModal
+          visible={profileModalVisible}
+          user={recipient}
+          userId={recipient?.id}
+          onClose={() => setProfileModalVisible(false)}
+          onNavigateToEvent={onNavigateToEvent}
+        />
+      </React.Suspense>
     </Modal>
   );
 };
