@@ -108,7 +108,7 @@ const ReelSkeleton = ({ primary, reelW, reelH }) => {
 };
 
 // ── Reel manage sheet (own reels: edit caption / delete) ─────────────────────
-const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, primary, bg, textColor, muted, surface }) => {
+const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, primary, bg, textColor, muted, surface, user }) => {
   const [mode, setMode] = useState('menu'); // 'menu' | 'edit'
   const [caption, setCaption] = useState('');
   const [saving, setSaving] = useState(false);
@@ -1366,6 +1366,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         textColor={textColor}
         muted={muted}
         surface={surface}
+        user={user}
       />
 
       <ReelsAdvancedSettingsSheet
