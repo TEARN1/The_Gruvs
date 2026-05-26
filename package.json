@@ -6,6 +6,7 @@
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
+    "prebuild": "node scripts/check-bundle-health.js",
     "build": "npx expo export --platform web && npm run postbuild",
     "postbuild": "node -e \"const fs=require('fs'),path=require('path');const src=path.join(__dirname,'public','.well-known');const dst=path.join(__dirname,'dist','.well-known');if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});fs.readdirSync(src).forEach(f=>fs.copyFileSync(path.join(src,f),path.join(dst,f)));console.log('Copied .well-known to dist/');}\"",
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -11,33 +11,45 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { GlassView } from '../components/GlassView';
-import { EchoSection } from '../components/EchoSection';
-import { RatingSection } from '../components/RatingSection';
-import { EventGallery } from '../components/EventGallery';
-import { WaitlistButton } from '../components/WaitlistButton';
-import { EventReactions } from '../components/EventReactions';
-import { LiveEventUpdates } from '../components/LiveEventUpdates';
-import { EventWeather } from '../components/EventWeather';
-import { VIPTierSelector } from '../components/VIPTierSelector';
-import { CarpoolBoard } from '../components/CarpoolBoard';
 import { MediaViewer } from '../components/MediaViewer';
 import { useToast } from '../components/ToastNotification';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, ScoreEngine, VibeManager } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
-import { EventContextualAds } from '../components/EventContextualAds';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
-import { EventScheduleSection } from '../components/EventScheduleSection';
-import { EventChatRoom } from '../components/EventChatRoom';
-import { EventPollSection } from '../components/EventPollSection';
-import { EventPlaylistSection } from '../components/EventPlaylistSection';
-import { EventRoleManager } from '../components/EventRoleManager';
 import { useEventRole } from '../hooks/useEventRole';
-import { EventMomentsSection } from '../components/EventMomentsSection';
-import { OrganizerDashboard } from '../components/OrganizerDashboard';
-import { LiveEventBanner } from '../components/LiveEventBanner';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+
+// ── Lazy section components (each loads independently — one failure cannot crash another) ──
+const EchoSection        = React.lazy(() => import('../components/EchoSection').then(m => ({ default: m.EchoSection })));
+const RatingSection      = React.lazy(() => import('../components/RatingSection').then(m => ({ default: m.RatingSection })));
+const EventGallery       = React.lazy(() => import('../components/EventGallery').then(m => ({ default: m.EventGallery })));
+const WaitlistButton     = React.lazy(() => import('../components/WaitlistButton').then(m => ({ default: m.WaitlistButton })));
+const EventReactions     = React.lazy(() => import('../components/EventReactions').then(m => ({ default: m.EventReactions })));
+const LiveEventUpdates   = React.lazy(() => import('../components/LiveEventUpdates').then(m => ({ default: m.LiveEventUpdates })));
+const EventWeather       = React.lazy(() => import('../components/EventWeather').then(m => ({ default: m.EventWeather })));
+const VIPTierSelector    = React.lazy(() => import('../components/VIPTierSelector').then(m => ({ default: m.VIPTierSelector })));
+const CarpoolBoard       = React.lazy(() => import('../components/CarpoolBoard').then(m => ({ default: m.CarpoolBoard })));
+const EventContextualAds = React.lazy(() => import('../components/EventContextualAds').then(m => ({ default: m.EventContextualAds })));
+const EventScheduleSection = React.lazy(() => import('../components/EventScheduleSection').then(m => ({ default: m.EventScheduleSection })));
+const EventChatRoom      = React.lazy(() => import('../components/EventChatRoom').then(m => ({ default: m.EventChatRoom })));
+const EventPollSection   = React.lazy(() => import('../components/EventPollSection').then(m => ({ default: m.EventPollSection })));
+const EventPlaylistSection = React.lazy(() => import('../components/EventPlaylistSection').then(m => ({ default: m.EventPlaylistSection })));
+const EventRoleManager   = React.lazy(() => import('../components/EventRoleManager').then(m => ({ default: m.EventRoleManager })));
+const EventMomentsSection = React.lazy(() => import('../components/EventMomentsSection').then(m => ({ default: m.EventMomentsSection })));
+const OrganizerDashboard = React.lazy(() => import('../components/OrganizerDashboard').then(m => ({ default: m.OrganizerDashboard })));
+const LiveEventBanner    = React.lazy(() => import('../components/LiveEventBanner').then(m => ({ default: m.LiveEventBanner })));
+
+// ── SafeSection: ErrorBoundary + Suspense in one — one section failing shows a tiny chip, never crashes the screen ──
+const SafeSection = ({ children, label, primary, style = undefined }) => (
+  <ErrorBoundary inline label={label} primary={primary} style={style}>
+    <React.Suspense fallback={null}>
+      {children}
+    </React.Suspense>
+  </ErrorBoundary>
+);
 
 const SCREEN_W = Dimensions.get('window').width;
 const HERO_H = Math.min(300, Math.max(220, SCREEN_W * 0.72));
@@ -471,14 +483,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         >
 
           {event?.id && (
-            <EventMomentsSection
-              event={event}
-              primary={primary}
-              textColor={textColor}
-              surface={surface}
-              triggerCapture={momentCaptureOpen}
-              onCaptureHandled={() => setMomentCaptureOpen(false)}
-            />
+            <SafeSection label="Moments" primary={primary}>
+              <EventMomentsSection
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                surface={surface}
+                triggerCapture={momentCaptureOpen}
+                onCaptureHandled={() => setMomentCaptureOpen(false)}
+              />
+            </SafeSection>
           )}
 
           <View style={styles.organizerRow}>
@@ -612,13 +626,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
           {/* Weather forecast */}
           {event && (
-            <EventWeather
-              event={event}
-              primary={primary}
-              textColor={textColor}
-              muted={textMuted}
-              surface={surface}
-            />
+            <SafeSection label="Weather" primary={primary}>
+              <EventWeather
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                surface={surface}
+              />
+            </SafeSection>
           )}
 
           {/* Countdown Timer */}
@@ -646,14 +662,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </View>
           )}
           {countdown?.over && (
-            <LiveEventBanner
-              event={event}
-              primary={primary}
-              textColor={textColor}
-              surface={surface}
-              capacity={event?.max_attendees || event?.capacity || 0}
-              onAddMoment={user ? () => setMomentCaptureOpen(true) : null}
-            />
+            <SafeSection label="Live Banner" primary={primary}>
+              <LiveEventBanner
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                surface={surface}
+                capacity={event?.max_attendees || event?.capacity || 0}
+                onAddMoment={user ? () => setMomentCaptureOpen(true) : null}
+              />
+            </SafeSection>
           )}
 
           {/* Attendee preview strip */}
@@ -749,23 +767,27 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           </GlassView>
 
           {event?.rsvp_tiers?.length > 0 && (
-            <VIPTierSelector
-              event={event}
-              primary={primary}
-              textColor={textColor}
-              muted={textMuted}
-              surface={surface}
-              onBooked={() => {}}
-            />
+            <SafeSection label="VIP Tiers" primary={primary}>
+              <VIPTierSelector
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                surface={surface}
+                onBooked={() => {}}
+              />
+            </SafeSection>
           )}
 
           {isSoldOut && event?.id && (
-            <WaitlistButton
-              eventId={event.id}
-              primary={primary}
-              muted={textMuted}
-              surface={surface}
-            />
+            <SafeSection label="Waitlist" primary={primary}>
+              <WaitlistButton
+                eventId={event.id}
+                primary={primary}
+                muted={textMuted}
+                surface={surface}
+              />
+            </SafeSection>
           )}
 
           {Array.isArray(event?.tags) && event.tags.length > 0 && (
@@ -779,7 +801,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           )}
 
           {event?.id && (
-            <EventReactions eventId={event.id} primary={primary} muted={textMuted} />
+            <SafeSection label="Reactions" primary={primary}>
+              <EventReactions eventId={event.id} primary={primary} muted={textMuted} />
+            </SafeSection>
           )}
 
           {!!event?.ticket_url && (
@@ -830,44 +854,60 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </View>
           )}
 
-          {/* Contextual ads based on event phase */}
-          {event && <EventContextualAds event={event} />}
-
-          <View style={styles.sectionDivider} />
-          <EventScheduleSection
-            event={event}
-            primary={primary}
-            textColor={textColor}
-            muted={textMuted}
-            bg={background}
-          />
-
-          <View style={styles.sectionDivider} />
-          {event?.id && (
-            <CarpoolBoard
-              event={event}
-              primary={primary}
-              textColor={textColor}
-              muted={textMuted}
-              surface={surface}
-            />
+          {event && (
+            <SafeSection label="Ads" primary={primary}>
+              <EventContextualAds event={event} onNavigate={() => {}} />
+            </SafeSection>
           )}
 
           <View style={styles.sectionDivider} />
-          {event?.id && <EchoSection eventId={event.id} onAuthRequired={onAuthRequired} />}
-
-          <View style={styles.sectionDivider} />
-          {event?.id && <RatingSection eventId={event.id} onAuthRequired={onAuthRequired} />}
-
-          {/* ── Organizer live dashboard ──────────────────────────── */}
-          {event?.id && isOrganiser && (
-            <OrganizerDashboard
+          <SafeSection label="Schedule" primary={primary}>
+            <EventScheduleSection
               event={event}
               primary={primary}
               textColor={textColor}
-              surface={surface}
               muted={textMuted}
+              bg={background}
             />
+          </SafeSection>
+
+          <View style={styles.sectionDivider} />
+          {event?.id && (
+            <SafeSection label="Carpool" primary={primary}>
+              <CarpoolBoard
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                surface={surface}
+              />
+            </SafeSection>
+          )}
+
+          <View style={styles.sectionDivider} />
+          {event?.id && (
+            <SafeSection label="Echoes" primary={primary}>
+              <EchoSection eventId={event.id} onAuthRequired={onAuthRequired} />
+            </SafeSection>
+          )}
+
+          <View style={styles.sectionDivider} />
+          {event?.id && (
+            <SafeSection label="Ratings" primary={primary}>
+              <RatingSection eventId={event.id} onAuthRequired={onAuthRequired} />
+            </SafeSection>
+          )}
+
+          {event?.id && isOrganiser && (
+            <SafeSection label="Organizer Dashboard" primary={primary}>
+              <OrganizerDashboard
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                surface={surface}
+                muted={textMuted}
+              />
+            </SafeSection>
           )}
 
           {/* ── Co-management action bar ──────────────────────────── */}
@@ -911,30 +951,37 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
           <View style={styles.sectionDivider} />
 
-          {/* ── Polls tab ──────────────────────────────────────────── */}
           {activeTab === 'polls' && event?.id && (
-            <EventPollSection eventId={event.id} canPost={canPost} />
+            <SafeSection label="Polls" primary={primary}>
+              <EventPollSection eventId={event.id} canPost={canPost} />
+            </SafeSection>
           )}
 
-          {/* ── Playlist tab ───────────────────────────────────────── */}
           {activeTab === 'playlist' && event?.id && (
-            <EventPlaylistSection eventId={event.id} canModerate={canModerate} />
+            <SafeSection label="Playlist" primary={primary}>
+              <EventPlaylistSection eventId={event.id} canModerate={canModerate} />
+            </SafeSection>
           )}
 
-          {/* ── Info tab: existing sections ────────────────────────── */}
-          {(activeTab === 'info') && event?.id && (
-            <LiveEventUpdates
-              eventId={event.id}
-              organiserId={organizer?.id}
-              canPost={canPost}
-              primary={primary}
-              textColor={textColor}
-              muted={textMuted}
-              surface={surface}
-            />
+          {activeTab === 'info' && event?.id && (
+            <SafeSection label="Live Updates" primary={primary}>
+              <LiveEventUpdates
+                eventId={event.id}
+                organiserId={organizer?.id}
+                canPost={canPost}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                surface={surface}
+              />
+            </SafeSection>
           )}
 
-          {event?.id && <EventGallery eventId={event.id} />}
+          {event?.id && (
+            <SafeSection label="Gallery" primary={primary}>
+              <EventGallery eventId={event.id} />
+            </SafeSection>
+          )}
 
           <View style={styles.sectionDivider} />
           {media.length > 0 && (
@@ -969,21 +1016,25 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           </TouchableOpacity>
         )}
 
-        <EventChatRoom
-          visible={chatVisible}
-          onClose={() => setChatVisible(false)}
-          eventId={event?.id}
-          eventTitle={event?.title}
-          canModerate={canModerate}
-        />
+        <SafeSection label="Event Chat" primary={primary}>
+          <EventChatRoom
+            visible={chatVisible}
+            onClose={() => setChatVisible(false)}
+            eventId={event?.id}
+            eventTitle={event?.title}
+            canModerate={canModerate}
+          />
+        </SafeSection>
 
         {isOrganiser && event?.id && (
-          <EventRoleManager
-            visible={roleManagerVisible}
-            onClose={() => setRoleManagerVisible(false)}
-            eventId={event.id}
-            organiserId={event.author_id ?? event.profiles?.id}
-          />
+          <SafeSection label="Role Manager" primary={primary}>
+            <EventRoleManager
+              visible={roleManagerVisible}
+              onClose={() => setRoleManagerVisible(false)}
+              eventId={event.id}
+              organiserId={event.author_id ?? event.profiles?.id}
+            />
+          </SafeSection>
         )}
 
         {/* Who's Going Modal */}

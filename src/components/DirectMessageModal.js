@@ -19,9 +19,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
-const ViberProfileModal = React.lazy(() => import('./ViberProfileModal').then(m => ({ default: m.ViberProfileModal })));
 import { LocationService } from '../services/locationService';
 import { uploadToStorage } from '../services/storageService';
+
+const ViberProfileModal = React.lazy(() => import('./ViberProfileModal').then(m => ({ default: m.ViberProfileModal })));
 
 const EMOJI_REACTIONS = ['❤️', '😂', '🔥', '💯', '👀', '🙏'];
 
