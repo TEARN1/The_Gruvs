@@ -34,6 +34,11 @@ CREATE TABLE IF NOT EXISTS public.ai_interactions (
   model        TEXT DEFAULT 'claude-sonnet-4-6',
   created_at   TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.ai_interactions ADD COLUMN IF NOT EXISTS session_id  TEXT;
+ALTER TABLE public.ai_interactions ADD COLUMN IF NOT EXISTS role        TEXT DEFAULT 'user';
+ALTER TABLE public.ai_interactions ADD COLUMN IF NOT EXISTS content     TEXT;
+ALTER TABLE public.ai_interactions ADD COLUMN IF NOT EXISTS tokens_used INTEGER DEFAULT 0;
+ALTER TABLE public.ai_interactions ADD COLUMN IF NOT EXISTS model       TEXT DEFAULT 'claude-sonnet-4-6';
 CREATE INDEX IF NOT EXISTS idx_ai_interactions_user    ON public.ai_interactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_ai_interactions_session ON public.ai_interactions(session_id);
 CREATE INDEX IF NOT EXISTS idx_ai_interactions_time    ON public.ai_interactions(created_at DESC);
