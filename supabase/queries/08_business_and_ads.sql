@@ -71,6 +71,10 @@ CREATE TABLE IF NOT EXISTS public.governance_proposals (
   ends_at     TIMESTAMPTZ,
   created_at  TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.governance_proposals ADD COLUMN IF NOT EXISTS created_by  UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.governance_proposals ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.governance_proposals ADD COLUMN IF NOT EXISTS status      TEXT DEFAULT 'open';
+ALTER TABLE public.governance_proposals ADD COLUMN IF NOT EXISTS ends_at     TIMESTAMPTZ;
 CREATE TABLE IF NOT EXISTS public.governance_votes (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   proposal_id UUID NOT NULL REFERENCES public.governance_proposals(id) ON DELETE CASCADE,
