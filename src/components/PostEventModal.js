@@ -26,7 +26,7 @@ const EVENT_TYPES = ['Social', 'Concert', 'Workshop', 'Festival', 'Meetup', 'Par
 const AGE_MIN_OPTIONS = [0, 13, 16, 18, 21, 25, 30, 35];
 const AGE_MAX_OPTIONS = [0, 17, 20, 25, 30, 35, 45, 99]; // 0 = no upper limit
 
-export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
+export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 
@@ -301,9 +301,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     const result = await resilient(
       [
         async () => {
-          const { error } = await supabase.from('events').insert(payload);
+          const { data, error } = await supabase.from('events').insert(payload).select().single();
           if (error) throw error;
-          return true;
+          return data || true;
         },
         async () => {
           const minPayload = { 
@@ -336,6 +336,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess }) => {
     if (result !== null) {
       VibeEquityLedger.mintEquity(user.id, 'EVENT_HOSTING').catch(() => {});
       reset();
+      if (result !== true && result?.id) onCreated?.(result);
       onPostSuccess?.();
       onClose();
     } else {

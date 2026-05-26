@@ -1695,6 +1695,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <PostEventModal
             visible={postModalVisible}
             onClose={() => setPostModalVisible(false)}
+            onCreated={(ev) => setEvents(prev => [ev, ...prev])}
             onPostSuccess={loadData}
           />
         </SafeSection>
@@ -1744,6 +1745,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             visible={!!editEvent}
             onClose={() => setEditEvent(null)}
             event={editEvent}
+            onUpdated={(ev) => {
+              setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, ...ev } : e));
+              if (selectedEvent?.id === ev.id) setSelectedEvent(prev => ({ ...prev, ...ev }));
+            }}
             onDeleted={(id) => {
               setEvents(prev => prev.filter(e => e.id !== id));
               setEditEvent(null);
@@ -1759,6 +1764,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             visible={!!rsvpEvent}
             onClose={() => setRsvpEvent(null)}
             event={rsvpEvent}
+            onRsvped={(eventId, status) => {
+              setEvents(prev => prev.map(e => e.id === eventId
+                ? { ...e, going: (e.going || 0) + (status === 'going' ? 1 : 0) }
+                : e
+              ));
+            }}
           />
         </SafeSection>
       )}

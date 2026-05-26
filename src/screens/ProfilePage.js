@@ -2388,6 +2388,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <PostEventModal
             visible={postModalVisible}
             onClose={() => setPostModalVisible(false)}
+            onCreated={(ev) => { setMyEvents(prev => [ev, ...prev]); setActiveTab('gruvs'); }}
             onPostSuccess={() => { loadTab('gruvs'); setActiveTab('gruvs'); }}
           />
         </SafeSection>
@@ -2398,6 +2399,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             visible={!!editingEvent}
             event={editingEvent}
             onClose={() => setEditingEvent(null)}
+            onUpdated={(ev) => setMyEvents(prev => prev.map(e => e.id === ev.id ? { ...e, ...ev } : e))}
             onDeleted={(id) => { setMyEvents(prev => prev.filter(e => e.id !== id)); setEditingEvent(null); }}
             onSaved={() => { setEditingEvent(null); loadTab('gruvs'); }}
           />

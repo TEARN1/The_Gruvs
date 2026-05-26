@@ -22,7 +22,7 @@ const OPTIONS = [
   { status: 'not_going', label: 'Not Going', icon: 'x-circle',     color: '#ef4444' },
 ];
 
-export const RSVPConfirmModal = ({ visible, onClose, event }) => {
+export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();
@@ -70,6 +70,7 @@ export const RSVPConfirmModal = ({ visible, onClose, event }) => {
       if (result !== null) {
         setRsvpId(result?.id || null);
         setConfirmed(true);
+        onRsvped?.(event.id, selected);
         // Best-effort: sync going count from DB
         supabase.from('event_rsvps').select('id', { count: 'exact', head: true })
           .eq('event_id', event.id).eq('status', 'going')
