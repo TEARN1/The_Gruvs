@@ -111,6 +111,12 @@ CREATE INDEX IF NOT EXISTS idx_event_analytics_event ON public.event_analytics_s
 CREATE INDEX IF NOT EXISTS idx_event_analytics_time  ON public.event_analytics_snapshots(snapshot_time DESC);
 
 -- ── TRENDING EVENTS ───────────────────────────────────────────
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE n.nspname = 'public' AND c.relname = 'trending_events' AND c.relkind = 'v') THEN
+    DROP VIEW public.trending_events CASCADE;
+  END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS public.trending_events (
   event_id      UUID PRIMARY KEY REFERENCES public.events(id) ON DELETE CASCADE,
   score         NUMERIC(10,4) DEFAULT 0,
