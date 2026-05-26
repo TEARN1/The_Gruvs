@@ -854,15 +854,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           )}
 
           <View style={styles.sectionDivider} />
-          <SafeSection label="Schedule" primary={primary}>
-            <EventScheduleSection
-              event={event}
-              primary={primary}
-              textColor={textColor}
-              muted={textMuted}
-              bg={background}
-            />
-          </SafeSection>
+          {event?.id && (
+            <SafeSection label="Schedule" primary={primary}>
+              <EventScheduleSection
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                bg={background}
+              />
+            </SafeSection>
+          )}
 
           <View style={styles.sectionDivider} />
           {event?.id && (
@@ -1009,15 +1011,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           </TouchableOpacity>
         )}
 
-        <SafeSection label="Event Chat" primary={primary}>
-          <EventChatRoom
-            visible={chatVisible}
-            onClose={() => setChatVisible(false)}
-            eventId={event?.id}
-            eventTitle={event?.title}
-            canModerate={canModerate}
-          />
-        </SafeSection>
+        {chatVisible && (
+          <SafeSection label="Event Chat" primary={primary}>
+            <EventChatRoom
+              visible={chatVisible}
+              onClose={() => setChatVisible(false)}
+              eventId={event?.id}
+              eventTitle={event?.title}
+              canModerate={canModerate}
+            />
+          </SafeSection>
+        )}
 
         {isOrganiser && event?.id && (
           <SafeSection label="Role Manager" primary={primary}>
