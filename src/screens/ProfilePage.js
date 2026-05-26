@@ -886,10 +886,18 @@ const isVideoUrl = (url) => /\.(mp4|mov|webm|avi|m4v)(\?|$)/i.test(url || '');
 
 const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
   const [lightboxItem, setLightboxItem] = useState(null); // { url, isVideo }
+  const [userReels, setUserReels] = useState([]);
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from('reels').select('media_url, media_type').eq('user_id', userId).eq('is_deleted', false).order('created_at', { ascending: false }).limit(30)
+      .then(({ data }) => { if (data) setUserReels(data); });
+  }, [userId]);
 
   const allItems = useMemo(() => {
     const items = [
       ...(profileGallery || []).map(url => ({ url, isVideo: isVideoUrl(url) })),
+      ...userReels.map(r => ({ url: r.media_url, isVideo: r.media_type === 'video' })).filter(r => r.url),
       ...myEvents.flatMap(ev => {
         let mediaArr = ev.media;
         if (typeof mediaArr === 'string') { try { mediaArr = JSON.parse(mediaArr); } catch { mediaArr = null; } }
@@ -907,7 +915,7 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
       }),
     ];
     return items.filter(item => item?.url).slice(0, 60);
-  }, [profileGallery, myEvents]);
+  }, [profileGallery, userReels, myEvents]);
 
   const cellSize = Math.floor((width - 44) / 3);
 
@@ -915,7 +923,7 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
     return (
       <View style={{ alignItems: 'center', paddingVertical: 32, gap: 10 }}>
         <Feather name="image" size={32} color={primary} style={{ opacity: 0.4 }} />
-        <Text style={{ color: muted, fontSize: 13, textAlign: 'center' }}>Your gallery will appear here{'\n'}as you post events with photos</Text>
+        <Text style={{ color: muted, fontSize: 13, textAlign: 'center' }}>Your gallery will appear here{'\n'}as you post reels and event media</Text>
       </View>
     );
   }

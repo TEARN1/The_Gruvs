@@ -282,20 +282,50 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [commentLikes, setCommentLikes] = useState({}); // { [commentId]: { liked: bool, count: number } }
 
   useEffect(() => {
     if (!visible || !reel) return;
     setLoading(true);
     supabase
       .from('reel_comments')
-      .select('id, body, created_at, profiles:user_id(id, username, avatar_url)')
+      .select('id, body, created_at, like_count, profiles:user_id(id, username, avatar_url)')
       .eq('reel_id', reel.id)
       .order('created_at', { ascending: false })
       .limit(50)
-      .then(({ data }) => { setComments(data || []); })
+      .then(async ({ data }) => {
+        const rows = data || [];
+        setComments(rows);
+        if (user && rows.length > 0) {
+          const ids = rows.map(c => c.id);
+          const { data: liked } = await supabase
+            .from('reel_comment_likes')
+            .select('comment_id')
+            .eq('user_id', user.id)
+            .in('comment_id', ids);
+          const likedSet = new Set((liked || []).map(l => l.comment_id));
+          const state = {};
+          rows.forEach(c => { state[c.id] = { liked: likedSet.has(c.id), count: c.like_count || 0 }; });
+          setCommentLikes(state);
+        }
+      })
       .catch(() => {})
       .finally(() => { setLoading(false); });
   }, [visible, reel?.id]);
+
+  const toggleCommentLike = async (commentId) => {
+    if (!user) return;
+    const prev = commentLikes[commentId] || { liked: false, count: 0 };
+    const next = { liked: !prev.liked, count: prev.liked ? Math.max(0, prev.count - 1) : prev.count + 1 };
+    setCommentLikes(s => ({ ...s, [commentId]: next }));
+    if (prev.liked) {
+      await supabase.from('reel_comment_likes').delete().eq('comment_id', commentId).eq('user_id', user.id);
+      await supabase.from('reel_comments').update({ like_count: next.count }).eq('id', commentId);
+    } else {
+      await supabase.from('reel_comment_likes').upsert({ comment_id: commentId, user_id: user.id }, { onConflict: 'comment_id,user_id' });
+      await supabase.from('reel_comments').update({ like_count: next.count }).eq('id', commentId);
+    }
+  };
 
   const sendComment = async () => {
     if (!body.trim() || !user) return;
@@ -351,20 +381,29 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
               {comments.length === 0 && (
                 <Text style={[{ textAlign: 'center', color: muted, marginTop: 20, fontSize: 13 }]}>Be the first to comment</Text>
               )}
-              {comments.map(c => (
-                <View key={c.id} style={cs.commentRow}>
-                  {c.profiles?.avatar_url
-                    ? <Image source={{ uri: c.profiles.avatar_url }} style={cs.commentAvatar} />
-                    : <View style={[cs.commentAvatar, { backgroundColor: avatarBg(c.profiles?.username), alignItems: 'center', justifyContent: 'center' }]}>
-                        <Text style={{ color: '#fff', fontWeight: '900', fontSize: 10 }}>{(c.profiles?.username || '?')[0].toUpperCase()}</Text>
-                      </View>
-                  }
-                  <View style={{ flex: 1 }}>
-                    <Text style={[cs.commentUser, { color: primary }]}>@{c.profiles?.username || 'Viber'}</Text>
-                    <Text style={[cs.commentBody, { color: textColor }]}>{c.body}</Text>
+              {comments.map(c => {
+                const cl = commentLikes[c.id] || { liked: false, count: c.like_count || 0 };
+                return (
+                  <View key={c.id} style={cs.commentRow}>
+                    {c.profiles?.avatar_url
+                      ? <Image source={{ uri: c.profiles.avatar_url }} style={cs.commentAvatar} />
+                      : <View style={[cs.commentAvatar, { backgroundColor: avatarBg(c.profiles?.username), alignItems: 'center', justifyContent: 'center' }]}>
+                          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 10 }}>{(c.profiles?.username || '?')[0].toUpperCase()}</Text>
+                        </View>
+                    }
+                    <View style={{ flex: 1 }}>
+                      <Text style={[cs.commentUser, { color: primary }]}>@{c.profiles?.username || 'Viber'}</Text>
+                      <Text style={[cs.commentBody, { color: textColor }]}>{c.body}</Text>
+                    </View>
+                    {user && (
+                      <TouchableOpacity onPress={() => toggleCommentLike(c.id)} style={cs.commentLikeBtn}>
+                        <Feather name="heart" size={14} color={cl.liked ? '#f43f5e' : muted} />
+                        {cl.count > 0 && <Text style={[cs.commentLikeCount, { color: cl.liked ? '#f43f5e' : muted }]}>{cl.count}</Text>}
+                      </TouchableOpacity>
+                    )}
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </ScrollView>
           )}
           {user && (
@@ -397,7 +436,9 @@ const cs = StyleSheet.create({
   sheetInner: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 12, paddingBottom: 32 },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 12 },
   sheetTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 1, textAlign: 'center', marginBottom: 12 },
-  commentRow: { flexDirection: 'row', gap: 10, marginBottom: 14, alignItems: 'flex-start' },
+  commentRow: { flexDirection: 'row', gap: 10, marginBottom: 14, alignItems: 'flex-start', paddingRight: 4 },
+  commentLikeBtn: { alignItems: 'center', paddingTop: 2, minWidth: 28 },
+  commentLikeCount: { fontSize: 10, fontWeight: '700', marginTop: 2 },
   commentAvatar: { width: 32, height: 32, borderRadius: 16 },
   commentUser: { fontSize: 11, fontWeight: '800', marginBottom: 2 },
   commentBody: { fontSize: 13, lineHeight: 18 },
