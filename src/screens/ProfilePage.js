@@ -17,34 +17,37 @@ import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { DiscoveryManager, UserManager, AnalyticsManager, BehavioralEngine, ActivityFeedManager, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient, resilientRead } from '../utils/resilience';
-import { DirectMessageModal } from '../components/DirectMessageModal';
 import { LocationService } from '../services/locationService';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
-import { CategoryPickerModal } from '../components/CategoryPickerModal';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { useToast } from '../components/ToastNotification';
-import { PostEventModal } from '../components/PostEventModal';
-import { EditEventModal } from '../components/EditEventModal';
 import { StreakBadge, useStreak } from '../components/StreakBadge';
-import { AchievementBadges } from '../components/AchievementBadges';
-import { StreakBadges } from '../components/StreakBadges';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { ReferralCard } from '../components/ReferralCard';
-import { LeaderboardScreen } from './LeaderboardScreen';
-import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
-import { PathMapScreen } from './PathMapScreen';
+import { SafeSection } from '../components/SafeSection';
 import { useIdentity } from '../context/IdentityContext';
-import { BusinessDashboardScreen } from './BusinessDashboardScreen';
-import { WalletScreen } from './WalletScreen';
-import { ProviderDashboardScreen } from './ProviderDashboardScreen';
 import { RoyalGovernance } from '../services/royalGovernance';
-import { TutorialCenter } from '../components/TutorialCenter';
 import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
-import { WhoWasThereModal } from '../components/WhoWasThereModal';
-import { EventTicketModal } from '../components/EventTicketModal';
-import { CreateReelModal } from '../components/CreateReelModal';
+
+// ── Lazy-loaded section components ──
+const DirectMessageModal    = React.lazy(() => import('../components/DirectMessageModal').then(m => ({ default: m.DirectMessageModal })));
+const CategoryPickerModal   = React.lazy(() => import('../components/CategoryPickerModal').then(m => ({ default: m.CategoryPickerModal })));
+const PostEventModal        = React.lazy(() => import('../components/PostEventModal').then(m => ({ default: m.PostEventModal })));
+const EditEventModal        = React.lazy(() => import('../components/EditEventModal').then(m => ({ default: m.EditEventModal })));
+const AchievementBadges     = React.lazy(() => import('../components/AchievementBadges').then(m => ({ default: m.AchievementBadges })));
+const StreakBadges          = React.lazy(() => import('../components/StreakBadges').then(m => ({ default: m.StreakBadges })));
+const ReferralCard          = React.lazy(() => import('../components/ReferralCard').then(m => ({ default: m.ReferralCard })));
+const LeaderboardScreen     = React.lazy(() => import('./LeaderboardScreen').then(m => ({ default: m.LeaderboardScreen })));
+const SocialIntegrityBadge  = React.lazy(() => import('../components/SocialIntegrityBadge').then(m => ({ default: m.SocialIntegrityBadge })));
+const PathMapScreen         = React.lazy(() => import('./PathMapScreen').then(m => ({ default: m.PathMapScreen })));
+const BusinessDashboardScreen = React.lazy(() => import('./BusinessDashboardScreen').then(m => ({ default: m.BusinessDashboardScreen })));
+const WalletScreen          = React.lazy(() => import('./WalletScreen').then(m => ({ default: m.WalletScreen })));
+const ProviderDashboardScreen = React.lazy(() => import('./ProviderDashboardScreen').then(m => ({ default: m.ProviderDashboardScreen })));
+const TutorialCenter        = React.lazy(() => import('../components/TutorialCenter').then(m => ({ default: m.TutorialCenter })));
+const WhoWasThereModal      = React.lazy(() => import('../components/WhoWasThereModal').then(m => ({ default: m.WhoWasThereModal })));
+const EventTicketModal      = React.lazy(() => import('../components/EventTicketModal').then(m => ({ default: m.EventTicketModal })));
+const CreateReelModal       = React.lazy(() => import('../components/CreateReelModal').then(m => ({ default: m.CreateReelModal })));
 
 const { width } = Dimensions.get('window');
 
@@ -798,11 +801,13 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
       </ScrollView>
 
       {dmTarget && (
-        <DirectMessageModal
-          visible={!!dmTarget}
-          recipient={dmTarget}
-          onClose={() => setDmTarget(null)}
-        />
+        <SafeSection label="Message" primary={primary}>
+          <DirectMessageModal
+            visible={!!dmTarget}
+            recipient={dmTarget}
+            onClose={() => setDmTarget(null)}
+          />
+        </SafeSection>
       )}
     </>
   );
@@ -1791,36 +1796,34 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </View>
         )}
 
-        {/* Referral / Invite Card */}
         {user && (
-          <ErrorBoundary inline label="Invite Friends" primary={primary}>
+          <SafeSection label="Invite Friends" primary={primary}>
             <ReferralCard userId={user.id} />
-          </ErrorBoundary>
+          </SafeSection>
         )}
 
-        {/* Check-in streak + event-attendance badges */}
         {user && (
-          <ErrorBoundary inline label="Streak" primary={primary}>
+          <SafeSection label="Streak" primary={primary}>
             <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
               <StreakBadges userId={user.id} primary={primary} textColor={textColor} muted={muted} surface={surface} />
             </View>
-          </ErrorBoundary>
+          </SafeSection>
         )}
 
-        {/* Achievement badges */}
         {user && (
-          <ErrorBoundary inline label="Achievements" primary={primary}>
+          <SafeSection label="Achievements" primary={primary}>
             <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
               <AchievementBadges userId={user.id} primary={primary} muted={muted} textColor={textColor} />
             </View>
-          </ErrorBoundary>
+          </SafeSection>
         )}
 
-        {/* Social Integrity Score */}
         {user && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-            <SocialIntegrityBadge score={user.social_integrity_score ?? 50} size="large" primary={primary} muted={muted} textColor={textColor} bg={bg} />
-          </View>
+          <SafeSection label="Social Integrity" primary={primary}>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+              <SocialIntegrityBadge score={user.social_integrity_score ?? 50} size="large" primary={primary} muted={muted} textColor={textColor} bg={bg} />
+            </View>
+          </SafeSection>
         )}
 
         {/* Path Map button */}
@@ -2390,58 +2393,76 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
       </ScrollView>
 
-      <PostEventModal
-        visible={postModalVisible}
-        onClose={() => setPostModalVisible(false)}
-        onPostSuccess={() => { loadTab('gruvs'); setActiveTab('gruvs'); }}
-      />
-      <EditEventModal
-        visible={!!editingEvent}
-        event={editingEvent}
-        onClose={() => setEditingEvent(null)}
-        onSaved={() => { setEditingEvent(null); loadTab('gruvs'); }}
-      />
-      <LeaderboardScreen
-        visible={leaderboardVisible}
-        onClose={() => setLeaderboardVisible(false)}
-        currentUserId={user?.id}
-      />
-      <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
+      <SafeSection label="Post Event" primary={primary}>
+        <PostEventModal
+          visible={postModalVisible}
+          onClose={() => setPostModalVisible(false)}
+          onPostSuccess={() => { loadTab('gruvs'); setActiveTab('gruvs'); }}
+        />
+      </SafeSection>
+      <SafeSection label="Edit Event" primary={primary}>
+        <EditEventModal
+          visible={!!editingEvent}
+          event={editingEvent}
+          onClose={() => setEditingEvent(null)}
+          onSaved={() => { setEditingEvent(null); loadTab('gruvs'); }}
+        />
+      </SafeSection>
+      <SafeSection label="Leaderboard" primary={primary}>
+        <LeaderboardScreen
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+          currentUserId={user?.id}
+        />
+      </SafeSection>
+      <SafeSection label="Path Map" primary={primary}>
+        <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
+      </SafeSection>
       {bizDashVisible && (
-        <View style={StyleSheet.absoluteFill}>
-          <BusinessDashboardScreen onClose={() => setBizDashVisible(false)} />
-        </View>
+        <SafeSection label="Business Dashboard" primary={primary}>
+          <View style={StyleSheet.absoluteFill}>
+            <BusinessDashboardScreen onClose={() => setBizDashVisible(false)} />
+          </View>
+        </SafeSection>
       )}
-      <WhoWasThereModal
-        visible={whoWasThereVisible}
-        onClose={() => setWhoWasThereVisible(false)}
-        onAuthRequired={onAuthRequired}
-      />
-
-      <WalletScreen
-        visible={walletVisible}
-        onClose={() => setWalletVisible(false)}
-      />
-      <EventTicketModal
-        visible={ticketsVisible}
-        onClose={() => setTicketsVisible(false)}
-      />
-
-      <ProviderDashboardScreen
-        visible={providerDashVisible}
-        onClose={() => setProviderDashVisible(false)}
-      />
-
-      <TutorialCenter
-        visible={tutorialCenterVisible}
-        onClose={() => setTutorialCenterVisible(false)}
-      />
-
-      <CreateReelModal
-        visible={createReelVisible}
-        onClose={() => setCreateReelVisible(false)}
-        onPosted={() => setCreateReelVisible(false)}
-      />
+      <SafeSection label="Who Was There" primary={primary}>
+        <WhoWasThereModal
+          visible={whoWasThereVisible}
+          onClose={() => setWhoWasThereVisible(false)}
+          onAuthRequired={onAuthRequired}
+        />
+      </SafeSection>
+      <SafeSection label="Wallet" primary={primary}>
+        <WalletScreen
+          visible={walletVisible}
+          onClose={() => setWalletVisible(false)}
+        />
+      </SafeSection>
+      <SafeSection label="Tickets" primary={primary}>
+        <EventTicketModal
+          visible={ticketsVisible}
+          onClose={() => setTicketsVisible(false)}
+        />
+      </SafeSection>
+      <SafeSection label="Provider Dashboard" primary={primary}>
+        <ProviderDashboardScreen
+          visible={providerDashVisible}
+          onClose={() => setProviderDashVisible(false)}
+        />
+      </SafeSection>
+      <SafeSection label="Tutorial" primary={primary}>
+        <TutorialCenter
+          visible={tutorialCenterVisible}
+          onClose={() => setTutorialCenterVisible(false)}
+        />
+      </SafeSection>
+      <SafeSection label="Create Reel" primary={primary}>
+        <CreateReelModal
+          visible={createReelVisible}
+          onClose={() => setCreateReelVisible(false)}
+          onPosted={() => setCreateReelVisible(false)}
+        />
+      </SafeSection>
 
       {/* ── Full-screen image viewer ── */}
       <Modal

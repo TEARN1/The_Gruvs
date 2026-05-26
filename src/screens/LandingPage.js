@@ -10,38 +10,15 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { GlassView } from '../components/GlassView';
-import { PostEventModal } from '../components/PostEventModal';
-import { ViberProfileModal } from '../components/ViberProfileModal';
-import { ActivityCenterModal } from '../components/ActivityCenterModal';
-import { AuraEffect } from '../components/AuraEffect';
 import { MediaViewer } from '../components/MediaViewer';
 import { FadeInView } from '../components/FadeInView';
 import { BrandLogo } from '../components/BrandLogo';
-import { ReactPicker } from '../components/ReactPicker';
-import { EchoSection } from '../components/EchoSection';
-import { RatingSection } from '../components/RatingSection';
-import { PulseScheduleSection } from '../components/PulseScheduleSection';
-import { EventGallery } from '../components/EventGallery';
-import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
-import { EventAdminPanel } from '../components/EventAdminPanel';
-import { EditEventModal } from '../components/EditEventModal';
-import { RSVPConfirmModal } from '../components/RSVPConfirmModal';
-import { ReportModal } from '../components/ReportModal';
 import { OfflineBanner } from '../components/OfflineBanner';
-import { CommunityStatsBar } from '../components/CommunityStatsBar';
-import { FriendActivityFeed } from '../components/FriendActivityFeed';
-import { StoriesRow } from '../components/StoriesRow';
 import { SearchHistoryBar, saveSearch } from '../components/SearchHistoryBar';
 import { DateFilterStrip, dateFilterToRange } from '../components/DateFilterStrip';
-import { TonightAlert } from '../components/TonightAlert';
 import { HashtagStrip } from '../components/HashtagStrip';
 import { useIdentity } from '../context/IdentityContext';
-import { PresenceBar } from '../components/PresenceBar';
-import { AdFlywheel } from '../components/AdFlywheel';
-import { ReturnPathCard } from '../components/ReturnPathCard';
-import { EventMapView } from '../components/EventMapView';
-import { PathMapScreen } from './PathMapScreen';
-import { EventDetailScreen } from './EventDetailScreen';
+import { SafeSection } from '../components/SafeSection';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { SecurityService } from '../services/securityService';
@@ -51,6 +28,32 @@ import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 import { FONT, RADIUS } from '../constants/DesignTokens';
 import { SkeletonCard as SkeletonCardImported } from '../components/SkeletonCard';
+
+// ── Lazy-loaded section components ──
+const PostEventModal      = React.lazy(() => import('../components/PostEventModal').then(m => ({ default: m.PostEventModal })));
+const ViberProfileModal   = React.lazy(() => import('../components/ViberProfileModal').then(m => ({ default: m.ViberProfileModal })));
+const ActivityCenterModal = React.lazy(() => import('../components/ActivityCenterModal').then(m => ({ default: m.ActivityCenterModal })));
+const AuraEffect          = React.lazy(() => import('../components/AuraEffect').then(m => ({ default: m.AuraEffect })));
+const ReactPicker         = React.lazy(() => import('../components/ReactPicker').then(m => ({ default: m.ReactPicker })));
+const EchoSection         = React.lazy(() => import('../components/EchoSection').then(m => ({ default: m.EchoSection })));
+const RatingSection       = React.lazy(() => import('../components/RatingSection').then(m => ({ default: m.RatingSection })));
+const PulseScheduleSection = React.lazy(() => import('../components/PulseScheduleSection').then(m => ({ default: m.PulseScheduleSection })));
+const EventGallery        = React.lazy(() => import('../components/EventGallery').then(m => ({ default: m.EventGallery })));
+const CrewJourneyPanel    = React.lazy(() => import('../components/CrewJourneyPanel').then(m => ({ default: m.CrewJourneyPanel })));
+const EventAdminPanel     = React.lazy(() => import('../components/EventAdminPanel').then(m => ({ default: m.EventAdminPanel })));
+const EditEventModal      = React.lazy(() => import('../components/EditEventModal').then(m => ({ default: m.EditEventModal })));
+const RSVPConfirmModal    = React.lazy(() => import('../components/RSVPConfirmModal').then(m => ({ default: m.RSVPConfirmModal })));
+const ReportModal         = React.lazy(() => import('../components/ReportModal').then(m => ({ default: m.ReportModal })));
+const CommunityStatsBar   = React.lazy(() => import('../components/CommunityStatsBar').then(m => ({ default: m.CommunityStatsBar })));
+const FriendActivityFeed  = React.lazy(() => import('../components/FriendActivityFeed').then(m => ({ default: m.FriendActivityFeed })));
+const StoriesRow          = React.lazy(() => import('../components/StoriesRow').then(m => ({ default: m.StoriesRow })));
+const TonightAlert        = React.lazy(() => import('../components/TonightAlert').then(m => ({ default: m.TonightAlert })));
+const PresenceBar         = React.lazy(() => import('../components/PresenceBar').then(m => ({ default: m.PresenceBar })));
+const AdFlywheel          = React.lazy(() => import('../components/AdFlywheel').then(m => ({ default: m.AdFlywheel })));
+const ReturnPathCard      = React.lazy(() => import('../components/ReturnPathCard').then(m => ({ default: m.ReturnPathCard })));
+const EventMapView        = React.lazy(() => import('../components/EventMapView').then(m => ({ default: m.EventMapView })));
+const PathMapScreen       = React.lazy(() => import('./PathMapScreen').then(m => ({ default: m.PathMapScreen })));
+const EventDetailScreen   = React.lazy(() => import('./EventDetailScreen').then(m => ({ default: m.EventDetailScreen })));
 
 const SCREEN_W = Dimensions.get('window').width;
 const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
@@ -923,24 +926,27 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </View>
       </View>
 
-      {/* Stories row — 24h stories from followed users */}
-      <StoriesRow onAuthRequired={onAuthRequired} />
+      <SafeSection label="Stories" primary={primary}>
+        <StoriesRow onAuthRequired={onAuthRequired} />
+      </SafeSection>
 
-      {/* Community stats — live platform numbers for everyone */}
-      <CommunityStatsBar />
+      <SafeSection label="Community Stats" primary={primary}>
+        <CommunityStatsBar />
+      </SafeSection>
 
-      {/* Friend activity feed — recent actions from followed users */}
       {!!user && (
-        <FriendActivityFeed
-          onPressActivity={async item => {
-            if (item.target_type === 'event' && item.target_id) {
-              const local = events.find(e => e.id === item.target_id);
-              if (local) { setSelectedEvent(local); return; }
-              const { data } = await supabase.from('events').select('*').eq('id', item.target_id).maybeSingle();
-              if (data) setSelectedEvent(data);
-            }
-          }}
-        />
+        <SafeSection label="Friend Activity" primary={primary}>
+          <FriendActivityFeed
+            onPressActivity={async item => {
+              if (item.target_type === 'event' && item.target_id) {
+                const local = events.find(e => e.id === item.target_id);
+                if (local) { setSelectedEvent(local); return; }
+                const { data } = await supabase.from('events').select('*').eq('id', item.target_id).maybeSingle();
+                if (data) setSelectedEvent(data);
+              }
+            }}
+          />
+        </SafeSection>
       )}
 
       {/* Visitor banner — only if no user */}
@@ -970,15 +976,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         muted={muted}
       />
 
-      {/* Tonight alert */}
-      <TonightAlert
-        events={events}
-        onPress={ev => {
-          const idx = events.findIndex(e => e.id === ev.id);
-          if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.1 });
-        }}
-        primary={primary}
-      />
+      <SafeSection label="Tonight Alert" primary={primary}>
+        <TonightAlert
+          events={events}
+          onPress={ev => {
+            const idx = events.findIndex(e => e.id === ev.id);
+            if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.1 });
+          }}
+          primary={primary}
+        />
+      </SafeSection>
 
       {/* Vibe Oracle (AI Prediction) — DISABLED */}
 
@@ -1541,26 +1548,35 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               </View>
             </ScrollView>
 
-            {/* Collapsible sections */}
+            {/* Collapsible sections — each in its own SafeSection */}
             {openSection[id] === 'react' && (
-              <ReactPicker visible onReact={key => handleReact(id, key)} userReaction={userReaction} />
+              <SafeSection label="Reactions" primary={primary}>
+                <ReactPicker visible onReact={key => handleReact(id, key)} userReaction={userReaction} />
+              </SafeSection>
             )}
             {openSection[id] === 'echo' && (
-              <EchoSection eventId={id} onAuthRequired={onAuthRequired} />
+              <SafeSection label="Echoes" primary={primary}>
+                <EchoSection eventId={id} onAuthRequired={onAuthRequired} />
+              </SafeSection>
             )}
             {openSection[id] === 'gallery' && (
-              <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
-                <EventGallery eventId={id} />
-              </View>
+              <SafeSection label="Gallery" primary={primary}>
+                <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+                  <EventGallery eventId={id} />
+                </View>
+              </SafeSection>
             )}
             {openSection[id] === 'rate' && (
-              <RatingSection eventId={id} onAuthRequired={onAuthRequired} />
+              <SafeSection label="Ratings" primary={primary}>
+                <RatingSection eventId={id} onAuthRequired={onAuthRequired} />
+              </SafeSection>
             )}
             {openSection[id] === 'pulse' && (
-              <PulseScheduleSection eventId={id} eventCategory={event.category} onAuthRequired={onAuthRequired} />
+              <SafeSection label="Pulse" primary={primary}>
+                <PulseScheduleSection eventId={id} eventCategory={event.category} onAuthRequired={onAuthRequired} />
+              </SafeSection>
             )}
             {!isSample && (() => {
-              // Show PresenceBar on the event day ±1 day for timezone flex
               let isEventDay = true;
               if (event.event_date) {
                 const evMs = new Date(event.event_date).getTime();
@@ -1568,34 +1584,40 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 isEventDay = diffDays >= -1 && diffDays < 2;
               }
               return isEventDay ? (
-                <PresenceBar
-                  eventId={id}
-                  eventEndTime={event.end_time}
-                  eventLat={event.lat}
-                  eventLon={event.lon}
-                  onAuthRequired={onAuthRequired}
-                />
+                <SafeSection label="Presence" primary={primary}>
+                  <PresenceBar
+                    eventId={id}
+                    eventEndTime={event.end_time}
+                    eventLat={event.lat}
+                    eventLon={event.lon}
+                    onAuthRequired={onAuthRequired}
+                  />
+                </SafeSection>
               ) : null;
             })()}
             {!isSample && (
-              <ReturnPathCard
-                event={event}
-                checkins={eventCheckins[id] || []}
-                primary={primary}
-                muted={muted}
-                textColor={textColor}
-                bg={surface}
-                onDismiss={() => toast?.show('Return path dismissed', 'info')}
-                onCheckinsFetch={() => fetchEventCheckins(id)}
-              />
+              <SafeSection label="Return Path" primary={primary}>
+                <ReturnPathCard
+                  event={event}
+                  checkins={eventCheckins[id] || []}
+                  primary={primary}
+                  muted={muted}
+                  textColor={textColor}
+                  bg={surface}
+                  onDismiss={() => toast?.show('Return path dismissed', 'info')}
+                  onCheckinsFetch={() => fetchEventCheckins(id)}
+                />
+              </SafeSection>
             )}
           </View>
         </FadeInView>
         {showAd && (
-          <AdFlywheel
-            intentTag="attending"
-            onNavigateToServices={onNavigateToServices}
-          />
+          <SafeSection label="Ads" primary={primary}>
+            <AdFlywheel
+              intentTag="attending"
+              onNavigateToServices={onNavigateToServices}
+            />
+          </SafeSection>
         )}
       </React.Fragment>
     );
@@ -1608,7 +1630,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <AuraEffect />
+      <SafeSection label="Aura" primary={primary}>
+        <AuraEffect />
+      </SafeSection>
 
       <FlatList
         ref={flatListRef}
@@ -1630,10 +1654,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             {renderHeader()}
             {renderTrending()}
             {mode === 'drop' && (
-              <CrewJourneyPanel onEventPress={(ev) => {
-                const idx = events.findIndex(e => e.id === ev.id);
-                if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true });
-              }} />
+              <SafeSection label="Crew Journey" primary={primary}>
+                <CrewJourneyPanel onEventPress={(ev) => {
+                  const idx = events.findIndex(e => e.id === ev.id);
+                  if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true });
+                }} />
+              </SafeSection>
             )}
             {renderFeedHeader()}
           </>
@@ -1694,29 +1720,37 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         contentContainerStyle={{ paddingBottom: 140 }}
       />
 
-      {/* Modals */}
-      <PostEventModal
-        visible={postModalVisible}
-        onClose={() => setPostModalVisible(false)}
-        onPostSuccess={loadData}
-      />
-      <ViberProfileModal
-        visible={viberModalVisible}
-        user={selectedViber}
-        userId={selectedViber?.id}
-        onClose={() => setViberModalVisible(false)}
-        onNavigateToEvent={(ev) => { setViberModalVisible(false); setSelectedEvent(ev); }}
-      />
-      <ActivityCenterModal
-        visible={activityVisible}
-        onClose={() => setActivityVisible(false)}
-      />
-      <EventAdminPanel
-        visible={!!adminEvent}
-        onClose={() => setAdminEvent(null)}
-        event={adminEvent}
-        userId={user?.id}
-      />
+      {/* Modals — each wrapped so one crash never blocks another */}
+      <SafeSection label="Post Event" primary={primary}>
+        <PostEventModal
+          visible={postModalVisible}
+          onClose={() => setPostModalVisible(false)}
+          onPostSuccess={loadData}
+        />
+      </SafeSection>
+      <SafeSection label="Profile" primary={primary}>
+        <ViberProfileModal
+          visible={viberModalVisible}
+          user={selectedViber}
+          userId={selectedViber?.id}
+          onClose={() => setViberModalVisible(false)}
+          onNavigateToEvent={(ev) => { setViberModalVisible(false); setSelectedEvent(ev); }}
+        />
+      </SafeSection>
+      <SafeSection label="Activity" primary={primary}>
+        <ActivityCenterModal
+          visible={activityVisible}
+          onClose={() => setActivityVisible(false)}
+        />
+      </SafeSection>
+      <SafeSection label="Admin Panel" primary={primary}>
+        <EventAdminPanel
+          visible={!!adminEvent}
+          onClose={() => setAdminEvent(null)}
+          event={adminEvent}
+          userId={user?.id}
+        />
+      </SafeSection>
       <TrendingModal
         visible={trendingModalVisible}
         onClose={() => setTrendingModalVisible(false)}
@@ -1727,23 +1761,29 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         muted={muted}
         onSelectEvent={handleTrendingPress}
       />
-      <EditEventModal
-        visible={!!editEvent}
-        onClose={() => setEditEvent(null)}
-        event={editEvent}
-        onSaved={() => loadData(true)}
-      />
-      <RSVPConfirmModal
-        visible={!!rsvpEvent}
-        onClose={() => setRsvpEvent(null)}
-        event={rsvpEvent}
-      />
-      <ReportModal
-        visible={!!reportTarget}
-        onClose={() => setReportTarget(null)}
-        targetId={reportTarget?.id}
-        targetType={reportTarget?.type}
-      />
+      <SafeSection label="Edit Event" primary={primary}>
+        <EditEventModal
+          visible={!!editEvent}
+          onClose={() => setEditEvent(null)}
+          event={editEvent}
+          onSaved={() => loadData(true)}
+        />
+      </SafeSection>
+      <SafeSection label="RSVP" primary={primary}>
+        <RSVPConfirmModal
+          visible={!!rsvpEvent}
+          onClose={() => setRsvpEvent(null)}
+          event={rsvpEvent}
+        />
+      </SafeSection>
+      <SafeSection label="Report" primary={primary}>
+        <ReportModal
+          visible={!!reportTarget}
+          onClose={() => setReportTarget(null)}
+          targetId={reportTarget?.id}
+          targetType={reportTarget?.type}
+        />
+      </SafeSection>
       {/* Reactors modal */}
       <Modal visible={!!reactorsEvent} transparent animationType="slide" onRequestClose={() => setReactorsEvent(null)}>
         <TouchableWithoutFeedback onPress={() => setReactorsEvent(null)}>
@@ -1795,13 +1835,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </View>
       </Modal>
       <OfflineBanner />
-      <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
-      <EventDetailScreen
-        visible={!!selectedEvent}
-        event={selectedEvent}
-        onClose={() => setSelectedEvent(null)}
-        onAuthRequired={onAuthRequired}
-      />
+      <SafeSection label="Path Map" primary={primary}>
+        <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
+      </SafeSection>
+      <SafeSection label="Event Detail" primary={primary}>
+        <EventDetailScreen
+          visible={!!selectedEvent}
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          onAuthRequired={onAuthRequired}
+        />
+      </SafeSection>
 
       {/* Royal Journey Builder Floating Action */}
       {routeEvents.length > 0 && (
@@ -1817,18 +1861,19 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </TouchableOpacity>
       )}
 
-      {/* Royal Journey Map View */}
-      <EventMapView
-        visible={routeModalVisible}
-        onClose={() => setRouteModalVisible(false)}
-        events={computedRoute}
-        userCoords={userCoords}
-        isRoute={true}
-        onSelectEvent={(ev) => {
-          setRouteModalVisible(false);
-          setSelectedEvent(ev);
-        }}
-      />
+      <SafeSection label="Map View" primary={primary}>
+        <EventMapView
+          visible={routeModalVisible}
+          onClose={() => setRouteModalVisible(false)}
+          events={computedRoute}
+          userCoords={userCoords}
+          isRoute={true}
+          onSelectEvent={(ev) => {
+            setRouteModalVisible(false);
+            setSelectedEvent(ev);
+          }}
+        />
+      </SafeSection>
     </View>
   );
 };

@@ -20,7 +20,7 @@ import { SecurityService } from '../services/securityService';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
 import { useEventRole } from '../hooks/useEventRole';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { SafeSection } from '../components/SafeSection';
 
 // ── Lazy section components (each loads independently — one failure cannot crash another) ──
 const EchoSection        = React.lazy(() => import('../components/EchoSection').then(m => ({ default: m.EchoSection })));
@@ -42,14 +42,7 @@ const EventMomentsSection = React.lazy(() => import('../components/EventMomentsS
 const OrganizerDashboard = React.lazy(() => import('../components/OrganizerDashboard').then(m => ({ default: m.OrganizerDashboard })));
 const LiveEventBanner    = React.lazy(() => import('../components/LiveEventBanner').then(m => ({ default: m.LiveEventBanner })));
 
-// ── SafeSection: ErrorBoundary + Suspense in one — one section failing shows a tiny chip, never crashes the screen ──
-const SafeSection = ({ children, label, primary, style = undefined }) => (
-  <ErrorBoundary inline label={label} primary={primary} style={style}>
-    <React.Suspense fallback={null}>
-      {children}
-    </React.Suspense>
-  </ErrorBoundary>
-);
+
 
 const SCREEN_W = Dimensions.get('window').width;
 const HERO_H = Math.min(300, Math.max(220, SCREEN_W * 0.72));
