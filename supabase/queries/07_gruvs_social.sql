@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS public.event_roles (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(event_id, user_id)
 );
+ALTER TABLE public.event_roles ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.event_roles ADD COLUMN IF NOT EXISTS role    TEXT;
 
 -- ── EVENT REMINDERS ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.event_reminders (
@@ -45,6 +47,9 @@ CREATE TABLE IF NOT EXISTS public.event_reminders (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(event_id, user_id)
 );
+ALTER TABLE public.event_reminders ADD COLUMN IF NOT EXISTS user_id   UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.event_reminders ADD COLUMN IF NOT EXISTS remind_at TIMESTAMPTZ;
+ALTER TABLE public.event_reminders ADD COLUMN IF NOT EXISTS sent      BOOLEAN DEFAULT false;
 
 -- ── EVENT CHAT ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.event_chat_messages (
@@ -58,6 +63,11 @@ CREATE TABLE IF NOT EXISTS public.event_chat_messages (
   reactions  JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.event_chat_messages ADD COLUMN IF NOT EXISTS user_id   UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.event_chat_messages ADD COLUMN IF NOT EXISTS reply_to  UUID REFERENCES public.event_chat_messages(id) ON DELETE SET NULL;
+ALTER TABLE public.event_chat_messages ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT false;
+ALTER TABLE public.event_chat_messages ADD COLUMN IF NOT EXISTS deleted   BOOLEAN DEFAULT false;
+ALTER TABLE public.event_chat_messages ADD COLUMN IF NOT EXISTS reactions JSONB DEFAULT '{}';
 CREATE INDEX IF NOT EXISTS idx_chat_event ON public.event_chat_messages(event_id, created_at DESC);
 
 -- ── EVENT POLLS ───────────────────────────────────────────────
@@ -110,6 +120,7 @@ CREATE TABLE IF NOT EXISTS public.event_track_votes (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(track_id, user_id)
 );
+ALTER TABLE public.event_track_votes ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 -- ── EVENT SCHEDULE ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.event_schedule (
@@ -135,6 +146,12 @@ CREATE TABLE IF NOT EXISTS public.event_moments (
   expires_at TIMESTAMPTZ DEFAULT (now() + INTERVAL '24 hours'),
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.event_moments ADD COLUMN IF NOT EXISTS user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.event_moments ADD COLUMN IF NOT EXISTS media_url  TEXT;
+ALTER TABLE public.event_moments ADD COLUMN IF NOT EXISTS media_type TEXT;
+ALTER TABLE public.event_moments ADD COLUMN IF NOT EXISTS caption    TEXT;
+ALTER TABLE public.event_moments ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;
+ALTER TABLE public.event_moments ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ DEFAULT (now() + INTERVAL '24 hours');
 CREATE INDEX IF NOT EXISTS idx_moments_event ON public.event_moments(event_id, expires_at DESC);
 
 CREATE TABLE IF NOT EXISTS public.event_moment_views (
@@ -144,6 +161,7 @@ CREATE TABLE IF NOT EXISTS public.event_moment_views (
   viewed_at  TIMESTAMPTZ DEFAULT now(),
   UNIQUE(moment_id, user_id)
 );
+ALTER TABLE public.event_moment_views ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 CREATE TABLE IF NOT EXISTS public.event_moment_reactions (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   moment_id  UUID NOT NULL REFERENCES public.event_moments(id) ON DELETE CASCADE,
@@ -152,6 +170,8 @@ CREATE TABLE IF NOT EXISTS public.event_moment_reactions (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(moment_id, user_id)
 );
+ALTER TABLE public.event_moment_reactions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.event_moment_reactions ADD COLUMN IF NOT EXISTS emoji   TEXT;
 
 -- ── STORIES (profile-level) ───────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.stories (
@@ -169,6 +189,11 @@ CREATE TABLE IF NOT EXISTS public.story_views (
   viewed_at  TIMESTAMPTZ DEFAULT now(),
   UNIQUE(story_id, user_id)
 );
+ALTER TABLE public.stories     ADD COLUMN IF NOT EXISTS user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.stories     ADD COLUMN IF NOT EXISTS media_url  TEXT;
+ALTER TABLE public.stories     ADD COLUMN IF NOT EXISTS media_type TEXT DEFAULT 'image';
+ALTER TABLE public.stories     ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ DEFAULT (now() + INTERVAL '24 hours');
+ALTER TABLE public.story_views ADD COLUMN IF NOT EXISTS user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 -- ── ACTIVITY FEED ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.activity_feed (
