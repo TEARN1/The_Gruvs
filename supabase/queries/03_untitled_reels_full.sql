@@ -68,8 +68,11 @@ CREATE TABLE IF NOT EXISTS public.reel_reports (
   user_id     UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   reason      TEXT NOT NULL,
   created_at  TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(reel_id, COALESCE(reporter_id, user_id))
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reel_reports_reporter
+  ON public.reel_reports(reel_id, reporter_id) WHERE reporter_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reel_reports_user
+  ON public.reel_reports(reel_id, user_id) WHERE user_id IS NOT NULL AND reporter_id IS NULL;
 
 -- ── Count sync triggers ───────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.sync_reel_like_count()
