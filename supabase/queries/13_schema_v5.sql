@@ -79,6 +79,8 @@ CREATE INDEX IF NOT EXISTS idx_profiles_username    ON public.profiles (username
 CREATE INDEX IF NOT EXISTS idx_profiles_city        ON public.profiles (city);
 CREATE INDEX IF NOT EXISTS idx_profiles_push_token  ON public.profiles (push_token) WHERE push_token IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_profiles_vibe_score  ON public.profiles (vibe_score DESC);
+-- Ensure created_at exists on profiles (may be missing from older DB instances)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
 DROP TRIGGER IF EXISTS touch_profiles_updated_at ON public.profiles;
 CREATE TRIGGER touch_profiles_updated_at
   BEFORE UPDATE ON public.profiles
@@ -1818,7 +1820,7 @@ $$;
 
 -- ── security views ────────────────────────────────────────────────────────────
 CREATE OR REPLACE VIEW public.public_profiles AS
-  SELECT id, username, display_name, avatar_url, bio, city, vibe_score, is_verified, is_discoverable, created_at
+  SELECT id, username, display_name, avatar_url, bio, city, vibe_score, is_verified, is_discoverable, updated_at
   FROM public.profiles
   WHERE is_discoverable = true OR id = auth.uid();
 
