@@ -1634,6 +1634,7 @@ $$;
 
 -- ── signed QR ticket token ────────────────────────────────────────────────────
 -- Requires: ALTER DATABASE postgres SET app.qr_secret = '<your-256-bit-secret>';
+DROP FUNCTION IF EXISTS public.generate_ticket_token(uuid);
 CREATE OR REPLACE FUNCTION public.generate_ticket_token(p_rsvp_id uuid)
 RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
