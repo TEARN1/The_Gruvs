@@ -1819,7 +1819,8 @@ END;
 $$;
 
 -- ── security views ────────────────────────────────────────────────────────────
-CREATE OR REPLACE VIEW public.public_profiles AS
+DROP VIEW IF EXISTS public.public_profiles;
+CREATE VIEW public.public_profiles AS
   SELECT id, username, display_name, avatar_url, bio, city, vibe_score, is_verified, is_discoverable, updated_at
   FROM public.profiles
   WHERE is_discoverable = true OR id = auth.uid();
