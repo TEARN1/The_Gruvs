@@ -13,6 +13,7 @@ import { NotificationService } from '../services/notificationService';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { log } from '../utils/log';
 import { thumb } from '../utils/storageThumb';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const TYPE_META = {
   vibe:         { icon: 'zap',            color: '#f97316' },
@@ -236,6 +237,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   }
 
   return (
+    <ErrorBoundary label="Notifications">
     <SafeAreaView style={[ns.screen, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={ns.header}>
@@ -317,6 +319,8 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         onNavigateToEvent={onNavigateToEvent}
       />
     </SafeAreaView>
+
+    </ErrorBoundary>
   );
 };
 

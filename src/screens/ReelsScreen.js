@@ -26,6 +26,7 @@ import {
   ReelsPreferences, ReelsObservers, ReelsRepository, ReelsAnalytics,
   PLAYBACK_SPEEDS, ASPECT_RATIOS, VISUAL_FILTERS
 } from '../services/reelsDataFlow';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const IS_WEB = Platform.OS === 'web';
 // Mobile fallback (used outside component for getItemLayout)
@@ -531,9 +532,9 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
 
   const handleReport = () => {
     Alert.alert('Report Reel', 'Why are you reporting this?', [
-      { text: 'Spam', onPress: async () => { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'spam' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } },
-      { text: 'Inappropriate', onPress: async () => { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'inappropriate' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } },
-      { text: 'Misleading', onPress: async () => { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'misleading' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } },
+      { text: 'Spam', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'spam' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
+      { text: 'Inappropriate', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'inappropriate' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
+      { text: 'Misleading', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'misleading' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -1282,6 +1283,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   );
 
   return (
+    <ErrorBoundary label="Reels">
     <View style={[rs.screen, IS_WEB && {
       flexDirection: 'row',
       justifyContent: 'center',
@@ -1422,6 +1424,8 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         surface={surface}
       />
     </View>
+
+    </ErrorBoundary>
   );
 };
 

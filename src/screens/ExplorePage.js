@@ -24,6 +24,7 @@ import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 import { WhoWasThereModal } from '../components/WhoWasThereModal';
 import { TutorialCenter } from '../components/TutorialCenter';
 import { BREAKPOINT } from '../constants/DesignTokens';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const { width } = Dimensions.get('window');
 
@@ -625,6 +626,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   };
 
   return (
+    <ErrorBoundary label="Explore">
     <View style={[styles.root, { backgroundColor: bg }]}>
       <AuraEffect />
       <ScrollView
@@ -1157,6 +1159,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         </TouchableOpacity>
       )}
     </View>
+
+    </ErrorBoundary>
   );
 };
 

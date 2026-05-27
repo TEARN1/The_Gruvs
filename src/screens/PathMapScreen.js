@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from '../components/GlassView';
 import { useToast } from '../components/ToastNotification';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const MAP_W = SW;
@@ -538,6 +539,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
   // Render
   // ------------------------------------------------------------------
   return (
+    <ErrorBoundary label="Path Map">
     <Modal
       visible={visible}
       animationType="slide"
@@ -811,6 +813,8 @@ export const PathMapScreen = ({ visible, onClose }) => {
         )}
       </View>
     </Modal>
+
+    </ErrorBoundary>
   );
 };
 

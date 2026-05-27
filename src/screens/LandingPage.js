@@ -682,60 +682,56 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     if (!user) { onAuthRequired(); return; }
     if (isVibing[eventId]) return;
 
-    safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
-
     const isCurrentVibed = myVibes.has(eventId);
 
-    // Optimistic Update
+    // Block vibing own events before any optimistic update
+    const eventAuthorId = events.find(e => e.id === eventId)?.author_id;
+    if (!isCurrentVibed && eventAuthorId === user.id) {
+      toast.show("You can't vibe your own event", 'info');
+      return;
+    }
+
+    safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+
+    const rollback = () => {
+      setMyVibes(prev => {
+        const next = new Set(prev);
+        if (isCurrentVibed) next.add(eventId); else next.delete(eventId);
+        return next;
+      });
+      setVibeCounts(prev => ({ ...prev, [eventId]: Math.max(0, (prev[eventId] || 0) + (isCurrentVibed ? 1 : -1)) }));
+      setEvents(prev => prev.map(ev =>
+        ev.id === eventId ? { ...ev, vibe_count: (ev.vibe_count || 0) + (isCurrentVibed ? 1 : -1) } : ev
+      ));
+    };
+
+    // Optimistic update
     setMyVibes(prev => {
       const next = new Set(prev);
-      if (isCurrentVibed) next.delete(eventId);
-      else next.add(eventId);
+      if (isCurrentVibed) next.delete(eventId); else next.add(eventId);
       return next;
     });
-
     setVibeCounts(prev => ({ ...prev, [eventId]: Math.max(0, (prev[eventId] || 0) + (isCurrentVibed ? -1 : 1)) }));
-
-    // Optimistically update the event count in local state if possible
-    setEvents(prev => prev.map(ev => {
-      if (ev.id === eventId) {
-        return {
-          ...ev,
-          vibe_count: (ev.vibe_count || 0) + (isCurrentVibed ? -1 : 1)
-        };
-      }
-      return ev;
-    }));
-
+    setEvents(prev => prev.map(ev =>
+      ev.id === eventId ? { ...ev, vibe_count: (ev.vibe_count || 0) + (isCurrentVibed ? -1 : 1) } : ev
+    ));
     setIsVibing(prev => ({ ...prev, [eventId]: true }));
 
     try {
       const res = isCurrentVibed
         ? await VibeManager.removeVibe(eventId, user.id)
-        : await VibeManager.sendVibe(eventId, user.id);
+        : await VibeManager.sendVibe(eventId, user.id, eventAuthorId);
 
-      if (res === null) {
-        // Rollback if failed
-        setMyVibes(prev => {
-          const next = new Set(prev);
-          if (isCurrentVibed) next.add(eventId);
-          else next.delete(eventId);
-          return next;
-        });
-        setVibeCounts(prev => ({ ...prev, [eventId]: Math.max(0, (prev[eventId] || 0) + (isCurrentVibed ? 1 : -1)) }));
-        setEvents(prev => prev.map(ev => {
-          if (ev.id === eventId) {
-            return {
-              ...ev,
-              vibe_count: (ev.vibe_count || 0) + (isCurrentVibed ? 1 : -1)
-            };
-          }
-          return ev;
-        }));
-        toast.show(isCurrentVibed ? 'Failed to remove vibe' : 'Failed to send vibe', 'error');
+      if (res === 'self') {
+        rollback();
+        toast.show("You can't vibe your own event", 'info');
+      } else if (res === null) {
+        rollback();
+        toast.show(isCurrentVibed ? 'Failed to remove vibe' : 'Failed to send vibe — try again', 'error');
       }
-    } catch {
-      // Handle error
+    } catch (e) {
+      rollback();
+      toast.show(e?.message || 'Something went wrong', 'error');
     } finally {
       setIsVibing(prev => ({ ...prev, [eventId]: false }));
     }

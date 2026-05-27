@@ -18,6 +18,7 @@ import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 import { CampaignManager, EcosystemManager, NotificationManager, AnalyticsManager } from '../services/dataFlow';
 import { useToast } from '../components/ToastNotification';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -1012,6 +1013,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
 
   // ── Main Render ─────────────────────────────────────────────────────────────
   return (
+    <ErrorBoundary label="Business Dashboard">
     <View style={[sc.root, { backgroundColor: bg }]}>
       {/* Header */}
       <Animated.View style={[sc.header, { borderBottomColor: `${primary}15`, opacity: headerAnim }]}>
@@ -1099,6 +1101,8 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         </View>
       </Modal>
     </View>
+
+    </ErrorBoundary>
   );
 };
 

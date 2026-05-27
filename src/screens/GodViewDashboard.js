@@ -15,6 +15,7 @@ import { OOS } from '../services/organizationalOverseer';
 import { NeuralMesh } from '../services/neuralMesh';
 import { SaturationSimulator } from '../services/saturationSimulator';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -120,6 +121,7 @@ export const GodViewDashboard = ({ visible, onClose }) => {
   if (!visible) return null;
 
   return (
+    <ErrorBoundary label="God View">
     <View style={[s.screen, { backgroundColor: bg }]}>
       {/* HUD Header */}
       <View style={s.header}>
@@ -291,6 +293,8 @@ export const GodViewDashboard = ({ visible, onClose }) => {
         </View>
       </ScrollView>
     </View>
+
+    </ErrorBoundary>
   );
 };
 

@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
 import { supabase } from '../services/supabase';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const TABS = ['Weekly', 'Monthly', 'All-Time'];
 
@@ -223,6 +224,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
   }, [user?.id, primary, textColor, muted, surface]);
 
   return (
+    <ErrorBoundary label="Leaderboard">
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={[lb.overlay, { backgroundColor: `${bg}F5` }]}>
         <SafeAreaView style={{ flex: 1 }}>
@@ -283,6 +285,8 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
         </SafeAreaView>
       </View>
     </Modal>
+
+    </ErrorBoundary>
   );
 };
 

@@ -16,6 +16,7 @@ import { TrustLedger } from '../services/trustLedger';
 import { ProviderSetupModal } from '../components/ProviderSetupModal';
 import { supabase } from '../services/supabase';
 import { useToast } from '../components/ToastNotification';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -125,6 +126,7 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
   if (!visible) return null;
 
   return (
+    <ErrorBoundary label="Provider Dashboard">
     <View style={[s.screen, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={s.header}>
@@ -247,6 +249,8 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
         }}
       />
     </View>
+
+    </ErrorBoundary>
   );
 };
 

@@ -15,6 +15,7 @@ import { supabase } from '../services/supabase';
 import { RADIUS } from '../constants/DesignTokens';
 import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 import { StoriesRow } from '../components/StoriesRow';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 // ── Relative time helper ───────────────────────────────────────────────────────
 const fmtAge = (ts) => {
@@ -315,6 +316,7 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const goToEvent = (event) => { if (event) onNavigateToEvent?.(event); };
 
   return (
+    <ErrorBoundary label="Crew Feed">
     <View style={[styles.root, { backgroundColor: bg }]}>
       <AuraEffect color={primary} />
       <ScrollView
@@ -453,6 +455,8 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         />
       </Modal>
     </View>
+
+    </ErrorBoundary>
   );
 };
 

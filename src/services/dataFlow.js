@@ -784,13 +784,14 @@ export const TrendingManager = {
 // VIBE MANAGER  (reactions on events)
 // ─────────────────────────────────────────────────────────────────────────────
 export const VibeManager = {
-  // Returns updated vibe count, or null on failure
-  async sendVibe(eventId, userId) {
+  // Returns true on success, 'self' if own event, null on failure
+  async sendVibe(eventId, userId, authorId = null) {
     if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return true;
     if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
-    // SECURITY: prevent self-vibe (organiser gaming engagement metrics)
-    const { data: evt } = await supabase.from('events').select('author_id').eq('id', eventId).maybeSingle();
-    if (evt?.author_id === userId) throw new Error('You cannot vibe your own events.');
+
+    // Self-vibe check — use passed authorId first to avoid extra round-trip
+    const ownerId = authorId ?? (await supabase.from('events').select('author_id').eq('id', eventId).maybeSingle()).data?.author_id;
+    if (ownerId === userId) return 'self';
 
     const result = await resilient(
       [
@@ -821,8 +822,8 @@ export const VibeManager = {
       [
         // Tier 1: delete by composite key
         () => supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId),
-        // Tier 2: upsert with a "removed" flag (if hard delete fails)
-        () => supabase.from('event_vibes').upsert({ event_id: eventId, user_id: userId, removed: true }, { onConflict: 'event_id,user_id' }),
+        // Tier 2: retry delete (transient failure)
+        () => supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId),
         // Tier 3: RPC decrement — skip row delete entirely
         () => supabase.rpc('decrement_vibe_count', { p_event_id: eventId, p_user_id: userId }),
       ],
@@ -1045,7 +1046,8 @@ export const UserManager = {
       const { data } = await supabase
         .from('follows')
         .select('following_id')
-        .eq('follower_id', userId);
+        .eq('follower_id', userId)
+        .limit(2000);
       const result = (data || []).map(r => r.following_id);
       cache.set(cacheKey, result);
       return result;
@@ -1392,22 +1394,27 @@ export const AnalyticsManager = {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
     try {
-      const [vibes, rsvps, checkins, echoes] = await Promise.all([
+      const [vibes, going, maybe, notGoing, checkins, echoes] = await Promise.all([
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
-        supabase.from('event_rsvps').select('status').eq('event_id', eventId),
+        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'going'),
+        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'maybe'),
+        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'not_going'),
         supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
       ]);
-      const rsvpData = rsvps.data || [];
+      const goingCount = going.count || 0;
+      const maybeCount = maybe.count || 0;
+      const notGoingCount = notGoing.count || 0;
+      const totalRsvps = goingCount + maybeCount + notGoingCount;
       const result = {
         vibes: vibes.count || 0,
-        going: rsvpData.filter(r => r.status === 'going').length,
-        maybe: rsvpData.filter(r => r.status === 'maybe').length,
-        notGoing: rsvpData.filter(r => r.status === 'not_going').length,
+        going: goingCount,
+        maybe: maybeCount,
+        notGoing: notGoingCount,
         touchDowns: checkins.count || 0,
         echoes: echoes.count || 0,
-        conversionRate: rsvpData.length > 0
-          ? Math.round((checkins.count || 0) / rsvpData.length * 100)
+        conversionRate: totalRsvps > 0
+          ? Math.round((checkins.count || 0) / totalRsvps * 100)
           : 0,
       };
       cache.set(cacheKey, result, 120000);
@@ -1426,8 +1433,8 @@ export const AnalyticsManager = {
 
     try {
       const [bookings, reviews, node] = await Promise.all([
-        supabase.from('service_bookings').select('amount_cents, status, created_at').eq('provider_id', userId),
-        supabase.from('service_reviews').select('rating, comment, created_at, reviewer:reviewer_id(username)').eq('provider_id', userId),
+        supabase.from('service_bookings').select('amount_cents, status, created_at').eq('provider_id', userId).limit(500),
+        supabase.from('service_reviews').select('rating, comment, created_at, reviewer:reviewer_id(username)').eq('provider_id', userId).order('created_at', { ascending: false }).limit(200),
         supabase.from('service_nodes').select('service_type, available').eq('user_id', userId).maybeSingle()
       ]);
 
@@ -2022,7 +2029,7 @@ export const MessageManager = {
 export const BlockManager = {
   async block(blockerId, blockedId) {
     try {
-      await supabase.from('blocked_users').upsert(
+      await supabase.from('user_blocks').upsert(
         { blocker_id: blockerId, blocked_id: blockedId },
         { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
       );
@@ -2033,7 +2040,7 @@ export const BlockManager = {
 
   async unblock(blockerId, blockedId) {
     try {
-      await supabase.from('blocked_users')
+      await supabase.from('user_blocks')
         .delete().eq('blocker_id', blockerId).eq('blocked_id', blockedId);
       cache.invalidate(`blocks:${blockerId}`);
       return true;
@@ -2043,7 +2050,7 @@ export const BlockManager = {
   async isBlocked(blockerId, blockedId) {
     try {
       const { data } = await supabase
-        .from('blocked_users').select('id')
+        .from('user_blocks').select('id')
         .eq('blocker_id', blockerId).eq('blocked_id', blockedId).maybeSingle();
       return !!data;
     } catch { return false; }
@@ -2055,7 +2062,7 @@ export const BlockManager = {
     if (cached) return cached;
     try {
       const { data } = await supabase
-        .from('blocked_users').select('blocked_id').eq('blocker_id', userId);
+        .from('user_blocks').select('blocked_id').eq('blocker_id', userId);
       const result = (data || []).map(r => r.blocked_id);
       cache.set(cacheKey, result);
       return result;
@@ -2563,10 +2570,10 @@ export const BehavioralEngine = {
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId).gte('created_at', since14d).lt('created_at', since7d),
 
-        // Timestamps for decay weighting
-        supabase.from('event_rsvps').select('created_at').eq('user_id', userId).gte('created_at', since7d),
-        supabase.from('live_checkins').select('checked_in_at').eq('user_id', userId).gte('checked_in_at', since7d),
-        supabase.from('event_vibes').select('created_at').eq('user_id', userId).gte('created_at', since7d),
+        // Timestamps for decay weighting (capped to avoid unbounded fetch)
+        supabase.from('event_rsvps').select('created_at').eq('user_id', userId).gte('created_at', since7d).limit(100),
+        supabase.from('live_checkins').select('checked_in_at').eq('user_id', userId).gte('checked_in_at', since7d).limit(100),
+        supabase.from('event_vibes').select('created_at').eq('user_id', userId).gte('created_at', since7d).limit(100),
 
         // Peer sample: vibe scores from recently active profiles (anonymised)
         supabase.from('profiles').select('vibe_score').not('vibe_score', 'is', null).gt('vibe_score', 0).order('last_seen', { ascending: false }).limit(80),

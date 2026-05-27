@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { GlassView } from '../components/GlassView';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 
 const BLOCK_TYPES = [
@@ -565,6 +566,7 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
   if (loading) return <StoreSkeleton primary={primary} bg={bg} />;
 
   return (
+    <ErrorBoundary label="Store Builder">
     <View style={{ flex: 1 }}>
       {/* Store toolbar */}
       <View style={[sbs.toolbar, { borderBottomColor: `${primary}15`, backgroundColor: `${bg}ee` }]}>
@@ -643,6 +645,8 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
         primary={primary} textColor={textColor} muted={muted} bg={bg}
       />
     </View>
+
+    </ErrorBoundary>
   );
 };
 

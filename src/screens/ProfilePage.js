@@ -256,7 +256,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     try {
-      const { data } = await supabase.from('profiles').select('id, username, display_name, avatar_url, bio, location, interests, career_title, career_description, looks_description, profile_gallery, vibe_score, is_verified, share_events, show_online, identity_mode, is_discoverable, is_beacon_active, push_token').eq('id', user.id).single();
+      const { data } = await supabase.from('profiles').select('id, username, display_name, avatar_url, bio, location, interests, career_title, career_description, looks_description, profile_gallery, vibe_score, is_verified, share_events, show_online, identity_mode, is_discoverable, is_beacon_active, push_token, first_name, surname, email, age, siblings, emergency_contacts').eq('id', user.id).single();
       if (data) {
         setBio(data.bio || '');
         setLocation(data.location || '');
@@ -266,6 +266,12 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         setCareerTitle(data.career_title || '');
         setCareerDescription(data.career_description || '');
         setProfileGallery(data.profile_gallery || []);
+        setFirstName(data.first_name || '');
+        setSurname(data.surname || '');
+        setProfileEmail(data.email || '');
+        setProfileAge(data.age ? String(data.age) : '');
+        setSiblings(data.siblings || []);
+        setEmergencyContacts(data.emergency_contacts || []);
       }
     } catch (err) {
       toast?.show('Failed to refresh profile', 'error');
@@ -284,6 +290,17 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   const [interests, setInterests] = useState(profile?.interests || []);
   const [catPickerVisible, setCatPickerVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Shared fields (also used by linked Next.js app)
+  const [firstName, setFirstName] = useState(profile?.first_name || '');
+  const [surname, setSurname] = useState(profile?.surname || '');
+  const [profileEmail, setProfileEmail] = useState(profile?.email || '');
+  const [profileAge, setProfileAge] = useState(profile?.age ? String(profile.age) : '');
+  const [siblings, setSiblings] = useState(profile?.siblings || []);
+  const [emergencyContacts, setEmergencyContacts] = useState(profile?.emergency_contacts || []);
+  const [newSibling, setNewSibling] = useState({ name: '', age: '', relationship: '' });
+  const [newContact, setNewContact] = useState({ name: '', phone: '', relationship: '' });
+  const [addingSibling, setAddingSibling] = useState(false);
+  const [addingContact, setAddingContact] = useState(false);
 
   const saveProfile = async () => {
     if (!user) return;
@@ -293,6 +310,12 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         bio: bio.trim() || null,
         location: location.trim() || null,
         interests: selectedInterests,
+        first_name: firstName.trim() || null,
+        surname: surname.trim() || null,
+        email: profileEmail.trim() || null,
+        age: profileAge ? parseInt(profileAge, 10) : null,
+        siblings,
+        emergency_contacts: emergencyContacts,
       };
       const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
       if (!error) {
@@ -430,6 +453,114 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         </View>
       </GlassView>
 
+      {/* ── Personal Info (shared with linked apps) ── */}
+      <GlassView style={fm.section}>
+        <Text style={[fm.sectionTitle, { color: primary }]}>Personal Info</Text>
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+          <TextInput
+            style={[fm.input, { flex: 1, color: textColor, borderColor: `${primary}30` }]}
+            placeholder="First name"
+            placeholderTextColor={muted}
+            value={firstName}
+            onChangeText={setFirstName}
+            maxLength={50}
+          />
+          <TextInput
+            style={[fm.input, { flex: 1, color: textColor, borderColor: `${primary}30` }]}
+            placeholder="Surname"
+            placeholderTextColor={muted}
+            value={surname}
+            onChangeText={setSurname}
+            maxLength={50}
+          />
+        </View>
+        <TextInput
+          style={[fm.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 10 }]}
+          placeholder="Email address"
+          placeholderTextColor={muted}
+          value={profileEmail}
+          onChangeText={setProfileEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          maxLength={120}
+        />
+        <TextInput
+          style={[fm.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 10 }]}
+          placeholder="Age"
+          placeholderTextColor={muted}
+          value={profileAge}
+          onChangeText={v => setProfileAge(v.replace(/[^0-9]/g, ''))}
+          keyboardType="numeric"
+          maxLength={3}
+        />
+
+        {/* Siblings */}
+        <Text style={[fm.subLabel, { color: muted }]}>SIBLINGS</Text>
+        {siblings.map((s, i) => (
+          <View key={i} style={[fm.contactRow, { borderColor: `${primary}20` }]}>
+            <Text style={{ color: textColor, flex: 1 }}>{s.name}{s.age ? `, ${s.age}` : ''} — {s.relationship}</Text>
+            <TouchableOpacity onPress={() => setSiblings(prev => prev.filter((_, idx) => idx !== i))}>
+              <Feather name="x" size={16} color={muted} />
+            </TouchableOpacity>
+          </View>
+        ))}
+        {addingSibling ? (
+          <View style={{ gap: 6, marginBottom: 8 }}>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <TextInput style={[fm.input, { flex: 2, marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="Name" placeholderTextColor={muted} value={newSibling.name} onChangeText={v => setNewSibling(p => ({ ...p, name: v }))} />
+              <TextInput style={[fm.input, { flex: 1, marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="Age" placeholderTextColor={muted} value={newSibling.age} onChangeText={v => setNewSibling(p => ({ ...p, age: v.replace(/[^0-9]/g, '') }))} keyboardType="numeric" maxLength={3} />
+            </View>
+            <TextInput style={[fm.input, { marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="Relationship (e.g. sister)" placeholderTextColor={muted} value={newSibling.relationship} onChangeText={v => setNewSibling(p => ({ ...p, relationship: v }))} />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity style={[fm.addRowBtn, { flex: 1, justifyContent: 'center', borderColor: `${primary}50`, borderStyle: 'solid', backgroundColor: `${primary}15` }]} onPress={() => { if (newSibling.name) { setSiblings(prev => [...prev, { name: newSibling.name, age: parseInt(newSibling.age) || 0, relationship: newSibling.relationship }]); setNewSibling({ name: '', age: '', relationship: '' }); setAddingSibling(false); } }}>
+                <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[fm.addRowBtn, { flex: 1, justifyContent: 'center', borderColor: `${muted}40`, borderStyle: 'solid' }]} onPress={() => { setAddingSibling(false); setNewSibling({ name: '', age: '', relationship: '' }); }}>
+                <Text style={{ color: muted, fontWeight: '700', fontSize: 13 }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity style={[fm.addRowBtn, { borderColor: `${primary}30` }]} onPress={() => setAddingSibling(true)}>
+            <Feather name="plus" size={14} color={primary} />
+            <Text style={{ color: primary, fontSize: 13, fontWeight: '700' }}>Add sibling</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Emergency Contacts */}
+        <Text style={[fm.subLabel, { color: muted, marginTop: 12 }]}>EMERGENCY CONTACTS</Text>
+        {emergencyContacts.map((c, i) => (
+          <View key={i} style={[fm.contactRow, { borderColor: `${primary}20` }]}>
+            <Text style={{ color: textColor, flex: 1 }}>{c.name} — {c.phone} ({c.relationship})</Text>
+            <TouchableOpacity onPress={() => setEmergencyContacts(prev => prev.filter((_, idx) => idx !== i))}>
+              <Feather name="x" size={16} color={muted} />
+            </TouchableOpacity>
+          </View>
+        ))}
+        {addingContact ? (
+          <View style={{ gap: 6, marginBottom: 8 }}>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <TextInput style={[fm.input, { flex: 1, marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="Name" placeholderTextColor={muted} value={newContact.name} onChangeText={v => setNewContact(p => ({ ...p, name: v }))} />
+              <TextInput style={[fm.input, { flex: 1, marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="+27821234567" placeholderTextColor={muted} value={newContact.phone} onChangeText={v => setNewContact(p => ({ ...p, phone: v }))} keyboardType="phone-pad" />
+            </View>
+            <TextInput style={[fm.input, { marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="Relationship (e.g. mother)" placeholderTextColor={muted} value={newContact.relationship} onChangeText={v => setNewContact(p => ({ ...p, relationship: v }))} />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity style={[fm.addRowBtn, { flex: 1, justifyContent: 'center', borderColor: `${primary}50`, borderStyle: 'solid', backgroundColor: `${primary}15` }]} onPress={() => { if (newContact.name && newContact.phone) { setEmergencyContacts(prev => [...prev, { name: newContact.name, phone: newContact.phone, relationship: newContact.relationship }]); setNewContact({ name: '', phone: '', relationship: '' }); setAddingContact(false); } }}>
+                <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[fm.addRowBtn, { flex: 1, justifyContent: 'center', borderColor: `${muted}40`, borderStyle: 'solid' }]} onPress={() => { setAddingContact(false); setNewContact({ name: '', phone: '', relationship: '' }); }}>
+                <Text style={{ color: muted, fontWeight: '700', fontSize: 13 }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity style={[fm.addRowBtn, { borderColor: `${primary}30` }]} onPress={() => setAddingContact(true)}>
+            <Feather name="plus" size={14} color={primary} />
+            <Text style={{ color: primary, fontSize: 13, fontWeight: '700' }}>Add emergency contact</Text>
+          </TouchableOpacity>
+        )}
+      </GlassView>
+
       <GlassView style={fm.section}>
         <Text style={[fm.sectionTitle, { color: primary }]}>Put Me Out There</Text>
         <Text style={[{ color: muted, fontSize: 12, marginBottom: 14, lineHeight: 18 }]}>
@@ -519,6 +650,9 @@ const fm = StyleSheet.create({
   catBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14 },
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginBottom: 20, paddingVertical: 15, borderRadius: 30 },
   saveBtnText: { color: '#000', fontWeight: '900', fontSize: 14 },
+  subLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 },
+  contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, marginBottom: 6 },
+  addRowBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed' },
 });
 
 // ── Royal Council Sub-View ────────────────────────────────────────────────────

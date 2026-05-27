@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { adminChat, runHealthCheck } from '../services/claudeService';
 import { resilient } from '../utils/resilience';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const OWNER_EMAIL = 'asemahlenkwali@gmail.com';
 
@@ -300,6 +301,7 @@ export const AdminAIScreen = ({ onClose }) => {
   };
 
   return (
+    <ErrorBoundary label="AdminAI">
     <SafeAreaView style={[styles.screen, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: `${primary}20` }]}>
@@ -379,6 +381,8 @@ export const AdminAIScreen = ({ onClose }) => {
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
+
+    </ErrorBoundary>
   );
 };
 

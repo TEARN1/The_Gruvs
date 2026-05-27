@@ -11,6 +11,7 @@ import { MessageManager, isOnline as checkOnline } from '../services/dataFlow';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { thumb } from '../utils/storageThumb';
 import { CrewFeedScreen } from './CrewFeedScreen';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const fmtAge = (ts) => {
   if (!ts) return '';
@@ -202,6 +203,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   }
 
   return (
+    <ErrorBoundary label="Chats">
     <SafeAreaView style={[ch.screen, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={ch.header}>
@@ -299,6 +301,8 @@ export const ChatsScreen = ({ onAuthRequired }) => {
         </>
       )}
     </SafeAreaView>
+
+    </ErrorBoundary>
   );
 };
 

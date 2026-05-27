@@ -15,6 +15,7 @@ import { resilientRead } from '../utils/resilience';
 import { PostEventModal } from '../components/PostEventModal';
 import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
 import { supabase } from '../services/supabase';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const { width } = Dimensions.get('window');
 const CELL = Math.floor((width - 32) / 7);
@@ -456,6 +457,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const isThisMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
 
   return (
+    <ErrorBoundary label="Calendar">
     <View style={[styles.container, { backgroundColor: bg }]}>
       <AuraEffect />
 
@@ -674,6 +676,8 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
         onPostSuccess={() => { loadMonth(viewYear, viewMonth); loadUpcoming(); }}
       />
     </View>
+
+    </ErrorBoundary>
   );
 };
 

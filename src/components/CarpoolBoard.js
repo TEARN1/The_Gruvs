@@ -526,7 +526,10 @@ export const CarpoolBoard = ({ event, primary, textColor, muted, surface }) => {
         {user && (
           <TouchableOpacity
             style={[cp.offerBtn, { backgroundColor: `${primary}20`, borderColor: `${primary}40` }]}
-            onPress={() => setShowForm(v => !v)}
+            onPress={() => {
+              if (showForm) { setArea(''); setNote(''); setSeats('2'); setDepTime(null); setReturnTrip(false); setReturnTime(null); }
+              setShowForm(v => !v);
+            }}
             activeOpacity={0.8}
           >
             <Feather name={showForm ? 'x' : 'plus'} size={13} color={primary} />

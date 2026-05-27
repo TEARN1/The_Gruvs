@@ -18,6 +18,7 @@ import { EscrowService } from '../services/escrowService';
 import { VibeEconomyEngine } from '../services/revenueEngine';
 import { useToast } from '../components/ToastNotification';
 import { ReviewModal } from '../components/ReviewModal';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const WalletSkeleton = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
@@ -200,6 +201,7 @@ export const WalletScreen = ({ visible, onClose }) => {
   if (!visible) return null;
 
   return (
+    <ErrorBoundary label="Wallet">
     <View style={[s.screen, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={s.header}>
@@ -344,6 +346,8 @@ export const WalletScreen = ({ visible, onClose }) => {
         }}
       />
     </View>
+
+    </ErrorBoundary>
   );
 };
 

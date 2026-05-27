@@ -16,6 +16,7 @@ import { LocationService } from '../services/locationService';
 import { DiscoveryManager, UserManager } from '../services/dataFlow';
 import { resilientRead, resilient } from '../utils/resilience';
 import { useToast } from '../components/ToastNotification';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 // react-native-maps is native-only — lazy require prevents web crash
 let RNMapView = null;
@@ -534,6 +535,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
   }
 
   return (
+    <ErrorBoundary label="Scout">
     <View style={s.root}>
       <RNMapView
         ref={mapRef}
@@ -700,6 +702,8 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
         />
       )}
     </View>
+
+    </ErrorBoundary>
   );
 };
 

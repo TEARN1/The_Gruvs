@@ -170,7 +170,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       const firstErr = failed[0] || '';
       if (firstErr.includes('Bucket not found') || firstErr.includes('bucket')) {
         throw new Error(
-          'Storage not set up yet. Run supabase/patch_storage_media.sql in your Supabase SQL Editor, then try again.'
+          'Storage not set up yet. Run supabase/patch_storage_media.sql in the Supabase SQL Editor (Dashboard → SQL Editor), then try again.'
         );
       }
       if (firstErr.includes('not authorized') || firstErr.includes('policy')) {
@@ -241,10 +241,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       address: address.trim(),
       lat,
       lon,
-      coords: lat && lon ? `POINT(${lon} ${lat})` : null,
       is_published: true,
       is_cancelled: false,
     };
+    // coords: only set if PostGIS available — computed from lat/lon
+    if (lat && lon) payload.coords = `SRID=4326;POINT(${lon} ${lat})`;
     if (city.trim()) payload.city = city.trim();
     if (pickedDate) {
       const y = pickedDate.getFullYear();
@@ -306,24 +307,29 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
           return data || true;
         },
         async () => {
-          const minPayload = { 
-            title: payload.title, 
-            description: payload.description, 
-            author_id: payload.author_id, 
-            event_date: payload.event_date, 
+          // Tier 2: strip coords (geography cast may not be available) and schedule
+          const { coords: _c, schedule: _s, ...safePayload } = payload;
+          const { data, error } = await supabase.from('events').insert(safePayload).select().single();
+          if (error) throw error;
+          return data || true;
+        },
+        async () => {
+          // Tier 3: absolute minimum required fields only
+          const minPayload = {
+            title: payload.title,
+            description: payload.description,
+            author_id: payload.author_id,
+            address: payload.address,
+            event_date: payload.event_date,
             city: payload.city,
             price: payload.price,
             price_min: payload.price_min,
-            price_max: payload.price_max
+            price_max: payload.price_max,
+            is_published: true,
           };
-          const { error } = await supabase.from('events').insert(minPayload);
+          const { data, error } = await supabase.from('events').insert(minPayload).select().single();
           if (error) throw error;
-          return true;
-        },
-        async () => {
-          const { error } = await supabase.rpc('create_event', { p_payload: payload });
-          if (error) throw error;
-          return true;
+          return data || true;
         },
       ],
       {

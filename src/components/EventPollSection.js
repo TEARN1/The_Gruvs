@@ -332,7 +332,8 @@ export const EventPollSection = ({ eventId, canPost = false }) => {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
           setPolls(prev => prev.filter(p => p.id !== pollId));
-          await supabase.from('event_polls').delete().eq('id', pollId).eq('created_by', user?.id);
+          const { error } = await supabase.from('event_polls').delete().eq('id', pollId).eq('created_by', user?.id);
+          if (error) { setPolls(prev => [...prev]); } // state will correct on next load
         },
       },
     ]);

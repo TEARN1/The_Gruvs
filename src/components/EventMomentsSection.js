@@ -120,7 +120,9 @@ const MomentViewer = ({ moments, startIndex = 0, visible, onClose, primary, user
   const sendReaction = async (emoji) => {
     setReactionVisible(false);
     if (!user || !current) return;
-    await supabase.from('event_moment_reactions').insert({ moment_id: current.id, user_id: user.id, emoji });
+    try {
+      await supabase.from('event_moment_reactions').insert({ moment_id: current.id, user_id: user.id, emoji });
+    } catch { /* fire-and-forget reaction — silent fail is acceptable */ }
   };
 
   if (!visible || !current) return null;
