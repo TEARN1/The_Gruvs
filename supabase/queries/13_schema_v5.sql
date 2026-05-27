@@ -533,6 +533,39 @@ CREATE TABLE IF NOT EXISTS public.messages (
   reply_to          UUID        REFERENCES public.messages(id) ON DELETE SET NULL,
   created_at        TIMESTAMPTZ DEFAULT now()
 );
+-- Migrate old schema: rename user_id → sender_id if table was created with old column name
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='user_id') THEN
+    ALTER TABLE public.messages RENAME COLUMN user_id TO sender_id;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='sender_id') THEN
+    ALTER TABLE public.messages ADD COLUMN sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='recipient_id') THEN
+    ALTER TABLE public.messages ADD COLUMN recipient_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='read_at') THEN
+    ALTER TABLE public.messages ADD COLUMN read_at TIMESTAMPTZ;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='delivered_at') THEN
+    ALTER TABLE public.messages ADD COLUMN delivered_at TIMESTAMPTZ;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='is_request') THEN
+    ALTER TABLE public.messages ADD COLUMN is_request BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='request_accepted') THEN
+    ALTER TABLE public.messages ADD COLUMN request_accepted BOOLEAN;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='deleted_at') THEN
+    ALTER TABLE public.messages ADD COLUMN deleted_at TIMESTAMPTZ;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='reactions') THEN
+    ALTER TABLE public.messages ADD COLUMN reactions JSONB DEFAULT '{}';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='reply_to') THEN
+    ALTER TABLE public.messages ADD COLUMN reply_to UUID REFERENCES public.messages(id) ON DELETE SET NULL;
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_messages_sender    ON public.messages (sender_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_recipient ON public.messages (recipient_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_convo     ON public.messages (
@@ -882,6 +915,8 @@ CREATE TABLE IF NOT EXISTS public.path_stars (
   lon         DOUBLE PRECISION,
   created_at  TIMESTAMPTZ DEFAULT now()
 );
+-- Drop view if it exists from a prior migration (views don't support RLS)
+DROP VIEW IF EXISTS public.user_paths;
 CREATE TABLE IF NOT EXISTS public.user_paths (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
