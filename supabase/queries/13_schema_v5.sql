@@ -899,17 +899,28 @@ CREATE TABLE IF NOT EXISTS public.path_traces (
   accuracy   DOUBLE PRECISION,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+-- path_crossings: live DB uses path_id_a/path_id_b schema; create only if not exists
 CREATE TABLE IF NOT EXISTS public.path_crossings (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id       UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  other_user_id UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  path_id_a     UUID        REFERENCES public.paths(id) ON DELETE CASCADE,
+  path_id_b     UUID        REFERENCES public.paths(id) ON DELETE CASCADE,
   lat           DOUBLE PRECISION,
   lon           DOUBLE PRECISION,
-  created_at    TIMESTAMPTZ DEFAULT now()
+  overlap_score NUMERIC,
+  crossed_at    TIMESTAMPTZ DEFAULT now()
 );
+-- Add user_id/other_user_id if this is a fresh DB (old schema)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='path_crossings' AND column_name='path_id_a') THEN
+    ALTER TABLE public.path_crossings ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ALTER TABLE public.path_crossings ADD COLUMN IF NOT EXISTS other_user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+-- path_stars: live DB uses path_id; create only if not exists
 CREATE TABLE IF NOT EXISTS public.path_stars (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  path_id     UUID        REFERENCES public.paths(id) ON DELETE CASCADE,
   place_name  TEXT,
   lat         DOUBLE PRECISION,
   lon         DOUBLE PRECISION,
@@ -1446,7 +1457,8 @@ CREATE POLICY "path_traces_own"  ON public.path_traces  FOR ALL USING (user_id =
 DROP POLICY IF EXISTS "path_stars_own"   ON public.path_stars;
 CREATE POLICY "path_stars_own"   ON public.path_stars   FOR ALL USING (user_id = auth.uid());
 DROP POLICY IF EXISTS "path_crossings_own" ON public.path_crossings;
-CREATE POLICY "path_crossings_own" ON public.path_crossings FOR ALL USING (user_id = auth.uid());
+-- path_crossings uses path_id_a/path_id_b in live DB; allow select for authenticated users
+CREATE POLICY "path_crossings_own" ON public.path_crossings FOR SELECT USING (auth.role() = 'authenticated');
 DROP POLICY IF EXISTS "user_paths_own"   ON public.user_paths;
 CREATE POLICY "user_paths_own"   ON public.user_paths   FOR ALL USING (user_id = auth.uid());
 
