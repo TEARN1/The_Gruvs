@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
@@ -30,6 +31,7 @@ const Field = ({ label, value, onChange, placeholder, multiline, keyboardType, t
 
 export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, onUpdated }) => {
   const { currentTheme } = useTheme();
+  const { user } = useAuth();
   const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -155,7 +157,8 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
         setUploadingCover(true);
         try {
           const ext = coverUri.split('.').pop()?.toLowerCase() || 'jpg';
-          const path = `events/${event.id}/cover_${Date.now()}.${ext}`;
+          const ownerId = user?.id || event?.author_id || 'unknown';
+          const path = `${ownerId}/events/${event.id}/cover_${Date.now()}.${ext}`;
           finalCoverUrl = await uploadToStorage(coverUri, 'event-media', path, { mimeType: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
           setCoverUrl(finalCoverUrl);
           setCoverUri(null);

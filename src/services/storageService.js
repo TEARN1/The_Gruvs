@@ -106,14 +106,14 @@ export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {
     const msg = uploadError.message || '';
     if (msg.includes('Bucket not found') || msg.includes('bucket')) {
       throw new Error(
-        `Storage bucket "${bucket}" does not exist in your Supabase project. ` +
-        `Run supabase/patch_live_db.sql in the Supabase SQL Editor to create it.`
+        `Storage bucket "${bucket}" does not exist. ` +
+        `Run supabase/patch_storage_media.sql in the Supabase SQL Editor (Dashboard → SQL Editor) to create it.`
       );
     }
     if (msg.includes('not authorized') || msg.includes('policy') || msg.includes('violates')) {
       throw new Error(
         'Upload was blocked by storage policy. Make sure you are signed in and that ' +
-        'supabase/patch_live_db.sql has been run in your Supabase project.'
+        'supabase/patch_storage_media.sql has been run in your Supabase project.'
       );
     }
     if (msg.includes('exceeded') || msg.includes('too large')) {

@@ -156,7 +156,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         let ext = (cleanUri.split('.').pop() || 'jpg').toLowerCase();
         // expo-image-picker sometimes returns content:// URIs without extension
         if (!ext || ext.length > 5) ext = item.type === 'video' ? 'mp4' : 'jpg';
-        const fileName = `events/${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const fileName = `${user.id}/events/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
         const mimeType = item.mimeType
           || (item.type === 'video' ? (ext === 'mov' ? 'video/quicktime' : 'video/mp4') : `image/${ext === 'jpg' ? 'jpeg' : ext}`);
         const publicUrl = await uploadToStorage(item.uri, 'event-media', fileName, { mimeType });

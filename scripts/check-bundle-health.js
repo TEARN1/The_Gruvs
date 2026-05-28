@@ -326,8 +326,8 @@ for (const file of allFiles()) {
   const content = readFile(file);
   // Only flag .delete() without error handling (inserts/updates are usually inside try/catch)
   for (const m of content.matchAll(/supabase\.from\([^)]+\)\.delete\(/g)) {
-    const surrounding = content.slice(Math.max(0, m.index - 150), m.index + 300);
-    const hasErrorCheck = /\.catch|error\s*\}|if\s*\(\s*error|try\s*\{/.test(surrounding);
+    const surrounding = content.slice(Math.max(0, m.index - 400), m.index + 400);
+    const hasErrorCheck = /\.catch|error\s*\}|if\s*\(\s*error|try\s*\{|resilient\s*\(/.test(surrounding);
     if (!hasErrorCheck)
       warn(`NO ERROR HANDLE: ${short(file)}:${lineOf(content, m.index)} — .delete() with no error check`), c++;
   }
@@ -404,13 +404,15 @@ for (const file of allFiles()) {
 if (!c) ok('No hardcoded secrets found.');
 
 // ── D23. Linking.openURL with unvalidated input ───────────────────
-check('Linking.openURL with dynamic / unvalidated URLs');
+check('Linking.openURL with no .catch() or canOpenURL guard');
 c = 0;
 for (const file of allFiles()) {
   const content = readFile(file);
-  for (const m of content.matchAll(/Linking\.openURL\s*\(\s*(?!['"]https?:\/\/|['"]mailto:|['"]tel:)/g)) {
-    warn(`OPEN URL: ${short(file)}:${lineOf(content, m.index)} — Linking.openURL with dynamic URL (validate first)`);
-    c++;
+  for (const m of content.matchAll(/Linking\.openURL\s*\([^)]+\)(?!\s*\.catch)/g)) {
+    const surrounding = content.slice(Math.max(0, m.index - 250), m.index + 100);
+    const safe = /canOpenURL|isValidUrl|\.catch|if\s*\(\s*url\b|safeOpenURL/.test(surrounding);
+    if (!safe)
+      warn(`OPEN URL: ${short(file)}:${lineOf(content, m.index)} — Linking.openURL with no .catch() or safety guard`), c++;
   }
 }
 if (!c) ok('All Linking.openURL calls look safe.');

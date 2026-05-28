@@ -1,7 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- SCALE PATCH — indexes, RLS optimisations, partitioning hints
 -- Run in Supabase SQL Editor (Dashboard > SQL Editor > New Query)
--- Safe to re-run (uses IF NOT EXISTS / CREATE INDEX CONCURRENTLY)
+-- Safe to re-run (uses IF NOT EXISTS)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── SCHEMA FIXES (columns found missing during stress test) ─────────────────
@@ -11,105 +11,104 @@ ALTER TABLE event_polls ADD COLUMN IF NOT EXISTS ends_at TIMESTAMPTZ;
 -- ── HOT-PATH INDEXES ─────────────────────────────────────────────────────────
 
 -- Events feed (LandingPage, ExplorePage)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_events_city_date
+CREATE INDEX IF NOT EXISTS idx_events_city_date
   ON events (city, event_date DESC)
   WHERE is_published = true;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_events_author_published
+CREATE INDEX IF NOT EXISTS idx_events_author_published
   ON events (author_id, is_published, event_date DESC);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_events_category_city
+CREATE INDEX IF NOT EXISTS idx_events_category_city
   ON events (category, city, event_date DESC)
   WHERE is_published = true;
 
 -- Follows graph (feed, getFollowedIds)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_follows_follower
+CREATE INDEX IF NOT EXISTS idx_follows_follower
   ON follows (follower_id, following_id);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_follows_following
+CREATE INDEX IF NOT EXISTS idx_follows_following
   ON follows (following_id);
 
 -- Vibes
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_event_vibes_event
+CREATE INDEX IF NOT EXISTS idx_event_vibes_event
   ON event_vibes (event_id);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_event_vibes_user_event
+CREATE INDEX IF NOT EXISTS idx_event_vibes_user_event
   ON event_vibes (user_id, event_id);
 
 -- RSVPs
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_event_rsvps_event_status
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_status
   ON event_rsvps (event_id, status);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_event_rsvps_user
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_user
   ON event_rsvps (user_id, event_id);
 
 -- Live check-ins
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_live_checkins_event
+CREATE INDEX IF NOT EXISTS idx_live_checkins_event
   ON live_checkins (event_id, checked_in_at DESC);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_live_checkins_user
+CREATE INDEX IF NOT EXISTS idx_live_checkins_user
   ON live_checkins (user_id, checked_in_at DESC);
 
 -- Messages (DM inbox)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_conversation
+CREATE INDEX IF NOT EXISTS idx_messages_conversation
   ON messages (sender_id, recipient_id, created_at DESC)
   WHERE deleted_at IS NULL;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_recipient_unread
+CREATE INDEX IF NOT EXISTS idx_messages_recipient_unread
   ON messages (recipient_id, read_at)
   WHERE deleted_at IS NULL;
 
 -- Notifications
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_unread
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread
   ON notifications (user_id, is_read, created_at DESC);
 
 -- Profiles (auth hot path)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_profiles_email
+CREATE INDEX IF NOT EXISTS idx_profiles_email
   ON profiles (email)
   WHERE email IS NOT NULL;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_profiles_username
+CREATE INDEX IF NOT EXISTS idx_profiles_username
   ON profiles (username);
 
 -- Echoes
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_echoes_event
+CREATE INDEX IF NOT EXISTS idx_echoes_event
   ON echoes (event_id, created_at DESC);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_echoes_user
+CREATE INDEX IF NOT EXISTS idx_echoes_user
   ON echoes (user_id, created_at DESC);
 
 -- Saved events
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_saved_events_user
+CREATE INDEX IF NOT EXISTS idx_saved_events_user
   ON saved_events (user_id, event_id);
 
 -- Poll votes
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_event_poll_votes_poll_user
+CREATE INDEX IF NOT EXISTS idx_event_poll_votes_poll_user
   ON event_poll_votes (poll_id, user_id);
 
 -- Service bookings
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_service_bookings_provider_status
+CREATE INDEX IF NOT EXISTS idx_service_bookings_provider_status
   ON service_bookings (provider_id, status, created_at DESC);
 
--- Reels
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_reels_published
-  ON reels (is_published, created_at DESC)
-  WHERE is_published = true;
+-- Reels (no is_published column — use is_deleted instead)
+CREATE INDEX IF NOT EXISTS idx_reels_published
+  ON reels (created_at DESC)
+  WHERE is_deleted = false;
 
 -- Event moments
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_event_moments_event
-  ON event_moments (event_id, created_at DESC)
-  WHERE expires_at > NOW();
+CREATE INDEX IF NOT EXISTS idx_event_moments_event
+  ON event_moments (event_id, created_at DESC);
 
 -- Leaderboard (vibe_score)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_profiles_vibe_score
+CREATE INDEX IF NOT EXISTS idx_profiles_vibe_score
   ON profiles (vibe_score DESC)
   WHERE vibe_score > 0;
 
 -- Activity feed queries (CrewFeedScreen)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_event_rsvps_user_created
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_user_created
   ON event_rsvps (user_id, created_at DESC);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_event_vibes_user_created
+CREATE INDEX IF NOT EXISTS idx_event_vibes_user_created
   ON event_vibes (user_id, created_at DESC);
 
 -- ── RLS PERFORMANCE: use auth.uid() inline to avoid per-row function calls ───
@@ -163,15 +162,15 @@ ALTER TABLE events SET (
 );
 
 -- ── PARTIAL INDEXES to skip dead rows in common queries ──────────────────────
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_events_upcoming
+CREATE INDEX IF NOT EXISTS idx_events_upcoming
   ON events (event_date, city)
-  WHERE is_published = true AND event_date > NOW();
+  WHERE is_published = true;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_unseen
+CREATE INDEX IF NOT EXISTS idx_notifications_unseen
   ON notifications (user_id, created_at DESC)
   WHERE is_read = false;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_active
+CREATE INDEX IF NOT EXISTS idx_messages_active
   ON messages (recipient_id, created_at DESC)
   WHERE deleted_at IS NULL AND read_at IS NULL;
 

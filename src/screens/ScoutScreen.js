@@ -17,6 +17,7 @@ import { DiscoveryManager, UserManager } from '../services/dataFlow';
 import { resilientRead, resilient } from '../utils/resilience';
 import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { EventMapView } from '../components/EventMapView';
 
 // react-native-maps is native-only — lazy require prevents web crash
 let RNMapView = null;
@@ -302,6 +303,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [radiusKm, setRadiusKm] = useState(10);
   const [crewEventIds, setCrewEventIds] = useState(new Set());
+  const [mapModalVisible, setMapModalVisible] = useState(false);
 
   const mapRef = useRef(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -509,7 +511,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
     );
   }
 
-  // ── Native: real map (needs dev build / EAS) ─────────────────────────────
+  // ── Native Expo Go / no react-native-maps: use custom canvas map ────────
   if (!RNMapView) {
     return (
       <View style={{ flex: 1, backgroundColor: background }}>
@@ -523,13 +525,22 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
           onNavigateToEvent={onNavigateToEvent}
         />
         <View style={{ padding: 16, paddingBottom: 8 }}>
-          <View style={{ backgroundColor: `${primary}12`, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: `${primary}25` }}>
-            <Text style={{ color: primary, fontSize: 12, fontWeight: '800', marginBottom: 4 }}>Map Unavailable</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, lineHeight: 16 }}>
-              The interactive map requires a dev build (EAS). Showing list view instead.
-            </Text>
-          </View>
+          <TouchableOpacity
+            onPress={() => setMapModalVisible(true)}
+            style={{ backgroundColor: primary, borderRadius: 14, padding: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+            activeOpacity={0.85}
+          >
+            <Feather name="map" size={16} color="#000" />
+            <Text style={{ color: '#000', fontWeight: '900', fontSize: 14 }}>View on Map ({filteredEvents.length})</Text>
+          </TouchableOpacity>
         </View>
+        <EventMapView
+          visible={mapModalVisible}
+          onClose={() => setMapModalVisible(false)}
+          events={filteredEvents}
+          userCoords={userCoords}
+          onSelectEvent={(ev) => { setMapModalVisible(false); onNavigateToEvent?.(ev); }}
+        />
       </View>
     );
   }

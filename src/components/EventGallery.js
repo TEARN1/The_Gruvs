@@ -158,7 +158,7 @@ export const EventGallery = ({ eventId }) => {
     setUploading(true);
     try {
       const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
-      const fileName = `gallery/${eventId}/${user.id}_${Date.now()}.${ext}`;
+      const fileName = `${user.id}/gallery/${eventId}_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'event-media', fileName, { mimeType: asset.mimeType });
       const galleryPayload = { event_id: eventId, user_id: user.id, url: publicUrl, media_type: isVideo ? 'video' : 'image' };
       const ok = await resilient(

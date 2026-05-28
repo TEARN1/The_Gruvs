@@ -402,6 +402,7 @@ CREATE POLICY "playlist_tracks_insert" ON public.event_playlist_tracks FOR INSER
 
 DROP POLICY IF EXISTS "track_votes_select"     ON public.event_track_votes;
 DROP POLICY IF EXISTS "track_votes_insert_own" ON public.event_track_votes;
+DROP POLICY IF EXISTS "track_votes_delete"     ON public.event_track_votes;
 CREATE POLICY "track_votes_select"     ON public.event_track_votes FOR SELECT USING (true);
 CREATE POLICY "track_votes_insert_own" ON public.event_track_votes FOR INSERT WITH CHECK (user_id = auth.uid());
 CREATE POLICY "track_votes_delete"     ON public.event_track_votes FOR DELETE USING (user_id = auth.uid());
@@ -420,6 +421,7 @@ CREATE POLICY "moments_insert" ON public.event_moments FOR INSERT WITH CHECK (us
 CREATE POLICY "moments_delete" ON public.event_moments FOR DELETE USING (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "moment_views_insert" ON public.event_moment_views;
+DROP POLICY IF EXISTS "moment_views_select" ON public.event_moment_views;
 CREATE POLICY "moment_views_insert" ON public.event_moment_views FOR INSERT WITH CHECK (user_id = auth.uid());
 CREATE POLICY "moment_views_select" ON public.event_moment_views FOR SELECT USING (true);
 
