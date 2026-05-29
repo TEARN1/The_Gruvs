@@ -12,7 +12,7 @@ import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
-import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager, isOnline as checkOnline } from '../services/dataFlow';
+import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
 import { resilientRead } from '../utils/resilience';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { LocationService } from '../services/locationService';
@@ -593,7 +593,10 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   }, []);
 
   const filteredEvents = useMemo(() => {
-    if (activeCat) return happeningNow.filter(e => e.category === activeCat);
+    if (activeCat) {
+      const subCats = CAT_KEY_TO_SUBCATS[activeCat];
+      return happeningNow.filter(e => subCats ? subCats.has(e.category) : e.category === activeCat);
+    }
     if (activeMoods.size > 0) {
       const allCats = new Set(MOODS.filter(m => activeMoods.has(m.key)).flatMap(m => m.cats));
       return happeningNow.filter(e => allCats.has(e.category));

@@ -39,7 +39,7 @@ const GROUP_TO_CAT_KEY = {
 };
 
 // Build reverse map: CATEGORY_CONFIG key → all AllCategories sub-keys in that group
-const CAT_KEY_TO_SUBCATS = {};
+export const CAT_KEY_TO_SUBCATS = {};
 (ALL_CATEGORIES || []).forEach(c => {
   const parent = GROUP_TO_CAT_KEY[c.group];
   if (parent) {
