@@ -571,6 +571,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 color="#f59e0b"
               />
             )}
+            {!!event?.contact_phone && (
+              <TouchableOpacity onPress={() => SecurityService.safeOpenURL(`tel:${event.contact_phone}`)}>
+                <MetaChip icon="phone" label={event.contact_phone} color={primary} pressable />
+              </TouchableOpacity>
+            )}
+            {!!event?.contact_email && (
+              <TouchableOpacity onPress={() => SecurityService.safeOpenURL(`mailto:${event.contact_email}`)}>
+                <MetaChip icon="mail" label={event.contact_email} color={primary} pressable />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Ticket Tiers Section */}

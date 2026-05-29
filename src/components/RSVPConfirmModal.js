@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-import QRCode from 'react-native-qrcode-svg';
+import { Platform } from 'react-native';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,12 @@ import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
 import { SecurityService } from '../services/securityService';
+
+// QRCode is not supported on web — lazy-require to avoid web crash
+let QRCode = null;
+if (Platform.OS !== 'web') {
+  try { QRCode = require('react-native-qrcode-svg').default; } catch { QRCode = null; }
+}
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -118,12 +124,21 @@ export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
                 <>
                   <Text style={[s.qrLabel, { color: muted }]}>YOUR TICKET — SHOW AT DOOR</Text>
                   <View style={[s.qrWrap, { borderColor: `${primary}40` }]}>
-                    <QRCode
-                      value={`gruvsticket://${event.id}/${user?.id}/${rsvpId}`}
-                      size={140}
-                      color="#000"
-                      backgroundColor="#fff"
-                    />
+                    {QRCode ? (
+                      <QRCode
+                        value={`gruvsticket://${event.id}/${user?.id}/${rsvpId}`}
+                        size={140}
+                        color="#000"
+                        backgroundColor="#fff"
+                      />
+                    ) : (
+                      <View style={{ alignItems: 'center', padding: 16, gap: 6 }}>
+                        <Feather name="check-circle" size={48} color={primary} />
+                        <Text style={{ color: muted, fontSize: 11, textAlign: 'center' }}>
+                          Ticket confirmed — show this screen at the door
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   <Text style={[s.refText, { color: muted }]}>Ref: {rsvpId.slice(0, 8).toUpperCase()}</Text>
                 </>

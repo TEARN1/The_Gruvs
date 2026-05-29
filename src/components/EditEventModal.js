@@ -54,9 +54,11 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [tiers, setTiers] = useState([]);
   const [tierForm, setTierForm] = useState(null); // null = hidden, {} = new, {id} = editing
-  const [coverUri, setCoverUri] = useState(null);   // local URI of newly picked image
-  const [coverUrl, setCoverUrl] = useState(null);   // existing remote URL
+  const [coverUri, setCoverUri] = useState(null);
+  const [coverUrl, setCoverUrl] = useState(null);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -70,6 +72,8 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
       setVenueName(event.venue_name || '');
       setCapacity(event.capacity ? String(event.capacity) : '');
       setTicketUrl(event.ticket_url || '');
+      setContactPhone(event.contact_phone || '');
+      setContactEmail(event.contact_email || '');
       setTiers(Array.isArray(event.rsvp_tiers) ? event.rsvp_tiers : []);
       const existing = event.cover_url || event.image_url || event.cover_image || (Array.isArray(event.media) && event.media[0]?.url) || null;
       setCoverUrl(existing);
@@ -204,6 +208,8 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
         price_max: maxP,
         capacity: capacity ? parseInt(capacity) : null,
         ticket_url: ticketUrl.trim() || null,
+        contact_phone: contactPhone.trim() || null,
+        contact_email: contactEmail.trim() || null,
         rsvp_tiers: tiers.length > 0 ? tiers : null,
         ...(finalCoverUrl ? { cover_url: finalCoverUrl, media: [{ url: finalCoverUrl, type: 'image' }], media_urls: [finalCoverUrl] } : {}),
       };
@@ -467,6 +473,15 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
                   </View>
                   <View style={{ flex: 1.5 }}>
                     <Field label="Ticket URL" value={ticketUrl} onChange={setTicketUrl} placeholder="https://..." textColor={textColor} muted={muted} primary={primary} />
+                  </View>
+                </View>
+
+                <View style={f.row}>
+                  <View style={{ flex: 1 }}>
+                    <Field label="Contact Number" value={contactPhone} onChange={setContactPhone} placeholder="+27 82 000 0000" keyboardType="phone-pad" textColor={textColor} muted={muted} primary={primary} />
+                  </View>
+                  <View style={{ flex: 1.5 }}>
+                    <Field label="Contact Email" value={contactEmail} onChange={setContactEmail} placeholder="organizer@email.com" textColor={textColor} muted={muted} primary={primary} />
                   </View>
                 </View>
 
