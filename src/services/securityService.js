@@ -120,6 +120,7 @@ export const SecurityService = {
   isValidUrl(url) {
     if (!url) return false;
     if (url.startsWith('/') || url.startsWith('thegruvs://')) return true;
+    if (url.startsWith('tel:') || url.startsWith('mailto:') || url.startsWith('geo:') || url.startsWith('maps:')) return true;
     try {
       const parsed = new URL(url);
       return ['http:', 'https:'].includes(parsed.protocol);
