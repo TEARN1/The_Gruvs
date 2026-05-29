@@ -40,6 +40,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [pickedMinute, setPickedMinute] = useState(0);
   const [timeSet, setTimeSet] = useState(false);
   const [ticketUrl, setTicketUrl] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
   const [entryPrice, setEntryPrice] = useState('');
   const [vipPrice, setVipPrice] = useState('');
   const [vvipPrice, setVvipPrice] = useState('');
@@ -82,6 +84,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     setTitle(''); setDescription(''); setAddress(''); setCity('');
     setPickedDate(null); setPickedHour(20); setPickedMinute(0); setTimeSet(false);
     setTicketUrl(''); setEntryPrice(''); setVipPrice(''); setVvipPrice(''); setOtherTickets(''); setEventType('');
+    setContactPhone(''); setContactEmail('');
     setLat(null); setLon(null);
     setAgeMin(0); setAgeMax(0); setSelectedCategories([]); setMediaItems([]);
     setEndHour(null); setEndMinute(null); setEndTimeSet(false); setEndTimePickerVisible(false);
@@ -269,6 +272,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     }
     if (primaryCat) payload.category = primaryCat;
     if (ticketUrl.trim()) payload.ticket_url = ticketUrl.trim();
+    if (contactPhone.trim()) payload.contact_phone = contactPhone.trim();
+    if (contactEmail.trim()) payload.contact_email = contactEmail.trim();
 
     // Ticket Tiers & Prices
     let computedPrice = 'FREE';
@@ -606,6 +611,27 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     placeholderTextColor={muted}
                     value={city}
                     onChangeText={setCity}
+                  />
+
+                  <Text style={[pm.label, { color: muted }]}>Contact Number (Optional)</Text>
+                  <TextInput
+                    style={[pm.input, { color: textColor, borderColor: `${primary}35` }]}
+                    placeholder="e.g. +27 82 000 0000"
+                    placeholderTextColor={muted}
+                    value={contactPhone}
+                    onChangeText={setContactPhone}
+                    keyboardType="phone-pad"
+                  />
+
+                  <Text style={[pm.label, { color: muted }]}>Contact Email (Optional)</Text>
+                  <TextInput
+                    style={[pm.input, { color: textColor, borderColor: `${primary}35` }]}
+                    placeholder="e.g. organizer@email.com"
+                    placeholderTextColor={muted}
+                    value={contactEmail}
+                    onChangeText={setContactEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                   />
 
                   <Text ref={dateRef} style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.date = e.nativeEvent.layout.y; }}>Date & Time *</Text>

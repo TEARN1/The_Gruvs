@@ -8,8 +8,9 @@ import { AutoPlayVideo } from './AutoPlayVideo';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const placeholderSource = require('../../assets/events/pixel.png');
 
-const MediaItem = ({ item, isActive }) => {
+const MediaItem = ({ item, isActive, width, height }) => {
   const [loadFailed, setLoadFailed] = useState(false);
+  const mediaStyle = { width: width || '100%', height: height || '100%' };
   const source = loadFailed
     ? placeholderSource
     : item.source
@@ -23,7 +24,7 @@ const MediaItem = ({ item, isActive }) => {
       <AutoPlayVideo
         source={item.url}
         isVisible={isActive}
-        style={styles.media}
+        style={mediaStyle}
       />
     );
   }
@@ -31,7 +32,7 @@ const MediaItem = ({ item, isActive }) => {
   return (
     <Image
       source={source}
-      style={styles.media}
+      style={mediaStyle}
       resizeMode="cover"
       onError={() => setLoadFailed(true)}
     />
@@ -39,8 +40,8 @@ const MediaItem = ({ item, isActive }) => {
 };
 
 export const MediaViewer = ({ media, containerWidth }) => {
-  const width = containerWidth || SCREEN_WIDTH - 32;
-  const MEDIA_WIDTH = width;
+  const MEDIA_WIDTH = containerWidth || SCREEN_WIDTH;
+  const MEDIA_HEIGHT = Math.round(MEDIA_WIDTH * 9 / 16);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
@@ -52,7 +53,7 @@ export const MediaViewer = ({ media, containerWidth }) => {
 
   if (!media || media.length === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: '#111a1c', alignItems: 'center', justifyContent: 'center' }]}>
+      <View style={[styles.container, { width: MEDIA_WIDTH, height: MEDIA_HEIGHT, backgroundColor: '#111a1c', alignItems: 'center', justifyContent: 'center' }]}>
         <View style={{ alignItems: 'center', opacity: 0.3 }}>
           <Text style={{ fontSize: 36 }}>🎵</Text>
           <Text style={{ color: '#fff', fontSize: 11, marginTop: 4 }}>No photo added</Text>
@@ -65,10 +66,9 @@ export const MediaViewer = ({ media, containerWidth }) => {
 
   const renderItem = ({ item, index }) => {
     const isActive = index === activeIndex;
-
     return (
-      <View style={styles.mediaWrapper}>
-        <MediaItem item={item} isActive={isActive} />
+      <View style={{ width: MEDIA_WIDTH, height: MEDIA_HEIGHT }}>
+        <MediaItem item={item} isActive={isActive} width={MEDIA_WIDTH} height={MEDIA_HEIGHT} />
         {item.type === 'video' && (
           <View style={styles.videoLabel}>
             <Text style={styles.videoLabelText}>▶ VIDEO</Text>
@@ -79,7 +79,7 @@ export const MediaViewer = ({ media, containerWidth }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { width: MEDIA_WIDTH, height: MEDIA_HEIGHT }]}>
       <FlatList
         data={media}
         renderItem={renderItem}
@@ -90,6 +90,7 @@ export const MediaViewer = ({ media, containerWidth }) => {
         viewabilityConfig={viewabilityConfig}
         keyExtractor={(_, index) => index.toString()}
         getItemLayout={(_, index) => ({ length: MEDIA_WIDTH, offset: MEDIA_WIDTH * index, index })}
+        style={{ flex: 1 }}
       />
 
       {/* Dots indicator */}

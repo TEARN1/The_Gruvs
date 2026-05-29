@@ -1691,8 +1691,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <PostEventModal
             visible={postModalVisible}
             onClose={() => setPostModalVisible(false)}
-            onCreated={(ev) => setEvents(prev => [ev, ...prev])}
-            onPostSuccess={loadData}
+            onCreated={(ev) => { FeedManager.invalidate(); setEvents(prev => [ev, ...prev]); }}
+            onPostSuccess={() => { FeedManager.invalidate(); loadData(true); }}
           />
         </SafeSection>
       )}
@@ -1742,15 +1742,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             onClose={() => setEditEvent(null)}
             event={editEvent}
             onUpdated={(ev) => {
+              FeedManager.invalidate(ev.id);
               setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, ...ev } : e));
               if (selectedEvent?.id === ev.id) setSelectedEvent(prev => ({ ...prev, ...ev }));
             }}
             onDeleted={(id) => {
+              FeedManager.invalidate(id);
               setEvents(prev => prev.filter(e => e.id !== id));
               setEditEvent(null);
               if (selectedEvent?.id === id) setSelectedEvent(null);
             }}
-            onSaved={() => loadData(true)}
+            onSaved={() => { FeedManager.invalidate(); loadData(true); }}
           />
         </SafeSection>
       )}

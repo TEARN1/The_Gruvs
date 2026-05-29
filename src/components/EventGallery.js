@@ -29,6 +29,8 @@ export const EventGallery = ({ eventId }) => {
   const [uploading, setUploading] = useState(false);
   const [tableError, setTableError] = useState(false);
   const [activeVideoId, setActiveVideoId] = useState(null);
+  const [myLikes, setMyLikes] = useState(new Set()); // gallery item IDs liked by current user
+  const [likingId, setLikingId] = useState(null);
 
   const primary = currentTheme?.primary || '#00f2ff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
@@ -49,14 +51,24 @@ export const EventGallery = ({ eventId }) => {
 
   const fetchGallery = async () => {
     try {
-      // Fetch community gallery
+      // Fetch community gallery sorted by likes descending
       const { data, error } = await supabase
         .from('event_gallery')
         .select('*, profiles(username, avatar_url)')
         .eq('event_id', eventId)
+        .order('like_count', { ascending: false })
         .order('created_at', { ascending: false });
       if (!error && data) setGallery(data);
       else setTableError(true);
+
+      // Load current user's likes for this gallery
+      if (user) {
+        const { data: liked } = await supabase
+          .from('event_gallery_likes')
+          .select('gallery_id')
+          .eq('user_id', user.id);
+        if (liked) setMyLikes(new Set(liked.map(l => l.gallery_id)));
+      }
 
       // Fetch host's own event media
       const { data: ev } = await supabase
@@ -97,42 +109,88 @@ export const EventGallery = ({ eventId }) => {
   const renderGalleryItem = useCallback(({ item }) => {
     const isVid = isVideoItem(item);
     const isPlaying = activeVideoId === item.id;
+    const liked = myLikes.has(item.id);
     return (
-      <TouchableOpacity
-        onPress={() => isVid ? setActiveVideoId(isPlaying ? null : item.id) : setLightboxItem(item)}
-        style={{ position: 'relative' }}
-        activeOpacity={0.85}
-      >
-        {isVid ? (
-          <Video
-            source={{ uri: item.url }}
-            style={styles.thumb}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay={isPlaying}
-            isLooping
-            isMuted={!isPlaying}
-          />
-        ) : (
-          <Image source={{ uri: item.url }} style={styles.thumb} />
-        )}
-        {isVid && !isPlaying && (
-          <View style={styles.playOverlay}>
-            <Feather name="play-circle" size={24} color="rgba(255,255,255,0.9)" />
-          </View>
-        )}
-        {item.is_host && (
-          <View style={styles.hostBadge}>
-            <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>HOST</Text>
-          </View>
-        )}
+      <View style={{ position: 'relative' }}>
+        <TouchableOpacity
+          onPress={() => isVid ? setActiveVideoId(isPlaying ? null : item.id) : setLightboxItem(item)}
+          activeOpacity={0.85}
+        >
+          {isVid ? (
+            <Video
+              source={{ uri: item.url }}
+              style={styles.thumb}
+              resizeMode={ResizeMode.COVER}
+              shouldPlay={isPlaying}
+              isLooping
+              isMuted={!isPlaying}
+            />
+          ) : (
+            <Image source={{ uri: item.url }} style={styles.thumb} />
+          )}
+          {isVid && !isPlaying && (
+            <View style={styles.playOverlay}>
+              <Feather name="play-circle" size={24} color="rgba(255,255,255,0.9)" />
+            </View>
+          )}
+          {item.is_host && (
+            <View style={styles.hostBadge}>
+              <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>HOST</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        {/* Like button */}
+        <TouchableOpacity
+          style={[styles.likeBtn, liked && { backgroundColor: 'rgba(239,68,68,0.85)' }]}
+          onPress={() => handleLike(item)}
+          activeOpacity={0.8}
+        >
+          <Feather name="heart" size={11} color={liked ? '#fff' : 'rgba(255,255,255,0.7)'} />
+          {(item.like_count > 0) && (
+            <Text style={{ color: liked ? '#fff' : 'rgba(255,255,255,0.7)', fontSize: 9, fontWeight: '800' }}>{item.like_count}</Text>
+          )}
+        </TouchableOpacity>
         {item.profiles?.username && (
           <Text style={[styles.thumbUser, { color: muted }]} numberOfLines={1}>
             @{item.profiles.username}
           </Text>
         )}
-      </TouchableOpacity>
+      </View>
     );
-  }, [activeVideoId, muted]);
+  }, [activeVideoId, muted, myLikes, likingId]);
+
+  const handleLike = async (item) => {
+    if (!user) { toast.show('Sign in to like photos!', 'info'); return; }
+    if (likingId) return;
+    const alreadyLiked = myLikes.has(item.id);
+    // Optimistic update
+    setMyLikes(prev => {
+      const next = new Set(prev);
+      alreadyLiked ? next.delete(item.id) : next.add(item.id);
+      return next;
+    });
+    setGallery(prev => prev.map(g =>
+      g.id === item.id ? { ...g, like_count: Math.max(0, (g.like_count || 0) + (alreadyLiked ? -1 : 1)) } : g
+    ));
+    setLikingId(item.id);
+    try {
+      if (alreadyLiked) {
+        await supabase.from('event_gallery_likes').delete().eq('gallery_id', item.id).eq('user_id', user.id);
+        await supabase.from('event_gallery').update({ like_count: Math.max(0, (item.like_count || 0) - 1) }).eq('id', item.id);
+      } else {
+        await supabase.from('event_gallery_likes').upsert({ gallery_id: item.id, user_id: user.id }, { onConflict: 'gallery_id,user_id' });
+        await supabase.from('event_gallery').update({ like_count: (item.like_count || 0) + 1 }).eq('id', item.id);
+      }
+    } catch {
+      // Rollback optimistic update on failure
+      setMyLikes(prev => { const next = new Set(prev); alreadyLiked ? next.add(item.id) : next.delete(item.id); return next; });
+      setGallery(prev => prev.map(g =>
+        g.id === item.id ? { ...g, like_count: item.like_count || 0 } : g
+      ));
+    } finally {
+      setLikingId(null);
+    }
+  };
 
   const handleUpload = async () => {
     if (!user) {
@@ -339,6 +397,7 @@ const styles = StyleSheet.create({
   thumbUser: { fontSize: 9, marginTop: 3, textAlign: 'center', width: THUMB_SIZE },
   playOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 8 },
   hostBadge: { position: 'absolute', top: 3, left: 3, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6 },
+  likeBtn: { position: 'absolute', top: 4, right: 4, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 10 },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyText: { fontSize: 13, marginTop: 6 },
   uploadBtn: {
