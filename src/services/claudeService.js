@@ -74,6 +74,13 @@ function _normalizeToolResult(result) {
   return result;
 }
 
+// Strip markdown code fences Claude sometimes wraps JSON in
+function _parseJSON(text) {
+  if (!text) return {};
+  const stripped = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+  return JSON.parse(stripped);
+}
+
 async function _verifyFinalAnswer({ systemBlocks, question, toolResults, draftAnswer }) {
   try {
     const verifyPrompt = `You have a draft response and the raw data returned by tools. Check the answer for accuracy and remove any statement not directly supported by the tool data or user query. If any part cannot be verified, replace it with: I don't have enough verified data to answer that part.
@@ -619,7 +626,7 @@ async function _agenticLoop({ messages, feature, userId, systemExtra = '', tools
     while (turns < maxTurns) {
       const response = await createMessage({
         model: MODEL_SONNET,
-        max_tokens: 2048,
+        max_tokens: 4096,
         system: systemBlocks,
         messages: history,
         tools,
@@ -792,7 +799,7 @@ async function _executeAssistantTool(name, input, userId) {
 
         if (input.query) q = q.or(`title.ilike.%${input.query}%,description.ilike.%${input.query}%`);
         if (input.city) q = q.ilike('city', `%${input.city}%`);
-        if (input.category) q = q.ilike('category', `%${input.category}%`);
+        if (input.category) q = q.or(`category.ilike.%${input.category}%,categories.cs.{${input.category}}`);
 
         if (input.date === 'today') {
           q = q.eq('event_date', today);
@@ -915,9 +922,8 @@ ${(vibers || []).map((v, i) => `${i + 1}. @${v.username} (${v.city || 'SA'}) —
           .select('user_id, status, profiles(username, display_name), events(title, city, event_date, category)')
           .in('user_id', ids)
           .eq('status', 'going')
-          .gte('events.event_date', today)
-          .limit(input.limit || 10);
-        const valid = (rsvps || []).filter(r => r.events && r.profiles);
+          .limit((input.limit || 10) * 3);
+        const valid = (rsvps || []).filter(r => r.events && r.profiles && r.events.event_date >= today).slice(0, input.limit || 10);
         if (!valid.length) return 'Nobody in your crew has RSVPed to upcoming events yet.';
         return `YOUR CREW IS GOING TO:\n${valid.map(r => `🎉 @${r.profiles.username || r.profiles.display_name} → ${r.events.title} (${r.events.city}, ${r.events.event_date})`).join('\n')}`;
       }
@@ -1086,7 +1092,7 @@ Return ONLY a JSON object:
   });
 
   let candidates = [];
-  try { candidates = JSON.parse(gen.text || '{}').candidates || []; } catch { }
+  try { candidates = _parseJSON(gen.text).candidates || []; } catch { }
   if (!candidates.length) return { bios: [], id: gen.id, error: 'Generation failed' };
 
   // Step 2: Critique + pick best 3 with Sonnet
@@ -1115,7 +1121,7 @@ Return ONLY a JSON object:
   });
 
   try {
-    const parsed = JSON.parse(critique.text || '{}');
+    const parsed = _parseJSON(critique.text);
     return { bios: parsed.bios || [], reasoning: parsed.reasoning || '', id: critique.id };
   } catch {
     return { bios: candidates.slice(0, 3), id: gen.id };
@@ -1176,7 +1182,7 @@ Return ONLY a JSON object:
   });
 
   try {
-    return { ...JSON.parse(result.text || '{}'), id: result.id };
+    return { ..._parseJSON(result.text), id: result.id };
   } catch {
     return { id: result.id, error: 'Could not parse event data' };
   }
@@ -1269,7 +1275,7 @@ Return ONLY a JSON object:
   });
 
   try {
-    return { ...JSON.parse(result.text || '{}'), id: result.id };
+    return { ..._parseJSON(result.text), id: result.id };
   } catch {
     return { tips: [], insight: '', next_milestone: '', id: result.id, error: 'Could not parse coaching response' };
   }
@@ -1300,7 +1306,7 @@ Return ONLY valid JSON:
   });
 
   let fastResult = { verdict: 'approved', confidence: 1.0, borderline: false };
-  try { fastResult = JSON.parse(fast.text || '{}'); } catch { }
+  try { fastResult = _parseJSON(fast.text); } catch { }
 
   // If borderline or low confidence, escalate to Sonnet with deeper analysis
   if (fastResult.borderline || (fastResult.confidence || 1) < 0.75) {
@@ -1333,7 +1339,7 @@ Return ONLY valid JSON:
     });
 
     try {
-      const deepResult = JSON.parse(deep.text || '{}');
+      const deepResult = _parseJSON(deep.text);
       return { verdict: deepResult.verdict || fastResult.verdict, reason: deepResult.reason || fastResult.reason, escalateToHuman: deepResult.escalate_to_human || false, id: deep.id };
     } catch { }
   }
@@ -1390,7 +1396,7 @@ Return ONLY valid JSON:
   });
 
   try {
-    const parsed = JSON.parse(result.text || '{}');
+    const parsed = _parseJSON(result.text);
     return {
       title: parsed.title || '🔥 Your Gruvs are waiting!',
       body: parsed.body || 'Something hot is happening near you tonight.',
