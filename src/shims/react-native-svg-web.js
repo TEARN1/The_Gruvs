@@ -1,0 +1,40 @@
+// Web stub for react-native-svg — prevents Metro from crashing on web
+// Real SVG on web is handled by react-native-svg's own web support when installed;
+// this stub is a safety net for builds where the native module is unavailable.
+import React from 'react';
+import { View } from 'react-native';
+
+const Stub = ({ children, style }) => React.createElement(View, { style }, children);
+export default Stub;
+export const Svg = Stub;
+export const Circle = Stub;
+export const Ellipse = Stub;
+export const G = Stub;
+export const Text = Stub;
+export const TSpan = Stub;
+export const TextPath = Stub;
+export const Path = Stub;
+export const Polygon = Stub;
+export const Polyline = Stub;
+export const Line = Stub;
+export const Rect = Stub;
+export const Use = Stub;
+export const Image = Stub;
+export const Symbol = Stub;
+export const Defs = Stub;
+export const LinearGradient = Stub;
+export const RadialGradient = Stub;
+export const Stop = Stub;
+export const ClipPath = Stub;
+export const Pattern = Stub;
+export const Mask = Stub;
+export const Marker = Stub;
+export const ForeignObject = Stub;
+export const SvgUri = Stub;
+export const SvgXml = Stub;
+export const SvgCss = Stub;
+export const SvgCssUri = Stub;
+export const SvgFromUri = Stub;
+export const SvgFromXml = Stub;
+export const SvgWithCss = Stub;
+export const SvgWithCssUri = Stub;
