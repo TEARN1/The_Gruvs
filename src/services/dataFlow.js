@@ -8,6 +8,45 @@
 import { supabase, isSupabaseEnabled } from './supabase';
 import { resilient, resilientRead, resilientWrite, attemptWithBackoff } from '../utils/resilience';
 import { log } from '../utils/log';
+import { ALL_CATEGORIES } from '../constants/AllCategories';
+
+// Map from AllCategories group → CATEGORY_CONFIG parent key
+const GROUP_TO_CAT_KEY = {
+  'Music':           'music',
+  'Nightlife':       'nightlife',
+  'Sport':           'sport',
+  'Arts & Culture':  'art',
+  'Food & Drink':    'food',
+  'Gaming':          'gaming',
+  'Education':       'edu',
+  'Business':        'biz',
+  'Dance':           'dance',
+  'Fitness & Wellness': 'wellness',
+  'Fashion & Beauty': 'fashion',
+  'Travel':          'travel',
+  'Technology':      'gaming',
+  'Science':         'science',
+  'Faith':           'religion',
+  'Family':          'kids',
+  'Civic':           'politics',
+  'Social':          'dating',
+  'Health':          'health',
+  'Markets':         'market',
+  'Cars & Motors':   'cars',
+  'Books & Writing': 'books',
+  'Hobbies':         'crafts',
+  'Virtual':         'virtual',
+};
+
+// Build reverse map: CATEGORY_CONFIG key → all AllCategories sub-keys in that group
+const CAT_KEY_TO_SUBCATS = {};
+(ALL_CATEGORIES || []).forEach(c => {
+  const parent = GROUP_TO_CAT_KEY[c.group];
+  if (parent) {
+    if (!CAT_KEY_TO_SUBCATS[parent]) CAT_KEY_TO_SUBCATS[parent] = new Set([parent]);
+    CAT_KEY_TO_SUBCATS[parent].add(c.key);
+  }
+});
 import { LocationService } from './locationService';
 import { SecurityService } from './securityService';
 import { VibeEquityLedger } from './vibeEquityLedger';
@@ -417,7 +456,14 @@ export const FeedManager = {
         .neq('is_deleted', true)
         .neq('is_cancelled', true)
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
-      if (category !== 'all') q = q.eq('category', category);
+      if (category !== 'all') {
+        const subCats = CAT_KEY_TO_SUBCATS[category];
+        if (subCats && subCats.size > 1) {
+          q = q.in('category', [...subCats]);
+        } else {
+          q = q.eq('category', category);
+        }
+      }
       if (dateRange?.from) q = q.gte('event_date', dateRange.from);
       if (dateRange?.to)   q = q.lte('event_date', dateRange.to);
       if (query.trim()) {

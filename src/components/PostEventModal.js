@@ -235,7 +235,21 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       setUploadingMedia(false);
     }
 
-    const primaryCat = selectedCategories[0] || eventType?.toLowerCase() || null;
+    // Use first selected category as the event category key.
+    // Map sub-categories (e.g. 'afrobeats') to their parent CATEGORY_CONFIG key
+    // (e.g. 'music') so the feed filter finds them.
+    const rawCat = selectedCategories[0] || eventType?.toLowerCase() || null;
+    const GROUP_TO_CAT = {
+      'Music':'music','Nightlife':'nightlife','Sport':'sport','Arts & Culture':'art',
+      'Food & Drink':'food','Gaming':'gaming','Education':'edu','Business':'biz',
+      'Dance':'dance','Fitness & Wellness':'wellness','Fashion & Beauty':'fashion',
+      'Travel':'travel','Technology':'gaming','Science':'science','Faith':'religion',
+      'Family':'kids','Civic':'politics','Social':'dating','Health':'health',
+      'Markets':'market','Cars & Motors':'cars','Books & Writing':'books',
+      'Hobbies':'crafts','Virtual':'virtual',
+    };
+    const catGroup = rawCat && ALL_CATEGORIES_MAP[rawCat]?.group;
+    const primaryCat = (catGroup && GROUP_TO_CAT[catGroup]) || rawCat;
 
     const payload = {
       author_id: user.id,
