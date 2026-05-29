@@ -141,17 +141,28 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const surface = currentTheme?.surface || 'rgba(255,255,255,0.06)';
 
   const organizer = event?.profiles || {};
-  const media = event?.media?.length
-    ? event.media
-    : event?.media_urls?.length
-      ? event.media_urls.map(u => ({ type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image', url: u }))
-      : event?.cover_url
-        ? [{ type: 'image', url: event.cover_url }]
-        : event?.image_url
-          ? [{ type: 'image', url: event.image_url }]
-          : event?.cover_image
-            ? [{ type: 'image', url: event.cover_image }]
-            : [];
+
+  // Safe media resolution — guards against string media_urls (PostgreSQL array literal)
+  let media = [];
+  try {
+    let rawMedia = event?.media;
+    if (typeof rawMedia === 'string') { try { rawMedia = JSON.parse(rawMedia); } catch { rawMedia = null; } }
+    if (Array.isArray(rawMedia) && rawMedia.length) {
+      media = rawMedia;
+    } else {
+      let urls = event?.media_urls;
+      if (typeof urls === 'string') { try { urls = JSON.parse(urls); } catch { urls = null; } }
+      if (Array.isArray(urls) && urls.length) {
+        media = urls.map(u => ({ type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image', url: u }));
+      } else if (event?.cover_url) {
+        media = [{ type: 'image', url: event.cover_url }];
+      } else if (event?.image_url) {
+        media = [{ type: 'image', url: event.image_url }];
+      } else if (event?.cover_image) {
+        media = [{ type: 'image', url: event.cover_image }];
+      }
+    }
+  } catch { media = []; }
 
   // Countdown clock — ticks every second while event is in the future
   useEffect(() => {
