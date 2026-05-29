@@ -55,6 +55,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [endMinute, setEndMinute] = useState(null);
   const [endTimeSet, setEndTimeSet] = useState(false);
   const [endTimePickerVisible, setEndTimePickerVisible] = useState(false);
+  // Recurrence
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState('weekly'); // weekly|monthly|annually|custom
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceDays, setRecurrenceDays] = useState([]); // 0-6 day-of-week for weekly
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState(null);
+  const [recurrenceEndCalendarVisible, setRecurrenceEndCalendarVisible] = useState(false);
+  const [customDates, setCustomDates] = useState([]); // Date[] for custom
+  const [customDateCalendarVisible, setCustomDateCalendarVisible] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [mediaItems, setMediaItems] = useState([]); // { uri, type, name, mimeType }
   const [scheduleItems, setScheduleItems] = useState([]); // { id, time, title, performer, notes }
@@ -90,6 +99,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     setEndHour(null); setEndMinute(null); setEndTimeSet(false); setEndTimePickerVisible(false);
     setScheduleItems([]); setScheduleFormVisible(false);
     setScheduleForm({ time: '', title: '', performer: '', notes: '' });
+    setIsRecurring(false); setRecurrenceType('weekly'); setRecurrenceInterval(1);
+    setRecurrenceDays([]); setRecurrenceEndDate(null); setCustomDates([]);
     setStep(1);
     setLoading(false); setUploadingMedia(false); setError('');
     setCalendarVisible(false); setTimePickerVisible(false);
@@ -285,9 +296,41 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       payload.end_time = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
     }
     if (primaryCat) payload.category = primaryCat;
+    if (selectedCategories.length > 0) payload.categories = selectedCategories;
     if (ticketUrl.trim()) payload.ticket_url = ticketUrl.trim();
     if (contactPhone.trim()) payload.contact_phone = contactPhone.trim();
     if (contactEmail.trim()) payload.contact_email = contactEmail.trim();
+
+    // Recurrence
+    if (isRecurring) {
+      payload.is_recurring = true;
+      payload.recurrence_type = recurrenceType;
+      payload.recurrence_interval = recurrenceInterval;
+      if (recurrenceType === 'weekly' && recurrenceDays.length > 0) {
+        payload.recurrence_days = recurrenceDays;
+      }
+      if (recurrenceEndDate) {
+        const y = recurrenceEndDate.getFullYear();
+        const mo = String(recurrenceEndDate.getMonth() + 1).padStart(2, '0');
+        const d = String(recurrenceEndDate.getDate()).padStart(2, '0');
+        payload.recurrence_end_date = `${y}-${mo}-${d}`;
+      }
+      if (recurrenceType === 'custom' && customDates.length > 0) {
+        payload.recurrence_dates = customDates.map(d => {
+          const y = d.getFullYear();
+          const mo = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return `${y}-${mo}-${dd}`;
+        });
+      }
+      // next_occurrence is the start date itself for new series
+      if (pickedDate) {
+        const y = pickedDate.getFullYear();
+        const mo = String(pickedDate.getMonth() + 1).padStart(2, '0');
+        const d = String(pickedDate.getDate()).padStart(2, '0');
+        payload.next_occurrence = `${y}-${mo}-${d}`;
+      }
+    }
 
     // Ticket Tiers & Prices
     let computedPrice = 'FREE';
@@ -360,6 +403,13 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
 
     if (result !== null) {
       VibeEquityLedger.mintEquity(user.id, 'EVENT_HOSTING').catch(() => {});
+      // Fire-and-forget: route recurring events to matching users
+      if (isRecurring && result !== true && result?.id) {
+        import('../services/personalizationEngine').then(({ routeRecurringEvent, computeUserDeepProfile }) => {
+          computeUserDeepProfile(user.id).catch(() => {});
+          routeRecurringEvent(result.id, { ...payload, id: result.id }).catch(() => {});
+        }).catch(() => {});
+      }
       reset();
       if (result !== true && result?.id) onCreated?.(result);
       onPostSuccess?.();
@@ -689,6 +739,152 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                       </Text>
                     </TouchableOpacity>
                   </View>
+
+                  {/* ── Recurrence toggle ──────────────────────────────────── */}
+                  <TouchableOpacity
+                    onPress={() => setIsRecurring(v => !v)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: isRecurring ? primary : `${primary}30`, backgroundColor: isRecurring ? `${primary}12` : `${primary}06` }}
+                  >
+                    <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: isRecurring ? primary : `${primary}50`, alignItems: 'center', justifyContent: 'center', backgroundColor: isRecurring ? primary : 'transparent' }}>
+                      {isRecurring && <Feather name="check" size={12} color="#000" />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: isRecurring ? primary : textColor, fontWeight: '800', fontSize: 13 }}>Recurring Event</Text>
+                      <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>Weekly, monthly, annually or custom dates</Text>
+                    </View>
+                    <Feather name="repeat" size={16} color={isRecurring ? primary : muted} />
+                  </TouchableOpacity>
+
+                  {isRecurring && (
+                    <View style={{ marginBottom: 16, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: `${primary}25`, backgroundColor: `${primary}06` }}>
+                      {/* Type selector */}
+                      <Text style={[pm.label, { color: muted, marginBottom: 8 }]}>Repeat Type</Text>
+                      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+                        {['weekly', 'monthly', 'annually', 'custom'].map(t => (
+                          <TouchableOpacity
+                            key={t}
+                            onPress={() => setRecurrenceType(t)}
+                            style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: recurrenceType === t ? primary : `${primary}30`, backgroundColor: recurrenceType === t ? `${primary}20` : 'transparent' }}
+                          >
+                            <Text style={{ color: recurrenceType === t ? primary : muted, fontWeight: '800', fontSize: 12, textTransform: 'capitalize' }}>{t}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+
+                      {/* Weekly: day-of-week selector */}
+                      {recurrenceType === 'weekly' && (
+                        <>
+                          <Text style={[pm.label, { color: muted, marginBottom: 8 }]}>Repeat on</Text>
+                          <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
+                            {['S','M','T','W','T','F','S'].map((d, i) => {
+                              const active = recurrenceDays.includes(i);
+                              return (
+                                <TouchableOpacity
+                                  key={i}
+                                  onPress={() => setRecurrenceDays(prev => active ? prev.filter(x => x !== i) : [...prev, i])}
+                                  style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}25` : 'transparent' }}
+                                >
+                                  <Text style={{ color: active ? primary : muted, fontWeight: '800', fontSize: 12 }}>{d}</Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                          <Text style={[pm.label, { color: muted, marginBottom: 8 }]}>Every</Text>
+                          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                            {[1, 2, 3, 4].map(n => (
+                              <TouchableOpacity
+                                key={n}
+                                onPress={() => setRecurrenceInterval(n)}
+                                style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: recurrenceInterval === n ? primary : `${primary}30`, backgroundColor: recurrenceInterval === n ? `${primary}20` : 'transparent' }}
+                              >
+                                <Text style={{ color: recurrenceInterval === n ? primary : muted, fontWeight: '800', fontSize: 12 }}>{n === 1 ? 'Week' : `${n} Wks`}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </>
+                      )}
+
+                      {/* Monthly: interval selector */}
+                      {recurrenceType === 'monthly' && (
+                        <>
+                          <Text style={[pm.label, { color: muted, marginBottom: 8 }]}>Every</Text>
+                          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                            {[1, 2, 3, 6].map(n => (
+                              <TouchableOpacity
+                                key={n}
+                                onPress={() => setRecurrenceInterval(n)}
+                                style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: recurrenceInterval === n ? primary : `${primary}30`, backgroundColor: recurrenceInterval === n ? `${primary}20` : 'transparent' }}
+                              >
+                                <Text style={{ color: recurrenceInterval === n ? primary : muted, fontWeight: '800', fontSize: 12 }}>{n === 1 ? 'Month' : `${n} Months`}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </>
+                      )}
+
+                      {/* Custom: list of dates */}
+                      {recurrenceType === 'custom' && (
+                        <>
+                          <Text style={[pm.label, { color: muted, marginBottom: 8 }]}>Event Dates ({customDates.length})</Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                            {customDates.map((d, i) => (
+                              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: `${primary}20`, borderWidth: 1, borderColor: `${primary}40` }}>
+                                <Text style={{ color: primary, fontWeight: '700', fontSize: 12 }}>
+                                  {d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </Text>
+                                <TouchableOpacity onPress={() => setCustomDates(prev => prev.filter((_, j) => j !== i))}>
+                                  <Feather name="x" size={11} color={primary} />
+                                </TouchableOpacity>
+                              </View>
+                            ))}
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => setCustomDateCalendarVisible(true)}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: `${primary}40`, backgroundColor: `${primary}08`, marginBottom: 10 }}
+                          >
+                            <Feather name="plus" size={14} color={primary} />
+                            <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>Add Date</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+
+                      {/* End date (all non-custom types) */}
+                      {recurrenceType !== 'custom' && (
+                        <>
+                          <Text style={[pm.label, { color: muted, marginBottom: 8 }]}>Series End Date (Optional)</Text>
+                          <TouchableOpacity
+                            onPress={() => setRecurrenceEndCalendarVisible(true)}
+                            style={[pm.pickerBtn, { borderColor: recurrenceEndDate ? primary : `${primary}30`, backgroundColor: recurrenceEndDate ? `${primary}12` : 'transparent', alignSelf: 'flex-start', marginBottom: 0 }]}
+                          >
+                            <Feather name="calendar" size={14} color={recurrenceEndDate ? primary : muted} />
+                            <Text style={[pm.pickerBtnText, { color: recurrenceEndDate ? primary : muted }]}>
+                              {recurrenceEndDate
+                                ? recurrenceEndDate.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                                : 'No end date'}
+                            </Text>
+                            {recurrenceEndDate && (
+                              <TouchableOpacity onPress={() => setRecurrenceEndDate(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                <Feather name="x" size={12} color={muted} />
+                              </TouchableOpacity>
+                            )}
+                          </TouchableOpacity>
+                        </>
+                      )}
+
+                      {/* Summary pill */}
+                      <View style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: `${primary}15`, alignSelf: 'flex-start' }}>
+                        <Text style={{ color: primary, fontWeight: '700', fontSize: 11 }}>
+                          {recurrenceType === 'custom'
+                            ? `${customDates.length} date${customDates.length !== 1 ? 's' : ''} set`
+                            : recurrenceType === 'weekly'
+                              ? `Every ${recurrenceInterval === 1 ? '' : recurrenceInterval + ' '}week${recurrenceInterval > 1 ? 's' : ''}${recurrenceDays.length > 0 ? ' on ' + recurrenceDays.map(d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ') : ''}${recurrenceEndDate ? ' until ' + recurrenceEndDate.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}`
+                              : recurrenceType === 'monthly'
+                                ? `Every ${recurrenceInterval === 1 ? 'month' : recurrenceInterval + ' months'}${recurrenceEndDate ? ' until ' + recurrenceEndDate.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}`
+                                : 'Every year on this date'}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
 
                   {!!error && <View style={pm.errorBox}><Text style={pm.errorText}>⚠️ {error}</Text></View>}
 
@@ -1050,6 +1246,33 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         onConfirm={(h, m) => { setEndHour(h); setEndMinute(m); setEndTimeSet(true); setEndTimePickerVisible(false); }}
         initialHour={endHour ?? pickedHour}
         initialMinute={endMinute ?? 0}
+        primary={primary} bg={bg} textColor={textColor} muted={muted}
+      />
+
+      {/* Recurrence end date calendar */}
+      <CalendarPicker
+        visible={recurrenceEndCalendarVisible}
+        onClose={() => setRecurrenceEndCalendarVisible(false)}
+        onConfirm={(date) => { setRecurrenceEndDate(date); setRecurrenceEndCalendarVisible(false); }}
+        value={recurrenceEndDate}
+        minDate={pickedDate || new Date()}
+        primary={primary} bg={bg} textColor={textColor} muted={muted}
+      />
+
+      {/* Custom dates calendar — adds to list on each confirm */}
+      <CalendarPicker
+        visible={customDateCalendarVisible}
+        onClose={() => setCustomDateCalendarVisible(false)}
+        onConfirm={(date) => {
+          setCustomDates(prev => {
+            const key = date.toISOString().split('T')[0];
+            const alreadyHas = prev.some(d => d.toISOString().split('T')[0] === key);
+            return alreadyHas ? prev : [...prev, date].sort((a, b) => a - b);
+          });
+          setCustomDateCalendarVisible(false);
+        }}
+        value={null}
+        minDate={new Date()}
         primary={primary} bg={bg} textColor={textColor} muted={muted}
       />
     </>

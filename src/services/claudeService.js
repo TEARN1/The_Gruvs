@@ -1786,7 +1786,166 @@ export async function propagateFeedback(interactionId, thumbs, userId) {
   } catch { }
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+//  PERSONAL EVENT PLANNER — deep profile × calendar × AI narrative
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * planPersonalCalendar
+ *
+ * Generates an AI-narrated personal event plan for a user.
+ * Combines the 12-signal deep profile with a live calendar query,
+ * then uses Claude to write a personalised, culturally-fluent plan
+ * with FOMO hooks for each recommended event.
+ *
+ * @param {string} userId
+ * @param {'week'|'month'|'year'} timeframe
+ * @returns {{ plan: string, events: object[], id: string }}
+ */
+export async function planPersonalCalendar({ userId, timeframe = 'week' } = {}) {
+  if (!userId) return { plan: '', events: [], error: 'Not signed in' };
+
+  // Lazy-import to avoid circular dep at module load time
+  const { generatePersonalCalendar, computeUserDeepProfile } =
+    await import('./personalizationEngine');
+
+  // Ensure deep profile is fresh (non-blocking update)
+  computeUserDeepProfile(userId).catch(() => {});
+
+  // Fetch the calendar and the user's deep profile in parallel
+  const [calendarEvents, profileRes] = await Promise.allSettled([
+    generatePersonalCalendar(userId, timeframe),
+    supabase.from('user_deep_profile').select('*').eq('user_id', userId).single(),
+  ]);
+
+  const events    = calendarEvents.status === 'fulfilled' ? calendarEvents.value : [];
+  const deepProf  = profileRes.status === 'fulfilled' ? profileRes.value.data : null;
+
+  if (!events.length) {
+    return {
+      plan: "No events found matching your vibe right now. Browse the feed and start RSVPing — the more you engage, the better your plan gets.",
+      events: [],
+    };
+  }
+
+  // Build a compact event list for the prompt
+  const eventLines = events.slice(0, 20).map((e, i) =>
+    `${i + 1}. ${e.title} | ${e.occurrence_date || e.event_date} | ${e.city || 'SA'} | ${e.category} | ${e.price_min ? 'R' + e.price_min : 'Free'} | ${e._reason || ''} | ${e._source === 'my_rsvp' ? '✅ You RSVPed' : ''}`
+  ).join('\n');
+
+  // Build profile summary
+  const topCats = deepProf
+    ? Object.entries(deepProf.category_vector || {})
+        .sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k]) => k).join(', ')
+    : 'varied';
+
+  const profileSummary = deepProf ? `
+DEEP PROFILE INSIGHTS:
+• Top categories: ${topCats}
+• Preferred time: ${(deepProf.hour_buckets || []).reduce((best, v, i, arr) => v > arr[best] ? i : best, 0)}:00 SAST
+• Busiest day: ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][(deepProf.day_buckets || []).reduce((best, v, i, arr) => v > arr[best] ? i : best, 0)]}
+• Usual radius: ${Math.round(deepProf.avg_distance_km || 15)} km
+• Price comfort: up to R${deepProf.price_ceiling || 200}
+• Style: ${deepProf.social_mode || 'mixed'} crowd
+• Cohorts: ${(deepProf.cohort_tags || []).join(', ') || 'general'}
+• RSVP follow-through: ${Math.round((deepProf.completion_rate || 0.5) * 100)}%
+` : '';
+
+  const timeLabel = timeframe === 'year' ? 'this year' : timeframe === 'month' ? 'this month' : 'this week';
+
+  const prompt = `You are GRUVS AI building a hyper-personalised event plan for a Viber.
+
+${profileSummary}
+${buildTemporalContext()}
+
+EVENTS MATCHED TO THIS VIBER (${timeLabel}):
+${eventLines}
+
+TASK:
+Write a punchy, culturally-fluent event plan that feels like a personal concierge.
+• Open with ONE sentence that reads their energy based on the profile.
+• Group events by DAY (e.g. "Friday 6 Jun") if multiple on the same day.
+• For each event, one line with: event name, why it's perfect for THIS person (reference their actual data — don't be generic), any logistics worth knowing (price, time).
+• Use SA voice — warm, direct, with occasional lekker/jol/choon if it fits.
+• End with: "Your next move:" — the single highest-priority RSVP they should lock in right now, with one sentence of conviction.
+• Under 300 words total.
+
+Return ONLY the plain text plan — no JSON, no headers, no markdown lists.`;
+
+  const result = await _callWithThinking({
+    messages: [{ role: 'user', content: prompt }],
+    feature: AIFeature.ASSISTANT,
+    userId,
+    thinkingBudget: 8000,
+  });
+
+  const tokens = (result.usage?.input_tokens || 0) + (result.usage?.output_tokens || 0);
+  _logInteraction({ userId, feature: 'personal_planner', input: `${timeframe} calendar`, output: result.text, model: MODEL_SONNET, tokensUsed: tokens });
+
+  return { plan: result.text || '', events: events.slice(0, 20), id: result.id };
+}
+
+/**
+ * analyseRecurringEventAudience
+ *
+ * After a recurring event is routed, the host can ask who it was sent to
+ * and why — this gives them an AI-narrated breakdown of the audience.
+ */
+export async function analyseRecurringEventAudience({ eventId, eventTitle, userId } = {}) {
+  if (!eventId) return { analysis: '', error: 'No event ID' };
+
+  const { data: routes } = await supabase
+    .from('event_traffic_routes')
+    .select('route_score, cat_score, temporal_score, location_score, route_reason, profiles(city, cohort_tags)')
+    .eq('event_id', eventId)
+    .order('route_score', { ascending: false })
+    .limit(200);
+
+  if (!routes?.length) return { analysis: 'No audience data yet. Traffic routing will kick in once users build their profiles.', routes: [] };
+
+  // Aggregate cohort distribution
+  const cohortCounts = {};
+  const cityCounts   = {};
+  routes.forEach(r => {
+    (r.profiles?.cohort_tags || []).forEach(t => { cohortCounts[t] = (cohortCounts[t] || 0) + 1; });
+    if (r.profiles?.city) cityCounts[r.profiles.city] = (cityCounts[r.profiles.city] || 0) + 1;
+  });
+
+  const topCohorts = Object.entries(cohortCounts).sort((a,b) => b[1]-a[1]).slice(0,5).map(([t,c]) => `${t} (${c})`).join(', ');
+  const topCities  = Object.entries(cityCounts).sort((a,b) => b[1]-a[1]).slice(0,4).map(([c,n]) => `${c}: ${n}`).join(', ');
+  const avgScore   = routes.reduce((s,r) => s + r.route_score, 0) / routes.length;
+
+  const prompt = `You are GRUVS AI analysing the audience that was routed to a recurring event.
+
+EVENT: "${eventTitle}"
+AUDIENCE SIZE: ${routes.length} Vibers targeted
+AVERAGE MATCH SCORE: ${(avgScore * 100).toFixed(0)}%
+TOP COHORTS: ${topCohorts || 'mixed'}
+TOP CITIES: ${topCities || 'SA-wide'}
+
+Routing breakdown (sample reasons):
+${routes.slice(0, 5).map(r => `• ${r.route_reason}`).join('\n')}
+
+Write a 3-sentence host briefing:
+1. Who was matched and why they're the right crowd.
+2. What the ${(avgScore * 100).toFixed(0)}% average match means for conversion potential.
+3. One action the host can take to attract even more of this audience.
+
+SA voice. Direct. No fluff.`;
+
+  const result = await _call({
+    messages: [{ role: 'user', content: prompt }],
+    feature: AIFeature.ASSISTANT,
+    userId,
+    model: MODEL_SONNET,
+    maxTokens: 300,
+  });
+
+  return { analysis: result.text || '', routes: routes.slice(0, 10), audienceSize: routes.length, avgMatchScore: avgScore };
+}
+
 export default {
   chat, generateBio, fillEvent, vibeCoach, moderateContent,
-  smartNotification, adminChat, submitFeedback, propagateFeedback, AIFeature,
+  smartNotification, adminChat, submitFeedback, propagateFeedback,
+  planPersonalCalendar, analyseRecurringEventAudience, AIFeature,
 };
