@@ -458,11 +458,9 @@ export const FeedManager = {
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
       if (category !== 'all') {
         const subCats = CAT_KEY_TO_SUBCATS[category];
-        if (subCats && subCats.size > 1) {
-          q = q.in('category', [...subCats]);
-        } else {
-          q = q.eq('category', category);
-        }
+        const catList = subCats && subCats.size > 0 ? [...subCats] : [category];
+        // Match primary category OR any value in the categories[] array
+        q = q.or(`category.in.(${catList.join(',')}),categories.ov.{${catList.join(',')}}`);
       }
       if (dateRange?.from) q = q.gte('event_date', dateRange.from);
       if (dateRange?.to)   q = q.lte('event_date', dateRange.to);

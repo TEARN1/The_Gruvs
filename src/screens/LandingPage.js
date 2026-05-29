@@ -23,7 +23,7 @@ import { SafeSection } from '../components/SafeSection';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { SecurityService } from '../services/securityService';
-import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine, isOnline as checkOnline } from '../services/dataFlow';
+import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
@@ -286,6 +286,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [reportTarget, setReportTarget] = useState(null);
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
   const followedIdsRef = useRef([]); // stable ref so fetchPage can use it without re-render
+  const pageRef = useRef(0);
   const [followingSet, setFollowingSet] = useState(new Set()); // reactive mirror for follow buttons
   const [dateFilter, setDateFilter] = useState('any');
   const [dateRange, setDateRange] = useState(null);
@@ -414,15 +415,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
 
     if (isRefreshing) {
+      pageRef.current = 0;
       setPage(0);
       setHasMore(true);
-      // Don't show full spinner on refresh — stale data keeps the screen painted
       setLoading(events.length === 0);
     } else {
       setLoadingMore(true);
     }
 
-    const currentPage = isRefreshing ? 0 : page;
+    const currentPage = isRefreshing ? 0 : pageRef.current;
     const fetchOpts = {
       page: currentPage,
       category: selectedCat,
@@ -474,8 +475,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       }
 
       if (!isRefreshing && newEvents.length > 0) {
-        setPage(prev => prev + 1);
-        // Prefetch next page silently so scroll feels instant
+        pageRef.current = currentPage + 1;
+        setPage(pageRef.current);
         FeedManager.prefetchPage({ ...fetchOpts, page: currentPage + 1 });
       }
     } catch (err) {
@@ -485,8 +486,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       setLoadingMore(false);
       setRefreshing(false);
     }
-  // Removed `events` and `loadingMore` from deps — they caused infinite re-render loops
-  }, [selectedCat, debouncedQuery, page, hasMore, feedMode, user?.id, profile?.interests, dateRange]);
+  // page/hasMore intentionally excluded — use pageRef to read page without recreating on every scroll
+  }, [selectedCat, debouncedQuery, feedMode, user?.id, profile?.interests, dateRange]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -503,10 +504,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     () => new Set(trendingEvents.map(e => e.id)),
     [trendingEvents]
   );
-  const feedData = useMemo(
-    () => [...trendingEvents, ...events.filter(e => !trendingIds.has(e.id))],
-    [trendingEvents, events, trendingIds]
-  );
+  const feedData = useMemo(() => {
+    const catSet = selectedCat !== 'all' ? CAT_KEY_TO_SUBCATS[selectedCat] || new Set([selectedCat]) : null;
+    const matchesCat = (e) => {
+      if (!catSet) return true;
+      if (catSet.has(e.category)) return true;
+      if (Array.isArray(e.categories) && e.categories.some(c => catSet.has(c))) return true;
+      return false;
+    };
+    const filtered = catSet ? trendingEvents.filter(matchesCat) : trendingEvents;
+    return [...filtered, ...events.filter(e => !trendingIds.has(e.id))];
+  }, [trendingEvents, events, trendingIds, selectedCat]);
 
   // Debounce search — avoids a network hit on every keystroke
   useEffect(() => {
