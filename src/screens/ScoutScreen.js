@@ -13,7 +13,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { LocationService } from '../services/locationService';
-import { DiscoveryManager, UserManager } from '../services/dataFlow';
+import { DiscoveryManager, UserManager, CAT_KEY_TO_SUBCATS } from '../services/dataFlow';
 import { resilientRead, resilient } from '../utils/resilience';
 import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -479,7 +479,14 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
     }
 
     if (activeCategory !== 'All') {
-      evts = evts.filter(e => e.category?.toLowerCase() === activeCategory.toLowerCase());
+      const catKey = activeCategory.toLowerCase();
+      const subCats = CAT_KEY_TO_SUBCATS[catKey] || new Set([catKey]);
+      evts = evts.filter(e => {
+        const eCat = e.category?.toLowerCase();
+        if (eCat && subCats.has(eCat)) return true;
+        if (Array.isArray(e.categories) && e.categories.some(c => subCats.has(c?.toLowerCase()))) return true;
+        return false;
+      });
     }
 
     if (userCoords && radiusKm < 50) {

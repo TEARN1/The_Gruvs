@@ -24,6 +24,9 @@ const CAT_ICONS = {
   'Vibe Card & Identity': { icon: 'user',      color: '#06b6d4' },
   'Biz Hub & Missions':   { icon: 'briefcase', color: '#f59e0b' },
   'Lineup & Pings':       { icon: 'calendar',  color: '#10b981' },
+  'Reels':                { icon: 'film',      color: '#ec4899' },
+  'Social & Connections': { icon: 'users',     color: '#8b5cf6' },
+  'Event Management':     { icon: 'settings',  color: '#00f2ff' },
 };
 
 // ── Tutorial Card ─────────────────────────────────────────────────────────────

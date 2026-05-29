@@ -12,6 +12,10 @@ export const useNotifications = ({ onNavigate } = {}) => {
   const receivedListener = useRef(null);
   const responseListener = useRef(null);
   const onNavigateRef = useRef(onNavigate);
+  // Keep a ref to user so the response listener always reads the current value
+  // without needing to be re-registered on every login/logout cycle.
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
 
   useEffect(() => { onNavigateRef.current = onNavigate; }, [onNavigate]);
 
@@ -50,8 +54,9 @@ export const useNotifications = ({ onNavigate } = {}) => {
           if (actionIdentifier === 'reply' && userText) {
             try {
               const partnerId = data.sender_id;
-              if (partnerId && user?.id) {
-                await MessageManager.send(user.id, partnerId, userText);
+              const currentUser = userRef.current;
+              if (partnerId && currentUser?.id) {
+                await MessageManager.send(currentUser.id, partnerId, userText);
                 showToast('Reply sent! 💬', 'success');
               }
             } catch (e) {

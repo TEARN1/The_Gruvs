@@ -663,6 +663,86 @@ export const TUTORIALS = [
     ],
   },
 
+  // ── Journey ───────────────────────────────────────────────────────────────────
+  {
+    id: 'journey',
+    title: 'Build Your Journey',
+    category: 'Scout & Discover',
+    icon: 'map-pin',
+    color: '#8b5cf6',
+    duration: '2 min',
+    steps: [
+      {
+        icon: 'map-pin',
+        title: 'What Is a Journey?',
+        body: 'A Journey is your personal collection of Gruvs you plan to hit — pinned to a live map. Add any Gruv from The Drop by tapping the "Journey" pin icon on the event card. Your pins save automatically and survive app restarts.',
+        tip: 'You can add as many Gruvs to your Journey as you like — no cap.',
+        visual: 'journey_intro',
+      },
+      {
+        icon: 'navigation',
+        title: 'View Your Journey Map',
+        body: "Tap the map FAB button (bottom-right of The Drop) whenever you have pinned events. The Journey Map shows all your pinned Gruvs as interactive pins. Tap any pin to see the event card and open the detail page.",
+        tip: 'The map auto-calculates the optimal travel order between your pinned Gruvs to save time.',
+        visual: 'journey_map',
+      },
+      {
+        icon: 'trash-2',
+        title: 'Managing Your Journey',
+        body: "Tap the Journey icon on any already-pinned event to remove it. Your Journey syncs across sessions so you never lose your picks. Use the Journey to plan a full evening — club-hop with a proper route.",
+        tip: 'Journey pins are private — only visible to you.',
+        visual: 'journey_manage',
+      },
+    ],
+  },
+
+  // ── Event Management (Organiser) ──────────────────────────────────────────────
+  {
+    id: 'event_management',
+    title: 'Manage Your Event',
+    category: 'Biz Hub & Missions',
+    icon: 'settings',
+    color: '#00f2ff',
+    duration: '4 min',
+    steps: [
+      {
+        icon: 'settings',
+        title: 'The ⚙️ Manage Tab',
+        body: "If you're the organiser or co-host of a Gruv, the Gruv detail page shows a ⚙️ Manage tab. This is your live event control panel — add your lineup, build your schedule, manage vendors, and post host-only updates.",
+        tip: 'Only the event creator and co-hosts can see the Manage tab.',
+        visual: 'mgmt_tab',
+      },
+      {
+        icon: 'mic',
+        title: 'Lineup Builder',
+        body: 'Add every act, speaker, DJ, or panelist to your lineup. For each person you can set:\n\n• Role (Headliner, Support, MC, DJ, Speaker...)\n• Set time (start + end)\n• Stage or room\n• Social handle and bio\n\nLineup is visible to all attendees on the Gruv page.',
+        tip: 'Add lineup early — it increases RSVPs by showing attendees who is performing.',
+        visual: 'lineup_builder',
+      },
+      {
+        icon: 'calendar',
+        title: 'Session Schedule',
+        body: 'For conferences, workshops, and multi-session events, build a full programme:\n\n• Title, speaker, type (talk / panel / workshop / Q&A)\n• Start and end times, room or stage\n• Description visible to attendees\n\nSessions appear in the Gruv detail page automatically.',
+        tip: "Use session types to help attendees plan their day — 'keynote' vs 'breakout' tells them a lot.",
+        visual: 'session_builder',
+      },
+      {
+        icon: 'shopping-bag',
+        title: 'Vendor Map',
+        body: 'For food markets, festivals, and expos — add every stall or vendor:\n\n• Vendor name and category\n• Stall number (shows on the map)\n• Contact number and description\n• Confirmed / Pending status\n\nAttendees can browse vendors inside the Gruv page before arriving.',
+        tip: 'Confirmed vendors show a green badge. Use Pending for vendors you\'re still finalising.',
+        visual: 'vendor_map',
+      },
+      {
+        icon: 'broadcast',
+        title: 'Live Updates',
+        body: 'Post real-time updates to all attendees directly from the Manage tab:\n\n• "Doors opening now"\n• "Main act going on in 10 min"\n• "Stage 2 is delayed — grab a drink"\n\nUpdates appear instantly on the Gruv page with a 🔴 Live marker.',
+        tip: 'Use Live Updates on the night to keep attendees informed and reduce door congestion.',
+        visual: 'live_updates',
+      },
+    ],
+  },
+
   // ── AI & Smart Features ───────────────────────────────────────────────────────
   {
     id: 'ai_drop',
@@ -706,6 +786,7 @@ export const TUTORIAL_CATEGORIES = [
   'Social & Connections',
   'Vibe Card & Identity',
   'Biz Hub & Missions',
+  'Event Management',
 ];
 
 // ── Context ───────────────────────────────────────────────────────────────────

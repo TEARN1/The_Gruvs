@@ -23,6 +23,7 @@ import { SafeSection } from '../components/SafeSection';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { SecurityService } from '../services/securityService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
@@ -507,16 +508,32 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     [trendingEvents]
   );
   const feedData = useMemo(() => {
+    // Category matcher — checks primary category and categories[] array
     const catSet = selectedCat !== 'all' ? CAT_KEY_TO_SUBCATS[selectedCat] || new Set([selectedCat]) : null;
     const matchesCat = (e) => {
       if (!catSet) return true;
-      if (catSet.has(e.category)) return true;
-      if (Array.isArray(e.categories) && e.categories.some(c => catSet.has(c))) return true;
+      const cat = e.category?.toLowerCase();
+      if (cat && catSet.has(cat)) return true;
+      if (Array.isArray(e.categories) && e.categories.some(c => catSet.has(c?.toLowerCase()))) return true;
       return false;
     };
-    const filtered = catSet ? trendingEvents.filter(matchesCat) : trendingEvents;
-    return [...filtered, ...events.filter(e => !trendingIds.has(e.id))];
-  }, [trendingEvents, events, trendingIds, selectedCat]);
+
+    // Date matcher — checks event_date against the active date range
+    const matchesDate = (e) => {
+      if (!dateRange) return true;
+      if (!e.event_date) return true;
+      const d = e.event_date.slice(0, 10);
+      if (dateRange.from && d < dateRange.from) return false;
+      if (dateRange.to   && d > dateRange.to)   return false;
+      return true;
+    };
+
+    const filter = (e) => matchesCat(e) && matchesDate(e);
+
+    const filteredTrending = trendingEvents.filter(filter);
+    const filteredRegular  = events.filter(e => !trendingIds.has(e.id) && filter(e));
+    return [...filteredTrending, ...filteredRegular];
+  }, [trendingEvents, events, trendingIds, selectedCat, dateRange]);
 
   // Debounce search — avoids a network hit on every keystroke
   useEffect(() => {
@@ -526,9 +543,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   }, [searchQuery]);
 
   useEffect(() => {
-    FeedManager.invalidate();
+    FeedManager.invalidate('feed:');
     loadData(true);
-  }, [selectedCat, debouncedQuery, mode, refreshKey, feedMode, user?.id, dateFilter, loadData]);
+  }, [selectedCat, debouncedQuery, mode, refreshKey, feedMode, user?.id, dateRange, loadData]);
 
   useEffect(() => {
     loadTrending();
@@ -873,17 +890,33 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       .catch(() => { toast.show('Unable to share this Gruv right now', 'error'); });
   };
 
+  const JOURNEY_STORAGE_KEY = useMemo(
+    () => user?.id ? `@gruvs_journey_${user.id}_v1` : '@gruvs_journey_guest_v1',
+    [user?.id]
+  );
+
+  // Load persisted journey events on mount
+  useEffect(() => {
+    AsyncStorage.getItem(JOURNEY_STORAGE_KEY)
+      .then(raw => {
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (Array.isArray(saved) && saved.length) setRouteEvents(saved);
+        }
+      })
+      .catch(() => {});
+  }, [JOURNEY_STORAGE_KEY]);
+
   const handleToggleRoute = (event) => {
     const isAdded = routeEvents.some(e => e.id === event.id);
+    const next = isAdded
+      ? routeEvents.filter(e => e.id !== event.id)
+      : [...routeEvents, event];
+    setRouteEvents(next);
+    AsyncStorage.setItem(JOURNEY_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
     if (isAdded) {
-      setRouteEvents(prev => prev.filter(e => e.id !== event.id));
       toast.show('Removed from your journey', 'info');
     } else {
-      if (routeEvents.length >= 6) {
-        toast.show('Royal Routes are capped at 6 stops', 'info');
-        return;
-      }
-      setRouteEvents(prev => [...prev, event]);
       toast.show('Added to your journey 📍', 'success');
       safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
     }
@@ -1585,7 +1618,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   style={styles.actionBtn}
                   onPress={() => handleToggleRoute(event)}
                   accessibilityRole="button"
-                  accessibilityLabel={routeEvents.some(re => re.id === id) ? 'Remove from journey' : 'Add to journey'}
+                  accessibilityLabel={routeEvents.some(re => re.id === id) ? 'Remove from journey' : 'Pin to your journey'}
                 >
                   <Feather
                     name={routeEvents.some(re => re.id === id) ? "map-pin" : "plus-circle"}

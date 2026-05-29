@@ -41,8 +41,12 @@ const EventRoleManager   = React.lazy(() => import('../components/EventRoleManag
 const EventMomentsSection = React.lazy(() => import('../components/EventMomentsSection').then(m => ({ default: m.EventMomentsSection })));
 const OrganizerDashboard = React.lazy(() => import('../components/OrganizerDashboard').then(m => ({ default: m.OrganizerDashboard })));
 const LiveEventBanner    = React.lazy(() => import('../components/LiveEventBanner').then(m => ({ default: m.LiveEventBanner })));
-
-
+const EventManagementPanel = React.lazy(() => import('../components/EventManagementPanel').then(m => ({ default: m.EventManagementPanel })));
+const SportManagementPanel = React.lazy(() => import('../components/SportManagementPanel').then(m => ({ default: m.SportManagementPanel })));
+const _isSportCat = (cat) => {
+  const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
+  return SPORT_CATS.has(cat?.toLowerCase());
+};
 
 const SCREEN_W = Dimensions.get('window').width;
 const HERO_H = Math.min(300, Math.max(220, SCREEN_W * 0.72));
@@ -124,7 +128,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [countdown, setCountdown] = useState(null);
   const [chatVisible, setChatVisible] = useState(false);
   const [roleManagerVisible, setRoleManagerVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('info'); // 'info' | 'polls' | 'playlist'
+  const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
   const scrollRef = useRef(null);
 
@@ -948,17 +952,22 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </View>
           )}
 
-          {/* ── Tab switcher: Info / Polls / Playlist ──────────────── */}
+          {/* ── Tab switcher: Info / Manage / Polls / Playlist ──────── */}
           {event?.id && (
             <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}20` }}>
-              {['info', 'polls', 'playlist'].map(tab => (
+              {[
+                { key: 'info',    label: 'Info' },
+                ...(isOrganiser || isCoHost ? [{ key: 'manage', label: '⚙️ Manage' }] : []),
+                { key: 'polls',   label: 'Polls' },
+                { key: 'playlist', label: 'Playlist' },
+              ].map(tab => (
                 <TouchableOpacity
-                  key={tab}
-                  style={{ flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: activeTab === tab ? `${primary}20` : 'transparent' }}
-                  onPress={() => setActiveTab(tab)}
+                  key={tab.key}
+                  style={{ flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: activeTab === tab.key ? `${primary}20` : 'transparent' }}
+                  onPress={() => setActiveTab(tab.key)}
                 >
-                  <Text style={{ color: activeTab === tab ? primary : textMuted, fontSize: 12, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    {tab === 'info' ? 'Info' : tab === 'polls' ? 'Polls' : 'Playlist'}
+                  <Text style={{ color: activeTab === tab.key ? primary : textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {tab.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -966,6 +975,26 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           )}
 
           <View style={styles.sectionDivider} />
+
+          {activeTab === 'manage' && event?.id && (isOrganiser || isCoHost) && (
+            <SafeSection label="Event Management" primary={primary}>
+              {_isSportCat(event.category)
+                ? <SportManagementPanel
+                    event={event}
+                    primary={primary}
+                    textColor={textColor}
+                    muted={textMuted}
+                  />
+                : <EventManagementPanel
+                    event={event}
+                    primary={primary}
+                    textColor={textColor}
+                    surface={surface}
+                    muted={textMuted}
+                  />
+              }
+            </SafeSection>
+          )}
 
           {activeTab === 'polls' && event?.id && (
             <SafeSection label="Polls" primary={primary}>

@@ -9,6 +9,12 @@ import { supabase, isSupabaseEnabled } from './supabase';
 import { resilient, resilientRead, resilientWrite, attemptWithBackoff } from '../utils/resilience';
 import { log } from '../utils/log';
 import { ALL_CATEGORIES } from '../constants/AllCategories';
+import { LocationService } from './locationService';
+import { SecurityService } from './securityService';
+import { VibeEquityLedger } from './vibeEquityLedger';
+import { VibeEconomyEngine } from './revenueEngine';
+import projectDNA from './projectDNA.json';
+import { NotificationService } from './notificationService';
 
 // Map from AllCategories group → CATEGORY_CONFIG parent key
 const GROUP_TO_CAT_KEY = {
@@ -47,12 +53,123 @@ export const CAT_KEY_TO_SUBCATS = {};
     CAT_KEY_TO_SUBCATS[parent].add(c.key);
   }
 });
-import { LocationService } from './locationService';
-import { SecurityService } from './securityService';
-import { VibeEquityLedger } from './vibeEquityLedger';
-import { VibeEconomyEngine } from './revenueEngine';
-import projectDNA from './projectDNA.json';
-import { NotificationService } from './notificationService';
+
+// ── Explicit subcategory sets for CATEGORY_CONFIG keys not covered by GROUP_TO_CAT_KEY ──
+// These ensure clicking "Comedy", "Film", "Party", etc. returns relevant events
+const _extend = (key, ...keys) => {
+  if (!CAT_KEY_TO_SUBCATS[key]) CAT_KEY_TO_SUBCATS[key] = new Set([key]);
+  keys.forEach(k => CAT_KEY_TO_SUBCATS[key].add(k));
+};
+_extend('comedy',     'standup','improv','comedy_night','karaoke','open_mic','sketch');
+_extend('film',       'film','cinema','documentary','shortfilm','animation','videography');
+_extend('photography','photography','streetphotog','portraitphotog','film_photog','videography');
+_extend('dance',      'dance','ballet','contemporary','hiphop_dance','breakdance','streetdance',
+                      'afrobeats_dance','amapiano_dance','gqom_dance','kizomba','zouk','twerking',
+                      'linedance','swing','waltz','tango','tap_dance','bollywood_dance','kathak',
+                      'flamenco','irish_dance','danceworkshop','dancebattle','dancesocial');
+_extend('fitness',    'fitness','hiit','crossfit','zumba','aerobics','spin','barre','calisthenics',
+                      'bootcamp','kidsfitness','sportsday','fun_run');
+_extend('yoga',       'yoga','hotfyoga','hatha','vinyasa','kundalini','ashtanga','pilates','taichi','qigong');
+_extend('wellness',   'wellness','meditation','mindfulness','breathwork','stretching','spa','nutrition',
+                      'mentalhealth','therapy_group','detox','reiki','massage','cold_therapy','sauna',
+                      'naturopathy','acupuncture','fasting');
+_extend('beauty',     'beauty','makeup','skincare','haircare','nailart','locs','naturalhai',
+                      'barbershop','tattoo','piercing','wellness_beauty');
+_extend('esports',    'esports','esports_sport','gaming','lan_party','gaming_tourney','retro_gaming',
+                      'tabletop','boardgames','cardgames','poker','chess_event','vrgaming',
+                      'mobile_gaming','speedrun','minecraft','cosplay_gaming','streamer');
+_extend('gaming',     'gaming','esports','lan_party','gaming_tourney','retro_gaming','tabletop',
+                      'boardgames','cardgames','vrgaming','mobile_gaming','speedrun','streamer',
+                      'puzzles','minecraft','hackathon','coding','webdev','mobiledev','ai',
+                      'blockchain','crypto','web3','cybersecurity','data_science','robotics',
+                      'ar_vr','gaming_dev','techworkshop','techtalks');
+_extend('startup',    'startup','pitch','accelerator','entrepreneurship','youthbiz','fintech',
+                      'healthtech','edtech','cleantech','spacetech','product','open_source');
+_extend('networking', 'networking','meetup','speed_dating','singles_night','dating');
+_extend('conference', 'conference','summit','seminar','masterclass','techtalks','panel');
+_extend('workshop',   'workshop','masterclass','techworkshop','danceworkshop','tutorial',
+                      'study_group','mentoring','coaching');
+_extend('festival',   'festival','festival_music','foodfestival','rave','club_night');
+_extend('party',      'party','birthday','anniversary','rooftop','pool_party','beach_party',
+                      'garden_party','house_party','housewarming','graduation_party','vip_event');
+_extend('culture',    'culture','heritage','museum','history','archaeology','cultural_tour',
+                      'indigenous','traditional','interfaith');
+_extend('nightlife',  'nightlife','bar_night','lounge','jazz_bar','karaoke_bar','trivia_night',
+                      'game_night','movie_night','drag','burlesque','comedy_night','club_night');
+_extend('mental',     'mentalhealth','therapy_group','mental_wellness','therapy','mindfulness',
+                      'breathwork','grief','addiction');
+_extend('parenting',  'parenting','babies','toddlers','playdate','homeschool','storytime');
+_extend('seniors',    'seniors');
+_extend('lgbtq',      'lgbtq','pride');
+_extend('cooking',    'cooking','baking','pastry','masterchef','kidscooking','coffee','coffee_cupping',
+                      'tea','cheesetasting','chocolate');
+_extend('wine',       'wine_tasting','beer','cocktails','whiskey','gin','nonalcoholic','bubbletea');
+_extend('motorsport', 'motorsport','karting','f1','classic_cars','offroad','motorbikes','trucks','carshow');
+_extend('cars',       'cars','carshow','carwash','motorsport','karting','f1','classic_cars',
+                      'offroad','motorbikes','trucks');
+_extend('anime',      'anime','manga','cosplay','cosplay_gaming');
+_extend('poetry',     'poetry','spoken_word','storytelling','open_mic');
+_extend('standup',    'standup','comedy','improv','comedy_night');
+_extend('art',        'art','painting','drawing','sculpture','photography','film','cinema',
+                      'theatre','musicaltheatre','improv','standup','comedy','poetry','spoken_word',
+                      'gallery','exhibition','artwalk','mural','graffiti','digitalart','nft_art',
+                      'animation','manga','cosplay','craft','pottery','ceramics','glassblowing',
+                      'jewellery','candle_making','origami','knitting','crochet','sewing',
+                      'embroidery','woodwork','leatherwork','printmaking','calligraphy');
+_extend('religion',   'religion','christianity','islam','judaism','hinduism','buddhism',
+                      'traditional','interfaith','prayer','bible_study','retreat','crusade',
+                      'eid','diwali','hanukkah','christmas','easter','ramadan','passover',
+                      'navratri','gospel','gospel_praise');
+_extend('politics',   'politics','activist','protest','townhall','election','panel','petition',
+                      'human_rights','gender_rights','environment','climate','clean_up',
+                      'tree_planting','food_drive','indigenous','social_justice');
+_extend('health',     'health','medicine','mental_wellness','therapy','rehab','fundraise_health',
+                      'blood_drive','hiv_aids','cancer','diabetes','womens_health','mens_health',
+                      'reproductive','addiction','grief','disability','autism');
+_extend('travel',     'travel','adventure','camping','glamping','roadtrip','backpacking',
+                      'safaari','beachtrip','island_hopping','cruise','citybreak','voluntourism',
+                      'cultural_tour','food_tour','wine_tour','motorcycle','trekkings','skydiving',
+                      'bungee','paragliding','whitewater','spelunking','stargazing','birdwatching',
+                      'wildflowers','sunrise_hike','night_hike');
+_extend('science',    'science_event','astronomy','physics','biology','chemistry','geology',
+                      'marine','wildlife','conservation','nature','gardening','urban_farming',
+                      'composting','beekeeping','animals','pets','dogs','cats','horses');
+_extend('books',      'books','bookclub','author_talk','creative_writing','journalism',
+                      'publishing','blogging','zine','comics','screenwriting');
+_extend('crafts',     'craft','pottery','ceramics','glassblowing','jewellery','candle_making',
+                      'origami','knitting','crochet','sewing','embroidery','woodwork',
+                      'leatherwork','printmaking','calligraphy','magic','circus','juggling',
+                      'kite_flying','model_making','drone_racing','rc_cars','foraging',
+                      'numismatics','stamps','antiques','escape_room','murder_mystery',
+                      'tarot','astrology','zodiac');
+_extend('virtual',    'virtual','webinar','livestream','podcast','online_course',
+                      'virtual_concert','virtual_tour','online_party','discord','zoom_event','clubhouse');
+_extend('property',   'realestate','housewarming');
+_extend('edu',        'edu','school','university','graduation','lecture','tutorial','study_group',
+                      'debate','quiz','science','mathematics','languages','english','afrikaans',
+                      'zulu','xhosa','french','arabic','mandarin','spanish','portuguese',
+                      'swahili','sign_language','literacy','tutoring','eduwomen','stem','coding_kids');
+_extend('market',     'market','crafts_market','artmarket','pop_up','car_boot','flea_market',
+                      'fashion_market','tech_market','bookfair','plant_sale','food_swap',
+                      'food','foodmarket','streetfood','braai','picnic');
+_extend('food',       'food','restaurant','brunch','breakfast','lunch','dinner','supper',
+                      'braai','picnic','streetfood','foodmarket','foodfestival','wine_tasting',
+                      'beer','cocktails','coffee','coffee_cupping','tea','cooking','baking',
+                      'pastry','vegan','vegetarian','sushi','halaal','kosher','african_food',
+                      'asian_food','mediterranean','mexican_food','indian_food','masterchef',
+                      'cheesetasting','chocolate','nonalcoholic','bubbletea');
+_extend('kids',       'kids','parenting','babies','toddlers','playdate','kidsfitness',
+                      'storytime','kidscooking','kidsart','kidssports','carnival','funfair',
+                      'familydayout','homeschool','seniors','youth');
+_extend('fashion',    'fashion','fashionshow','runway','streetstyle','vintage','thriftstore',
+                      'sustainable_fashion','sneakers','luxury_fashion','menswear','womenswear',
+                      'kidswear','jewellery_fashion','beauty','makeup','skincare','haircare',
+                      'nailart','locs','naturalhai','barbershop','tattoo','piercing');
+_extend('charity',    'charity','fundraiser','volunteering','neighbourhood','blood_drive',
+                      'food_drive','tree_planting','clean_up','hiv_aids','cancer','disability');
+_extend('dating',     'dating','speed_dating','singles_night','lgbtq','pride','social',
+                      'meetup','party','birthday','anniversary','wedding','engagement',
+                      'babyshower','reunion');
 
 // ── INTELLIGENCE MONITORING (Autonomous Training) ──────────────────────────
 export const IntelligenceMonitor = {
@@ -459,8 +576,8 @@ export const FeedManager = {
       if (category !== 'all') {
         const subCats = CAT_KEY_TO_SUBCATS[category];
         const catList = subCats && subCats.size > 0 ? [...subCats] : [category];
-        // Match primary category OR any value in the categories[] array
-        q = q.or(`category.in.(${catList.join(',')}),categories.ov.{${catList.join(',')}}`);
+        // Use IN() — Supabase JS client encodes this as a POST-safe query
+        q = q.in('category', catList);
       }
       if (dateRange?.from) q = q.gte('event_date', dateRange.from);
       if (dateRange?.to)   q = q.lte('event_date', dateRange.to);
@@ -678,7 +795,7 @@ export const FeedManager = {
       if (category !== 'all') {
         const subCats = CAT_KEY_TO_SUBCATS[category];
         const catList = subCats && subCats.size > 0 ? [...subCats] : [category];
-        q = q.or(`category.in.(${catList.join(',')}),categories.ov.{${catList.join(',')}}`);
+        q = q.in('category', catList);
       }
       if (query.trim()) {
         const s = query.trim();

@@ -624,13 +624,20 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   }, []);
 
   const filteredEvents = useMemo(() => {
+    const matchesCatSet = (e, catSet) => {
+      if (!catSet) return true;
+      const eCat = e.category?.toLowerCase();
+      if (eCat && catSet.has(eCat)) return true;
+      if (Array.isArray(e.categories) && e.categories.some(c => catSet.has(c?.toLowerCase()))) return true;
+      return false;
+    };
     if (activeCat) {
-      const subCats = CAT_KEY_TO_SUBCATS[activeCat];
-      return happeningNow.filter(e => subCats ? subCats.has(e.category) : e.category === activeCat);
+      const subCats = CAT_KEY_TO_SUBCATS[activeCat] || new Set([activeCat]);
+      return happeningNow.filter(e => matchesCatSet(e, subCats));
     }
     if (activeMoods.size > 0) {
       const allCats = new Set(MOODS.filter(m => activeMoods.has(m.key)).flatMap(m => m.cats));
-      return happeningNow.filter(e => allCats.has(e.category));
+      return happeningNow.filter(e => matchesCatSet(e, allCats));
     }
     return happeningNow;
   }, [happeningNow, activeCat, activeMoods]);
