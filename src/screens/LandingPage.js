@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
@@ -219,6 +220,7 @@ const tm = StyleSheet.create({
 
 // ── Main LandingPage ──────────────────────────────────────────────────────────
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices }) => {
+  const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
   const toast = useToast();
@@ -1963,7 +1965,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {/* ── Scroll-to-top button ─────────────────────────────────────────── */}
       {showScrollTop && (
         <TouchableOpacity
-          style={[styles.scrollTopBtn, { backgroundColor: `${primary}22`, borderColor: `${primary}60` }]}
+          style={[styles.scrollTopBtn, { backgroundColor: `${primary}22`, borderColor: `${primary}60`, bottom: (insets.bottom || 0) + 100 }]}
           onPress={() => {
             flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
             safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
@@ -1974,9 +1976,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </TouchableOpacity>
       )}
 
-      {/* ── Create event FAB (bottom right, always reachable by thumb) ──── */}
+      {/* ── Create event FAB (bottom right, above nav bar) ───────────────── */}
       <TouchableOpacity
-        style={[styles.createFab, { backgroundColor: primary }]}
+        style={[styles.createFab, { backgroundColor: primary, bottom: (insets.bottom || 0) + 20 }]}
         onPress={() => {
           safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
           user ? setPostModalVisible(true) : onAuthRequired();
