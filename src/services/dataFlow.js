@@ -482,16 +482,25 @@ export const FeedManager = {
       } catch { resolvedFollowedIds = []; }
     }
 
-    const rankAndCache = (data, count) => {
+    const rankAndCache = async (data, count) => {
       let events = data || [];
       if (!query.trim()) {
-        events = [...events].sort((a, b) =>
-          ScoreEngine.eventScore(b, { userInterests, followedIds: resolvedFollowedIds, userLat, userLon, aiRecommendedIds }) -
-          ScoreEngine.eventScore(a, { userInterests, followedIds: resolvedFollowedIds, userLat, userLon, aiRecommendedIds })
-        );
+        // Stamp heat scores so applyPersonalisedBoost can re-rank with them
+        events = events.map(e => ({
+          ...e,
+          _heatScore: ScoreEngine.eventScore(e, { userInterests, followedIds: resolvedFollowedIds, userLat, userLon, aiRecommendedIds }),
+        }));
+        events.sort((a, b) => b._heatScore - a._heatScore);
       }
       if (aiRecommendedIds.size > 0) {
         events = events.map(e => aiRecommendedIds.has(e.id) ? { ...e, _aiRecommended: true } : e);
+      }
+      // Apply personalised traffic routing boost (non-blocking, best-effort)
+      if (userId && page === 0) {
+        try {
+          const { applyPersonalisedBoost } = await import('./personalizationEngine');
+          events = await applyPersonalisedBoost(events, userId);
+        } catch { /* silently skip — personalization is enhancement only */ }
       }
       const result = { events, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
       cache.set(cacheKey, result);
@@ -930,6 +939,10 @@ export const RSVPManager = {
       if (status === 'going') {
         _notifyEventAuthor(eventId, userId, 'rsvp').catch(() => {});
         ScoreEngine.computeVibeScore(userId).catch(() => {});
+        // Refresh deep profile after each RSVP — throttled by the engine itself
+        import('./personalizationEngine').then(({ computeUserDeepProfile }) =>
+          computeUserDeepProfile(userId).catch(() => {})
+        ).catch(() => {});
       }
       return true;
     }
@@ -1308,6 +1321,12 @@ export const CheckInManager = {
       VibeEquityLedger.mintEquity(userId, 'PHYSICAL_CHECKIN').catch(() => { });
 
       _notifyEventAuthor(eventId, userId, 'checkin').catch(() => { });
+
+      // Check-ins are the highest-trust signal — always refresh deep profile
+      import('./personalizationEngine').then(({ computeUserDeepProfile }) =>
+        computeUserDeepProfile(userId).catch(() => {})
+      ).catch(() => {});
+
       return true;
     } catch (e) {
       return false;

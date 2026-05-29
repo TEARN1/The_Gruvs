@@ -46,6 +46,7 @@ import { ReactPicker } from '../components/ReactPicker';
 
 // ── Lazy-loaded section components ──
 const PostEventModal      = React.lazy(() => import('../components/PostEventModal').then(m => ({ default: m.PostEventModal })));
+const PersonalPlannerModal = React.lazy(() => import('../components/PersonalPlannerModal').then(m => ({ default: m.PersonalPlannerModal })));
 const ViberProfileModal   = React.lazy(() => import('../components/ViberProfileModal').then(m => ({ default: m.ViberProfileModal })));
 const ActivityCenterModal = React.lazy(() => import('../components/ActivityCenterModal').then(m => ({ default: m.ActivityCenterModal })));
 const EventAdminPanel     = React.lazy(() => import('../components/EventAdminPanel').then(m => ({ default: m.EventAdminPanel })));
@@ -258,6 +259,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // Modals
   const [postModalVisible, setPostModalVisible] = useState(false);
+  const [plannerVisible, setPlannerVisible] = useState(false);
   const [trendingModalVisible, setTrendingModalVisible] = useState(false);
   const [selectedViber, setSelectedViber] = useState(null);
   const [viberModalVisible, setViberModalVisible] = useState(false);
@@ -1246,6 +1248,27 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               </View>
             )}
 
+            {/* Recurring series banner */}
+            {event.is_recurring && !event._isTrending && (
+              <View style={[styles.trendingBanner, { backgroundColor: '#6366f1' }]}>
+                <Feather name="repeat" size={10} color="#fff" style={{ marginRight: 4 }} />
+                <Text style={styles.trendingBannerText}>
+                  {event.recurrence_type === 'weekly'   ? 'WEEKLY SERIES' :
+                   event.recurrence_type === 'monthly'  ? 'MONTHLY SERIES' :
+                   event.recurrence_type === 'annually' ? 'ANNUAL EVENT' :
+                   event.recurrence_type === 'custom'   ? 'EVENT SERIES' : 'RECURRING'}
+                  {event.next_occurrence ? ` · NEXT ${new Date(event.next_occurrence).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' }).toUpperCase()}` : ''}
+                </Text>
+              </View>
+            )}
+
+            {/* AI-routed personalisation badge */}
+            {event._aiRecommended && !event._isTrending && !event.is_recurring && (
+              <View style={[styles.trendingBanner, { backgroundColor: '#7c3aed' }]}>
+                <Text style={styles.trendingBannerText}>✦ MATCHED TO YOUR VIBE</Text>
+              </View>
+            )}
+
             {/* Media — double-tap to vibe, long-press for quick actions */}
             <TouchableOpacity
               activeOpacity={1}
@@ -1788,6 +1811,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           />
         </SafeSection>
       )}
+
+      {plannerVisible && (
+        <SafeSection label="Vibe Planner" primary={primary}>
+          <PersonalPlannerModal
+            visible={plannerVisible}
+            onClose={() => setPlannerVisible(false)}
+            onNavigateToEvent={(ev) => setSelectedEvent(ev)}
+          />
+        </SafeSection>
+      )}
       {viberModalVisible && (
         <SafeSection label="Profile" primary={primary}>
           <ViberProfileModal
@@ -1981,6 +2014,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           activeOpacity={0.8}
         >
           <Feather name="chevrons-up" size={18} color={primary} />
+        </TouchableOpacity>
+      )}
+
+      {/* ── Vibe Plan FAB (bottom left, above nav bar) ────────────────────── */}
+      {!!user && (
+        <TouchableOpacity
+          style={[styles.createFab, { backgroundColor: '#6366f1', bottom: (insets.bottom || 0) + 20, right: undefined, left: 20 }]}
+          onPress={() => {
+            safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+            setPlannerVisible(true);
+          }}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Open your personalised vibe plan"
+        >
+          <Feather name="calendar" size={22} color="#fff" />
         </TouchableOpacity>
       )}
 
