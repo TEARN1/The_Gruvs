@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
-  TextInput, Dimensions, Animated, Platform, Modal, RefreshControl,
+  TextInput, Dimensions, Animated, Platform, Modal, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -370,6 +370,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [activeMoods, setActiveMoods] = useState(new Set());
   const [activeCat, setActiveCat] = useState(null);
   const [featuredEvent, setFeaturedEvent] = useState(null);
+  const [galleryPhotos, setGalleryPhotos] = useState([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
   const [happeningNow, setHappeningNow] = useState([]);
   const [trendingEvents, setTrendingEvents] = useState([]);
   const [nearbyVibers, setNearbyVibers] = useState([]);
@@ -435,6 +437,35 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         TrendingManager.fetchHappeningNow(),
         TrendingManager.fetchCategoryCounts(),
       ]);
+
+      // Gallery: latest photos from event_gallery + event_moments
+      setGalleryLoading(true);
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const twoWeeksAgo = new Date(Date.now() - 14 * 86400000).toISOString();
+        const [galleryRes, momentsRes] = await Promise.allSettled([
+          supabase.from('event_gallery')
+            .select('id, media_url, media_type, caption, event_id, user_id, created_at, events(title, city, category)')
+            .gte('created_at', twoWeeksAgo)
+            .eq('media_type', 'image')
+            .order('created_at', { ascending: false })
+            .limit(24),
+          supabase.from('event_moments')
+            .select('id, media_url, media_type, caption, event_id, user_id, created_at, events(title, city, category)')
+            .gte('expires_at', new Date().toISOString())
+            .eq('media_type', 'image')
+            .order('created_at', { ascending: false })
+            .limit(24),
+        ]);
+        const gallery = galleryRes.status === 'fulfilled' ? (galleryRes.value.data || []) : [];
+        const moments = momentsRes.status === 'fulfilled' ? (momentsRes.value.data || []) : [];
+        const combined = [...gallery, ...moments]
+          .filter(p => p.media_url)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 30);
+        setGalleryPhotos(combined);
+      } catch { setGalleryPhotos([]); }
+      finally { setGalleryLoading(false); }
 
       const trending = trendingRes.status === 'fulfilled' ? trendingRes.value : [];
       const happening = happeningRes.status === 'fulfilled' ? happeningRes.value : [];
@@ -999,6 +1030,61 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 muted={muted}
                 categoryCounts={categoryCounts}
               />
+            </View>
+
+            {/* ── Photo Gallery ───────────────────────────────────────────── */}
+            <View style={{ marginBottom: 20 }}>
+              <SectionHeader title="📸 Photos from Gruvs" textColor={textColor} primary={primary} />
+              {galleryLoading ? (
+                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                  <ActivityIndicator color={primary} />
+                </View>
+              ) : galleryPhotos.length === 0 ? (
+                <View style={{ paddingHorizontal: 20, paddingVertical: 14 }}>
+                  <Text style={{ color: muted, fontSize: 13 }}>No photos yet — attend events and upload your shots!</Text>
+                </View>
+              ) : (
+                <>
+                  {/* 3-column masonry-style grid */}
+                  <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 3 }}>
+                    {[0, 1, 2].map(col => (
+                      <View key={col} style={{ flex: 1, gap: 3 }}>
+                        {galleryPhotos
+                          .filter((_, i) => i % 3 === col)
+                          .map((photo, idx) => {
+                            const isLarge = idx === 0 && col === 0;
+                            return (
+                              <TouchableOpacity
+                                key={photo.id}
+                                activeOpacity={0.88}
+                                style={{ borderRadius: 8, overflow: 'hidden', aspectRatio: isLarge ? 1 : (idx % 2 === 0 ? 1 : 0.75) }}
+                              >
+                                <Image
+                                  source={{ uri: photo.media_url }}
+                                  style={{ width: '100%', height: '100%' }}
+                                  resizeMode="cover"
+                                />
+                                {/* Overlay with event title */}
+                                {photo.events?.title && (
+                                  <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 4, backgroundColor: 'rgba(0,0,0,0.55)' }}>
+                                    <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }} numberOfLines={1}>
+                                      {photo.events.title}
+                                    </Text>
+                                  </View>
+                                )}
+                              </TouchableOpacity>
+                            );
+                          })}
+                      </View>
+                    ))}
+                  </View>
+                  {galleryPhotos.length >= 18 && (
+                    <TouchableOpacity style={{ marginHorizontal: 20, marginTop: 10, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: `${primary}30`, alignItems: 'center' }}>
+                      <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>View all photos →</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
             </View>
 
             {/* ── App Updates (Upgrades) ──────────────────────────────────── */}
