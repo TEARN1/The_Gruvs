@@ -988,9 +988,10 @@ const ProfileTabSkeleton = ({ primary }) => {
 // ── Mini event card for profile tabs ─────────────────────────────────────────
 const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPress }) => {
   // media_urls is a string[] saved by PostEventModal; media is the legacy object[] format
-  const imgUrl = ev.media_urls?.[0] ||
-    ev.media?.find(m => m?.type === 'image')?.url ||
-    (typeof ev.media?.[0] === 'string' ? ev.media[0] : null);
+  const imgUrl = ev.cover_url ||
+    ev.media_urls?.[0] ||
+    (Array.isArray(ev.media) ? ev.media.find(m => m?.type === 'image')?.url : null) ||
+    ev.cover_image || ev.image_url || null;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[mec.wrap, { borderColor: `${primary}20` }]}>
       {imgUrl
