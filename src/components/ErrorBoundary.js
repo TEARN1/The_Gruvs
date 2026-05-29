@@ -37,7 +37,14 @@ export class ErrorBoundary extends React.Component {
       return (
         <View style={[s.inlineWrap, this.props.style]}>
           <Feather name="alert-circle" size={13} color="#f59e0b" />
-          <Text style={s.inlineText}>{label} unavailable</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.inlineText}>{label} unavailable</Text>
+            {this.state.error?.message ? (
+              <Text style={[s.inlineText, { fontSize: 10, opacity: 0.6 }]} selectable numberOfLines={2}>
+                {this.state.error.message}
+              </Text>
+            ) : null}
+          </View>
           <TouchableOpacity onPress={this.reset} style={s.inlineBtn}>
             <Text style={s.inlineBtnText}>Retry</Text>
           </TouchableOpacity>

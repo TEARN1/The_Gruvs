@@ -1399,9 +1399,11 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           async () => {
             const { data: d, error } = await supabase
               .from('events')
-              .select('id, title, date')
+              .select('id, title, event_date, event_time, venue_name, category, media, media_urls, cover_url, cover_image, vibe_count, going, is_cancelled, is_deleted, created_at')
               .eq('author_id', user.id)
-              .limit(10);
+              .neq('is_deleted', true)
+              .order('created_at', { ascending: false })
+              .limit(30);
             if (error) throw error;
             return d;
           },

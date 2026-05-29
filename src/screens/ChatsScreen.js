@@ -306,16 +306,26 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   );
 };
 
-// ── useUnreadDMCount hook (for nav badge) ────────────────────────────────────
-export const useUnreadDMCount = () => {
+// ── useUnreadDMCount hook (for nav badge + toast on new message) ─────────────
+export const useUnreadDMCount = (onNewMessage) => {
   const { user } = useAuth();
   const [count, setCount] = useState(0);
+  const prevCountRef = useRef(0);
   const unsubRef = useRef(null);
 
   useEffect(() => {
     if (!user) { setCount(0); return; }
-    MessageManager.getUnreadCount(user.id).then(setCount);
-    unsubRef.current = MessageManager.subscribeUnreadCount(user.id, setCount);
+    MessageManager.getUnreadCount(user.id).then(c => {
+      prevCountRef.current = c;
+      setCount(c);
+    });
+    unsubRef.current = MessageManager.subscribeUnreadCount(user.id, (newCount) => {
+      if (newCount > prevCountRef.current) {
+        onNewMessage?.();
+      }
+      prevCountRef.current = newCount;
+      setCount(newCount);
+    });
     return () => unsubRef.current?.();
   }, [user]);
 

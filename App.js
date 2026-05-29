@@ -11,7 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { IdentityProvider } from './src/context/IdentityContext';
-import { ToastProvider } from './src/components/ToastNotification';
+import { ToastProvider, useToast } from './src/components/ToastNotification';
 import { LandingPage } from './src/screens/LandingPage';
 // Hooks from these modules are used at shell level — keep eager
 import { NotificationsScreen, useUnreadCount } from './src/screens/NotificationsScreen';
@@ -256,8 +256,11 @@ const MainNavigator = () => {
   const { currentTheme, applyNeuralTheme } = useTheme();
   const { user: authUser } = useAuth();
   const { width } = useWindowDimensions();
+  const { show: showToast } = useToast();
   const unreadCount = useUnreadCount();
-  const unreadDMCount = useUnreadDMCount();
+  const unreadDMCount = useUnreadDMCount(
+    () => { if (currentTab !== 'chats') showToast('💬 New message in Linked Up', 'info'); }
+  );
   const { hasLaunched, openTutorial, markLaunched, activeTutorial } = useTutorial();
   const [currentTab, setCurrentTab] = useState('feed');
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
