@@ -465,7 +465,7 @@ export const FeedManager = {
       },
       // ── Tier 2 (Secondary): no profile join — lighter query ───────────────
       async () => {
-        let q = buildBaseQuery('id, title, description, media, vibe_count, going, event_date, event_time, venue_name, category, author_id, lat, lon, price, created_at, is_verified');
+        let q = buildBaseQuery('id, title, description, media, media_urls, cover_url, vibe_count, going, event_date, event_time, venue_name, category, author_id, lat, lon, price, created_at, is_verified, contact_phone, contact_email, age_restriction, age_max, tags, ticket_url, capacity, is_cancelled, is_deleted, rsvp_tiers');
         if (mode === 'following' && resolvedFollowedIds.length > 0) q = q.in('author_id', resolvedFollowedIds);
         const { data, error, count } = await q;
         if (error) throw error;
