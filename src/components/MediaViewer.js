@@ -40,20 +40,30 @@ const MediaItem = ({ item, isActive, width, height }) => {
 };
 
 export const MediaViewer = ({ media, containerWidth }) => {
-  const MEDIA_WIDTH = containerWidth || SCREEN_WIDTH;
+  // Measure actual rendered width via onLayout so cards narrower than SCREEN_WIDTH
+  // get correctly sized items (especially on wide web layouts).
+  const [measuredWidth, setMeasuredWidth] = useState(containerWidth || SCREEN_WIDTH);
+  const MEDIA_WIDTH = measuredWidth;
   const MEDIA_HEIGHT = Math.round(MEDIA_WIDTH * 9 / 16);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const onLayout = useCallback((e) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0) setMeasuredWidth(w);
+  }, []);
+
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (viewableItems.length > 0) {
-      const newIndex = viewableItems[0].index;
-      setActiveIndex(newIndex);
+      setActiveIndex(viewableItems[0].index);
     }
   }, []);
 
   if (!media || media.length === 0) {
     return (
-      <View style={[styles.container, { width: MEDIA_WIDTH, height: MEDIA_HEIGHT, backgroundColor: '#111a1c', alignItems: 'center', justifyContent: 'center' }]}>
+      <View
+        style={[styles.container, { height: MEDIA_HEIGHT, backgroundColor: '#111a1c', alignItems: 'center', justifyContent: 'center' }]}
+        onLayout={onLayout}
+      >
         <View style={{ alignItems: 'center', opacity: 0.3 }}>
           <Text style={{ fontSize: 36 }}>🎵</Text>
           <Text style={{ color: '#fff', fontSize: 11, marginTop: 4 }}>No photo added</Text>
@@ -79,7 +89,7 @@ export const MediaViewer = ({ media, containerWidth }) => {
   };
 
   return (
-    <View style={[styles.container, { width: MEDIA_WIDTH, height: MEDIA_HEIGHT }]}>
+    <View style={[styles.container, { height: MEDIA_HEIGHT }]} onLayout={onLayout}>
       <FlatList
         data={media}
         renderItem={renderItem}
