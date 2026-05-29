@@ -375,22 +375,24 @@ export const FeedManager = {
   async fetchPage({
     page = 0, category = 'all', query = '', mode = 'drop',
     userInterests = [], followedIds = [], userLat, userLon, userId = null,
+    dateRange = null,
   } = {}) {
-    const cacheKey = `feed:${mode}:${category}:${query}:${page}:${userId || 'anon'}`;
+    const dateKey = dateRange ? `${dateRange.from}_${dateRange.to}` : 'any';
+    const cacheKey = `feed:${mode}:${category}:${query}:${page}:${userId || 'anon'}:${dateKey}`;
     const stale = cache.getStale(cacheKey);
     const fresh = cache.get(cacheKey);
     if (fresh) return fresh;
     if (stale) {
-      this._revalidatePage({ page, category, query, mode, userInterests, followedIds, userLat, userLon, userId }, cacheKey);
+      this._revalidatePage({ page, category, query, mode, userInterests, followedIds, userLat, userLon, userId, dateRange }, cacheKey);
       return stale;
     }
-    // Deduplicate concurrent calls with identical key
-    return dedupe(cacheKey, () => this._doFetchPage({ page, category, query, mode, userInterests, followedIds, userLat, userLon, userId }, cacheKey));
+    return dedupe(cacheKey, () => this._doFetchPage({ page, category, query, mode, userInterests, followedIds, userLat, userLon, userId, dateRange }, cacheKey));
   },
 
   async _doFetchPage({
     page = 0, category = 'all', query = '', mode = 'drop',
     userInterests = [], followedIds = [], userLat, userLon, userId = null,
+    dateRange = null,
   } = {}, cacheKey) {
 
     // Load AI recommendations for this user (non-blocking, best-effort)
@@ -416,8 +418,9 @@ export const FeedManager = {
         .neq('is_cancelled', true)
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
       if (category !== 'all') q = q.eq('category', category);
+      if (dateRange?.from) q = q.gte('event_date', dateRange.from);
+      if (dateRange?.to)   q = q.lte('event_date', dateRange.to);
       if (query.trim()) {
-        // Escape ilike special chars so user input is treated as a literal string
         const s = query.trim().replace(/[%_\\]/g, c => `\\${c}`);
         q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%,venue_name.ilike.%${s}%`).order('vibe_count', { ascending: false });
       } else {

@@ -422,6 +422,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       mode: feedMode,
       userId: user?.id || null,
       followedIds: followedIdsRef.current,
+      dateRange,
     };
 
     try {
@@ -476,7 +477,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       setRefreshing(false);
     }
   // Removed `events` and `loadingMore` from deps — they caused infinite re-render loops
-  }, [selectedCat, debouncedQuery, page, hasMore, feedMode, user?.id, profile?.interests]);
+  }, [selectedCat, debouncedQuery, page, hasMore, feedMode, user?.id, profile?.interests, dateRange]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -506,8 +507,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   }, [searchQuery]);
 
   useEffect(() => {
+    FeedManager.invalidate();
     loadData(true);
-  }, [selectedCat, debouncedQuery, mode, refreshKey, feedMode, user?.id, loadData]);
+  }, [selectedCat, debouncedQuery, mode, refreshKey, feedMode, user?.id, dateFilter, loadData]);
 
   useEffect(() => {
     loadTrending();
