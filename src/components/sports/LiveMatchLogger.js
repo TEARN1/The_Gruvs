@@ -18,7 +18,7 @@ import {
   MatchManager, MatchEventManager, CommentaryManager,
   StatsManager, SportConfig, SPORT_REGISTRY,
 } from '../../services/sportsEngine';
-import { supabase } from '../../services/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 const EVENT_ICONS = {
   goal: '⚽', own_goal: '😅', yellow_card: '🟨', red_card: '🟥',
@@ -140,7 +140,7 @@ export const LiveMatchLogger = ({
   }, [visible, matchId]);
 
   const sportMeta = SPORT_REGISTRY[config?.sport_type] || SPORT_REGISTRY.soccer;
-  const { user: authUser } = { user: null }; // will be injected via useAuth in real use
+  const { user: authUser } = useAuth();
 
   const handleScoreChange = async (side, delta) => {
     if (!match) return;
@@ -220,7 +220,7 @@ export const LiveMatchLogger = ({
         setMatch(prev => ({ ...prev, ...updated }));
 
         // Post auto commentary
-        await CommentaryManager.post(matchId, eventId, null, {
+        await CommentaryManager.post(matchId, eventId, authUser?.id || null, {
           minute: entry.minute,
           type: 'goal',
           body: `${EVENT_ICONS[logForm.type] || '⚽'} GOAL! ${logForm.playerName || 'Player'} (${isHome ? match.home_team?.name : match.away_team?.name}) — ${newHome}–${newAway}`,
@@ -235,7 +235,7 @@ export const LiveMatchLogger = ({
     if (!commentText.trim()) return;
     setSaving(true);
     try {
-      const entry = await CommentaryManager.post(matchId, eventId, null, {
+      const entry = await CommentaryManager.post(matchId, eventId, authUser?.id || null, {
         minute: match.current_minute,
         type: 'update',
         body: commentText.trim(),

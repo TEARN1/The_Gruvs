@@ -1896,7 +1896,7 @@ export async function analyseRecurringEventAudience({ eventId, eventTitle, userI
 
   const { data: routes } = await supabase
     .from('event_traffic_routes')
-    .select('route_score, cat_score, temporal_score, location_score, route_reason, profiles(city, cohort_tags)')
+    .select('route_score, cat_score, temporal_score, location_score, route_reason, user_deep_profile!user_id(preferred_cities, cohort_tags)')
     .eq('event_id', eventId)
     .order('route_score', { ascending: false })
     .limit(200);
@@ -1907,8 +1907,8 @@ export async function analyseRecurringEventAudience({ eventId, eventTitle, userI
   const cohortCounts = {};
   const cityCounts   = {};
   routes.forEach(r => {
-    (r.profiles?.cohort_tags || []).forEach(t => { cohortCounts[t] = (cohortCounts[t] || 0) + 1; });
-    if (r.profiles?.city) cityCounts[r.profiles.city] = (cityCounts[r.profiles.city] || 0) + 1;
+    (r.user_deep_profile?.cohort_tags || []).forEach(t => { cohortCounts[t] = (cohortCounts[t] || 0) + 1; });
+    (r.user_deep_profile?.preferred_cities || []).slice(0,1).forEach(c => { cityCounts[c] = (cityCounts[c] || 0) + 1; });
   });
 
   const topCohorts = Object.entries(cohortCounts).sort((a,b) => b[1]-a[1]).slice(0,5).map(([t,c]) => `${t} (${c})`).join(', ');

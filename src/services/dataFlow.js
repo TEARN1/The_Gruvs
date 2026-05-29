@@ -517,7 +517,7 @@ export const FeedManager = {
         }
         const { data, error, count } = await q;
         if (error) throw error;
-        return rankAndCache(data, count);
+        return await rankAndCache(data, count);
       },
       // ── Tier 2 (Secondary): no profile join — lighter query ───────────────
       async () => {
@@ -525,7 +525,7 @@ export const FeedManager = {
         if (mode === 'following' && resolvedFollowedIds.length > 0) q = q.in('author_id', resolvedFollowedIds);
         const { data, error, count } = await q;
         if (error) throw error;
-        return rankAndCache(data, count);
+        return await rankAndCache(data, count);
       },
       // ── Tier 3 (Tertiary): stale cache ────────────────────────────────────
       () => {
@@ -675,7 +675,11 @@ export const FeedManager = {
         .neq('is_deleted', true)
         .neq('is_cancelled', true)
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
-      if (category !== 'all') q = q.eq('category', category);
+      if (category !== 'all') {
+        const subCats = CAT_KEY_TO_SUBCATS[category];
+        const catList = subCats && subCats.size > 0 ? [...subCats] : [category];
+        q = q.or(`category.in.(${catList.join(',')}),categories.ov.{${catList.join(',')}}`);
+      }
       if (query.trim()) {
         const s = query.trim();
         q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%,category.ilike.%${s}%,venue_name.ilike.%${s}%,city.ilike.%${s}%`).order('vibe_count', { ascending: false });
