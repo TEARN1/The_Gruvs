@@ -294,6 +294,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
   const fetchedCheckinIds = useRef(new Set());
 
+  // ── Mobile UX: gestures, animations, quick actions ─────────────────────────
+  const lastTapRef    = useRef({}); // double-tap tracking per card
+  const cardScaleRef  = useRef({}); // press-in scale per card
+  const heartAnimRef  = useRef({}); // heart burst per card
+  const [quickActionTarget, setQuickActionTarget] = useState(null); // long-press quick sheet
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
   // Handle native Android hardware back button inside LandingPage
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -1109,6 +1116,53 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     reactionFlash, routeEvents, crewRsvpMap, followingSet, highlightedId, eventCheckins,
   }), [myVibes, vibeCounts, reactions, savedEvents, openSection, reactionFlash, routeEvents, crewRsvpMap, followingSet, highlightedId, eventCheckins]);
 
+  // ── Mobile gesture helpers ────────────────────────────────────────────────────
+  const getCardScale = useCallback((id) => {
+    if (!cardScaleRef.current[id]) cardScaleRef.current[id] = new Animated.Value(1);
+    return cardScaleRef.current[id];
+  }, []);
+
+  const onCardPressIn = useCallback((id) => {
+    if (Platform.OS === 'web') return;
+    Animated.spring(getCardScale(id), { toValue: 0.977, useNativeDriver: true, tension: 500, friction: 30 }).start();
+  }, [getCardScale]);
+
+  const onCardPressOut = useCallback((id) => {
+    if (Platform.OS === 'web') return;
+    Animated.spring(getCardScale(id), { toValue: 1, useNativeDriver: true, tension: 500, friction: 20 }).start();
+  }, [getCardScale]);
+
+  // Double-tap: fires vibe + heart burst; single-tap: opens detail
+  const handleImageTap = useCallback((eventItem) => {
+    const id = eventItem.id;
+    const now = Date.now();
+    const last = lastTapRef.current[id] || 0;
+    if (now - last < 350 && last !== 0) {
+      lastTapRef.current[id] = 0;
+      if (!myVibes.has(id)) {
+        handleVibe(id);
+        // Heart burst animation
+        if (!heartAnimRef.current[id]) {
+          heartAnimRef.current[id] = { scale: new Animated.Value(0), opacity: new Animated.Value(0) };
+        }
+        const { scale, opacity } = heartAnimRef.current[id];
+        scale.setValue(0); opacity.setValue(1);
+        Animated.parallel([
+          Animated.spring(scale, { toValue: 1.5, useNativeDriver: true, tension: 200, friction: 8 }),
+          Animated.sequence([Animated.delay(450), Animated.timing(opacity, { toValue: 0, duration: 350, useNativeDriver: true })]),
+        ]).start(() => { scale.setValue(0); });
+      }
+    } else {
+      lastTapRef.current[id] = now;
+      setTimeout(() => { if (lastTapRef.current[id] === now) setSelectedEvent(eventItem); }, 210);
+    }
+  }, [myVibes, handleVibe]);
+
+  const handleImageLongPress = useCallback((eventItem) => {
+    safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+    setQuickActionTarget(eventItem);
+  }, []);
+
   // ── EVENT CARD ────────────────────────────────────────────────────────────────
   const renderCard = useCallback(({ item: event, index }) => {
     const id = event.id;
@@ -1145,9 +1199,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
     return (
       <React.Fragment>
-        {/* Item 53: cap stagger so cards 7+ appear instantly */}
         <FadeInView delay={Math.min(index, 5) * 60} direction="up">
-          {/* Items 46-47-58-61: accessible card with web-specific class, cursor, keyboard */}
+          <Animated.View style={{ transform: [{ scale: getCardScale(id) }] }}>
           <View
             style={[
               styles.eventCard,
@@ -1183,11 +1236,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               </View>
             )}
 
-            {/* Media */}
-            {/* Item 49: aspect-ratio reserves space before image loads (prevents CLS) */}
+            {/* Media — double-tap to vibe, long-press for quick actions */}
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => handleImageTap(event)}
+              onPressIn={() => onCardPressIn(id)}
+              onPressOut={() => onCardPressOut(id)}
+              onLongPress={() => handleImageLongPress(event)}
+              delayLongPress={400}
+            >
             <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }, isWeb && { aspectRatio: '16/9' }]}>
               <MediaViewer media={(() => {
-                // media is JSONB — Supabase may return it as array or as string
                 let m = event.media;
                 if (typeof m === 'string') { try { m = JSON.parse(m); } catch { m = null; } }
                 if (!m?.length && event.media_urls?.length) {
@@ -1198,7 +1257,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
                 return m?.length ? m : null;
               })()} />
-              {/* Item 48: vignette gradient instead of flat scrim */}
+              {/* Double-tap heart burst overlay */}
+              {heartAnimRef.current[id] && (
+                <Animated.View pointerEvents="none" style={{
+                  ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center',
+                  opacity: heartAnimRef.current[id].opacity,
+                  transform: [{ scale: heartAnimRef.current[id].scale }],
+                }}>
+                  <Text style={{ fontSize: 72 }}>❤️</Text>
+                </Animated.View>
+              )}
+              {/* Item 48: vignette gradient */}
               <View style={{
                 ...StyleSheet.absoluteFillObject,
                 ...(isWeb
@@ -1218,16 +1287,18 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   </Text>
                 </View>
               )}
-              {/* Item 50: accessible bookmark button */}
+              {/* Bookmark — separate touch target, stops propagation to image tap */}
               <TouchableOpacity
                 style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
-                onPress={() => handleBookmark(id)}
+                onPress={(e) => { e.stopPropagation?.(); handleBookmark(id); }}
                 accessibilityRole="button"
                 accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} />
               </TouchableOpacity>
             </View>
+            </TouchableOpacity>
 
             {/* Body */}
             <View style={styles.cardBody}>
@@ -1586,6 +1657,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               />
             )}
           </View>
+          </Animated.View>
         </FadeInView>
         {showAd && (
           <AdFlywheel intentTag="attending" onNavigateToServices={onNavigateToServices} />
@@ -1596,7 +1668,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       followingSet, highlightedId, eventCheckins, user, primary, surface, textColor, muted, mode,
       onAuthRequired, onNavigateToServices, handleVibe, handleBookmark, handleReact, handleShare,
       handleToggleRoute, toggleSection, fetchReactors, fetchEventCheckins, openViberProfile,
-      handleFollowFromFeed]);
+      handleFollowFromFeed, handleImageTap, handleImageLongPress, onCardPressIn, onCardPressOut,
+      getCardScale, heartAnimRef]);
 
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
@@ -1612,6 +1685,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         keyExtractor={item => String(item.id)}
         extraData={cardExtraData}
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          setShowScrollTop(y > 600);
+        }}
         onScrollToIndexFailed={() => { }}
         removeClippedSubviews={Platform.OS !== 'web'}
         maxToRenderPerBatch={5}
@@ -1879,6 +1959,63 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           />
         </SafeSection>
       )}
+
+      {/* ── Scroll-to-top button ─────────────────────────────────────────── */}
+      {showScrollTop && (
+        <TouchableOpacity
+          style={[styles.scrollTopBtn, { backgroundColor: `${primary}22`, borderColor: `${primary}60` }]}
+          onPress={() => {
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+            safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+          }}
+          activeOpacity={0.8}
+        >
+          <Feather name="chevrons-up" size={18} color={primary} />
+        </TouchableOpacity>
+      )}
+
+      {/* ── Create event FAB (bottom right, always reachable by thumb) ──── */}
+      <TouchableOpacity
+        style={[styles.createFab, { backgroundColor: primary }]}
+        onPress={() => {
+          safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+          user ? setPostModalVisible(true) : onAuthRequired();
+        }}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Create a new event"
+      >
+        <Feather name="plus" size={26} color="#000" />
+      </TouchableOpacity>
+
+      {/* ── Long-press quick action sheet ────────────────────────────────── */}
+      {!!quickActionTarget && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setQuickActionTarget(null)}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setQuickActionTarget(null)} />
+          <View style={[styles.quickSheet, { backgroundColor: surface, borderColor: `${primary}20` }]}>
+            <View style={[styles.quickSheetHandle, { backgroundColor: `${primary}40` }]} />
+            <Text style={[styles.quickSheetTitle, { color: textColor }]} numberOfLines={1}>
+              {quickActionTarget.title}
+            </Text>
+            {[
+              { icon: 'zap', label: myVibes.has(quickActionTarget.id) ? 'Remove Vibe' : 'Vibe it ⚡', action: () => { handleVibe(quickActionTarget.id); setQuickActionTarget(null); } },
+              { icon: 'bookmark', label: savedEvents.has(quickActionTarget.id) ? 'Unsave' : 'Save', action: () => { handleBookmark(quickActionTarget.id); setQuickActionTarget(null); } },
+              { icon: 'check-circle', label: 'RSVP', action: () => { setRsvpEvent(quickActionTarget); setQuickActionTarget(null); } },
+              { icon: 'share-2', label: 'Share', action: () => { handleShare(quickActionTarget); setQuickActionTarget(null); } },
+              { icon: 'plus-circle', label: 'Add to Journey', action: () => { handleToggleRoute(quickActionTarget); setQuickActionTarget(null); } },
+              { icon: 'info', label: 'View Details', action: () => { setSelectedEvent(quickActionTarget); setQuickActionTarget(null); } },
+            ].map(item => (
+              <TouchableOpacity key={item.icon} style={[styles.quickSheetRow, { borderBottomColor: `${primary}10` }]} onPress={item.action} activeOpacity={0.7}>
+                <Feather name={item.icon} size={20} color={primary} />
+                <Text style={[styles.quickSheetLabel, { color: textColor }]}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={[styles.quickSheetRow, { borderBottomColor: 'transparent' }]} onPress={() => setQuickActionTarget(null)}>
+              <Text style={[styles.quickSheetLabel, { color: muted, textAlign: 'center', flex: 1 }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -1887,6 +2024,13 @@ const styles = StyleSheet.create({
   crewBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, alignSelf: 'flex-start', marginBottom: 8 },
   crewBadgeText: { fontSize: 11, fontWeight: '700' },
   root: { flex: 1 },
+  createFab: { position: 'absolute', bottom: 24, right: 20, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+  scrollTopBtn: { position: 'absolute', bottom: 96, right: 20, width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  quickSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, paddingTop: 10, paddingBottom: 34, paddingHorizontal: 4 },
+  quickSheetHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
+  quickSheetTitle: { fontSize: 14, fontWeight: '800', paddingHorizontal: 20, paddingBottom: 12, opacity: 0.8 },
+  quickSheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1 },
+  quickSheetLabel: { fontSize: 15, fontWeight: '700' },
 
   // Header
   headerWrap: { borderBottomWidth: 1, paddingBottom: 2 },

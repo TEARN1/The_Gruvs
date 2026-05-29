@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
-import { Animated, Text, StyleSheet, View, TouchableOpacity, Platform } from 'react-native';
+import { Animated, Text, StyleSheet, View, TouchableOpacity, Platform, PanResponder } from 'react-native';
 import { Z_INDEX, RADIUS } from '../constants/DesignTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -59,33 +59,54 @@ export const ToastProvider = ({ children }) => {
 const ToastItem = ({ toast, onDone }) => {
   const { currentTheme } = useTheme();
   const slideY  = useRef(new Animated.Value(-80)).current;
+  const slideX  = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const config  = TYPES[toast.type] || TYPES.info;
   const surface = currentTheme?.surface || '#1a1a2e';
   const text    = currentTheme?.text    || '#fff';
+  const timerRef = useRef(null);
 
   useEffect(() => {
     Animated.parallel([
       Animated.spring(slideY,  { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
       Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: true }),
     ]).start();
-
-    const timer = setTimeout(dismiss, toast.duration);
-    return () => clearTimeout(timer);
+    timerRef.current = setTimeout(dismiss, toast.duration);
+    return () => clearTimeout(timerRef.current);
   }, []);
 
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
+    clearTimeout(timerRef.current);
     Animated.parallel([
-      Animated.timing(slideY,  { toValue: -80, duration: 280, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 0,   duration: 280, useNativeDriver: true }),
+      Animated.timing(slideY,  { toValue: -80, duration: 250, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 0,   duration: 250, useNativeDriver: true }),
     ]).start(onDone);
-  };
+  }, [onDone]);
 
-  // Item 75: appropriate live region role per toast type
+  // Swipe up or sideways to dismiss
+  const panResponder = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 5 || Math.abs(g.dx) > 8,
+    onPanResponderMove: (_, g) => {
+      if (g.dy < 0) slideY.setValue(g.dy);
+      else slideX.setValue(g.dx);
+    },
+    onPanResponderRelease: (_, g) => {
+      if (g.dy < -30 || Math.abs(g.dx) > 80) {
+        dismiss();
+      } else {
+        Animated.parallel([
+          Animated.spring(slideY, { toValue: 0, useNativeDriver: true }),
+          Animated.spring(slideX, { toValue: 0, useNativeDriver: true }),
+        ]).start();
+      }
+    },
+  })).current;
+
   const isAlert = toast.type === 'error' || toast.type === 'warning';
 
   return (
     <Animated.View
+      {...panResponder.panHandlers}
       accessibilityLiveRegion={isAlert ? 'assertive' : 'polite'}
       accessibilityRole={isAlert ? 'alert' : 'status'}
       style={[
@@ -93,7 +114,7 @@ const ToastItem = ({ toast, onDone }) => {
         {
           backgroundColor: surface,
           borderLeftColor: config.color,
-          transform: [{ translateY: slideY }],
+          transform: [{ translateY: slideY }, { translateX: slideX }],
           opacity,
           ...(Platform.OS === 'web' && { boxShadow: `0 4px 24px rgba(0,0,0,0.5)` }),
         },
