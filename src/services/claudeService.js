@@ -1204,7 +1204,7 @@ export async function vibeCoach({ profile = {}, recentActivity = {}, userId } = 
         supabase.from('event_rsvps').select('status, created_at').eq('user_id', userId).gte('created_at', month30),
         supabase.from('event_vibes').select('id').eq('user_id', userId).gte('created_at', month30),
         supabase.from('echoes').select('id').eq('user_id', userId).gte('created_at', month30),
-        supabase.from('live_checkins').select('id').eq('user_id', userId).gte('created_at', month30),
+        supabase.from('live_checkins').select('id').eq('user_id', userId).gte('checked_in_at', month30),
         // Compare to similar-score Vibers
         supabase.from('profiles')
           .select('vibe_score, followers_count')

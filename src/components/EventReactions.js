@@ -1,6 +1,6 @@
 /**
  * EventReactions — emoji reaction bar for events.
- * Each reaction is stored as a row in event_reactions (event_id, user_id, reaction).
+ * Each reaction is stored as a row in event_reactions (event_id, user_id, reaction_key).
  * Optimistic updates + rollback. Real-time count sync via Supabase channel.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -70,14 +70,14 @@ export const EventReactions = ({ eventId, primary, muted }) => {
     try {
       const { data } = await supabase
         .from('event_reactions')
-        .select('reaction, user_id')
+        .select('reaction_key, user_id')
         .eq('event_id', eventId);
       if (!data) return;
       const c = {};
       const mine = new Set();
       data.forEach(row => {
-        c[row.reaction] = (c[row.reaction] || 0) + 1;
-        if (user && row.user_id === user.id) mine.add(row.reaction);
+        c[row.reaction_key] = (c[row.reaction_key] || 0) + 1;
+        if (user && row.user_id === user.id) mine.add(row.reaction_key);
       });
       setCounts(c);
       setMyReactions(mine);
@@ -117,16 +117,16 @@ export const EventReactions = ({ eventId, primary, muted }) => {
       if (wasActive) {
         await resilient(
           [
-            () => supabase.from('event_reactions').delete().eq('event_id', eventId).eq('user_id', user.id).eq('reaction', key),
-            () => supabase.from('event_reactions').update({ removed_at: new Date().toISOString() }).eq('event_id', eventId).eq('user_id', user.id).eq('reaction', key),
+            () => supabase.from('event_reactions').delete().eq('event_id', eventId).eq('user_id', user.id).eq('reaction_key', key),
+            () => supabase.rpc('remove_event_reaction', { p_event_id: eventId, p_user_id: user.id, p_reaction_key: key }),
           ],
           { attemptsPerTier: 2, baseMs: 200, label: 'EventReactions.remove', fallbackValue: null }
         );
       } else {
         await resilient(
           [
-            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user.id, reaction: key }, { onConflict: 'event_id,user_id,reaction', ignoreDuplicates: true }),
-            () => supabase.from('event_reactions').insert({ event_id: eventId, user_id: user.id, reaction: key }),
+            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user.id, reaction_key: key }, { onConflict: 'event_id,user_id,reaction_key', ignoreDuplicates: true }),
+            () => supabase.from('event_reactions').insert({ event_id: eventId, user_id: user.id, reaction_key: key }),
           ],
           { attemptsPerTier: 2, baseMs: 200, label: 'EventReactions.add', fallbackValue: null }
         );

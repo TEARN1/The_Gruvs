@@ -2264,8 +2264,8 @@ export const MuteManager = {
   async mute(muterId, mutedId) {
     try {
       await supabase.from('muted_users').upsert(
-        { muter_id: muterId, muted_id: mutedId },
-        { onConflict: 'muter_id,muted_id', ignoreDuplicates: true }
+        { user_id: muterId, muted_id: mutedId },
+        { onConflict: 'user_id,muted_id', ignoreDuplicates: true }
       );
       cache.invalidate(`mutes:${muterId}`);
       return true;
@@ -2274,7 +2274,7 @@ export const MuteManager = {
 
   async unmute(muterId, mutedId) {
     try {
-      await supabase.from('muted_users').delete().eq('muter_id', muterId).eq('muted_id', mutedId);
+      await supabase.from('muted_users').delete().eq('user_id', muterId).eq('muted_id', mutedId);
       cache.invalidate(`mutes:${muterId}`);
       return true;
     } catch { return false; }
@@ -2285,7 +2285,7 @@ export const MuteManager = {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
     try {
-      const { data } = await supabase.from('muted_users').select('muted_id').eq('muter_id', userId);
+      const { data } = await supabase.from('muted_users').select('muted_id').eq('user_id', userId);
       const result = (data || []).map(r => r.muted_id);
       cache.set(cacheKey, result);
       return result;
@@ -2747,13 +2747,13 @@ export const BehavioralEngine = {
       ] = await Promise.all([
         supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
-        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
+        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('checked_in_at', since7d),
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId).gte('created_at', since7d),
 
         supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
-        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
+        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('checked_in_at', since14d).lt('checked_in_at', since7d),
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId).gte('created_at', since14d).lt('created_at', since7d),
 
