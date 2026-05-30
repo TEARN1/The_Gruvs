@@ -45,16 +45,39 @@ SRC_DIRS.forEach((d) => {
 });
 const tables = new Set();
 const rpcs = new Set();
+const tableCols = {}; // table -> Set(columns) inferred from filters + select + write keys
+const COL = /^[a-z][a-z0-9_]*$/;
+const addCol = (t, c) => {
+  if (!COL.test(c)) return;
+  if (!tableCols[t]) tableCols[t] = new Set();
+  tableCols[t].add(c);
+};
 files.forEach((fp) => {
   const c = fs.readFileSync(fp, 'utf8');
   let m;
-  const tRe = /\.from\(\s*['"`]([a-z_][a-z0-9_]*)['"`]\s*\)/g;
-  while ((m = tRe.exec(c)) !== null) tables.add(m[1]);
   const rRe = /\.rpc\(\s*['"`]([a-z_][a-z0-9_]*)['"`]/g;
   while ((m = rRe.exec(c)) !== null) rpcs.add(m[1]);
+
+  // Walk each .from('t') chain segment and harvest columns
+  const fromRe = /\.from\(\s*['"`]([a-z_][a-z0-9_]*)['"`]\s*\)/g;
+  const froms = [];
+  while ((m = fromRe.exec(c)) !== null) {
+    tables.add(m[1]);
+    froms.push({ name: m[1], start: m.index + m[0].length });
+  }
+  froms.forEach((f, i) => {
+    const end = i + 1 < froms.length ? froms[i + 1].start : Math.min(f.start + 300, c.length);
+    const seg = c.slice(f.start, end);
+    // Only filter columns: .eq('col', ...) and friends. The first string arg is
+    // unambiguously a real column on this table. (Write-object keys are excluded
+    // — they capture nested JSON keys like metadata.phase and produce false hits.)
+    const filt = seg.matchAll(/\.(eq|neq|gt|gte|lt|lte|in|like|ilike|order)\(\s*[`'"]([a-z_][a-z0-9_]*)[`'"]/g);
+    for (const mm of filt) addCol(f.name, mm[2]);
+  });
 });
 
 const MISSING_TABLE = '42P01'; // undefined_table
+const MISSING_COLUMN = '42703'; // undefined_column
 
 async function checkTable(name) {
   const { error } = await supabase.from(name).select('*', { count: 'exact', head: true }).limit(1);
@@ -64,6 +87,28 @@ async function checkTable(name) {
   }
   // RLS / permission / other → table exists
   return { name, status: 'ok', note: error.code };
+}
+
+// Validate columns by selecting them all at once. If any is missing, PostgREST
+// names it in a 42703 error; we drop it and retry to collect the full set of
+// missing columns. Works with the anon key (parse error, not RLS-gated).
+async function checkColumns(name, cols) {
+  let remaining = [...cols];
+  const missing = [];
+  // NOTE: must NOT use head:true — a HEAD/count request skips column validation.
+  // A real .select(cols).limit(1) forces PostgREST to parse the column list and
+  // return 42703 (column does not exist) at parse time, before RLS row filtering.
+  for (let i = 0; i < cols.length + 1 && remaining.length; i++) {
+    const { error } = await supabase.from(name).select(remaining.join(',')).limit(1);
+    if (!error) break;
+    if (error.code !== MISSING_COLUMN) break; // RLS/other — can't verify columns, stop
+    const m = (error.message || '').match(/column "?(?:[a-z_]+\.)?([a-z_][a-z0-9_]*)"? does not exist/i);
+    const bad = m ? m[1] : null;
+    if (!bad || !remaining.includes(bad)) break; // can't parse — stop to avoid loop
+    missing.push(bad);
+    remaining = remaining.filter((c) => c !== bad);
+  }
+  return missing;
 }
 
 // Fetch the authoritative list of deployed RPC functions from PostgREST's
@@ -98,6 +143,17 @@ async function fetchDeployedRpcs() {
   const tableResults = [];
   for (const t of [...tables].sort()) tableResults.push(await checkTable(t));
   const missTables = tableResults.filter((r) => r.status === 'MISSING');
+  const missTableNames = new Set(missTables.map((r) => r.name));
+
+  // Column checks — only for tables that exist and have inferred columns
+  const colIssues = [];
+  for (const t of [...tables].sort()) {
+    if (missTableNames.has(t)) continue;
+    const cols = tableCols[t] ? [...tableCols[t]] : [];
+    if (!cols.length) continue;
+    const missing = await checkColumns(t, cols);
+    if (missing.length) colIssues.push({ table: t, missing });
+  }
 
   const { deployed: deployedRpcs, ok: rpcIntrospectOk } = await fetchDeployedRpcs();
   const missRpcs = [...rpcs].sort().filter((r) => !deployedRpcs.has(r));
@@ -107,6 +163,14 @@ async function fetchDeployedRpcs() {
   if (missTables.length) {
     console.log('  MISSING:');
     missTables.forEach((r) => console.log('    ✗ ' + r.name));
+  }
+
+  console.log('\n═══ COLUMNS (from .eq/.insert/.update refs) ═══');
+  if (!colIssues.length) {
+    console.log('  ✓ All referenced columns exist on their tables');
+  } else {
+    console.log('  Columns referenced in code but NOT found in the DB:');
+    colIssues.forEach(({ table, missing }) => console.log('    ✗ ' + table + ': ' + missing.join(', ')));
   }
 
   console.log('\n═══ RPC FUNCTIONS ═══');
@@ -123,7 +187,10 @@ async function fetchDeployedRpcs() {
   }
 
   console.log('\n═══ SUMMARY ═══');
-  console.log(`  Missing tables: ${missTables.length}`);
-  console.log(`  Missing RPCs:   ${rpcIntrospectOk ? missRpcs.length : 'unknown (introspection blocked)'}`);
-  if (!missTables.length && rpcIntrospectOk && !missRpcs.length) console.log('\n  ✓ Live database fully matches what the code expects.');
+  console.log(`  Missing tables:        ${missTables.length}`);
+  console.log(`  Tables w/ missing cols: ${colIssues.length}`);
+  console.log(`  Missing RPCs:          ${rpcIntrospectOk ? missRpcs.length : 'unknown (introspection blocked)'}`);
+  if (!missTables.length && !colIssues.length && rpcIntrospectOk && !missRpcs.length) {
+    console.log('\n  ✓ Live database fully matches what the code expects.');
+  }
 })();

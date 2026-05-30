@@ -12,7 +12,6 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
-import { SecurityService } from '../services/securityService';
 
 // expo-camera is optional — if unavailable we fall back to manual entry
 let CameraView = null;
@@ -259,20 +258,21 @@ export const QRCheckInScanner = ({ eventId, organizerId, primary, textColor, mut
         return;
       }
     }
-    if (checkedInIds[parsed.rsvpId]) {
+    if (checkedInIds[parsed.userId]) {
       setResult({ ok: false, msg: 'Already checked in at this door.', username: lastScan.current?.username });
       return;
     }
 
     setScanning(true);
     try {
-      // Fetch rsvp details
+      // Look up the guest's RSVP. event_rsvps is keyed by (event_id, user_id) —
+      // there is no standalone rsvp id, so the QR payload's user_id is the identity.
       const { data: rsvp } = await supabase
         .from('event_rsvps')
-        .select('id, status, user_id, profiles:user_id(username, avatar_url, vibe_score)')
-        .eq('id', parsed.rsvpId)
+        .select('status, user_id, profiles:user_id(username, avatar_url, vibe_score)')
         .eq('event_id', eventId)
-        .single();
+        .eq('user_id', parsed.userId)
+        .maybeSingle();
 
       if (!rsvp) {
         setResult({ ok: false, msg: 'Ticket not found in guest list.' });
@@ -288,11 +288,12 @@ export const QRCheckInScanner = ({ eventId, organizerId, primary, textColor, mut
         return;
       }
 
-      // Check if already checked in in DB
+      // Check if already checked in in DB — check-ins are keyed by (event_id, user_id)
       const { data: existing } = await supabase
         .from('event_checkins')
         .select('id')
-        .eq('rsvp_id', rsvp.id)
+        .eq('event_id', eventId)
+        .eq('user_id', rsvp.user_id)
         .maybeSingle();
 
       if (existing) {
@@ -302,36 +303,28 @@ export const QRCheckInScanner = ({ eventId, organizerId, primary, textColor, mut
           username: rsvp.profiles?.username,
           avatar: rsvp.profiles?.avatar_url,
         });
-        setCheckedInIds(prev => ({ ...prev, [rsvp.id]: true }));
+        setCheckedInIds(prev => ({ ...prev, [rsvp.user_id]: true }));
         return;
       }
 
-      // SECURITY: validate QR payload user_id matches DB rsvp.user_id
-      if (parsed.userId && parsed.userId !== rsvp.user_id) {
-        setResult({ ok: false, msg: 'Ticket mismatch — possible forgery attempt.' });
-        SecurityService.logSecurityEvent(null, 'qr_forgery_attempt', {
-          event_id: eventId, rsvp_id: parsed.rsvpId, claimed_user: parsed.userId,
-        });
-        return;
-      }
-
-      // Mark checked in via secure server-side RPC (validates organiser role + status)
+      // Mark checked in via secure server-side RPC (validates organiser role + status),
+      // falling back to a direct upsert keyed on (event_id, user_id).
       await resilient(
         [
           () => supabase.rpc('secure_check_in', {
             p_event_id: eventId,
-            p_rsvp_id: rsvp.id,
             p_user_id: rsvp.user_id,
           }),
-          () => supabase.from('event_checkins').upsert({ event_id: eventId, rsvp_id: rsvp.id, user_id: rsvp.user_id }, { onConflict: 'rsvp_id' }),
+          () => supabase.from('event_checkins').upsert({ event_id: eventId, user_id: rsvp.user_id }, { onConflict: 'event_id,user_id' }),
+          () => supabase.from('event_checkins').insert({ event_id: eventId, user_id: rsvp.user_id }),
         ],
-        { attemptsPerTier: 2, baseMs: 300, label: `QRCheckIn:${rsvp.id}`, fallbackValue: null }
+        { attemptsPerTier: 2, baseMs: 300, label: `QRCheckIn:${rsvp.user_id}`, fallbackValue: null }
       );
 
       const score = rsvp.profiles?.vibe_score ?? 0;
       const tier = score >= 2001 ? 'Gruv Master' : score >= 501 ? 'Royal Viber' : score >= 101 ? 'Elite Viber' : 'Viber';
 
-      setCheckedInIds(prev => ({ ...prev, [rsvp.id]: true }));
+      setCheckedInIds(prev => ({ ...prev, [rsvp.user_id]: true }));
       setTodayCount(prev => prev + 1);
       lastScan.current = { username: rsvp.profiles?.username };
       setResult({
@@ -344,7 +337,7 @@ export const QRCheckInScanner = ({ eventId, organizerId, primary, textColor, mut
       if (Platform.OS !== 'web') {
         Vibration.vibrate([0, 80, 60, 80]);
       }
-      onCheckedIn?.({ rsvpId: rsvp.id, userId: rsvp.user_id });
+      onCheckedIn?.({ userId: rsvp.user_id });
     } finally {
       setScanning(false);
     }
@@ -409,7 +402,7 @@ export const QRCheckInScanner = ({ eventId, organizerId, primary, textColor, mut
               <Feather name="camera-off" size={28} color={muted} />
               <Text style={[qr.unavailableTitle, { color: textColor }]}>Camera Unavailable</Text>
               <Text style={[qr.unavailableBody, { color: muted }]}>
-                Camera access requires an EAS dev build. Use the manual check-in tab to search by name or ticket ref.
+                Camera access requires an EAS dev build. Use the manual check-in tab to search by @username.
               </Text>
             </View>
           ) : (

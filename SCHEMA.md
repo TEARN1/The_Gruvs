@@ -21,8 +21,8 @@ live_checkins.created_at→checked_in_at) are already corrected. Still open:
 
 | Table | Code references | Reality | Status |
 |-------|-----------------|---------|--------|
-| `event_rsvps` | `id` | composite key `(event_id, user_id)`, no `id` | **Check-in system — needs review** |
-| `event_checkins` | `rsvp_id` | keyed by `(event_id, user_id)`, no `rsvp_id` | **Check-in system — needs review** |
+| `event_rsvps` | `id` | composite key `(event_id, user_id)`, no `id` | ✅ Fixed — check-in now uses (event_id, user_id) |
+| `event_checkins` | `rsvp_id` | keyed by `(event_id, user_id)`, no `rsvp_id` | ✅ Fixed |
 | `path_stars` | `event_id`, `from_user_id`, `to_user_id` | table empty; columns differ | Unfinished feature — needs schema |
 | `path_crossings` | `user_id`, `cross_count`, `created_at` | table empty; columns differ | Unfinished feature — needs schema |
 | `route_steps` | `step_order` | table empty | Unfinished feature — needs schema |
@@ -30,11 +30,15 @@ live_checkins.created_at→checked_in_at) are already corrected. Still open:
 | `events` | `event_id` | _false positive_ — `.eq` is on sub-tables | Not a bug |
 | `follows` | `author_id` | _false positive_ — uses `follower_id`/`following_id` | Not a bug |
 
-The **check-in system** (QRCheckInScanner + EventAdminPanel) writes/filters
-`event_rsvps.id` and `event_checkins.rsvp_id`, neither of which exists — door
-check-in is currently broken. The correct model is `(event_id, user_id)`, but the
-fix touches entry-control logic and the `secure_check_in` RPC, so it needs review
-before applying. Re-validate anytime: `node scripts/validate-schema.js`.
+The **check-in system** (QRCheckInScanner + EventAdminPanel) has been migrated to
+the real `(event_id, user_id)` model — QR scan, manual check-in, the guest list,
+and the checked-in map all key on `user_id`. `secure_check_in` is now called with
+`{p_event_id, p_user_id}`; if its deployed signature differs it falls back to a
+direct upsert/insert on `event_checkins(event_id, user_id)`. **Test a real scan
+before a live event** to confirm the RPC + unique constraint behave as expected.
+
+The remaining Paths/activity tables are empty (unfinished features) and need
+schema decisions. Re-validate anytime: `node scripts/validate-schema.js`.
 
 ## Tables
 

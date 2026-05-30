@@ -92,7 +92,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
     try {
       const settled = await Promise.allSettled([
         supabase.from('event_vibes').select('created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(50),
-        supabase.from('event_rsvps').select('id, status, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(200),
+        supabase.from('event_rsvps').select('user_id, status, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(200),
         supabase.from('echoes').select('body, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(50),
         supabase.from('event_ratings').select('rating, review, created_at, profiles(username, avatar_url)').eq('event_id', eventId).order('created_at', { ascending: false }).limit(50),
       ]);
@@ -134,15 +134,15 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
     try {
       const { data } = await supabase
         .from('event_checkins')
-        .select('rsvp_id')
+        .select('user_id')
         .eq('event_id', eventId);
       const map = {};
-      for (const c of data || []) map[c.rsvp_id] = true;
+      for (const c of data || []) map[c.user_id] = true;
       setCheckedIn(map);
     } catch { /* keep existing check-in state on transient failure */ }
   }, [eventId]);
 
-  // Verify ticket ref or username and mark checked in
+  // Verify guest by @username and mark checked in
   const doCheckIn = async () => {
     const q = checkInQuery.trim().toUpperCase().replace(/^#/, '');
     if (!q || !eventId) return;
@@ -154,50 +154,38 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
     setCheckInLoading(true);
     setCheckInResult(null);
     try {
-      // Try as rsvp id prefix first
-      let rsvp = null;
-      const { data: byRef } = await supabase
+      // event_rsvps is keyed by (event_id, user_id) with no standalone id, so
+      // manual check-in resolves the guest by username.
+      const { data: byUser } = await supabase
         .from('event_rsvps')
-        .select('id, user_id, status, profiles:user_id(username, avatar_url)')
+        .select('user_id, status, profiles:user_id(username, avatar_url)')
         .eq('event_id', eventId)
-        .ilike('id', `${q}%`)
+        .ilike('profiles.username', `%${q.toLowerCase()}%`)
         .limit(1)
-        .single();
-      if (byRef) rsvp = byRef;
+        .maybeSingle();
+      const rsvp = byUser || null;
 
       if (!rsvp) {
-        // Try by username
-        const { data: byUser } = await supabase
-          .from('event_rsvps')
-          .select('id, user_id, status, profiles:user_id(username, avatar_url)')
-          .eq('event_id', eventId)
-          .ilike('profiles.username', `%${q.toLowerCase()}%`)
-          .limit(1)
-          .single();
-        if (byUser) rsvp = byUser;
-      }
-
-      if (!rsvp) {
-        setCheckInResult({ ok: false, msg: 'Ticket not found. Check the ref or username.' });
+        setCheckInResult({ ok: false, msg: 'Guest not found. Check the @username.' });
         return;
       }
       if (rsvp.status !== 'going') {
         setCheckInResult({ ok: false, msg: `@${rsvp.profiles?.username} RSVP'd as "${rsvp.status}" — not confirmed going.` });
         return;
       }
-      if (checkedIn[rsvp.id]) {
+      if (checkedIn[rsvp.user_id]) {
         setCheckInResult({ ok: false, msg: `@${rsvp.profiles?.username} is already checked in.`, username: rsvp.profiles?.username, avatar: rsvp.profiles?.avatar_url });
         return;
       }
       await resilient(
         [
-          () => supabase.from('event_checkins').upsert({ event_id: eventId, rsvp_id: rsvp.id, user_id: rsvp.user_id }, { onConflict: 'rsvp_id' }),
-          () => supabase.from('event_checkins').insert({ event_id: eventId, rsvp_id: rsvp.id, user_id: rsvp.user_id }),
-          () => supabase.rpc('check_in_attendee', { p_event_id: eventId, p_rsvp_id: rsvp.id, p_user_id: rsvp.user_id }),
+          () => supabase.from('event_checkins').upsert({ event_id: eventId, user_id: rsvp.user_id }, { onConflict: 'event_id,user_id' }),
+          () => supabase.from('event_checkins').insert({ event_id: eventId, user_id: rsvp.user_id }),
+          () => supabase.rpc('check_in_attendee', { p_event_id: eventId, p_user_id: rsvp.user_id }),
         ],
-        { attemptsPerTier: 2, baseMs: 300, label: `EventAdminPanel.checkIn:${rsvp.id}`, fallbackValue: null }
+        { attemptsPerTier: 2, baseMs: 300, label: `EventAdminPanel.checkIn:${rsvp.user_id}`, fallbackValue: null }
       );
-      setCheckedIn(prev => ({ ...prev, [rsvp.id]: true }));
+      setCheckedIn(prev => ({ ...prev, [rsvp.user_id]: true }));
       setCheckInResult({ ok: true, msg: `@${rsvp.profiles?.username} checked in!`, username: rsvp.profiles?.username, avatar: rsvp.profiles?.avatar_url });
       setCheckInQuery('');
     } finally {
@@ -360,8 +348,8 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                 primary={primary}
                 textColor={textColor}
                 muted={muted}
-                onCheckedIn={({ rsvpId, userId }) => {
-                  setCheckedIn(prev => ({ ...prev, [rsvpId]: true }));
+                onCheckedIn={({ userId }) => {
+                  setCheckedIn(prev => ({ ...prev, [userId]: true }));
                   setStats(prev => ({ ...prev, checkins: (prev.checkins || 0) + 1 }));
                 }}
               />
@@ -372,7 +360,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
           {activeTab === 'checkin' && (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
               <Text style={[ad.sectionTitle, { color: muted }]}>VERIFY TICKET AT DOOR</Text>
-              <Text style={[ad.sectionSub, { color: muted }]}>Enter the 8-character ticket ref or @username</Text>
+              <Text style={[ad.sectionSub, { color: muted }]}>Enter the guest's @username</Text>
               <View style={[ad.searchRow, { borderColor: `${primary}40` }]}>
                 <TextInput
                   style={[ad.searchInput, { color: textColor }]}
@@ -420,7 +408,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                 CHECKED IN — {Object.keys(checkedIn).length} / {stats.rsvps}
               </Text>
               {rsvpList.filter(r => r.status === 'going').map(r => (
-                <View key={r.id} style={[ad.guestRow, { borderBottomColor: `${primary}10` }]}>
+                <View key={r.user_id} style={[ad.guestRow, { borderBottomColor: `${primary}10` }]}>
                   {r.profiles?.avatar_url
                     ? <Image source={{ uri: r.profiles.avatar_url }} style={ad.guestAvatar} />
                     : <View style={[ad.guestAvatar, { backgroundColor: avatarBg(r.profiles?.username), alignItems: 'center', justifyContent: 'center' }]}>
@@ -429,9 +417,9 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                   }
                   <View style={{ flex: 1, marginLeft: 10 }}>
                     <Text style={[ad.guestName, { color: textColor }]}>@{r.profiles?.username}</Text>
-                    <Text style={[ad.guestRef, { color: muted }]}>Ref: {r.id.slice(0, 8).toUpperCase()}</Text>
+                    <Text style={[ad.guestRef, { color: muted }]}>Ref: {(r.user_id || '').slice(0, 8).toUpperCase()}</Text>
                   </View>
-                  {checkedIn[r.id]
+                  {checkedIn[r.user_id]
                     ? <View style={ad.checkedBadge}><Feather name="check" size={12} color="#10b981" /><Text style={[ad.checkedText, { color: '#10b981' }]}>IN</Text></View>
                     : <Text style={[ad.pendingText, { color: muted }]}>Pending</Text>
                   }
@@ -457,7 +445,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                 </TouchableOpacity>
               </View>
               {rsvpList.map((r) => (
-                <View key={r.id} style={[ad.guestRow, { borderBottomColor: `${primary}10` }]}>
+                <View key={r.user_id} style={[ad.guestRow, { borderBottomColor: `${primary}10` }]}>
                   {r.profiles?.avatar_url
                     ? <Image source={{ uri: r.profiles.avatar_url }} style={ad.guestAvatar} />
                     : <View style={[ad.guestAvatar, { backgroundColor: avatarBg(r.profiles?.username), alignItems: 'center', justifyContent: 'center' }]}>
