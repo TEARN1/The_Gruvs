@@ -36,6 +36,9 @@ import { TonightAlert } from '../components/TonightAlert';
 import { StoriesRow } from '../components/StoriesRow';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { AuraEffect } from '../components/AuraEffect';
+import { LiquidBackground } from '../components/LiquidBackground';
+import { AnimatedCounter } from '../components/Motion';
+import { haptics } from '../utils/haptics';
 import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PresenceBar } from '../components/PresenceBar';
@@ -1606,7 +1609,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
                 >
                   <Feather name="zap" size={19} color={isVibed ? '#ef4444' : muted} />
-                  <Text style={[styles.actionCount, { color: isVibed ? '#ef4444' : muted }]}>{vibeCounts[id] || 0}</Text>
+                  <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? '#ef4444' : muted }]} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1778,6 +1781,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
+      <LiquidBackground intensity={0.9} />
       <AuraEffect />
 
       <FlatList
@@ -1817,7 +1821,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         }
         renderItem={renderCard}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={primary} colors={[primary]} progressBackgroundColor={surface} />
         }
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}

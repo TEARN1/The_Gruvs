@@ -11,6 +11,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
 import { FadeInView } from '../components/FadeInView';
+import { Biometric } from '../services/biometric';
+import { haptics } from '../utils/haptics';
 import { THEMES, GENDERS } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
@@ -744,6 +746,36 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
 
 // ── Security & Privacy Sub-View ───────────────────────────────────────────────
 const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
+  const [lockEnabled, setLockEnabled] = useState(false);
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioLabel, setBioLabel] = useState('Biometrics');
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const [avail, on, label] = await Promise.all([
+        Biometric.isAvailable(), Biometric.isLockEnabled(), Biometric.label(),
+      ]);
+      if (!alive) return;
+      setBioAvailable(avail); setLockEnabled(on); setBioLabel(label);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const toggleLock = async () => {
+    haptics.select();
+    if (!lockEnabled) {
+      // Require a successful auth before turning the lock ON
+      const ok = await Biometric.authenticate('Confirm to enable app lock');
+      if (!ok) { toast.show('Could not verify — lock not enabled', 'error'); return; }
+      await Biometric.setLockEnabled(true); setLockEnabled(true);
+      haptics.success(); toast.show(`App lock on — ${bioLabel} required to open`, 'success');
+    } else {
+      await Biometric.setLockEnabled(false); setLockEnabled(false);
+      toast.show('App lock off', 'info');
+    }
+  };
+
   const handleDeleteAccount = () => {
     if (!user) return;
     Alert.alert(
@@ -782,6 +814,31 @@ const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
               <Text style={{ color: muted, fontSize: 11 }}>Protected by Supabase Auth with secure tokens.</Text>
             </View>
           </View>
+
+          {/* Biometric app lock */}
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+            onPress={toggleLock}
+            activeOpacity={0.8}
+            disabled={!bioAvailable && Platform.OS !== 'web'}
+          >
+            <Feather name="smartphone" size={18} color={lockEnabled ? primary : muted} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>App Lock ({bioLabel})</Text>
+              <Text style={{ color: muted, fontSize: 11 }}>
+                {bioAvailable || Platform.OS === 'web'
+                  ? `Require ${bioLabel} every time the app opens.`
+                  : 'No biometrics enrolled on this device.'}
+              </Text>
+            </View>
+            <View style={{
+              width: 44, height: 26, borderRadius: 13, padding: 3,
+              backgroundColor: lockEnabled ? primary : `${muted}40`,
+              alignItems: lockEnabled ? 'flex-end' : 'flex-start', justifyContent: 'center',
+            }}>
+              <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' }} />
+            </View>
+          </TouchableOpacity>
         </View>
       </GlassView>
 

@@ -28,6 +28,7 @@ import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
 import { GodViewDashboard } from './src/screens/GodViewDashboard';
 //import { AIAssistant } from './src/components/AIAssistant'; // HIDDEN — Under development
+import { AppLockGate } from './src/components/AppLockGate';
 import { installGlobalErrorHandler } from './src/utils/errorReporter';
 import { validateEnv } from './src/utils/validateEnv';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -690,7 +691,9 @@ export default function App() {
               <TutorialProvider>
                 <ToastProvider>
                   <ErrorBoundary>
-                    <MainNavigator />
+                    <AppLockGate>
+                      <MainNavigator />
+                    </AppLockGate>
                   </ErrorBoundary>
                 </ToastProvider>
               </TutorialProvider>

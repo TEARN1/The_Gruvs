@@ -79,3 +79,32 @@ export const BREAKPOINT = {
   medium: 640,
   small:  375,
 };
+
+// ── Glass / Water design language ────────────────────────────────────────────
+// Pure-JS, cross-platform (web uses CSS gradients via the `background` prop;
+// native uses layered translucent Views). No native blur dependency.
+export const GLASS = {
+  // base fill behind frosted surfaces
+  fill:        'rgba(255,255,255,0.06)',
+  fillStrong:  'rgba(255,255,255,0.10)',
+  fillFaint:   'rgba(255,255,255,0.035)',
+  // hairline borders that catch light
+  border:      'rgba(255,255,255,0.16)',
+  borderBright:'rgba(255,255,255,0.28)',
+  // top sheen overlay (the "wet" highlight) — web gradient + native fallback
+  sheenWeb:    'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 38%, transparent 60%)',
+  sheenNative: 'rgba(255,255,255,0.07)',
+  // inner depth shadow for a "pane of glass" feel
+  innerShadow: 'rgba(0,0,0,0.22)',
+  radius:      22,
+};
+
+// Animation timings tuned for a liquid, springy feel
+export const MOTION = {
+  liquid:      { tension: 38, friction: 9 },   // slow watery settle
+  spring:      { tension: 180, friction: 12 }, // snappy press
+  bounce:      { tension: 220, friction: 8 },  // playful pop
+  drift:       14000,                          // ambient background drift loop (ms)
+  shimmer:     1400,                           // skeleton shimmer sweep (ms)
+  countUp:     900,                            // number count-up (ms)
+};
