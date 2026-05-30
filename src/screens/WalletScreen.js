@@ -228,10 +228,16 @@ export const WalletScreen = ({ visible, onClose }) => {
             </View>
           )}
           <View style={s.walletActions}>
-            <TouchableOpacity style={[s.walletBtn, { backgroundColor: primary }]}>
+            <TouchableOpacity
+              style={[s.walletBtn, { backgroundColor: primary }]}
+              onPress={() => toast.show('Vibe Equity staking coming soon — stay Royal', 'info')}
+            >
               <Text style={s.walletBtnText}>STAKE EQUITY</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.walletBtnOutline, { borderColor: `${primary}50` }]}>
+            <TouchableOpacity
+              style={[s.walletBtnOutline, { borderColor: `${primary}50` }]}
+              onPress={() => toast.show(`Vibe Score: ${profile?.vibe_score || 0} · Tier: ${tier?.tier || 'Standard'}`, 'info')}
+            >
               <Text style={[s.walletBtnText, { color: primary }]}>MINT DETAILS</Text>
             </TouchableOpacity>
           </View>

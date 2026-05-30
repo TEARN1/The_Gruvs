@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { uploadToStorage } from '../services/storageService';
 import { resilient } from '../utils/resilience';
+import { useToast } from './ToastNotification';
 
 const STORY_DURATION = 5000;
 
@@ -203,6 +204,7 @@ const sv = StyleSheet.create({
 export const StoriesRow = ({ onAuthRequired }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
+  const { show: showToast } = useToast();
   const [grouped, setGrouped] = useState([]);
   const [seenMap, setSeenMap] = useState({});
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -307,8 +309,9 @@ export const StoriesRow = ({ onAuthRequired }) => {
         { attemptsPerTier: 2, baseMs: 400, label: 'StoriesRow.addStory', fallbackValue: null }
       );
       await loadStories();
-    } catch {
-      // Story upload failed silently — user sees spinner stop with no partial state
+      showToast('Story posted! Visible for 24 hours', 'success');
+    } catch (e) {
+      showToast(e?.message?.includes('storage') ? 'Upload failed — check your connection' : 'Could not post story', 'error');
     } finally {
       setUploading(false);
     }

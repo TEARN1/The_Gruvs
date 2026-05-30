@@ -97,9 +97,15 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
         { attemptsPerTier: 2, baseMs: 300, label: `PulseSchedule.vote:${requestId}`, fallbackValue: null }
       );
       if (ok !== null) {
-        // best-effort count sync
-        const cur = requests.find(r => r.id === requestId);
-        if (cur) supabase.from('pulse_requests').update({ vote_count: cur.vote_count }).eq('id', requestId).then(() => {}).catch(() => {});
+        // Atomic increment — avoids race condition when multiple users vote simultaneously
+        supabase.rpc('increment_pulse_votes', { p_request_id: requestId })
+          .then(({ data }) => {
+            // Sync authoritative count from server if available
+            if (data?.vote_count != null) {
+              setRequests(prev => prev.map(r => r.id === requestId ? { ...r, vote_count: data.vote_count } : r));
+            }
+          })
+          .catch(() => {}); // keep optimistic count on RPC unavailability
       } else {
         setMyVotes(prev => { const n = new Set(prev); n.delete(requestId); return n; });
         setRequests(prev => prev.map(r => r.id === requestId ? { ...r, vote_count: r.vote_count - 1 } : r));

@@ -156,43 +156,25 @@ export const OrganizerDashboard = ({ event, primary, textColor, surface, muted }
     setLoading(true);
     try {
       const [rsvpRes, checkinsRes, vibesRes, chatRes, attendeesRes] = await Promise.all([
-        resilient(() =>
-          supabase
-            .from('event_rsvps')
-            .select('status')
-            .eq('event_id', event.id),
-          []
+        resilient(
+          [() => supabase.from('event_rsvps').select('status').eq('event_id', event.id)],
+          { fallbackValue: { data: [] }, label: 'OrganizerDashboard.rsvps' }
         ),
-        resilient(() =>
-          supabase
-            .from('event_checkins')
-            .select('id', { count: 'exact', head: true })
-            .eq('event_id', event.id),
-          { count: 0 }
+        resilient(
+          [() => supabase.from('event_checkins').select('id', { count: 'exact', head: true }).eq('event_id', event.id)],
+          { fallbackValue: { count: 0 }, label: 'OrganizerDashboard.checkins' }
         ),
-        resilient(() =>
-          supabase
-            .from('event_vibes')
-            .select('id', { count: 'exact', head: true })
-            .eq('event_id', event.id),
-          { count: 0 }
+        resilient(
+          [() => supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('event_id', event.id)],
+          { fallbackValue: { count: 0 }, label: 'OrganizerDashboard.vibes' }
         ),
-        resilient(() =>
-          supabase
-            .from('event_messages')
-            .select('id', { count: 'exact', head: true })
-            .eq('event_id', event.id),
-          { count: 0 }
+        resilient(
+          [() => supabase.from('event_messages').select('id', { count: 'exact', head: true }).eq('event_id', event.id)],
+          { fallbackValue: { count: 0 }, label: 'OrganizerDashboard.chat' }
         ),
-        resilient(() =>
-          supabase
-            .from('event_rsvps')
-            .select('user_id, profiles:user_id(username, display_name)')
-            .eq('event_id', event.id)
-            .eq('status', 'going')
-            .order('created_at', { ascending: false })
-            .limit(8),
-          []
+        resilient(
+          [() => supabase.from('event_rsvps').select('user_id, profiles:user_id(username, display_name)').eq('event_id', event.id).eq('status', 'going').order('created_at', { ascending: false }).limit(8)],
+          { fallbackValue: { data: [] }, label: 'OrganizerDashboard.attendees' }
         ),
       ]);
 

@@ -252,9 +252,9 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
     try {
       const ok = await resilient(
         [
-          () => supabase.from('events').update({ is_cancelled: true }).eq('id', event.id),
-          () => supabase.from('events').update({ status: 'cancelled' }).eq('id', event.id),
-          () => supabase.rpc('cancel_event', { p_event_id: event.id }),
+          () => supabase.from('events').update({ is_cancelled: true }).eq('id', event.id).eq('author_id', user?.id),
+          () => supabase.from('events').update({ status: 'cancelled' }).eq('id', event.id).eq('author_id', user?.id),
+          () => supabase.rpc('cancel_event', { p_event_id: event.id, p_caller_id: user?.id }),
         ],
         { attemptsPerTier: 3, baseMs: 400, label: `EditEventModal.cancel:${event.id}`, fallbackValue: null }
       );

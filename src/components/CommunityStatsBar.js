@@ -9,7 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { DirectMessageModal } from './DirectMessageModal';
 
-const REFRESH_MS = 30000;
+const REFRESH_MS = 120000; // 2 min — was 30s, reduced DB load 4×
 
 const ViberRow = React.memo(({ item, primary, surface, textColor, muted, onMessage }) => (
   <View style={[ss.viberRow, { borderBottomColor: `${primary}12` }]}>
@@ -67,15 +67,23 @@ export const CommunityStatsBar = () => {
   const [msgTarget,     setMsgTarget]     = useState(null);
   const [msgVisible,    setMsgVisible]    = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  // Cache mutual IDs — only re-fetch when user changes, not on every poll
+  const mutualIdsCache = useRef({ ids: null, userId: null });
 
   const getMutualIds = async () => {
     if (!user) return [];
+    // Return cached mutual IDs — avoids 2 follows queries on every 2-min poll
+    if (mutualIdsCache.current.userId === user.id && mutualIdsCache.current.ids !== null) {
+      return mutualIdsCache.current.ids;
+    }
     const [{ data: following }, { data: followers }] = await Promise.all([
       supabase.from('follows').select('following_id').eq('follower_id', user.id),
       supabase.from('follows').select('follower_id').eq('following_id', user.id),
     ]);
     const followingIds = new Set((following || []).map(r => r.following_id));
-    return (followers || []).map(r => r.follower_id).filter(id => followingIds.has(id));
+    const ids = (followers || []).map(r => r.follower_id).filter(id => followingIds.has(id));
+    mutualIdsCache.current = { ids, userId: user.id };
+    return ids;
   };
 
   const fetchMutualOnline = async () => {

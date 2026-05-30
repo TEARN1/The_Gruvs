@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
 import { OOS } from '../services/organizationalOverseer';
 import { NeuralMesh } from '../services/neuralMesh';
@@ -34,8 +35,15 @@ const PulseIndicator = ({ color }) => {
   );
 };
 
+const OWNER_EMAIL = 'asemahlenkwali@gmail.com';
+
 export const GodViewDashboard = ({ visible, onClose }) => {
   const { currentTheme } = useTheme();
+  const { user } = useAuth();
+
+  // Hard gate — only the owner can access this screen
+  const isAuthorized = user?.email === OWNER_EMAIL;
+
   const [logs, setLogs] = useState([]);
   const [isAuditing, setIsAuditing] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -119,6 +127,12 @@ export const GodViewDashboard = ({ visible, onClose }) => {
   };
 
   if (!visible) return null;
+
+  // Block unauthorised access — show nothing and close
+  if (!isAuthorized) {
+    onClose?.();
+    return null;
+  }
 
   return (
     <ErrorBoundary label="God View">
