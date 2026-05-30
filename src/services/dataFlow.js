@@ -7,6 +7,7 @@
 
 import { supabase, isSupabaseEnabled } from './supabase';
 import { resilient, resilientRead, resilientWrite, attemptWithBackoff } from '../utils/resilience';
+import { sanitizeSearch } from '../utils/sanitize';
 import { log } from '../utils/log';
 import { ALL_CATEGORIES } from '../constants/AllCategories';
 import { LocationService } from './locationService';
@@ -582,7 +583,7 @@ export const FeedManager = {
       if (dateRange?.from) q = q.gte('event_date', dateRange.from);
       if (dateRange?.to)   q = q.lte('event_date', dateRange.to);
       if (query.trim()) {
-        const s = query.trim().replace(/[%_\\]/g, c => `\\${c}`);
+        const s = sanitizeSearch(query); // strip PostgREST .or() filter metacharacters
         q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%,venue_name.ilike.%${s}%`).order('vibe_count', { ascending: false });
       } else {
         q = q.order('created_at', { ascending: false });
@@ -698,7 +699,7 @@ export const FeedManager = {
 
   async searchAll(query) {
     if (!query.trim()) return { events: [], users: [] };
-    const s = query.trim();
+    const s = sanitizeSearch(query); // strip PostgREST .or() filter metacharacters
 
     return resilient(
       [
@@ -798,7 +799,7 @@ export const FeedManager = {
         q = q.in('category', catList);
       }
       if (query.trim()) {
-        const s = query.trim();
+        const s = sanitizeSearch(query); // strip PostgREST .or() filter metacharacters
         q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%,category.ilike.%${s}%,venue_name.ilike.%${s}%,city.ilike.%${s}%`).order('vibe_count', { ascending: false });
       } else {
         q = q.order('created_at', { ascending: false });

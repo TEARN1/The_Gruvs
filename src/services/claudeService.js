@@ -15,6 +15,7 @@
 
 import { supabase } from './supabase';
 import { HyperReasoning } from './hyperReasoning';
+import { sanitizeSearch } from '../utils/sanitize';
 
 const AI_BACKEND_RAW = process.env.EXPO_PUBLIC_AI_BACKEND || 'claude';
 const AI_BACKEND = String(AI_BACKEND_RAW).trim().toLowerCase();
@@ -797,9 +798,9 @@ async function _executeAssistantTool(name, input, userId) {
           .order('trending_score', { ascending: false })
           .limit(Math.min(input.limit || 6, 12));
 
-        if (input.query) q = q.or(`title.ilike.%${input.query}%,description.ilike.%${input.query}%`);
-        if (input.city) q = q.ilike('city', `%${input.city}%`);
-        if (input.category) q = q.or(`category.ilike.%${input.category}%,categories.cs.{${input.category}}`);
+        if (input.query) { const s = sanitizeSearch(input.query); q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%`); }
+        if (input.city) q = q.ilike('city', `%${sanitizeSearch(input.city)}%`);
+        if (input.category) { const c = sanitizeSearch(input.category); q = q.or(`category.ilike.%${c}%,categories.cs.{${c}}`); }
 
         if (input.date === 'today') {
           q = q.eq('event_date', today);

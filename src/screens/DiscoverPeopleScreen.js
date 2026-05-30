@@ -15,6 +15,7 @@ import { DirectMessageModal } from '../components/DirectMessageModal';
 import { useToast } from '../components/ToastNotification';
 import { DiscoveryManager, isOnline as checkOnline } from '../services/dataFlow';
 import { resilientRead, resilient } from '../utils/resilience';
+import { sanitizeSearch } from '../utils/sanitize';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -292,7 +293,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       .limit(100);
 
     if (user?.id) qb = qb.neq('id', user.id);
-    if (q.trim()) qb = qb.or(`username.ilike.%${q.trim()}%,display_name.ilike.%${q.trim()}%`);
+    if (q.trim()) { const s = sanitizeSearch(q); qb = qb.or(`username.ilike.%${s}%,display_name.ilike.%${s}%`); }
     // 'online' filter: pull last_seen within 5min instead of relying on stale is_online flag
     if (filter === 'online') qb = qb.gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString());
 
