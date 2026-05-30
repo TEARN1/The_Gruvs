@@ -24,6 +24,7 @@ import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { SecurityService } from '../services/securityService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ShakeDetector, RichHaptics } from '../services/smartphoneFeatures';
 import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
@@ -542,10 +543,47 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     return () => clearTimeout(searchTimer.current);
   }, [searchQuery]);
 
+  // Seed the feed instantly from cache before the network call completes
+  useEffect(() => {
+    const FEED_CACHE_KEY = `@gruvs_feed_cache_v1`;
+    AsyncStorage.getItem(FEED_CACHE_KEY)
+      .then(raw => {
+        if (!raw) return;
+        const { data, ts } = JSON.parse(raw);
+        // Only use cache if < 10 minutes old and we haven't loaded network data yet
+        if (Date.now() - ts < 600000 && Array.isArray(data) && data.length) {
+          setEvents(prev => prev.length === 0 ? data : prev);
+          setLoading(false);
+        }
+      })
+      .catch(() => {});
+  }, []); // only on mount
+
   useEffect(() => {
     FeedManager.invalidate('feed:');
     loadData(true);
   }, [selectedCat, debouncedQuery, mode, refreshKey, feedMode, user?.id, dateRange, loadData]);
+
+  // Persist feed to cache after every successful load
+  useEffect(() => {
+    if (events.length > 0 && !loading) {
+      AsyncStorage.setItem('@gruvs_feed_cache_v1',
+        JSON.stringify({ data: events.slice(0, 20), ts: Date.now() })
+      ).catch(() => {});
+    }
+  }, [events, loading]);
+
+  // Shake to discover — shake phone to open a random Gruv
+  useEffect(() => {
+    ShakeDetector.start(() => {
+      const pool = feedData.filter(e => e.id);
+      if (!pool.length) return;
+      const random = pool[Math.floor(Math.random() * pool.length)];
+      RichHaptics.heavy();
+      setSelectedEvent(random);
+    }, 4000);
+    return () => ShakeDetector.stop();
+  }, [feedData]);
 
   useEffect(() => {
     loadTrending();

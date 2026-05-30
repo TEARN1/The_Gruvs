@@ -31,3 +31,11 @@ export const thumb = {
   coverSm:   (url) => storageThumb(url, 400, 210),
   thumbnail: (url) => storageThumb(url, 300, 200),
 };
+
+/**
+ * Network-aware thumb — on cellular, reduce image quality to save data.
+ * Pass isMetered=true when expo-network reports a cellular connection.
+ */
+export function adaptiveThumb(url, width, height, isMetered = false) {
+  return storageThumb(url, width, height, isMetered ? 45 : 75);
+}

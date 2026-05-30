@@ -17,6 +17,7 @@ import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, ScoreEngine, VibeManager } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
+import { DeviceCalendar, MediaSave, RichHaptics } from '../services/smartphoneFeatures';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
 import { useEventRole } from '../hooks/useEventRole';
@@ -126,6 +127,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [dmOpen, setDmOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(null);
+  const [calendarAdded, setCalendarAdded] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
   const [roleManagerVisible, setRoleManagerVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
@@ -293,6 +295,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       setRsvpLoading(false);
     }
   }, [user, rsvpStatus, rsvpLoading, event?.id, onAuthRequired, showToast]);
+
+  const handleAddToCalendar = useCallback(async () => {
+    if (!event) return;
+    try {
+      const result = await DeviceCalendar.addEvent(event);
+      if (result.success) {
+        setCalendarAdded(true);
+        await RichHaptics.success();
+        showToast('Gruv added to your calendar! 📅', 'success');
+      } else {
+        showToast(result.error === 'Permission denied' ? 'Allow calendar access in Settings' : 'Could not add to calendar', 'error');
+      }
+    } catch { showToast('Could not add to calendar', 'error'); }
+  }, [event, showToast]);
 
   const handleVibe = useCallback(async () => {
     if (!user) { onAuthRequired?.(); return; }
@@ -867,6 +883,23 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 <Feather name={hasReminder ? 'bell-off' : 'bell'} size={16} color={hasReminder ? primary : textMuted} />
                 <Text style={[styles.checkInBtnText, { color: hasReminder ? primary : textMuted }]}>
                   {hasReminder ? 'Reminder On' : 'Remind Me'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Add to device calendar */}
+              <TouchableOpacity
+                style={[styles.checkInBtn, {
+                  backgroundColor: calendarAdded ? '#10b98130' : 'transparent',
+                  borderWidth: 1,
+                  borderColor: calendarAdded ? '#10b981' : 'rgba(255,255,255,0.2)',
+                }]}
+                onPress={handleAddToCalendar}
+                disabled={calendarAdded}
+                activeOpacity={0.85}
+              >
+                <Feather name={calendarAdded ? 'check-circle' : 'calendar'} size={16} color={calendarAdded ? '#10b981' : textMuted} />
+                <Text style={[styles.checkInBtnText, { color: calendarAdded ? '#10b981' : textMuted }]}>
+                  {calendarAdded ? 'In Calendar' : 'Add to Calendar'}
                 </Text>
               </TouchableOpacity>
             </View>

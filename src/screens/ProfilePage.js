@@ -27,6 +27,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SafeSection } from '../components/SafeSection';
 import { useIdentity } from '../context/IdentityContext';
 import { RoyalGovernance } from '../services/royalGovernance';
+import { BiometricAuth, RichHaptics } from '../services/smartphoneFeatures';
 import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
 import { AchievementBadges } from '../components/AchievementBadges';
@@ -2029,7 +2030,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         <View style={styles.findRow}>
           <TouchableOpacity
             style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={() => setWalletVisible(true)}
+            onPress={async () => {
+              const passed = await BiometricAuth.gate('Confirm your identity to open Wallet');
+              if (passed) { await RichHaptics.tap(); setWalletVisible(true); }
+            }}
           >
             <Feather name="wallet" size={16} color={primary} />
             <Text style={[styles.findBtnText, { color: primary }]}>Wallet</Text>
