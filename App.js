@@ -267,7 +267,6 @@ const MainNavigator = () => {
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [godViewVisible, setGodViewVisible] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [, setIsSovereign] = useState(false);
   const [targetEvent, setTargetEvent] = useState(null);
   const [targetProfile, setTargetProfile] = useState(null);
   const [targetReel, setTargetReel] = useState(null);
@@ -420,13 +419,9 @@ const MainNavigator = () => {
   // Auto-launch welcome tutorial on first app open
   useEffect(() => {
     const checkStatus = async () => {
-      if (!authUser) {
-        setIsSovereign(false);
-        return;
-      }
+      if (!authUser) return;
 
       const status = await VibeEconomyEngine.getSovereignStatus(authUser.id);
-      setIsSovereign(status.isRoyal);
 
       // Dynamic Sovereign Glow
       if (status.isRoyal) {
