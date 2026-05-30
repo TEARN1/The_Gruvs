@@ -43,10 +43,11 @@ export const VibeEquityLedger = {
       const amount = weight * integrityEfficiency * scarcityFactor;
       const newEquity = (profile?.vibe_equity || 0) + amount;
 
-      await supabase.from('profiles').update({
+      const { error: updateErr } = await supabase.from('profiles').update({
         vibe_equity: parseFloat(newEquity.toFixed(8)),
         last_mint_at: new Date().toISOString()
       }).eq('id', userId);
+      if (updateErr) throw updateErr;
 
       return { minted: amount, total: newEquity, phase: phase + 1 };
     } catch (e) {

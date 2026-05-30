@@ -186,6 +186,7 @@ const CreatePollForm = ({ eventId, userId, primary, textColor, muted, surface, o
   const updateOption = (i, v) => setOptions(prev => prev.map((o, idx) => idx === i ? v : o));
 
   const handleCreate = async () => {
+    if (!userId) return Alert.alert('Sign in to create a poll');
     const validOpts = options.map(o => o.trim()).filter(Boolean);
     if (!question.trim()) return Alert.alert('Question required');
     if (validOpts.length < 2) return Alert.alert('At least 2 options required');
@@ -326,13 +327,14 @@ export const EventPollSection = ({ eventId, canPost = false }) => {
   }, [eventId, loadPolls]);
 
   const handleDeletePoll = async (pollId) => {
+    if (!user?.id) return;
     Alert.alert('Delete Poll', 'Remove this poll permanently?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
           setPolls(prev => prev.filter(p => p.id !== pollId));
-          const { error } = await supabase.from('event_polls').delete().eq('id', pollId).eq('created_by', user?.id);
+          const { error } = await supabase.from('event_polls').delete().eq('id', pollId).eq('created_by', user.id);
           if (error) { setPolls(prev => [...prev]); } // state will correct on next load
         },
       },

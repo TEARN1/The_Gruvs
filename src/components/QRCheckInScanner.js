@@ -348,7 +348,7 @@ export const QRCheckInScanner = ({ eventId, organizerId, primary, textColor, mut
     } finally {
       setScanning(false);
     }
-  }, [eventId, checkedInIds, onCheckedIn]);
+  }, [eventId, organizerId, checkedInIds, onCheckedIn]);
 
   const onBarCodeScanned = useCallback(({ data }) => {
     if (cooldown.current || scanning || result) return;

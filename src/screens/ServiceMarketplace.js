@@ -538,7 +538,8 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
   }, []);
 
   const handleAcceptGig = useCallback(async (gig) => {
-    const payload = { gig_id: gig.id, worker_id: user?.id, status: 'accepted' };
+    if (!user?.id) { showToast('Sign in to accept gigs', 'info'); return; }
+    const payload = { gig_id: gig.id, worker_id: user.id, status: 'accepted' };
     await resilient(
       [
         () => supabase.from('gig_acceptances').insert([payload]),

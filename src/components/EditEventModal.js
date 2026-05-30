@@ -248,6 +248,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
   };
 
   const confirmCancel = async () => {
+    if (!user?.id) return;
     setCancelling(true);
     try {
       const ok = await resilient(
@@ -316,6 +317,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
   };
 
   const confirmDelete = async () => {
+    if (!user?.id) return;
     setDeleting(true);
     try {
       const ok = await resilient(

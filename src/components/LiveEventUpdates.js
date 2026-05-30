@@ -101,7 +101,7 @@ export const LiveEventUpdates = ({ eventId, organiserId, canPost: canPostProp, p
   }, [eventId]);
 
   const postUpdate = async () => {
-    if (!message.trim() || posting) return;
+    if (!user?.id || !message.trim() || posting) return;
     setPosting(true);
     try {
       const ok = await resilient(

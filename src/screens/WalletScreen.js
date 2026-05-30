@@ -127,9 +127,10 @@ export const WalletScreen = ({ visible, onClose }) => {
   };
 
   const handleDispute = async (booking) => {
+    if (!user) return;
     setLoading(true);
     try {
-      const ok = await EscrowService.initiateDispute(booking.id, 'Dispute from wallet history', user.id); // FIX: supply callerId
+      const ok = await EscrowService.initiateDispute(booking.id, 'Dispute from wallet history', user.id);
       if (ok) {
         toast.show('Dispute opened', 'warning');
         loadData();

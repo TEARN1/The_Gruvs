@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { ActivityFeedManager } from '../services/dataFlow';
+import { supabase } from '../services/supabase';
 
 const avatarBg = (u = '') =>
   ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u?.charCodeAt(0) || 0) % 5];
