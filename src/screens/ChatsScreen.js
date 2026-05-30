@@ -13,6 +13,7 @@ import { DirectMessageModal } from '../components/DirectMessageModal';
 import { thumb } from '../utils/storageThumb';
 import { CrewFeedScreen } from './CrewFeedScreen';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { LiquidBackground } from '../components/LiquidBackground';
 
 const fmtAge = (ts) => {
   if (!ts) return '';
@@ -227,6 +228,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   return (
     <ErrorBoundary label="Chats">
     <SafeAreaView style={[ch.screen, { backgroundColor: bg }]}>
+      <LiquidBackground intensity={0.7} />
       {/* Header */}
       <View style={ch.header}>
         <Text style={[ch.title, { color: primary }]}>LINKED UP</Text>
