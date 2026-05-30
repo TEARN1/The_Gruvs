@@ -169,7 +169,7 @@ export const OrganizerDashboard = ({ event, primary, textColor, surface, muted }
           { fallbackValue: { count: 0 }, label: 'OrganizerDashboard.vibes' }
         ),
         resilient(
-          [() => supabase.from('event_messages').select('id', { count: 'exact', head: true }).eq('event_id', event.id)],
+          [() => supabase.from('event_chat_messages').select('id', { count: 'exact', head: true }).eq('event_id', event.id)],
           { fallbackValue: { count: 0 }, label: 'OrganizerDashboard.chat' }
         ),
         resilient(
