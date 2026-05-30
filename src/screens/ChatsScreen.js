@@ -8,6 +8,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MessageManager, isOnline as checkOnline } from '../services/dataFlow';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { thumb } from '../utils/storageThumb';
 import { CrewFeedScreen } from './CrewFeedScreen';
@@ -139,19 +140,40 @@ export const ChatsScreen = ({ onAuthRequired }) => {
     return () => sub.remove();
   }, [activeConvo]);
 
+  const CONVOS_CACHE_KEY = user ? `@gruvs_convos_${user.id}_v1` : null;
+
+  // Seed conversations from cache immediately (no loading flash on revisit)
+  useEffect(() => {
+    if (!CONVOS_CACHE_KEY) return;
+    AsyncStorage.getItem(CONVOS_CACHE_KEY)
+      .then(raw => {
+        if (!raw) return;
+        const { data, ts } = JSON.parse(raw);
+        if (Date.now() - ts < 300000 && Array.isArray(data) && data.length) {
+          setConvos(prev => prev.length === 0 ? data : prev);
+          setLoading(false);
+        }
+      })
+      .catch(() => {});
+  }, [CONVOS_CACHE_KEY]);
+
   const fetchConvos = useCallback(async (isRefresh = false) => {
     if (!user) { setConvos([]); return; }
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
       const data = await MessageManager.getConversations(user.id);
       setConvos(data || []);
+      // Persist for instant next load
+      if (CONVOS_CACHE_KEY && data?.length) {
+        AsyncStorage.setItem(CONVOS_CACHE_KEY, JSON.stringify({ data: data.slice(0, 30), ts: Date.now() })).catch(() => {});
+      }
     } catch {
-      // Convos are best-effort — keep existing list on transient failure
+      // Keep existing list on transient failure
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user]);
+  }, [user, CONVOS_CACHE_KEY]);
 
   useEffect(() => {
     fetchConvos();

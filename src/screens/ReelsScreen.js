@@ -1166,6 +1166,32 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
   useEffect(() => { loadReels(); }, [loadReels]);
 
+  // Real-time: new reels appear at the top of the feed without manual refresh
+  useEffect(() => {
+    const channel = supabase
+      .channel('reels_feed_rt')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reels' }, async (payload) => {
+        const newReel = payload.new;
+        if (!newReel?.id || !newReel?.media_url) return;
+        // Fetch full reel with profile join before prepending
+        try {
+          const { data } = await supabase
+            .from('reels')
+            .select('id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, metadata, visibility, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
+            .eq('id', newReel.id)
+            .single();
+          if (data) {
+            setReels(prev => {
+              if (prev.some(r => r.id === data.id)) return prev;
+              return [data, ...prev];
+            });
+          }
+        } catch { /* best-effort */ }
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, []);
+
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index ?? 0);
   }).current;

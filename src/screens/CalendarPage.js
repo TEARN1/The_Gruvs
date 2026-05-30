@@ -438,11 +438,13 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
     if (filterMode === 'my_rsvps') evs = evs.filter(ev => myRsvpIds.has(ev.id));
     if (filterMode === 'free') evs = evs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.trim().toLowerCase();
       evs = evs.filter(ev =>
         ev.title?.toLowerCase().includes(q) ||
         ev.venue_name?.toLowerCase().includes(q) ||
-        ev.category?.toLowerCase().includes(q)
+        ev.city?.toLowerCase().includes(q) ||
+        ev.category?.toLowerCase().includes(q) ||
+        ev.description?.toLowerCase().includes(q)
       );
     }
     return evs;
