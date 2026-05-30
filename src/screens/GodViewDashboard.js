@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 import { GlassView } from '../components/GlassView';
 import { OOS } from '../services/organizationalOverseer';
 import { NeuralMesh } from '../services/neuralMesh';
@@ -35,14 +35,11 @@ const PulseIndicator = ({ color }) => {
   );
 };
 
-const OWNER_EMAIL = 'asemahlenkwali@gmail.com';
-
 export const GodViewDashboard = ({ visible, onClose }) => {
   const { currentTheme } = useTheme();
-  const { user } = useAuth();
 
-  // Hard gate — only the owner can access this screen
-  const isAuthorized = user?.email === OWNER_EMAIL;
+  // Server-validated admin gate (with owner-email bootstrap). null = still checking.
+  const isAdmin = useIsAdmin(visible);
 
   const [logs, setLogs] = useState([]);
   const [isAuditing, setIsAuditing] = useState(false);
@@ -128,8 +125,12 @@ export const GodViewDashboard = ({ visible, onClose }) => {
 
   if (!visible) return null;
 
-  // Block unauthorised access — show nothing and close
-  if (!isAuthorized) {
+  // Still verifying admin status — render nothing (do NOT close yet, or the
+  // async check would close the modal on a legitimate owner).
+  if (isAdmin === null) return null;
+
+  // Confirmed not an admin — close and block.
+  if (isAdmin === false) {
     onClose?.();
     return null;
   }

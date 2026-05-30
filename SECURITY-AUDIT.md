@@ -75,9 +75,13 @@ bundle** — anyone can `view-source` and find the admin's real email (phishing 
 account-takeover target). The God View / Admin gate is `user.email === OWNER_EMAIL`,
 which only hides UI; the real boundary must be server-side.
 
-**Fix:** move admin status to a server-controlled flag (e.g. `profiles.is_admin`
-set only via the dashboard/service role) and gate UI on that; ensure all admin
-RPCs check it. See §3 + §7.
+**Fix (partly done in code):** added `src/hooks/useIsAdmin.js` — the admin UI
+(God View + Admin AI) now gates on the **server `profiles.is_admin` flag**, with
+the owner email kept only as a transitional bootstrap (so you're never locked
+out before the column ships). The email is now in **one** place instead of two.
+**Final step (you):** run §3 SQL, set your account `is_admin = true`, then delete
+the `OWNER_EMAIL` line in `useIsAdmin.js` to fully remove the hardcoded email.
+Also ensure admin RPCs re-check `is_admin` server-side (§7).
 
 ## 4. 🟡 LOW — Full social graph public (`follows`)
 

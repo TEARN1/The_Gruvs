@@ -13,12 +13,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 import { supabase } from '../services/supabase';
 import { adminChat, runHealthCheck } from '../services/claudeService';
 import { resilient } from '../utils/resilience';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-
-const OWNER_EMAIL = 'asemahlenkwali@gmail.com';
 
 const QUICK_COMMANDS = [
   { label: '📊 Stats today',          query: 'How many new users signed up today and what is total user count?' },
@@ -170,6 +169,7 @@ async function executeTool(toolName, toolInput) {
 export const AdminAIScreen = ({ onClose }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
+  const isAdmin = useIsAdmin();
   const [messages, setMessages]   = useState([{
     id: 'welcome', role: 'assistant',
     text: `Welcome back, TEARN 👑\n\nI'm your admin AI. Ask me anything about the app, or give me a command:\n\n• "How many users signed up today?"\n• "Feature event [event-id]"\n• "Send a push to all Cape Town users about X"\n• "Generate an announcement for [feature]"\n\nWhat do you need?`,
@@ -216,13 +216,22 @@ export const AdminAIScreen = ({ onClose }) => {
     );
   }, [primary, surface, textColor]);
 
-  // Guard: only owner
-  if (user?.email !== OWNER_EMAIL) {
+  // Guard: server-validated admin (with owner-email bootstrap). null = checking.
+  if (isAdmin === null) {
+    return (
+      <SafeAreaView style={[styles.screen, { backgroundColor: bg }]}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+  if (!isAdmin) {
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: bg }]}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Feather name="lock" size={40} color={muted} />
-          <Text style={{ color: muted, marginTop: 12, fontSize: 14 }}>Owner access only.</Text>
+          <Text style={{ color: muted, marginTop: 12, fontSize: 14 }}>Admin access only.</Text>
         </View>
       </SafeAreaView>
     );
