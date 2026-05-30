@@ -81,18 +81,18 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           if (error) throw error;
           return d;
         },
-        // Tier 2: no actor join — lighter
+        // Tier 2: no actor join — lighter but keeps data + event_id
         async () => {
           const { data: d, error } = await supabase.from('notifications')
-            .select('id, type, title, body, read, created_at, actor_id, event_id')
+            .select('id, type, title, body, read, created_at, actor_id, event_id, data')
             .eq('recipient_id', user.id).order('created_at', { ascending: false }).limit(100);
           if (error) throw error;
           return (d || []).map(n => ({ ...n, actor: null }));
         },
-        // Tier 3: unread only — minimal payload
+        // Tier 3: unread only — minimal but still keeps event_id for navigation
         async () => {
           const { data: d, error } = await supabase.from('notifications')
-            .select('id, type, title, body, read, created_at')
+            .select('id, type, title, body, read, created_at, event_id, data')
             .eq('recipient_id', user.id).eq('read', false).limit(50);
           if (error) throw error;
           return d;
@@ -156,11 +156,17 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const handleNotifPress = useCallback((item) => {
     if (!item.read) markRead(item.id);
-    const viewerId = item.data?.viewer_id || item.data?.actor_id;
+    // event_id lives both as a top-level column AND inside the data JSONB
+    const eventId = item.event_id || item.data?.event_id;
+    // actor / viewer id for profile navigation
+    const viewerId = item.actor_id || item.data?.viewer_id || item.data?.actor_id;
+
     if ((item.type === 'profile_view' || item.type === 'follow') && viewerId) {
       setProfileModalUserId(viewerId);
-    } else if (['vibe', 'rsvp', 'echo', 'comment', 'event_day'].includes(item.type) && item.data?.event_id && onNavigateToEvent) {
-      onNavigateToEvent({ id: item.data.event_id });
+    } else if (['vibe', 'rsvp', 'echo', 'comment', 'event_day', 'checkin'].includes(item.type) && eventId && onNavigateToEvent) {
+      onNavigateToEvent({ id: eventId });
+    } else if (item.type === 'message' && viewerId) {
+      setProfileModalUserId(viewerId);
     }
   }, [markRead, onNavigateToEvent]);
 

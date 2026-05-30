@@ -427,6 +427,24 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     try {
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch { }
       const coords = await LocationService.requestAndGet();
+
+      // ── Distance gate — must be within 2km of the event venue ──────────────
+      if (coords && event?.lat != null && event?.lon != null) {
+        const R = 6371;
+        const dLat = (Number(event.lat) - coords.lat) * Math.PI / 180;
+        const dLon = (Number(event.lon) - coords.lon) * Math.PI / 180;
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(coords.lat * Math.PI / 180) *
+          Math.cos(Number(event.lat) * Math.PI / 180) *
+          Math.sin(dLon / 2) ** 2;
+        const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        if (distKm > 2) {
+          showToast(`You need to be at the venue to Touch Down (${(distKm).toFixed(1)}km away)`, 'error');
+          return;
+        }
+      }
+
       const privateCoords = coords ? applyLocationPrivacy(coords.lat, coords.lon) : {};
       const ok = await CheckInManager.touchDown(event.id, user.id, privateCoords || {});
       if (ok) {

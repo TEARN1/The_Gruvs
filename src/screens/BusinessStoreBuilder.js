@@ -549,15 +549,19 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
       const storeSlug = slug.trim().toLowerCase().replace(/\s+/g, '-');
       const ok = await resilient(
         [
+          // Tier 1: full update with store_enabled flag
           () => supabase.from('business_profiles').update({ store_enabled: true, store_slug: storeSlug }).eq('id', biz.id),
-          () => supabase.from('business_profiles').update({ store_slug: storeSlug }).eq('id', biz.id),
+          // Tier 2: also set store_enabled — slug alone doesn't publish
+          () => supabase.from('business_profiles').update({ store_enabled: true, store_slug: storeSlug }).eq('user_id', biz.user_id || biz.id),
+          // Tier 3: RPC fallback
           () => supabase.rpc('publish_store', { p_biz_id: biz.id, p_slug: storeSlug }),
         ],
         { attemptsPerTier: 3, baseMs: 500, label: `StoreBuilder.publish:${biz.id}`, fallbackValue: null }
       );
+      // Only mark live after server confirms — never set UI state speculatively
       if (ok === null) { Alert.alert('Error', 'Could not publish store. Please try again.'); return; }
       setStoreEnabled(true);
-      Alert.alert('Published!', `Your store is live at thegruvs.app/store/${storeSlug}`);
+      Alert.alert('Published! 🎉', `Your store is live at thegruvs.app/store/${storeSlug}`);
     } finally {
       setSaving(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator,
@@ -107,6 +107,42 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   };
 
   const handleClose = () => { reset(); onClose(); };
+
+  // ── Auto-geocode address → lat/lon when user stops typing ────────────────
+  const geocodeTimer = useRef(null);
+  const [geocoding, setGeocoding] = useState(false);
+
+  const geocodeAddress = useCallback(async (addressText) => {
+    if (!addressText || addressText.trim().length < 6) return;
+    setGeocoding(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      const query = city.trim() ? `${addressText.trim()}, ${city.trim()}` : addressText.trim();
+      if (status === 'granted') {
+        const results = await Location.geocodeAsync(query);
+        if (results?.length) {
+          setLat(results[0].latitude);
+          setLon(results[0].longitude);
+        }
+      } else {
+        // Web fallback: Nominatim open geocoding
+        const encoded = encodeURIComponent(query);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`);
+        const json = await res.json();
+        if (json?.length) { setLat(parseFloat(json[0].lat)); setLon(parseFloat(json[0].lon)); }
+      }
+    } catch { /* geocoding is best-effort — user can always pin manually */ }
+    finally { setGeocoding(false); }
+  }, [city]);
+
+  // Debounced geocode: fires 1.5s after user stops typing
+  const handleAddressChange = useCallback((v) => {
+    setAddress(v);
+    if (error) setError('');
+    if (lat && lon) return; // skip if user already manually pinned
+    clearTimeout(geocodeTimer.current);
+    geocodeTimer.current = setTimeout(() => geocodeAddress(v), 1500);
+  }, [error, lat, lon, geocodeAddress]);
 
   const pinLocation = async () => {
     try {
@@ -369,14 +405,14 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
           return data || true;
         },
         async () => {
-          // Tier 2: strip coords (geography cast may not be available) and schedule
-          const { coords: _c, schedule: _s, ...safePayload } = payload;
+          // Tier 2: strip coords + schedule + categories array (may not be a DB column)
+          const { coords: _c, schedule: _s, categories: _cats, ...safePayload } = payload;
           const { data, error } = await supabase.from('events').insert(safePayload).select().single();
           if (error) throw error;
           return data || true;
         },
         async () => {
-          // Tier 3: absolute minimum required fields only
+          // Tier 3: minimum required fields — always keep category so feed filters work
           const minPayload = {
             title: payload.title,
             description: payload.description,
@@ -384,9 +420,12 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
             address: payload.address,
             event_date: payload.event_date,
             city: payload.city,
+            lat: payload.lat,
+            lon: payload.lon,
             price: payload.price,
             price_min: payload.price_min,
             price_max: payload.price_max,
+            category: payload.category,   // MUST keep — drives all feed filters
             is_published: true,
           };
           const { data, error } = await supabase.from('events').insert(minPayload).select().single();
@@ -651,7 +690,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     placeholder="Full address or venue name..."
                     placeholderTextColor={muted}
                     value={address}
-                    onChangeText={v => { setAddress(v); if (error) setError(''); }}
+                    onChangeText={handleAddressChange}
                     returnKeyType="done"
                   />
 
@@ -659,12 +698,16 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     onPress={pinLocation}
                     style={[pm.catBtn, { marginBottom: 18, borderColor: lat ? '#10b981' : `${primary}40`, backgroundColor: lat ? '#10b98115' : `${primary}08` }]}
                   >
-                    <Feather name={lat ? "check-circle" : "map-pin"} size={16} color={lat ? '#10b981' : primary} />
+                    {geocoding
+                      ? <ActivityIndicator size="small" color={primary} />
+                      : <Feather name={lat ? "check-circle" : "map-pin"} size={16} color={lat ? '#10b981' : primary} />
+                    }
                     <View style={{ flex: 1 }}>
                       <Text style={[{ color: lat ? '#10b981' : primary, fontWeight: '800', fontSize: 13 }]}>
-                        {lat ? 'Spot Pinned Successfully' : 'Pin Exact Spot (GPS)'}
+                        {geocoding ? 'Finding coordinates…' : lat ? 'Location Found' : 'Pin Exact Spot (GPS)'}
                       </Text>
-                      {lat && <Text style={{ color: '#10b981', fontSize: 10 }}>{lat.toFixed(5)}, {lon.toFixed(5)}</Text>}
+                      {lat && !geocoding && <Text style={{ color: '#10b981', fontSize: 10 }}>{lat.toFixed(5)}, {lon.toFixed(5)}</Text>}
+                      {!lat && !geocoding && <Text style={{ color: muted, fontSize: 10 }}>Auto-detected from address · tap to use GPS</Text>}
                     </View>
                   </TouchableOpacity>
 
