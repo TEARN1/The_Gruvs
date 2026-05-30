@@ -438,31 +438,65 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         TrendingManager.fetchCategoryCounts(),
       ]);
 
-      // Gallery: latest photos from event_gallery + event_moments
+      // Gallery: pull from ALL photo sources across the platform
       setGalleryLoading(true);
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const twoWeeksAgo = new Date(Date.now() - 14 * 86400000).toISOString();
-        const [galleryRes, momentsRes] = await Promise.allSettled([
+        const twoWeeksAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+        const [galleryRes, momentsRes, reelsRes, eventMediaRes] = await Promise.allSettled([
+          // 1. Event gallery uploads
           supabase.from('event_gallery')
-            .select('id, media_url, media_type, caption, event_id, user_id, created_at, events(title, city, category)')
+            .select('id, media_url, media_type, caption, event_id, created_at, events(title, category)')
+            .eq('media_type', 'image')
+            .order('created_at', { ascending: false })
+            .limit(30),
+          // 2. 24hr event moments (stories)
+          supabase.from('event_moments')
+            .select('id, media_url, media_type, caption, event_id, created_at, events(title, category)')
             .gte('created_at', twoWeeksAgo)
             .eq('media_type', 'image')
             .order('created_at', { ascending: false })
-            .limit(24),
-          supabase.from('event_moments')
-            .select('id, media_url, media_type, caption, event_id, user_id, created_at, events(title, city, category)')
-            .gte('expires_at', new Date().toISOString())
-            .eq('media_type', 'image')
+            .limit(30),
+          // 3. Reels thumbnails / cover frames
+          supabase.from('reels')
+            .select('id, thumbnail_url, cover_url, event_id, created_at, events(title, category)')
             .order('created_at', { ascending: false })
-            .limit(24),
+            .limit(20),
+          // 4. Events with cover photos (recent events)
+          supabase.from('events')
+            .select('id, cover_url, image_url, media_urls, title, category, created_at')
+            .not('cover_url', 'is', null)
+            .neq('is_deleted', true)
+            .order('created_at', { ascending: false })
+            .limit(30),
         ]);
+
         const gallery = galleryRes.status === 'fulfilled' ? (galleryRes.value.data || []) : [];
         const moments = momentsRes.status === 'fulfilled' ? (momentsRes.value.data || []) : [];
-        const combined = [...gallery, ...moments]
-          .filter(p => p.media_url)
+        const reels   = reelsRes.status === 'fulfilled'   ? (reelsRes.value.data || []).map(r => ({
+          id: `reel_${r.id}`, media_url: r.thumbnail_url || r.cover_url,
+          event_id: r.event_id, created_at: r.created_at, events: r.events,
+        })).filter(r => r.media_url) : [];
+        const eventMedia = eventMediaRes.status === 'fulfilled' ? (eventMediaRes.value.data || []).flatMap(ev => {
+          const urls = [];
+          if (ev.cover_url) urls.push({ id: `ev_cover_${ev.id}`, media_url: ev.cover_url, event_id: ev.id, created_at: ev.created_at, events: { title: ev.title, category: ev.category } });
+          // Unpack media_urls array if present
+          let mu = ev.media_urls;
+          if (typeof mu === 'string') { try { mu = JSON.parse(mu); } catch { mu = null; } }
+          if (Array.isArray(mu)) mu.slice(0, 2).forEach((u, i) => {
+            if (u && !/\.(mp4|mov|webm)/i.test(u)) urls.push({ id: `ev_media_${ev.id}_${i}`, media_url: u, event_id: ev.id, created_at: ev.created_at, events: { title: ev.title, category: ev.category } });
+          });
+          return urls;
+        }) : [];
+
+        const combined = [...gallery, ...moments, ...reels, ...eventMedia]
+          .filter(p => p?.media_url && typeof p.media_url === 'string' && p.media_url.startsWith('http'))
+          .reduce((acc, p) => { // dedupe by url
+            if (!acc.seen.has(p.media_url)) { acc.seen.add(p.media_url); acc.list.push(p); }
+            return acc;
+          }, { seen: new Set(), list: [] }).list
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-          .slice(0, 30);
+          .slice(0, 60);
+
         setGalleryPhotos(combined);
       } catch { setGalleryPhotos([]); }
       finally { setGalleryLoading(false); }
@@ -548,28 +582,42 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   }, [user, applyLocationPrivacy, loadNearbyVibers]);
 
+  // App Upgrades — real feature changelog (updated with each release)
   useEffect(() => {
-    resilientRead(
-      async () => {
-        const { data, error } = await supabase.from('app_updates')
-          .select('id, title, description, version, released_at, type')
-          .order('released_at', { ascending: false })
-          .limit(5);
-        if (error) throw error;
-        return data;
-      },
-      async () => {
-        const { data, error } = await supabase.from('app_updates')
-          .select('id, title, released_at')
-          .order('released_at', { ascending: false })
-          .limit(5);
-        if (error) throw error;
-        return data;
-      },
-      async () => [],
-      [],
-      'ExplorePage.appUpdates'
-    ).then(data => setAppUpdates(data || [])).catch(() => {});
+    const CHANGELOG = [
+      { id: '20', type: 'FEAT', version: '2.0.5', released_at: '2026-05-29', title: 'Event Management Platform', description: 'Full organizer control panel — lineup builder, stage manager, session schedule, vendor map, live updates for 47+ event types. Sport events get dedicated teams, fixtures, live scoring & league table.' },
+      { id: '19', type: 'FIX', version: '2.0.4', released_at: '2026-05-29', title: 'Filter Engine Overhaul', description: 'Category & date filters now correctly match all 1000+ subcategories. Cache invalidation fixed. Scout and Explore now use deep subcategory tree matching.' },
+      { id: '18', type: 'FEAT', version: '2.0.4', released_at: '2026-05-28', title: 'Journey Map Persistence', description: 'Pinned events in your Journey now survive app restarts. No more losing your night plan. Unlimited journey pins.' },
+      { id: '17', type: 'FIX', version: '2.0.3', released_at: '2026-05-28', title: 'Web Bundle Fixes', description: 'Fixed "module unavailable" errors for Vibe Planner, Tickets, and Wallet on web. QR codes now show a text fallback on web builds.' },
+      { id: '16', type: 'FEAT', version: '2.0.2', released_at: '2026-05-26', title: 'Tutorial Center Expanded', description: 'New tutorials: Build Your Journey, Manage Your Event (5-step organizer guide), Event Management category added.' },
+      { id: '15', type: 'FEAT', version: '2.0.1', released_at: '2026-05-25', title: 'Universal Sports Platform', description: 'Live scoreboard, match log, league table, player stats, photo/video gallery, commentary for 17 sport types.' },
+      { id: '14', type: 'FEAT', version: '2.0.0', released_at: '2026-05-24', title: 'Royal Vibe Events + AI Personalisation', description: 'Recurring Royal Vibe events engine. 12-signal personalisation — your Drop now learns from check-ins, searches, dwell time and crew activity.' },
+      { id: '13', type: 'FEAT', version: '1.9.8', released_at: '2026-05-23', title: 'Comprehensive Mobile UX', description: 'Gesture navigation, FAB quick actions, swipe-to-dismiss modals, pull-to-refresh haptics across all screens.' },
+      { id: '12', type: 'FEAT', version: '1.9.5', released_at: '2026-05-20', title: 'Social Media & Reels', description: 'Short-form video Reels feed, For You / Following tabs, create & link Reels to events.' },
+      { id: '11', type: 'FEAT', version: '1.9.0', released_at: '2026-05-15', title: 'Biz Hub + Store Builder', description: 'Business dashboard, drag-and-drop store builder, campaign/mission system with 3000+ targeting signals.' },
+      { id: '10', type: 'FEAT', version: '1.8.5', released_at: '2026-05-10', title: 'Event Chat & Polls', description: 'Live event chat room, host-only announcements, attendee polls, and collaborative playlist.' },
+      { id: '9',  type: 'FEAT', version: '1.8.0', released_at: '2026-05-05', title: 'VIP Tier System', description: 'Multi-tier ticket pricing (General, VIP, VVIP), waitlist management, QR ticket generation.' },
+      { id: '8',  type: 'FEAT', version: '1.7.5', released_at: '2026-04-28', title: 'Royal Routes', description: 'Community travel groups — squad up with Vibers heading to the same event, split transport costs.' },
+      { id: '7',  type: 'FEAT', version: '1.7.0', released_at: '2026-04-20', title: 'Path Map & Crossings', description: 'Digital Footprint visualiser — see everywhere you\'ve been, where paths cross with other Vibers.' },
+      { id: '6',  type: 'FEAT', version: '1.6.0', released_at: '2026-04-10', title: 'Scout Map', description: 'Full city event map, radius filter, crew toggle, real-time pins for events near you.' },
+    ];
+    setAppUpdates(CHANGELOG);
+
+    // Also try to load any additional updates from DB (non-blocking)
+    supabase.from('app_updates')
+      .select('id, title, description, version, released_at, type')
+      .order('released_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => {
+        if (data?.length) {
+          setAppUpdates(prev => {
+            const existing = new Set(prev.map(u => u.id));
+            const newOnes = data.filter(u => !existing.has(String(u.id)));
+            return [...newOnes, ...prev].slice(0, 20);
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -618,10 +666,44 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     return () => clearTimeout(searchTimer.current);
   }, [query]);
 
+  const [catFilteredEvents, setCatFilteredEvents] = useState([]);
+  const [catFilterLoading, setCatFilterLoading] = useState(false);
+
   const onMoodSelect = useCallback((key) => {
     setActiveMoods(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
     setActiveCat(null);
   }, []);
+
+  // When a category is selected, fetch ALL events from the DB for that category
+  useEffect(() => {
+    if (!activeCat) { setCatFilteredEvents([]); return; }
+    setCatFilterLoading(true);
+    const subCats = CAT_KEY_TO_SUBCATS[activeCat] || new Set([activeCat]);
+    const catList = [...subCats];
+    const today = new Date().toISOString().split('T')[0];
+    supabase
+      .from('events')
+      .select('id, title, category, event_date, event_time, venue_name, city, cover_url, image_url, media_urls, vibe_count, price, lat, lon, profiles!author_id(username, avatar_url)')
+      .in('category', catList)
+      .gte('event_date', today)
+      .neq('is_deleted', true)
+      .neq('is_cancelled', true)
+      .order('vibe_count', { ascending: false })
+      .limit(40)
+      .then(({ data, error }) => {
+        if (!error && data?.length) { setCatFilteredEvents(data); }
+        else {
+          // Fallback: filter from already-loaded events
+          const matchesCatSet = (e) => {
+            const eCat = e.category?.toLowerCase();
+            return (eCat && subCats.has(eCat)) || (Array.isArray(e.categories) && e.categories.some(c => subCats.has(c?.toLowerCase())));
+          };
+          setCatFilteredEvents([...happeningNow, ...trendingEvents].filter(matchesCatSet));
+        }
+        setCatFilterLoading(false);
+      })
+      .catch(() => { setCatFilterLoading(false); });
+  }, [activeCat, happeningNow, trendingEvents]);
 
   const filteredEvents = useMemo(() => {
     const matchesCatSet = (e, catSet) => {
@@ -632,15 +714,16 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       return false;
     };
     if (activeCat) {
-      const subCats = CAT_KEY_TO_SUBCATS[activeCat] || new Set([activeCat]);
-      return happeningNow.filter(e => matchesCatSet(e, subCats));
+      // Use DB-fetched results if available, otherwise filter in-memory
+      return catFilteredEvents.length > 0 ? catFilteredEvents :
+        happeningNow.filter(e => matchesCatSet(e, CAT_KEY_TO_SUBCATS[activeCat] || new Set([activeCat])));
     }
     if (activeMoods.size > 0) {
       const allCats = new Set(MOODS.filter(m => activeMoods.has(m.key)).flatMap(m => m.cats));
       return happeningNow.filter(e => matchesCatSet(e, allCats));
     }
     return happeningNow;
-  }, [happeningNow, activeCat, activeMoods]);
+  }, [happeningNow, trendingEvents, activeCat, activeMoods, catFilteredEvents]);
 
   const isSearching = query.trim().length > 0;
   const renderWelcome = () => {
@@ -882,17 +965,31 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 textColor={textColor}
                 primary={primary}
               />
-              <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-                {(loading ? [{id:'s1'},{id:'s2'},{id:'s3'}] : filteredEvents.slice(0, 8)).map((ev, i) => (
-                  loading ? (
-                    <View key={ev.id} style={[et.wrap, { backgroundColor: `${primary}10` }]} />
-                  ) : (
-                    <FadeInView key={ev.id} delay={i * 50} direction="right">
-                      <EventTile event={ev} primary={primary} textColor={textColor} muted={muted} onPress={() => onNavigateToEvent && onNavigateToEvent(ev)} />
-                    </FadeInView>
-                  )
-                ))}
-              </ScrollView>
+              {catFilterLoading ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                  {[1,2,3].map(i => <View key={i} style={[et.wrap, { backgroundColor: `${primary}10` }]} />)}
+                </ScrollView>
+              ) : filteredEvents.length === 0 && activeCat ? (
+                <View style={{ paddingHorizontal: 20, paddingVertical: 18, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 28 }}>{CATEGORY_CONFIG[activeCat]?.icon || '🔍'}</Text>
+                  <Text style={{ color: muted, fontSize: 13, marginTop: 8, textAlign: 'center' }}>
+                    No {CATEGORY_CONFIG[activeCat]?.label || activeCat} events right now.
+                  </Text>
+                  <Text style={{ color: `${primary}80`, fontSize: 12, marginTop: 4 }}>Check back soon or post one!</Text>
+                </View>
+              ) : (
+                <ScrollView showsVerticalScrollIndicator={false} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                  {(loading ? [{id:'s1'},{id:'s2'},{id:'s3'}] : filteredEvents).map((ev, i) => (
+                    loading ? (
+                      <View key={ev.id} style={[et.wrap, { backgroundColor: `${primary}10` }]} />
+                    ) : (
+                      <FadeInView key={ev.id} delay={i * 40} direction="right">
+                        <EventTile event={ev} primary={primary} textColor={textColor} muted={muted} onPress={() => onNavigateToEvent && onNavigateToEvent(ev)} />
+                      </FadeInView>
+                    )
+                  ))}
+                </ScrollView>
+              )}
             </View>
 
             {/* ── Near Me events ─────────────────────────────────────────── */}
