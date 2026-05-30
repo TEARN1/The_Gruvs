@@ -13,6 +13,29 @@
 
 **99 tables** · **83 RPC functions** referenced.
 
+## Known schema mismatches (found by validation — not yet fixed)
+
+These are columns the code references that do **not** exist in the live DB.
+Fixed ones (event_reactions.reaction→reaction_key, muted_users.muter_id→user_id,
+live_checkins.created_at→checked_in_at) are already corrected. Still open:
+
+| Table | Code references | Reality | Status |
+|-------|-----------------|---------|--------|
+| `event_rsvps` | `id` | composite key `(event_id, user_id)`, no `id` | **Check-in system — needs review** |
+| `event_checkins` | `rsvp_id` | keyed by `(event_id, user_id)`, no `rsvp_id` | **Check-in system — needs review** |
+| `path_stars` | `event_id`, `from_user_id`, `to_user_id` | table empty; columns differ | Unfinished feature — needs schema |
+| `path_crossings` | `user_id`, `cross_count`, `created_at` | table empty; columns differ | Unfinished feature — needs schema |
+| `route_steps` | `step_order` | table empty | Unfinished feature — needs schema |
+| `activity_feed` | `read` | column differs | Needs schema |
+| `events` | `event_id` | _false positive_ — `.eq` is on sub-tables | Not a bug |
+| `follows` | `author_id` | _false positive_ — uses `follower_id`/`following_id` | Not a bug |
+
+The **check-in system** (QRCheckInScanner + EventAdminPanel) writes/filters
+`event_rsvps.id` and `event_checkins.rsvp_id`, neither of which exists — door
+check-in is currently broken. The correct model is `(event_id, user_id)`, but the
+fix touches entry-control logic and the `secure_check_in` RPC, so it needs review
+before applying. Re-validate anytime: `node scripts/validate-schema.js`.
+
 ## Tables
 
 ### `activity_feed`
