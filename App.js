@@ -103,7 +103,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
                   style={[styles.unreadBadge, { backgroundColor: '#ef4444' }]}
                   accessibilityLabel={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`}
                 >
-                  <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : '1'}</Text>
+                  <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
                 </View>
               )}
               {tab.key === 'chats' && unreadDMCount > 0 && (
@@ -111,7 +111,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
                   style={[styles.unreadBadge, { backgroundColor: primary }]}
                   accessibilityLabel={`${unreadDMCount} unread message${unreadDMCount !== 1 ? 's' : ''}`}
                 >
-                  <Text style={[styles.unreadBadgeText, { color: '#000' }]}>{unreadDMCount > 9 ? '9+' : '1'}</Text>
+                  <Text style={[styles.unreadBadgeText, { color: '#000' }]}>{unreadDMCount > 9 ? '9+' : unreadDMCount}</Text>
                 </View>
               )}
             </View>
