@@ -13,6 +13,7 @@ import { GlassView } from '../components/GlassView';
 import { FadeInView } from '../components/FadeInView';
 import { Biometric } from '../services/biometric';
 import { haptics } from '../utils/haptics';
+import { LiquidBackground } from '../components/LiquidBackground';
 import { THEMES, GENDERS } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
@@ -1765,6 +1766,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   // Main profile
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
+      <LiquidBackground intensity={0.8} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 140 }}

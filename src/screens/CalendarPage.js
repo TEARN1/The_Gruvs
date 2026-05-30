@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
 import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
+import { LiquidBackground } from '../components/LiquidBackground';
 import { BrandLogo } from '../components/BrandLogo';
 import { CalendarManager } from '../services/dataFlow';
 import { resilientRead } from '../utils/resilience';
@@ -461,6 +462,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   return (
     <ErrorBoundary label="Calendar">
     <View style={[styles.container, { backgroundColor: bg }]}>
+      <LiquidBackground intensity={0.8} />
       <AuraEffect />
 
       <ScrollView

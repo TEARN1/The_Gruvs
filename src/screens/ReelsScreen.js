@@ -19,6 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
+import { haptics } from '../utils/haptics';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { CreateReelModal } from '../components/CreateReelModal';
@@ -542,6 +543,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
   const triggerLike = async () => {
     if (!user) return;
     const newLiked = !liked;
+    if (newLiked) haptics.light();
     setLiked(newLiked);
     setLikeCount(c => newLiked ? c + 1 : Math.max(0, c - 1));
     heartAnim.setValue(1);
@@ -586,6 +588,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
   const handleSave = async () => {
     if (!user) return;
     const newSaved = !saved;
+    if (newSaved) haptics.success();
     setSaved(newSaved);
     try {
       await ReelsRepository.toggleSave({ reelId: reel.id, userId: user.id, isSaved: newSaved });

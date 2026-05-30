@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
+import { LiquidBackground } from '../components/LiquidBackground';
 import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
@@ -752,6 +753,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   return (
     <ErrorBoundary label="Explore">
     <View style={[styles.root, { backgroundColor: bg }]}>
+      <LiquidBackground intensity={0.8} />
       <AuraEffect />
       <ScrollView
         ref={scrollRef}
