@@ -954,7 +954,7 @@ Price Sensitivity: ${mem?.preferences?.price_sensitivity || 'unknown'}`;
         let q = supabase.from('echoes').select('body, created_at, profiles(username, display_name), event_id');
         if (input.event_id) q = q.eq('event_id', input.event_id);
         else if (input.event_title) {
-          const { data: ev } = await supabase.from('events').select('id').ilike('title', `%${input.event_title}%`).limit(1).single();
+          const { data: ev } = await supabase.from('events').select('id').ilike('title', `%${input.event_title}%`).limit(1).maybeSingle();
           if (ev?.id) q = q.eq('event_id', ev.id);
         }
         const { data } = await q.order('created_at', { ascending: false }).limit(input.limit || 8);

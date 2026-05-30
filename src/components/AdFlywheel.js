@@ -33,11 +33,6 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
   const [dismissed, setDismissed] = useState(false);
   const fadeAnim              = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (identityMode === 'celebrity') return;
-    selectAd();
-  }, [intentTag, eventId, identityMode, selectAd]);
-
   const selectAd = useCallback(async () => {
     // Removed demo mode fallback. Real ads required.
 
@@ -63,6 +58,11 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
 
     // No real ads available — hide the unit
   }, [intentTag]);
+
+  useEffect(() => {
+    if (identityMode === 'celebrity') return;
+    selectAd();
+  }, [intentTag, eventId, identityMode, selectAd]);
 
   const fadeIn = () => {
     Animated.timing(fadeAnim, {

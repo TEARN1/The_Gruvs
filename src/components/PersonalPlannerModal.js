@@ -107,7 +107,7 @@ export const PersonalPlannerModal = ({ visible, onClose, onNavigateToEvent }) =>
 
   useEffect(() => {
     if (visible) load(activeTab);
-  }, [visible, activeTab]);
+  }, [visible, activeTab, load]);
 
   const grouped = groupByDate(events);
 
