@@ -8,7 +8,7 @@ import React, { useState, useRef, useCallback, useEffect, memo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback,
   Image, Dimensions, Platform, TextInput, Modal, ScrollView, KeyboardAvoidingView,
-  Animated, ActivityIndicator, Share, PanResponder, Alert, RefreshControl, AppState,
+  Animated, ActivityIndicator, Share, Alert, RefreshControl, AppState,
   useWindowDimensions, BackHandler,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -865,6 +865,7 @@ const ri = StyleSheet.create({
   audioPill: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 7, backgroundColor: 'rgba(0,0,0,0.45)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, maxWidth: 220 },
   audioPillText: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600', flex: 1 },
   sticker: { position: 'absolute', left: 24, right: 24, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, alignSelf: 'center', zIndex: 8 },
+  stickerText: { color: '#fff', fontSize: 14, fontWeight: '900', textAlign: 'center', textShadowColor: '#000', textShadowRadius: 4 },
 });
 
 // ── Advanced Player Options Sheet ───────────────────────────────────────────

@@ -645,15 +645,30 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
         </View>
 
         {/* All events this month section */}
-        {monthEvents.length > 0 && !loading && (
+        {monthEvents.length > 0 && !loading && (() => {
+          let allEvs = monthEvents;
+          if (filterMode === 'my_rsvps') allEvs = allEvs.filter(ev => myRsvpIds.has(ev.id));
+          if (filterMode === 'free') allEvs = allEvs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
+          if (searchQuery.trim()) {
+            const q = searchQuery.trim().toLowerCase();
+            allEvs = allEvs.filter(ev =>
+              ev.title?.toLowerCase().includes(q) ||
+              ev.venue_name?.toLowerCase().includes(q) ||
+              ev.city?.toLowerCase().includes(q) ||
+              ev.category?.toLowerCase().includes(q) ||
+              ev.description?.toLowerCase().includes(q)
+            );
+          }
+          if (!allEvs.length) return null;
+          return (
           <View style={styles.allEventsSection}>
             <View style={styles.sectionRow}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>
                 All of {MONTH_NAMES[viewMonth]}
               </Text>
-              <Text style={[styles.sectionCount, { color: muted }]}>{monthEvents.length} gruvs</Text>
+              <Text style={[styles.sectionCount, { color: muted }]}>{allEvs.length} gruvs</Text>
             </View>
-            {monthEvents.map((ev, i) => (
+            {allEvs.map((ev, i) => (
               <CalEventCard
                 key={ev.id}
                 ev={ev}
@@ -668,7 +683,8 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
               />
             ))}
           </View>
-        )}
+          );
+        })()}
 
       </ScrollView>
 
@@ -725,9 +741,6 @@ const styles = StyleSheet.create({
 });
 
 const calS = StyleSheet.create({
-  segmentWrap: { flexDirection: 'row', borderBottomWidth: 1, paddingHorizontal: 16 },
-  segBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  segLabel:    { fontSize: 13, fontWeight: '800' },
   searchWrap:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14, borderWidth: 1 },
   searchInput: { flex: 1, fontSize: 13 },
   filterPill:  { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
