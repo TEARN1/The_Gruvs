@@ -35,3 +35,12 @@ jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({
   __esModule: true,
   default: { API: {}, addListener: jest.fn(), removeListeners: jest.fn() },
 }), { virtual: true });
+
+// ── Silence the known-benign "not wrapped in act(...)" noise from the looping
+//    Animated effects (floating reaction orbs etc.). These are continuous
+//    background animations, not state we assert on — real errors still print.
+const _consoleError = console.error;
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && /not wrapped in act/.test(args[0])) return;
+  _consoleError(...args);
+};
