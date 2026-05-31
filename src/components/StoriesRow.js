@@ -38,11 +38,18 @@ const StoryBubble = ({ story, seen, primary, onPress }) => {
   );
 };
 
-const AddStoryBubble = ({ primary, onPress }) => (
+const AddStoryBubble = ({ primary, onPress, avatarUrl }) => (
   <TouchableOpacity style={sb.wrap} onPress={onPress} activeOpacity={0.8}>
     <View style={[sb.ring, { borderColor: `${primary}60` }]}>
-      <View style={[sb.avatar, { backgroundColor: '#1a2a2c', alignItems: 'center', justifyContent: 'center' }]}>
-        <Feather name="plus" size={22} color={primary} />
+      {avatarUrl
+        ? <Image source={{ uri: avatarUrl }} style={sb.avatar} />
+        : <View style={[sb.avatar, { backgroundColor: '#1a2a2c', alignItems: 'center', justifyContent: 'center' }]}>
+            <Feather name="user" size={22} color={primary} />
+          </View>
+      }
+      {/* Plus badge — clearly an "add to your story" affordance */}
+      <View style={[sb.addBadge, { backgroundColor: primary, borderColor: '#0d1112' }]}>
+        <Feather name="plus" size={11} color="#000" />
       </View>
     </View>
     <Text style={[sb.name, { color: primary }]}>Your Story</Text>
@@ -54,6 +61,7 @@ const sb = StyleSheet.create({
   ring: { borderWidth: 2.5, borderRadius: 35, padding: 2, marginBottom: 5 },
   avatar: { width: 54, height: 54, borderRadius: 27 },
   name: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  addBadge: { position: 'absolute', right: 0, bottom: 4, width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 });
 
 // ── Story viewer modal ────────────────────────────────────────────────────────
@@ -203,7 +211,7 @@ const sv = StyleSheet.create({
 // ── Main StoriesRow export ────────────────────────────────────────────────────
 export const StoriesRow = ({ onAuthRequired }) => {
   const { currentTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { show: showToast } = useToast();
   const [grouped, setGrouped] = useState([]);
   const [seenMap, setSeenMap] = useState({});
@@ -329,7 +337,7 @@ export const StoriesRow = ({ onAuthRequired }) => {
           ? <View style={[sb.wrap, { justifyContent: 'center' }]}>
               <ActivityIndicator color={primary} />
             </View>
-          : <AddStoryBubble primary={primary} onPress={addStory} />
+          : <AddStoryBubble primary={primary} onPress={addStory} avatarUrl={profile?.avatar_url} />
         }
         {grouped.map((g, i) => {
           const allSeen = g.stories.every(s => seenMap[s.id]);

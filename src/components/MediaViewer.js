@@ -39,12 +39,13 @@ const MediaItem = ({ item, isActive, width, height }) => {
   );
 };
 
-export const MediaViewer = ({ media, containerWidth }) => {
+export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9 }) => {
   // Measure actual rendered width via onLayout so cards narrower than SCREEN_WIDTH
   // get correctly sized items (especially on wide web layouts).
   const [measuredWidth, setMeasuredWidth] = useState(containerWidth || SCREEN_WIDTH);
   const MEDIA_WIDTH = measuredWidth;
-  const MEDIA_HEIGHT = Math.round(MEDIA_WIDTH * 9 / 16);
+  // aspectRatio = width / height; a larger ratio (e.g. 2) gives a shorter image.
+  const MEDIA_HEIGHT = Math.round(MEDIA_WIDTH / aspectRatio);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const onLayout = useCallback((e) => {
@@ -89,7 +90,7 @@ export const MediaViewer = ({ media, containerWidth }) => {
   };
 
   return (
-    <View style={[styles.container, { height: MEDIA_HEIGHT }]} onLayout={onLayout}>
+    <View style={[styles.container, { height: MEDIA_HEIGHT, aspectRatio: undefined }]} onLayout={onLayout}>
       <FlatList
         data={media}
         renderItem={renderItem}

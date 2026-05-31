@@ -1352,8 +1352,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               onLongPress={() => handleImageLongPress(event)}
               delayLongPress={400}
             >
-            <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }, isWeb && { aspectRatio: '16/9' }]}>
-              <MediaViewer media={(() => {
+            <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }, isWeb && { aspectRatio: '2/1' }]}>
+              <MediaViewer aspectRatio={2} media={(() => {
                 let m = event.media;
                 if (typeof m === 'string') { try { m = JSON.parse(m); } catch { m = null; } }
                 if (!m?.length && event.media_urls?.length) {
@@ -1593,8 +1593,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 onPress={() => { setReactorsEvent(id); setReactorsFilter('all'); fetchReactors(id); }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.reactionEmojis}>{event.reactions_summary || '🔥❤️🙌'}</Text>
-                <Text style={[styles.reactionCount, { color: muted }]}>{event.reaction_count} reactions</Text>
+                <Text style={styles.reactionEmojis}>
+                  {event.reactions_summary
+                    || (userReaction ? (REACTION_LIST.find(r => r.key === userReaction)?.emoji || '✨') : '✨')}
+                </Text>
+                <Text style={[styles.reactionCount, { color: muted }]}>
+                  {event.reaction_count} {event.reaction_count === 1 ? 'reaction' : 'reactions'}
+                </Text>
                 <Feather name="chevron-right" size={12} color={muted} style={{ marginLeft: 'auto' }} />
               </TouchableOpacity>
             ) : null}
@@ -1989,46 +1994,57 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         <View style={[styles.reactorsSheet, { backgroundColor: surface }]}>
           <View style={[styles.reactorsHandle, { backgroundColor: `${primary}30` }]} />
           <Text style={[styles.reactorsTitle, { color: textColor }]}>Reactions</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, marginBottom: 12 }}>
-            {['all', '🔥', '❤️', '⚡', '😮', '🙌'].map(f => (
-              <TouchableOpacity
-                key={f}
-                style={[styles.reactorFilterBtn, { backgroundColor: reactorsFilter === f ? primary : `${primary}18`, borderColor: reactorsFilter === f ? primary : `${primary}30` }]}
-                onPress={() => setReactorsFilter(f)}
-              >
-                <Text style={{ fontSize: f === 'all' ? 11 : 18, color: reactorsFilter === f ? '#000' : textColor, fontWeight: '800' }}>
-                  {f === 'all' ? 'All' : f}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          {reactorsLoading
-            ? <ActivityIndicator color={primary} style={{ marginTop: 20 }} />
-            : (() => {
-                const EMOJI_MAP = { fire: '🔥', love: '❤️', hype: '⚡', shocked: '😮', clap: '🙌' };
-                const filtered = reactorsFilter === 'all'
-                  ? reactorsList
-                  : reactorsList.filter(r => (EMOJI_MAP[r.reaction_key] || r.reaction_key) === reactorsFilter);
-                return filtered.length === 0
-                  ? <Text style={{ color: muted, textAlign: 'center', paddingTop: 24, fontSize: 13 }}>No reactions yet</Text>
-                  : (
-                    <ScrollView contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingBottom: 32 }}>
-                      {filtered.map((r, i) => (
-                        <View key={i} style={styles.reactorRow}>
-                          {r.profiles?.avatar_url
-                            ? <Image source={{ uri: r.profiles.avatar_url }} style={styles.reactorAvatar} />
-                            : <View style={[styles.reactorAvatar, { backgroundColor: primary + '30', alignItems: 'center', justifyContent: 'center' }]}>
-                                <Text style={{ color: primary, fontWeight: '900', fontSize: 12 }}>{(r.profiles?.username || '?')[0].toUpperCase()}</Text>
-                              </View>
-                          }
-                          <Text style={[styles.reactorName, { color: textColor }]}>@{r.profiles?.username || 'Viber'}</Text>
-                          <Text style={{ fontSize: 22, marginLeft: 'auto' }}>{EMOJI_MAP[r.reaction_key] || r.reaction_key}</Text>
-                        </View>
-                      ))}
-                    </ScrollView>
-                  );
-              })()
-          }
+          {(() => {
+            // Single source of truth: map every reaction key → emoji from REACTION_LIST.
+            const EMOJI_MAP = Object.fromEntries(REACTION_LIST.map(r => [r.key, r.emoji]));
+            const emojiFor = (k) => EMOJI_MAP[k] || k;
+            // Only the emojis that were ACTUALLY used appear as filter pills.
+            const presentEmojis = [...new Set(reactorsList.map(r => emojiFor(r.reaction_key)))];
+            const filters = ['all', ...presentEmojis];
+            const filtered = reactorsFilter === 'all'
+              ? reactorsList
+              : reactorsList.filter(r => emojiFor(r.reaction_key) === reactorsFilter);
+            return (
+              <>
+                {presentEmojis.length > 1 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, marginBottom: 12 }}>
+                    {filters.map(f => (
+                      <TouchableOpacity
+                        key={f}
+                        style={[styles.reactorFilterBtn, { backgroundColor: reactorsFilter === f ? primary : `${primary}18`, borderColor: reactorsFilter === f ? primary : `${primary}30` }]}
+                        onPress={() => setReactorsFilter(f)}
+                      >
+                        <Text style={{ fontSize: f === 'all' ? 11 : 18, color: reactorsFilter === f ? '#000' : textColor, fontWeight: '800' }}>
+                          {f === 'all' ? 'All' : f}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+                {reactorsLoading
+                  ? <ActivityIndicator color={primary} style={{ marginTop: 20 }} />
+                  : filtered.length === 0
+                    ? <Text style={{ color: muted, textAlign: 'center', paddingTop: 24, fontSize: 13 }}>No reactions yet</Text>
+                    : (
+                      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingBottom: 32 }}>
+                        {filtered.map((r, i) => (
+                          <View key={i} style={styles.reactorRow}>
+                            {r.profiles?.avatar_url
+                              ? <Image source={{ uri: r.profiles.avatar_url }} style={styles.reactorAvatar} />
+                              : <View style={[styles.reactorAvatar, { backgroundColor: primary + '30', alignItems: 'center', justifyContent: 'center' }]}>
+                                  <Text style={{ color: primary, fontWeight: '900', fontSize: 12 }}>{(r.profiles?.username || '?')[0].toUpperCase()}</Text>
+                                </View>
+                            }
+                            <Text style={[styles.reactorName, { color: textColor }]}>@{r.profiles?.username || 'Viber'}</Text>
+                            <Text style={{ fontSize: 22, marginLeft: 'auto' }}>{emojiFor(r.reaction_key)}</Text>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    )
+                }
+              </>
+            );
+          })()}
         </View>
       </Modal>
       <OfflineBanner />
@@ -2214,10 +2230,10 @@ const styles = StyleSheet.create({
   eventCard: { flex: 1, marginHorizontal: SCREEN_W < 375 ? 10 : 16, marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
   schedulePreview: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
   schedulePreviewText: { fontSize: 12, fontWeight: '700', flex: 1, flexShrink: 1, minWidth: 0 },
-  imgSection: { position: 'relative', minHeight: Math.round((SCREEN_W - 32) * 9 / 16) },
+  imgSection: { position: 'relative', minHeight: Math.round((SCREEN_W - 32) / 2) },
   catBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
   catBadgeText: { fontSize: 9, ...FONT.badge, letterSpacing: 0.8 }, // item 60: 0.8 improves 9px legibility
-  bookmarkBtn: { position: 'absolute', top: 12, right: 12, padding: 8, borderRadius: 20 },
+  bookmarkBtn: { position: 'absolute', bottom: 12, right: 12, padding: 8, borderRadius: 20 },
   cardBody: { padding: 14 },
 
   userRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
