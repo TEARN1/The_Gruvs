@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Image, StyleSheet,
   Platform, Linking, Share, Animated, Modal, Dimensions, RefreshControl,
@@ -44,6 +44,11 @@ const OrganizerDashboard = React.lazy(() => import('../components/OrganizerDashb
 const LiveEventBanner    = React.lazy(() => import('../components/LiveEventBanner').then(m => ({ default: m.LiveEventBanner })));
 const EventManagementPanel = React.lazy(() => import('../components/EventManagementPanel').then(m => ({ default: m.EventManagementPanel })));
 const SportManagementPanel = React.lazy(() => import('../components/SportManagementPanel').then(m => ({ default: m.SportManagementPanel })));
+import { NowPlayingBar } from '../components/NowPlayingBar';
+import { EventFollowButton } from '../components/EventFollowButton';
+import { SetNowPlayingModal } from '../components/SetNowPlayingModal';
+import { VendorMenuSheet } from '../components/VendorMenuSheet';
+import { HackathonLeaderboard } from '../components/HackathonLeaderboard';
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
   return SPORT_CATS.has(cat?.toLowerCase());
@@ -132,6 +137,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [roleManagerVisible, setRoleManagerVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
+  const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const scrollRef = useRef(null);
 
   const { isOrganiser, isCoHost, canPost, canModerate } = useEventRole(
@@ -713,6 +719,23 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <Text style={[styles.countdownLabel, { color: textMuted }]}>until the Gruv</Text>
             </View>
           )}
+          {/* Now Playing bar — music, festival, rave, party events */}
+          {countdown?.over && !_isSportCat(event?.category) && (
+            <NowPlayingBar
+              eventId={event?.id}
+              onPress={isOrganiser ? () => setNowPlayingOpen(true) : undefined}
+            />
+          )}
+
+          {/* Host: Set Now Playing modal */}
+          {isOrganiser && event?.id && (
+            <SetNowPlayingModal
+              eventId={event.id}
+              visible={nowPlayingOpen}
+              onClose={() => setNowPlayingOpen(false)}
+            />
+          )}
+
           {countdown?.over && (
             <SafeSection label="Live Banner" primary={primary}>
               <LiveEventBanner
@@ -831,6 +854,18 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </SafeSection>
           )}
 
+          {/* Follow event button — shown to non-organisers */}
+          {event?.id && !isOrganiser && (
+            <SafeSection label="Follow" primary={primary}>
+              <View style={{ paddingHorizontal: 16 }}>
+                <EventFollowButton
+                  eventId={event.id}
+                  isSport={_isSportCat(event?.category)}
+                />
+              </View>
+            </SafeSection>
+          )}
+
           {isSoldOut && event?.id && (
             <SafeSection label="Waitlist" primary={primary}>
               <WaitlistButton
@@ -939,6 +974,26 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 muted={textMuted}
                 bg={background}
               />
+            </SafeSection>
+          )}
+
+          {/* Vendor menu — food market / expo events */}
+          {event?.id && ['food', 'market', 'pop-up', 'expo', 'fair', 'festival'].includes(event?.category?.toLowerCase()) && (
+            <SafeSection label="Vendors" primary={primary}>
+              <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', paddingHorizontal: 16, marginBottom: 12 }}>
+                Vendors & Stalls
+              </Text>
+              <VendorMenuSheet eventId={event.id} style={{ paddingHorizontal: 16 }} />
+            </SafeSection>
+          )}
+
+          {/* Hackathon leaderboard — hackathon / competition events */}
+          {event?.id && ['hackathon', 'competition', 'dance', 'talent', 'gaming', 'esports'].includes(event?.category?.toLowerCase()) && (
+            <SafeSection label="Leaderboard" primary={primary}>
+              <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', paddingHorizontal: 16, marginBottom: 12 }}>
+                Leaderboard
+              </Text>
+              <HackathonLeaderboard eventId={event.id} style={{ paddingHorizontal: 16 }} />
             </SafeSection>
           )}
 

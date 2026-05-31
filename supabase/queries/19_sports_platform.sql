@@ -348,7 +348,7 @@ ALTER TABLE public.sport_media ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "sport_media_read" ON public.sport_media;
 CREATE POLICY "sport_media_read" ON public.sport_media FOR SELECT USING (true);
 DROP POLICY IF EXISTS "sport_media_own" ON public.sport_media;
-CREATE POLICY "sport_media_own" ON public.sport_media FOR INSERT USING (uploader_id = auth.uid());
+CREATE POLICY "sport_media_own" ON public.sport_media FOR INSERT WITH CHECK (uploader_id = auth.uid());
 
 -- ── SPORT FOLLOWERS (follow a tournament/league) ─────────────────────────────
 CREATE TABLE IF NOT EXISTS public.sport_event_followers (

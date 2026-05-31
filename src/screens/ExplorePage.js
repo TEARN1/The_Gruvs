@@ -29,6 +29,57 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const { width } = Dimensions.get('window');
 
+// ── Sport type quick-filter chips ────────────────────────────────────────────
+const SPORT_FILTERS = [
+  { key: 'soccer',      label: 'Soccer',      icon: '⚽' },
+  { key: 'rugby',       label: 'Rugby',        icon: '🏉' },
+  { key: 'basketball',  label: 'Basketball',   icon: '🏀' },
+  { key: 'cricket',     label: 'Cricket',      icon: '🏏' },
+  { key: 'athletics',   label: 'Athletics',    icon: '🏃' },
+  { key: 'tennis',      label: 'Tennis',       icon: '🎾' },
+  { key: 'boxing',      label: 'Boxing',       icon: '🥊' },
+  { key: 'esports',     label: 'Esports',      icon: '🎮' },
+  { key: 'golf',        label: 'Golf',         icon: '⛳' },
+  { key: 'swimming',    label: 'Swimming',     icon: '🏊' },
+  { key: 'volleyball',  label: 'Volleyball',   icon: '🏐' },
+  { key: 'cycling',     label: 'Cycling',      icon: '🚴' },
+];
+
+const SportFilterRow = ({ activeSport, onSelect, primary }) => (
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 4 }}
+  >
+    <TouchableOpacity
+      style={[sf.chip, { backgroundColor: !activeSport ? primary : `${primary}20`, borderColor: primary }]}
+      onPress={() => onSelect(null)}
+    >
+      <Text style={[sf.label, { color: !activeSport ? '#000' : primary }]}>All Sports</Text>
+    </TouchableOpacity>
+    {SPORT_FILTERS.map(s => {
+      const active = activeSport === s.key;
+      return (
+        <TouchableOpacity
+          key={s.key}
+          style={[sf.chip, { backgroundColor: active ? primary : `${primary}15`, borderColor: active ? primary : `${primary}30` }]}
+          onPress={() => onSelect(active ? null : s.key)}
+          accessibilityLabel={s.label}
+        >
+          <Text style={sf.icon}>{s.icon}</Text>
+          <Text style={[sf.label, { color: active ? '#000' : primary }]}>{s.label}</Text>
+        </TouchableOpacity>
+      );
+    })}
+  </ScrollView>
+);
+
+const sf = StyleSheet.create({
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  icon: { fontSize: 13 },
+  label: { fontSize: 11, fontWeight: '800' },
+});
+
 // ── Mood buckets ───────────────────────────────────────────────────────────────
 const MOODS = [
   { key: 'hype',       label: 'Hype',         icon: 'zap',          color: '#f97316', cats: ['music','party','nightlife','rave'] },
@@ -370,6 +421,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [query, setQuery] = useState('');
   const [activeMoods, setActiveMoods] = useState(new Set());
   const [activeCat, setActiveCat] = useState(null);
+  const [activeSport, setActiveSport] = useState(null);
   const [featuredEvent, setFeaturedEvent] = useState(null);
   const [galleryPhotos, setGalleryPhotos] = useState([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
@@ -721,10 +773,14 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     }
     if (activeMoods.size > 0) {
       const allCats = new Set(MOODS.filter(m => activeMoods.has(m.key)).flatMap(m => m.cats));
-      return happeningNow.filter(e => matchesCatSet(e, allCats));
+      const moodFiltered = happeningNow.filter(e => matchesCatSet(e, allCats));
+      return activeSport ? moodFiltered.filter(e => e.sport_type === activeSport) : moodFiltered;
+    }
+    if (activeSport) {
+      return happeningNow.filter(e => e.sport_type === activeSport || e.category === 'sport');
     }
     return happeningNow;
-  }, [happeningNow, trendingEvents, activeCat, activeMoods, catFilteredEvents]);
+  }, [happeningNow, trendingEvents, activeCat, activeMoods, catFilteredEvents, activeSport]);
 
   const isSearching = query.trim().length > 0;
   const renderWelcome = () => {
@@ -920,6 +976,14 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <SectionHeader title="What's your mood?" textColor={textColor} primary={primary} />
               <MoodRow activeMoods={activeMoods} onSelect={onMoodSelect} primary={primary} />
             </View>
+
+            {/* ── Sport type filter (shown when Sport mood or Sport category active) */}
+            {(activeMoods.has('sport') || activeCat === 'sport') && (
+              <View style={{ marginBottom: 20 }}>
+                <SectionHeader title="Pick a Sport" textColor={textColor} primary={primary} />
+                <SportFilterRow activeSport={activeSport} onSelect={setActiveSport} primary={primary} />
+              </View>
+            )}
 
             {/* ── Trending hashtags ──────────────────────────────────────── */}
             {trendingHashtags.length > 0 && (

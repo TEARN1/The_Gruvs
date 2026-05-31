@@ -30,6 +30,11 @@ import {
 } from '../services/eventManagementEngine';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
+import { supabase } from '../services/supabase';
+import { NotificationService } from '../services/notificationService';
+import { AwardCeremonyPanel } from './AwardCeremonyPanel';
+import { SetNowPlayingModal } from './SetNowPlayingModal';
+import { VendorMenuSheet } from './VendorMenuSheet';
 
 // Aliases for consistent naming in this component
 const TeamManager = HackTeamManager;
@@ -106,6 +111,7 @@ const LineupTab = ({ event, config, primary, textColor, surface, muted }) => {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [form, setForm] = useState({ name: '', role: '', stage: '', bio: '', set_start: '', set_end: '', social_handle: '' });
   const toast = useToast();
 
@@ -150,8 +156,15 @@ const LineupTab = ({ event, config, primary, textColor, surface, muted }) => {
         <Text style={{ color: textColor, fontWeight: '900', fontSize: 15 }}>
           {config.label} Lineup ({items.length})
         </Text>
-        <ActionBtn icon="plus" label="Add" onPress={openAdd} color={primary} />
+        <Row style={{ gap: 8 }}>
+          {items.length > 0 && (
+            <ActionBtn icon="music" label="Now Playing" onPress={() => setNowPlayingOpen(true)} color={primary} />
+          )}
+          <ActionBtn icon="plus" label="Add" onPress={openAdd} color={primary} />
+        </Row>
       </Row>
+
+      <SetNowPlayingModal eventId={event.id} visible={nowPlayingOpen} onClose={() => setNowPlayingOpen(false)} />
 
       {items.length === 0 && (
         <View style={{ alignItems: 'center', paddingVertical: 30 }}>
@@ -236,6 +249,7 @@ const SessionsTab = ({ event, config, primary, textColor, surface, muted }) => {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [goingLive, setGoingLive] = useState(null);
   const [form, setForm] = useState({ title: '', speaker: '', type: 'talk', room: '', start_time: '', end_time: '', description: '' });
   const toast = useToast();
 
@@ -283,7 +297,7 @@ const SessionsTab = ({ event, config, primary, textColor, surface, muted }) => {
       )}
 
       {items.map(item => (
-        <View key={item.id} style={[s.card, { borderColor: `${primary}20`, backgroundColor: `${primary}06` }]}>
+        <View key={item.id} style={[s.card, { borderColor: item.is_live ? primary : `${primary}20`, backgroundColor: item.is_live ? `${primary}10` : `${primary}06` }]}>
           <Row style={{ justifyContent: 'space-between' }}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: textColor, fontWeight: '800', fontSize: 14 }}>{item.title}</Text>
@@ -292,9 +306,31 @@ const SessionsTab = ({ event, config, primary, textColor, surface, muted }) => {
                 {item.type ? <Text style={{ color: muted, fontSize: 11, backgroundColor: `${primary}12`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>{item.type}</Text> : null}
                 {item.start_time ? <Text style={{ color: muted, fontSize: 11 }}>{item.start_time}{item.end_time ? ` – ${item.end_time}` : ''}</Text> : null}
                 {item.room ? <Text style={{ color: muted, fontSize: 11 }}>📍 {item.room}</Text> : null}
+                {item.is_live && <Text style={{ color: primary, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>● LIVE</Text>}
               </Row>
             </View>
             <Row>
+              {!item.is_live && (
+                <TouchableOpacity
+                  onPress={async () => {
+                    setGoingLive(item.id);
+                    try {
+                      await SessionManager.update(item.id, { is_live: true });
+                      await NotificationService.notifySessionStarting(event.id, item.title, item.room);
+                      toast.show('Session is live!', 'success');
+                      load();
+                    } catch { toast.show('Error', 'error'); }
+                    setGoingLive(null);
+                  }}
+                  style={{ padding: 6 }}
+                  disabled={goingLive === item.id}
+                >
+                  {goingLive === item.id
+                    ? <ActivityIndicator size="small" color={primary} />
+                    : <Feather name="play-circle" size={18} color={primary} />
+                  }
+                </TouchableOpacity>
+              )}
               <TouchableOpacity onPress={() => openEdit(item)} style={{ padding: 6 }}><Feather name="edit-2" size={15} color={muted} /></TouchableOpacity>
               <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: 6 }}><Feather name="trash-2" size={15} color="#ef4444" /></TouchableOpacity>
             </Row>
@@ -390,6 +426,10 @@ const VendorsTab = ({ event, config, primary, textColor, surface, muted }) => {
           <Text style={{ fontSize: 32 }}>🛒</Text>
           <Text style={{ color: muted, marginTop: 8, fontSize: 13 }}>No vendors yet — build your market map</Text>
         </View>
+      )}
+
+      {items.length > 0 && (
+        <VendorMenuSheet eventId={event.id} style={{ marginBottom: 16 }} />
       )}
 
       {items.map(item => (
@@ -672,6 +712,8 @@ export const EventManagementPanel = ({ event, primary, textColor, surface, muted
   if (features.includes('stages'))        TABS.push({ key: 'stages',    label: 'Stages',    icon: 'layers' });
   if (features.includes('sessions'))      TABS.push({ key: 'sessions',  label: 'Schedule',  icon: 'calendar' });
   if (features.includes('vendors'))       TABS.push({ key: 'vendors',   label: 'Vendors',   icon: 'shopping-bag' });
+  if (features.includes('judge_scores'))  TABS.push({ key: 'scores',    label: 'Scores',    icon: 'award' });
+  TABS.push({ key: 'awards',  label: 'Awards',  icon: 'award' });
   TABS.push({ key: 'updates', label: 'Updates', icon: 'broadcast' });
 
   const [activeTab, setActiveTab] = useState(TABS[0]?.key || 'updates');
@@ -720,7 +762,188 @@ export const EventManagementPanel = ({ event, primary, textColor, surface, muted
       {activeTab === 'stages'   && <StagesTab   event={event} primary={primary} textColor={textColor} muted={muted} />}
       {activeTab === 'sessions' && <SessionsTab event={event} config={config} primary={primary} textColor={textColor} surface={surface} muted={muted} />}
       {activeTab === 'vendors'  && <VendorsTab  event={event} config={config} primary={primary} textColor={textColor} surface={surface} muted={muted} />}
+      {activeTab === 'scores'   && <ScoresTab   event={event} primary={primary} textColor={textColor} surface={surface} muted={muted} />}
+      {activeTab === 'awards'   && <AwardCeremonyPanel event={event} />}
       {activeTab === 'updates'  && <UpdatesTab  event={event} primary={primary} textColor={textColor} muted={muted} />}
+    </View>
+  );
+};
+
+// ── Scores Tab (judge score submission) ───────────────────────────────────────
+const ScoresTab = ({ event, primary, textColor, surface, muted }) => {
+  const { user } = useAuth();
+  const toast = useToast();
+  const [teams, setTeams]     = useState([]);
+  const [scores, setScores]   = useState([]);   // existing scores by this judge
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+  const [form, setForm]       = useState({ participant_id: '', participant_name: '', category: '', score: '', max_score: '10', notes: '' });
+  const [adding, setAdding]   = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: teamData }, { data: scoreData }] = await Promise.all([
+      supabase.from('event_teams').select('id, name, project_title, submitted').eq('event_id', event.id).order('name'),
+      supabase.from('event_judge_scores').select('*').eq('event_id', event.id).order('created_at', { ascending: false }),
+    ]);
+    setTeams(teamData || []);
+    setScores(scoreData || []);
+    setLoading(false);
+  }, [event.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleSave = async () => {
+    if (!form.participant_id || !form.category.trim() || !form.score) return toast.show('Fill in all required fields', 'error');
+    const scoreVal = parseFloat(form.score);
+    const maxVal   = parseFloat(form.max_score) || 10;
+    if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > maxVal) return toast.show(`Score must be 0–${maxVal}`, 'error');
+    setSaving(true);
+    try {
+      await supabase.from('event_judge_scores').insert({
+        event_id:         event.id,
+        judge_id:         user?.id,
+        judge_name:       user?.username || user?.email || 'Judge',
+        participant_id:   form.participant_id,
+        participant_name: form.participant_name,
+        category:         form.category.trim(),
+        score:            scoreVal,
+        max_score:        maxVal,
+        notes:            form.notes.trim() || null,
+      });
+      toast.show('Score submitted', 'success');
+      setAdding(false);
+      setForm({ participant_id: '', participant_name: '', category: '', score: '', max_score: '10', notes: '' });
+      load();
+    } catch (e) { toast.show(e.message || 'Error', 'error'); }
+    setSaving(false);
+  };
+
+  const deleteScore = (id) => {
+    Alert.alert('Delete', 'Remove this score?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => { await supabase.from('event_judge_scores').delete().eq('id', id); load(); } },
+    ]);
+  };
+
+  if (loading) return <ActivityIndicator color={primary} style={{ marginTop: 20 }} />;
+
+  const CATEGORIES = ['Innovation', 'Execution', 'Design', 'Presentation', 'Impact', 'Technicality'];
+
+  return (
+    <View>
+      <Row style={{ marginBottom: 14, justifyContent: 'space-between' }}>
+        <Text style={{ color: textColor, fontWeight: '900', fontSize: 15 }}>Judge Scores ({scores.length})</Text>
+        <ActionBtn icon="plus" label="Submit Score" onPress={() => setAdding(true)} color={primary} />
+      </Row>
+
+      {teams.length === 0 && (
+        <View style={{ alignItems: 'center', paddingVertical: 30 }}>
+          <Text style={{ fontSize: 32 }}>🏆</Text>
+          <Text style={{ color: muted, marginTop: 8, fontSize: 13 }}>No teams to score yet</Text>
+        </View>
+      )}
+
+      {/* Existing scores */}
+      {scores.map(sc => {
+        const team = teams.find(t => t.id === sc.participant_id);
+        const pct  = Math.round((sc.score / (sc.max_score || 10)) * 100);
+        const col  = pct >= 75 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
+        return (
+          <View key={sc.id} style={[s.card, { borderColor: `${primary}20`, backgroundColor: `${primary}06` }]}>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: textColor, fontWeight: '800', fontSize: 14 }}>{sc.participant_name || team?.name}</Text>
+                <Text style={{ color: primary, fontSize: 12, marginTop: 2 }}>{sc.category}</Text>
+                {sc.notes ? <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>{sc.notes}</Text> : null}
+                <Text style={{ color: muted, fontSize: 10, marginTop: 3 }}>by {sc.judge_name}</Text>
+              </View>
+              <Row style={{ gap: 8, alignItems: 'center' }}>
+                <Text style={{ color: col, fontSize: 20, fontWeight: '900' }}>{sc.score}/{sc.max_score}</Text>
+                <TouchableOpacity onPress={() => deleteScore(sc.id)} style={{ padding: 6 }}>
+                  <Feather name="trash-2" size={14} color="#ef4444" />
+                </TouchableOpacity>
+              </Row>
+            </Row>
+          </View>
+        );
+      })}
+
+      {/* Score submission modal */}
+      <Modal visible={adding} animationType="slide" transparent onRequestClose={() => setAdding(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <View style={[s.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+            <View style={[s.modalSheet, { backgroundColor: '#0d1112' }]}>
+              <Row style={{ justifyContent: 'space-between', marginBottom: 16 }}>
+                <Text style={{ color: textColor, fontWeight: '900', fontSize: 16 }}>Submit Score</Text>
+                <TouchableOpacity onPress={() => setAdding(false)}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
+              </Row>
+              <ScrollView>
+                {/* Team picker */}
+                <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>TEAM *</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                  <Row style={{ gap: 8 }}>
+                    {teams.map(t => {
+                      const active = form.participant_id === t.id;
+                      return (
+                        <TouchableOpacity
+                          key={t.id}
+                          style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: active ? primary : `${primary}30`, backgroundColor: active ? primary : `${primary}12` }}
+                          onPress={() => setForm(p => ({ ...p, participant_id: t.id, participant_name: t.name }))}
+                        >
+                          <Text style={{ color: active ? '#000' : textColor, fontWeight: '800', fontSize: 13 }}>{t.name}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </Row>
+                </ScrollView>
+
+                {/* Category picker */}
+                <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>CATEGORY *</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                  <Row style={{ gap: 8 }}>
+                    {CATEGORIES.map(cat => {
+                      const active = form.category === cat;
+                      return (
+                        <TouchableOpacity
+                          key={cat}
+                          style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: active ? primary : `${primary}30`, backgroundColor: active ? primary : `${primary}12` }}
+                          onPress={() => setForm(p => ({ ...p, category: cat }))}
+                        >
+                          <Text style={{ color: active ? '#000' : textColor, fontWeight: '700', fontSize: 12 }}>{cat}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </Row>
+                </ScrollView>
+
+                {/* Score input */}
+                <Row style={{ gap: 12, marginBottom: 14 }}>
+                  <View style={{ flex: 1 }}>
+                    <InputField label="Score *" value={form.score} onChangeText={v => setForm(p => ({ ...p, score: v }))} placeholder="0" keyboardType="numeric" color={primary} textColor={textColor} bg="#0d1112" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <InputField label="Out of" value={form.max_score} onChangeText={v => setForm(p => ({ ...p, max_score: v }))} placeholder="10" keyboardType="numeric" color={primary} textColor={textColor} bg="#0d1112" />
+                  </View>
+                </Row>
+
+                <InputField label="Notes (optional)" value={form.notes} onChangeText={v => setForm(p => ({ ...p, notes: v }))} placeholder="Feedback for the team…" multiline color={primary} textColor={textColor} bg="#0d1112" />
+
+                <TouchableOpacity
+                  onPress={handleSave}
+                  disabled={saving}
+                  style={[s.saveBtn, { backgroundColor: primary, opacity: saving ? 0.6 : 1 }]}
+                >
+                  {saving
+                    ? <ActivityIndicator size="small" color="#000" />
+                    : <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>Submit Score</Text>
+                  }
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };

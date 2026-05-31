@@ -17,15 +17,23 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LiquidBackground } from '../components/LiquidBackground';
 
 const TYPE_META = {
-  vibe:         { icon: 'zap',            color: '#f97316' },
-  rsvp:         { icon: 'check-circle',   color: '#10b981' },
-  echo:         { icon: 'message-circle', color: '#8b5cf6' },
-  follow:       { icon: 'user-plus',      color: '#06b6d4' },
-  comment:      { icon: 'message-square', color: '#3b82f6' },
-  royal:        { icon: 'star',           color: '#f59e0b' },
-  rating:       { icon: 'award',          color: '#ec4899' },
-  profile_view: { icon: 'eye',            color: '#a78bfa' },
-  event_day:    { icon: 'calendar',       color: '#10b981' },
+  vibe:             { icon: 'zap',            color: '#f97316' },
+  rsvp:             { icon: 'check-circle',   color: '#10b981' },
+  echo:             { icon: 'message-circle', color: '#8b5cf6' },
+  follow:           { icon: 'user-plus',      color: '#06b6d4' },
+  comment:          { icon: 'message-square', color: '#3b82f6' },
+  royal:            { icon: 'star',           color: '#f59e0b' },
+  rating:           { icon: 'award',          color: '#ec4899' },
+  profile_view:     { icon: 'eye',            color: '#a78bfa' },
+  event_day:        { icon: 'calendar',       color: '#10b981' },
+  // Sport notifications
+  sport_goal:       { icon: 'target',         color: '#10b981' },
+  sport_result:     { icon: 'flag',           color: '#3b82f6' },
+  sport_fixture:    { icon: 'calendar',       color: '#8b5cf6' },
+  // Music / event notifications
+  now_playing:      { icon: 'music',          color: '#ec4899' },
+  lineup_change:    { icon: 'alert-circle',   color: '#f59e0b' },
+  session_starting: { icon: 'play-circle',    color: '#06b6d4' },
 };
 
 const SEGMENTS = ['Today', 'This Week', 'Older'];
@@ -164,7 +172,15 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
     if ((item.type === 'profile_view' || item.type === 'follow') && viewerId) {
       setProfileModalUserId(viewerId);
-    } else if (['vibe', 'rsvp', 'echo', 'comment', 'event_day', 'checkin'].includes(item.type) && eventId && onNavigateToEvent) {
+    } else if ([
+      'vibe', 'rsvp', 'echo', 'comment', 'event_day', 'checkin',
+      // Sport notifications → navigate to the event
+      'sport_goal', 'sport_result', 'sport_fixture',
+      // Music/event notifications → navigate to the event
+      'now_playing', 'lineup_change', 'session_starting',
+      // Award notification → navigate to the event
+      'rating',
+    ].includes(item.type) && eventId && onNavigateToEvent) {
       onNavigateToEvent({ id: eventId });
     } else if (item.type === 'message' && viewerId) {
       setProfileModalUserId(viewerId);
@@ -174,7 +190,11 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const renderItem = useCallback(({ item }) => {
     const meta = TYPE_META[item.type] || TYPE_META.vibe;
     const avatarUrl = thumb.avatar(item.actor?.avatar_url || item.data?.viewer_avatar || item.data?.actor_avatar || null);
-    const isActionable = ['profile_view', 'follow', 'vibe', 'rsvp', 'echo', 'event_day'].includes(item.type);
+    const isActionable = [
+      'profile_view', 'follow', 'vibe', 'rsvp', 'echo', 'event_day',
+      'sport_goal', 'sport_result', 'sport_fixture',
+      'now_playing', 'lineup_change', 'session_starting', 'rating',
+    ].includes(item.type);
     return (
       <TouchableOpacity
         onPress={() => handleNotifPress(item)}

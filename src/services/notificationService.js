@@ -237,6 +237,132 @@ export const NotificationService = {
     } catch {}
   },
 
+  // ── Now playing notifications ─────────────────────────────────────────────────
+
+  async notifyNowPlaying(eventId, artistName, songTitle) {
+    try {
+      const { data: followers } = await supabase
+        .from('event_followers')
+        .select('user_id, notify_nowplaying')
+        .eq('event_id', eventId)
+        .eq('notify_nowplaying', true);
+
+      const body = songTitle ? `${artistName} — ${songTitle}` : `${artistName} is on stage`;
+      for (const f of (followers || [])) {
+        await this.send(f.user_id, {
+          type: 'now_playing',
+          title: '🎵 Now Playing',
+          body,
+          eventId,
+        });
+      }
+    } catch {}
+  },
+
+  async notifyLineupChange(eventId, message) {
+    try {
+      const { data: followers } = await supabase
+        .from('event_followers')
+        .select('user_id, notify_lineup')
+        .eq('event_id', eventId)
+        .eq('notify_lineup', true);
+
+      for (const f of (followers || [])) {
+        await this.send(f.user_id, {
+          type: 'lineup_change',
+          title: '📋 Lineup Update',
+          body: message,
+          eventId,
+        });
+      }
+    } catch {}
+  },
+
+  async notifySessionStarting(eventId, sessionTitle, room) {
+    try {
+      const { data: followers } = await supabase
+        .from('event_followers')
+        .select('user_id, notify_updates')
+        .eq('event_id', eventId)
+        .eq('notify_updates', true);
+
+      const body = room ? `${sessionTitle} — ${room}` : sessionTitle;
+      for (const f of (followers || [])) {
+        await this.send(f.user_id, {
+          type: 'session_starting',
+          title: '🎤 Starting Now',
+          body,
+          eventId,
+        });
+      }
+    } catch {}
+  },
+
+  // ── Sports / match notifications ─────────────────────────────────────────────
+
+  async notifyGoal(eventId, homeTeam, awayTeam, scoringTeam, homeScore, awayScore) {
+    try {
+      const { data: followers } = await supabase
+        .from('sport_event_followers')
+        .select('user_id, notify_goals')
+        .eq('event_id', eventId)
+        .eq('notify_goals', true);
+
+      const matchLine = `${homeTeam} ${homeScore} – ${awayScore} ${awayTeam}`;
+      for (const f of (followers || [])) {
+        await this.send(f.user_id, {
+          type: 'sport_goal',
+          title: `⚽ GOAL! ${scoringTeam}`,
+          body: matchLine,
+          eventId,
+        });
+      }
+    } catch {}
+  },
+
+  async notifyMatchResult(eventId, homeTeam, awayTeam, homeScore, awayScore, result) {
+    try {
+      const { data: followers } = await supabase
+        .from('sport_event_followers')
+        .select('user_id, notify_results')
+        .eq('event_id', eventId)
+        .eq('notify_results', true);
+
+      const resultLabel = result === 'home_win' ? `${homeTeam} win` : result === 'away_win' ? `${awayTeam} win` : 'Draw';
+      const scoreLine = `${homeTeam} ${homeScore} – ${awayScore} ${awayTeam}`;
+      for (const f of (followers || [])) {
+        await this.send(f.user_id, {
+          type: 'sport_result',
+          title: `🏁 Full Time: ${resultLabel}`,
+          body: scoreLine,
+          eventId,
+        });
+      }
+    } catch {}
+  },
+
+  async notifyFixtureScheduled(eventId, homeTeam, awayTeam, scheduledAt) {
+    try {
+      const { data: followers } = await supabase
+        .from('sport_event_followers')
+        .select('user_id, notify_fixtures')
+        .eq('event_id', eventId)
+        .eq('notify_fixtures', true);
+
+      const when = scheduledAt
+        ? new Date(scheduledAt).toLocaleString('en-ZA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '';
+      for (const f of (followers || [])) {
+        await this.send(f.user_id, {
+          type: 'sport_fixture',
+          title: `📅 Fixture: ${homeTeam} vs ${awayTeam}`,
+          body: when ? `Scheduled for ${when}` : 'New fixture added',
+          eventId,
+        });
+      }
+    } catch {}
+  },
+
   async markAllRead(userId) {
     if (!userId) return;
     try {

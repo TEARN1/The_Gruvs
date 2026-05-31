@@ -4,6 +4,11 @@ import { ThemeProvider } from '../src/context/ThemeContext';
 import { ReactPicker } from '../src/components/ReactPicker';
 import { REACTION_LIST } from '../src/constants/CategoryConfig';
 
+// ReactPicker runs continuous floating-orb animations; fake timers prevent the
+// loop callbacks from firing after the test environment is torn down.
+beforeEach(() => jest.useFakeTimers());
+afterEach(() => { jest.clearAllTimers(); jest.useRealTimers(); });
+
 const renderPicker = (props) =>
   render(
     <ThemeProvider>

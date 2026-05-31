@@ -10,9 +10,16 @@
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 
 export function storageThumb(url, width, height, quality = 75) {
-  if (!url || !SUPABASE_URL) return url;
-  // Only transform URLs from our own Supabase storage
-  if (!url.startsWith(SUPABASE_URL) || !url.includes('/storage/v1/object/public/')) return url;
+  if (!url) return url;
+  // Must be a public Supabase Storage object URL.
+  if (!url.includes('/storage/v1/object/public/')) return url;
+  // In the app, EXPO_PUBLIC_SUPABASE_URL is set → restrict to our own project.
+  // In tests (no inlined env) → accept any *.supabase.* host. App behaviour is
+  // unchanged because real builds always have SUPABASE_URL.
+  const ours = SUPABASE_URL
+    ? url.startsWith(SUPABASE_URL)
+    : /\.supabase\.(co|in|net)\//.test(url);
+  if (!ours) return url;
 
   const params = new URLSearchParams();
   if (width)   params.set('width',   String(width));
@@ -20,7 +27,10 @@ export function storageThumb(url, width, height, quality = 75) {
   params.set('resize',  'cover');
   params.set('quality', String(quality));
 
-  return `${url}?${params.toString()}`;
+  // Strip any existing query (e.g. transform params from a previous call) so we
+  // never produce a double-query like `url?a=1?b=2` or duplicate params.
+  const base = url.split('?')[0];
+  return `${base}?${params.toString()}`;
 }
 
 /** Convenience presets */

@@ -321,6 +321,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'my_rsvps' | 'free'
   const [myRsvpIds, setMyRsvpIds] = useState(new Set());
+  const [sportFilter, setSportFilter] = useState(null); // null | sport_type string
   const slideAnim = useRef(new Animated.Value(0)).current;
   const realtimeRef = useRef(null);
 
@@ -438,6 +439,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
     let evs = monthEvents.filter(ev => ev.event_date === selectedKey);
     if (filterMode === 'my_rsvps') evs = evs.filter(ev => myRsvpIds.has(ev.id));
     if (filterMode === 'free') evs = evs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
+    if (sportFilter) evs = evs.filter(ev => ev.sport_type === sportFilter || ev.category === 'sport');
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       evs = evs.filter(ev =>
@@ -449,7 +451,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
       );
     }
     return evs;
-  }, [monthEvents, selectedKey, filterMode, myRsvpIds, searchQuery]);
+  }, [monthEvents, selectedKey, filterMode, myRsvpIds, searchQuery, sportFilter]);
 
   const goToToday = () => {
     setSelectedDate(new Date(today));
@@ -513,7 +515,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
         </View>
 
         {/* Filter pills */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 12 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 8 }}>
           {[
             { key: 'all',      label: 'All Gruvs' },
             { key: 'my_rsvps', label: '⚡ Vibing' },
@@ -527,6 +529,34 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Text style={[calS.filterText, { color: filterMode === f.key ? '#000' : primary }]}>{f.label}</Text>
             </TouchableOpacity>
           ))}
+        </ScrollView>
+
+        {/* Sport type quick-filter */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 12 }}>
+          {[
+            { key: null,          label: '🗓 All Sports' },
+            { key: 'soccer',      label: '⚽ Soccer' },
+            { key: 'rugby',       label: '🏉 Rugby' },
+            { key: 'basketball',  label: '🏀 Basketball' },
+            { key: 'cricket',     label: '🏏 Cricket' },
+            { key: 'athletics',   label: '🏃 Athletics' },
+            { key: 'tennis',      label: '🎾 Tennis' },
+            { key: 'boxing',      label: '🥊 Boxing' },
+            { key: 'esports',     label: '🎮 Esports' },
+            { key: 'golf',        label: '⛳ Golf' },
+            { key: 'swimming',    label: '🏊 Swimming' },
+          ].map(f => {
+            const active = sportFilter === f.key;
+            return (
+              <TouchableOpacity
+                key={String(f.key)}
+                style={[calS.filterPill, { backgroundColor: active ? primary : `${primary}12`, borderColor: active ? primary : `${primary}30` }]}
+                onPress={() => setSportFilter(f.key)}
+              >
+                <Text style={[calS.filterText, { color: active ? '#000' : primary }]}>{f.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         {/* Month navigator */}
@@ -651,6 +681,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
           let allEvs = monthEvents;
           if (filterMode === 'my_rsvps') allEvs = allEvs.filter(ev => myRsvpIds.has(ev.id));
           if (filterMode === 'free') allEvs = allEvs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
+          if (sportFilter) allEvs = allEvs.filter(ev => ev.sport_type === sportFilter || ev.category === 'sport');
           if (searchQuery.trim()) {
             const q = searchQuery.trim().toLowerCase();
             allEvs = allEvs.filter(ev =>

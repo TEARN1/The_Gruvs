@@ -15,15 +15,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, TextInput,
-  ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform,
+  ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import {
   SPORT_REGISTRY, TeamManager, MatchManager,
   TableManager, CommentaryManager, SportConfig,
 } from '../services/sportsEngine';
+import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
+import { EventFollowButton } from './EventFollowButton';
+import { AwardCeremonyPanel } from './AwardCeremonyPanel';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -84,12 +87,21 @@ const Field = ({ label, value, onChangeText, placeholder, color, textColor, nume
 // ── Teams Tab ─────────────────────────────────────────────────────────────────
 
 const TeamsTab = ({ event, sportMeta, primary, textColor, muted }) => {
+  const { user } = useAuth();
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
-  const [form, setForm] = useState({ name: '', short_name: '', color1: primary });
+  const [form, setForm] = useState({ name: '', short_name: '', color1: primary, club_id: null });
+  const [myClubs, setMyClubs] = useState([]);
   const toast = useToast();
+
+  useEffect(() => {
+    if (!user) return;
+    import('../services/clubEngine').then(({ MembershipManager }) => {
+      MembershipManager.getPlayerClubs(user.id).then(clubs => setMyClubs(clubs || [])).catch(() => {});
+    });
+  }, [user?.id]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,7 +160,7 @@ const TeamsTab = ({ event, sportMeta, primary, textColor, muted }) => {
               {team.short_name ? <Text style={{ color: muted, fontSize: 12 }}>({team.short_name})</Text> : null}
             </Row>
             <Row>
-              <TouchableOpacity onPress={() => { setForm({ name: team.name, short_name: team.short_name || '', color1: team.color1 || primary }); setEditTarget(team); setAdding(true); }} style={{ padding: 5 }}>
+              <TouchableOpacity onPress={() => { setForm({ name: team.name, short_name: team.short_name || '', color1: team.color1 || primary, club_id: team.club_id || null }); setEditTarget(team); setAdding(true); }} style={{ padding: 5 }}>
                 <Feather name="edit-2" size={14} color={muted} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleDelete(team.id)} style={{ padding: 5 }}>
@@ -174,6 +186,31 @@ const TeamsTab = ({ event, sportMeta, primary, textColor, muted }) => {
               </Row>
               <Field label="Team Name *" value={form.name} onChangeText={v => setForm(p => ({ ...p, name: v }))} placeholder="Team name" color={primary} textColor={textColor} />
               <Field label="Short Name" value={form.short_name} onChangeText={v => setForm(p => ({ ...p, short_name: v }))} placeholder="e.g. FCB" color={primary} textColor={textColor} />
+              {/* Club link — optional but enables trophies, career stats, roster sync */}
+              {myClubs.length > 0 && (
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>LINK TO CLUB (optional)</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity
+                        style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, backgroundColor: !form.club_id ? primary : `${primary}12`, borderColor: primary }}
+                        onPress={() => setForm(p => ({ ...p, club_id: null }))}
+                      >
+                        <Text style={{ color: !form.club_id ? '#000' : primary, fontSize: 12, fontWeight: '700' }}>No Club</Text>
+                      </TouchableOpacity>
+                      {myClubs.map(m => (
+                        <TouchableOpacity
+                          key={m.club_id}
+                          style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, backgroundColor: form.club_id === m.club_id ? primary : `${primary}12`, borderColor: primary }}
+                          onPress={() => setForm(p => ({ ...p, club_id: m.club_id, name: p.name || m.clubs?.name || '', short_name: p.short_name || m.clubs?.short_name || '' }))}
+                        >
+                          <Text style={{ color: form.club_id === m.club_id ? '#000' : primary, fontSize: 12, fontWeight: '700' }}>{m.clubs?.short_name || m.clubs?.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </ScrollView>
+                </View>
+              )}
               <TouchableOpacity onPress={handleSave} style={{ backgroundColor: primary, borderRadius: 10, paddingVertical: 13, alignItems: 'center', marginTop: 6 }}>
                 <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>Save Team</Text>
               </TouchableOpacity>
@@ -562,17 +599,20 @@ export const SportManagementPanel = ({ event, primary, textColor, muted }) => {
     { key: 'fixtures',   label: 'Fixtures',   icon: 'calendar' },
     { key: 'scoreboard', label: 'Table',       icon: 'bar-chart-2' },
     { key: 'commentary', label: 'Live',        icon: 'radio' },
+    { key: 'awards',     label: 'Awards',      icon: 'award' },
+    { key: 'media',      label: 'Media',       icon: 'image' },
   ];
 
   return (
     <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-      {/* Sport badge */}
+      {/* Sport badge + follow button */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <Text style={{ fontSize: 22 }}>{sportMeta.icon}</Text>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={{ color: primary, fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>SPORT MANAGEMENT</Text>
           <Text style={{ color: textColor, fontSize: 15, fontWeight: '900' }}>{sportMeta.name}</Text>
         </View>
+        <EventFollowButton eventId={event.id} isSport />
       </View>
 
       {/* Tab bar */}
@@ -603,6 +643,99 @@ export const SportManagementPanel = ({ event, primary, textColor, muted }) => {
       {tab === 'fixtures'   && <FixturesTab   event={event} sportMeta={sportMeta} primary={primary} textColor={textColor} muted={muted} />}
       {tab === 'scoreboard' && <ScoreboardTab event={event} sportMeta={sportMeta} primary={primary} textColor={textColor} muted={muted} />}
       {tab === 'commentary' && <CommentaryTab event={event} primary={primary} textColor={textColor} muted={muted} />}
+      {tab === 'awards'     && <AwardCeremonyPanel event={event} />}
+      {tab === 'media'      && <MediaTab      event={event} primary={primary} textColor={textColor} muted={muted} />}
+    </View>
+  );
+};
+
+// ── Media Tab ─────────────────────────────────────────────────────────────────
+const MediaTab = ({ event, primary, textColor, muted }) => {
+  const { user } = useAuth();
+  const [media, setMedia] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [liking, setLiking] = useState({});
+  const [likedSet, setLikedSet] = useState(new Set());
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('sport_media')
+      .select('id, media_url, media_type, caption, minute, likes_count, uploader_id, profiles(username, avatar_url)')
+      .eq('event_id', event.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(40);
+    setMedia(data || []);
+
+    if (user) {
+      const { data: liked } = await supabase
+        .from('sport_media_likes')
+        .select('media_id')
+        .eq('user_id', user.id)
+        .in('media_id', (data || []).map(m => m.id));
+      setLikedSet(new Set((liked || []).map(l => l.media_id)));
+    }
+    setLoading(false);
+  }, [event.id, user?.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const toggleLike = async (mediaId) => {
+    if (!user) return;
+    setLiking(l => ({ ...l, [mediaId]: true }));
+    const isLiked = likedSet.has(mediaId);
+    if (isLiked) {
+      await supabase.from('sport_media_likes').delete()
+        .eq('media_id', mediaId).eq('user_id', user.id);
+      setLikedSet(s => { const n = new Set(s); n.delete(mediaId); return n; });
+      setMedia(m => m.map(x => x.id === mediaId ? { ...x, likes_count: Math.max(0, (x.likes_count || 1) - 1) } : x));
+    } else {
+      await supabase.from('sport_media_likes').insert({ media_id: mediaId, user_id: user.id });
+      setLikedSet(s => new Set([...s, mediaId]));
+      setMedia(m => m.map(x => x.id === mediaId ? { ...x, likes_count: (x.likes_count || 0) + 1 } : x));
+    }
+    setLiking(l => ({ ...l, [mediaId]: false }));
+  };
+
+  if (loading) return <ActivityIndicator color={primary} style={{ marginTop: 32 }} />;
+
+  if (!media.length) return (
+    <View style={{ alignItems: 'center', paddingTop: 40, gap: 8 }}>
+      <Feather name="image" size={32} color={muted} />
+      <Text style={{ color: muted, fontSize: 13 }}>No match photos yet</Text>
+    </View>
+  );
+
+  return (
+    <View style={{ gap: 12 }}>
+      {media.map(item => (
+        <View key={item.id} style={{ borderRadius: 16, overflow: 'hidden', backgroundColor: `${primary}08`, borderWidth: 1, borderColor: `${primary}20` }}>
+          {item.media_url ? (
+            <Image source={{ uri: item.media_url }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
+          ) : null}
+          <View style={{ padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              {item.minute != null && (
+                <Text style={{ color: primary, fontSize: 10, fontWeight: '900', marginBottom: 2 }}>{item.minute}'</Text>
+              )}
+              {item.caption ? (
+                <Text style={{ color: textColor, fontSize: 13 }} numberOfLines={2}>{item.caption}</Text>
+              ) : null}
+              <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>@{item.profiles?.username || 'unknown'}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => toggleLike(item.id)}
+              disabled={!!liking[item.id]}
+              style={{ alignItems: 'center', gap: 3 }}
+              accessibilityLabel={likedSet.has(item.id) ? 'Unlike' : 'Like'}
+            >
+              <Feather name="heart" size={20} color={likedSet.has(item.id) ? '#f43f5e' : muted} />
+              <Text style={{ color: muted, fontSize: 11, fontWeight: '700' }}>{item.likes_count || 0}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
     </View>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { AwardManager, MembershipManager, ClubManager } from '../services/clubEngine';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
@@ -1083,6 +1084,353 @@ const mec = StyleSheet.create({
 
 const isVideoUrl = (url) => /\.(mp4|mov|webm|avi|m4v)(\?|$)/i.test(url || '');
 
+// ── Clubs modal — create, browse clubs + pending invitations ─────────────────
+const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose }) => {
+  const [tab, setTab]               = useState('my');  // 'my' | 'invitations' | 'create'
+  const [myClubs, setMyClubs]       = useState([]);
+  const [invitations, setInvitations] = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [saving, setSaving]         = useState(false);
+  const [form, setForm]             = useState({ name: '', short_name: '', sport_type: '', city: '', bio: '' });
+  const toast = useToast?.() || { show: () => {} };
+
+  const load = useCallback(async () => {
+    if (!userId) return;
+    setLoading(true);
+    const [clubs, invs] = await Promise.all([
+      MembershipManager.getPlayerClubs(userId).catch(() => []),
+      MembershipManager.getPendingInvitations(userId).catch(() => []),
+    ]);
+    setMyClubs(clubs);
+    setInvitations(invs);
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleCreate = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try {
+      await ClubManager.create(userId, {
+        name: form.name.trim(),
+        short_name: form.short_name.trim() || null,
+        sport_type: form.sport_type.trim() || null,
+        city: form.city.trim() || null,
+        bio: form.bio.trim() || null,
+      });
+      setForm({ name: '', short_name: '', sport_type: '', city: '', bio: '' });
+      setTab('my');
+      load();
+    } catch (e) { toast.show?.(e.message || 'Error creating club', 'error'); }
+    setSaving(false);
+  };
+
+  const handleRespond = async (inv, accept) => {
+    try {
+      await MembershipManager.respondToInvitation(inv.id, accept);
+      load();
+    } catch (e) { toast.show?.(e.message || 'Error', 'error'); }
+  };
+
+  const SPORT_TYPES = ['soccer','rugby','basketball','cricket','athletics','tennis','boxing','volleyball','esports','golf','swimming','cycling','other'];
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <View style={{ backgroundColor: surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '88%', paddingBottom: 32 }}>
+          {/* Header */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+            <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>⚔️ My Clubs</Text>
+            <TouchableOpacity onPress={onClose}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
+          </View>
+
+          {/* Tab bar */}
+          <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 16 }}>
+            {[
+              { key: 'my',          label: `My Clubs (${myClubs.length})` },
+              { key: 'invitations', label: `Invites${invitations.length ? ` (${invitations.length})` : ''}` },
+              { key: 'create',      label: '+ Create' },
+            ].map(t => {
+              const active = tab === t.key;
+              return (
+                <TouchableOpacity
+                  key={t.key}
+                  style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, backgroundColor: active ? primary : `${primary}15`, borderColor: active ? primary : `${primary}30` }}
+                  onPress={() => setTab(t.key)}
+                >
+                  <Text style={{ color: active ? '#000' : primary, fontSize: 12, fontWeight: '800' }}>{t.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <ScrollView style={{ paddingHorizontal: 16 }} showsVerticalScrollIndicator={false}>
+            {loading && <ActivityIndicator color={primary} style={{ marginTop: 24 }} />}
+
+            {/* My Clubs */}
+            {!loading && tab === 'my' && (
+              <View style={{ gap: 10 }}>
+                {myClubs.length === 0 && (
+                  <View style={{ alignItems: 'center', paddingVertical: 32, gap: 8 }}>
+                    <Feather name="shield" size={32} color={muted} />
+                    <Text style={{ color: muted, fontSize: 13 }}>No clubs yet — create one or accept an invitation</Text>
+                  </View>
+                )}
+                {myClubs.map(m => (
+                  <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: `${primary}08`, borderRadius: 14, borderWidth: 1, borderColor: `${primary}20`, padding: 14 }}>
+                    {m.clubs?.logo_url
+                      ? <Image source={{ uri: m.clubs.logo_url }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                      : <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}><Feather name="shield" size={20} color={primary} /></View>
+                    }
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: textColor, fontSize: 14, fontWeight: '900' }}>{m.clubs?.name}</Text>
+                      <Text style={{ color: primary, fontSize: 12, fontWeight: '700' }}>{m.role}{m.position ? ` · ${m.position}` : ''}</Text>
+                      {m.clubs?.city && <Text style={{ color: muted, fontSize: 11 }}>{m.clubs.city}</Text>}
+                    </View>
+                    {m.clubs?.sport_type && (
+                      <View style={{ backgroundColor: `${primary}20`, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+                        <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>{m.clubs.sport_type}</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Invitations */}
+            {!loading && tab === 'invitations' && (
+              <View style={{ gap: 12 }}>
+                {invitations.length === 0 && (
+                  <View style={{ alignItems: 'center', paddingVertical: 32, gap: 8 }}>
+                    <Feather name="mail" size={32} color={muted} />
+                    <Text style={{ color: muted, fontSize: 13 }}>No pending invitations</Text>
+                  </View>
+                )}
+                {invitations.map(inv => (
+                  <View key={inv.id} style={{ backgroundColor: `${primary}08`, borderRadius: 16, borderWidth: 1, borderColor: `${primary}25`, padding: 16, gap: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      {inv.clubs?.logo_url
+                        ? <Image source={{ uri: inv.clubs.logo_url }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                        : <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}><Feather name="shield" size={18} color={primary} /></View>
+                      }
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: textColor, fontSize: 14, fontWeight: '900' }}>{inv.clubs?.name}</Text>
+                        <Text style={{ color: primary, fontSize: 12 }}>Invited as {inv.role}</Text>
+                        <Text style={{ color: muted, fontSize: 11 }}>from @{inv.profiles?.username}</Text>
+                      </View>
+                    </View>
+                    {inv.message ? <Text style={{ color: muted, fontSize: 13 }}>"{inv.message}"</Text> : null}
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity
+                        style={{ flex: 1, backgroundColor: primary, borderRadius: 12, paddingVertical: 11, alignItems: 'center' }}
+                        onPress={() => handleRespond(inv, true)}
+                      >
+                        <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Accept</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ flex: 1, borderWidth: 1, borderColor: `${primary}40`, borderRadius: 12, paddingVertical: 11, alignItems: 'center' }}
+                        onPress={() => handleRespond(inv, false)}
+                      >
+                        <Text style={{ color: muted, fontWeight: '800', fontSize: 13 }}>Decline</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Create Club */}
+            {tab === 'create' && (
+              <View style={{ gap: 12 }}>
+                <Text style={{ color: muted, fontSize: 11, fontWeight: '900', letterSpacing: 1 }}>CLUB NAME *</Text>
+                <TextInput
+                  style={{ color: textColor, borderWidth: 1, borderColor: `${primary}30`, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, backgroundColor: `${primary}08` }}
+                  placeholder="e.g. Soweto United FC"
+                  placeholderTextColor={muted}
+                  value={form.name}
+                  onChangeText={v => setForm(f => ({ ...f, name: v }))}
+                />
+                <Text style={{ color: muted, fontSize: 11, fontWeight: '900', letterSpacing: 1 }}>ABBREVIATION</Text>
+                <TextInput
+                  style={{ color: textColor, borderWidth: 1, borderColor: `${primary}30`, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, backgroundColor: `${primary}08` }}
+                  placeholder="e.g. SUF"
+                  placeholderTextColor={muted}
+                  maxLength={6}
+                  value={form.short_name}
+                  onChangeText={v => setForm(f => ({ ...f, short_name: v }))}
+                />
+                <Text style={{ color: muted, fontSize: 11, fontWeight: '900', letterSpacing: 1 }}>SPORT / TYPE</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {SPORT_TYPES.map(s => {
+                      const active = form.sport_type === s;
+                      return (
+                        <TouchableOpacity
+                          key={s}
+                          style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, backgroundColor: active ? primary : `${primary}12`, borderColor: active ? primary : `${primary}30` }}
+                          onPress={() => setForm(f => ({ ...f, sport_type: active ? '' : s }))}
+                        >
+                          <Text style={{ color: active ? '#000' : primary, fontSize: 12, fontWeight: '700' }}>{s}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+                <Text style={{ color: muted, fontSize: 11, fontWeight: '900', letterSpacing: 1 }}>CITY</Text>
+                <TextInput
+                  style={{ color: textColor, borderWidth: 1, borderColor: `${primary}30`, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, backgroundColor: `${primary}08` }}
+                  placeholder="e.g. Johannesburg"
+                  placeholderTextColor={muted}
+                  value={form.city}
+                  onChangeText={v => setForm(f => ({ ...f, city: v }))}
+                />
+                <Text style={{ color: muted, fontSize: 11, fontWeight: '900', letterSpacing: 1 }}>BIO</Text>
+                <TextInput
+                  style={{ color: textColor, borderWidth: 1, borderColor: `${primary}30`, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, backgroundColor: `${primary}08`, minHeight: 70 }}
+                  placeholder="About the club..."
+                  placeholderTextColor={muted}
+                  multiline
+                  value={form.bio}
+                  onChangeText={v => setForm(f => ({ ...f, bio: v }))}
+                />
+                <TouchableOpacity
+                  style={{ backgroundColor: primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', opacity: !form.name.trim() || saving ? 0.5 : 1 }}
+                  onPress={handleCreate}
+                  disabled={!form.name.trim() || saving}
+                >
+                  {saving
+                    ? <ActivityIndicator size="small" color="#000" />
+                    : <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>Create Club</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// ── Clubs & Awards section (shown on profile above tabs) ─────────────────────
+const ClubsAndAwardsSection = ({ userId, primary, textColor, muted, surface }) => {
+  const [clubs, setClubs]   = useState([]);
+  const [awards, setAwards] = useState([]);
+
+  useEffect(() => {
+    if (!userId) return;
+    MembershipManager.getPlayerClubs(userId).then(setClubs).catch(() => {});
+    AwardManager.listForUser(userId).then(setAwards).catch(() => {});
+  }, [userId]);
+
+  if (!clubs.length && !awards.length) return null;
+
+  return (
+    <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+      {/* Clubs */}
+      {clubs.length > 0 && (
+        <View style={{ marginBottom: 12 }}>
+          <Text style={{ color: muted, fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 8 }}>CLUBS</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {clubs.map(m => (
+              <View key={m.id} style={{ alignItems: 'center', gap: 4, width: 70 }}>
+                {m.clubs?.logo_url
+                  ? <Image source={{ uri: m.clubs.logo_url }} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: `${primary}40` }} />
+                  : <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}><Feather name="shield" size={18} color={primary} /></View>
+                }
+                <Text style={{ color: textColor, fontSize: 10, fontWeight: '800', textAlign: 'center' }} numberOfLines={2}>{m.clubs?.short_name || m.clubs?.name}</Text>
+                <Text style={{ color: primary, fontSize: 9, fontWeight: '700' }}>{m.role}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Awards */}
+      {awards.length > 0 && (
+        <View>
+          <Text style={{ color: muted, fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 8 }}>AWARDS</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {awards.map(a => (
+              <View key={a.id} style={{ alignItems: 'center', gap: 3, width: 70, backgroundColor: `${primary}10`, borderRadius: 12, borderWidth: 1, borderColor: `${primary}25`, padding: 8 }}>
+                <Text style={{ fontSize: 22 }}>{a.award_icon || '🏆'}</Text>
+                <Text style={{ color: textColor, fontSize: 9, fontWeight: '800', textAlign: 'center' }} numberOfLines={2}>{a.award_label}</Text>
+                <Text style={{ color: muted, fontSize: 8, textAlign: 'center' }} numberOfLines={1}>{a.events?.title}</Text>
+                {a.stat_value != null && (
+                  <Text style={{ color: primary, fontSize: 10, fontWeight: '900' }}>{a.stat_value} {a.stat_label}</Text>
+                )}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const FollowingTab = ({ userId, primary, textColor, muted, surface, onNavigateToEvent }) => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    const load = async () => {
+      // Fetch from both event_followers and sport_event_followers, merge
+      const [{ data: ef }, { data: sf }] = await Promise.all([
+        supabase.from('event_followers')
+          .select('event_id, created_at, events(id, title, event_date, category, venue_name, media)')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(30),
+        supabase.from('sport_event_followers')
+          .select('event_id, created_at, events(id, title, event_date, category, venue_name, media)')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(30),
+      ]);
+      const merged = [...(ef || []), ...(sf || [])]
+        .map(r => r.events)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b.event_date || 0) - new Date(a.event_date || 0));
+      // Deduplicate by id
+      const seen = new Set();
+      setItems(merged.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; }));
+      setLoading(false);
+    };
+    load();
+  }, [userId]);
+
+  if (loading) return <ActivityIndicator color={primary} style={{ marginTop: 32 }} />;
+
+  if (!items.length) return (
+    <View style={{ alignItems: 'center', paddingTop: 40, gap: 10 }}>
+      <Feather name="bell-off" size={32} color={muted} />
+      <Text style={{ color: muted, fontSize: 13, textAlign: 'center' }}>
+        {"You're not following any events yet.\nTap Follow on any event to track it here."}
+      </Text>
+    </View>
+  );
+
+  return (
+    <View style={{ gap: 10 }}>
+      {items.map(ev => (
+        <MiniEventCard
+          key={ev.id}
+          ev={ev}
+          primary={primary}
+          textColor={textColor}
+          muted={muted}
+          badge="Following"
+          badgeIcon="bell"
+          onPress={() => onNavigateToEvent?.(ev)}
+        />
+      ))}
+    </View>
+  );
+};
+
 const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
   const [lightboxItem, setLightboxItem] = useState(null); // { url, isVideo }
   const [userReels, setUserReels] = useState([]);
@@ -1263,6 +1611,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const streak = useStreak();
   const [postModalVisible, setPostModalVisible] = useState(false);
   const [createReelVisible, setCreateReelVisible] = useState(false);
+  const [clubsModalVisible, setClubsModalVisible] = useState(false);
+  const [pendingInvites, setPendingInvites] = useState(0);
   const { identityMode, modeConfig, setIdentityMode, applyLocationPrivacy } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs');
   const [myCoHostEvents, setMyCoHostEvents] = useState([]);
@@ -1428,6 +1778,13 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       if (saveRes.status === 'fulfilled') setSavedCount(saveRes.value.count || 0);
     };
     loadCounts();
+
+    // Load pending club invitations count
+    if (user) {
+      MembershipManager.getPendingInvitations(user.id)
+        .then(invs => setPendingInvites(invs?.length || 0))
+        .catch(() => {});
+    }
   }, [user]);
 
   const loadTab = useCallback(async (tab) => {
@@ -1792,6 +2149,18 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             >
               <Feather name="briefcase" size={14} color={primary} />
               <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Business</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
+              onPress={() => setClubsModalVisible(true)}
+            >
+              <Feather name="shield" size={14} color={primary} />
+              <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Clubs</Text>
+              {pendingInvites > 0 && (
+                <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>{pendingInvites}</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
@@ -2257,15 +2626,19 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           )}
         </GlassView>
 
+        {/* Clubs & Awards */}
+        <ClubsAndAwardsSection userId={user?.id} primary={primary} textColor={textColor} muted={muted} surface={surface} />
+
         {/* Profile Content Tabs */}
         <View style={[styles.contentTabRow, { borderColor: `${primary}20` }]}>
           {[
-            { key: 'gruvs', label: 'My Gruvs', icon: 'calendar' },
-            { key: 'saved', label: 'Saved', icon: 'bookmark' },
-            { key: 'vibed', label: 'Vibed', icon: 'zap' },
-            { key: 'cohost', label: 'Co-Host', icon: 'users' },
-            { key: 'activity', label: 'Activity', icon: 'activity' },
-            { key: 'gallery', label: 'Gallery', icon: 'image' },
+            { key: 'gruvs',     label: 'My Gruvs', icon: 'calendar' },
+            { key: 'saved',     label: 'Saved',    icon: 'bookmark' },
+            { key: 'vibed',     label: 'Vibed',    icon: 'zap' },
+            { key: 'following', label: 'Following', icon: 'bell' },
+            { key: 'cohost',    label: 'Co-Host',  icon: 'users' },
+            { key: 'activity',  label: 'Activity', icon: 'activity' },
+            { key: 'gallery',   label: 'Gallery',  icon: 'image' },
           ].map(t => {
             const isActive = activeTab === t.key;
             return (
@@ -2366,6 +2739,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     ))}
                   </View>
                 )
+              )}
+              {activeTab === 'following' && (
+                <FollowingTab userId={user?.id} primary={primary} textColor={textColor} muted={muted} surface={surface} onNavigateToEvent={onNavigateToEvent} />
               )}
               {activeTab === 'activity' && (
                 activityItems.length === 0 ? (
@@ -2613,6 +2989,16 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             currentUserId={user?.id}
           />
         </SafeSection>
+      )}
+      {clubsModalVisible && (
+        <ClubsModal
+          userId={user?.id}
+          primary={primary}
+          textColor={textColor}
+          muted={muted}
+          surface={surface}
+          onClose={() => { setClubsModalVisible(false); setPendingInvites(0); }}
+        />
       )}
       {pathMapVisible && (
         <SafeSection label="Path Map" primary={primary}>

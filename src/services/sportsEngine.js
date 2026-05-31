@@ -18,6 +18,7 @@
  */
 
 import { supabase } from './supabase';
+import { MatchCache, withCache } from './offlineCache';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SPORT REGISTRY — drives UI rendering and scoring rules per sport
@@ -565,16 +566,23 @@ export const MatchManager = {
   },
 
   async getMatch(matchId) {
-    const { data } = await supabase.from('sport_matches')
-      .select(`*,
-        home_team:home_team_id(id, name, short_name, logo_url, color1, players),
-        away_team:away_team_id(id, name, short_name, logo_url, color1, players),
-        home_athlete:home_athlete_id(*),
-        away_athlete:away_athlete_id(*)
-      `)
-      .eq('id', matchId)
-      .single();
-    return data;
+    return withCache(
+      () => MatchCache.getMatch(matchId),
+      () => MatchCache.getMatchStale(matchId),
+      async () => {
+        const { data } = await supabase.from('sport_matches')
+          .select(`*,
+            home_team:home_team_id(id, name, short_name, logo_url, color1, players),
+            away_team:away_team_id(id, name, short_name, logo_url, color1, players),
+            home_athlete:home_athlete_id(*),
+            away_athlete:away_athlete_id(*)
+          `)
+          .eq('id', matchId)
+          .single();
+        return data;
+      },
+      (d) => MatchCache.saveMatch(matchId, d),
+    );
   },
 
   async create(eventId, fixture) {
@@ -807,13 +815,21 @@ export const IndividualResultsManager = {
 
 export const TableManager = {
   async get(eventId, groupId = null) {
-    let q = supabase.from('sport_league_table')
-      .select('*, sport_teams(id, name, short_name, logo_url, color1, color2)')
-      .eq('event_id', eventId)
-      .order('position', { ascending: true });
-    if (groupId) q = q.eq('group_id', groupId);
-    const { data } = await q;
-    return data || [];
+    const cacheKey = groupId ? `${eventId}:${groupId}` : eventId;
+    return withCache(
+      () => MatchCache.getLeagueTable(cacheKey),
+      () => MatchCache.getLeagueTableStale(cacheKey),
+      async () => {
+        let q = supabase.from('sport_league_table')
+          .select('*, sport_teams(id, name, short_name, logo_url, color1, color2)')
+          .eq('event_id', eventId)
+          .order('position', { ascending: true });
+        if (groupId) q = q.eq('group_id', groupId);
+        const { data } = await q;
+        return data || [];
+      },
+      (d) => MatchCache.saveLeagueTable(cacheKey, d),
+    );
   },
 
   async recompute(eventId) {
@@ -883,13 +899,20 @@ export const StatsManager = {
 
 export const CommentaryManager = {
   async list(matchId, limit = 50) {
-    const { data } = await supabase
-      .from('sport_live_commentary')
-      .select('*, profiles(username, avatar_url)')
-      .eq('match_id', matchId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    return (data || []).reverse();
+    return withCache(
+      () => MatchCache.getCommentary(matchId),
+      () => MatchCache.getCommentaryStale(matchId),
+      async () => {
+        const { data } = await supabase
+          .from('sport_live_commentary')
+          .select('*, profiles(username, avatar_url)')
+          .eq('match_id', matchId)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        return (data || []).reverse();
+      },
+      (d) => MatchCache.saveCommentary(matchId, d),
+    );
   },
 
   async post(matchId, eventId, authorId, entry) {
