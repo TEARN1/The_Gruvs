@@ -8,23 +8,41 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
+import { Platform, Easing } from 'react-native';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
+import { REACTION_LIST } from '../constants/CategoryConfig';
 
-const REACTIONS = [
-  { key: 'fire',    emoji: '🔥', label: 'Hyped'   },
-  { key: 'gem',     emoji: '💎', label: 'Luxury'  },
-  { key: 'music',   emoji: '🎶', label: 'Music'   },
-  { key: 'iconic',  emoji: '🤩', label: 'Iconic'  },
-  { key: 'vibes',   emoji: '✨', label: 'Vibes'   },
-  { key: 'jokes',   emoji: '😂', label: 'Jokes'   },
-];
+// Curated signature set — keys are pulled from REACTION_LIST so a reaction made
+// here maps to the same emoji everywhere else in the app (no raw-key leaks).
+const SIGNATURE_KEYS = ['fire', 'heart', 'hype', 'gem', 'star', 'laugh', 'magic', 'crown'];
+const REACTIONS = SIGNATURE_KEYS
+  .map(k => REACTION_LIST.find(x => x.key === k))
+  .filter(Boolean);
 
-const ReactionPill = ({ reaction, count, active, onPress, primary, muted }) => {
+const IS_WEB = Platform.OS === 'web';
+const reducedMotion = () =>
+  IS_WEB && typeof window !== 'undefined' &&
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+const ReactionPill = ({ reaction, count, active, onPress, primary, muted, index = 0 }) => {
   const scale = useRef(new Animated.Value(1)).current;
+  const float = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (reducedMotion()) return;
+    // Gentle continuous float, out of phase per pill, so the row feels alive.
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(float, { toValue: 1, duration: 1400 + index * 90, delay: index * 80, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(float, { toValue: 0, duration: 1400 + index * 90, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [float, index]);
 
   const handlePress = () => {
     Animated.sequence([
@@ -34,8 +52,10 @@ const ReactionPill = ({ reaction, count, active, onPress, primary, muted }) => {
     onPress();
   };
 
+  const translateY = float.interpolate({ inputRange: [0, 1], outputRange: [0, -5] });
+
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View style={{ transform: [{ translateY }, { scale }] }}>
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.75}
@@ -45,6 +65,9 @@ const ReactionPill = ({ reaction, count, active, onPress, primary, muted }) => {
             backgroundColor: active ? `${primary}25` : 'rgba(255,255,255,0.05)',
             borderColor: active ? primary : 'rgba(255,255,255,0.1)',
           },
+          active && (IS_WEB
+            ? { boxShadow: `0 0 14px ${primary}99` }
+            : { shadowColor: primary, shadowOpacity: 0.8, shadowRadius: 10, elevation: 6 }),
         ]}
       >
         <Text style={r.emoji}>{reaction.emoji}</Text>
@@ -151,10 +174,11 @@ export const EventReactions = ({ eventId, primary, muted }) => {
     <View style={r.container}>
       <Text style={[r.header, { color: muted }]}>REACTIONS</Text>
       <View style={r.row}>
-        {REACTIONS.map(reaction => (
+        {REACTIONS.map((reaction, i) => (
           <ReactionPill
             key={reaction.key}
             reaction={reaction}
+            index={i}
             count={counts[reaction.key] || 0}
             active={myReactions.has(reaction.key)}
             onPress={() => handleReaction(reaction.key)}
