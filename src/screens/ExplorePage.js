@@ -11,6 +11,7 @@ import { useIdentity } from '../context/IdentityContext';
 import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
+import { TalentLeaderboardModal } from '../components/TalentLeaderboardModal';
 import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
@@ -442,6 +443,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [marketplaceVisible,  setMarketplaceVisible]  = useState(false);
   const [scoutVisible,        setScoutVisible]        = useState(false);
+  const [scoutOpen,           setScoutOpen]           = useState(false); // talent leaderboard
   const [discoverVisible,     setDiscoverVisible]     = useState(false);
   const [tutorialVisible,     setTutorialVisible]     = useState(false);
   const [appUpdates,          setAppUpdates]          = useState([]);
@@ -690,7 +692,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           if (!prev) return newEvent;
           return (newEvent.vibe_count || 0) > (prev.vibe_count || 0) ? newEvent : prev;
         });
-      },
+      } ,
       (updatedEvent) => {
         // Update vibe_count / going count in all lists in-place
         const patch = (list) => list.map(e => e.id === updatedEvent.id ? { ...e, ...updatedEvent } : e);
@@ -829,7 +831,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         {renderWelcome()}
 
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: `${primary}18` }]}>
+        <View style={[styles.header, { borderBottomColor: `${primary}18`, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
           <View style={styles.brandRow}>
             <BrandLogo size={34} />
             <View style={{ marginLeft: 10 }}>
@@ -837,6 +839,15 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Text style={[styles.headerSub, { color: muted }]}>Discover your next Gruv</Text>
             </View>
           </View>
+          <TouchableOpacity
+            onPress={() => setScoutOpen(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, borderWidth: 1, borderColor: `${primary}50`, backgroundColor: `${primary}12` }}
+            activeOpacity={0.85}
+            accessibilityLabel="Open Talent Scout leaderboard"
+          >
+            <Feather name="award" size={14} color={primary} />
+            <Text style={{ color: primary, fontWeight: '900', fontSize: 12 }}>Scout</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Search bar */}
@@ -1417,6 +1428,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <Feather name="chevron-up" size={22} color="#000" />
         </TouchableOpacity>
       )}
+
+      <TalentLeaderboardModal visible={scoutOpen} onClose={() => setScoutOpen(false)} />
     </View>
 
     </ErrorBoundary>
