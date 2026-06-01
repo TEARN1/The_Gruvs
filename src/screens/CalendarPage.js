@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, Image, Animated, RefreshControl, TextInput,
+  Dimensions, Image, Animated, RefreshControl, TextInput, ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -11,7 +11,7 @@ import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { BrandLogo } from '../components/BrandLogo';
-import { CalendarManager } from '../services/dataFlow';
+import { CalendarManager, FeedManager } from '../services/dataFlow';
 import { resilientRead } from '../utils/resilience';
 import { PostEventModal } from '../components/PostEventModal';
 import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
@@ -28,6 +28,55 @@ const DAY_FULL  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const today = new Date();
 const pad2 = n => String(n).padStart(2, '0');
 const dateKey = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+
+// Short date label for cross-date search results, e.g. "Mon 1 Jun".
+const shortDate = (s) => {
+  if (!s) return '';
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return '';
+  return `${DAY_FULL[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+};
+
+// ── Relevance scorer ──────────────────────────────────────────────────────────
+// Ranks a search hit by WHERE the query tokens land (title > venue/city >
+// category > host > description), boosts exact/prefix/word-boundary matches,
+// nudges imminent + popular events up, and demotes (but keeps) partial matches
+// so a typo or extra word still surfaces something useful.
+const scoreEvent = (ev, tokens) => {
+  const title = (ev.title || '').toLowerCase();
+  const venue = (ev.venue_name || '').toLowerCase();
+  const city  = (ev.city || '').toLowerCase();
+  const cat   = (ev.category || '').toLowerCase();
+  const sport = (ev.sport_type || '').toLowerCase();
+  const host  = (ev.profiles?.username || ev.host_name || ev.organizer_name || '').toLowerCase();
+  const desc  = (ev.description || '').toLowerCase();
+  const hay   = `${title} ${venue} ${city} ${cat} ${sport} ${host} ${desc}`;
+
+  let score = 0;
+  for (const t of tokens) {
+    if (!t) continue;
+    if (title === t) score += 100;
+    else if (title.startsWith(t)) score += 60;
+    else if (title.includes(t)) score += 38;
+    if (new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(title)) score += 14;
+    if (venue.includes(t)) score += 18;
+    if (city.includes(t))  score += 16;
+    if (cat.includes(t))   score += 14;
+    if (sport.includes(t)) score += 14;
+    if (host.includes(t))  score += 12;
+    if (desc.includes(t))  score += 6;
+  }
+  // AND semantics: every token should appear somewhere, else demote (typo-tolerant).
+  if (!tokens.every(t => hay.includes(t))) score *= 0.15;
+  // Imminent upcoming events rank a touch higher.
+  if (ev.event_date) {
+    const days = (new Date(ev.event_date) - Date.now()) / 86400000;
+    if (days >= -1) score += Math.max(0, 12 - Math.max(0, days) * 0.2);
+  }
+  // Popularity tiebreaker.
+  score += Math.min(8, (ev.vibe_count || 0) * 0.5);
+  return score;
+};
 
 // ── Week strip ────────────────────────────────────────────────────────────────
 const WeekStrip = ({ selectedDate, onSelect, primary, bg, textColor, muted, eventDots }) => {
@@ -160,7 +209,7 @@ const mg = StyleSheet.create({
 });
 
 // ── Event card for calendar ────────────────────────────────────────────────────
-const CalEventCard = ({ ev, primary, textColor, muted, onPress, index }) => {
+const CalEventCard = ({ ev, primary, textColor, muted, onPress, index, showDate }) => {
   const catColor = ev.category_color || getCategoryColor(ev.category) || primary;
   const thumb = ev.media?.[0]?.url || ev.media?.[0] || null;
   return (
@@ -186,6 +235,12 @@ const CalEventCard = ({ ev, primary, textColor, muted, onPress, index }) => {
         <View style={{ flex: 1 }}>
           <Text style={[ec.title, { color: textColor }]} numberOfLines={2}>{ev.title}</Text>
           <View style={ec.metaRow}>
+            {showDate && ev.event_date ? (
+              <View style={ec.metaItem}>
+                <Feather name="calendar" size={11} color={primary} />
+                <Text style={[ec.metaText, { color: primary, fontWeight: '800' }]}>{shortDate(ev.event_date)}</Text>
+              </View>
+            ) : null}
             {ev.event_time ? (
               <View style={ec.metaItem}>
                 <Feather name="clock" size={11} color={muted} />
@@ -322,14 +377,16 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'my_rsvps' | 'free'
   const [myRsvpIds, setMyRsvpIds] = useState(new Set());
   const [sportFilter, setSportFilter] = useState(null); // null | sport_type string
+  const [searchResults, setSearchResults] = useState([]); // cross-catalog hits (all dates)
+  const [searching, setSearching] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const realtimeRef = useRef(null);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   useEffect(() => {
     loadMonth(viewYear, viewMonth);
@@ -341,12 +398,12 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
     if (!user) return;
     resilientRead(
       async () => {
-        const { data, error } = await supabase.from('event_rsvps').select('event_id').eq('user_id', user.id).eq('status', 'going');
+        const { data, error } = await supabase.from('event_rsvps').select('event_id').eq('user_id', user?.id).eq('status', 'going');
         if (error) throw error;
         return data;
       },
       async () => {
-        const { data, error } = await supabase.from('event_rsvps').select('event_id').eq('user_id', user.id).limit(200);
+        const { data, error } = await supabase.from('event_rsvps').select('event_id').eq('user_id', user?.id).limit(200);
         if (error) throw error;
         return data;
       },
@@ -440,18 +497,45 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
     if (filterMode === 'my_rsvps') evs = evs.filter(ev => myRsvpIds.has(ev.id));
     if (filterMode === 'free') evs = evs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
     if (sportFilter) evs = evs.filter(ev => ev.sport_type === sportFilter || ev.category === 'sport');
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      evs = evs.filter(ev =>
-        ev.title?.toLowerCase().includes(q) ||
-        ev.venue_name?.toLowerCase().includes(q) ||
-        ev.city?.toLowerCase().includes(q) ||
-        ev.category?.toLowerCase().includes(q) ||
-        ev.description?.toLowerCase().includes(q)
-      );
-    }
     return evs;
-  }, [monthEvents, selectedKey, filterMode, myRsvpIds, searchQuery, sportFilter]);
+  }, [monthEvents, selectedKey, filterMode, myRsvpIds, sportFilter]);
+
+  // ── Advanced search: query the WHOLE catalog (all dates), debounced ─────────
+  // Routes through FeedManager.searchAll → Postgres full-text (search_events_fts)
+  // + ilike fallbacks, instead of substring-matching only the visible month.
+  const trimmedQuery = searchQuery.trim();
+  const inSearch = trimmedQuery.length >= 2;
+
+  useEffect(() => {
+    if (!inSearch) { setSearchResults([]); setSearching(false); return; }
+    let cancelled = false;
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await FeedManager.searchAll(trimmedQuery);
+        if (!cancelled) setSearchResults(res?.events || []);
+      } catch {
+        if (!cancelled) setSearchResults([]);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 280);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [trimmedQuery, inSearch]);
+
+  // Apply the active filters, then rank hits by relevance + recency.
+  const rankedResults = useMemo(() => {
+    if (!inSearch) return [];
+    const tokens = trimmedQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    let evs = searchResults;
+    if (filterMode === 'my_rsvps') evs = evs.filter(ev => myRsvpIds.has(ev.id));
+    if (filterMode === 'free')     evs = evs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
+    if (sportFilter)               evs = evs.filter(ev => ev.sport_type === sportFilter || ev.category === 'sport');
+    return evs
+      .map(ev => ({ ev, s: scoreEvent(ev, tokens) }))
+      .sort((a, b) => b.s - a.s)
+      .map(x => x.ev);
+  }, [searchResults, trimmedQuery, inSearch, filterMode, sportFilter, myRsvpIds]);
 
   const goToToday = () => {
     setSelectedDate(new Date(today));
@@ -502,11 +586,13 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
           <Feather name="search" size={14} color={muted} />
           <TextInput
             style={[calS.searchInput, { color: textColor }]}
-            placeholder="Search gruvs this month..."
+            placeholder="Search all gruvs — title, venue, city…"
             placeholderTextColor={muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            returnKeyType="search"
           />
+          {searching ? <ActivityIndicator size="small" color={primary} /> : null}
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
               <Feather name="x" size={14} color={muted} />
@@ -559,6 +645,50 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
           })}
         </ScrollView>
 
+        {/* ── Advanced search results — whole catalog, all dates, ranked ── */}
+        {inSearch && (
+          <View style={styles.allEventsSection}>
+            <View style={styles.sectionRow}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>Results</Text>
+              <Text style={[styles.sectionCount, { color: muted }]}>
+                {searching ? 'Searching…' : `${rankedResults.length} gruv${rankedResults.length !== 1 ? 's' : ''}`}
+              </Text>
+            </View>
+
+            {searching && rankedResults.length === 0 ? (
+              [1, 2, 3].map(i => (
+                <View key={i} style={[styles.skeleton, { backgroundColor: `${primary}10` }]} />
+              ))
+            ) : rankedResults.length === 0 ? (
+              <View style={styles.emptyDay}>
+                <Feather name="search" size={36} color={muted} style={{ opacity: 0.5 }} />
+                <Text style={[styles.emptyDayText, { color: muted }]}>No gruvs match “{trimmedQuery}”</Text>
+                <Text style={[styles.searchHint, { color: muted }]}>
+                  Searched every gruv by title, venue, city and category.
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text style={[styles.searchHint, { color: muted }]}>Across all dates · most relevant first</Text>
+                {rankedResults.map((ev, i) => (
+                  <CalEventCard
+                    key={ev.id}
+                    ev={ev}
+                    index={i}
+                    showDate
+                    primary={primary}
+                    textColor={textColor}
+                    muted={muted}
+                    onPress={() => onNavigateToEvent?.(ev)}
+                  />
+                ))}
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Calendar body — hidden while a search is active */}
+        {!inSearch && (<>
         {/* Month navigator */}
         <View style={styles.monthNav}>
           <TouchableOpacity onPress={() => switchMonth('prev')} style={styles.navBtn}>
@@ -682,16 +812,6 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
           if (filterMode === 'my_rsvps') allEvs = allEvs.filter(ev => myRsvpIds.has(ev.id));
           if (filterMode === 'free') allEvs = allEvs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
           if (sportFilter) allEvs = allEvs.filter(ev => ev.sport_type === sportFilter || ev.category === 'sport');
-          if (searchQuery.trim()) {
-            const q = searchQuery.trim().toLowerCase();
-            allEvs = allEvs.filter(ev =>
-              ev.title?.toLowerCase().includes(q) ||
-              ev.venue_name?.toLowerCase().includes(q) ||
-              ev.city?.toLowerCase().includes(q) ||
-              ev.category?.toLowerCase().includes(q) ||
-              ev.description?.toLowerCase().includes(q)
-            );
-          }
           if (!allEvs.length) return null;
           return (
           <View style={styles.allEventsSection}>
@@ -718,6 +838,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
           </View>
           );
         })()}
+        </>)}
 
       </ScrollView>
 
@@ -771,6 +892,7 @@ const styles = StyleSheet.create({
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '900' },
   sectionCount: { fontSize: 12, fontWeight: '600' },
+  searchHint: { fontSize: 11, fontWeight: '600', marginBottom: 10, marginTop: -2, textAlign: 'center', paddingHorizontal: 30, lineHeight: 16 },
 });
 
 const calS = StyleSheet.create({
