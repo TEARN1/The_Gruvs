@@ -29,29 +29,31 @@ import { SetNowPlayingModal } from '../components/SetNowPlayingModal';
 import { VendorMenuSheet } from '../components/VendorMenuSheet';
 import { HackathonLeaderboard } from '../components/HackathonLeaderboard';
 
-// ── Lazy section components (each loads independently — one failure cannot crash another) ──
-const EchoSection        = React.lazy(() => import('../components/EchoSection').then(m => ({ default: m.EchoSection })));
-const RatingSection      = React.lazy(() => import('../components/RatingSection').then(m => ({ default: m.RatingSection })));
-const EventGallery       = React.lazy(() => import('../components/EventGallery').then(m => ({ default: m.EventGallery })));
-const WaitlistButton     = React.lazy(() => import('../components/WaitlistButton').then(m => ({ default: m.WaitlistButton })));
-const EventReactions     = React.lazy(() => import('../components/EventReactions').then(m => ({ default: m.EventReactions })));
-const LiveEventUpdates   = React.lazy(() => import('../components/LiveEventUpdates').then(m => ({ default: m.LiveEventUpdates })));
-const EventWeather       = React.lazy(() => import('../components/EventWeather').then(m => ({ default: m.EventWeather })));
-const VIPTierSelector    = React.lazy(() => import('../components/VIPTierSelector').then(m => ({ default: m.VIPTierSelector })));
-const CarpoolBoard       = React.lazy(() => import('../components/CarpoolBoard').then(m => ({ default: m.CarpoolBoard })));
-const EventContextualAds = React.lazy(() => import('../components/EventContextualAds').then(m => ({ default: m.EventContextualAds })));
-const EventScheduleSection = React.lazy(() => import('../components/EventScheduleSection').then(m => ({ default: m.EventScheduleSection })));
-const EventChatRoom      = React.lazy(() => import('../components/EventChatRoom').then(m => ({ default: m.EventChatRoom })));
-const EventPollSection   = React.lazy(() => import('../components/EventPollSection').then(m => ({ default: m.EventPollSection })));
-const EventPlaylistSection = React.lazy(() => import('../components/EventPlaylistSection').then(m => ({ default: m.EventPlaylistSection })));
-const EventRoleManager   = React.lazy(() => import('../components/EventRoleManager').then(m => ({ default: m.EventRoleManager })));
-const EventMomentsSection = React.lazy(() => import('../components/EventMomentsSection').then(m => ({ default: m.EventMomentsSection })));
-const OrganizerDashboard = React.lazy(() => import('../components/OrganizerDashboard').then(m => ({ default: m.OrganizerDashboard })));
-const LiveEventBanner    = React.lazy(() => import('../components/LiveEventBanner').then(m => ({ default: m.LiveEventBanner })));
-const EventManagementPanel = React.lazy(() => import('../components/EventManagementPanel').then(m => ({ default: m.EventManagementPanel })));
-const SportManagementPanel = React.lazy(() => import('../components/SportManagementPanel').then(m => ({ default: m.SportManagementPanel })));
-const EventGuestsModal   = React.lazy(() => import('../components/EventGuestsModal').then(m => ({ default: m.EventGuestsModal })));
-const PlayerProfileModal = React.lazy(() => import('../components/PlayerProfileModal').then(m => ({ default: m.PlayerProfileModal })));
+// ── Static imports — avoids "unknown module" chunk failures on web ──
+import { EchoSection }            from '../components/EchoSection';
+import { RatingSection }          from '../components/RatingSection';
+import { EventGallery }           from '../components/EventGallery';
+import { WaitlistButton }         from '../components/WaitlistButton';
+import { EventReactions }         from '../components/EventReactions';
+import { LiveEventUpdates }       from '../components/LiveEventUpdates';
+import { EventWeather }           from '../components/EventWeather';
+import { VIPTierSelector }        from '../components/VIPTierSelector';
+import { CarpoolBoard }           from '../components/CarpoolBoard';
+import { EventContextualAds }     from '../components/EventContextualAds';
+import { EventScheduleSection }   from '../components/EventScheduleSection';
+import { EventChatRoom }          from '../components/EventChatRoom';
+import { EventPollSection }       from '../components/EventPollSection';
+import { EventPlaylistSection }   from '../components/EventPlaylistSection';
+import { EventRoleManager }       from '../components/EventRoleManager';
+import { EventMomentsSection }    from '../components/EventMomentsSection';
+import { OrganizerDashboard }     from '../components/OrganizerDashboard';
+import { LiveEventBanner }        from '../components/LiveEventBanner';
+import { EventManagementPanel }   from '../components/EventManagementPanel';
+import { SportManagementPanel }   from '../components/SportManagementPanel';
+import { EventGuestsModal }       from '../components/EventGuestsModal';
+import { PlayerProfileModal }     from '../components/PlayerProfileModal';
+import { MatchPredictionCard }    from '../components/MatchPredictionCard';
+import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
 
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
@@ -145,6 +147,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [guests, setGuests] = useState([]);
   const [guestsModalOpen, setGuestsModalOpen] = useState(false);
   const [openGuestPlayer, setOpenGuestPlayer] = useState(null);
+  const [govOpen, setGovOpen] = useState(false);
   const scrollRef = useRef(null);
 
   const { isOrganiser, isCoHost, canPost, canModerate } = useEventRole(
@@ -158,9 +161,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const background = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text || '#ffffff';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const background = currentTheme?.background || "#0d1112";
+  const textColor = currentTheme?.text || "#ffffff";
   const textMuted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const surface = currentTheme?.surface || 'rgba(255,255,255,0.06)';
 
@@ -446,7 +449,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch { }
       const coords = await LocationService.requestAndGet();
 
-      // ── Distance gate — must be within 2km of the event venue ──────────────
+      // ── Distance gate — relaxed on web (GPS is inaccurate) ─────────────────
       if (coords && event?.lat != null && event?.lon != null) {
         const R = 6371;
         const dLat = (Number(event.lat) - coords.lat) * Math.PI / 180;
@@ -457,7 +460,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           Math.cos(Number(event.lat) * Math.PI / 180) *
           Math.sin(dLon / 2) ** 2;
         const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        if (distKm > 2) {
+        // Web GPS via WiFi/IP is inherently inaccurate — use a 10km gate on web, 2km on native
+        const maxDistKm = Platform.OS === 'web' ? 10 : 2;
+        if (distKm > maxDistKm) {
           showToast(`You need to be at the venue to Touch Down (${(distKm).toFixed(1)}km away)`, 'error');
           return;
         }
@@ -559,7 +564,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             <View style={styles.avatarWrap}>
               {organizer.avatar_url
                 ? <Image source={{ uri: organizer.avatar_url }} style={styles.avatar} />
-                : <View style={[styles.avatar, { backgroundColor: ['#0891b2', '#7c3aed', '#059669', '#dc2626'][(organizer.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
+                : <View style={[styles.avatar, { backgroundColor: ["#0891b2", "#7c3aed", "#059669", "#dc2626"][(organizer.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
                   <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>{(organizer.username || 'V')[0].toUpperCase()}</Text>
                 </View>
               }
@@ -670,14 +675,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                       ) : null}
                       {parsed.vip ? (
                         <View style={styles.ticketTier}>
-                          <Text style={[styles.ticketLabel, { color: '#f59e0b' }]}>👑 VIP</Text>
-                          <Text style={[styles.ticketValue, { color: '#f59e0b' }]}>R{parseFloat(parsed.vip).toFixed(2)}</Text>
+                          <Text style={[styles.ticketLabel, { color: "#f59e0b" }]}>👑 VIP</Text>
+                          <Text style={[styles.ticketValue, { color: "#f59e0b" }]}>R{parseFloat(parsed.vip).toFixed(2)}</Text>
                         </View>
                       ) : null}
                       {parsed.vvip ? (
                         <View style={styles.ticketTier}>
-                          <Text style={[styles.ticketLabel, { color: '#d946ef' }]}>💎 VVIP</Text>
-                          <Text style={[styles.ticketValue, { color: '#d946ef' }]}>R{parseFloat(parsed.vvip).toFixed(2)}</Text>
+                          <Text style={[styles.ticketLabel, { color: "#d946ef" }]}>💎 VVIP</Text>
+                          <Text style={[styles.ticketValue, { color: "#d946ef" }]}>R{parseFloat(parsed.vvip).toFixed(2)}</Text>
                         </View>
                       ) : null}
                     </View>
@@ -773,7 +778,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <View key={p.id || i} style={{ marginLeft: i === 0 ? 0 : -10, zIndex: 10 - i, borderRadius: 18, borderWidth: 2, borderColor: background }}>
                     {p.avatar_url
                       ? <Image source={{ uri: p.avatar_url }} style={{ width: 32, height: 32, borderRadius: 16 }} />
-                      : <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: ['#0891b2','#7c3aed','#059669','#d97706','#db2777','#dc2626'][i % 6], alignItems: 'center', justifyContent: 'center' }}>
+                      : <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: ["#0891b2","#7c3aed","#059669","#d97706","#db2777","#dc2626"][i % 6], alignItems: 'center', justifyContent: 'center' }}>
                           <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>{(p.username || '?')[0].toUpperCase()}</Text>
                         </View>
                     }
@@ -809,7 +814,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             {isSoldOut && (
               <View style={[styles.vibePill, { backgroundColor: '#ef444420', borderColor: '#ef444440' }]}>
                 <Feather name="alert-circle" size={13} color="#ef4444" />
-                <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '800' }}>SOLD OUT</Text>
+                <Text style={{ color: "#ef4444", fontSize: 11, fontWeight: '800' }}>SOLD OUT</Text>
               </View>
             )}
           </View>
@@ -820,12 +825,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 <Text style={[styles.capacityLabel, { color: textColor }]}>
                   {goingCount} <Text style={{ color: textMuted }}>/ {capacity} Vibing</Text>
                 </Text>
-                <Text style={[styles.spotsLeft, { color: spotsLeft < 10 ? '#ff6b6b' : primary }]}>
+                <Text style={[styles.spotsLeft, { color: spotsLeft < 10 ? "#ff6b6b" : primary }]}>
                   {spotsLeft} spot{spotsLeft !== 1 ? 's' : ''} left
                 </Text>
               </View>
               <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                <View style={[styles.progressFill, { width: `${capacityPct * 100}%`, backgroundColor: capacityPct > 0.8 ? '#ef4444' : primary }]} />
+                <View style={[styles.progressFill, { width: `${capacityPct * 100}%`, backgroundColor: capacityPct > 0.8 ? "#ef4444" : primary }]} />
               </View>
             </GlassView>
           )}
@@ -905,6 +910,29 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </SafeSection>
           )}
 
+          {/* Fan win-prediction (self-hides if the event has no teams to predict between) */}
+          {event?.id && (
+            <SafeSection label="Prediction" primary={primary}>
+              <MatchPredictionCard eventId={event.id} primary={primary} />
+            </SafeSection>
+          )}
+
+          {/* Tournament governance — vote for officials who control the data */}
+          {event?.competition_id && (
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 10, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}10` }}
+              onPress={() => setGovOpen(true)}
+              activeOpacity={0.85}
+            >
+              <Feather name="users" size={18} color={primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: textColor, fontWeight: '900', fontSize: 14 }}>Tournament Governance</Text>
+                <Text style={{ color: textMuted, fontSize: 11 }}>Vote for who controls results, the log & more</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={primary} />
+            </TouchableOpacity>
+          )}
+
           {/* Guests & Lineup — tagged players/performers; tap to view career */}
           {event?.id && (guests.length > 0 || isOrganiser) && (
             <View style={{ marginTop: 20, marginBottom: 8 }}>
@@ -970,7 +998,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 0 }}>
               <TouchableOpacity
                 style={[styles.checkInBtn, {
-                  backgroundColor: checkedIn ? '#10b981' : primary,
+                  backgroundColor: checkedIn ? "#10b981" : primary,
                   opacity: checkingIn ? 0.7 : 1,
                   flex: 1,
                 }]}
@@ -1005,14 +1033,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 style={[styles.checkInBtn, {
                   backgroundColor: calendarAdded ? '#10b98130' : 'transparent',
                   borderWidth: 1,
-                  borderColor: calendarAdded ? '#10b981' : 'rgba(255,255,255,0.2)',
+                  borderColor: calendarAdded ? "#10b981" : 'rgba(255,255,255,0.2)',
                 }]}
                 onPress={handleAddToCalendar}
                 disabled={calendarAdded}
                 activeOpacity={0.85}
               >
-                <Feather name={calendarAdded ? 'check-circle' : 'calendar'} size={16} color={calendarAdded ? '#10b981' : textMuted} />
-                <Text style={[styles.checkInBtnText, { color: calendarAdded ? '#10b981' : textMuted }]}>
+                <Feather name={calendarAdded ? 'check-circle' : 'calendar'} size={16} color={calendarAdded ? "#10b981" : textMuted} />
+                <Text style={[styles.checkInBtnText, { color: calendarAdded ? "#10b981" : textMuted }]}>
                   {calendarAdded ? 'In Calendar' : 'Add to Calendar'}
                 </Text>
               </TouchableOpacity>
@@ -1274,6 +1302,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           </SafeSection>
         )}
 
+        {govOpen && event?.competition_id && (
+          <SafeSection label="Governance" primary={primary}>
+            <TournamentGovernancePanel
+              visible={govOpen}
+              competitionId={event.competition_id}
+              onClose={() => setGovOpen(false)}
+            />
+          </SafeSection>
+        )}
+
         {/* Who's Going Modal */}
         <Modal visible={whoGoingVisible} animationType="slide" transparent onRequestClose={() => setWhoGoingVisible(false)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
@@ -1290,7 +1328,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <View key={p.id} style={[styles.whoGoingRow, { borderBottomColor: `${primary}15` }]}>
                     {p.avatar_url
                       ? <Image source={{ uri: p.avatar_url }} style={styles.whoGoingAvatar} />
-                      : <View style={[styles.whoGoingAvatar, { backgroundColor: ['#0891b2', '#7c3aed', '#059669', '#dc2626'][(p.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
+                      : <View style={[styles.whoGoingAvatar, { backgroundColor: ["#0891b2", "#7c3aed", "#059669", "#dc2626"][(p.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
                         <Text style={{ color: '#fff', fontWeight: '900' }}>{(p.username || 'V')[0].toUpperCase()}</Text>
                       </View>
                     }
@@ -1414,7 +1452,7 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     borderWidth: 2,
-    borderColor: '#0d1112',
+    borderColor: "#0d1112",
   },
   verifiedBadge: {
     position: 'absolute',
@@ -1426,7 +1464,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#0d1112',
+    borderColor: "#0d1112",
   },
   organizerMeta: {
     flex: 1,
