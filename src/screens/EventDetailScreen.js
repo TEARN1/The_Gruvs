@@ -229,6 +229,27 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     if (checkinRes.status === 'fulfilled' && checkinRes.value) setCheckedIn(true);
   }, [user, event?.id, organizer?.id]);
 
+  const fetchGoingCount = async () => {
+    if (!event?.id) return;
+    try {
+      const count = await RSVPManager.getGoingCount(event.id);
+      setGoingCount(count || 0);
+    } catch { }
+  };
+
+  const fetchAttendeePreview = useCallback(async () => {
+    if (!event?.id) return;
+    try {
+      const { data } = await supabase
+        .from('event_rsvps')
+        .select('profiles:user_id(id, username, avatar_url)')
+        .eq('event_id', event.id)
+        .eq('status', 'going')
+        .limit(7);
+      setAttendeePreview((data || []).map(r => r.profiles).filter(Boolean));
+    } catch { }
+  }, [event?.id]);
+
   useEffect(() => {
     if (visible) {
       Animated.spring(slideAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 10 }).start();
@@ -272,27 +293,6 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       if (rsvpChan) supabase.removeChannel(rsvpChan);
     };
   }, [visible, event?.id, fetchUserState, fetchAttendeePreview]);
-
-  const fetchGoingCount = async () => {
-    if (!event?.id) return;
-    try {
-      const count = await RSVPManager.getGoingCount(event.id);
-      setGoingCount(count || 0);
-    } catch { }
-  };
-
-  const fetchAttendeePreview = useCallback(async () => {
-    if (!event?.id) return;
-    try {
-      const { data } = await supabase
-        .from('event_rsvps')
-        .select('profiles:user_id(id, username, avatar_url)')
-        .eq('event_id', event.id)
-        .eq('status', 'going')
-        .limit(7);
-      setAttendeePreview((data || []).map(r => r.profiles).filter(Boolean));
-    } catch { }
-  }, [event?.id]);
 
   const handleRsvp = useCallback(async (status) => {
     if (!user) { onAuthRequired?.(); return; }
