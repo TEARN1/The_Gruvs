@@ -34,7 +34,7 @@ const IS_WEB = Platform.OS === 'web';
 const { width: SW, height: SH } = Dimensions.get('window');
 
 const avatarBg = (u = '') =>
-  ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u.charCodeAt(0) || 0) % 5];
+  ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u.charCodeAt(0) || 0) % 5];
 
 const fmtCount = (n) => {
   if (!n) return '0';
@@ -92,7 +92,7 @@ const ReelSkeleton = ({ primary, reelW, reelH }) => {
     return () => anim.stop();
   }, [pulse]);
   return (
-    <View style={{ width: reelW ?? SW, height: reelH ?? SH, backgroundColor: '#0a0a0a' }}>
+    <View style={{ width: reelW ?? SW, height: reelH ?? SH, backgroundColor: "#0a0a0a" }}>
       {/* right action bar placeholders */}
       <Animated.View style={{ position: 'absolute', right: 14, bottom: 150, alignItems: 'center', gap: 20, opacity: pulse }}>
         {[48, 36, 36, 36, 36].map((size, i) => (
@@ -141,8 +141,8 @@ const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, 
             try {
               await resilient(
                 [
-                  () => supabase.from('reels').update({ is_deleted: true }).eq('id', reel.id).eq('user_id', user.id),
-                  () => supabase.from('reels').delete().eq('id', reel.id).eq('user_id', user.id),
+                  () => supabase.from('reels').update({ is_deleted: true }).eq('id', reel.id).eq('user_id', user?.id),
+                  () => supabase.from('reels').delete().eq('id', reel.id).eq('user_id', user?.id),
                 ],
                 { attemptsPerTier: 3, baseMs: 400, label: 'ReelManageSheet.delete', fallbackValue: null }
               );
@@ -162,7 +162,7 @@ const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, 
       const cleanCaption = caption.trim().slice(0, 500); // max length guard
       await resilient(
         [
-          () => supabase.from('reels').update({ caption: cleanCaption }).eq('id', reel.id).eq('user_id', user.id),
+          () => supabase.from('reels').update({ caption: cleanCaption }).eq('id', reel.id).eq('user_id', user?.id),
           () => supabase.rpc('update_reel_caption', { p_reel_id: reel.id, p_caption: cleanCaption }),
         ],
         { attemptsPerTier: 3, baseMs: 400, label: 'ReelManageSheet.editCaption', fallbackValue: null }
@@ -203,7 +203,7 @@ const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, 
                 style={[ms.row, { borderBottomColor: `${primary}12` }]}
                 onPress={async () => {
                   onClose();
-                  try { await Share.share({ message: `Check out my reel on The Gruvs!` }); } catch {}
+                  try { await Share.share({ message: `Check out my reel on The Gruvs!` }); } catch (err) { console.warn('Share error:', err); }
                 }}
               >
                 <View style={[ms.iconWrap, { backgroundColor: '#05966918' }]}>
@@ -220,7 +220,7 @@ const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, 
                   <Feather name="trash-2" size={18} color="#ef4444" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[ms.rowLabel, { color: '#ef4444' }]}>Delete Reel</Text>
+                  <Text style={[ms.rowLabel, { color: "#ef4444" }]}>Delete Reel</Text>
                   <Text style={[ms.rowSub, { color: muted }]}>Permanently remove this reel</Text>
                 </View>
               </TouchableOpacity>
@@ -303,7 +303,7 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
           const { data: liked } = await supabase
             .from('reel_comment_likes')
             .select('comment_id')
-            .eq('user_id', user.id)
+            .eq('user_id', user?.id)
             .in('comment_id', ids);
           const likedSet = new Set((liked || []).map(l => l.comment_id));
           const state = {};
@@ -320,13 +320,15 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
     const prev = commentLikes[commentId] || { liked: false, count: 0 };
     const next = { liked: !prev.liked, count: prev.liked ? Math.max(0, prev.count - 1) : prev.count + 1 };
     setCommentLikes(s => ({ ...s, [commentId]: next }));
-    if (prev.liked) {
-      await supabase.from('reel_comment_likes').delete().eq('comment_id', commentId).eq('user_id', user.id);
-      await supabase.from('reel_comments').update({ like_count: next.count }).eq('id', commentId);
-    } else {
-      await supabase.from('reel_comment_likes').upsert({ comment_id: commentId, user_id: user.id }, { onConflict: 'comment_id,user_id' });
-      await supabase.from('reel_comments').update({ like_count: next.count }).eq('id', commentId);
-    }
+    try {
+      if (prev.liked) {
+        await supabase.from('reel_comment_likes').delete().eq('comment_id', commentId).eq('user_id', user?.id);
+        await supabase.from('reel_comments').update({ like_count: next.count }).eq('id', commentId);
+      } else {
+        await supabase.from('reel_comment_likes').upsert({ comment_id: commentId, user_id: user?.id }, { onConflict: 'comment_id,user_id' });
+        await supabase.from('reel_comments').update({ like_count: next.count }).eq('id', commentId);
+      }
+    } catch { /* handle error */ }
   };
 
   const sendComment = async () => {
@@ -339,19 +341,19 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
         [
           // Tier 1: insert + fetch profile
           async () => {
-            const { error } = await supabase.from('reel_comments').insert({ reel_id: reel.id, user_id: user.id, body: text });
+            const { error } = await supabase.from('reel_comments').insert({ reel_id: reel.id, user_id: user?.id, body: text });
             if (error) throw error;
             return true;
           },
           // Tier 2: upsert
           async () => {
-            const { error } = await supabase.from('reel_comments').upsert({ reel_id: reel.id, user_id: user.id, body: text, created_at: new Date().toISOString() });
+            const { error } = await supabase.from('reel_comments').upsert({ reel_id: reel.id, user_id: user?.id, body: text, created_at: new Date().toISOString() });
             if (error) throw error;
             return true;
           },
           // Tier 3: RPC send comment
           async () => {
-            const { error } = await supabase.rpc('add_reel_comment', { p_reel_id: reel.id, p_user_id: user.id, p_body: text });
+            const { error } = await supabase.rpc('add_reel_comment', { p_reel_id: reel.id, p_user_id: user?.id, p_body: text });
             if (error) throw error;
             return true;
           },
@@ -399,8 +401,8 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
                     </View>
                     {user && (
                       <TouchableOpacity onPress={() => toggleCommentLike(c.id)} style={cs.commentLikeBtn}>
-                        <Feather name="heart" size={14} color={cl.liked ? '#f43f5e' : muted} />
-                        {cl.count > 0 && <Text style={[cs.commentLikeCount, { color: cl.liked ? '#f43f5e' : muted }]}>{cl.count}</Text>}
+                        <Feather name="heart" size={14} color={cl.liked ? "#f43f5e" : muted} />
+                        {cl.count > 0 && <Text style={[cs.commentLikeCount, { color: cl.liked ? "#f43f5e" : muted }]}>{cl.count}</Text>}
                       </TouchableOpacity>
                     )}
                   </View>
@@ -516,7 +518,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
       return <Text key={i} style={{ color: primary, fontWeight: '900' }} onPress={() => onHashtag?.(word)}>{word}</Text>;
     }
     if (word.startsWith('@')) {
-      return <Text key={i} style={{ color: '#60a5fa', fontWeight: '900' }}>{word}</Text>;
+      return <Text key={i} style={{ color: "#60a5fa", fontWeight: '900' }}>{word}</Text>;
     }
     return <Text key={i} style={{ color: 'rgba(255,255,255,0.92)' }}>{word}</Text>;
   });
@@ -557,7 +559,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
     ]).start();
 
     try {
-      await ReelsRepository.toggleLike({ reelId: reel.id, userId: user.id, isLiked: newLiked });
+      await ReelsRepository.toggleLike({ reelId: reel.id, userId: user?.id, isLiked: newLiked });
     } catch {
       setLiked(!newLiked);
       setLikeCount(c => newLiked ? Math.max(0, c - 1) : c + 1);
@@ -570,8 +572,8 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
     setFollowing(newFollowing);
     await resilient(
       newFollowing ? [
-        () => supabase.from('follows').upsert({ follower_id: user.id, following_id: reel.user_id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
-        () => supabase.from('follows').insert({ follower_id: user.id, following_id: reel.user_id }),
+        () => supabase.from('follows').upsert({ follower_id: user?.id, following_id: reel.user_id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
+        () => supabase.from('follows').insert({ follower_id: user?.id, following_id: reel.user_id }),
       ] : [
         () => supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', reel.user_id),
       ],
@@ -582,7 +584,9 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
   const handleShare = async () => {
     try {
       await Share.share({ message: `Check out @${reel.profiles?.username}'s reel on The Gruvs!` });
-    } catch {}
+    } catch (err) {
+      console.warn('Share error:', err);
+    }
   };
 
   const handleSave = async () => {
@@ -591,7 +595,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
     if (newSaved) haptics.success();
     setSaved(newSaved);
     try {
-      await ReelsRepository.toggleSave({ reelId: reel.id, userId: user.id, isSaved: newSaved });
+      await ReelsRepository.toggleSave({ reelId: reel.id, userId: user?.id, isSaved: newSaved });
     } catch {
       setSaved(!newSaved);
     }
@@ -893,7 +897,18 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
         <Animated.View style={[as.sheet, { backgroundColor: bg, transform: [{ translateY: slideAnim }] }]}>
           <View style={[as.handle, { backgroundColor: `${primary}40` }]} />
-          <Text style={[as.title, { color: textColor }]}>Reels Advanced Controls</Text>
+          <View style={as.titleRow}>
+            <Text style={[as.title, { color: textColor }]}>Reels Advanced Controls</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={[as.closeBtn, { backgroundColor: `${primary}14`, borderColor: `${primary}30` }]}
+              accessibilityRole="button"
+              accessibilityLabel="Close advanced controls"
+            >
+              <Feather name="x" size={18} color={textColor} />
+            </TouchableOpacity>
+          </View>
 
           <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
             {/* Playback speed */}
@@ -1018,7 +1033,9 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
 const as = StyleSheet.create({
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 12, paddingHorizontal: 20, paddingBottom: 40 },
   handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-  title: { fontSize: 16, fontWeight: '900', marginBottom: 18, letterSpacing: 0.3 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
+  title: { fontSize: 16, fontWeight: '900', letterSpacing: 0.3 },
+  closeBtn: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   section: { marginBottom: 18 },
   sectionLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1.2, marginBottom: 8 },
   rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -1036,11 +1053,11 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const { user } = useAuth();
   const toast = useToast();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   const { width: winW, height: winH } = useWindowDimensions();
   // Responsive reel dimensions — recalculate on resize
@@ -1295,7 +1312,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={async () => { setRefreshing(true); try { await loadReels(true); } catch { } finally { setRefreshing(false); } }}
+            onRefresh={async () => { setRefreshing(true); try { await loadReels(true); } catch (err) { console.warn('Refresh error:', err); } finally { setRefreshing(false); } }}
             tintColor={primary}
             colors={[primary]}
           />
@@ -1318,7 +1335,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: '#050505',
+      backgroundColor: "#050505",
       minHeight: '100vh',
     }]}>
 

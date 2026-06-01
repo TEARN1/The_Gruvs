@@ -1,10 +1,11 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Easing, Platform,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { REACTION_LIST } from '../constants/CategoryConfig';
+import { ReactionFX, themeForReaction } from './ReactionFX';
 
 const IS_WEB = Platform.OS === 'web';
 const reducedMotion = () =>
@@ -24,6 +25,10 @@ const ReactionOrb = ({ reaction, index, isActive, primary, onPress }) => {
   const enter = useRef(new Animated.Value(0)).current;   // entrance pop
   const float = useRef(new Animated.Value(0)).current;   // idle hover
   const pop = useRef(new Animated.Value(1)).current;     // press/active bounce
+  const flip = useRef(new Animated.Value(0)).current;    // 3D card-flip on press
+
+  // Each reaction carries its own signature colour (its opposite-world theme).
+  const accent = themeForReaction(reaction.key).ring;
 
   useEffect(() => {
     // Staggered entrance
@@ -47,27 +52,38 @@ const ReactionOrb = ({ reaction, index, isActive, primary, onPress }) => {
     Animated.spring(pop, { toValue: isActive ? 1.18 : 1, useNativeDriver: true, tension: 200, friction: 7 }).start();
   }, [isActive, pop]);
 
+  const handlePress = () => {
+    // Quick 3D flip — the orb tips toward you and snaps back.
+    flip.setValue(0);
+    Animated.sequence([
+      Animated.timing(flip, { toValue: 1, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.spring(flip, { toValue: 0, useNativeDriver: true, tension: 120, friction: 8 }),
+    ]).start();
+    onPress(reaction.key);
+  };
+
   const translateY = float.interpolate({ inputRange: [0, 1], outputRange: [0, -6] });
+  const rotateX = flip.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-55deg'] });
   const scale = Animated.multiply(enter, pop);
 
   return (
-    <Animated.View style={{ opacity: enter, transform: [{ translateY }, { scale }] }}>
+    <Animated.View style={{ opacity: enter, transform: [{ perspective: 500 }, { translateY }, { rotateX }, { scale }] }}>
       <TouchableOpacity
-        onPress={() => onPress(reaction.key)}
+        onPress={handlePress}
         activeOpacity={0.8}
         style={[
           styles.orb,
           {
-            borderColor: isActive ? primary : `${primary}22`,
-            backgroundColor: isActive ? `${primary}26` : 'rgba(255,255,255,0.05)',
+            borderColor: isActive ? accent : `${primary}22`,
+            backgroundColor: isActive ? `${accent}26` : 'rgba(255,255,255,0.05)',
           },
           isActive && (IS_WEB
-            ? { boxShadow: `0 0 16px ${primary}aa` }
-            : { shadowColor: primary, shadowOpacity: 0.9, shadowRadius: 12, elevation: 8 }),
+            ? { boxShadow: `0 0 18px ${accent}` }
+            : { shadowColor: accent, shadowOpacity: 0.9, shadowRadius: 12, elevation: 8 }),
         ]}
       >
         <Text style={styles.emoji}>{reaction.emoji}</Text>
-        <Text style={[styles.label, { color: isActive ? primary : 'rgba(255,255,255,0.6)' }]}>{reaction.label}</Text>
+        <Text style={[styles.label, { color: isActive ? accent : 'rgba(255,255,255,0.6)' }]}>{reaction.label}</Text>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -76,8 +92,15 @@ const ReactionOrb = ({ reaction, index, isActive, primary, onPress }) => {
 export const ReactPicker = ({ visible, onReact, userReaction }) => {
   const { currentTheme } = useTheme();
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const primary = currentTheme?.primary || '#00f2ff';
-  const surface = currentTheme?.surface || '#1a1a1a';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const surface = currentTheme?.surface || "#1a1a1a";
+
+  // Signature FX: erupts the opposite-world plume from the bar onto the card.
+  const [fx, setFx] = useState({ key: null, trigger: 0 });
+  const handleReact = (key) => {
+    setFx({ key, trigger: Date.now() });
+    onReact(key);
+  };
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -101,16 +124,17 @@ export const ReactPicker = ({ visible, onReact, userReaction }) => {
             index={i}
             isActive={userReaction === r.key}
             primary={primary}
-            onPress={onReact}
+            onPress={handleReact}
           />
         ))}
       </ScrollView>
+      <ReactionFX reactionKey={fx.key} trigger={fx.trigger} />
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 10 },
+  container: { borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 10, overflow: 'visible', position: 'relative' },
   scroll: { paddingHorizontal: 12, gap: 8, alignItems: 'center' },
   orb: {
     alignItems: 'center', justifyContent: 'center',

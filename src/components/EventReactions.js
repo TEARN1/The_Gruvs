@@ -14,6 +14,7 @@ import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { REACTION_LIST } from '../constants/CategoryConfig';
+import { ReactionFX } from './ReactionFX';
 
 // Curated signature set — keys are pulled from REACTION_LIST so a reaction made
 // here maps to the same emoji everywhere else in the app (no raw-key leaks).
@@ -87,6 +88,7 @@ export const EventReactions = ({ eventId, primary, muted }) => {
   const [counts, setCounts] = useState({});   // { fire: 12, gem: 3, ... }
   const [myReactions, setMyReactions] = useState(new Set());
   const [ready, setReady] = useState(false);
+  const [fx, setFx] = useState({ key: null, trigger: 0 }); // signature reaction burst
 
   const fetchReactions = useCallback(async () => {
     if (!eventId) return;
@@ -125,6 +127,7 @@ export const EventReactions = ({ eventId, primary, muted }) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     const wasActive = myReactions.has(key);
+    if (!wasActive) setFx({ key, trigger: Date.now() }); // erupt the opposite-world plume on add
     // Optimistic update
     setMyReactions(prev => {
       const next = new Set(prev);
@@ -140,16 +143,16 @@ export const EventReactions = ({ eventId, primary, muted }) => {
       if (wasActive) {
         await resilient(
           [
-            () => supabase.from('event_reactions').delete().eq('event_id', eventId).eq('user_id', user.id).eq('reaction_key', key),
-            () => supabase.rpc('remove_event_reaction', { p_event_id: eventId, p_user_id: user.id, p_reaction_key: key }),
+            () => supabase.from('event_reactions').delete().eq('event_id', eventId).eq('user_id', user?.id).eq('reaction_key', key),
+            () => supabase.rpc('remove_event_reaction', { p_event_id: eventId, p_user_id: user?.id, p_reaction_key: key }),
           ],
           { attemptsPerTier: 2, baseMs: 200, label: 'EventReactions.remove', fallbackValue: null }
         );
       } else {
         await resilient(
           [
-            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user.id, reaction_key: key }, { onConflict: 'event_id,user_id,reaction_key', ignoreDuplicates: true }),
-            () => supabase.from('event_reactions').insert({ event_id: eventId, user_id: user.id, reaction_key: key }),
+            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user?.id, reaction_key: key }, { onConflict: 'event_id,user_id,reaction_key', ignoreDuplicates: true }),
+            () => supabase.from('event_reactions').insert({ event_id: eventId, user_id: user?.id, reaction_key: key }),
           ],
           { attemptsPerTier: 2, baseMs: 200, label: 'EventReactions.add', fallbackValue: null }
         );
@@ -187,12 +190,13 @@ export const EventReactions = ({ eventId, primary, muted }) => {
           />
         ))}
       </View>
+      <ReactionFX reactionKey={fx.key} trigger={fx.trigger} />
     </View>
   );
 };
 
 const r = StyleSheet.create({
-  container: { marginBottom: 16 },
+  container: { marginBottom: 16, position: 'relative', overflow: 'visible' },
   header: { fontSize: 10, fontWeight: '900', letterSpacing: 1.2, marginBottom: 10 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {
