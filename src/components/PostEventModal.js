@@ -15,6 +15,7 @@ import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { uploadToStorage } from '../services/storageService';
 import { CategoryPickerModal } from './CategoryPickerModal';
+import { CompetitionPicker } from './CompetitionPicker';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
@@ -68,6 +69,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [mediaItems, setMediaItems] = useState([]); // { uri, type, name, mimeType }
   const [scheduleItems, setScheduleItems] = useState([]); // { id, time, title, performer, notes }
   const [scheduleFormVisible, setScheduleFormVisible] = useState(false);
+  const [competitionId, setCompetitionId] = useState(null); // optional tournament link
   const [scheduleForm, setScheduleForm] = useState({ time: '', title: '', performer: '', notes: '' });
   const [loading, setLoading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
@@ -84,8 +86,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   // Tracks the Y offset of each required field within the ScrollView
   const fieldY = useRef({});
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
@@ -299,7 +301,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     const primaryCat = (catGroup && GROUP_TO_CAT[catGroup]) || rawCat;
 
     const payload = {
-      author_id: user.id,
+      author_id: user?.id,
       title: title.trim(),
       description: description.trim(),
       address: address.trim(),
@@ -326,6 +328,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       payload.cover_url = mediaUrls[0].url;
     }
     if (scheduleItems.length > 0) payload.schedule = scheduleItems.map(({ id, ...rest }) => rest);
+    if (competitionId) payload.competition_id = competitionId;
     if (ageMin > 0) payload.age_restriction = ageMin;
     if (ageMax > 0) payload.age_max = ageMax;
     if (endTimeSet && endHour !== null) {
@@ -659,7 +662,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                   <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.title = e.nativeEvent.layout.y; }}>Event Title *</Text>
                   <TextInput
                     ref={titleRef}
-                    style={[pm.input, { color: textColor, borderColor: !title.trim() && error ? '#ef4444' : `${primary}35` }]}
+                    style={[pm.input, { color: textColor, borderColor: !title.trim() && error ? "#ef4444" : `${primary}35` }]}
                     placeholder="Give your event a name..."
                     placeholderTextColor={muted}
                     value={title}
@@ -672,7 +675,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                   <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.description = e.nativeEvent.layout.y; }}>What's the vibe? *</Text>
                   <TextInput
                     ref={descriptionRef}
-                    style={[pm.input, pm.textarea, { color: textColor, borderColor: !description.trim() && error ? '#ef4444' : `${primary}35` }]}
+                    style={[pm.input, pm.textarea, { color: textColor, borderColor: !description.trim() && error ? "#ef4444" : `${primary}35` }]}
                     placeholder="Describe your event — make it sound elite..."
                     placeholderTextColor={muted}
                     multiline
@@ -686,7 +689,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                   <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.address = e.nativeEvent.layout.y; }}>Venue / Address *</Text>
                   <TextInput
                     ref={addressRef}
-                    style={[pm.input, { color: textColor, borderColor: !address.trim() && error ? '#ef4444' : `${primary}35` }]}
+                    style={[pm.input, { color: textColor, borderColor: !address.trim() && error ? "#ef4444" : `${primary}35` }]}
                     placeholder="Full address or venue name..."
                     placeholderTextColor={muted}
                     value={address}
@@ -696,17 +699,17 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
 
                   <TouchableOpacity
                     onPress={pinLocation}
-                    style={[pm.catBtn, { marginBottom: 18, borderColor: lat ? '#10b981' : `${primary}40`, backgroundColor: lat ? '#10b98115' : `${primary}08` }]}
+                    style={[pm.catBtn, { marginBottom: 18, borderColor: lat ? "#10b981" : `${primary}40`, backgroundColor: lat ? '#10b98115' : `${primary}08` }]}
                   >
                     {geocoding
                       ? <ActivityIndicator size="small" color={primary} />
-                      : <Feather name={lat ? "check-circle" : "map-pin"} size={16} color={lat ? '#10b981' : primary} />
+                      : <Feather name={lat ? "check-circle" : "map-pin"} size={16} color={lat ? "#10b981" : primary} />
                     }
                     <View style={{ flex: 1 }}>
-                      <Text style={[{ color: lat ? '#10b981' : primary, fontWeight: '800', fontSize: 13 }]}>
+                      <Text style={[{ color: lat ? "#10b981" : primary, fontWeight: '800', fontSize: 13 }]}>
                         {geocoding ? 'Finding coordinates…' : lat ? 'Location Found' : 'Pin Exact Spot (GPS)'}
                       </Text>
-                      {lat && !geocoding && <Text style={{ color: '#10b981', fontSize: 10 }}>{lat.toFixed(5)}, {lon.toFixed(5)}</Text>}
+                      {lat && !geocoding && <Text style={{ color: "#10b981", fontSize: 10 }}>{lat.toFixed(5)}, {lon.toFixed(5)}</Text>}
                       {!lat && !geocoding && <Text style={{ color: muted, fontSize: 10 }}>Auto-detected from address · tap to use GPS</Text>}
                     </View>
                   </TouchableOpacity>
@@ -984,7 +987,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                               <Feather name="play" size={16} color="#fff" />
                             </View>
                           )}
-                          <TouchableOpacity style={[pm.removeBtn, { backgroundColor: '#ef4444' }]} onPress={() => removeMedia(idx)}>
+                          <TouchableOpacity style={[pm.removeBtn, { backgroundColor: "#ef4444" }]} onPress={() => removeMedia(idx)}>
                             <Feather name="x" size={10} color="#fff" />
                           </TouchableOpacity>
                         </View>
@@ -1007,6 +1010,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
 
                   {/* Schedule */}
                   {renderScheduleBuilder()}
+
+                  {/* Competition / league link (unlocks governance + predictions) */}
+                  <CompetitionPicker value={competitionId} onChange={setCompetitionId} sportType={selectedCategories[0] || null} />
 
                   {/* Categories */}
                   <Text style={[pm.label, { color: muted, marginTop: 4 }]}>Categories & Interests</Text>
@@ -1348,7 +1354,7 @@ const pm = StyleSheet.create({
 
   // Media
   thumbWrap: { position: 'relative', width: 90, height: 90 },
-  thumb: { width: 90, height: 90, borderRadius: 12, backgroundColor: '#1a1a1a' },
+  thumb: { width: 90, height: 90, borderRadius: 12, backgroundColor: "#1a1a1a" },
   videoOverlay: {
     ...StyleSheet.absoluteFillObject, borderRadius: 12,
     backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center',
@@ -1406,7 +1412,7 @@ const pm = StyleSheet.create({
     backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 10,
     padding: 12, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
   },
-  errorText: { color: '#ef4444', fontSize: 12, fontWeight: '600' },
+  errorText: { color: "#ef4444", fontSize: 12, fontWeight: '600' },
 
   // Schedule builder
   addScheduleBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },

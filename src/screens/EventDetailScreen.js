@@ -91,24 +91,29 @@ const formatTime = (timeStr) => {
 
 const formatPrice = (price) => {
   if (!price || price === 0 || price === '0' || price === 'FREE') return 'FREE';
-  if (typeof price === 'string' && price.trim().startsWith('{')) {
+  let parsed = null;
+  if (typeof price === 'object') {
+    parsed = price;
+  } else if (typeof price === 'string' && price.trim().startsWith('{')) {
     try {
-      const parsed = JSON.parse(price);
-      if (parsed.general !== undefined) {
-        const genVal = parseFloat(parsed.general);
-        if (!isNaN(genVal)) {
-          if (parsed.vip || parsed.vvip) {
-            return `R${genVal.toFixed(2)}+`;
-          }
-          return `R${genVal.toFixed(2)}`;
-        }
-      }
-      return 'TICKETS';
+      parsed = JSON.parse(price);
     } catch (e) {}
   }
-  const parsed = parseFloat(price);
-  if (isNaN(parsed)) return price;
-  return `R${parsed.toFixed(2)}`;
+  if (parsed) {
+    if (parsed.general !== undefined) {
+      const genVal = parseFloat(parsed.general);
+      if (!isNaN(genVal)) {
+        if (parsed.vip || parsed.vvip) {
+          return `R${genVal.toFixed(2)}+`;
+        }
+        return `R${genVal.toFixed(2)}`;
+      }
+    }
+    return 'TICKETS';
+  }
+  const parsedFloat = parseFloat(price);
+  if (isNaN(parsedFloat)) return price;
+  return `R${parsedFloat.toFixed(2)}`;
 };
 
 export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) => {
@@ -658,12 +663,18 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {/* Ticket Tiers Section */}
           {(() => {
             if (!event?.price) return null;
-            if (typeof event.price === 'string' && event.price.trim().startsWith('{')) {
+            let parsed = null;
+            if (typeof event.price === 'object') {
+              parsed = event.price;
+            } else if (typeof event.price === 'string' && event.price.trim().startsWith('{')) {
               try {
-                const parsed = JSON.parse(event.price);
-                const hasTiers = parsed.general || parsed.vip || parsed.vvip || parsed.other;
-                if (!hasTiers) return null;
-                return (
+                parsed = JSON.parse(event.price);
+              } catch (e) {}
+            }
+            if (!parsed) return null;
+            const hasTiers = parsed.general || parsed.vip || parsed.vvip || parsed.other;
+            if (!hasTiers) return null;
+            return (
                   <View style={[styles.ticketSection, { backgroundColor: `${primary}06`, borderColor: `${primary}18` }]}>
                     <Text style={[styles.ticketSectionTitle, { color: primary }]}>🎟️ TICKET OPTIONS</Text>
                     <View style={styles.ticketGrid}>
@@ -694,9 +705,6 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                     ) : null}
                   </View>
                 );
-              } catch (e) {}
-            }
-            return null;
           })()}
 
           {/* Weather forecast */}

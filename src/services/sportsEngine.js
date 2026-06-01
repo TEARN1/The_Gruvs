@@ -488,7 +488,13 @@ export const TeamManager = {
   },
 
   async delete(teamId) {
-    await supabase.from('sport_teams').delete().eq('id', teamId);
+    try {
+      const { error } = await supabase.from('sport_teams').delete().eq('id', teamId);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error deleting team:', err);
+      throw err;
+    }
   },
 
   async addPlayer(teamId, player) {
@@ -539,7 +545,13 @@ export const AthleteManager = {
   },
 
   async delete(athleteId) {
-    await supabase.from('sport_athletes').delete().eq('id', athleteId);
+    try {
+      const { error } = await supabase.from('sport_athletes').delete().eq('id', athleteId);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error deleting athlete:', err);
+      throw err;
+    }
   },
 };
 
@@ -599,7 +611,32 @@ export const MatchManager = {
     const { data, error } = await supabase
       .from('sport_matches').insert(rows).select();
     if (error) throw error;
-    return data || [];
+
+    // Check for byes in Round 1 and auto-complete them
+    const byes = (data || []).filter(
+      m => m.round_number === 1 && ((m.home_team_id && !m.away_team_id) || (!m.home_team_id && m.away_team_id))
+    );
+    for (const match of byes) {
+      const homeScore = match.home_team_id ? 1 : 0;
+      const awayScore = match.away_team_id ? 1 : 0;
+      await this.submitResult(match.id, homeScore, awayScore, {
+        home_team_id: match.home_team_id,
+        away_team_id: match.away_team_id,
+        home_athlete_id: match.home_athlete_id,
+        away_athlete_id: match.away_athlete_id
+      });
+    }
+
+    const { data: refetched } = await supabase.from('sport_matches')
+      .select(`*,
+        home_team:home_team_id(id, name, short_name, logo_url, color1),
+        away_team:away_team_id(id, name, short_name, logo_url, color1),
+        sport_groups(name)
+      `)
+      .eq('event_id', eventId)
+      .order('round_number', { ascending: true })
+      .order('match_number', { ascending: true });
+    return refetched || [];
   },
 
   /** Generate a full round-robin fixture list for all teams in an event */
@@ -634,6 +671,51 @@ export const MatchManager = {
     return fixtures;
   },
 
+  /** Generate a single-elimination knockout tournament bracket */
+  generateKnockout(teams, baseDate, config = {}) {
+    const fixtures = [];
+    const n = teams.length;
+    if (n === 0) return [];
+    let p = 2;
+    let totalRounds = 1;
+    while (p < n) { p *= 2; totalRounds++; }
+
+    const getRoundName = (r, total) => {
+      if (r === total) return 'Final';
+      if (r === total - 1) return 'Semifinals';
+      if (r === total - 2) return 'Quarterfinals';
+      return `Round of ${Math.pow(2, total - r + 1)}`;
+    };
+
+    for (let r = 1; r <= totalRounds; r++) {
+      const matchCount = p / Math.pow(2, r);
+      for (let m = 1; m <= matchCount; m++) {
+        let homeTeamId = null;
+        let awayTeamId = null;
+
+        if (r === 1) {
+          homeTeamId = teams[2 * (m - 1)]?.id || null;
+          awayTeamId = teams[2 * (m - 1) + 1]?.id || null;
+        }
+
+        const scheduledAt = baseDate ? new Date(baseDate) : null;
+        if (scheduledAt) scheduledAt.setDate(scheduledAt.getDate() + (r - 1) * 7);
+
+        fixtures.push({
+          round: getRoundName(r, totalRounds),
+          round_number: r,
+          match_number: m,
+          home_team_id: homeTeamId,
+          away_team_id: awayTeamId,
+          scheduled_at: scheduledAt ? scheduledAt.toISOString() : null,
+          status: 'scheduled',
+        });
+      }
+    }
+
+    return fixtures;
+  },
+
   async kickOff(matchId) {
     const { data, error } = await supabase
       .from('sport_matches')
@@ -653,6 +735,15 @@ export const MatchManager = {
     const { data, error } = await supabase
       .from('sport_matches').update(updates).eq('id', matchId).select().single();
     if (error) throw error;
+
+    // Check for auto-end conditions
+    const match = await this.getMatch(matchId);
+    if (match) {
+      const ended = await this.checkAndAutoEndMatch(match, homeScore, awayScore);
+      if (ended) {
+        return this.getMatch(matchId);
+      }
+    }
     return data;
   },
 
@@ -671,14 +762,89 @@ export const MatchManager = {
       ...options,
     };
 
-    if (result === 'home_win') updates.winner_team_id = options.home_team_id;
-    else if (result === 'away_win') updates.winner_team_id = options.away_team_id;
+    if (result === 'home_win') {
+      updates.winner_team_id = options.home_team_id || null;
+      updates.winner_athlete_id = options.home_athlete_id || null;
+    } else if (result === 'away_win') {
+      updates.winner_team_id = options.away_team_id || null;
+      updates.winner_athlete_id = options.away_athlete_id || null;
+    }
 
-    const { data, error } = await supabase
+    const { data: updatedMatch, error } = await supabase
       .from('sport_matches').update(updates).eq('id', matchId).select().single();
     if (error) throw error;
-    // Trigger: auto-recomputes league table via DB trigger
-    return data;
+
+    // Auto-advance bracket if event format is knockout
+    if (updatedMatch) {
+      const { data: config } = await supabase
+        .from('event_sport_config')
+        .select('format')
+        .eq('event_id', updatedMatch.event_id)
+        .maybeSingle();
+
+      if (config?.format === 'knockout') {
+        const nextRound = updatedMatch.round_number + 1;
+        const nextMatchNum = Math.floor((updatedMatch.match_number - 1) / 2) + 1;
+        const isHome = (updatedMatch.match_number % 2 !== 0);
+
+        const { data: nextMatch } = await supabase
+          .from('sport_matches')
+          .select('id')
+          .eq('event_id', updatedMatch.event_id)
+          .eq('round_number', nextRound)
+          .eq('match_number', nextMatchNum)
+          .maybeSingle();
+
+        if (nextMatch) {
+          const updateData = {};
+          if (updatedMatch.winner_team_id) {
+            updateData[isHome ? 'home_team_id' : 'away_team_id'] = updatedMatch.winner_team_id;
+          }
+          if (updatedMatch.winner_athlete_id) {
+            updateData[isHome ? 'home_athlete_id' : 'away_athlete_id'] = updatedMatch.winner_athlete_id;
+          }
+          if (Object.keys(updateData).length > 0) {
+            await supabase
+              .from('sport_matches')
+              .update({ ...updateData, updated_at: new Date().toISOString() })
+              .eq('id', nextMatch.id);
+          }
+        }
+      }
+    }
+
+    return updatedMatch;
+  },
+
+  async checkAndAutoEndMatch(match, homeScore, awayScore) {
+    if (match.status === 'completed') return false;
+
+    const { data: config } = await supabase
+      .from('event_sport_config')
+      .select('*')
+      .eq('event_id', match.event_id)
+      .maybeSingle();
+
+    if (!config) return false;
+
+    const sportMeta = SPORT_REGISTRY[config.sport_type];
+    if (!sportMeta) return false;
+
+    if (sportMeta.scoring_unit === 'sets' || sportMeta.scoring_unit === 'games') {
+      const maxPeriods = config.periods || sportMeta.default_periods || 3;
+      const targetSetsToWin = Math.ceil(maxPeriods / 2);
+
+      if (homeScore >= targetSetsToWin || awayScore >= targetSetsToWin) {
+        await this.submitResult(match.id, homeScore, awayScore, {
+          home_team_id: match.home_team_id,
+          away_team_id: match.away_team_id,
+          home_athlete_id: match.home_athlete_id,
+          away_athlete_id: match.away_athlete_id
+        });
+        return true;
+      }
+    }
+    return false;
   },
 
   async manualRecomputeTable(eventId) {
@@ -728,16 +894,58 @@ export const MatchEventManager = {
   },
 
   async log(matchId, eventId, eventData) {
+    const payload = { match_id: matchId, event_id: eventId, ...eventData };
+
+    // Connector: if logged by name only, link it to the tagged player so the
+    // career rollup trigger fires (sport_match_events.athlete_id →
+    // sport_athletes.player_id → players.career_*). No UI change needed.
+    if (!payload.athlete_id && payload.player_name) {
+      try {
+        const { data: ath } = await supabase
+          .from('sport_athletes')
+          .select('id')
+          .eq('event_id', eventId)
+          .ilike('name', payload.player_name.trim())
+          .not('player_id', 'is', null)
+          .limit(1)
+          .maybeSingle();
+        if (ath?.id) payload.athlete_id = ath.id;
+      } catch { /* best-effort linkage */ }
+    }
+
     const { data, error } = await supabase
       .from('sport_match_events')
-      .insert({ match_id: matchId, event_id: eventId, ...eventData })
+      .insert(payload)
       .select().single();
     if (error) throw error;
+
+    // Check for KO / TKO / Submission and auto-end combat sports matches
+    if (['ko', 'tko', 'submission'].includes(eventData.event_type)) {
+      const match = await MatchManager.getMatch(matchId);
+      if (match && match.status !== 'completed') {
+        const isHomeWinner = eventData.team_id === match.home_team_id || eventData.athlete_id === match.home_athlete_id;
+        const newHomeScore = isHomeWinner ? 1 : 0;
+        const newAwayScore = isHomeWinner ? 0 : 1;
+        await MatchManager.submitResult(matchId, newHomeScore, newAwayScore, {
+          home_team_id: match.home_team_id,
+          away_team_id: match.away_team_id,
+          home_athlete_id: match.home_athlete_id,
+          away_athlete_id: match.away_athlete_id
+        });
+      }
+    }
+
     return data;
   },
 
   async delete(eventItemId) {
-    await supabase.from('sport_match_events').delete().eq('id', eventItemId);
+    try {
+      const { error } = await supabase.from('sport_match_events').delete().eq('id', eventItemId);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error deleting match event:', err);
+      throw err;
+    }
   },
 
   /** Helper: log a goal and auto-increment score */
@@ -974,8 +1182,14 @@ export const SportFollowerManager = {
   },
 
   async unfollow(eventId, userId) {
-    await supabase.from('sport_event_followers')
-      .delete().eq('event_id', eventId).eq('user_id', userId);
+    try {
+      const { error } = await supabase.from('sport_event_followers')
+        .delete().eq('event_id', eventId).eq('user_id', userId);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error unfollowing event:', err);
+      throw err;
+    }
   },
 
   async isFollowing(eventId, userId) {

@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { GlassView } from './GlassView';
 import { LiquidBackground } from './LiquidBackground';
+import { ClubCreateModal } from './ClubCreateModal';
 import { haptics } from '../utils/haptics';
 import { TournamentEngine, TOURNAMENT_ROLES } from '../services/tournamentEngine';
 
@@ -37,6 +38,7 @@ export const TournamentGovernancePanel = ({ visible, competitionId, onClose }) =
   const [myTeams, setMyTeams]   = useState([]);
   const [teamId, setTeamId]     = useState(null);
   const [loading, setLoading]   = useState(true);
+  const [clubModalOpen, setClubModalOpen] = useState(false);
 
   const threshold = comp?.vote_threshold || 5;
 
@@ -122,7 +124,14 @@ export const TournamentGovernancePanel = ({ visible, competitionId, onClose }) =
               </>
             ) : (
               <GlassView sheen={false} style={{ padding: 12, marginBottom: 14 }}>
-                <Text style={{ color: muted, fontSize: 12 }}>You can view results below. To vote, you need to own a team (club) registered in this tournament.</Text>
+                <Text style={{ color: muted, fontSize: 12, marginBottom: 10 }}>To vote you need a team. Create your club and you'll get a vote on every position.</Text>
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 11, borderRadius: 12, backgroundColor: primary }}
+                  onPress={() => { haptics.select(); setClubModalOpen(true); }}
+                >
+                  <Feather name="plus" size={15} color="#000" />
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Create your club</Text>
+                </TouchableOpacity>
               </GlassView>
             )}
 
@@ -192,6 +201,12 @@ export const TournamentGovernancePanel = ({ visible, competitionId, onClose }) =
             </Text>
           </ScrollView>
         )}
+
+        <ClubCreateModal
+          visible={clubModalOpen}
+          onClose={() => setClubModalOpen(false)}
+          onCreated={() => { setClubModalOpen(false); load(); }}
+        />
       </View>
     </Modal>
   );

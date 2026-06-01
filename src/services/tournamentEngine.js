@@ -22,6 +22,45 @@ export const TOURNAMENT_ROLES = [
 ];
 
 export const TournamentEngine = {
+  // ── Setup: clubs & competitions (the connectors that make the flow walkable) ──
+  /** Create a club the user owns — needed to vote and to anchor player careers. */
+  async createClub({ name, short_name = null, sport_type = null, category = 'sport', city = null, country = 'ZA', logo_url = null, ownerId }) {
+    if (!name?.trim() || !ownerId) return null;
+    return safe(async () => {
+      const { data } = await supabase.from('clubs').insert({
+        owner_id: ownerId, name: name.trim(), short_name, sport_type, category,
+        city, country, logo_url, is_active: true,
+      }).select().single();
+      return data;
+    }, null);
+  },
+
+  /** Competitions the user organises (for the event-creation picker). */
+  async getMyCompetitions(userId) {
+    if (!userId) return [];
+    return safe(async () => {
+      const { data } = await supabase
+        .from('competitions').select('id, name, sport_type, kind, region')
+        .eq('organizer_id', userId).order('created_at', { ascending: false });
+      return data;
+    }, []);
+  },
+
+  /** Create a competition (league/cup/tournament) + optional first season. */
+  async createCompetition({ name, sport_type = null, kind = 'league', region = null, country = 'ZA', organizerId, seasonName = null }) {
+    if (!name?.trim() || !organizerId) return null;
+    return safe(async () => {
+      const { data: comp } = await supabase.from('competitions').insert({
+        // sport_type is NOT NULL — fall back to 'general' for non-sport competitions.
+        name: name.trim(), sport_type: sport_type || 'general', kind, region, country, organizer_id: organizerId,
+      }).select().single();
+      if (comp && seasonName?.trim()) {
+        await supabase.from('seasons').insert({ competition_id: comp.id, name: seasonName.trim(), is_current: true });
+      }
+      return comp;
+    }, null);
+  },
+
   // ── Governance ──────────────────────────────────────────────────────────
   /** Clubs the signed-in user can vote with (owns). */
   async getMyTeams(userId) {
