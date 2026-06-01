@@ -28,21 +28,21 @@ describe('useIsAdmin gate', () => {
     await waitFor(() => expect(result.current).toBe(false));
   });
 
-  it('grants when the server is_admin flag is true', async () => {
+  it('grants when the server role is admin', async () => {
     mockUser = { id: 'u1', email: 'someone@example.com' };
-    mockProfileResult = { data: { is_admin: true }, error: null };
+    mockProfileResult = { data: { role: 'admin' }, error: null };
     const { result } = renderHook(() => useIsAdmin(true));
     await waitFor(() => expect(result.current).toBe(true));
   });
 
-  it('denies a normal user (is_admin false, not the owner email)', async () => {
+  it('denies a normal user (role user, not the owner email)', async () => {
     mockUser = { id: 'u2', email: 'someone@example.com' };
-    mockProfileResult = { data: { is_admin: false }, error: null };
+    mockProfileResult = { data: { role: 'user' }, error: null };
     const { result } = renderHook(() => useIsAdmin(true));
     await waitFor(() => expect(result.current).toBe(false));
   });
 
-  it('bootstraps via owner email when the is_admin column is missing', async () => {
+  it('bootstraps via owner email when the role column is missing', async () => {
     mockUser = { id: 'u3', email: OWNER_EMAIL };
     mockProfileResult = { data: null, error: { code: '42703' } }; // undefined_column
     const { result } = renderHook(() => useIsAdmin(true));
