@@ -8,12 +8,15 @@ import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FadeInView } from '../components/FadeInView';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { TalentLeaderboardModal } from '../components/TalentLeaderboardModal';
 import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
+import { SmartImage } from '../components/SmartImage';
+import { MediaViewer } from '../components/MediaViewer';
 import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
 import { resilientRead } from '../utils/resilience';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
@@ -81,33 +84,63 @@ const sf = StyleSheet.create({
   label: { fontSize: 11, fontWeight: '800' },
 });
 
+const MOOD_COLORS = {
+  hype: "#f97316",
+  chill: "#06b6d4",
+  culture: "#8b5cf6",
+  sport: "#10b981",
+  family: "#f59e0b",
+  network: "#3b82f6",
+  rave: "#ec4899",
+  foodie: "#f59e0b",
+  romance: "#f43f5e",
+  spiritual: "#a78bfa",
+  comedy: "#facc15",
+  fashion: "#e879f9",
+  outdoor: "#34d399",
+  gaming: "#60a5fa",
+  arts: "#fb923c",
+  dance: "#f472b6",
+  education: "#38bdf8",
+  wellness: "#4ade80",
+  social: "#c084fc",
+  heritage: "#fbbf24",
+  film: "#818cf8",
+  kids: "#fb7185",
+  late_night: "#6366f1",
+  market: "#d97706",
+};
+
+const AVATAR_BG_COLORS = ["#0891b2", "#7c3aed", "#059669"];
+
 // ── Mood buckets ───────────────────────────────────────────────────────────────
 const MOODS = [
-  { key: 'hype',       label: 'Hype',         icon: 'zap',          color: '#f97316', cats: ['music','party','nightlife','rave'] },
-  { key: 'chill',      label: 'Chill',         icon: 'coffee',       color: '#06b6d4', cats: ['food','art','wellness','lounge'] },
-  { key: 'culture',    label: 'Culture',       icon: 'globe',        color: '#8b5cf6', cats: ['art','film','gallery','heritage'] },
-  { key: 'sport',      label: 'Sport',         icon: 'activity',     color: '#10b981', cats: ['sport','fitness','outdoor'] },
-  { key: 'family',     label: 'Family',        icon: 'users',        color: '#f59e0b', cats: ['kids','family','carnival'] },
-  { key: 'network',    label: 'Network',       icon: 'briefcase',    color: '#3b82f6', cats: ['tech','business','workshop'] },
-  { key: 'rave',       label: 'Rave',          icon: 'headphones',   color: '#ec4899', cats: ['rave','edm','techno','nightlife'] },
-  { key: 'foodie',     label: 'Foodie',        icon: 'coffee',       color: '#f59e0b', cats: ['food','market','pop-up'] },
-  { key: 'romance',    label: 'Romance',       icon: 'heart',        color: '#f43f5e', cats: ['date','social','dinner'] },
-  { key: 'spiritual',  label: 'Spiritual',     icon: 'sun',          color: '#a78bfa', cats: ['wellness','retreat','meditation'] },
-  { key: 'comedy',     label: 'Comedy',        icon: 'smile',        color: '#facc15', cats: ['comedy','standup','entertainment'] },
-  { key: 'fashion',    label: 'Fashion',       icon: 'star',         color: '#e879f9', cats: ['fashion','pop-up','market'] },
-  { key: 'outdoor',    label: 'Outdoor',       icon: 'map-pin',      color: '#34d399', cats: ['outdoor','nature','hiking'] },
-  { key: 'gaming',     label: 'Gaming',        icon: 'monitor',      color: '#60a5fa', cats: ['esports','gaming','tech'] },
-  { key: 'arts',       label: 'Arts & Crafts', icon: 'edit-2',       color: '#fb923c', cats: ['art','gallery','workshop'] },
-  { key: 'dance',      label: 'Dance',         icon: 'music',        color: '#f472b6', cats: ['dance','music','party'] },
-  { key: 'education',  label: 'Education',     icon: 'book',         color: '#38bdf8', cats: ['workshop','conference','tech'] },
-  { key: 'wellness',   label: 'Wellness',      icon: 'heart',        color: '#4ade80', cats: ['wellness','yoga','retreat'] },
-  { key: 'social',     label: 'Social',        icon: 'users',        color: '#c084fc', cats: ['social','meetup','networking'] },
-  { key: 'heritage',   label: 'Heritage',      icon: 'flag',         color: '#fbbf24', cats: ['heritage','culture','art'] },
-  { key: 'film',       label: 'Film & TV',     icon: 'film',         color: '#818cf8', cats: ['film','gallery','entertainment'] },
-  { key: 'kids',       label: 'Kids Fun',      icon: 'gift',         color: '#fb7185', cats: ['kids','family','carnival'] },
-  { key: 'late_night', label: 'Late Night',    icon: 'moon',         color: '#6366f1', cats: ['nightlife','rave','party'] },
-  { key: 'market',     label: 'Market',        icon: 'shopping-bag', color: '#d97706', cats: ['market','food','pop-up','fashion'] },
+  { key: 'hype',       label: 'Hype',         icon: 'zap',          color: MOOD_COLORS.hype, cats: ['music','party','nightlife','rave'] },
+  { key: 'chill',      label: 'Chill',         icon: 'coffee',       color: MOOD_COLORS.chill, cats: ['food','art','wellness','lounge'] },
+  { key: 'culture',    label: 'Culture',       icon: 'globe',        color: MOOD_COLORS.culture, cats: ['art','film','gallery','heritage'] },
+  { key: 'sport',      label: 'Sport',         icon: 'activity',     color: MOOD_COLORS.sport, cats: ['sport','fitness','outdoor'] },
+  { key: 'family',     label: 'Family',        icon: 'users',        color: MOOD_COLORS.family, cats: ['kids','family','carnival'] },
+  { key: 'network',    label: 'Network',       icon: 'briefcase',    color: MOOD_COLORS.network, cats: ['tech','business','workshop'] },
+  { key: 'rave',       label: 'Rave',          icon: 'headphones',   color: MOOD_COLORS.rave, cats: ['rave','edm','techno','nightlife'] },
+  { key: 'foodie',     label: 'Foodie',        icon: 'coffee',       color: MOOD_COLORS.foodie, cats: ['food','market','pop-up'] },
+  { key: 'romance',    label: 'Romance',       icon: 'heart',        color: MOOD_COLORS.romance, cats: ['date','social','dinner'] },
+  { key: 'spiritual',  label: 'Spiritual',     icon: 'sun',          color: MOOD_COLORS.spiritual, cats: ['wellness','retreat','meditation'] },
+  { key: 'comedy',     label: 'Comedy',        icon: 'smile',        color: MOOD_COLORS.comedy, cats: ['comedy','standup','entertainment'] },
+  { key: 'fashion',    label: 'Fashion',       icon: 'star',         color: MOOD_COLORS.fashion, cats: ['fashion','pop-up','market'] },
+  { key: 'outdoor',    label: 'Outdoor',       icon: 'map-pin',      color: MOOD_COLORS.outdoor, cats: ['outdoor','nature','hiking'] },
+  { key: 'gaming',     label: 'Gaming',        icon: 'monitor',      color: MOOD_COLORS.gaming, cats: ['esports','gaming','tech'] },
+  { key: 'arts',       label: 'Arts & Crafts', icon: 'edit-2',       color: MOOD_COLORS.arts, cats: ['art','gallery','workshop'] },
+  { key: 'dance',      label: 'Dance',         icon: 'music',        color: MOOD_COLORS.dance, cats: ['dance','music','party'] },
+  { key: 'education',  label: 'Education',     icon: 'book',         color: MOOD_COLORS.education, cats: ['workshop','conference','tech'] },
+  { key: 'wellness',   label: 'Wellness',      icon: 'heart',        color: MOOD_COLORS.wellness, cats: ['wellness','yoga','retreat'] },
+  { key: 'social',     label: 'Social',        icon: 'users',        color: MOOD_COLORS.social, cats: ['social','meetup','networking'] },
+  { key: 'heritage',   label: 'Heritage',      icon: 'flag',         color: MOOD_COLORS.heritage, cats: ['heritage','culture','art'] },
+  { key: 'film',       label: 'Film & TV',     icon: 'film',         color: MOOD_COLORS.film, cats: ['film','gallery','entertainment'] },
+  { key: 'kids',       label: 'Kids Fun',      icon: 'gift',         color: MOOD_COLORS.kids, cats: ['kids','family','carnival'] },
+  { key: 'late_night', label: 'Late Night',    icon: 'moon',         color: MOOD_COLORS.late_night, cats: ['nightlife','rave','party'] },
+  { key: 'market',     label: 'Market',        icon: 'shopping-bag', color: MOOD_COLORS.market, cats: ['market','food','pop-up','fashion'] },
 ];
+
 
 // ── Hero card (featured event of the day) ────────────────────────────────────
 const HeroCard = ({ event, primary, onPress }) => {
@@ -313,12 +346,12 @@ const NearbyVibers = ({ vibers, primary, textColor, onPress }) => {
               <View style={{ width: 54, height: 54, borderRadius: 27, overflow: 'hidden' }}>
                 {v.avatar_url
                   ? <Image source={{ uri: v.avatar_url }} style={nv.avatar} />
-                  : <View style={[nv.avatar, { backgroundColor: ['#0891b2','#7c3aed','#059669'][(v.username?.charCodeAt(0)||0)%3], alignItems:'center', justifyContent:'center' }]}>
+                  : <View style={[nv.avatar, { backgroundColor: AVATAR_BG_COLORS[(v.username?.charCodeAt(0)||0)%3], alignItems:'center', justifyContent:'center' }]}>
                       <Text style={{ color:'#fff', fontWeight:'900', fontSize:14 }}>{(v.username||'V')[0].toUpperCase()}</Text>
                     </View>
                 }
               </View>
-              {checkOnline(v) && <View style={[nv.dot, { backgroundColor: '#10b981', borderColor: '#0d1112', borderWidth: 2 }]} />}
+              {checkOnline(v) && <View style={[nv.dot, { backgroundColor: "#10b981", borderColor: "#0d1112", borderWidth: 2 }]} />}
             </View>
             <View style={{ marginTop: 4, alignItems: 'center' }}>
               <Text style={[nv.name, { color: textColor, fontWeight: '800' }]} numberOfLines={1}>@{v.username}</Text>
@@ -340,7 +373,7 @@ const nv = StyleSheet.create({
   wrap: { alignItems: 'center', width: 68 },
   ring: { width: 58, height: 58, borderRadius: 29, borderWidth: 2, padding: 2, marginBottom: 6 },
   avatar: { width: '100%', height: '100%', borderRadius: 25 },
-  dot: { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: '#10b981', borderWidth: 2, borderColor: '#000' },
+  dot: { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: "#10b981", borderWidth: 2, borderColor: '#000' },
   name: { fontSize: 9, fontWeight: '800', textAlign: 'center' },
   dist: { fontSize: 9, fontWeight: '900' },
 });
@@ -415,6 +448,7 @@ const sh = StyleSheet.create({
 
 // ── Main ExplorePage ──────────────────────────────────────────────────────────
 export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
+  const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const { applyLocationPrivacy } = useIdentity();
@@ -426,6 +460,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [featuredEvent, setFeaturedEvent] = useState(null);
   const [galleryPhotos, setGalleryPhotos] = useState([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
+  const [photoViewerVisible, setPhotoViewerVisible] = useState(false);
   const [happeningNow, setHappeningNow] = useState([]);
   const [trendingEvents, setTrendingEvents] = useState([]);
   const [nearbyVibers, setNearbyVibers] = useState([]);
@@ -447,6 +483,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [discoverVisible,     setDiscoverVisible]     = useState(false);
   const [tutorialVisible,     setTutorialVisible]     = useState(false);
   const [appUpdates,          setAppUpdates]          = useState([]);
+  const [showAllUpdates,      setShowAllUpdates]      = useState(false);
   const [whoWasThereVisible,  setWhoWasThereVisible]  = useState(false);
   const [routes, setRoutes] = useState([]);
   const [trendingHashtags, setTrendingHashtags] = useState([]);
@@ -454,8 +491,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const scrollRef = useRef(null);
   const searchTimer = useRef(null);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -640,6 +677,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   // App Upgrades — real feature changelog (updated with each release)
   useEffect(() => {
     const CHANGELOG = [
+      { id: '21', type: 'PERF', version: '2.1.0', released_at: '2026-06-02', title: 'Performance Optimization & Caching Overhaul', description: 'Centralized database pre-parsing of JSON/array columns inside dataFlow.js eliminates render-loop overhead. Throttled sequential Nominatim geocoding with persistent AsyncStorage caching prevents OSM rate limiting and makes map loads instantaneous. ViberProfile and DMModal static import cycle resolved to enable production bundles.' },
       { id: '20', type: 'FEAT', version: '2.0.5', released_at: '2026-05-29', title: 'Event Management Platform', description: 'Full organizer control panel — lineup builder, stage manager, session schedule, vendor map, live updates for 47+ event types. Sport events get dedicated teams, fixtures, live scoring & league table.' },
       { id: '19', type: 'FIX', version: '2.0.4', released_at: '2026-05-29', title: 'Filter Engine Overhaul', description: 'Category & date filters now correctly match all 1000+ subcategories. Cache invalidation fixed. Scout and Explore now use deep subcategory tree matching.' },
       { id: '18', type: 'FEAT', version: '2.0.4', released_at: '2026-05-28', title: 'Journey Map Persistence', description: 'Pinned events in your Journey now survive app restarts. No more losing your night plan. Unlimited journey pins.' },
@@ -891,7 +929,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                         <View style={[src.wrap, { borderColor: `${primary}25` }]}>
                           {u.avatar_url
                             ? <Image source={{ uri: u.avatar_url }} style={[src.thumb, { borderRadius: 30 }]} />
-                            : <View style={[src.thumb, { borderRadius: 30, backgroundColor: ['#0891b2','#7c3aed','#059669'][(u.username?.charCodeAt(0)||0)%3], alignItems:'center', justifyContent:'center' }]}>
+                            : <View style={[src.thumb, { borderRadius: 30, backgroundColor: AVATAR_BG_COLORS[(u.username?.charCodeAt(0)||0)%3], alignItems:'center', justifyContent:'center' }]}>
                                 <Text style={{ color:'#fff', fontWeight:'900', fontSize:12 }}>{(u.username||'V')[0].toUpperCase()}</Text>
                               </View>
                           }
@@ -941,8 +979,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <View style={{ flex: 1, marginLeft: 14 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                   <Text style={[styles.servTitle, { color: primary, fontSize: 15, fontWeight: '900', letterSpacing: 0.5 }]}>GRUV SERVICES</Text>
-                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' }} />
-                  <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '800' }}>LIVE</Text>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#10b981" }} />
+                  <Text style={{ color: "#10b981", fontSize: 10, fontWeight: '800' }}>LIVE</Text>
                 </View>
                 <Text style={[styles.servSub, { color: muted, fontSize: 11, lineHeight: 15 }]}>Bakkie hire · Muscle · Event logistics{'\n'}Reliable Vibers active near you.</Text>
               </View>
@@ -976,7 +1014,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   <Feather name="clock" size={18} color="#f97316" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#f97316', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 }}>Who Was There</Text>
+                  <Text style={{ color: "#f97316", fontSize: 12, fontWeight: '900', letterSpacing: 0.3 }}>Who Was There</Text>
                   <Text style={{ color: muted, fontSize: 10, marginTop: 1 }}>Find by time & place</Text>
                 </View>
               </TouchableOpacity>
@@ -1140,7 +1178,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                             <Text style={{ color: primary, fontWeight: '900', fontSize: 20 }}>{(m.username || 'V')[0].toUpperCase()}</Text>
                           </View>
                         )}
-                        <View style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: '#10b981', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 2, borderColor: bg }}>
+                        <View style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: "#10b981", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 2, borderColor: bg }}>
                           <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>{Math.round(m.matchScore)}%</Text>
                         </View>
                       </View>
@@ -1193,8 +1231,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 <Feather name="map" size={26} color={primary} />
               </View>
               <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={[styles.scoutTitle, { color: primary }]}>SCOUT THE MAP</Text>
-                <Text style={[styles.scoutSub, { color: muted }]}>Browse events on a live map · Find Gruvs near you</Text>
+                <Text style={[styles.scoutTitle, { color: primary }]}>EVENTS NEAR YOU</Text>
+                <Text style={[styles.scoutSub, { color: muted }]}>Find Gruvs by distance, category & crew · map on mobile</Text>
               </View>
               <View style={[styles.scoutCta, { backgroundColor: primary }]}>
                 <Feather name="navigation" size={14} color="#000" />
@@ -1225,46 +1263,55 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   <Text style={{ color: muted, fontSize: 13 }}>No photos yet — attend events and upload your shots!</Text>
                 </View>
               ) : (
-                <>
-                  {/* 3-column masonry-style grid */}
-                  <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 3 }}>
-                    {[0, 1, 2].map(col => (
-                      <View key={col} style={{ flex: 1, gap: 3 }}>
-                        {galleryPhotos
-                          .filter((_, i) => i % 3 === col)
-                          .map((photo, idx) => {
-                            const isLarge = idx === 0 && col === 0;
-                            return (
-                              <TouchableOpacity
-                                key={photo.id}
-                                activeOpacity={0.88}
-                                style={{ borderRadius: 8, overflow: 'hidden', aspectRatio: isLarge ? 1 : (idx % 2 === 0 ? 1 : 0.75) }}
-                              >
-                                <Image
-                                  source={{ uri: photo.media_url }}
-                                  style={{ width: '100%', height: '100%' }}
-                                  resizeMode="cover"
-                                />
-                                {/* Overlay with event title */}
-                                {photo.events?.title && (
-                                  <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 4, backgroundColor: 'rgba(0,0,0,0.55)' }}>
-                                    <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }} numberOfLines={1}>
-                                      {photo.events.title}
-                                    </Text>
-                                  </View>
-                                )}
-                              </TouchableOpacity>
-                            );
-                          })}
-                      </View>
-                    ))}
-                  </View>
-                  {galleryPhotos.length >= 18 && (
-                    <TouchableOpacity style={{ marginHorizontal: 20, marginTop: 10, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: `${primary}30`, alignItems: 'center' }}>
-                      <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>View all photos →</Text>
+                // Single slidable line — editorial, Pinterest-style cards with
+                // varied widths, legibility gradient, category chip + title.
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingVertical: 2 }}
+                >
+                  {galleryPhotos.map((photo, i) => {
+                    const widths = [165, 135, 200, 150, 175];
+                    const w = widths[i % widths.length];
+                    return (
+                      <TouchableOpacity
+                        key={photo.id}
+                        activeOpacity={0.9}
+                        style={{ width: w, height: 220, borderRadius: 18, overflow: 'hidden', backgroundColor: `${primary}10` }}
+                        onPress={() => { setSelectedPhotoIndex(i); setPhotoViewerVisible(true); }}
+                      >
+                        <SmartImage source={{ uri: photo.media_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                        {/* legibility gradient (stacked translucent layers) */}
+                        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 78, backgroundColor: 'rgba(0,0,0,0.32)' }} />
+                        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 42, backgroundColor: 'rgba(0,0,0,0.5)' }} />
+                        {photo.events?.category ? (
+                          <View style={{ position: 'absolute', top: 8, left: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.45)' }}>
+                            <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.4 }} numberOfLines={1}>
+                              {String(photo.events.category).toUpperCase()}
+                            </Text>
+                          </View>
+                        ) : null}
+                        {photo.events?.title ? (
+                          <View style={{ position: 'absolute', left: 10, right: 10, bottom: 10 }}>
+                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }} numberOfLines={2}>{photo.events.title}</Text>
+                          </View>
+                        ) : null}
+                      </TouchableOpacity>
+                    );
+                  })}
+                  {/* trailing "see all" tile */}
+                  {galleryPhotos.length > 6 && (
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => { setSelectedPhotoIndex(0); setPhotoViewerVisible(true); }}
+                      style={{ width: 112, height: 220, borderRadius: 18, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}08`, alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    >
+                      <Feather name="grid" size={22} color={primary} />
+                      <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>See all</Text>
+                      <Text style={{ color: muted, fontSize: 10 }}>{galleryPhotos.length} photos</Text>
                     </TouchableOpacity>
                   )}
-                </>
+                </ScrollView>
               )}
             </View>
 
@@ -1276,21 +1323,40 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   <Text style={{ color: muted, fontSize: 13 }}>No updates recorded yet.</Text>
                 </View>
               ) : (
-                appUpdates.map((u) => (
-                  <View key={u.id} style={{ marginHorizontal: 20, marginBottom: 10, padding: 14, borderRadius: 14, backgroundColor: `${primary}08`, borderWidth: 1, borderColor: `${primary}20` }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: `${primary}25` }}>
-                        <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>{u.type?.toUpperCase() || 'UPDATE'}</Text>
+                <>
+                  {(showAllUpdates ? appUpdates : appUpdates.slice(0, 1)).map((u, idx) => (
+                    <View key={u.id} style={{ marginHorizontal: 20, marginBottom: 10, padding: 14, borderRadius: 14, backgroundColor: `${primary}08`, borderWidth: 1, borderColor: idx === 0 ? `${primary}35` : `${primary}20` }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: `${primary}25` }}>
+                          <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>{u.type?.toUpperCase() || 'UPDATE'}</Text>
+                        </View>
+                        {u.version ? <Text style={{ color: muted, fontSize: 10, fontWeight: '700' }}>v{u.version}</Text> : null}
+                        {idx === 0 && !showAllUpdates ? (
+                          <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: primary }}>
+                            <Text style={{ color: '#000', fontSize: 9, fontWeight: '900' }}>LATEST</Text>
+                          </View>
+                        ) : null}
+                        <Text style={{ color: muted, fontSize: 10, marginLeft: 'auto' }}>
+                          {u.released_at ? new Date(u.released_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                        </Text>
                       </View>
-                      {u.version ? <Text style={{ color: muted, fontSize: 10, fontWeight: '700' }}>v{u.version}</Text> : null}
-                      <Text style={{ color: muted, fontSize: 10, marginLeft: 'auto' }}>
-                        {u.released_at ? new Date(u.released_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
-                      </Text>
+                      <Text style={{ color: textColor, fontSize: 13, fontWeight: '800', marginBottom: 2 }}>{u.title}</Text>
+                      {!!u.description && <Text style={{ color: muted, fontSize: 12, lineHeight: 17 }}>{u.description}</Text>}
                     </View>
-                    <Text style={{ color: textColor, fontSize: 13, fontWeight: '800', marginBottom: 2 }}>{u.title}</Text>
-                    {!!u.description && <Text style={{ color: muted, fontSize: 12, lineHeight: 17 }}>{u.description}</Text>}
-                  </View>
-                ))
+                  ))}
+                  {appUpdates.length > 1 && (
+                    <TouchableOpacity
+                      onPress={() => setShowAllUpdates(v => !v)}
+                      activeOpacity={0.85}
+                      style={{ marginHorizontal: 20, marginTop: 2, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}08`, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    >
+                      <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>
+                        {showAllUpdates ? 'Show less' : `See all ${appUpdates.length} updates`}
+                      </Text>
+                      <Feather name={showAllUpdates ? 'chevron-up' : 'chevron-down'} size={14} color={primary} />
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
             </View>
 
@@ -1329,6 +1395,44 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </>
         )}
       </ScrollView>
+
+      <Modal
+        visible={photoViewerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPhotoViewerVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: (insets.top || 16) + 10,
+              right: 20,
+              zIndex: 100,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.15)'
+            }}
+            onPress={() => setPhotoViewerVisible(false)}
+          >
+            <Feather name="x" size={20} color="#fff" />
+          </TouchableOpacity>
+          {selectedPhotoIndex !== null && galleryPhotos.length > 0 && (
+            <View style={{ width: '100%', paddingHorizontal: 16 }}>
+              <MediaViewer
+                media={galleryPhotos.map(p => ({ url: p.media_url, type: 'image' }))}
+                initialIndex={selectedPhotoIndex}
+                aspectRatio={3/4}
+              />
+            </View>
+          )}
+        </View>
+      </Modal>
 
       <ViberProfileModal
         visible={viberModalVisible}
@@ -1470,7 +1574,7 @@ const src = StyleSheet.create({
 // ── Trend tile ────────────────────────────────────────────────────────────────
 const TrendTile = ({ spot, rank, primary, onPress }) => (
   <TouchableOpacity onPress={onPress} style={[tt.wrap, { backgroundColor: rank < 3 ? `${primary}10` : 'rgba(255,255,255,0.04)' }]} activeOpacity={0.85}>
-    {spot.image ? <Image source={{ uri: spot.image }} style={tt.img} /> : <View style={[tt.img, { backgroundColor: '#111a1c' }]} />}
+    {spot.image ? <Image source={{ uri: spot.image }} style={tt.img} /> : <View style={[tt.img, { backgroundColor: "#111a1c" }]} />}
     <View style={[tt.rankBadge, { backgroundColor: rank < 3 ? primary : 'rgba(255,255,255,0.15)' }]}>
       <Text style={[tt.rankText, { color: rank < 3 ? '#000' : '#fff' }]}>#{rank + 1}</Text>
     </View>

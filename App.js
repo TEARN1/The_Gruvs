@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useFonts } from 'expo-font';
 import {
   View, StyleSheet, TouchableOpacity, Text,
-  StatusBar, Animated, Platform, useWindowDimensions, BackHandler, ActivityIndicator, Linking,
+  StatusBar, Animated, Platform, useWindowDimensions, BackHandler, ActivityIndicator, Linking, PanResponder,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { BREAKPOINT } from './src/constants/DesignTokens';
@@ -75,8 +75,35 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
     }
   }, [currentTab, tabWidth]);
 
+  // Drag-to-scrub: glide a thumb across the bar to slide between sections
+  // (faster than aiming at one tab). Latest tab kept in a ref so the gesture
+  // only fires onTabChange when the tab under the finger actually changes.
+  const currentTabRef = useRef(currentTab);
+  currentTabRef.current = currentTab;
+  const scrubToX = useCallback((pageX) => {
+    let idx = Math.floor(pageX / tabWidth);
+    idx = Math.max(0, Math.min(TABS.length - 1, idx));
+    const key = TABS[idx].key;
+    if (key !== currentTabRef.current) {
+      try { Haptics.selectionAsync(); } catch {}
+      onTabChange(key);
+    }
+  }, [tabWidth, onTabChange]);
+
+  const panResponder = useMemo(() => PanResponder.create({
+    // Only hijack clearly-horizontal drags; taps still hit the tabs below.
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
+    onPanResponderGrant: (e) => scrubToX(e.nativeEvent.pageX),
+    onPanResponderMove: (e) => scrubToX(e.nativeEvent.pageX),
+  }), [scrubToX]);
+
   return (
-    <View style={[styles.tabBar, { borderTopColor: `${primary}25`, paddingBottom: insets.bottom || 6, backgroundColor: bg || 'rgba(13,17,18,0.97)' }]}>
+    <View
+      style={[styles.tabBar, { borderTopColor: `${primary}25`, paddingBottom: insets.bottom || 6, backgroundColor: bg || 'rgba(13,17,18,0.97)' }]}
+      {...panResponder.panHandlers}
+    >
+      {/* Grabber — signals the bar is draggable */}
+      <View style={[styles.tabGrabber, { backgroundColor: `${primary}40` }]} pointerEvents="none" />
       <Animated.View
         style={[
           styles.indicator,
@@ -659,21 +686,23 @@ export default function App() {
   // Kick off font load in background. Never block rendering — if the load
   // stalls, the app would be permanently blank. Icons self-load in componentDidMount.
   const [fontsLoaded] = useFonts({
-    Feather: Platform.OS === 'web'
-      ? { uri: 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf' }
-      : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
-    feather: Platform.OS === 'web'
-      ? { uri: 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/Feather.ttf' }
-      : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
-    MaterialCommunityIcons: Platform.OS === 'web'
-      ? { uri: 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf' }
-      : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
-    'material-community': Platform.OS === 'web'
-      ? { uri: 'https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.1.0/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf' }
-      : require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
+    Feather: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
+    feather: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
+    MaterialCommunityIcons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
+    'material-community': require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
   });
 
-  if (!fontsLoaded) {
+  const [forceLoaded, setForceLoaded] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const t = setTimeout(() => {
+        setForceLoaded(true);
+      }, 3000);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  if (!fontsLoaded && !forceLoaded) {
     return (
       <View style={styles.loadingScreen}>
         <StatusBar barStyle="light-content" backgroundColor="#0d1112" translucent={false} />
@@ -731,6 +760,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+  },
+  tabGrabber: {
+    position: 'absolute',
+    top: 3,
+    left: '50%',
+    marginLeft: -18,
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    zIndex: 5,
   },
   tab: {
     flex: 1,

@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   useState, useEffect, useRef, useCallback, useMemo,
 } from 'react';
 import {
@@ -54,19 +54,19 @@ const RADIUS_KM = [1, 5, 10, 25, 50];
 const CACHE_KEY = 'scout_events_v1';
 
 const DARK_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#0a1418' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#0a1418' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#3a7a8c' }] },
-  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#1a2a30' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#c0c8d8' }] },
+  { elementType: 'geometry', stylers: [{ color: "#0a1418" }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: "#0a1418" }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: "#3a7a8c" }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: "#1a2a30" }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: "#c0c8d8" }] },
   { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road', elementType: 'geometry.fill', stylers: [{ color: '#162025' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#0d1a1f' }] },
-  { featureType: 'road.highway', elementType: 'geometry.fill', stylers: [{ color: '#1a2e38' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#8ab4c4' }] },
+  { featureType: 'road', elementType: 'geometry.fill', stylers: [{ color: "#162025" }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: "#0d1a1f" }] },
+  { featureType: 'road.highway', elementType: 'geometry.fill', stylers: [{ color: "#1a2e38" }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: "#8ab4c4" }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#050d12' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#2a4a5a' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: "#050d12" }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: "#2a4a5a" }] },
 ];
 
 // ─── Haversine distance (km) ──────────────────────────────────────────────────
@@ -83,7 +83,7 @@ const haversine = (lat1, lon1, lat2, lon2) => {
 
 // ─── MarkerPin ────────────────────────────────────────────────────────────────
 const MarkerPin = React.memo(({ event, primary, isCrewEvent }) => {
-  const color = isCrewEvent ? '#00f2ff' : (event.vibe_count > 50 ? '#ff6b35' : primary);
+  const color = isCrewEvent ? "#00f2ff" : (event.vibe_count > 50 ? "#ff6b35" : primary);
   return (
     <View style={{ alignItems: 'center' }}>
       <View style={[mkS.ring, { borderColor: color + '55' }]}>
@@ -177,7 +177,7 @@ const MiniVibeCard = ({ event, primary, onView, onClose }) => {
 const cvS = StyleSheet.create({
   root: {
     position: 'absolute', bottom: 20, left: 12, right: 12,
-    borderRadius: 20, backgroundColor: '#111820',
+    borderRadius: 20, backgroundColor: "#111820",
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
     shadowColor: '#000', shadowOpacity: 0.8, shadowRadius: 24, elevation: 24,
     overflow: 'hidden',
@@ -193,22 +193,29 @@ const cvS = StyleSheet.create({
   pricePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
   priceText: { fontSize: 11, fontWeight: '800' },
   vibePill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
-  vibeText: { color: '#ff6b35', fontSize: 11, fontWeight: '800' },
+  vibeText: { color: "#ff6b35", fontSize: 11, fontWeight: '800' },
   viewBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 12, marginLeft: 'auto' },
   viewBtnText: { color: '#000', fontSize: 12, fontWeight: '900' },
   closeBtn: { position: 'absolute', top: 10, right: 10, padding: 2 },
 });
 
 // ─── Web list fallback ────────────────────────────────────────────────────────
-const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCategory, loading, onNavigateToEvent }) => (
+const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCategory, loading, onNavigateToEvent, radiusKm, setRadiusKm, userCoords }) => {
+  const cityWide = !radiusKm || radiusKm >= 50;
+  const subtitle = loading
+    ? 'Finding events around you…'
+    : events.length === 0
+      ? 'Events happening near you'
+      : `${events.length} event${events.length === 1 ? '' : 's'} ${cityWide ? 'coming up near you' : `within ${radiusKm} km`}`;
+  return (
   <View style={{ flex: 1 }}>
     <View style={{ paddingTop: insets.top + 14, paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: `${primary}18` }}>
       <Text style={{ color: primary, fontSize: 22, fontWeight: '900', letterSpacing: 2 }}>THE SCOUT</Text>
-      <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>
-        {events.length} pulses in range · Map view on mobile
-      </Text>
+      <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>{subtitle}</Text>
     </View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 14, paddingVertical: 12 }}>
+
+    {/* Category */}
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 8 }}>
       {CATEGORIES.map(cat => {
         const active = activeCategory === cat;
         return (
@@ -222,14 +229,43 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
         );
       })}
     </ScrollView>
+
+    {/* Distance range — control how far out to look */}
+    {setRadiusKm && (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 10 }}>
+        {RADIUS_KM.map(km => {
+          const active = radiusKm === km;
+          return (
+            <TouchableOpacity
+              key={km}
+              style={{ paddingHorizontal: 11, paddingVertical: 5, borderRadius: 14, borderWidth: 1, backgroundColor: active ? `${primary}22` : 'transparent', borderColor: active ? primary : `${primary}22` }}
+              onPress={() => setRadiusKm(km)}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '700', color: active ? primary : 'rgba(255,255,255,0.5)' }}>{km === 50 ? 'City-wide' : `${km} km`}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    )}
+
     {loading ? (
       <ScoutSkeleton primary={primary} />
     ) : (
       <ScrollView contentContainerStyle={{ padding: 14, gap: 10, paddingBottom: 40 }}>
         {events.length === 0 && (
-          <View style={{ alignItems: 'center', paddingTop: 60, gap: 12 }}>
-            <Text style={{ fontSize: 48 }}>📡</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14, fontWeight: '600' }}>No pulses in range</Text>
+          <View style={{ alignItems: 'center', paddingTop: 50, gap: 10 }}>
+            <Text style={{ fontSize: 46 }}>🗺️</Text>
+            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>{cityWide ? 'No events coming up' : 'Nothing within range'}</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', paddingHorizontal: 44, lineHeight: 19 }}>
+              {cityWide
+                ? 'New Gruvs show up here the moment they’re posted. Check back soon.'
+                : `No events within ${radiusKm} km of you. Widen the range to see what’s on.`}
+            </Text>
+            {!cityWide && setRadiusKm && (
+              <TouchableOpacity onPress={() => setRadiusKm(50)} style={{ marginTop: 4, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: primary }}>
+                <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Show city-wide</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
         {events.map(event => {
@@ -237,6 +273,10 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
           const date = event.event_date
             ? new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
             : 'TBD';
+          const dist = (userCoords && event.lat != null && event.lon != null)
+            ? haversine(userCoords.lat, userCoords.lon, Number(event.lat), Number(event.lon))
+            : null;
+          const distLabel = dist != null ? ` · ${dist < 1 ? '<1' : Math.round(dist)} km away` : '';
           return (
             <TouchableOpacity
               key={event.id}
@@ -253,7 +293,7 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
               <View style={{ flex: 1, padding: 12, justifyContent: 'center', gap: 4 }}>
                 <Text style={{ color: primary, fontSize: 9, fontWeight: '800', letterSpacing: 1.2 }}>{event.category?.toUpperCase()}</Text>
                 <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }} numberOfLines={1}>{event.title}</Text>
-                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{date} · {event.venue_name || 'Location TBD'}</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }} numberOfLines={1}>{date} · {event.venue_name || 'Location TBD'}{distLabel}</Text>
               </View>
             </TouchableOpacity>
           );
@@ -261,7 +301,8 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
       </ScrollView>
     )}
   </View>
-);
+  );
+};
 
 // ─── Scout list skeleton ───────────────────────────────────────────────────────
 const ScoutSkeleton = ({ primary }) => {
@@ -292,8 +333,8 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
   const { show: showToast } = useToast();
   const insets = useSafeAreaInsets();
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const background = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const background = currentTheme?.background || "#0d1112";
 
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -301,7 +342,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [crewToggle, setCrewToggle] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
-  const [radiusKm, setRadiusKm] = useState(10);
+  const [radiusKm, setRadiusKm] = useState(50); // start city-wide → never empty on arrival; user narrows to find events near them
   const [crewEventIds, setCrewEventIds] = useState(new Set());
   const [mapModalVisible, setMapModalVisible] = useState(false);
 
@@ -330,7 +371,9 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
           setLoading(false);
         }
       }
-    } catch { }
+    } catch (err) {
+      console.warn('ScoutScreen.loadEvents cached err:', err);
+    }
 
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -372,7 +415,9 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
       );
       setEvents(evts || []);
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({ events: evts || [], ts: Date.now() }));
-    } catch { }
+    } catch (err) {
+      console.warn('ScoutScreen.loadEvents live err:', err);
+    }
     finally {
       setLoading(false);
     }
@@ -414,7 +459,9 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
         'ScoutScreen.loadCrewEvents'
       );
       setCrewEventIds(new Set((data || []).map(r => r.event_id)));
-    } catch { }
+    } catch (err) {
+      console.warn('ScoutScreen.loadCrewEvents err:', err);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -449,7 +496,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
   }, []);
 
   const handleFindMe = useCallback(async () => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch { }
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch (err) { console.warn('Haptics error:', err); }
     const coords = await LocationService.requestAndGet();
     if (coords) {
       setUserCoords(coords);
@@ -466,7 +513,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
   }, []);
 
   const handleCrewToggle = useCallback(() => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (err) { console.warn('Haptics error:', err); }
     if (!user) { onAuthRequired?.(); return; }
     setCrewToggle(v => !v);
   }, [user]);
@@ -513,6 +560,9 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
           setActiveCategory={setActiveCategory}
           loading={loading}
           onNavigateToEvent={onNavigateToEvent}
+          radiusKm={radiusKm}
+          setRadiusKm={setRadiusKm}
+          userCoords={userCoords}
         />
       </View>
     );
@@ -530,6 +580,9 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
           setActiveCategory={setActiveCategory}
           loading={loading}
           onNavigateToEvent={onNavigateToEvent}
+          radiusKm={radiusKm}
+          setRadiusKm={setRadiusKm}
+          userCoords={userCoords}
         />
         <View style={{ padding: 16, paddingBottom: 8 }}>
           <TouchableOpacity
@@ -605,7 +658,9 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
         <View style={s.headerRow} pointerEvents="box-none">
           <View pointerEvents="none">
             <Text style={[s.title, { color: primary }]}>THE SCOUT</Text>
-            <Text style={s.subtitle}>{filteredEvents.length} pulses in range</Text>
+            <Text style={s.subtitle}>
+              {filteredEvents.length} event{filteredEvents.length === 1 ? '' : 's'} {radiusKm >= 50 ? 'nearby' : `within ${radiusKm} km`}
+            </Text>
           </View>
           <View style={s.actions}>
             {/* Find Me */}
@@ -726,7 +781,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
 };
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a1418' },
+  root: { flex: 1, backgroundColor: "#0a1418" },
   topOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0,
     paddingHorizontal: 14, gap: 8,
