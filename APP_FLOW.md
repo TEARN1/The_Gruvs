@@ -2,6 +2,22 @@
 
 How the pieces connect, end to end. Each arrow is a real screen/action in the app.
 
+> **Status legend:** ✅ walkable today · 🧩 built but needs a connector (below).
+>
+> **Live end-to-end:** the social loop (§1) and the talent loop (§2) — posting an
+> event, tagging guests (which creates players + appearances), the player card,
+> rating/editing, the scout leaderboard, and fan predictions (§4) all function.
+>
+> **Built but not yet walkable (§3 tournaments) — 4 missing connectors:**
+> 1. 🧩 No UI to **create a competition / season** (only via SQL today).
+> 2. 🧩 No UI to **create / register a club** — yet a team needs a `clubs` row to vote.
+> 3. 🧩 **Event creation never sets `competition_id`**, so the governance entry never
+>    appears on real events.
+> 4. 🧩 **Match logging doesn't attach `player_id`**, so the careers rollup trigger
+>    isn't fed (goals don't reach a player's career).
+>
+> Build those four and §3 becomes fully walkable.
+
 ## 1. Core social loop
 ```
 Sign in ─▶ The Drop (feed) ─▶ tap event ─▶ Event Detail
