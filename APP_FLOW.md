@@ -2,21 +2,23 @@
 
 How the pieces connect, end to end. Each arrow is a real screen/action in the app.
 
-> **Status legend:** ✅ walkable today · 🧩 built but needs a connector (below).
+> **Status legend:** ✅ walkable in code today · ⏳ needs the migrations applied to the live DB.
 >
-> **Live end-to-end:** the social loop (§1) and the talent loop (§2) — posting an
-> event, tagging guests (which creates players + appearances), the player card,
-> rating/editing, the scout leaderboard, and fan predictions (§4) all function.
+> **Live end-to-end:** the social loop (§1), the talent loop (§2), tournament
+> governance (§3) and fan predictions (§4) are all wired end-to-end in code.
 >
-> **Built but not yet walkable (§3 tournaments) — 4 missing connectors:**
-> 1. 🧩 No UI to **create a competition / season** (only via SQL today).
-> 2. 🧩 No UI to **create / register a club** — yet a team needs a `clubs` row to vote.
-> 3. 🧩 **Event creation never sets `competition_id`**, so the governance entry never
->    appears on real events.
-> 4. 🧩 **Match logging doesn't attach `player_id`**, so the careers rollup trigger
->    isn't fed (goals don't reach a player's career).
+> **The 4 connectors that closed §3 (commit `a96245c`):**
+> 1. ✅ **Create a competition / season** — `CompetitionPicker` in the event form.
+> 2. ✅ **Create a club** — `ClubCreateModal`, surfaced in the governance panel's
+>    no-teams state (a team needs a `clubs` row to vote).
+> 3. ✅ **Event creation sets `competition_id`** — the `CompetitionPicker` link makes
+>    the governance entry + competition-scoped predictions appear on the event.
+> 4. ✅ **Match logging attaches `athlete_id`** — `sportsEngine.log` resolves a tagged
+>    player by name so the careers rollup trigger is fed (goals reach a career).
 >
-> Build those four and §3 becomes fully walkable.
+> ⏳ **Remaining dependency:** these reference `events.competition_id`, `competitions`,
+> `clubs`, and `sport_athletes.player_id` — run `27` → `28` → `30` (below) on the live
+> DB or the engine calls fail gracefully (wrapped in `safe()`) and no-op.
 
 ## 1. Core social loop
 ```
