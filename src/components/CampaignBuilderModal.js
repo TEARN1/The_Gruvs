@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { GlassView } from './GlassView';
+import { LiquidBackground } from './LiquidBackground';
 
 
 // ── Targeting Definitions ────────────────────────────────────────────────────
@@ -204,7 +205,7 @@ const CAMPAIGN_TEMPLATES = [
     id: 'nightlife_promo',
     label: 'Nightlife Gruv Promo',
     icon: 'music',
-    color: '#8b5cf6',
+    color: "#8b5cf6",
     desc: 'Promote a club night, concert, or music Gruv',
     form: { name: 'Nightlife Gruv Promo', campaign_type: 'gruv_promo', headline: 'Biggest Night of the Year', subline: "Don't miss out. Limited Passes available.", cta_text: 'Get Passes', budget_total: '500' },
     targeting: {
@@ -219,7 +220,7 @@ const CAMPAIGN_TEMPLATES = [
     id: 'food_festival',
     label: 'Food Festival',
     icon: 'coffee',
-    color: '#f59e0b',
+    color: "#f59e0b",
     desc: 'Food & drink Gruvs, markets, pop-ups',
     form: { name: 'Food Festival Mission', campaign_type: 'gruv_promo', headline: 'A Feast Like No Other', subline: '50+ vendors. Live music. Real vibes.', cta_text: 'Vibe Free', budget_total: '300' },
     targeting: {
@@ -234,7 +235,7 @@ const CAMPAIGN_TEMPLATES = [
     id: 'vendor_awareness',
     label: 'Vendor / Brand Awareness',
     icon: 'shopping-bag',
-    color: '#10b981',
+    color: "#10b981",
     desc: 'Grow brand recognition before, during, and after Gruvs',
     form: { name: 'Brand Awareness Push', campaign_type: 'awareness', headline: 'Find Us at the Gruv', subline: 'Pull up to our stall and get an exclusive drop.', cta_text: 'See Our Drops', budget_total: '200' },
     targeting: {
@@ -247,7 +248,7 @@ const CAMPAIGN_TEMPLATES = [
     id: 'transport_service',
     label: 'Transport Provider',
     icon: 'truck',
-    color: '#06b6d4',
+    color: "#06b6d4",
     desc: 'Offer rides, shuttles, or charter services to Vibers',
     form: { name: 'Gruv Transport Mission', campaign_type: 'lock_in', headline: 'Need a Ride?', subline: 'Safe, affordable transport to and from the Gruv.', cta_text: 'Lock In', budget_total: '150' },
     targeting: {
@@ -260,7 +261,7 @@ const CAMPAIGN_TEMPLATES = [
     id: 'post_event_recap',
     label: 'Post-Gruv Recap',
     icon: 'camera',
-    color: '#ec4899',
+    color: "#ec4899",
     desc: 'Re-vibe Vibers after the Gruv with shots, reviews, next dates',
     form: { name: 'Post-Gruv Engagement', campaign_type: 'engagement', headline: 'Relive the Night', subline: 'Your shots are live. Next Gruv Passes now dropping.', cta_text: 'See Shots', budget_total: '100' },
     targeting: {
@@ -273,7 +274,7 @@ const CAMPAIGN_TEMPLATES = [
     id: 'vip_retarget',
     label: 'Royale Retargeting',
     icon: 'star',
-    color: '#f59e0b',
+    color: "#f59e0b",
     desc: 'Re-target high-spending repeat Vibers with Royale access and exclusive drops',
     form: { name: 'Royale Retargeting', campaign_type: 'retarget', headline: "You're Invited — Royale Access Only", subline: "As one of our top Vibers, you get the first Drop. Don't sleep on it.", cta_text: 'Claim Royale', budget_total: '800' },
     targeting: {
@@ -515,9 +516,9 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
           </GlassView>
 
           {[
-            { key: 'pre_event',    label: 'PRE-GRUV',     icon: 'clock', color: '#8b5cf6', desc: 'Reach Vibers who Vibed or Scouted a Gruv. Target: Transport, outfits, accommodation, hype content, dining reservations.' },
+            { key: 'pre_event',    label: 'PRE-GRUV',     icon: 'clock', color: "#8b5cf6", desc: 'Reach Vibers who Vibed or Scouted a Gruv. Target: Transport, outfits, accommodation, hype content, dining reservations.' },
             { key: 'during_event', label: 'IN THE GRUV',  icon: 'zap',   color: primary,   desc: 'Reach Vibers who Touched Down at a Gruv. Target: Food & drinks, merch, shot booths, Royale upgrades, next Gruv teaser.' },
-            { key: 'post_event',   label: 'POST-GRUV',    icon: 'star',  color: '#10b981', desc: 'Reach Vibers after the Gruv ends. Target: Shots, reviews, highlight reels, next Gruv early Passes, community groups.' },
+            { key: 'post_event',   label: 'POST-GRUV',    icon: 'star',  color: "#10b981", desc: 'Reach Vibers after the Gruv ends. Target: Shots, reviews, highlight reels, next Gruv early Passes, community groups.' },
           ].map(phase => {
             const active = phases.includes(phase.key);
             return (
@@ -568,6 +569,7 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[cms.modal, { backgroundColor: bg }]}>
+        <LiquidBackground intensity={0.7} />
         {/* Header */}
         <View style={[cms.header, { borderBottomColor: `${primary}15` }]}>
           <TouchableOpacity onPress={templatePicker ? onClose : () => setTemplatePicker(true)} style={cms.closeBtn}>
@@ -596,7 +598,7 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
                 const active = n === step;
                 return (
                   <TouchableOpacity key={n} onPress={() => n <= step && setStep(n)} style={cms.stepItem}>
-                    <View style={[cms.stepCircle, { borderColor: active ? primary : done ? '#10b981' : `${primary}20`, backgroundColor: done ? '#10b981' : active ? `${primary}20` : 'transparent' }]}>
+                    <View style={[cms.stepCircle, { borderColor: active ? primary : done ? "#10b981" : `${primary}20`, backgroundColor: done ? "#10b981" : active ? `${primary}20` : 'transparent' }]}>
                       {done
                         ? <Feather name="check" size={10} color="#fff" />
                         : <Text style={[cms.stepNum, { color: active ? primary : muted }]}>{n}</Text>}

@@ -14,6 +14,9 @@ import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { resilientRead, resilient } from '../utils/resilience';
 import { GlassView } from '../components/GlassView';
+import { LiquidBackground } from '../components/LiquidBackground';
+import { AnimatedCounter } from '../components/Motion';
+import { haptics } from '../utils/haptics';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 import { CampaignManager, EcosystemManager, NotificationManager, AnalyticsManager } from '../services/dataFlow';
@@ -233,29 +236,36 @@ const BUSINESS_TYPES = [
 ];
 
 const TIERS = {
-  starter: { label: 'Starter', color: '#94a3b8', perks: ['5 Missions/mo', 'Basic Reads', '500 Crowd targets/Mission'] },
-  pro: { label: 'Pro', color: '#06b6d4', perks: ['Unlimited Missions', 'Advanced Reads', '10K Crowd targets/Mission', 'Storefront builder'] },
-  royal: { label: 'Royal', color: '#8b5cf6', perks: ['Everything in Pro', 'API access', 'Backing Marketplace', 'Priority support', 'Custom domain'] },
-  enterprise: { label: 'Enterprise', color: '#f59e0b', perks: ['Everything in Royal', 'Dedicated Gruv manager', 'Custom Connects', 'White-label Storefront', 'Bulk Mission tools'] },
+  starter: { label: 'Starter', color: "#94a3b8", perks: ['5 Missions/mo', 'Basic Reads', '500 Crowd targets/Mission'] },
+  pro: { label: 'Pro', color: "#06b6d4", perks: ['Unlimited Missions', 'Advanced Reads', '10K Crowd targets/Mission', 'Storefront builder'] },
+  royal: { label: 'Royal', color: "#8b5cf6", perks: ['Everything in Pro', 'API access', 'Backing Marketplace', 'Priority support', 'Custom domain'] },
+  enterprise: { label: 'Enterprise', color: "#f59e0b", perks: ['Everything in Royal', 'Dedicated Gruv manager', 'Custom Connects', 'White-label Storefront', 'Bulk Mission tools'] },
 };
 
 // ── Stat Card ────────────────────────────────────────────────────────────────
-const StatCard = ({ label, value, sub, icon, color, trend, primary, textColor, muted, bg }) => (
-  <GlassView style={[sc.statCard, { borderColor: `${color}25` }]}>
-    <View style={[sc.statIcon, { backgroundColor: `${color}18` }]}>
-      <Feather name={icon} size={18} color={color} />
-    </View>
-    <Text style={[sc.statValue, { color: textColor }]}>{value}</Text>
-    <Text style={[sc.statLabel, { color: muted }]}>{label}</Text>
-    {sub ? <Text style={[sc.statSub, { color: color }]}>{sub}</Text> : null}
-    {trend != null ? (
-      <View style={sc.trendRow}>
-        <Feather name={trend >= 0 ? 'trending-up' : 'trending-down'} size={10} color={trend >= 0 ? '#10b981' : '#ef4444'} />
-        <Text style={{ fontSize: 9, color: trend >= 0 ? '#10b981' : '#ef4444', fontWeight: '700' }}> {Math.abs(trend)}%</Text>
+// Pass `count` (raw number) + prefix/suffix/decimals for an animated count-up,
+// or a pre-formatted `value` string for non-numeric values (back-compat).
+const StatCard = ({ label, value, count, prefix = '', suffix = '', decimals = 0, sub, icon, color, trend, primary, textColor, muted, bg }) => {
+  const fmt = (n) => prefix + (decimals > 0 ? Number(n).toFixed(decimals) : Math.round(n).toLocaleString()) + suffix;
+  return (
+    <GlassView glow style={[sc.statCard, { borderColor: `${color}25` }]}>
+      <View style={[sc.statIcon, { backgroundColor: `${color}18` }]}>
+        <Feather name={icon} size={18} color={color} />
       </View>
-    ) : null}
-  </GlassView>
-);
+      {count != null && decimals === 0
+        ? <AnimatedCounter value={count} format={fmt} style={[sc.statValue, { color: textColor }]} />
+        : <Text style={[sc.statValue, { color: textColor }]}>{count != null ? fmt(count) : value}</Text>}
+      <Text style={[sc.statLabel, { color: muted }]}>{label}</Text>
+      {sub ? <Text style={[sc.statSub, { color: color }]}>{sub}</Text> : null}
+      {trend != null ? (
+        <View style={sc.trendRow}>
+          <Feather name={trend >= 0 ? 'trending-up' : 'trending-down'} size={10} color={trend >= 0 ? "#10b981" : "#ef4444"} />
+          <Text style={{ fontSize: 9, color: trend >= 0 ? "#10b981" : "#ef4444", fontWeight: '700' }}> {Math.abs(trend)}%</Text>
+        </View>
+      ) : null}
+    </GlassView>
+  );
+};
 
 // ── Mini Bar Chart ────────────────────────────────────────────────────────────
 const MiniBarChart = ({ data, color, label, textColor, muted }) => {
@@ -279,7 +289,7 @@ const MiniBarChart = ({ data, color, label, textColor, muted }) => {
 
 // ── Campaign Row ──────────────────────────────────────────────────────────────
 const CampaignRow = ({ campaign, primary, textColor, muted, onEdit, onToggle }) => {
-  const statusColor = { active: '#10b981', paused: '#f59e0b', draft: '#94a3b8', ended: '#ef4444' }[campaign.status] || '#94a3b8';
+  const statusColor = { active: "#10b981", paused: "#f59e0b", draft: "#94a3b8", ended: "#ef4444" }[campaign.status] || "#94a3b8";
   const roi = campaign.budget_spent > 0 ? ((campaign.revenue_attributed / campaign.budget_spent - 1) * 100).toFixed(0) : '—';
   const ctr = campaign.impressions > 0 ? ((campaign.clicks / campaign.impressions) * 100).toFixed(1) : '0';
   return (
@@ -325,10 +335,10 @@ const CampaignRow = ({ campaign, primary, textColor, muted, onEdit, onToggle }) 
         </View>
         <TouchableOpacity
           onPress={() => onToggle(campaign.id, campaign.status === 'active' ? 'paused' : 'active')}
-          style={[sc.toggleBtn, { borderColor: campaign.status === 'active' ? '#f59e0b' : '#10b981' }]}
+          style={[sc.toggleBtn, { borderColor: campaign.status === 'active' ? "#f59e0b" : "#10b981" }]}
         >
-          <Feather name={campaign.status === 'active' ? 'pause' : 'play'} size={12} color={campaign.status === 'active' ? '#f59e0b' : '#10b981'} />
-          <Text style={[sc.toggleBtnText, { color: campaign.status === 'active' ? '#f59e0b' : '#10b981' }]}>
+          <Feather name={campaign.status === 'active' ? 'pause' : 'play'} size={12} color={campaign.status === 'active' ? "#f59e0b" : "#10b981"} />
+          <Text style={[sc.toggleBtnText, { color: campaign.status === 'active' ? "#f59e0b" : "#10b981" }]}>
             {campaign.status === 'active' ? 'PAUSE' : 'RESUME'}
           </Text>
         </TouchableOpacity>
@@ -339,7 +349,7 @@ const CampaignRow = ({ campaign, primary, textColor, muted, onEdit, onToggle }) 
 
 // ── Partner Row ───────────────────────────────────────────────────────────────
 const PartnerRow = ({ partner, primary, textColor, muted, onPress }) => {
-  const statusColor = { active: '#10b981', pending: '#f59e0b', ended: '#94a3b8' }[partner.status] || '#94a3b8';
+  const statusColor = { active: "#10b981", pending: "#f59e0b", ended: "#94a3b8" }[partner.status] || "#94a3b8";
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <GlassView style={[sc.partnerRow, { borderColor: `${primary}15` }]}>
@@ -374,9 +384,9 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const { show: showToast } = useToast();
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text || '#ffffff';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
+  const textColor = currentTheme?.text || "#ffffff";
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const surface = currentTheme?.surface || 'rgba(255,255,255,0.05)';
 
@@ -405,7 +415,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       const { data: bizData, error: bizErr } = await supabase
         .from('business_profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .maybeSingle();
 
       if (bizErr) {
@@ -495,7 +505,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     if (!setupForm.business_name.trim()) { showToast('Please enter a business name.', 'error'); return; }
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     try {
-      const payload = { user_id: user.id, ...setupForm, tier: 'starter' };
+      const payload = { user_id: user?.id, ...setupForm, tier: 'starter' };
       const result = await resilient(
         [
           async () => {
@@ -508,7 +518,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
             if (error) throw error;
             return data;
           },
-          () => supabase.rpc('create_business_profile', { p_user_id: user.id, p_name: setupForm.business_name }),
+          () => supabase.rpc('create_business_profile', { p_user_id: user?.id, p_name: setupForm.business_name }),
         ],
         { attemptsPerTier: 2, baseMs: 500, label: 'BusinessDashboard.setupSubmit', fallbackValue: null }
       );
@@ -684,14 +694,14 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           {/* Key stats */}
           <Text style={[sc.sectionTitle, { color: textColor }]}>Intel Reads · Last 30 Days</Text>
           <View style={sc.statsGrid}>
-            <StatCard label="Stacks" value={`R${(analytics?.totalRevenue || 0).toFixed(0)}`} icon="dollar-sign" color="#10b981" trend={12} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Eyes On" value={(analytics?.impressions || 0).toLocaleString()} icon="eye" color={primary} trend={8} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Promo Taps" value={(analytics?.clicks || 0).toLocaleString()} icon="tag" color="#8b5cf6" trend={-3} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Locks" value={(analytics?.conversions || 0).toLocaleString()} icon="check-circle" color="#f59e0b" trend={22} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="War Chest" value={`R${(analytics?.totalSpent || 0).toFixed(0)}`} icon="credit-card" color="#ef4444" primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Voucher Claims" value={(analytics?.voucherClaims || 0).toLocaleString()} icon="gift" color="#06b6d4" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Stacks" count={analytics?.totalRevenue || 0} prefix="R" icon="dollar-sign" color="#10b981" trend={12} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Eyes On" count={analytics?.impressions || 0} icon="eye" color={primary} trend={8} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Promo Taps" count={analytics?.clicks || 0} icon="tag" color="#8b5cf6" trend={-3} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Locks" count={analytics?.conversions || 0} icon="check-circle" color="#f59e0b" trend={22} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="War Chest" count={analytics?.totalSpent || 0} prefix="R" icon="credit-card" color="#ef4444" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Voucher Claims" count={analytics?.voucherClaims || 0} icon="gift" color="#06b6d4" primary={primary} textColor={textColor} muted={muted} />
           </View>
-          <StatCard label="Redemption Rate" value={`${(analytics?.redemptionRate || 0).toFixed(1)}%`} icon="percent" color="#10b981" primary={primary} textColor={textColor} muted={muted} />
+          <StatCard label="Redemption Rate" count={analytics?.redemptionRate || 0} suffix="%" decimals={1} icon="percent" color="#10b981" primary={primary} textColor={textColor} muted={muted} />
 
           {/* 7-day activity chart */}
           {analytics?.chart && (
@@ -847,9 +857,9 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           <GlassView style={[sc.funnelCard, { borderColor: `${primary}15` }]}>
             {[
               { label: 'Eyes On', value: analytics?.impressions || 0, color: primary },
-              { label: 'Taps', value: analytics?.clicks || 0, color: '#8b5cf6' },
-              { label: 'Vibes', value: analytics?.rsvps || 0, color: '#f59e0b' },
-              { label: 'Locks', value: analytics?.conversions || 0, color: '#10b981' },
+              { label: 'Taps', value: analytics?.clicks || 0, color: "#8b5cf6" },
+              { label: 'Vibes', value: analytics?.rsvps || 0, color: "#f59e0b" },
+              { label: 'Locks', value: analytics?.conversions || 0, color: "#10b981" },
             ].map(f => <FunnelBar key={f.label} {...f} max={analytics?.impressions || 1} textColor={textColor} muted={muted} />)}
           </GlassView>
 
@@ -903,10 +913,10 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         <ScrollView contentContainerStyle={sc.tabContent} showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
           <View style={sc.statsGrid}>
-            <StatCard label="Total Stacks" value={`R${(analytics?.totalRevenue || 0).toFixed(2)}`} icon="trending-up" color="#10b981" primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="War Chest Spent" value={`R${(analytics?.totalSpent || 0).toFixed(2)}`} icon="credit-card" color="#ef4444" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Total Stacks" count={analytics?.totalRevenue || 0} prefix="R" decimals={2} icon="trending-up" color="#10b981" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="War Chest Spent" count={analytics?.totalSpent || 0} prefix="R" decimals={2} icon="credit-card" color="#ef4444" primary={primary} textColor={textColor} muted={muted} />
             <StatCard label="Net ROI" value={analytics?.totalSpent > 0 ? `${(((analytics.totalRevenue - analytics.totalSpent) / analytics.totalSpent) * 100).toFixed(0)}%` : '—'} icon="dollar-sign" color="#f59e0b" primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Connect Stacks" value={`R${partners.reduce((a, p) => a + (p.revenue_earned || 0), 0).toFixed(0)}`} icon="link-2" color="#8b5cf6" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Connect Stacks" count={partners.reduce((a, p) => a + (p.revenue_earned || 0), 0)} prefix="R" icon="link-2" color="#8b5cf6" primary={primary} textColor={textColor} muted={muted} />
           </View>
 
           <Text style={[sc.sectionTitle, { color: textColor }]}>War Chest Allocation</Text>
@@ -926,7 +936,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
                   <Text style={[sc.budgetFig, { color: muted }]}>R{(c.budget_spent || 0).toFixed(0)} / R{(c.budget_total || 0).toFixed(0)}</Text>
                 </View>
                 <View style={sc.budgetTrack}>
-                  <View style={[sc.budgetFill, { width: `${pct}%`, backgroundColor: pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981' }]} />
+                  <View style={[sc.budgetFill, { width: `${pct}%`, backgroundColor: pct > 90 ? "#ef4444" : pct > 70 ? "#f59e0b" : "#10b981" }]} />
                 </View>
               </GlassView>
             );
@@ -955,12 +965,12 @@ export const BusinessDashboardScreen = ({ onClose }) => {
 
           {/* Ecosystem categories */}
           {[
-            { icon: 'star', label: 'Backing Marketplace', body: 'Get discovered by brands looking to back Gruvs like yours. Set your Backing tiers, Crowd data, and pricing.', color: '#f59e0b' },
-            { icon: 'code', label: 'API Connects', body: 'Connect Ticketmaster, Eventbrite, WhatsApp Business, Stripe, Yoco, Ozow, and 50+ more to automate your Biz Hub.', color: '#8b5cf6' },
-            { icon: 'users', label: 'Co-Gruv Network', body: 'Link up with other organisers to cross-promote, split costs, and expand reach. Stacks split managed automatically.', color: '#10b981' },
+            { icon: 'star', label: 'Backing Marketplace', body: 'Get discovered by brands looking to back Gruvs like yours. Set your Backing tiers, Crowd data, and pricing.', color: "#f59e0b" },
+            { icon: 'code', label: 'API Connects', body: 'Connect Ticketmaster, Eventbrite, WhatsApp Business, Stripe, Yoco, Ozow, and 50+ more to automate your Biz Hub.', color: "#8b5cf6" },
+            { icon: 'users', label: 'Co-Gruv Network', body: 'Link up with other organisers to cross-promote, split costs, and expand reach. Stacks split managed automatically.', color: "#10b981" },
             { icon: 'share-2', label: 'Affiliate Programme', body: 'Invite promoters to sell Passes and hype your Gruvs. Track commissions, set payouts, and manage your affiliate army.', color: primary },
-            { icon: 'truck', label: 'Commute Hub', body: 'Link with transport providers — Uber, Bolt, private charters, and shuttles — to offer Vibers seamless rides to your Gruvs.', color: '#06b6d4' },
-            { icon: 'camera', label: 'Creative Network', body: 'Book photographers, videographers, DJs, and designers directly. All billing tracked inside your Biz Hub.', color: '#ec4899' },
+            { icon: 'truck', label: 'Commute Hub', body: 'Link with transport providers — Uber, Bolt, private charters, and shuttles — to offer Vibers seamless rides to your Gruvs.', color: "#06b6d4" },
+            { icon: 'camera', label: 'Creative Network', body: 'Book photographers, videographers, DJs, and designers directly. All billing tracked inside your Biz Hub.', color: "#ec4899" },
           ].map(e => (
             <GlassView key={e.label} style={[sc.ecoCard, { borderColor: `${e.color}20` }]}>
               <View style={[sc.ecoIcon, { backgroundColor: `${e.color}15` }]}>
@@ -1015,6 +1025,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   return (
     <ErrorBoundary label="Business Dashboard">
     <View style={[sc.root, { backgroundColor: bg }]}>
+      <LiquidBackground intensity={0.7} />
       {/* Header */}
       <Animated.View style={[sc.header, { borderBottomColor: `${primary}15`, opacity: headerAnim }]}>
         <TouchableOpacity onPress={onClose} style={sc.backBtn}>
@@ -1025,7 +1036,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           <Text style={[sc.headerSub, { color: tier.color }]}>{tier.label} Plan</Text>
         </View>
         {notifications.length > 0 && (
-          <View style={[sc.notifBadge, { backgroundColor: '#ef4444' }]}>
+          <View style={[sc.notifBadge, { backgroundColor: "#ef4444" }]}>
             <Text style={sc.notifBadgeText}>{notifications.length}</Text>
           </View>
         )}
@@ -1077,9 +1088,9 @@ export const BusinessDashboardScreen = ({ onClose }) => {
               </TouchableOpacity>
             </View>
             {[
-              { key: 'pro', label: 'Pro', price: 'R299/mo', color: '#06b6d4', perks: 'Unlimited Missions · 10K Crowd targets · Storefront' },
-              { key: 'royal', label: 'Royal', price: 'R799/mo', color: '#8b5cf6', perks: 'Everything in Pro · API access · Backing Marketplace' },
-              { key: 'enterprise', label: 'Enterprise', price: 'Custom', color: '#f59e0b', perks: 'Everything in Royal · Dedicated manager · White-label' },
+              { key: 'pro', label: 'Pro', price: 'R299/mo', color: "#06b6d4", perks: 'Unlimited Missions · 10K Crowd targets · Storefront' },
+              { key: 'royal', label: 'Royal', price: 'R799/mo', color: "#8b5cf6", perks: 'Everything in Pro · API access · Backing Marketplace' },
+              { key: 'enterprise', label: 'Enterprise', price: 'Custom', color: "#f59e0b", perks: 'Everything in Royal · Dedicated manager · White-label' },
             ].filter(t => t.key !== biz?.tier).map(t => (
               <TouchableOpacity
                 key={t.key}
