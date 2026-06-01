@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, Platform,
+  Image, ActivityIndicator, Platform, Share, TextInput,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { GlassView } from './GlassView';
 import { LiquidBackground } from './LiquidBackground';
+import { PlayerEditModal } from './PlayerEditModal';
 import { AnimatedCounter } from './Motion';
 import { haptics } from '../utils/haptics';
 import { TalentEngine, playerOVR } from '../services/talentEngine';
@@ -53,6 +54,10 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
   const [ratings, setRatings] = useState([]);
   const [following, setFollowing] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
+  const [ratingVal, setRatingVal] = useState('');
+  const [ratingNote, setRatingNote] = useState('');
 
   const load = useCallback(async () => {
     if (!playerId) return;
@@ -88,6 +93,30 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
   const flag = (player?.nationality || '').toUpperCase();
   const clubName = player?.current_club?.name || player?.current_club?.short_name;
   const cfg = talentConfig(player?.category);
+  const canEdit = !!user && !!player && (user.id === player.user_id || user.id === player.created_by);
+
+  const submitRating = async () => {
+    const r = Number(ratingVal);
+    if (!user) { toast.show('Sign in to rate', 'info'); return; }
+    if (!(r >= 0 && r <= 10)) { toast.show('Rating must be 0–10', 'error'); return; }
+    const ok = await TalentEngine.ratePlayer({ playerId, raterId: user.id, rating: r, note: ratingNote });
+    if (ok) {
+      haptics.success();
+      toast.show('Rating saved', 'success');
+      setRateOpen(false); setRatingVal(''); setRatingNote('');
+      load();
+    } else toast.show('Could not save rating', 'error');
+  };
+
+  const sharePlayer = async () => {
+    if (!player) return;
+    const name = player.known_as || player.full_name;
+    try {
+      await Share.share({
+        message: `${name} — ${ovr} OVR on The Gruvs 🏆\n${player.career_goals || 0} goals · ${player.career_events || player.career_apps || 0} events · ${(player.career_rating || 0)} avg rating. Scout them on The Gruvs.`,
+      });
+    } catch { /* cancelled */ }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
@@ -188,6 +217,46 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
               )}
             </View>
 
+            {/* Secondary actions: rate · edit · share */}
+            <View style={st.secondaryRow}>
+              <TouchableOpacity style={[st.secBtn, { borderColor: `${primary}30` }]} onPress={() => { haptics.select(); setRateOpen(o => !o); }}>
+                <Feather name="star" size={15} color={primary} />
+                <Text style={[st.secText, { color: primary }]}>Rate</Text>
+              </TouchableOpacity>
+              {canEdit && (
+                <TouchableOpacity style={[st.secBtn, { borderColor: `${primary}30` }]} onPress={() => { haptics.select(); setEditOpen(true); }}>
+                  <Feather name="edit-2" size={14} color={primary} />
+                  <Text style={[st.secText, { color: primary }]}>Edit</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={[st.secBtn, { borderColor: `${primary}30` }]} onPress={sharePlayer}>
+                <Feather name="share-2" size={14} color={primary} />
+                <Text style={[st.secText, { color: primary }]}>Share</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Inline rating panel */}
+            {rateOpen && (
+              <GlassView sheen={false} style={st.ratePanel}>
+                <Text style={[st.rateTitle, { color: textColor }]}>Rate this {cfg.noun.toLowerCase()} (0–10)</Text>
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                  <TextInput
+                    style={[st.rateInput, { color: textColor, borderColor: `${primary}30`, backgroundColor: surface }]}
+                    value={ratingVal} onChangeText={v => setRatingVal(v.replace(/[^0-9.]/g, ''))}
+                    keyboardType="numeric" placeholder="8.5" placeholderTextColor={muted}
+                  />
+                  <TextInput
+                    style={[st.rateInput, { flex: 1, color: textColor, borderColor: `${primary}30`, backgroundColor: surface }]}
+                    value={ratingNote} onChangeText={setRatingNote}
+                    placeholder="Note (optional)" placeholderTextColor={muted}
+                  />
+                </View>
+                <TouchableOpacity style={[st.rateSubmit, { backgroundColor: primary }]} onPress={submitRating}>
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Submit rating</Text>
+                </TouchableOpacity>
+              </GlassView>
+            )}
+
             {/* ── Career timeline (clubs by season) ─────────────── */}
             {career.spells.length > 0 && (
               <>
@@ -267,6 +336,13 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
             )}
           </ScrollView>
         )}
+
+        <PlayerEditModal
+          visible={editOpen}
+          player={player}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => load()}
+        />
       </View>
     </Modal>
   );
@@ -306,11 +382,18 @@ const st = StyleSheet.create({
   metaChip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
   metaChipText: { fontSize: 11, fontWeight: '700' },
 
-  actions: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  actions: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   followBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 13, borderRadius: 24, borderWidth: 1.5 },
   followText: { fontWeight: '900', fontSize: 14 },
   claimBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 13, borderRadius: 24, borderWidth: 1 },
   claimText: { fontWeight: '800', fontSize: 13 },
+  secondaryRow: { flexDirection: 'row', gap: 8, marginBottom: 18 },
+  secBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 18, borderWidth: 1 },
+  secText: { fontWeight: '800', fontSize: 12 },
+  ratePanel: { padding: 14, marginBottom: 18 },
+  rateTitle: { fontSize: 13, fontWeight: '800' },
+  rateInput: { width: 70, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14 },
+  rateSubmit: { marginTop: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 11, borderRadius: 12 },
 
   sectionTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 1.4, marginBottom: 10, marginTop: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, marginBottom: 8 },
