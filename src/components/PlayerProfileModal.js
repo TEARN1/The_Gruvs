@@ -19,12 +19,15 @@ import { LiquidBackground } from './LiquidBackground';
 import { AnimatedCounter } from './Motion';
 import { haptics } from '../utils/haptics';
 import { TalentEngine, playerOVR } from '../services/talentEngine';
+import { talentConfig, resolveStat, statLabel } from '../constants/TalentConfig';
 
 const IS_WEB = Platform.OS === 'web';
 
-const StatPill = ({ label, value, color }) => (
+const StatPill = ({ label, value, color, decimal }) => (
   <View style={st.statPill}>
-    <AnimatedCounter value={value} style={[st.statValue, { color }]} />
+    {decimal
+      ? <Text style={[st.statValue, { color }]}>{Number(value || 0).toFixed(1)}</Text>
+      : <AnimatedCounter value={value} style={[st.statValue, { color }]} />}
     <Text style={st.statLabel}>{label}</Text>
   </View>
 );
@@ -84,6 +87,7 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
   const ovr = playerOVR(player);
   const flag = (player?.nationality || '').toUpperCase();
   const clubName = player?.current_club?.name || player?.current_club?.short_name;
+  const cfg = talentConfig(player?.category);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
@@ -95,7 +99,7 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={st.headerBtn}>
             <Feather name="x" size={22} color={textColor} />
           </TouchableOpacity>
-          <Text style={[st.headerTitle, { color: textColor }]}>Player</Text>
+          <Text style={[st.headerTitle, { color: textColor }]}>{cfg.noun}</Text>
           <View style={st.headerBtn} />
         </View>
 
@@ -115,7 +119,7 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
                 <View style={st.futOvrCol}>
                   <Text style={[st.futOvr, { color: primary }]}>{ovr}</Text>
                   <Text style={[st.futPos, { color: textColor }]}>
-                    {(player.primary_position || player.sport_type || 'PLR').slice(0, 3).toUpperCase()}
+                    {(player.primary_position || player.sport_type || cfg.noun).slice(0, 3).toUpperCase()}
                   </Text>
                   {flag ? <Text style={st.futFlag}>{flag}</Text> : null}
                   {clubName ? <Text style={[st.futClub, { color: muted }]} numberOfLines={1}>{clubName}</Text> : null}
@@ -135,12 +139,17 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
                 {player.is_verified && <Text>  <Feather name="check-circle" size={15} color={primary} /></Text>}
               </Text>
 
-              {/* Stat line */}
+              {/* Stat line — category-aware (Goals for soccer, Shows for music…) */}
               <View style={st.futStats}>
-                <StatPill label="GOALS"  value={player.career_goals || 0}   color={primary} />
-                <StatPill label="ASSIST" value={player.career_assists || 0} color={primary} />
-                <StatPill label="APPS"   value={player.career_apps || 0}    color={primary} />
-                <StatPill label="RATING" value={Math.round((player.career_rating || 0) * 10) / 10} color={primary} />
+                {cfg.cardStats.map(key => (
+                  <StatPill
+                    key={key}
+                    label={statLabel(player.category, key).toUpperCase().slice(0, 6)}
+                    value={resolveStat(player, key)}
+                    decimal={key === 'career_rating'}
+                    color={primary}
+                  />
+                ))}
               </View>
             </GlassView>
 

@@ -1256,6 +1256,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             <EventGuestsModal
               visible={guestsModalOpen}
               eventId={event.id}
+              category={event.category || event.sport_type || null}
               sportType={event.sport_type || null}
               onClose={() => setGuestsModalOpen(false)}
               onChanged={loadGuests}

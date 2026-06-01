@@ -21,14 +21,15 @@ import { PlayerProfileModal } from './PlayerProfileModal';
 import { TalentEngine, playerOVR } from '../services/talentEngine';
 
 const METRICS = [
-  { key: 'goals',     label: 'Goals',   icon: 'target' },
-  { key: 'assists',   label: 'Assists', icon: 'share-2' },
-  { key: 'rating',    label: 'Rating',  icon: 'star' },
-  { key: 'apps',      label: 'Apps',    icon: 'calendar' },
-  { key: 'followers', label: 'Fans',    icon: 'users' },
+  { key: 'rating',    label: 'Rating' },
+  { key: 'events',    label: 'Events' },
+  { key: 'goals',     label: 'Goals'  },
+  { key: 'awards',    label: 'Awards' },
+  { key: 'followers', label: 'Fans'   },
 ];
 
-const SPORTS = ['all', 'soccer', 'basketball', 'rugby', 'athletics', 'cricket', 'esports'];
+// Universal — any event category, not just sport.
+const CATEGORIES = ['all', 'sport', 'music', 'comedy', 'hackathon', 'fashion', 'esports', 'debate'];
 
 const AGE_BRACKETS = [
   { key: 'all',    label: 'All ages', min: null, max: null },
@@ -42,6 +43,8 @@ const MEDALS = ['🥇', '🥈', '🥉'];
 
 const metricValue = (p, metric) => {
   switch (metric) {
+    case 'events':    return p.career_events || 0;
+    case 'awards':    return p.career_awards || 0;
     case 'assists':   return p.career_assists || 0;
     case 'apps':      return p.career_apps || 0;
     case 'rating':    return Math.round((p.career_rating || 0) * 10) / 10;
@@ -58,9 +61,9 @@ export const TalentLeaderboardModal = ({ visible, onClose }) => {
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
   const surface   = currentTheme?.surface    || '#1a1f21';
 
-  const [metric, setMetric] = useState('goals');
-  const [sport, setSport]   = useState('all');
-  const [ageKey, setAgeKey] = useState('all');
+  const [metric, setMetric]   = useState('rating');
+  const [category, setCategory] = useState('all');
+  const [ageKey, setAgeKey]   = useState('all');
   const [region, setRegion] = useState('');
   const [rows, setRows]     = useState([]);
   const [loading, setLoading] = useState(false);
@@ -72,7 +75,7 @@ export const TalentLeaderboardModal = ({ visible, onClose }) => {
     const ab = AGE_BRACKETS.find(a => a.key === ageKey) || AGE_BRACKETS[0];
     const data = await TalentEngine.searchTopPlayers({
       metric,
-      sport: sport === 'all' ? null : sport,
+      category: category === 'all' ? null : category,
       region: region.trim() || null,
       minAge: ab.min,
       maxAge: ab.max,
@@ -80,7 +83,7 @@ export const TalentLeaderboardModal = ({ visible, onClose }) => {
     });
     setRows(data || []);
     setLoading(false); setRefreshing(false);
-  }, [metric, sport, ageKey, region]);
+  }, [metric, category, ageKey, region]);
 
   useEffect(() => { if (visible) load(); }, [visible, load]);
 
@@ -119,9 +122,9 @@ export const TalentLeaderboardModal = ({ visible, onClose }) => {
             ))}
           </ScrollView>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={lb.filterRow}>
-            {SPORTS.map(s => (
-              <Chip key={s} active={sport === s} onPress={() => setSport(s)}>
-                {s === 'all' ? 'All sports' : s.charAt(0).toUpperCase() + s.slice(1)}
+            {CATEGORIES.map(c => (
+              <Chip key={c} active={category === c} onPress={() => setCategory(c)}>
+                {c === 'all' ? 'All talent' : c.charAt(0).toUpperCase() + c.slice(1)}
               </Chip>
             ))}
           </ScrollView>

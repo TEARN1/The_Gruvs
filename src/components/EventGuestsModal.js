@@ -18,15 +18,17 @@ import { useToast } from './ToastNotification';
 import { GlassView } from './GlassView';
 import { haptics } from '../utils/haptics';
 import { TalentEngine } from '../services/talentEngine';
+import { talentConfig } from '../constants/TalentConfig';
 
-const ROLES = ['player', 'performer', 'guest', 'coach', 'judge'];
 const SIDES = [
   { key: null,   label: '—' },
   { key: 'home', label: 'Home' },
   { key: 'away', label: 'Away' },
 ];
 
-export const EventGuestsModal = ({ visible, eventId, sportType = null, onClose, onChanged }) => {
+export const EventGuestsModal = ({ visible, eventId, category = null, sportType = null, onClose, onChanged }) => {
+  const cfg = talentConfig(category);
+  const ROLES = cfg.roles;
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();
@@ -42,9 +44,11 @@ export const EventGuestsModal = ({ visible, eventId, sportType = null, onClose, 
   const [query, setQuery]     = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [role, setRole]       = useState('player');
+  const [role, setRole]       = useState(ROLES[0]);
   const [side, setSide]       = useState(null);
   const [adding, setAdding]   = useState(false);
+  const [editId, setEditId]   = useState(null);          // guest being edited
+  const [eForm, setEForm]     = useState({ rating: '', placement: '', award: '' });
   const searchTimer = useRef(null);
 
   const loadGuests = useCallback(async () => {
@@ -74,7 +78,7 @@ export const EventGuestsModal = ({ visible, eventId, sportType = null, onClose, 
     setAdding(true);
     haptics.medium();
     const added = await TalentEngine.addGuest({
-      eventId, guest, role, teamSide: side, addedBy: user.id,
+      eventId, guest, role, teamSide: side, category, addedBy: user.id,
     });
     if (added) {
       setGuests(g => [...g, added]);
@@ -93,6 +97,30 @@ export const EventGuestsModal = ({ visible, eventId, sportType = null, onClose, 
     const ok = await TalentEngine.removeGuest(g.id);
     if (!ok) { loadGuests(); toast.show('Could not remove', 'error'); }
     else onChanged?.();
+  };
+
+  const openEditor = (g) => {
+    haptics.select();
+    setEditId(g.id);
+    setEForm({
+      rating: g.rating != null ? String(g.rating) : '',
+      placement: g.placement != null ? String(g.placement) : '',
+      award: g.award || '',
+    });
+  };
+
+  const saveEdit = async (g) => {
+    const patch = {
+      rating: eForm.rating === '' ? null : Math.max(0, Math.min(10, Number(eForm.rating) || 0)),
+      placement: eForm.placement === '' ? null : parseInt(eForm.placement, 10) || null,
+      award: eForm.award.trim() || null,
+    };
+    setGuests(prev => prev.map(x => x.id === g.id ? { ...x, ...patch } : x));
+    setEditId(null);
+    haptics.success();
+    const ok = await TalentEngine.updateGuest(g.id, patch);
+    if (!ok) { loadGuests(); toast.show('Could not save', 'error'); }
+    else { toast.show('Saved', 'success'); onChanged?.(); }
   };
 
   const Chip = ({ active, onPress, children }) => (
@@ -190,22 +218,61 @@ export const EventGuestsModal = ({ visible, eventId, sportType = null, onClose, 
               const p = gst.player || {};
               const name = p.known_as || p.full_name || gst.guest_name || gst.profile?.username || 'Guest';
               const photo = p.photo_url || gst.profile?.avatar_url;
+              const editing = editId === gst.id;
               return (
-                <View key={gst.id} style={[g.guestRow, { borderBottomColor: `${primary}10` }]}>
-                  {photo
-                    ? <Image source={{ uri: photo }} style={g.avatar} />
-                    : <View style={[g.avatar, { backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }]}>
-                        <Text style={{ color: primary, fontWeight: '900' }}>{name[0].toUpperCase()}</Text>
-                      </View>}
-                  <View style={{ flex: 1 }}>
-                    <Text style={[g.name, { color: textColor }]} numberOfLines={1}>{name}</Text>
-                    <Text style={[g.sub, { color: muted }]}>
-                      {[gst.role, gst.team_side].filter(Boolean).join(' · ')}
-                    </Text>
+                <View key={gst.id} style={{ borderBottomWidth: 1, borderBottomColor: `${primary}10` }}>
+                  <View style={g.guestRow}>
+                    {photo
+                      ? <Image source={{ uri: photo }} style={g.avatar} />
+                      : <View style={[g.avatar, { backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }]}>
+                          <Text style={{ color: primary, fontWeight: '900' }}>{name[0].toUpperCase()}</Text>
+                        </View>}
+                    <View style={{ flex: 1 }}>
+                      <Text style={[g.name, { color: textColor }]} numberOfLines={1}>{name}</Text>
+                      <Text style={[g.sub, { color: muted }]} numberOfLines={1}>
+                        {[gst.role, gst.team_side, gst.award, gst.rating != null ? `★ ${gst.rating}` : null].filter(Boolean).join(' · ')}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => editing ? setEditId(null) : openEditor(gst)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ padding: 4 }}>
+                      <Feather name={editing ? 'chevron-up' : 'edit-2'} size={17} color={primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => doRemove(gst)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ padding: 4 }}>
+                      <Feather name="x-circle" size={19} color="#ef4444" />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity onPress={() => doRemove(gst)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Feather name="x-circle" size={20} color="#ef4444" />
-                  </TouchableOpacity>
+
+                  {/* Host-editable per-event performance */}
+                  {editing && (
+                    <View style={g.editor}>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[g.editLabel, { color: muted }]}>RATING /10</Text>
+                          <TextInput
+                            style={[g.editInput, { color: textColor, borderColor: `${primary}30`, backgroundColor: surface }]}
+                            value={eForm.rating} onChangeText={v => setEForm(f => ({ ...f, rating: v.replace(/[^0-9.]/g, '') }))}
+                            keyboardType="numeric" placeholder="8.5" placeholderTextColor={muted}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[g.editLabel, { color: muted }]}>PLACEMENT</Text>
+                          <TextInput
+                            style={[g.editInput, { color: textColor, borderColor: `${primary}30`, backgroundColor: surface }]}
+                            value={eForm.placement} onChangeText={v => setEForm(f => ({ ...f, placement: v.replace(/[^0-9]/g, '') }))}
+                            keyboardType="numeric" placeholder="1" placeholderTextColor={muted}
+                          />
+                        </View>
+                      </View>
+                      <Text style={[g.editLabel, { color: muted, marginTop: 8 }]}>AWARD</Text>
+                      <TextInput
+                        style={[g.editInput, { color: textColor, borderColor: `${primary}30`, backgroundColor: surface }]}
+                        value={eForm.award} onChangeText={v => setEForm(f => ({ ...f, award: v }))}
+                        placeholder="MVP · Best Set · 1st Place" placeholderTextColor={muted}
+                      />
+                      <TouchableOpacity style={[g.saveBtn, { backgroundColor: primary }]} onPress={() => saveEdit(gst)}>
+                        <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Save</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               );
             })}
@@ -231,7 +298,11 @@ const g = StyleSheet.create({
   name: { fontSize: 14, fontWeight: '800' },
   sub: { fontSize: 11, marginTop: 2 },
   sectionTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 1.2, marginTop: 16, marginBottom: 8 },
-  guestRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, borderBottomWidth: 1 },
+  guestRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
+  editor: { paddingBottom: 14, paddingTop: 2, paddingHorizontal: 4 },
+  editLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 0.8, marginBottom: 4 },
+  editInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, fontSize: 14 },
+  saveBtn: { marginTop: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 11, borderRadius: 12 },
 });
 
 export default EventGuestsModal;

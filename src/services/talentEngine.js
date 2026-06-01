@@ -135,15 +135,24 @@ export const TalentEngine = {
     }, []);
   },
 
-  async createPlayer({ full_name, known_as = null, sport_type = null, primary_position = null, nationality = null, region = null, photo_url = null, user_id = null, createdBy = null }) {
+  async createPlayer({ full_name, known_as = null, category = null, sport_type = null, headline = null, primary_position = null, nationality = null, region = null, photo_url = null, user_id = null, metrics = {}, createdBy = null }) {
     if (!full_name?.trim()) return null;
     return safe(async () => {
       const { data } = await supabase.from('players').insert({
-        full_name: full_name.trim(), known_as, sport_type, primary_position,
-        nationality, region, photo_url, user_id, created_by: createdBy,
+        full_name: full_name.trim(), known_as, category, sport_type, headline, primary_position,
+        nationality, region, photo_url, user_id, metrics, created_by: createdBy,
       }).select().single();
       return data;
     }, null);
+  },
+
+  /** Update a talent's editable profile fields (creator/claimant/admin only via RLS). */
+  async updateTalent(playerId, patch = {}) {
+    const ok = await resilient(
+      [() => supabase.from('players').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', playerId)],
+      { attemptsPerTier: 2, baseMs: 300, label: 'TalentEngine.updateTalent', fallbackValue: null }
+    );
+    return ok !== null;
   },
 
   // ── Event guests ("mention the guests who'll be there") ─────────────────
@@ -164,10 +173,10 @@ export const TalentEngine = {
    * role is "player" we also record a sport_athletes appearance so it rolls up
    * to the player's career (apps / recompute).
    */
-  async addGuest({ eventId, guest, role = 'player', teamSide = null, clubId = null, addedBy }) {
+  async addGuest({ eventId, guest, role = 'player', teamSide = null, clubId = null, category = null, addedBy }) {
     let playerId = guest.id || null;
     if (!playerId && guest.full_name) {
-      const created = await this.createPlayer({ ...guest, createdBy: addedBy });
+      const created = await this.createPlayer({ ...guest, category: guest.category || category, createdBy: addedBy });
       playerId = created?.id || null;
     }
     const inserted = await safe(async () => {
@@ -175,7 +184,7 @@ export const TalentEngine = {
         event_id: eventId, player_id: playerId, user_id: guest.user_id || null,
         guest_name: guest.full_name || guest.known_as || null,
         role, team_side: teamSide, club_id: clubId, added_by: addedBy,
-      }).select('*, player:player_id(id, full_name, known_as, photo_url, primary_position, career_goals, career_rating, is_verified), profile:user_id(username, avatar_url)').single();
+      }).select('*, player:player_id(id, full_name, known_as, photo_url, primary_position, category, career_goals, career_rating, is_verified), profile:user_id(username, avatar_url)').single();
       return data;
     }, null);
 
@@ -189,6 +198,15 @@ export const TalentEngine = {
     return inserted;
   },
 
+  /** Host edits a guest's per-event performance (role/side/rating/placement/award/metrics). */
+  async updateGuest(guestId, patch = {}) {
+    const ok = await resilient(
+      [() => supabase.from('event_guests').update(patch).eq('id', guestId)],
+      { attemptsPerTier: 2, baseMs: 300, label: 'TalentEngine.updateGuest', fallbackValue: null }
+    );
+    return ok !== null;
+  },
+
   async removeGuest(guestId) {
     const ok = await resilient(
       [() => supabase.from('event_guests').delete().eq('id', guestId)],
@@ -198,11 +216,12 @@ export const TalentEngine = {
   },
 
   // ── Scout search (leaderboard) ──────────────────────────────────────────
-  async searchTopPlayers({ sport = null, metric = 'goals', region = null, position = null, minAge = null, maxAge = null, limit = 10 } = {}) {
+  async searchTopPlayers({ category = null, sport = null, metric = 'rating', region = null, position = null, minAge = null, maxAge = null, limit = 10 } = {}) {
     return safe(async () => {
       const { data } = await supabase.rpc('search_top_players', {
-        p_sport: sport, p_metric: metric, p_region: region,
-        p_position: position, p_min_age: minAge, p_max_age: maxAge, p_limit: limit,
+        p_category: category, p_metric: metric, p_region: region,
+        p_position: position, p_min_age: minAge, p_max_age: maxAge,
+        p_sport: sport, p_limit: limit,
       });
       return data;
     }, []);
