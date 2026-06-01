@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
+import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, ScoreEngine, VibeManager } from '../services/dataFlow';
@@ -22,6 +23,11 @@ import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
 import { useEventRole } from '../hooks/useEventRole';
 import { SafeSection } from '../components/SafeSection';
+import { NowPlayingBar } from '../components/NowPlayingBar';
+import { EventFollowButton } from '../components/EventFollowButton';
+import { SetNowPlayingModal } from '../components/SetNowPlayingModal';
+import { VendorMenuSheet } from '../components/VendorMenuSheet';
+import { HackathonLeaderboard } from '../components/HackathonLeaderboard';
 
 // ── Lazy section components (each loads independently — one failure cannot crash another) ──
 const EchoSection        = React.lazy(() => import('../components/EchoSection').then(m => ({ default: m.EchoSection })));
@@ -44,11 +50,9 @@ const OrganizerDashboard = React.lazy(() => import('../components/OrganizerDashb
 const LiveEventBanner    = React.lazy(() => import('../components/LiveEventBanner').then(m => ({ default: m.LiveEventBanner })));
 const EventManagementPanel = React.lazy(() => import('../components/EventManagementPanel').then(m => ({ default: m.EventManagementPanel })));
 const SportManagementPanel = React.lazy(() => import('../components/SportManagementPanel').then(m => ({ default: m.SportManagementPanel })));
-import { NowPlayingBar } from '../components/NowPlayingBar';
-import { EventFollowButton } from '../components/EventFollowButton';
-import { SetNowPlayingModal } from '../components/SetNowPlayingModal';
-import { VendorMenuSheet } from '../components/VendorMenuSheet';
-import { HackathonLeaderboard } from '../components/HackathonLeaderboard';
+const EventGuestsModal   = React.lazy(() => import('../components/EventGuestsModal').then(m => ({ default: m.EventGuestsModal })));
+const PlayerProfileModal = React.lazy(() => import('../components/PlayerProfileModal').then(m => ({ default: m.PlayerProfileModal })));
+
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
   return SPORT_CATS.has(cat?.toLowerCase());
@@ -138,11 +142,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
+  const [guests, setGuests] = useState([]);
+  const [guestsModalOpen, setGuestsModalOpen] = useState(false);
+  const [openGuestPlayer, setOpenGuestPlayer] = useState(null);
   const scrollRef = useRef(null);
 
   const { isOrganiser, isCoHost, canPost, canModerate } = useEventRole(
     event?.id, user?.id, event?.author_id ?? event?.profiles?.id
   );
+
+  const loadGuests = useCallback(() => {
+    if (event?.id) TalentEngine.getEventGuests(event.id).then(setGuests).catch(() => {});
+  }, [event?.id]);
+  useEffect(() => { loadGuests(); }, [loadGuests]);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -893,6 +905,55 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </SafeSection>
           )}
 
+          {/* Guests & Lineup — tagged players/performers; tap to view career */}
+          {event?.id && (guests.length > 0 || isOrganiser) && (
+            <View style={{ marginTop: 20, marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 10 }}>
+                <Text style={{ color: textColor, fontSize: 16, fontWeight: '900' }}>Guests & Lineup</Text>
+                {isOrganiser && (
+                  <TouchableOpacity
+                    onPress={() => setGuestsModalOpen(true)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: `${primary}50`, backgroundColor: `${primary}12` }}
+                  >
+                    <Feather name="user-plus" size={13} color={primary} />
+                    <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>Manage</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              {guests.length === 0 ? (
+                <Text style={{ color: textMuted, fontSize: 12, paddingHorizontal: 16 }}>
+                  Tag the players, performers or judges who’ll be here — they’ll show on their own profiles too.
+                </Text>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                  {guests.map(gst => {
+                    const p = gst.player || {};
+                    const name = p.known_as || p.full_name || gst.guest_name || gst.profile?.username || 'Guest';
+                    const photo = p.photo_url || gst.profile?.avatar_url;
+                    return (
+                      <TouchableOpacity
+                        key={gst.id}
+                        style={{ alignItems: 'center', width: 76 }}
+                        activeOpacity={0.85}
+                        onPress={() => { if (gst.player_id) setOpenGuestPlayer(gst.player_id); }}
+                      >
+                        {photo
+                          ? <Image source={{ uri: photo }} style={{ width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderColor: `${primary}50` }} />
+                          : <View style={{ width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderColor: `${primary}50`, backgroundColor: `${primary}18`, alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ color: primary, fontWeight: '900', fontSize: 20 }}>{name[0].toUpperCase()}</Text>
+                            </View>}
+                        <Text style={{ color: textColor, fontSize: 11, fontWeight: '700', marginTop: 5, textAlign: 'center' }} numberOfLines={1}>{name}</Text>
+                        <Text style={{ color: textMuted, fontSize: 9, textAlign: 'center' }} numberOfLines={1}>
+                          {[gst.role, gst.team_side].filter(Boolean).join(' · ')}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
+            </View>
+          )}
+
           {!!event?.ticket_url && (
             <TouchableOpacity
               style={[styles.ticketBtn, { backgroundColor: primary }]}
@@ -1186,6 +1247,28 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               onClose={() => setRoleManagerVisible(false)}
               eventId={event.id}
               organiserId={event.author_id ?? event.profiles?.id}
+            />
+          </SafeSection>
+        )}
+
+        {isOrganiser && event?.id && guestsModalOpen && (
+          <SafeSection label="Guests" primary={primary}>
+            <EventGuestsModal
+              visible={guestsModalOpen}
+              eventId={event.id}
+              sportType={event.sport_type || null}
+              onClose={() => setGuestsModalOpen(false)}
+              onChanged={loadGuests}
+            />
+          </SafeSection>
+        )}
+
+        {openGuestPlayer && (
+          <SafeSection label="Player" primary={primary}>
+            <PlayerProfileModal
+              visible={!!openGuestPlayer}
+              playerId={openGuestPlayer}
+              onClose={() => setOpenGuestPlayer(null)}
             />
           </SafeSection>
         )}

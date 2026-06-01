@@ -8,6 +8,7 @@
  */
 import { supabase } from './supabase';
 import { resilient } from '../utils/resilience';
+import { sanitizeSearch } from '../utils/sanitize';
 
 const safe = async (fn, fallback) => {
   try { const v = await fn(); return v ?? fallback; } catch { return fallback; }
@@ -116,6 +117,82 @@ export const TalentEngine = {
     const ok = await resilient(
       [() => supabase.from('players').update({ user_id: userId }).eq('id', playerId).is('user_id', null)],
       { attemptsPerTier: 2, baseMs: 300, label: 'TalentEngine.claimPlayer', fallbackValue: null }
+    );
+    return ok !== null;
+  },
+
+  // ── Players: search + create (for tagging guests) ──────────────────────
+  async searchPlayers(query, limit = 12) {
+    const s = sanitizeSearch(query);
+    if (!s) return [];
+    return safe(async () => {
+      const { data } = await supabase
+        .from('players')
+        .select('id, full_name, known_as, photo_url, primary_position, sport_type, current_club_id, is_verified')
+        .ilike('full_name', `%${s}%`)
+        .limit(limit);
+      return data;
+    }, []);
+  },
+
+  async createPlayer({ full_name, known_as = null, sport_type = null, primary_position = null, nationality = null, region = null, photo_url = null, user_id = null, createdBy = null }) {
+    if (!full_name?.trim()) return null;
+    return safe(async () => {
+      const { data } = await supabase.from('players').insert({
+        full_name: full_name.trim(), known_as, sport_type, primary_position,
+        nationality, region, photo_url, user_id, created_by: createdBy,
+      }).select().single();
+      return data;
+    }, null);
+  },
+
+  // ── Event guests ("mention the guests who'll be there") ─────────────────
+  async getEventGuests(eventId) {
+    return safe(async () => {
+      const { data } = await supabase
+        .from('event_guests')
+        .select('*, player:player_id(id, full_name, known_as, photo_url, primary_position, career_goals, career_rating, is_verified), profile:user_id(username, avatar_url)')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: true });
+      return data;
+    }, []);
+  },
+
+  /**
+   * Tag a guest on an event. `guest` may reference an existing player ({id})
+   * or describe a new one ({full_name, ...}) which is created first. When the
+   * role is "player" we also record a sport_athletes appearance so it rolls up
+   * to the player's career (apps / recompute).
+   */
+  async addGuest({ eventId, guest, role = 'player', teamSide = null, clubId = null, addedBy }) {
+    let playerId = guest.id || null;
+    if (!playerId && guest.full_name) {
+      const created = await this.createPlayer({ ...guest, createdBy: addedBy });
+      playerId = created?.id || null;
+    }
+    const inserted = await safe(async () => {
+      const { data } = await supabase.from('event_guests').insert({
+        event_id: eventId, player_id: playerId, user_id: guest.user_id || null,
+        guest_name: guest.full_name || guest.known_as || null,
+        role, team_side: teamSide, club_id: clubId, added_by: addedBy,
+      }).select('*, player:player_id(id, full_name, known_as, photo_url, primary_position, career_goals, career_rating, is_verified), profile:user_id(username, avatar_url)').single();
+      return data;
+    }, null);
+
+    if (playerId && role === 'player') {
+      // Record the appearance + refresh cached career totals (best-effort).
+      await safe(() => supabase.from('sport_athletes').insert({
+        event_id: eventId, player_id: playerId, name: guest.full_name || guest.known_as || 'Player', user_id: guest.user_id || null,
+      }), null);
+      await safe(() => supabase.rpc('recompute_player_career', { p_player_id: playerId }), null);
+    }
+    return inserted;
+  },
+
+  async removeGuest(guestId) {
+    const ok = await resilient(
+      [() => supabase.from('event_guests').delete().eq('id', guestId)],
+      { attemptsPerTier: 2, baseMs: 300, label: 'TalentEngine.removeGuest', fallbackValue: null }
     );
     return ok !== null;
   },
