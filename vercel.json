@@ -22,6 +22,8 @@
       "source": "/.well-known/:path*",
       "destination": "/.well-known/:path*"
     },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms",   "destination": "/terms.html" },
     {
       "source": "/(.*)",
       "destination": "/index.html"
