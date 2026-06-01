@@ -15,6 +15,8 @@ import { supabase } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { NotificationService } from '../services/notificationService';
 import { DirectMessageModal } from './DirectMessageModal';
+import { PlayerProfileModal } from './PlayerProfileModal';
+import { TalentEngine } from '../services/talentEngine';
 import { EditEventModal } from './EditEventModal';
 import { UserManager, PresenceManager, AuraService, isOnline as checkOnline } from '../services/dataFlow';
 import { useToast } from './ToastNotification';
@@ -168,6 +170,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [activeTab, setActiveTab] = useState('events');
   const [dmOpen, setDmOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [playerId, setPlayerId] = useState(null);
+  const [playerCardOpen, setPlayerCardOpen] = useState(false);
   const [followersList, setFollowersList] = useState([]);
   const [followersModalVisible, setFollowersModalVisible] = useState(false);
   const [followingList, setFollowingList] = useState([]);
@@ -186,6 +190,16 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
   const targetId = propUserId || propUser?.id;
   const isOwnProfile = currentUser?.id === targetId;
+
+  // Resolve this user's claimed player identity (if any) for the career card.
+  useEffect(() => {
+    let alive = true;
+    setPlayerId(null);
+    if (visible && targetId) {
+      TalentEngine.getPlayerByUser(targetId).then(p => { if (alive) setPlayerId(p?.id || null); });
+    }
+    return () => { alive = false; };
+  }, [visible, targetId]);
 
   useEffect(() => {
     if (visible) {
@@ -461,6 +475,16 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                 {profile.display_name ? (
                   <Text style={[s.displayName, { color: muted }]}>{profile.display_name}</Text>
                 ) : null}
+                {playerId && (
+                  <TouchableOpacity
+                    onPress={() => setPlayerCardOpen(true)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, borderWidth: 1, borderColor: `${primary}50`, backgroundColor: `${primary}12` }}
+                    activeOpacity={0.85}
+                  >
+                    <Feather name="award" size={13} color={primary} />
+                    <Text style={{ color: primary, fontWeight: '900', fontSize: 12 }}>View Player Card</Text>
+                  </TouchableOpacity>
+                )}
                 {rank && (
                   <View style={[s.rankBadge, { backgroundColor: `${rank.color}20`, borderColor: `${rank.color}50` }]}>
                     <Feather name="star" size={10} color={rank.color} />
@@ -632,6 +656,12 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         </Animated.View>
       </View>
     </Modal>
+
+    <PlayerProfileModal
+      visible={playerCardOpen}
+      playerId={playerId}
+      onClose={() => setPlayerCardOpen(false)}
+    />
 
     <DirectMessageModal
       visible={dmOpen}
