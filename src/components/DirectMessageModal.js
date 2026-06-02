@@ -19,6 +19,7 @@ import { MessageManager, BlockManager, isOnline as checkOnline } from '../servic
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useDraft } from '../hooks/useDraft';
 import { useToast } from '../components/ToastNotification';
 import { LocationService } from '../services/locationService';
 import { uploadToStorage } from '../services/storageService';
@@ -176,6 +177,13 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 
   const [messages, setMessages] = useState([]);
   const [body, setBody] = useState('');
+  // Draft: a half-typed message survives closing the chat; cleared on send.
+  const { clearDraft: clearDmDraft } = useDraft(
+    user && recipient ? `draft:dm:${recipient.id}:${user.id}` : null,
+    () => ({ body }),
+    (d) => { if (typeof d.body === 'string') setBody(d.body); },
+    { enabled: !!visible && !!user && !!recipient },
+  );
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -386,7 +394,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 
     const parentId = replyingTo?.id || null;
     setSending(true);
-    setBody('');
+    setBody(''); clearDmDraft();
     setReplyingTo(null);
     broadcastTyping(false);
 
