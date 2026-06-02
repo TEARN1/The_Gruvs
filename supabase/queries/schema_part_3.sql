@@ -385,10 +385,19 @@ DROP POLICY IF EXISTS "sport_followers_read" ON public.sport_event_followers;
 CREATE POLICY "sport_followers_read" ON public.sport_event_followers FOR SELECT USING (true);
 
 -- ── ENABLE REALTIME ──────────────────────────────────────────────────────────
-ALTER PUBLICATION supabase_realtime ADD TABLE public.sport_matches;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.sport_match_events;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.sport_live_commentary;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.sport_league_table;
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['sport_matches','sport_match_events','sport_live_commentary','sport_league_table']
+  LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
+END $$;
 
 -- ── FUNCTION: Recompute League Table ─────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.recompute_league_table(p_event_id UUID)
