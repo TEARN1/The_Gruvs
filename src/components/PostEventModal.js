@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useDraft } from '../hooks/useDraft';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator,
@@ -90,6 +91,33 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
+
+  // Drafts: autosave the event form so an interruption never wipes your work.
+  const restoreDraft = (d) => {
+    if (typeof d.title === 'string') setTitle(d.title);
+    if (typeof d.description === 'string') setDescription(d.description);
+    if (typeof d.address === 'string') setAddress(d.address);
+    if (typeof d.city === 'string') setCity(d.city);
+    if (typeof d.ticketUrl === 'string') setTicketUrl(d.ticketUrl);
+    if (typeof d.contactPhone === 'string') setContactPhone(d.contactPhone);
+    if (typeof d.contactEmail === 'string') setContactEmail(d.contactEmail);
+    if (typeof d.entryPrice === 'string') setEntryPrice(d.entryPrice);
+    if (typeof d.vipPrice === 'string') setVipPrice(d.vipPrice);
+    if (typeof d.vvipPrice === 'string') setVvipPrice(d.vvipPrice);
+    if (typeof d.otherTickets === 'string') setOtherTickets(d.otherTickets);
+    if (typeof d.eventType === 'string') setEventType(d.eventType);
+    if (typeof d.ageMin === 'number') setAgeMin(d.ageMin);
+    if (typeof d.ageMax === 'number') setAgeMax(d.ageMax);
+    if (Array.isArray(d.selectedCategories)) setSelectedCategories(d.selectedCategories);
+    if (Array.isArray(d.scheduleItems)) setScheduleItems(d.scheduleItems);
+    if (d.competitionId) setCompetitionId(d.competitionId);
+  };
+  const { clearDraft } = useDraft(
+    user ? `draft:event:${user.id}` : null,
+    () => ({ title, description, address, city, ticketUrl, contactPhone, contactEmail, entryPrice, vipPrice, vvipPrice, otherTickets, eventType, ageMin, ageMax, selectedCategories, scheduleItems, competitionId }),
+    restoreDraft,
+    { enabled: visible && !!user },
+  );
 
   const reset = () => {
     setTitle(''); setDescription(''); setAddress(''); setCity('');
@@ -452,6 +480,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
           routeRecurringEvent(result.id, { ...payload, id: result.id }).catch(() => {});
         }).catch(() => {});
       }
+      clearDraft();
       reset();
       if (result !== true && result?.id) onCreated?.(result);
       onPostSuccess?.();

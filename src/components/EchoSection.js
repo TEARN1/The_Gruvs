@@ -6,6 +6,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useDraft } from '../hooks/useDraft';
 import { supabase } from '../services/supabase';
 import { log } from '../utils/log';
 import { thumb } from '../utils/storageThumb';
@@ -105,6 +106,13 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
   const [replyTo, setReplyTo] = useState(null);
   const [likedEchoes, setLikedEchoes] = useState(new Set());
   const [posting, setPosting] = useState(false);
+  // Draft: keep a half-typed comment so closing the thread never loses it.
+  const { clearDraft: clearEchoDraft } = useDraft(
+    user && eventId ? `draft:echo:${eventId}:${user.id}` : null,
+    () => ({ text }),
+    (d) => { if (typeof d.text === 'string') setText(d.text); },
+    { enabled: !!user && !!eventId },
+  );
 
   const primary = currentTheme?.primary || "#00f2ff";
   const textColor = currentTheme?.text || '#fff';
@@ -159,7 +167,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
       profiles: { username: profile?.username || user.user_metadata?.username || 'You', avatar_url: profile?.avatar_url || null },
     };
     setEchoes(prev => [optimistic, ...(prev ?? [])]);
-    setText('');
+    setText(''); clearEchoDraft();
     setReplyTo(null);
     setPosting(true);
     try {
