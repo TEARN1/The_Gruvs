@@ -194,6 +194,17 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
   const [expandedSlot, setExpandedSlot] = useState(null);
 
   const schedule = event?.schedule || [];
+  const _multiDay = new Set(schedule.map(x => x.day || 1)).size > 1 || (!!event?.end_date && event.end_date !== event?.event_date);
+  const _dayDate = (n) => { if (!event?.event_date) return ''; const base = new Date(event.event_date); base.setDate(base.getDate() + (n - 1)); return base.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
+  const scheduleByDay = (() => {
+    let last = null;
+    return schedule.map((x, i) => ({ slot: x, idx: i })).sort((a, b) => (a.slot.day || 1) - (b.slot.day || 1)).map(({ slot, idx }) => {
+      const day = slot.day || 1;
+      const dayHeader = (_multiDay && day !== last) ? { day, date: _dayDate(day) } : null;
+      last = day;
+      return { slot, idx, dayHeader };
+    });
+  })();
   const eventId = event?.id;
 
   const loadPolls = useCallback(async () => {
@@ -281,11 +292,18 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
       {/* Schedule slots */}
       {schedule.length > 0 && (
         <View style={{ gap: 10, marginBottom: 16 }}>
-          {schedule.map((slot, idx) => {
+          {scheduleByDay.map(({ slot, idx, dayHeader }) => {
             const slotPolls = pollsForSlot(slot.title);
             const isExpanded = expandedSlot === idx;
             return (
-              <View key={idx} style={[ss.slotCard, { borderColor: `${primary}25`, backgroundColor: `${primary}06` }]}>
+              <React.Fragment key={idx}>
+              {dayHeader && (
+                <View style={ss.dayHeader}>
+                  <Text style={[ss.dayHeaderText, { color: primary }]}>DAY {dayHeader.day}</Text>
+                  <Text style={[ss.dayHeaderDate, { color: muted }]}>{dayHeader.date}</Text>
+                </View>
+              )}
+              <View style={[ss.slotCard, { borderColor: `${primary}25`, backgroundColor: `${primary}06` }]}>
                 <TouchableOpacity
                   style={ss.slotHeader}
                   onPress={() => setExpandedSlot(isExpanded ? null : idx)}
@@ -347,6 +365,7 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
                   </View>
                 )}
               </View>
+              </React.Fragment>
             );
           })}
         </View>
@@ -394,6 +413,9 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const ss = StyleSheet.create({
+  dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 2, paddingHorizontal: 2 },
+  dayHeaderText: { fontSize: 12, fontWeight: '900', letterSpacing: 1.2 },
+  dayHeaderDate: { fontSize: 11, fontWeight: '700' },
   container: { marginTop: 20, marginBottom: 8 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   sectionTitle: { fontSize: 16, fontWeight: '900', letterSpacing: 0.5 },

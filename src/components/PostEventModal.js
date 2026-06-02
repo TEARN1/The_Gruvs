@@ -73,7 +73,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [scheduleItems, setScheduleItems] = useState([]); // { id, time, title, performer, notes }
   const [scheduleFormVisible, setScheduleFormVisible] = useState(false);
   const [competitionId, setCompetitionId] = useState(null); // optional tournament link
-  const [scheduleForm, setScheduleForm] = useState({ time: '', title: '', performer: '', notes: '' });
+  const [scheduleForm, setScheduleForm] = useState({ time: '', title: '', performer: '', notes: '', day: 1 });
   const [loading, setLoading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [error, setError] = useState('');
@@ -131,7 +131,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     setAgeMin(0); setAgeMax(0); setSelectedCategories([]); setMediaItems([]);
     setEndHour(null); setEndMinute(null); setEndTimeSet(false); setEndTimePickerVisible(false);
     setScheduleItems([]); setScheduleFormVisible(false);
-    setScheduleForm({ time: '', title: '', performer: '', notes: '' });
+    setScheduleForm({ time: '', title: '', performer: '', notes: '', day: 1 });
     setIsRecurring(false); setRecurrenceType('weekly'); setRecurrenceInterval(1);
     setRecurrenceDays([]); setRecurrenceEndDate(null); setCustomDates([]);
     setStep(1);
@@ -533,11 +533,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       ...prev,
       { id: `${Date.now()}_${Math.random().toString(36).slice(2)}`, ...scheduleForm },
     ]);
-    setScheduleForm({ time: '', title: '', performer: '', notes: '' });
+    setScheduleForm({ time: '', title: '', performer: '', notes: '', day: 1 });
     setScheduleFormVisible(false);
   };
 
   const removeScheduleItem = (id) => setScheduleItems(prev => prev.filter(s => s.id !== id));
+
+  const eventDays = (pickedDate && endDate)
+    ? Math.max(1, Math.round((new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) - new Date(pickedDate.getFullYear(), pickedDate.getMonth(), pickedDate.getDate())) / 86400000) + 1)
+    : 1;
 
   const renderScheduleBuilder = () => (
     <View style={{ marginBottom: 20 }}>
@@ -560,6 +564,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                 <Text style={[pm.scheduleTime, { color: primary }]}>{item.time}</Text>
               </View>
               <View style={{ flex: 1 }}>
+                {eventDays > 1 && <Text style={{ color: primary, fontSize: 9, fontWeight: '900', letterSpacing: 0.5, marginBottom: 1 }}>DAY {item.day || 1}</Text>}
                 <Text style={[pm.scheduleTitle, { color: textColor }]}>{item.title}</Text>
                 {!!item.performer && <Text style={[pm.scheduleSub, { color: muted }]}>{item.performer}</Text>}
                 {!!item.notes && <Text style={[pm.scheduleSub, { color: muted, fontStyle: 'italic' }]}>{item.notes}</Text>}
@@ -609,6 +614,22 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
             onChangeText={v => setScheduleForm(f => ({ ...f, notes: v }))}
             maxLength={100}
           />
+          {eventDays > 1 && (
+            <View style={{ marginTop: 8 }}>
+              <Text style={[pm.label, { color: muted, marginBottom: 6 }]}>Which day?</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 2 }}>
+                {Array.from({ length: eventDays }, (_, i) => i + 1).map(dn => {
+                  const active = (scheduleForm.day || 1) === dn;
+                  return (
+                    <TouchableOpacity key={dn} onPress={() => setScheduleForm(f => ({ ...f, day: dn }))}
+                      style={{ paddingHorizontal: 13, paddingVertical: 6, borderRadius: 14, borderWidth: 1, backgroundColor: active ? primary : `${primary}12`, borderColor: active ? primary : `${primary}30` }}>
+                      <Text style={{ color: active ? '#000' : primary, fontWeight: '800', fontSize: 12 }}>Day {dn}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
             <TouchableOpacity
               style={[pm.scheduleConfirmBtn, { backgroundColor: scheduleForm.time && scheduleForm.title ? primary : `${primary}30`, flex: 1 }]}
@@ -620,7 +641,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
             </TouchableOpacity>
             <TouchableOpacity
               style={[pm.scheduleConfirmBtn, { borderColor: `${primary}30`, borderWidth: 1, backgroundColor: 'transparent' }]}
-              onPress={() => { setScheduleFormVisible(false); setScheduleForm({ time: '', title: '', performer: '', notes: '' }); }}
+              onPress={() => { setScheduleFormVisible(false); setScheduleForm({ time: '', title: '', performer: '', notes: '', day: 1 }); }}
             >
               <Text style={{ color: muted, fontWeight: '700', fontSize: 13 }}>Cancel</Text>
             </TouchableOpacity>
