@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView, Pressable, Image,
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
+import { WritingStylePicker } from '../components/WritingStylePicker';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
@@ -3004,6 +3005,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          <WritingStylePicker gender={gender} sample={profile?.username || profile?.display_name || 'The Gruvs'} userId={user?.id} primary={primary} muted={muted} />
           </GlassView>
         )}
 
