@@ -11,6 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { transform, stylesForGender } from '../utils/writingStyles';
 import { haptics } from '../utils/haptics';
+import { supabase } from '../services/supabase';
 
 export const writingStyleKey = (userId) => `writing_style:${userId || 'me'}`;
 
@@ -26,6 +27,9 @@ export const WritingStylePicker = ({ gender = 'male', sample = 'The Gruvs', user
     try { haptics.select?.(); } catch {}
     setSelected(key);
     AsyncStorage.setItem(writingStyleKey(userId), key).catch(() => {});
+    // Persist to the profile too so it follows the user and renders for others.
+    // (Plain text stays plain in the DB — we only transform on display.)
+    if (userId) supabase.from('profiles').update({ writing_style: key }).eq('id', userId).then(() => {}, () => {});
   };
 
   const previewText = (sample && sample.trim()) ? sample.trim().slice(0, 16) : 'The Gruvs';

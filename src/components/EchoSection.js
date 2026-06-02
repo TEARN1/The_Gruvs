@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useDraft } from '../hooks/useDraft';
 import { supabase } from '../services/supabase';
 import { log } from '../utils/log';
+import { transform } from '../utils/writingStyles';
 import { thumb } from '../utils/storageThumb';
 import { resilient } from '../utils/resilience';
 
@@ -80,7 +81,7 @@ const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, 
           )}
           <Text style={[styles.echoTime, { color: muted }]}>{formatAge(echo.created_at)}</Text>
         </View>
-        <Text style={[styles.echoContent, { color: textColor }]}>{echo.body}</Text>
+        <Text style={[styles.echoContent, { color: textColor }]}>{transform(echo.body, echo.profiles?.writing_style)}</Text>
         <View style={styles.echoActions}>
           <TouchableOpacity onPress={() => onLike(echo.id)} style={[styles.likeBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
             <Feather name="heart" size={13} color={isLiked ? "#ef4444" : muted} />
@@ -124,7 +125,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
     try {
       const { data, error } = await supabase
         .from('echoes')
-        .select('id, body, likes, parent_id, created_at, user_id, profiles:user_id(username, avatar_url)')
+        .select('id, body, likes, parent_id, created_at, user_id, profiles:user_id(username, avatar_url, writing_style)')
         .eq('event_id', eventId)
         .order(sort === 'top' ? 'likes' : 'created_at', { ascending: false })
         .limit(30);

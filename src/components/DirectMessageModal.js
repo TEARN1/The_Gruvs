@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useDraft } from '../hooks/useDraft';
+import { transform } from '../utils/writingStyles';
 import { useToast } from '../components/ToastNotification';
 import { LocationService } from '../services/locationService';
 import { uploadToStorage } from '../services/storageService';
@@ -241,6 +242,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
   const [messages, setMessages] = useState([]);
+  const [msgStyles, setMsgStyles] = useState({}); // sender_id -> writing_style (display only; body stays plain)
+  useEffect(() => {
+    if (!user || !recipient) return undefined;
+    let alive = true;
+    supabase.from('profiles').select('id, writing_style').in('id', [user.id, recipient.id])
+      .then(({ data }) => { if (alive && data) { const m = {}; data.forEach(p => { if (p.writing_style) m[p.id] = p.writing_style; }); setMsgStyles(m); } })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [user?.id, recipient?.id]);
   const [body, setBody] = useState('');
   // Draft: a half-typed message survives closing the chat; cleared on send.
   const { clearDraft: clearDmDraft } = useDraft(
@@ -732,7 +742,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 <Text style={[dm.timeText, { color: isMine ? 'rgba(0,0,0,0.5)' : muted, marginLeft: 10 }]}>Tap to view</Text>
               </TouchableOpacity>
             ) : item.body ? (
-              <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{item.body}</Text>
+              <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{transform(item.body, msgStyles[item.sender_id])}</Text>
             ) : null}
             {item.reaction && (
               <View style={dm.reactionBubble}>

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
 import { WritingStylePicker } from '../components/WritingStylePicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
@@ -1666,6 +1667,49 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [location, setLocation] = useState(profile?.location || '');
   const [website, setWebsite] = useState(profile?.website || '');
   const [interests, setInterests] = useState(profile?.interests || []);
+
+  // ── Profile-edit draft (restore-on-prompt, never silent overwrite) ────────
+  const PROFILE_DRAFT_KEY = user ? `draft:profile:${user.id}` : null;
+  const [profileDraft, setProfileDraft] = useState(null);   // pending draft awaiting Restore/Discard
+  const draftDecidedRef = useRef(false);
+  const serverSnapRef = useRef(null);
+  const profileSnap = () => ({ bio, location, website, interests, looksDescription, careerTitle, careerDescription });
+  useEffect(() => {
+    if (!PROFILE_DRAFT_KEY) return undefined;
+    let alive = true;
+    const server = { bio: profile?.bio || '', location: profile?.location || '', website: profile?.website || '', interests: profile?.interests || [], looksDescription: profile?.looks_description || '', careerTitle: profile?.career_title || '', careerDescription: profile?.career_description || '' };
+    serverSnapRef.current = server;
+    AsyncStorage.getItem(PROFILE_DRAFT_KEY).then(raw => {
+      if (!alive) return;
+      if (raw) { try { const d = JSON.parse(raw); if (d && JSON.stringify(d) !== JSON.stringify(server)) { setProfileDraft(d); return; } } catch { /* ignore */ } }
+      draftDecidedRef.current = true;
+    }).catch(() => { draftDecidedRef.current = true; });
+    return () => { alive = false; };
+  }, [PROFILE_DRAFT_KEY, profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const _profSnapJson = JSON.stringify(profileSnap());
+  useEffect(() => {
+    if (!PROFILE_DRAFT_KEY || !draftDecidedRef.current || profileDraft) return undefined;
+    const t = setTimeout(() => {
+      const server = serverSnapRef.current;
+      if (server && _profSnapJson !== JSON.stringify(server)) AsyncStorage.setItem(PROFILE_DRAFT_KEY, _profSnapJson).catch(() => {});
+      else AsyncStorage.removeItem(PROFILE_DRAFT_KEY).catch(() => {});
+    }, 700);
+    return () => clearTimeout(t);
+  }, [_profSnapJson, profileDraft, PROFILE_DRAFT_KEY]);
+  const restoreProfileDraft = () => {
+    const d = profileDraft;
+    if (d) {
+      if (typeof d.bio === 'string') setBio(d.bio);
+      if (typeof d.location === 'string') setLocation(d.location);
+      if (typeof d.website === 'string') setWebsite(d.website);
+      if (Array.isArray(d.interests)) setInterests(d.interests);
+      if (typeof d.looksDescription === 'string') setLooksDescription(d.looksDescription);
+      if (typeof d.careerTitle === 'string') setCareerTitle(d.careerTitle);
+      if (typeof d.careerDescription === 'string') setCareerDescription(d.careerDescription);
+    }
+    setProfileDraft(null); draftDecidedRef.current = true;
+  };
+  const discardProfileDraft = () => { if (PROFILE_DRAFT_KEY) AsyncStorage.removeItem(PROFILE_DRAFT_KEY).catch(() => {}); setProfileDraft(null); draftDecidedRef.current = true; };
   const [profileGender, setProfileGender] = useState(profile?.gender || '');
   const [birthYear, setBirthYear] = useState(profile?.birth_year ? String(profile.birth_year) : '');
   const [lookingFor, setLookingFor] = useState(profile?.looking_for || '');
@@ -1810,6 +1854,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         throw error;
       }
       if (!saved) throw new Error('Could not save profile');
+      serverSnapRef.current = profileSnap(); if (PROFILE_DRAFT_KEY) AsyncStorage.removeItem(PROFILE_DRAFT_KEY).catch(() => {});
       toast.show('Profile updated!', 'success');
     } catch (e) {
       toast.show('Save failed: ' + (e.message || 'Unknown error'), 'error');
@@ -2917,6 +2962,18 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         {settingsTab === 'career' && (
           <GlassView style={styles.section}>
             <Text style={[styles.sectionTitle, { color: primary }]}>Career & Looks</Text>
+            {profileDraft && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: `${primary}45`, backgroundColor: `${primary}12`, marginBottom: 14 }}>
+                <Feather name="rotate-ccw" size={16} color={primary} />
+                <Text style={{ color: textColor, fontSize: 12, flex: 1, fontWeight: '700' }}>Unsaved changes from before — restore them?</Text>
+                <TouchableOpacity onPress={restoreProfileDraft} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: primary }}>
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>Restore</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={discardProfileDraft} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Feather name="x" size={16} color={muted} />
+                </TouchableOpacity>
+              </View>
+            )}
             <Text style={[styles.sectionSub, { color: muted, marginBottom: 12 }]}>Let others know your vibe and profession to get invited to exclusive Gruvs.</Text>
 
             <View style={styles.editRow}>
