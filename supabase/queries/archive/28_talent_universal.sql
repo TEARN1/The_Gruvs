@@ -132,4 +132,4 @@ BEGIN
   LIMIT GREATEST(1, LEAST(p_limit, 100));
 END;
 $$;
-GRANT EXECUTE ON FUNCTION public.search_top_players TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.search_top_players(text, text, text, text, int, int, text, int) TO anon, authenticated;
