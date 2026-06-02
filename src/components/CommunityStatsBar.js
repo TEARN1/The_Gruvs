@@ -50,13 +50,13 @@ const fmt = (n) => {
 };
 
 const avatarBg = (u = '') =>
-  ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u.charCodeAt(0) || 0) % 5];
+  ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u.charCodeAt(0) || 0) % 5];
 
 export const CommunityStatsBar = () => {
   const { currentTheme } = useTheme();
   const { user }         = useAuth();
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const surface   = currentTheme?.surface    || "#1a1f21";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -82,7 +82,7 @@ export const CommunityStatsBar = () => {
     ]);
     const followingIds = new Set((following || []).map(r => r.following_id));
     const ids = (followers || []).map(r => r.follower_id).filter(id => followingIds.has(id));
-    mutualIdsCache.current = { ids, userId: user.id };
+    mutualIdsCache.current = { ids, userId: user?.id };
     return ids;
   };
 
@@ -165,8 +165,8 @@ export const CommunityStatsBar = () => {
         onPress={handleOpen}
         activeOpacity={0.8}
       >
-        <Animated.View style={[ss.dot, { backgroundColor: '#10b981', transform: [{ scale: pulseAnim }] }]} />
-        <Text style={[ss.count, { color: '#10b981' }]}>{fmt(onlineCount)}</Text>
+        <Animated.View style={[ss.dot, { backgroundColor: "#10b981", transform: [{ scale: pulseAnim }] }]} />
+        <Text style={[ss.count, { color: "#10b981" }]}>{fmt(onlineCount)}</Text>
         <Text style={[ss.label, { color: 'rgba(255,255,255,0.45)' }]}>
           {onlineCount === 1 ? 'mutual online' : 'mutuals online'}
         </Text>
@@ -183,7 +183,7 @@ export const CommunityStatsBar = () => {
         <View style={[ss.sheet, { backgroundColor: surface, borderColor: `${primary}18` }]}>
           <View style={[ss.handle, { backgroundColor: 'rgba(255,255,255,0.15)' }]} />
           <View style={[ss.sheetHeader, { borderBottomColor: 'rgba(255,255,255,0.06)' }]}>
-            <Animated.View style={[ss.dot, { backgroundColor: '#10b981', transform: [{ scale: pulseAnim }] }]} />
+            <Animated.View style={[ss.dot, { backgroundColor: "#10b981", transform: [{ scale: pulseAnim }] }]} />
             <Text style={[ss.sheetTitle, { color: textColor }]}>Mutuals Online Now</Text>
             <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Feather name="x" size={18} color={muted} />
@@ -268,7 +268,7 @@ const ss = StyleSheet.create({
   onlineDot: {
     position: 'absolute', bottom: 0, right: 0,
     width: 12, height: 12, borderRadius: 6,
-    backgroundColor: '#10b981', borderWidth: 2,
+    backgroundColor: "#10b981", borderWidth: 2,
   },
   viberName: { fontSize: 14, fontWeight: '800' },
   viberBio: { fontSize: 11 },

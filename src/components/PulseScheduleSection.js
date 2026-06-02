@@ -30,7 +30,7 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
   const [loading, setLoading]     = useState(true);
   const [posting, setPosting]     = useState(false);
 
-  const primary   = currentTheme?.primary   || '#00f2ff';
+  const primary   = currentTheme?.primary   || "#00f2ff";
   const muted     = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const textColor = currentTheme?.text      || '#fff';
 
@@ -55,7 +55,7 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
       const { data } = await supabase
         .from('pulse_votes')
         .select('request_id')
-        .eq('user_id', user.id);
+        .eq('user_id', user?.id);
       if (data) setMyVotes(new Set(data.map(v => v.request_id)));
     } catch { /* keep existing vote state on transient failure */ }
   }, [user]);
@@ -68,7 +68,7 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'pulse_requests',
         filter: `event_id=eq.${eventId}`,
-      }, () => fetchRequests())
+      } , () => fetchRequests())
       .subscribe();
 
     return () => supabase.removeChannel(channel);
@@ -90,9 +90,9 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
     try {
       const ok = await resilient(
         [
-          () => supabase.from('pulse_votes').insert({ request_id: requestId, user_id: user.id }),
-          () => supabase.from('pulse_votes').upsert({ request_id: requestId, user_id: user.id }, { onConflict: 'request_id,user_id', ignoreDuplicates: true }),
-          () => supabase.rpc('cast_pulse_vote', { p_request_id: requestId, p_user_id: user.id }),
+          () => supabase.from('pulse_votes').insert({ request_id: requestId, user_id: user?.id }),
+          () => supabase.from('pulse_votes').upsert({ request_id: requestId, user_id: user?.id }, { onConflict: 'request_id,user_id', ignoreDuplicates: true }),
+          () => supabase.rpc('cast_pulse_vote', { p_request_id: requestId, p_user_id: user?.id }),
         ],
         { attemptsPerTier: 2, baseMs: 300, label: `PulseSchedule.vote:${requestId}`, fallbackValue: null }
       );
@@ -123,12 +123,12 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
     setPosting(true);
 
     const tempId = `temp-${Date.now()}`;
-    const optimistic = { id: tempId, event_id: eventId, user_id: user.id, content, vote_count: 1, is_live: false };
+    const optimistic = { id: tempId, event_id: eventId, user_id: user?.id, content, vote_count: 1, is_live: false };
     setRequests(prev => [optimistic, ...prev]);
     setNewRequest('');
 
     try {
-      const payload = { event_id: eventId, user_id: user.id, content, vote_count: 1 };
+      const payload = { event_id: eventId, user_id: user?.id, content, vote_count: 1 };
       const result = await resilient(
         [
           async () => {
@@ -141,7 +141,7 @@ export const PulseScheduleSection = ({ eventId, eventCategory, onAuthRequired })
             if (error) throw error;
             return data;
           },
-          () => supabase.rpc('add_pulse_request', { p_event_id: eventId, p_user_id: user.id, p_content: content }),
+          () => supabase.rpc('add_pulse_request', { p_event_id: eventId, p_user_id: user?.id, p_content: content }),
         ],
         { attemptsPerTier: 2, baseMs: 400, label: `PulseSchedule.request:${eventId}`, fallbackValue: null }
       );

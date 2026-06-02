@@ -32,7 +32,7 @@ export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
               .from('event_waitlist')
               .select('id')
               .eq('event_id', eventId)
-              .eq('user_id', user.id)
+              .eq('user_id', user?.id)
               .maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
@@ -55,8 +55,8 @@ export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
       if (wasOn) {
         const ok = await resilient(
           [
-            () => supabase.from('event_waitlist').delete().eq('event_id', eventId).eq('user_id', user.id),
-            () => supabase.from('event_waitlist').update({ left_at: new Date().toISOString() }).eq('event_id', eventId).eq('user_id', user.id),
+            () => supabase.from('event_waitlist').delete().eq('event_id', eventId).eq('user_id', user?.id),
+            () => supabase.from('event_waitlist').update({ left_at: new Date().toISOString() }).eq('event_id', eventId).eq('user_id', user?.id),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: 'Waitlist.leave', fallbackValue: null }
         );
@@ -65,8 +65,8 @@ export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
       } else {
         const ok = await resilient(
           [
-            () => supabase.from('event_waitlist').upsert({ event_id: eventId, user_id: user.id, joined_at: new Date().toISOString() }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
-            () => supabase.from('event_waitlist').insert({ event_id: eventId, user_id: user.id }),
+            () => supabase.from('event_waitlist').upsert({ event_id: eventId, user_id: user?.id, joined_at: new Date().toISOString() }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
+            () => supabase.from('event_waitlist').insert({ event_id: eventId, user_id: user?.id }),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: 'Waitlist.join', fallbackValue: null }
         );

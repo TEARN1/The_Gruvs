@@ -283,10 +283,10 @@ export const EventPollSection = ({ eventId, canPost = false }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
+  const primary   = currentTheme?.primary    || "#00f2ff";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);

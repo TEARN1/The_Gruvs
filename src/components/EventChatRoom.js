@@ -15,7 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { ChatManager } from '../services/dataFlow';
 
 const avatarBg = (u = '') =>
-  ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u?.charCodeAt(0) || 0) % 5];
+  ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u?.charCodeAt(0) || 0) % 5];
 
 const timeStr = (iso) => {
   const d = new Date(iso);
@@ -29,7 +29,7 @@ const PresencePill = memo(({ users, primary, muted }) => {
   const extra = users.length - 3;
   return (
     <View style={pp.row}>
-      <View style={[pp.dot, { backgroundColor: '#10b981' }]} />
+      <View style={[pp.dot, { backgroundColor: "#10b981" }]} />
       {shown.map((u, i) => (
         u.avatar_url
           ? <Image key={i} source={{ uri: u.avatar_url }} style={[pp.avatar, { marginLeft: i === 0 ? 0 : -6 }]} />
@@ -128,7 +128,7 @@ const MessageBubble = memo(({ msg, isMine, canModerate, primary, textColor, mute
               {(isMine || canModerate) && (
                 <TouchableOpacity style={mb.menuItem} onPress={() => { onDelete(msg.id); setMenuVisible(false); }}>
                   <Feather name="trash-2" size={15} color="#ef4444" />
-                  <Text style={[mb.menuLabel, { color: '#ef4444' }]}>Delete</Text>
+                  <Text style={[mb.menuLabel, { color: "#ef4444" }]}>Delete</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -162,11 +162,11 @@ export const EventChatRoom = ({ visible, onClose, eventId, eventTitle, canModera
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   const [messages, setMessages] = useState([]);
   const [presence, setPresence] = useState([]);
@@ -209,7 +209,7 @@ export const EventChatRoom = ({ visible, onClose, eventId, eventTitle, canModera
           if (message.pinned) setPinnedMessage(message);
           else if (pinnedMessage?.id === message.id) setPinnedMessage(null);
         }
-      },
+      } ,
       (users) => setPresence(users)
     );
 
@@ -249,11 +249,11 @@ export const EventChatRoom = ({ visible, onClose, eventId, eventTitle, canModera
       id: `opt_${Date.now()}`,
       message: text,
       created_at: new Date().toISOString(),
-      user_id: user.id,
+      user_id: user?.id,
       reply_to: replyId,
       pinned: false,
       deleted: false,
-      profiles: { id: user.id, username: user.user_metadata?.username || 'You', avatar_url: user.user_metadata?.avatar_url || null },
+      profiles: { id: user?.id, username: user.user_metadata?.username || 'You', avatar_url: user.user_metadata?.avatar_url || null },
     };
     setMessages(prev => [...prev, optimistic]);
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60);

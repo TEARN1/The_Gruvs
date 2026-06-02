@@ -12,6 +12,7 @@ import {
 import Svg, { Line, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -44,6 +45,21 @@ const project = (lat, lon, minLat, maxLat, minLon, maxLon) => {
   // Latitude increases upward on earth, downward on screen
   const y = PAD + ((maxLat - lat) / rangeY) * (MAP_H - PAD * 2);
   return { x, y };
+};
+
+// Calculate distance in km between two lat/lon coordinates
+const haversineDist = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth radius in km
+  const dLat = ((Number(lat2) - Number(lat1)) * Math.PI) / 180;
+  const dLon = ((Number(lon2) - Number(lon1)) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((Number(lat1) * Math.PI) / 180) *
+      Math.cos((Number(lat2) * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 };
 
 const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = false }) => {
@@ -108,6 +124,22 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = fa
         </Svg>
       )}
 
+      {/* Dotted path connection line from user to selected pin */}
+      {userPin && selected && (
+        <Svg style={StyleSheet.absoluteFill}>
+          <Line
+            x1={userPin.x}
+            y1={userPin.y}
+            x2={selected.x}
+            y2={selected.y}
+            stroke={selected.category_color || primaryColor}
+            strokeWidth="2.5"
+            strokeDasharray="5, 5"
+            opacity={0.8}
+          />
+        </Svg>
+      )}
+
       {/* Compass rose */}
       <View style={grid.compass}>
         <Text style={grid.compassN}>N</Text>
@@ -155,7 +187,7 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = fa
         if (left < 8) left = 8;
         if (left + CALLOUT_W > MAP_W - 8) left = MAP_W - CALLOUT_W - 8;
         const above = selected.y > MAP_H / 2;
-        const top = above ? selected.y - 150 : selected.y + 28;
+        const top = above ? selected.y - 170 : selected.y + 28;
         return (
           <View style={[grid.callout, { left, top, width: CALLOUT_W }]}>
             {selected.media?.[0]?.url && (
@@ -167,6 +199,14 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = fa
                 <Feather name="map-pin" size={10} color="#9ca3af" /> {selected.venue_name}
               </Text>
             )}
+            {userCoords?.lat != null && selected.lat != null && selected.lon != null && (() => {
+              const dist = haversineDist(userCoords.lat, userCoords.lon, selected.lat, selected.lon);
+              return (
+                <Text style={[grid.calloutDistance, { color: selected.category_color || primaryColor }]} numberOfLines={1}>
+                  📍 {dist.toFixed(1)} km away
+                </Text>
+              );
+            })()}
             <View style={grid.calloutActions}>
               <TouchableOpacity
                 style={[grid.calloutBtn, { backgroundColor: selected.category_color || primaryColor }]}
@@ -198,10 +238,35 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = fa
   );
 };
 
-// Geocode a venue address using Nominatim (free OSM, no API key)
-const geocodeCache = {};
+// Geocode a venue address using Nominatim (free OSM, no API key) with persistent AsyncStorage cache
+const ASYNC_GEO_CACHE_KEY = '@gruvs_geocode_cache_v1';
+let geocodeCache = {};
+let geocodeCacheLoaded = false;
+
+const loadGeocodeCache = async () => {
+  if (geocodeCacheLoaded) return;
+  try {
+    const raw = await AsyncStorage.getItem(ASYNC_GEO_CACHE_KEY);
+    if (raw) {
+      geocodeCache = JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error('Failed to load geocode cache', e);
+  }
+  geocodeCacheLoaded = true;
+};
+
+const saveGeocodeCache = async () => {
+  try {
+    await AsyncStorage.setItem(ASYNC_GEO_CACHE_KEY, JSON.stringify(geocodeCache));
+  } catch (e) {
+    console.error('Failed to save geocode cache', e);
+  }
+};
+
 const geocodeAddress = async (query) => {
   if (!query) return null;
+  await loadGeocodeCache();
   if (geocodeCache[query]) return geocodeCache[query];
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
@@ -210,6 +275,7 @@ const geocodeAddress = async (query) => {
     if (data?.[0]) {
       const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
       geocodeCache[query] = coords;
+      await saveGeocodeCache();
       return coords;
     }
   } catch {}
@@ -219,8 +285,8 @@ const geocodeAddress = async (query) => {
 export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, onClose, isRoute = false }) => {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg      = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg      = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted   = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const [geocodedEvents, setGeocodedEvents] = useState(events);
@@ -231,18 +297,28 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
     const missing = events.filter(e => e.lat == null || e.lon == null);
     if (!missing.length) { setGeocodedEvents(events); return; }
     geocodingRef.current = true;
-    Promise.all(
-      missing.map(async e => {
+
+    (async () => {
+      await loadGeocodeCache();
+      const resolved = [];
+      for (const e of missing) {
         const addr = [e.venue_name, e.city, e.address].filter(Boolean).join(', ');
+        const isAlreadyCached = !!geocodeCache[addr];
         const coords = await geocodeAddress(addr);
-        return coords ? { ...e, lat: coords.lat, lon: coords.lon } : e;
-      })
-    ).then(resolved => {
+        if (coords) {
+          resolved.push({ ...e, lat: coords.lat, lon: coords.lon });
+        } else {
+          resolved.push(e);
+        }
+        if (!isAlreadyCached && addr) {
+          await new Promise(resolve => setTimeout(resolve, 800));
+        }
+      }
       const resolvedMap = {};
       resolved.forEach(e => { resolvedMap[e.id] = e; });
       setGeocodedEvents(events.map(e => resolvedMap[e.id] || e));
       geocodingRef.current = false;
-    });
+    })();
   }, [visible, events]);
 
   useEffect(() => {
@@ -292,7 +368,7 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
               <Text style={[s.legendText, { color: muted }]}>You</Text>
             </View>
             <View style={s.legendRow}>
-              <View style={[s.legendDot, { backgroundColor: '#8b5cf6' }]} />
+              <View style={[s.legendDot, { backgroundColor: "#8b5cf6" }]} />
               <Text style={[s.legendText, { color: muted }]}>Event pin — tap to preview</Text>
             </View>
           </View>
@@ -352,7 +428,7 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
 };
 
 const grid = StyleSheet.create({
-  canvas: { width: MAP_W, backgroundColor: '#0a1a1f', position: 'relative', overflow: 'hidden' },
+  canvas: { width: MAP_W, backgroundColor: "#0a1a1f", position: 'relative', overflow: 'hidden' },
   gridH: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
   gridV: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
   compass: { position: 'absolute', top: 12, right: 14, alignItems: 'center', gap: 2 },
@@ -364,18 +440,19 @@ const grid = StyleSheet.create({
   pinCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
   pinTip: { width: 8, height: 8, borderRadius: 4, marginTop: -2 },
   callout: {
-    position: 'absolute', backgroundColor: '#111a1f', borderRadius: 14, borderWidth: 1,
+    position: 'absolute', backgroundColor: "#111a1f", borderRadius: 14, borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', zIndex: 99,
     shadowColor: '#000', shadowOpacity: 0.7, shadowRadius: 12, elevation: 12,
   },
   calloutImg: { width: '100%', height: 80 },
   calloutTitle: { color: '#fff', fontSize: 13, fontWeight: '800', padding: 10, paddingBottom: 4 },
-  calloutVenue: { color: '#9ca3af', fontSize: 11, paddingHorizontal: 10, paddingBottom: 8 },
+  calloutVenue: { color: "#9ca3af", fontSize: 11, paddingHorizontal: 10, paddingBottom: 8 },
+  calloutDistance: { fontSize: 11, fontWeight: '800', paddingHorizontal: 10, paddingBottom: 8 },
   calloutActions: { flexDirection: 'row', gap: 8, paddingHorizontal: 10, paddingBottom: 10 },
   calloutBtn: { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: 'center' },
   calloutBtnText: { color: '#000', fontWeight: '900', fontSize: 12 },
   calloutDirBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8 },
-  calloutDirText: { color: '#9ca3af', fontSize: 11 },
+  calloutDirText: { color: "#9ca3af", fontSize: 11 },
   noCoords: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   noCoordsText: { color: 'rgba(255,255,255,0.3)', fontSize: 14, fontWeight: '600' },
   noCoordsText2: { color: 'rgba(255,255,255,0.2)', fontSize: 12 },

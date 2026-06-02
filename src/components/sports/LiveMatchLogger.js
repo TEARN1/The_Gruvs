@@ -1,17 +1,19 @@
 /**
  * LiveMatchLogger
  *
- * Real-time match management panel for event hosts.
- * - Score controls (+ / -)
- * - Match event logging (goals, cards, subs, tries, etc.)
- * - Match status controls (kick off, half-time, full time)
- * - Commentary posting
+ * Real-time match management panel for event hosts, and interactive match page for players/spectators.
+ * - Score controls (Host-only)
+ * - Match event logging (goals, cards, subs, tries, etc. Host-only)
+ * - Match status controls (kick off, half-time, full time. Host-only)
+ * - Commentary posting (Host-only)
+ * - Visual Lineup / Formation board (4-3-3, 4-4-2, 3-5-2)
+ * - Player Match Day Attendance RSVP (Yes / No / Maybe)
  * - Adapts to sport type via SPORT_REGISTRY
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, TextInput, ScrollView,
-  StyleSheet, Modal, ActivityIndicator, Alert,
+  StyleSheet, Modal, ActivityIndicator, Alert, Image, Dimensions
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import {
@@ -19,6 +21,9 @@ import {
   StatsManager, SportConfig, SPORT_REGISTRY,
 } from '../../services/sportsEngine';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../services/supabase';
+
+const { width } = Dimensions.get('window');
 
 const EVENT_ICONS = {
   goal: '⚽', own_goal: '😅', yellow_card: '🟨', red_card: '🟥',
@@ -31,7 +36,49 @@ const EVENT_ICONS = {
   point: '🔵', whistle: '📣',
 };
 
-function ScoreDisplay({ match, sportMeta, primary, textColor, muted, onHomeChange, onAwayChange }) {
+const FORMATIONS = {
+  '4-3-3': {
+    GK: { x: 50, y: 88, label: 'GK' },
+    LB: { x: 15, y: 70, label: 'LB' },
+    CBL: { x: 38, y: 72, label: 'CB' },
+    CBR: { x: 62, y: 72, label: 'CB' },
+    RB: { x: 85, y: 70, label: 'RB' },
+    LCM: { x: 25, y: 48, label: 'CM' },
+    DM: { x: 50, y: 55, label: 'DM' },
+    RCM: { x: 75, y: 48, label: 'CM' },
+    LW: { x: 20, y: 22, label: 'LW' },
+    ST: { x: 50, y: 18, label: 'ST' },
+    RW: { x: 80, y: 22, label: 'RW' },
+  },
+  '4-4-2': {
+    GK: { x: 50, y: 88, label: 'GK' },
+    LB: { x: 15, y: 70, label: 'LB' },
+    CBL: { x: 38, y: 72, label: 'CB' },
+    CBR: { x: 62, y: 72, label: 'CB' },
+    RB: { x: 85, y: 70, label: 'RB' },
+    LM: { x: 15, y: 48, label: 'LM' },
+    CML: { x: 38, y: 50, label: 'CM' },
+    CMR: { x: 62, y: 50, label: 'CM' },
+    RM: { x: 85, y: 48, label: 'RM' },
+    S1: { x: 35, y: 20, label: 'ST' },
+    S2: { x: 65, y: 20, label: 'ST' },
+  },
+  '3-5-2': {
+    GK: { x: 50, y: 88, label: 'GK' },
+    LCB: { x: 25, y: 72, label: 'CB' },
+    CB: { x: 50, y: 74, label: 'CB' },
+    RCB: { x: 75, y: 72, label: 'CB' },
+    LWB: { x: 10, y: 48, label: 'LWB' },
+    LCM: { x: 32, y: 50, label: 'CM' },
+    DM: { x: 50, y: 55, label: 'DM' },
+    RCM: { x: 68, y: 50, label: 'CM' },
+    RWB: { x: 90, y: 48, label: 'RWB' },
+    S1: { x: 35, y: 20, label: 'ST' },
+    S2: { x: 65, y: 20, label: 'ST' },
+  }
+};
+
+function ScoreDisplay({ match, sportMeta, primary, textColor, muted, onHomeChange, onAwayChange, isHost }) {
   const homeName = match.home_team?.short_name || match.home_team?.name || 'Home';
   const awayName = match.away_team?.short_name || match.away_team?.name || 'Away';
 
@@ -41,15 +88,19 @@ function ScoreDisplay({ match, sportMeta, primary, textColor, muted, onHomeChang
       <View style={lm.teamScoreBlock}>
         <Text style={[lm.teamScoreName, { color: textColor }]} numberOfLines={1}>{homeName}</Text>
         <View style={lm.scoreControls}>
-          <TouchableOpacity style={[lm.scoreBtn, { backgroundColor: `${primary}20` }]}
-            onPress={() => onHomeChange(-1)}>
-            <Feather name="minus" size={16} color={primary} />
-          </TouchableOpacity>
+          {isHost && (
+            <TouchableOpacity style={[lm.scoreBtn, { backgroundColor: `${primary}20` }]}
+              onPress={() => onHomeChange(-1)}>
+              <Feather name="minus" size={16} color={primary} />
+            </TouchableOpacity>
+          )}
           <Text style={[lm.scoreNum, { color: primary }]}>{match.home_score || 0}</Text>
-          <TouchableOpacity style={[lm.scoreBtn, { backgroundColor: primary }]}
-            onPress={() => onHomeChange(1)}>
-            <Feather name="plus" size={16} color="#000" />
-          </TouchableOpacity>
+          {isHost && (
+            <TouchableOpacity style={[lm.scoreBtn, { backgroundColor: primary }]}
+              onPress={() => onHomeChange(1)}>
+              <Feather name="plus" size={16} color="#000" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -57,9 +108,9 @@ function ScoreDisplay({ match, sportMeta, primary, textColor, muted, onHomeChang
       <View style={lm.scoreCenter}>
         <Text style={[lm.scoreDash, { color: muted }]}>VS</Text>
         <View style={[lm.statusPill, {
-          backgroundColor: match.status === 'live' ? '#ef4444' :
-                           match.status === 'half_time' ? '#f59e0b' :
-                           match.status === 'completed' ? '#10b981' : `${primary}20`,
+          backgroundColor: match.status === 'live' ? "#ef4444" :
+                           match.status === 'half_time' ? "#f59e0b" :
+                           match.status === 'completed' ? "#10b981" : `${primary}20`,
         }]}>
           <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>
             {match.status === 'live' ? `${match.current_minute || 0}'` :
@@ -77,15 +128,19 @@ function ScoreDisplay({ match, sportMeta, primary, textColor, muted, onHomeChang
       <View style={lm.teamScoreBlock}>
         <Text style={[lm.teamScoreName, { color: textColor }]} numberOfLines={1}>{awayName}</Text>
         <View style={lm.scoreControls}>
-          <TouchableOpacity style={[lm.scoreBtn, { backgroundColor: `${primary}20` }]}
-            onPress={() => onAwayChange(-1)}>
-            <Feather name="minus" size={16} color={primary} />
-          </TouchableOpacity>
+          {isHost && (
+            <TouchableOpacity style={[lm.scoreBtn, { backgroundColor: `${primary}20` }]}
+              onPress={() => onAwayChange(-1)}>
+              <Feather name="minus" size={16} color={primary} />
+            </TouchableOpacity>
+          )}
           <Text style={[lm.scoreNum, { color: primary }]}>{match.away_score || 0}</Text>
-          <TouchableOpacity style={[lm.scoreBtn, { backgroundColor: primary }]}
-            onPress={() => onAwayChange(1)}>
-            <Feather name="plus" size={16} color="#000" />
-          </TouchableOpacity>
+          {isHost && (
+            <TouchableOpacity style={[lm.scoreBtn, { backgroundColor: primary }]}
+              onPress={() => onAwayChange(1)}>
+              <Feather name="plus" size={16} color="#000" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
@@ -93,8 +148,8 @@ function ScoreDisplay({ match, sportMeta, primary, textColor, muted, onHomeChang
 }
 
 export const LiveMatchLogger = ({
-  matchId, eventId, visible, onClose,
-  primary = '#00f2ff', bg = '#0d1112', textColor = '#fff', muted = 'rgba(255,255,255,0.5)',
+  matchId, eventId, visible, onClose, isHost = false,
+  primary = "#00f2ff", bg = "#0d1112", textColor = '#fff', muted = 'rgba(255,255,255,0.5)',
 }) => {
   const [match, setMatch] = useState(null);
   const [config, setConfig] = useState(null);
@@ -102,11 +157,26 @@ export const LiveMatchLogger = ({
   const [commentary, setCommentary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [myClubs, setMyClubs] = useState([]);
 
   // Event log form
   const [logForm, setLogForm] = useState({ type: '', team: 'home', playerName: '', minute: '', assistName: '' });
   const [commentText, setCommentText] = useState('');
-  const [tab, setTab] = useState('score'); // score|events|commentary|result
+  const [tab, setTab] = useState(isHost ? 'events' : 'lineup'); // events|lineup|commentary|timeline
+
+  // Lineup manager state
+  const [selectedTeamLineup, setSelectedTeamLineup] = useState('home');
+  const [positionToEdit, setPositionToEdit] = useState(null);
+  const [rosterSelectorVisible, setRosterSelectorVisible] = useState(false);
+
+  const { user: authUser } = useAuth();
+
+  useEffect(() => {
+    if (authUser?.id) {
+      supabase.from('clubs').select('id').eq('owner_id', authUser.id)
+        .then(({ data }) => setMyClubs(data || []));
+    }
+  }, [authUser?.id]);
 
   const load = useCallback(async () => {
     if (!matchId) return;
@@ -140,7 +210,6 @@ export const LiveMatchLogger = ({
   }, [visible, matchId]);
 
   const sportMeta = SPORT_REGISTRY[config?.sport_type] || SPORT_REGISTRY.soccer;
-  const { user: authUser } = useAuth();
 
   const handleScoreChange = async (side, delta) => {
     if (!match) return;
@@ -245,6 +314,124 @@ export const LiveMatchLogger = ({
     } finally { setSaving(false); }
   };
 
+  // Lineup Actions
+  const myClubIds = myClubs.map(c => c.id);
+  const isHomeManager = match?.home_team?.club_id && myClubIds.includes(match.home_team.club_id);
+  const isAwayManager = match?.away_team?.club_id && myClubIds.includes(match.away_team.club_id);
+  const canEditLineup = isHost || isHomeManager || isAwayManager;
+
+  const lineupData = match?.match_data?.lineups?.[selectedTeamLineup] || { formation: '4-3-3', positions: {} };
+  const formation = lineupData.formation || '4-3-3';
+  const positions = lineupData.positions || {};
+
+  const team = selectedTeamLineup === 'home' ? match?.home_team : match?.away_team;
+  const roster = team?.players || [];
+
+  const handleSelectPlayerForPosition = async (player) => {
+    if (!positionToEdit) return;
+    const currentLineups = match?.match_data?.lineups || {};
+    const teamLineup = currentLineups[selectedTeamLineup] || { formation: '4-3-3', positions: {} };
+    const updatedPositions = { ...teamLineup.positions };
+    if (player) {
+      updatedPositions[positionToEdit] = {
+        id: player.id,
+        name: player.name,
+        photo_url: player.photo_url || null,
+        number: player.number || ''
+      };
+    } else {
+      delete updatedPositions[positionToEdit];
+    }
+
+    const updatedLineups = {
+      ...currentLineups,
+      [selectedTeamLineup]: {
+        ...teamLineup,
+        positions: updatedPositions
+      }
+    };
+
+    const newMatchData = {
+      ...match?.match_data,
+      lineups: updatedLineups
+    };
+
+    try {
+      const updated = await MatchManager.updateMatchData(matchId, newMatchData);
+      setMatch(prev => ({ ...prev, ...updated }));
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    }
+    setRosterSelectorVisible(false);
+    setPositionToEdit(null);
+  };
+
+  const handleUpdateFormation = async (newForm) => {
+    const currentLineups = match?.match_data?.lineups || {};
+    const teamLineup = currentLineups[selectedTeamLineup] || { formation: '4-3-3', positions: {} };
+
+    const updatedLineups = {
+      ...currentLineups,
+      [selectedTeamLineup]: {
+        ...teamLineup,
+        formation: newForm
+      }
+    };
+
+    const newMatchData = {
+      ...match?.match_data,
+      lineups: updatedLineups
+    };
+
+    try {
+      const updated = await MatchManager.updateMatchData(matchId, newMatchData);
+      setMatch(prev => ({ ...prev, ...updated }));
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    }
+  };
+
+  // RSVP Actions
+  const currentRSVPs = match?.match_data?.rsvps || {};
+  const myRSVP = authUser?.id ? currentRSVPs[authUser.id] : null;
+
+  const handleRSVP = async (status) => {
+    if (!authUser?.id) return;
+    const newRSVPs = {
+      ...currentRSVPs,
+      [authUser.id]: status
+    };
+    const newMatchData = {
+      ...match?.match_data,
+      rsvps: newRSVPs
+    };
+    try {
+      const updated = await MatchManager.updateMatchData(matchId, newMatchData);
+      setMatch(prev => ({ ...prev, ...updated }));
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    }
+  };
+
+  // RSVP Summary Computations
+  const rsvpCounts = { yes: 0, no: 0, maybe: 0 };
+  Object.values(currentRSVPs).forEach(status => {
+    if (status in rsvpCounts) rsvpCounts[status]++;
+  });
+
+  const loggerTabs = isHost
+    ? [
+        { key: 'events', label: 'Log Event', icon: 'edit-2' },
+        { key: 'lineup', label: 'Lineup', icon: 'clipboard' },
+        { key: 'commentary', label: 'Commentary', icon: 'message-circle' },
+        { key: 'timeline', label: 'Timeline', icon: 'clock' },
+      ]
+    : [
+        { key: 'lineup', label: 'Lineup', icon: 'clipboard' },
+        { key: 'commentary', label: 'Commentary', icon: 'message-circle' },
+        { key: 'timeline', label: 'Timeline', icon: 'clock' },
+      ];
+
   if (!visible) return null;
 
   return (
@@ -257,7 +444,7 @@ export const LiveMatchLogger = ({
           <View style={lm.header}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: primary, fontWeight: '900', fontSize: 16 }}>
-                {sportMeta.icon} MATCH CONTROL
+                {sportMeta.icon} {isHost ? 'MATCH CONTROL' : 'MATCH DETAIL'}
               </Text>
               <Text style={{ color: muted, fontSize: 11 }}>
                 {match?.home_team?.name || '?'} vs {match?.away_team?.name || '?'}
@@ -281,44 +468,43 @@ export const LiveMatchLogger = ({
                 match={match} sportMeta={sportMeta} primary={primary} textColor={textColor} muted={muted}
                 onHomeChange={(d) => handleScoreChange('home', d)}
                 onAwayChange={(d) => handleScoreChange('away', d)}
+                isHost={isHost}
               />
 
-              {/* Status buttons */}
-              <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 12 }}>
-                {match.status === 'scheduled' && (
-                  <TouchableOpacity style={[lm.statusBtn, { backgroundColor: '#10b981', flex: 1 }]} onPress={handleKickOff}>
-                    <Feather name="play" size={14} color="#fff" />
-                    <Text style={lm.statusBtnText}>Kick Off</Text>
-                  </TouchableOpacity>
-                )}
-                {match.status === 'live' && (
-                  <TouchableOpacity style={[lm.statusBtn, { backgroundColor: '#f59e0b', flex: 1 }]} onPress={handleHalfTime}>
-                    <Feather name="pause" size={14} color="#fff" />
-                    <Text style={lm.statusBtnText}>Half Time</Text>
-                  </TouchableOpacity>
-                )}
-                {match.status === 'half_time' && (
-                  <TouchableOpacity style={[lm.statusBtn, { backgroundColor: '#10b981', flex: 1 }]} onPress={handleHalfTime}>
-                    <Feather name="play" size={14} color="#fff" />
-                    <Text style={lm.statusBtnText}>2nd Half</Text>
-                  </TouchableOpacity>
-                )}
-                {['live', 'half_time'].includes(match.status) && (
-                  <TouchableOpacity style={[lm.statusBtn, { backgroundColor: '#ef4444', flex: 1 }]} onPress={handleFullTime}>
-                    <Feather name="square" size={14} color="#fff" />
-                    <Text style={lm.statusBtnText}>Full Time</Text>
-                  </TouchableOpacity>
-                )}
-                {saving && <ActivityIndicator color={primary} style={{ alignSelf: 'center' }} />}
-              </View>
+              {/* Status buttons (Host only) */}
+              {isHost && (
+                <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 12 }}>
+                  {match.status === 'scheduled' && (
+                    <TouchableOpacity style={[lm.statusBtn, { backgroundColor: "#10b981", flex: 1 }]} onPress={handleKickOff}>
+                      <Feather name="play" size={14} color="#fff" />
+                      <Text style={lm.statusBtnText}>Kick Off</Text>
+                    </TouchableOpacity>
+                  )}
+                  {match.status === 'live' && (
+                    <TouchableOpacity style={[lm.statusBtn, { backgroundColor: "#f59e0b", flex: 1 }]} onPress={handleHalfTime}>
+                      <Feather name="pause" size={14} color="#fff" />
+                      <Text style={lm.statusBtnText}>Half Time</Text>
+                    </TouchableOpacity>
+                  )}
+                  {match.status === 'half_time' && (
+                    <TouchableOpacity style={[lm.statusBtn, { backgroundColor: "#10b981", flex: 1 }]} onPress={handleHalfTime}>
+                      <Feather name="play" size={14} color="#fff" />
+                      <Text style={lm.statusBtnText}>2nd Half</Text>
+                    </TouchableOpacity>
+                  )}
+                  {['live', 'half_time'].includes(match.status) && (
+                    <TouchableOpacity style={[lm.statusBtn, { backgroundColor: "#ef4444", flex: 1 }]} onPress={handleFullTime}>
+                      <Feather name="square" size={14} color="#fff" />
+                      <Text style={lm.statusBtnText}>Full Time</Text>
+                    </TouchableOpacity>
+                  )}
+                  {saving && <ActivityIndicator color={primary} style={{ alignSelf: 'center' }} />}
+                </View>
+              )}
 
               {/* Tabs */}
               <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: `${primary}15`, marginBottom: 2 }}>
-                {[
-                  { key: 'events', label: 'Log Event', icon: 'edit-2' },
-                  { key: 'commentary', label: 'Commentary', icon: 'message-circle' },
-                  { key: 'timeline', label: 'Timeline', icon: 'clock' },
-                ].map(t => {
+                {loggerTabs.map(t => {
                   const active = tab === t.key;
                   return (
                     <TouchableOpacity key={t.key} onPress={() => setTab(t.key)}
@@ -332,8 +518,8 @@ export const LiveMatchLogger = ({
 
               <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
 
-                {/* LOG EVENT TAB */}
-                {tab === 'events' && (
+                {/* LOG EVENT TAB (Host only) */}
+                {tab === 'events' && isHost && (
                   <View style={{ padding: 16, gap: 10 }}>
                     <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 2 }}>EVENT TYPE</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -406,24 +592,131 @@ export const LiveMatchLogger = ({
                   </View>
                 )}
 
+                {/* LINEUP TAB */}
+                {tab === 'lineup' && (
+                  <View style={{ padding: 16 }}>
+                    {/* Team selector tabs */}
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                      {['home', 'away'].map(side => {
+                        const active = selectedTeamLineup === side;
+                        const sideTeam = side === 'home' ? match.home_team : match.away_team;
+                        return (
+                          <TouchableOpacity key={side} onPress={() => setSelectedTeamLineup(side)}
+                            style={{ flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, alignItems: 'center',
+                                     borderColor: active ? primary : `${primary}25`,
+                                     backgroundColor: active ? `${primary}18` : 'transparent' }}>
+                            <Text style={{ color: active ? primary : muted, fontWeight: '800', fontSize: 12 }}>
+                              {sideTeam?.name || (side === 'home' ? 'Home' : 'Away')}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* Formation buttons (Managers/Hosts only) */}
+                    {canEditLineup && (
+                      <View style={{ marginBottom: 12 }}>
+                        <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>STRATEGY FORMATION</Text>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          {['4-3-3', '4-4-2', '3-5-2'].map(f => {
+                            const active = formation === f;
+                            return (
+                              <TouchableOpacity key={f} onPress={() => handleUpdateFormation(f)}
+                                style={{ flex: 1, paddingVertical: 6, borderRadius: 8, borderWidth: 1, alignItems: 'center',
+                                         borderColor: active ? primary : `${primary}20`,
+                                         backgroundColor: active ? `${primary}12` : 'transparent' }}>
+                                <Text style={{ color: active ? primary : muted, fontSize: 12, fontWeight: '800' }}>{f}</Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Green Pitch canvas */}
+                    <View style={lm.pitchCanvas}>
+                      <View style={lm.penaltyBoxTop} />
+                      <View style={lm.centerLine} />
+                      <View style={lm.centerCircle} />
+                      <View style={lm.penaltyBoxBottom} />
+
+                      {/* Placed players overlay */}
+                      {Object.entries(FORMATIONS[formation] || FORMATIONS['4-3-3']).map(([posKey, pos]) => {
+                        const placed = positions[posKey];
+                        return (
+                          <TouchableOpacity key={posKey} disabled={!canEditLineup}
+                            onPress={() => { setPositionToEdit(posKey); setRosterSelectorVisible(true); }}
+                            style={[lm.posNode, { left: `${pos.x - 7}%`, top: `${pos.y - 7}%` }]}>
+                            {placed?.photo_url ? (
+                              <Image source={{ uri: placed.photo_url }} style={lm.posAvatar} />
+                            ) : (
+                              <View style={[lm.posAvatarEmpty, { borderColor: primary }]}>
+                                <Text style={{ color: primary, fontSize: 9, fontWeight: '900' }}>{placed?.number || pos.label}</Text>
+                              </View>
+                            )}
+                            <Text style={lm.posName} numberOfLines={1}>
+                              {placed?.name || 'Empty'}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* Match Attendance RSVP Section */}
+                    {authUser?.id && (
+                      <View style={{ backgroundColor: `${primary}08`, borderRadius: 16, borderWidth: 1, borderColor: `${primary}25`, padding: 14, marginTop: 10 }}>
+                        <Text style={{ color: primary, fontSize: 13, fontWeight: '900', marginBottom: 6 }}>📅 MATCH DAY RSVP</Text>
+                        <Text style={{ color: muted, fontSize: 11, marginBottom: 12 }}>Let the coach and team know if you will make it.</Text>
+                        
+                        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                          {[
+                            { key: 'yes', label: 'Attending', color: "#10b981" },
+                            { key: 'no', label: 'Absent', color: "#ef4444" },
+                            { key: 'maybe', label: 'Maybe', color: "#f59e0b" },
+                          ].map(opt => {
+                            const selected = myRSVP === opt.key;
+                            return (
+                              <TouchableOpacity key={opt.key} onPress={() => handleRSVP(opt.key)}
+                                style={{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, alignItems: 'center',
+                                         borderColor: selected ? opt.color : `${opt.color}30`,
+                                         backgroundColor: selected ? `${opt.color}20` : 'transparent' }}>
+                                <Text style={{ color: selected ? '#fff' : opt.color, fontSize: 12, fontWeight: '800' }}>{opt.label}</Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+
+                        {/* Summary */}
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: `${primary}15`, paddingTop: 8 }}>
+                          <Text style={{ color: "#10b981", fontSize: 12, fontWeight: '700' }}>✔️ {rsvpCounts.yes} Attending</Text>
+                          <Text style={{ color: "#ef4444", fontSize: 12, fontWeight: '700' }}>❌ {rsvpCounts.no} Absent</Text>
+                          <Text style={{ color: "#f59e0b", fontSize: 12, fontWeight: '700' }}>❓ {rsvpCounts.maybe} Maybe</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
+
                 {/* COMMENTARY TAB */}
                 {tab === 'commentary' && (
                   <View style={{ padding: 16 }}>
-                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-                      <TextInput
-                        style={[lm.input, { flex: 1, color: textColor, borderColor: `${primary}30` }]}
-                        placeholder="Add commentary..." placeholderTextColor={muted}
-                        value={commentText}
-                        onChangeText={setCommentText}
-                        multiline
-                      />
-                      <TouchableOpacity
-                        onPress={handlePostCommentary}
-                        disabled={!commentText.trim() || saving}
-                        style={{ width: 44, backgroundColor: commentText.trim() ? primary : `${primary}20`, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
-                        <Feather name="send" size={16} color={commentText.trim() ? '#000' : muted} />
-                      </TouchableOpacity>
-                    </View>
+                    {isHost && (
+                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                        <TextInput
+                          style={[lm.input, { flex: 1, color: textColor, borderColor: `${primary}30` }]}
+                          placeholder="Add commentary..." placeholderTextColor={muted}
+                          value={commentText}
+                          onChangeText={setCommentText}
+                          multiline
+                        />
+                        <TouchableOpacity
+                          onPress={handlePostCommentary}
+                          disabled={!commentText.trim() || saving}
+                          style={{ width: 44, backgroundColor: commentText.trim() ? primary : `${primary}20`, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
+                          <Feather name="send" size={16} color={commentText.trim() ? '#000' : muted} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
 
                     {commentary.map((c, i) => (
                       <View key={c.id || i} style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
@@ -470,6 +763,42 @@ export const LiveMatchLogger = ({
           )}
         </View>
       </View>
+
+      {/* Roster player selector modal */}
+      <Modal visible={rosterSelectorVisible} transparent animationType="slide" onRequestClose={() => setRosterSelectorVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setRosterSelectorVisible(false)} />
+          <View style={[lm.sheet, { backgroundColor: bg, height: '60%' }]}>
+            <View style={lm.header}>
+              <Text style={{ color: textColor, fontSize: 15, fontWeight: '900' }}>Select Player for {positionToEdit}</Text>
+              <TouchableOpacity onPress={() => setRosterSelectorVisible(false)}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ paddingHorizontal: 16 }}>
+              <TouchableOpacity onPress={() => handleSelectPlayerForPosition(null)}
+                style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: `${primary}15` }}>
+                <Text style={{ color: "#ef4444", fontWeight: '800', fontSize: 13 }}>Remove Player</Text>
+              </TouchableOpacity>
+              {roster.map(player => (
+                <TouchableOpacity key={player.id} onPress={() => handleSelectPlayerForPosition(player)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: `${primary}15` }}>
+                  {player.photo_url ? (
+                    <Image source={{ uri: player.photo_url }} style={{ width: 28, height: 28, borderRadius: 14 }} />
+                  ) : (
+                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: primary, fontSize: 10, fontWeight: '900' }}>{player.number || '#'}</Text>
+                    </View>
+                  )}
+                  <View>
+                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>{player.name}</Text>
+                    <Text style={{ color: muted, fontSize: 11 }}>{player.position || 'No Position'}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };
@@ -491,6 +820,91 @@ const lm = StyleSheet.create({
   statusBtn:   { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, justifyContent: 'center' },
   statusBtnText: { color: '#fff', fontWeight: '900', fontSize: 13 },
   input:       { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13 },
+  
+  // Tactical Pitch styles
+  pitchCanvas: {
+    height: 380,
+    backgroundColor: "#1b4332",
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#fff',
+    position: 'relative',
+    overflow: 'hidden',
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  penaltyBoxTop: {
+    position: 'absolute',
+    top: 0,
+    left: '25%',
+    width: '50%',
+    height: 60,
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  penaltyBoxBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: '25%',
+    width: '50%',
+    height: 60,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  centerLine: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  centerCircle: {
+    position: 'absolute',
+    top: '38%',
+    left: '35%',
+    width: '30%',
+    height: '24%',
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  posNode: {
+    position: 'absolute',
+    width: '14%',
+    alignItems: 'center',
+    zIndex: 5,
+  },
+  posAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  posAvatarEmpty: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  posName: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '800',
+    marginTop: 2,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 3,
+  },
 });
 
 export default LiveMatchLogger;

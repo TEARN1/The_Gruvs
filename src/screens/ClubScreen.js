@@ -14,29 +14,31 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, Image, StyleSheet,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView,
   Platform, RefreshControl,
 } from 'react-native';
+import { SmartImage } from '../components/SmartImage';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { ClubManager, MembershipManager, AwardManager } from '../services/clubEngine';
 import { NotificationService } from '../services/notificationService';
 import { supabase } from '../services/supabase';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const ROLES = ['player','captain','vice_captain','coach','manager','assistant_coach','physio','analyst','admin','performer','speaker','member'];
 const ROLE_ICONS = { player:'user', captain:'star', vice_captain:'star', coach:'briefcase', manager:'briefcase', admin:'shield', performer:'mic', speaker:'mic', member:'user' };
 
-export const ClubScreen = ({ route, navigation }) => {
-  const { clubId } = route?.params || {};
+export const ClubScreen = ({ route, navigation, clubId: propClubId, onClose }) => {
+  const clubId = propClubId || route?.params?.clubId;
   const { user } = useAuth();
   const { colors } = useTheme();
-  const primary   = colors?.primary   || '#00f2ff';
-  const bg        = colors?.background|| '#0d1112';
+  const primary   = colors?.primary   || "#00f2ff";
+  const bg        = colors?.background|| "#0d1112";
   const textColor = colors?.text      || '#fff';
   const muted     = colors?.muted     || 'rgba(255,255,255,0.5)';
-  const surface   = colors?.surface   || '#1a1f21';
+  const surface   = colors?.surface   || "#1a1f21";
 
   const [club, setClub]         = useState(null);
   const [roster, setRoster]     = useState([]);
@@ -95,7 +97,7 @@ export const ClubScreen = ({ route, navigation }) => {
         title: `${club.name} invited you to join`,
         body: 'Tap to view and accept the invitation',
         eventId: null,
-        actorId: user.id,
+        actorId: user?.id,
       });
       Alert.alert('Invitation sent!');
       setInviteOpen(false);
@@ -131,7 +133,8 @@ export const ClubScreen = ({ route, navigation }) => {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: bg }}>
+    <ErrorBoundary label="Club">
+      <View style={{ flex: 1, backgroundColor: bg }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={primary} />}
@@ -139,20 +142,20 @@ export const ClubScreen = ({ route, navigation }) => {
         {/* Banner */}
         <View style={s.banner}>
           {club.banner_url
-            ? <Image source={{ uri: club.banner_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            ? <SmartImage source={club.banner_url} style={StyleSheet.absoluteFill} resizeMode="cover" />
             : <View style={[StyleSheet.absoluteFill, { backgroundColor: `${primary}20` }]} />
           }
           <View style={s.bannerOverlay} />
 
           {/* Back */}
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation?.goBack()}>
+          <TouchableOpacity style={s.backBtn} onPress={() => onClose ? onClose() : navigation?.goBack()}>
             <Feather name="chevron-left" size={24} color="#fff" />
           </TouchableOpacity>
 
           {/* Logo + name */}
           <View style={s.clubHeader}>
             {club.logo_url
-              ? <Image source={{ uri: club.logo_url }} style={s.logo} />
+              ? <SmartImage source={club.logo_url} style={s.logo} />
               : (
                 <View style={[s.logo, { backgroundColor: `${primary}30`, alignItems: 'center', justifyContent: 'center' }]}>
                   <Feather name="shield" size={32} color={primary} />
@@ -277,7 +280,7 @@ export const ClubScreen = ({ route, navigation }) => {
               {roster.map(m => (
                 <View key={m.id} style={[s.memberCard, { backgroundColor: surface, borderColor: `${primary}20` }]}>
                   {m.profiles?.avatar_url
-                    ? <Image source={{ uri: m.profiles.avatar_url }} style={s.memberAvatar} />
+                    ? <SmartImage source={m.profiles.avatar_url} style={s.memberAvatar} />
                     : <View style={[s.memberAvatar, { backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }]}><Feather name="user" size={18} color={primary} /></View>
                   }
                   <View style={{ flex: 1 }}>
@@ -345,9 +348,9 @@ export const ClubScreen = ({ route, navigation }) => {
                     </Text>
                   )}
                   <View style={s.resultRow}>
-                    <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '800' }}>{t.won || 0}W</Text>
+                    <Text style={{ color: "#10b981", fontSize: 13, fontWeight: '800' }}>{t.won || 0}W</Text>
                     <Text style={{ color: muted, fontSize: 13 }}> / {t.drawn || 0}D / </Text>
-                    <Text style={{ color: '#ef4444', fontSize: 13, fontWeight: '800' }}>{t.lost || 0}L</Text>
+                    <Text style={{ color: "#ef4444", fontSize: 13, fontWeight: '800' }}>{t.lost || 0}L</Text>
                     <Text style={{ color: primary, fontSize: 13, fontWeight: '900', marginLeft: 8 }}>{t.points || 0} pts</Text>
                   </View>
                 </View>
@@ -382,7 +385,7 @@ export const ClubScreen = ({ route, navigation }) => {
                 onPress={() => handleInvite(u.id)}
               >
                 {u.avatar_url
-                  ? <Image source={{ uri: u.avatar_url }} style={s.resultAvatar} />
+                  ? <SmartImage source={u.avatar_url} style={s.resultAvatar} />
                   : <View style={[s.resultAvatar, { backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }]}><Feather name="user" size={16} color={primary} /></View>
                 }
                 <View>
@@ -395,7 +398,8 @@ export const ClubScreen = ({ route, navigation }) => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
+      </View>
+    </ErrorBoundary>
   );
 };
 

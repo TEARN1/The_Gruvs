@@ -56,11 +56,11 @@ export const WalletScreen = ({ visible, onClose }) => {
   const [isRoyal, setIsRoyal] = useState(false);
   const [reviewTarget, setReviewTarget] = useState(null);
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
-  const surface = currentTheme?.surface || '#1a1f21';
+  const surface = currentTheme?.surface || "#1a1f21";
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -72,12 +72,12 @@ export const WalletScreen = ({ visible, onClose }) => {
         VibeEconomyEngine.getSovereignStatus(user.id).catch(() => ({ isRoyal: false })),
         resilientRead(
           async () => {
-            const { data, error } = await supabase.from('wallet_transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
+            const { data, error } = await supabase.from('wallet_transactions').select('*').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50);
             if (error) throw error;
             return data;
           },
           async () => {
-            const { data, error } = await supabase.from('wallet_transactions').select('id, amount, direction, created_at, reason').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
+            const { data, error } = await supabase.from('wallet_transactions').select('id, amount, direction, created_at, reason').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50);
             if (error) throw error;
             return data;
           },
@@ -182,13 +182,13 @@ export const WalletScreen = ({ visible, onClose }) => {
         {isClient && isEscrow && (
           <View style={s.actionRow}>
             <TouchableOpacity
-              style={[s.miniBtn, { backgroundColor: '#10b981' }]}
+              style={[s.miniBtn, { backgroundColor: "#10b981" }]}
               onPress={() => handleRelease(item)}
             >
               <Text style={s.miniBtnText}>Release Funds</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[s.miniBtn, { backgroundColor: '#ef4444' }]}
+              style={[s.miniBtn, { backgroundColor: "#ef4444" }]}
               onPress={() => handleDispute(item)}
             >
               <Text style={s.miniBtnText}>Dispute</Text>
@@ -225,7 +225,7 @@ export const WalletScreen = ({ visible, onClose }) => {
           <Text style={[s.balanceValue, { color: textColor }]}>{(profile?.vibe_equity || 0).toFixed(1)}</Text>
           {isRoyal && (
             <View style={{ backgroundColor: '#FFD70020', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginTop: 10 }}>
-              <Text style={{ color: '#FFD700', fontSize: 10, fontWeight: '900' }}>SOVEREIGN STATUS ACTIVE</Text>
+              <Text style={{ color: "#FFD700", fontSize: 10, fontWeight: '900' }}>SOVEREIGN STATUS ACTIVE</Text>
             </View>
           )}
           <View style={s.walletActions}>
@@ -324,13 +324,13 @@ export const WalletScreen = ({ visible, onClose }) => {
                     <View key={t.id} style={[s.bookingRow, { borderBottomColor: `${primary}10` }]}>
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <View style={[s.iconBox, { backgroundColor: isCredit ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }]}>
-                          <Feather name={isCredit ? 'arrow-down-left' : 'arrow-up-right'} size={16} color={isCredit ? '#10b981' : '#ef4444'} />
+                          <Feather name={isCredit ? 'arrow-down-left' : 'arrow-up-right'} size={16} color={isCredit ? "#10b981" : "#ef4444"} />
                         </View>
                         <View style={{ flex: 1, marginLeft: 12 }}>
                           <Text style={[s.bookingTitle, { color: textColor }]}>{t.reason?.replace(/_/g, ' ').toUpperCase()}</Text>
                           <Text style={[s.bookingSub, { color: muted }]}>{date}</Text>
                         </View>
-                        <Text style={[s.bookingAmount, { color: isCredit ? '#10b981' : '#ef4444' }]}>
+                        <Text style={[s.bookingAmount, { color: isCredit ? "#10b981" : "#ef4444" }]}>
                           {isCredit ? '+' : '-'}{t.amount.toFixed(1)} VE
                         </Text>
                       </View>

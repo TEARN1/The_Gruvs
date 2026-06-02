@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
 import { supabase } from '../services/supabase';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { SmartImage } from '../components/SmartImage';
 
 const TABS = ['Weekly', 'Monthly', 'All-Time'];
 
@@ -70,6 +71,29 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const realtimeChanRef = useRef(null);
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  // Floating loop animation for #1 podium item (crown + avatar)
+  useEffect(() => {
+    if (visible) {
+      const anim = Animated.loop(
+        Animated.sequence([
+          Animated.timing(floatAnim, {
+            toValue: -6,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(floatAnim, {
+            toValue: 0,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      anim.start();
+      return () => anim.stop();
+    }
+  }, [visible, floatAnim]);
 
   const primary   = currentTheme?.primary    || '#00f2ff';
   const bg        = currentTheme?.background || '#0d1112';
@@ -150,20 +174,34 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
           const isMe = p.id === user?.id;
           return (
             <View key={p.id} style={[lb.podiumItem, rank === 1 && lb.podiumCenter]}>
-              {rank === 1 && (
-                <Text style={lb.crownEmoji}>👑</Text>
-              )}
-              <View style={[lb.podiumAvatar, { width: size, height: size, borderRadius: size / 2, borderColor: rankColor }]}>
-                {p.avatar_url ? (
-                  <Image source={{ uri: p.avatar_url }} style={{ width: size, height: size, borderRadius: size / 2 }} />
-                ) : (
-                  <View style={[lb.podiumAvatarFallback, { width: size, height: size, borderRadius: size / 2, backgroundColor: getAvatarBg(p.username) }]}>
-                    <Text style={[lb.initials, { fontSize: rank === 1 ? 28 : 22 }]}>
-                      {(p.username || 'G')[0].toUpperCase()}
-                    </Text>
+              {rank === 1 ? (
+                <Animated.View style={{ alignItems: 'center', transform: [{ translateY: floatAnim }] }}>
+                  <Text style={lb.crownEmoji}>👑</Text>
+                  <View style={[lb.podiumAvatar, { width: size, height: size, borderRadius: size / 2, borderColor: rankColor }]}>
+                    {p.avatar_url ? (
+                      <SmartImage source={p.avatar_url} style={{ width: size, height: size, borderRadius: size / 2 }} />
+                    ) : (
+                      <View style={[lb.podiumAvatarFallback, { width: size, height: size, borderRadius: size / 2, backgroundColor: getAvatarBg(p.username) }]}>
+                        <Text style={[lb.initials, { fontSize: 28 }]}>
+                          {(p.username || 'G')[0].toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
+                </Animated.View>
+              ) : (
+                <View style={[lb.podiumAvatar, { width: size, height: size, borderRadius: size / 2, borderColor: rankColor }]}>
+                  {p.avatar_url ? (
+                    <SmartImage source={p.avatar_url} style={{ width: size, height: size, borderRadius: size / 2 }} />
+                  ) : (
+                    <View style={[lb.podiumAvatarFallback, { width: size, height: size, borderRadius: size / 2, backgroundColor: getAvatarBg(p.username) }]}>
+                      <Text style={[lb.initials, { fontSize: 22 }]}>
+                        {(p.username || 'G')[0].toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
               <View style={[lb.rankBadge, { backgroundColor: rankColor }]}>
                 <Text style={lb.rankBadgeText}>#{rank}</Text>
               </View>
@@ -198,7 +236,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
         <Text style={[lb.rankNum, { color: muted, width: 30 }]}>#{rank}</Text>
         <View style={[lb.rowAvatar, { backgroundColor: getAvatarBg(item.username) }]}>
           {item.avatar_url
-            ? <Image source={{ uri: item.avatar_url }} style={lb.rowAvatarImg} />
+            ? <SmartImage source={item.avatar_url} style={lb.rowAvatarImg} />
             : <Text style={lb.rowInitials}>{(item.username || 'G')[0].toUpperCase()}</Text>
           }
         </View>

@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity, FlatList,
-  Image, ActivityIndicator, Platform, TextInput, ScrollView,
+  ActivityIndicator, Platform, TextInput, ScrollView,
 } from 'react-native';
+import { SmartImage } from './SmartImage';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
@@ -14,7 +15,7 @@ import { DirectMessageModal } from './DirectMessageModal';
 import { ViberProfileModal } from './ViberProfileModal';
 
 const avatarBg = (u = '') =>
-  ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u.charCodeAt(0) || 0) % 5];
+  ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u.charCodeAt(0) || 0) % 5];
 
 
 const GENDERS = [
@@ -32,13 +33,13 @@ const HAIR_STYLES = [
 const BODY_TYPES = ['Slim', 'Athletic', 'Average', 'Curvy', 'Plus Size', 'Tall', 'Short', 'Muscular'];
 
 const SKIN_TONES = [
-  { key: 'very_light', label: 'Very Light', color: '#fddbc4' },
-  { key: 'light',      label: 'Light',      color: '#f1c89b' },
-  { key: 'medium',     label: 'Medium',     color: '#c8926b' },
-  { key: 'tan',        label: 'Tan/Olive',  color: '#9c6b42' },
-  { key: 'brown',      label: 'Brown',      color: '#7c4a28' },
-  { key: 'dark',       label: 'Dark Brown', color: '#4a2712' },
-  { key: 'deep',       label: 'Deep/Ebony', color: '#2d1408' },
+  { key: 'very_light', label: 'Very Light', color: "#fddbc4" },
+  { key: 'light',      label: 'Light',      color: "#f1c89b" },
+  { key: 'medium',     label: 'Medium',     color: "#c8926b" },
+  { key: 'tan',        label: 'Tan/Olive',  color: "#9c6b42" },
+  { key: 'brown',      label: 'Brown',      color: "#7c4a28" },
+  { key: 'dark',       label: 'Dark Brown', color: "#4a2712" },
+  { key: 'deep',       label: 'Deep/Ebony', color: "#2d1408" },
 ];
 
 const OUTFIT_VIBES = [
@@ -88,9 +89,9 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
   const { user } = useAuth();
   const { applyProfilePrivacy } = useIdentity();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
+  const surface   = currentTheme?.surface    || "#1a1f21";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -138,7 +139,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
         `)
         .gte('checked_in_at', since)
         .lte('checked_in_at', until)
-        .neq('user_id', user.id)
+        .neq('user_id', user?.id)
         .order('checked_in_at', { ascending: false })
         .limit(100);
 
@@ -295,7 +296,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
                     type="datetime-local"
                     value={toLocalDatetimeString(fromDate)}
                     onChange={e => e.target.value && setFromDate(new Date(e.target.value))}
-                    style={{ flex: 1, background: 'transparent', border: 'none', color: textColor, fontSize: 13, outline: 'none', fontFamily: 'inherit', minWidth: 0 }}
+                    style={{ flex: 1, backgroundColor: 'transparent', border: 'none', color: textColor, fontSize: 13, outline: 'none', fontFamily: 'inherit', minWidth: 0 }}
                   />
                 </View>
               ) : (
@@ -321,7 +322,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
                     type="datetime-local"
                     value={toLocalDatetimeString(toDate)}
                     onChange={e => e.target.value && setToDate(new Date(e.target.value))}
-                    style={{ flex: 1, background: 'transparent', border: 'none', color: textColor, fontSize: 13, outline: 'none', fontFamily: 'inherit', minWidth: 0 }}
+                    style={{ flex: 1, backgroundColor: 'transparent', border: 'none', color: textColor, fontSize: 13, outline: 'none', fontFamily: 'inherit', minWidth: 0 }}
                   />
                 </View>
               ) : (
@@ -347,7 +348,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
                 <Text style={[s.filtersTitle, { color: textColor }]}>🔍 Description Filters</Text>
                 {activeFilterCount > 0 && (
                   <TouchableOpacity onPress={clearFilters}>
-                    <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '800' }}>Clear All</Text>
+                    <Text style={{ color: "#ef4444", fontSize: 11, fontWeight: '800' }}>Clear All</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -415,7 +416,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
                   >
                     <View style={{ position: 'relative' }}>
                       {item.avatar_url
-                        ? <Image source={{ uri: item.avatar_url }} style={s.avatar} />
+                        ? <SmartImage source={item.avatar_url} style={s.avatar} />
                         : <View style={[s.avatar, { backgroundColor: avatarBg(item.username), alignItems: 'center', justifyContent: 'center' }]}>
                             <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>
                               {(item.username || 'V')[0].toUpperCase()}
@@ -432,7 +433,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
                       {item.venue_name
                         ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <Feather name="map-pin" size={9} color="#f97316" />
-                            <Text style={[s.venueName, { color: '#f97316' }]} numberOfLines={1}>{item.venue_name}</Text>
+                            <Text style={[s.venueName, { color: "#f97316" }]} numberOfLines={1}>{item.venue_name}</Text>
                           </View>
                         : null
                       }
@@ -521,7 +522,7 @@ const s = StyleSheet.create({
   onlineDot: {
     position: 'absolute', bottom: 1, right: 1,
     width: 13, height: 13, borderRadius: 7,
-    backgroundColor: '#10b981', borderWidth: 2,
+    backgroundColor: "#10b981", borderWidth: 2,
   },
   username: { fontSize: 14, fontWeight: '800' },
   venueName: { fontSize: 10, fontWeight: '800' },

@@ -5,16 +5,16 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 
 const getStreakColor = (streak) => {
-  if (streak >= 7) return '#f5c518'; // gold
-  if (streak >= 3) return '#f97316'; // orange
-  return '#6b7280'; // grey
+  if (streak >= 7) return "#f5c518"; // gold
+  if (streak >= 3) return "#f97316"; // orange
+  return "#6b7280"; // grey
 };
 
 // ── StreakBadge component ────────────────────────────────────────────────────
 export const StreakBadge = ({ streak = 0 }) => {
   const { currentTheme } = useTheme();
   const color = getStreakColor(streak);
-  const bg = currentTheme?.surface || '#1a1f21';
+  const bg = currentTheme?.surface || "#1a1f21";
 
   return (
     <View style={[sb.badge, { backgroundColor: `${color}22`, borderColor: color }]}>

@@ -16,10 +16,10 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 
 const UPDATE_TYPES = [
-  { key: 'info',    icon: 'info',        color: '#06b6d4', label: 'Info'    },
-  { key: 'hype',    icon: 'zap',         color: '#f59e0b', label: 'Hype'   },
-  { key: 'change',  icon: 'alert-circle', color: '#ef4444', label: 'Change' },
-  { key: 'shoutout',icon: 'mic',         color: '#8b5cf6', label: 'Shout'  },
+  { key: 'info',    icon: 'info',        color: "#06b6d4", label: 'Info'    },
+  { key: 'hype',    icon: 'zap',         color: "#f59e0b", label: 'Hype'   },
+  { key: 'change',  icon: 'alert-circle', color: "#ef4444", label: 'Change' },
+  { key: 'shoutout',icon: 'mic',         color: "#8b5cf6", label: 'Shout'  },
 ];
 
 const fmt = (iso) => {
@@ -106,8 +106,8 @@ export const LiveEventUpdates = ({ eventId, organiserId, canPost: canPostProp, p
     try {
       const ok = await resilient(
         [
-          () => supabase.from('event_updates').insert({ event_id: eventId, author_id: user.id, message: message.trim(), update_type: updateType }),
-          () => supabase.rpc('post_event_update', { p_event_id: eventId, p_author: user.id, p_message: message.trim(), p_type: updateType }),
+          () => supabase.from('event_updates').insert({ event_id: eventId, author_id: user?.id, message: message.trim(), update_type: updateType }),
+          () => supabase.rpc('post_event_update', { p_event_id: eventId, p_author: user?.id, p_message: message.trim(), p_type: updateType }),
         ],
         { attemptsPerTier: 2, baseMs: 400, label: 'LiveEventUpdates.post', fallbackValue: null }
       );
@@ -129,7 +129,7 @@ export const LiveEventUpdates = ({ eventId, organiserId, canPost: canPostProp, p
       <TouchableOpacity style={lu.headerRow} onPress={() => setExpanded(p => !p)} activeOpacity={0.8}>
         <View style={[lu.liveBadge, { backgroundColor: '#ef444420', borderColor: '#ef444440' }]}>
           <View style={lu.liveDot} />
-          <Text style={{ color: '#ef4444', fontWeight: '900', fontSize: 10 }}>LIVE</Text>
+          <Text style={{ color: "#ef4444", fontWeight: '900', fontSize: 10 }}>LIVE</Text>
         </View>
         <Text style={[lu.headerTitle, { color: textColor }]}>Event Updates</Text>
         {updates.length > 0 && (
@@ -204,7 +204,7 @@ const lu = StyleSheet.create({
   container: { marginBottom: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
-  liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#ef4444' },
+  liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "#ef4444" },
   headerTitle: { fontSize: 14, fontWeight: '900' },
   countBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
   compose: { borderRadius: 14, borderWidth: 1, padding: 12, marginTop: 8, gap: 10 },

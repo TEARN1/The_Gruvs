@@ -63,10 +63,10 @@ export const dateFilterToRange = (value) => {
 export const DateFilterStrip = ({ value = 'any', onChange }) => {
   const { currentTheme } = useTheme();
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const surface = currentTheme?.surface || '#131a1c';
-  const text = currentTheme?.text || '#ffffff';
-  const background = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const surface = currentTheme?.surface || "#131a1c";
+  const text = currentTheme?.text || "#ffffff";
+  const background = currentTheme?.background || "#0d1112";
 
   const handleSelect = (optionValue) => {
     const range = dateFilterToRange(optionValue);

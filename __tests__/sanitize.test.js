@@ -1,4 +1,8 @@
-import { sanitizeSearch, isUuid } from '../src/utils/sanitize';
+import { sanitizeSearch, isUuid, safeOpenURL } from '../src/utils/sanitize';
+import { Linking } from 'react-native';
+
+jest.spyOn(Linking, 'canOpenURL').mockImplementation(async () => true);
+jest.spyOn(Linking, 'openURL').mockImplementation(async () => {});
 
 describe('sanitizeSearch', () => {
   it('preserves normal text and accents', () => {
@@ -39,3 +43,37 @@ describe('isUuid', () => {
     expect(isUuid('a1b2ea24a0b9450c9a593ba7bbc5224c')).toBe(false); // no dashes
   });
 });
+
+describe('safeOpenURL', () => {
+  it('allows safe whitelisted host URLs', async () => {
+    const res = await safeOpenURL('https://thegruvs.com/privacy');
+    expect(res).toBe(true);
+    expect(Linking.openURL).toHaveBeenCalledWith('https://thegruvs.com/privacy');
+  });
+
+  it('allows subdomains of whitelisted hosts', async () => {
+    const res = await safeOpenURL('https://open.spotify.com/track/123');
+    expect(res).toBe(true);
+  });
+
+  it('rejects non-whitelisted hosts', async () => {
+    const res = await safeOpenURL('https://malicious-site.com/steal');
+    expect(res).toBe(false);
+  });
+
+  it('rejects disallowed schemes', async () => {
+    const res = await safeOpenURL('ftp://thegruvs.com/files');
+    expect(res).toBe(false);
+  });
+
+  it('allows native maps links', async () => {
+    const res = await safeOpenURL('maps://coordinates');
+    expect(res).toBe(true);
+  });
+
+  it('handles invalid inputs gracefully', async () => {
+    const res = await safeOpenURL(null);
+    expect(res).toBe(false);
+  });
+});
+

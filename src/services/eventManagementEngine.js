@@ -552,7 +552,8 @@ export const VendorManager = {
   },
 
   async delete(id) {
-    await supabase.from('event_vendors').delete().eq('id', id);
+    const { error } = await supabase.from('event_vendors').delete().eq('id', id);
+    if (error) throw error;
   },
 };
 

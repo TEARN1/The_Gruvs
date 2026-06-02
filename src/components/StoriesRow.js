@@ -24,7 +24,7 @@ const StoryBubble = ({ story, seen, primary, onPress }) => {
       <View style={[sb.ring, { borderColor: ringColor }]}>
         {story.avatar_url
           ? <Image source={{ uri: story.avatar_url }} style={sb.avatar} />
-          : <View style={[sb.avatar, { backgroundColor: '#1a2a2c', alignItems: 'center', justifyContent: 'center' }]}>
+          : <View style={[sb.avatar, { backgroundColor: "#1a2a2c", alignItems: 'center', justifyContent: 'center' }]}>
               <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>
                 {(story.username || '?')[0].toUpperCase()}
               </Text>
@@ -43,12 +43,12 @@ const AddStoryBubble = ({ primary, onPress, avatarUrl }) => (
     <View style={[sb.ring, { borderColor: `${primary}60` }]}>
       {avatarUrl
         ? <Image source={{ uri: avatarUrl }} style={sb.avatar} />
-        : <View style={[sb.avatar, { backgroundColor: '#1a2a2c', alignItems: 'center', justifyContent: 'center' }]}>
+        : <View style={[sb.avatar, { backgroundColor: "#1a2a2c", alignItems: 'center', justifyContent: 'center' }]}>
             <Feather name="user" size={22} color={primary} />
           </View>
       }
       {/* Plus badge — clearly an "add to your story" affordance */}
-      <View style={[sb.addBadge, { backgroundColor: primary, borderColor: '#0d1112' }]}>
+      <View style={[sb.addBadge, { backgroundColor: primary, borderColor: "#0d1112" }]}>
         <Feather name="plus" size={11} color="#000" />
       </View>
     </View>
@@ -219,7 +219,7 @@ export const StoriesRow = ({ onAuthRequired }) => {
   const [viewerStart, setViewerStart] = useState(0);
   const [uploading, setUploading] = useState(false);
 
-  const primary = currentTheme?.primary || '#00f2ff';
+  const primary = currentTheme?.primary || "#00f2ff";
 
   const loadStories = useCallback(async () => {
     if (!user) return;
@@ -268,13 +268,13 @@ export const StoriesRow = ({ onAuthRequired }) => {
     setViewerOpen(true);
     // Mark all stories in this group as seen
     if (user) {
-      const unseen = group.stories.filter(s => !seenMap[s.id]).map(s => ({ story_id: s.id, viewer_id: user.id }));
+      const unseen = group.stories.filter(s => !seenMap[s.id]).map(s => ({ story_id: s.id, viewer_id: user?.id }));
       if (unseen.length > 0) {
         await resilient(
           [
             () => supabase.from('story_views').upsert(unseen, { onConflict: 'story_id,viewer_id' }),
             () => supabase.from('story_views').insert(unseen),
-            () => supabase.rpc('mark_stories_seen', { p_story_ids: unseen.map(u => u.story_id), p_viewer_id: user.id }),
+            () => supabase.rpc('mark_stories_seen', { p_story_ids: unseen.map(u => u.story_id), p_viewer_id: user?.id }),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: 'StoriesRow.markSeen', fallbackValue: null }
         );
@@ -307,12 +307,12 @@ export const StoriesRow = ({ onAuthRequired }) => {
       const path = `${user.id}/story_${Date.now()}.${ext}`;
       const url = await uploadToStorage(asset.uri, 'stories', path, { mimeType: asset.mimeType });
       const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
-      const storyPayload = { user_id: user.id, media_url: url, media_type: isVideo ? 'video' : 'image', caption: '', expires_at: expiresAt };
+      const storyPayload = { user_id: user?.id, media_url: url, media_type: isVideo ? 'video' : 'image', caption: '', expires_at: expiresAt };
       await resilient(
         [
           () => supabase.from('stories').insert(storyPayload),
           () => supabase.from('stories').upsert(storyPayload),
-          () => supabase.rpc('create_story', { p_user_id: user.id, p_url: url, p_type: isVideo ? 'video' : 'image', p_expires_at: expiresAt }),
+          () => supabase.rpc('create_story', { p_user_id: user?.id, p_url: url, p_type: isVideo ? 'video' : 'image', p_expires_at: expiresAt }),
         ],
         { attemptsPerTier: 2, baseMs: 400, label: 'StoriesRow.addStory', fallbackValue: null }
       );

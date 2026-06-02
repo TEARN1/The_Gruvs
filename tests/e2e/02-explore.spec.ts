@@ -1,16 +1,20 @@
 import { test, expect } from '@playwright/test';
-import { waitForApp, trackErrors } from './helpers';
+import { waitForApp, trackErrors, goToTab } from './helpers';
 
 test.describe('Explore Page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await waitForApp(page);
+    await goToTab(page, 'Explore');
+    await page.waitForTimeout(500);
   });
 
   test('renders without unexpected JS errors', async ({ page }) => {
     const getErrors = trackErrors(page);
     await page.goto('/');
     await waitForApp(page);
+    await goToTab(page, 'Explore');
+    await page.waitForTimeout(500);
     expect(getErrors()).toHaveLength(0);
   });
 

@@ -22,26 +22,44 @@ export const SmartImage = ({
   contentFit,
 }) => {
   const [errored, setErrored] = useState(false);
-  const uri = typeof source === 'string' ? source : source?.uri;
 
-  if (!uri || errored) {
+  // Normalize source for expo-image and identify if we have a valid source
+  let resolvedSource = null;
+  let cacheKey = '';
+
+  if (typeof source === 'string') {
+    resolvedSource = { uri: source };
+    cacheKey = source;
+  } else if (typeof source === 'number') {
+    resolvedSource = source; // local require number
+    cacheKey = String(source);
+  } else if (source && typeof source === 'object' && source.uri) {
+    resolvedSource = source;
+    cacheKey = source.uri;
+  }
+
+  if (!resolvedSource || errored) {
     return (
       <View style={[style, styles.fallback, { backgroundColor: fallbackColor }]}>
-        <Feather name={fallbackIcon} size={Math.min(Number(StyleSheet.flatten(style)?.width) / 3 || 20, 28)} color="rgba(255,255,255,0.2)" />
+        <Feather 
+          name={fallbackIcon} 
+          size={Math.min(Number(StyleSheet.flatten(style)?.width) / 3 || 20, 28)} 
+          color="rgba(255,255,255,0.2)" 
+        />
       </View>
     );
   }
 
   return (
     <ExpoImage
-      source={{ uri }}
+      source={resolvedSource}
       style={style}
       contentFit={contentFit || resizeMode}
       placeholder={placeholder}
       transition={180}
       cachePolicy="disk"
       onError={() => setErrored(true)}
-      recyclingKey={uri}
+      recyclingKey={cacheKey}
     />
   );
 };

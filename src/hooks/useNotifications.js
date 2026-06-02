@@ -4,6 +4,7 @@ import { NotificationService } from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { MessageManager } from '../services/dataFlow';
+import { supabase } from '../services/supabase';
 
 export const useNotifications = ({ onNavigate } = {}) => {
   const { user } = useAuth();
@@ -30,6 +31,31 @@ export const useNotifications = ({ onNavigate } = {}) => {
     NotificationService.sendEventDayNotifications(user.id);
     return NotificationService.watchTokenRefresh(user.id);
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`realtime_notifications:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const { title, body } = payload.new;
+          showToast(body || title || 'New notification');
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, showToast]);
 
   useEffect(() => {
     // Guard: remove any stale listeners before re-registering (handles StrictMode double-mount)

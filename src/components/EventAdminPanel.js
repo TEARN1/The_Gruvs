@@ -43,11 +43,11 @@ const formatAge = (d) => {
 };
 
 const TYPES = [
-  { key: 'all',     label: 'All',     icon: 'activity',      color: '#00f2ff' },
-  { key: 'vibe',    label: 'Vibes',   icon: 'zap',           color: '#f59e0b' },
-  { key: 'rsvp',    label: 'RSVPs',   icon: 'check-circle',  color: '#10b981' },
-  { key: 'echo',    label: 'Echoes',  icon: 'message-circle',color: '#8b5cf6' },
-  { key: 'rating',  label: 'Ratings', icon: 'star',          color: '#f97316' },
+  { key: 'all',     label: 'All',     icon: 'activity',      color: "#00f2ff" },
+  { key: 'vibe',    label: 'Vibes',   icon: 'zap',           color: "#f59e0b" },
+  { key: 'rsvp',    label: 'RSVPs',   icon: 'check-circle',  color: "#10b981" },
+  { key: 'echo',    label: 'Echoes',  icon: 'message-circle',color: "#8b5cf6" },
+  { key: 'rating',  label: 'Ratings', icon: 'star',          color: "#f97316" },
 ];
 
 const TABS = [
@@ -58,7 +58,7 @@ const TABS = [
 ];
 
 const avatarBg = (name) => {
-  const cols = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706'];
+  const cols = ["#0891b2", "#7c3aed", "#dc2626", "#059669", "#d97706"];
   return cols[(name?.charCodeAt(0) || 0) % cols.length];
 };
 
@@ -67,8 +67,8 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
   const isAuthorized = !!(event?.author_id && userId && event.author_id === userId);
 
   const { currentTheme } = useTheme();
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
@@ -270,10 +270,10 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
           {/* Stats row */}
           <View style={ad.statsRow}>
             {[
-              { label: 'Vibes',   value: stats.vibes,    icon: 'zap',           color: '#f59e0b' },
-              { label: 'Going',   value: stats.rsvps,    icon: 'check-circle',  color: '#10b981' },
-              { label: 'Echoes',  value: stats.echoes,   icon: 'message-circle',color: '#8b5cf6' },
-              { label: 'Avg ★',   value: stats.avgRating || '—', icon: 'star', color: '#f97316' },
+              { label: 'Vibes',   value: stats.vibes,    icon: 'zap',           color: "#f59e0b" },
+              { label: 'Going',   value: stats.rsvps,    icon: 'check-circle',  color: "#10b981" },
+              { label: 'Echoes',  value: stats.echoes,   icon: 'message-circle',color: "#8b5cf6" },
+              { label: 'Avg ★',   value: stats.avgRating || '—', icon: 'star', color: "#f97316" },
             ].map(s => (
               <View key={s.label} style={[ad.statBox, { backgroundColor: `${s.color}12`, borderColor: `${s.color}25` }]}>
                 <Feather name={s.icon} size={16} color={s.color} />
@@ -386,7 +386,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
               </View>
 
               {checkInResult && (
-                <View style={[ad.resultCard, { backgroundColor: checkInResult.ok ? '#10b98118' : '#ef444418', borderColor: checkInResult.ok ? '#10b981' : '#ef4444' }]}>
+                <View style={[ad.resultCard, { backgroundColor: checkInResult.ok ? '#10b98118' : '#ef444418', borderColor: checkInResult.ok ? "#10b981" : "#ef4444" }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     {checkInResult.avatar
                       ? <Image source={{ uri: checkInResult.avatar }} style={ad.resultAvatar} />
@@ -397,8 +397,8 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                         : null
                     }
                     <View style={{ flex: 1 }}>
-                      <Feather name={checkInResult.ok ? 'check-circle' : 'x-circle'} size={18} color={checkInResult.ok ? '#10b981' : '#ef4444'} />
-                      <Text style={[ad.resultMsg, { color: checkInResult.ok ? '#10b981' : '#ef4444' }]}>{checkInResult.msg}</Text>
+                      <Feather name={checkInResult.ok ? 'check-circle' : 'x-circle'} size={18} color={checkInResult.ok ? "#10b981" : "#ef4444"} />
+                      <Text style={[ad.resultMsg, { color: checkInResult.ok ? "#10b981" : "#ef4444" }]}>{checkInResult.msg}</Text>
                     </View>
                   </View>
                 </View>
@@ -420,7 +420,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                     <Text style={[ad.guestRef, { color: muted }]}>Ref: {(r.user_id || '').slice(0, 8).toUpperCase()}</Text>
                   </View>
                   {checkedIn[r.user_id]
-                    ? <View style={ad.checkedBadge}><Feather name="check" size={12} color="#10b981" /><Text style={[ad.checkedText, { color: '#10b981' }]}>IN</Text></View>
+                    ? <View style={ad.checkedBadge}><Feather name="check" size={12} color="#10b981" /><Text style={[ad.checkedText, { color: "#10b981" }]}>IN</Text></View>
                     : <Text style={[ad.pendingText, { color: muted }]}>Pending</Text>
                   }
                 </View>
@@ -458,9 +458,9 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                   </View>
                   <View style={[ad.statusPill, {
                     backgroundColor: r.status === 'going' ? '#10b98118' : r.status === 'maybe' ? '#f59e0b18' : '#ef444418',
-                    borderColor: r.status === 'going' ? '#10b981' : r.status === 'maybe' ? '#f59e0b' : '#ef4444',
+                    borderColor: r.status === 'going' ? "#10b981" : r.status === 'maybe' ? "#f59e0b" : "#ef4444",
                   }]}>
-                    <Text style={[ad.statusText, { color: r.status === 'going' ? '#10b981' : r.status === 'maybe' ? '#f59e0b' : '#ef4444' }]}>
+                    <Text style={[ad.statusText, { color: r.status === 'going' ? "#10b981" : r.status === 'maybe' ? "#f59e0b" : "#ef4444" }]}>
                       {r.status?.toUpperCase()}
                     </Text>
                   </View>

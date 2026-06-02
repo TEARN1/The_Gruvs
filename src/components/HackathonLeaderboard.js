@@ -19,11 +19,11 @@ const MEDAL = ['🥇', '🥈', '🥉'];
 
 export const HackathonLeaderboard = ({ eventId, style }) => {
   const { colors } = useTheme();
-  const primary   = colors?.primary   || '#00f2ff';
+  const primary   = colors?.primary   || "#00f2ff";
   const bg        = colors?.card      || '#111';
   const textColor = colors?.text      || '#fff';
   const muted     = colors?.muted     || 'rgba(255,255,255,0.5)';
-  const surface   = colors?.surface   || '#1a1f21';
+  const surface   = colors?.surface   || "#1a1f21";
 
   const [teams, setTeams]     = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,9 +103,9 @@ export const HackathonLeaderboard = ({ eventId, style }) => {
         const isExpanded = expanded === team.id;
         const medal = MEDAL[idx];
         const scoreColor = team.avgScore == null ? muted
-          : team.avgScore >= 75 ? '#10b981'
-          : team.avgScore >= 50 ? '#f59e0b'
-          : '#ef4444';
+          : team.avgScore >= 75 ? "#10b981"
+          : team.avgScore >= 50 ? "#f59e0b"
+          : "#ef4444";
 
         return (
           <TouchableOpacity

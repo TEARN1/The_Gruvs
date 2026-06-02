@@ -17,6 +17,39 @@ import { VibeEconomyEngine } from './revenueEngine';
 import projectDNA from './projectDNA.json';
 import { NotificationService } from './notificationService';
 
+// ── Database Pre-parsing / Normalization ──────────────────────────────────
+export const normalizeEvent = (event) => {
+  if (!event) return event;
+  const parsed = { ...event };
+  if (parsed.media && typeof parsed.media === 'string') {
+    try { parsed.media = JSON.parse(parsed.media); } catch { parsed.media = null; }
+  }
+  if (parsed.media_urls && typeof parsed.media_urls === 'string') {
+    try { parsed.media_urls = JSON.parse(parsed.media_urls); } catch { parsed.media_urls = null; }
+  }
+  if (parsed.price && typeof parsed.price === 'string' && parsed.price.trim().startsWith('{')) {
+    try { parsed.price = JSON.parse(parsed.price); } catch {}
+  }
+  if (parsed.rsvp_tiers && typeof parsed.rsvp_tiers === 'string') {
+    try { parsed.rsvp_tiers = JSON.parse(parsed.rsvp_tiers); } catch { parsed.rsvp_tiers = null; }
+  }
+  if (parsed.schedule && typeof parsed.schedule === 'string') {
+    try { parsed.schedule = JSON.parse(parsed.schedule); } catch { parsed.schedule = null; }
+  }
+  if (parsed.tags && typeof parsed.tags === 'string') {
+    try { parsed.tags = JSON.parse(parsed.tags); } catch { parsed.tags = null; }
+  }
+  return parsed;
+};
+
+export const normalizeEvents = (events) => {
+  if (!events) return [];
+  if (Array.isArray(events)) {
+    return events.map(normalizeEvent);
+  }
+  return normalizeEvent(events);
+};
+
 // Map from AllCategories group → CATEGORY_CONFIG parent key
 const GROUP_TO_CAT_KEY = {
   'Music':           'music',
@@ -223,7 +256,8 @@ const cache = {
 };
 
 // Run sweep every 10 minutes — harmless background cleanup
-if (typeof setInterval !== 'undefined') setInterval(() => cache.sweep(), 600000);
+if (typeof setInterval !== 'undefined' && process.env.NODE_ENV !== 'test') setInterval(() => cache.sweep(), 600000);
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REQUEST DEDUPLICATION  (in-flight promise sharing)
@@ -523,7 +557,8 @@ export const FeedManager = {
   // Preload the next page in background so scroll feels instant
   prefetchPage(opts = {}) {
     const next = { ...opts, page: (opts.page || 0) + 1 };
-    const key = `feed:${next.mode||'drop'}:${next.category||'all'}:${next.query||''}:${next.page}:${next.userId||'anon'}`;
+    const dateKey = next.dateRange ? `${next.dateRange.from}_${next.dateRange.to}` : 'any';
+    const key = `feed:${next.mode||'drop'}:${next.category||'all'}:${next.query||''}:${next.page}:${next.userId||'anon'}:${dateKey}`;
     if (!cache.get(key) && !cache.getStale(key)) {
       setTimeout(() => this.fetchPage(next).catch(() => {}), 800);
     }
@@ -601,7 +636,7 @@ export const FeedManager = {
     }
 
     const rankAndCache = async (data, count) => {
-      let events = data || [];
+      let events = normalizeEvents(data || []);
       if (!query.trim()) {
         // Stamp heat scores so applyPersonalisedBoost can re-rank with them
         events = events.map(e => ({
@@ -676,7 +711,7 @@ export const FeedManager = {
           .gte('event_date', today).neq('is_deleted', true).neq('is_cancelled', true)
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
-        const best = pick(data);
+        const best = pick(normalizeEvents(data));
         if (best) cache.set(cacheKey, best, 120000);
         return best;
       },
@@ -687,7 +722,7 @@ export const FeedManager = {
           .gte('event_date', today).neq('is_deleted', true).neq('is_cancelled', true)
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
-        return pick(data);
+        return pick(normalizeEvents(data));
       },
       // Tier 3: stale cache
       () => { const s = cache.getStale(cacheKey); if (s) return s; throw new Error('miss'); },
@@ -716,9 +751,9 @@ export const FeedManager = {
               .or(`username.ilike.%${s}%,display_name.ilike.%${s}%,bio.ilike.%${s}%`).limit(10),
             supabase.rpc('search_events_fts', { search_query: s, limit_count: 20 }),
           ]);
-          const ilikeEvents = evRes.status === 'fulfilled' ? (evRes.value.data || []) : [];
+          const ilikeEvents = evRes.status === 'fulfilled' ? normalizeEvents(evRes.value.data || []) : [];
           const users = userRes.status === 'fulfilled' ? (userRes.value.data || []) : [];
-          const ftsEvents = ftsRes.status === 'fulfilled' && ftsRes.value.data?.length > 0 ? ftsRes.value.data : null;
+          const ftsEvents = ftsRes.status === 'fulfilled' && ftsRes.value.data?.length > 0 ? normalizeEvents(ftsRes.value.data) : null;
           const eventMap = new Map();
           (ftsEvents || ilikeEvents).forEach(e => eventMap.set(e.id, e));
           if (ftsEvents) ilikeEvents.forEach(e => { if (!eventMap.has(e.id)) eventMap.set(e.id, e); });
@@ -732,7 +767,7 @@ export const FeedManager = {
             .neq('is_deleted', true).neq('is_cancelled', true)
             .order('vibe_count', { ascending: false }).limit(15);
           if (error) throw error;
-          return { events: data || [], users: [] };
+          return { events: normalizeEvents(data || []), users: [] };
         },
         // Tier 3: title-only prefix search
         async () => {
@@ -740,7 +775,7 @@ export const FeedManager = {
             .select('id, title, vibe_count, event_date, venue_name, category')
             .ilike('title', `%${s}%`).limit(10);
           if (error) throw error;
-          return { events: data || [], users: [] };
+          return { events: normalizeEvents(data || []), users: [] };
         },
       ],
       {
@@ -765,8 +800,9 @@ export const FeedManager = {
           .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)')
           .eq('id', eventId).single();
         if (error) throw error;
-        if (data) cache.set(cacheKey, data);
-        return data;
+        const normalized = normalizeEvent(data);
+        if (normalized) cache.set(cacheKey, normalized);
+        return normalized;
       },
       // Tier 2: base event fields only
       async () => {
@@ -774,7 +810,7 @@ export const FeedManager = {
           .select('id, title, description, media, vibe_count, going, event_date, event_time, venue_name, category, author_id, lat, lon, price, created_at')
           .eq('id', eventId).single();
         if (error) throw error;
-        return data;
+        return normalizeEvent(data);
       },
       // Tier 3: stale cache
       () => { const s = cache.getStale(cacheKey); if (s) return s; throw new Error('miss'); },
@@ -788,11 +824,11 @@ export const FeedManager = {
     try {
       const { page, category, query, mode, userInterests, followedIds, userLat, userLon, userId } = opts;
       let q = supabase
-        .from('events')
-        .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)', { count: 'estimated' })
-        .neq('is_deleted', true)
-        .neq('is_cancelled', true)
-        .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
+          .from('events')
+          .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)', { count: 'estimated' })
+          .neq('is_deleted', true)
+          .neq('is_cancelled', true)
+          .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
       if (category !== 'all') {
         const subCats = CAT_KEY_TO_SUBCATS[category];
         const catList = subCats && subCats.size > 0 ? [...subCats] : [category];
@@ -806,9 +842,10 @@ export const FeedManager = {
       }
       const { data, count } = await q;
       if (!data) return;
-      let events = [...data].sort((a, b) =>
-        ScoreEngine.eventScore(b, { userInterests, followedIds, userLat, userLon }) -
-        ScoreEngine.eventScore(a, { userInterests, followedIds, userLat, userLon })
+      const normalizedData = normalizeEvents(data);
+      let events = [...normalizedData].sort((a, b) =>
+          ScoreEngine.eventScore(b, { userInterests, followedIds, userLat, userLon }) -
+          ScoreEngine.eventScore(a, { userInterests, followedIds, userLat, userLon })
       );
       cache.set(cacheKey, { events, total: count || 0, page, hasMore: events.length === this.PAGE_SIZE }, CACHE_TTL);
     } catch { /* silent */ }
@@ -850,8 +887,9 @@ export const TrendingManager = {
         .gte('event_date', new Date().toISOString().split('T')[0])
         .order('vibe_count', { ascending: false })
         .limit(limit * 4); // oversample so we can re-rank
-      if (events?.length > 0) {
-        const ranked = [...events]
+      const normalizedEvents = normalizeEvents(events);
+      if (normalizedEvents?.length > 0) {
+        const ranked = [...normalizedEvents]
           .sort((a, b) => ScoreEngine.heatScore(b) - ScoreEngine.heatScore(a))
           .slice(0, limit);
         const mapped = ranked.map((e, i) => ({
@@ -890,7 +928,7 @@ export const TrendingManager = {
           .neq('is_deleted', true).neq('is_cancelled', true)
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
-        const events = rank(data);
+        const events = rank(normalizeEvents(data));
         cache.set(cacheKey, events, 60000);
         return events;
       },
@@ -902,7 +940,7 @@ export const TrendingManager = {
           .neq('is_deleted', true).neq('is_cancelled', true)
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
-        return rank(data);
+        return rank(normalizeEvents(data));
       },
       // Tier 3: stale cache
       () => { const s = cache.getStale(cacheKey); if (s) return s; throw new Error('miss'); },
@@ -1712,7 +1750,7 @@ export const CalendarManager = {
         .neq('is_cancelled', true)
         .order('event_date', { ascending: true })
         .limit(60);
-      const result = data || [];
+      const result = normalizeEvents(data || []);
       cache.set(cacheKey, result);
       return result;
     } catch { return []; }
@@ -1732,7 +1770,7 @@ export const CalendarManager = {
         .neq('is_cancelled', true)
         .order('event_date', { ascending: true })
         .limit(limit);
-      const result = data || [];
+      const result = normalizeEvents(data || []);
       cache.set(cacheKey, result);
       return result;
     } catch { return []; }
@@ -2507,7 +2545,7 @@ export const FollowingFeedManager = {
         .order('created_at', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      const result = { events: data || [], hasMore: (data || []).length === pageSize };
+      const result = { events: normalizeEvents(data || []), hasMore: (data || []).length === pageSize };
       cache.set(cacheKey, result, 60000);
       return result;
     } catch { return { events: [], hasMore: false }; }

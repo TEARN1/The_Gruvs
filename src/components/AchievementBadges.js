@@ -22,12 +22,13 @@ const BADGE_DEFS = [
   { id: 'early_adopter',    emoji: '🚀', name: 'Early Adopter',    description: 'One of the first 500 Vibers' },
   { id: 'super_saver',      emoji: '🔖', name: 'Super Saver',      description: 'Saved 20+ events' },
   { id: 'rsvp_king',        emoji: '📬', name: 'RSVP King',        description: 'RSVPd to 10+ events' },
+  { id: 'vibe_scout',       emoji: '🧭', name: 'Vibe Scout',       description: 'Checked in 5+ times at local venues' },
 ];
 
 const checkBadges = async (userId) => {
   const earned = new Set();
   try {
-    const [eventsRes, profileRes, followsRes, rsvpsRes, echoesRes, savedRes, referralRes, vibesRes] =
+    const [eventsRes, profileRes, followsRes, rsvpsRes, echoesRes, savedRes, referralRes, vibesRes, checkinsRes] =
       await Promise.allSettled([
         supabase.from('events').select('id, vibe_count', { count: 'exact' }).eq('author_id', userId),
         supabase.from('profiles').select('vibe_score, username, bio, avatar_url, location, referral_count').eq('id', userId).single(),
@@ -37,6 +38,7 @@ const checkBadges = async (userId) => {
         supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('profiles').select('referral_count').eq('id', userId).single(),
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId),
       ]);
 
     const eventCount  = eventsRes.status  === 'fulfilled' ? (eventsRes.value.count   || 0) : 0;
@@ -45,6 +47,7 @@ const checkBadges = async (userId) => {
     const echoCount   = echoesRes.status  === 'fulfilled' ? (echoesRes.value.count   || 0) : 0;
     const savedCount  = savedRes.status   === 'fulfilled' ? (savedRes.value.count    || 0) : 0;
     const refCount    = referralRes.status=== 'fulfilled' ? (referralRes.value.data?.referral_count || 0) : 0;
+    const checkinCount = checkinsRes.status === 'fulfilled' ? (checkinsRes.value.count || 0) : 0;
     const profile     = profileRes.status === 'fulfilled' ? profileRes.value.data    : null;
 
     if (eventCount >= 1)  earned.add('first_gruv');
@@ -56,6 +59,7 @@ const checkBadges = async (userId) => {
     if (echoCount >= 20)   earned.add('echo_chamber');
     if (savedCount >= 20)  earned.add('super_saver');
     if (refCount >= 3)     earned.add('connector');
+    if (checkinCount >= 5) earned.add('vibe_scout');
 
     // Verified: has avatar, bio, location, username all set
     if (profile?.username && profile?.bio && profile?.avatar_url && profile?.location) {
@@ -104,10 +108,10 @@ export const AchievementBadges = ({ userId }) => {
   const [earned, setEarned] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const textColor = currentTheme?.text       || '#ffffff';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const textColor = currentTheme?.text       || "#ffffff";
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   const load = useCallback(async () => {
     if (!userId) { setLoading(false); return; }

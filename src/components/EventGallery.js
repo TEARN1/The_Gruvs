@@ -32,7 +32,7 @@ export const EventGallery = ({ eventId }) => {
   const [myLikes, setMyLikes] = useState(new Set()); // gallery item IDs liked by current user
   const [likingId, setLikingId] = useState(null);
 
-  const primary = currentTheme?.primary || '#00f2ff';
+  const primary = currentTheme?.primary || "#00f2ff";
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const textColor = currentTheme?.text || '#fff';
 
@@ -66,7 +66,7 @@ export const EventGallery = ({ eventId }) => {
         const { data: liked } = await supabase
           .from('event_gallery_likes')
           .select('gallery_id')
-          .eq('user_id', user.id);
+          .eq('user_id', user?.id);
         if (liked) setMyLikes(new Set(liked.map(l => l.gallery_id)));
       }
 
@@ -175,10 +175,10 @@ export const EventGallery = ({ eventId }) => {
     setLikingId(item.id);
     try {
       if (alreadyLiked) {
-        await supabase.from('event_gallery_likes').delete().eq('gallery_id', item.id).eq('user_id', user.id);
+        await supabase.from('event_gallery_likes').delete().eq('gallery_id', item.id).eq('user_id', user?.id);
         await supabase.from('event_gallery').update({ like_count: Math.max(0, (item.like_count || 0) - 1) }).eq('id', item.id);
       } else {
-        await supabase.from('event_gallery_likes').upsert({ gallery_id: item.id, user_id: user.id }, { onConflict: 'gallery_id,user_id' });
+        await supabase.from('event_gallery_likes').upsert({ gallery_id: item.id, user_id: user?.id }, { onConflict: 'gallery_id,user_id' });
         await supabase.from('event_gallery').update({ like_count: (item.like_count || 0) + 1 }).eq('id', item.id);
       }
     } catch {
@@ -218,12 +218,12 @@ export const EventGallery = ({ eventId }) => {
       const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
       const fileName = `${user.id}/gallery/${eventId}_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'event-media', fileName, { mimeType: asset.mimeType });
-      const galleryPayload = { event_id: eventId, user_id: user.id, url: publicUrl, media_type: isVideo ? 'video' : 'image' };
+      const galleryPayload = { event_id: eventId, user_id: user?.id, url: publicUrl, media_type: isVideo ? 'video' : 'image' };
       const ok = await resilient(
         [
           () => supabase.from('event_gallery').insert(galleryPayload),
           () => supabase.from('event_gallery').upsert(galleryPayload),
-          () => supabase.rpc('add_gallery_item', { p_event_id: eventId, p_user_id: user.id, p_url: publicUrl, p_type: isVideo ? 'video' : 'image' }),
+          () => supabase.rpc('add_gallery_item', { p_event_id: eventId, p_user_id: user?.id, p_url: publicUrl, p_type: isVideo ? 'video' : 'image' }),
         ],
         { attemptsPerTier: 2, baseMs: 400, label: `EventGallery.upload:${eventId}`, fallbackValue: null }
       );
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: 8,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: "#1a1a1a",
   },
   thumbUser: { fontSize: 9, marginTop: 3, textAlign: 'center', width: THUMB_SIZE },
   playOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 8 },

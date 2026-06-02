@@ -10,13 +10,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal, View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import {
   SPORT_REGISTRY, SPORT_KEYS, SportConfig,
   TeamManager, AthleteManager, MatchManager,
 } from '../../services/sportsEngine';
+import { MembershipManager, ClubManager } from '../../services/clubEngine';
 
 const FORMATS = [
   { key: 'league',       label: 'League',         icon: 'list',      desc: 'All teams play each other. Points table decides winner.' },
@@ -28,7 +29,7 @@ const FORMATS = [
 
 export const SportEventSetupModal = ({
   visible, onClose, eventId, onSetupComplete,
-  primary = '#00f2ff', bg = '#0d1112', textColor = '#fff', muted = 'rgba(255,255,255,0.5)',
+  primary = "#00f2ff", bg = "#0d1112", textColor = '#fff', muted = 'rgba(255,255,255,0.5)',
 }) => {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -45,7 +46,11 @@ export const SportEventSetupModal = ({
   // Step 3 — teams
   const [teams, setTeams] = useState([]);
   const [newTeamName, setNewTeamName] = useState('');
-  const [newTeamColor, setNewTeamColor] = useState('#00f2ff');
+  const [newTeamColor, setNewTeamColor] = useState("#00f2ff");
+  const [clubSearchQuery, setClubSearchQuery] = useState('');
+  const [clubSearchResults, setClubSearchResults] = useState([]);
+  const [searchingClubs, setSearchingClubs] = useState(false);
+  const [selectedClub, setSelectedClub] = useState(null);
   // Step 4 — fixtures
   const [autoGenerate, setAutoGenerate] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -69,17 +74,62 @@ export const SportEventSetupModal = ({
 
   useEffect(() => { if (visible) load(); }, [visible, load]);
 
+  const searchClubs = async (q) => {
+    setClubSearchQuery(q);
+    if (!q.trim()) {
+      setClubSearchResults([]);
+      return;
+    }
+    setSearchingClubs(true);
+    try {
+      const results = await ClubManager.search(q, sportType);
+      setClubSearchResults(results || []);
+    } catch (e) {
+      console.warn('Error searching clubs:', e);
+    } finally {
+      setSearchingClubs(false);
+    }
+  };
+
+  const handleSelectClub = (club) => {
+    setSelectedClub(club);
+    setNewTeamName(club.name);
+    setNewTeamColor(club.colors?.[0] || "#00f2ff");
+    setClubSearchQuery('');
+    setClubSearchResults([]);
+  };
+
   const handleAddTeam = async () => {
     if (!newTeamName.trim()) return;
     setSaving(true);
     try {
-      const team = await TeamManager.create(eventId, {
+      const teamData = {
         name: newTeamName.trim(),
         color1: newTeamColor,
-        short_name: newTeamName.trim().slice(0, 3).toUpperCase(),
-      });
+        short_name: selectedClub?.short_name || newTeamName.trim().slice(0, 3).toUpperCase(),
+      };
+      if (selectedClub) {
+        teamData.club_id = selectedClub.id;
+        teamData.logo_url = selectedClub.logo_url || null;
+        try {
+          const roster = await MembershipManager.getRoster(selectedClub.id);
+          if (roster && roster.length > 0) {
+            teamData.players = roster.map(m => ({
+              id: m.profiles?.id || m.user_id,
+              name: m.profiles?.display_name || m.profiles?.username || m.display_name,
+              number: m.jersey_number || '',
+              position: m.position || '',
+              photo_url: m.profiles?.avatar_url || m.photo_url || null,
+            }));
+          }
+        } catch (rosterErr) {
+          console.warn('Failed to load roster from club:', rosterErr);
+        }
+      }
+      const team = await TeamManager.create(eventId, teamData);
       setTeams(prev => [...prev, team]);
       setNewTeamName('');
+      setSelectedClub(null);
     } catch (e) {
       Alert.alert('Error', e.message);
     } finally { setSaving(false); }
@@ -117,7 +167,9 @@ export const SportEventSetupModal = ({
     }
     setSaving(true);
     try {
-      const fixtures = MatchManager.generateRoundRobin(teams, startDate || null);
+      const fixtures = format === 'knockout'
+        ? MatchManager.generateKnockout(teams, startDate || null)
+        : MatchManager.generateRoundRobin(teams, startDate || null);
       await MatchManager.bulkCreateFixtures(eventId, fixtures);
       Alert.alert('Done!', `${fixtures.length} fixtures generated.`);
       onSetupComplete?.();
@@ -127,7 +179,7 @@ export const SportEventSetupModal = ({
     } finally { setSaving(false); }
   };
 
-  const COLORS = ['#00f2ff','#10b981','#f97316','#ef4444','#8b5cf6','#ec4899','#f59e0b','#3b82f6','#84cc16','#06b6d4','#a78bfa','#34d399'];
+  const COLORS = ["#00f2ff","#10b981","#f97316","#ef4444","#8b5cf6","#ec4899","#f59e0b","#3b82f6","#84cc16","#06b6d4","#a78bfa","#34d399"];
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -267,6 +319,52 @@ export const SportEventSetupModal = ({
 
                 {/* Add team form */}
                 <View style={{ marginTop: 8 }}>
+                  {sportMeta.team_sport && (
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>LINK TO REGISTERED CLUB (OPTIONAL)</Text>
+                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', borderWidth: 1, borderColor: `${primary}30`, borderRadius: 10, paddingHorizontal: 10, height: 40, backgroundColor: `${primary}05` }}>
+                        <Feather name="search" size={14} color={muted} />
+                        <TextInput
+                          style={{ flex: 1, color: textColor, fontSize: 13 }}
+                          placeholder="Search clubs on The Gruvs..."
+                          placeholderTextColor={`${textColor}35`}
+                          value={clubSearchQuery}
+                          onChangeText={searchClubs}
+                        />
+                        {searchingClubs && <ActivityIndicator size="small" color={primary} />}
+                      </View>
+
+                      {clubSearchResults.length > 0 && (
+                        <ScrollView style={{ maxHeight: 120, marginTop: 6, borderRadius: 10, borderWidth: 1, borderColor: `${primary}20`, backgroundColor: bg }}>
+                          {clubSearchResults.map(club => (
+                            <TouchableOpacity key={club.id} onPress={() => handleSelectClub(club)}
+                              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, borderBottomWidth: 1, borderBottomColor: `${primary}10` }}>
+                              {club.logo_url
+                                ? <Image source={{ uri: club.logo_url }} style={{ width: 24, height: 24, borderRadius: 12 }} />
+                                : <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}><Feather name="shield" size={12} color={primary} /></View>
+                              }
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ color: textColor, fontSize: 12, fontWeight: '800' }}>{club.name}</Text>
+                                {club.city && <Text style={{ color: muted, fontSize: 10 }}>{club.city}</Text>}
+                              </View>
+                              {club.is_verified && <Feather name="check-circle" size={12} color={primary} />}
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      )}
+
+                      {selectedClub && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, padding: 8, borderRadius: 10, borderWidth: 1, borderColor: primary, backgroundColor: `${primary}15` }}>
+                          <Feather name="link" size={14} color={primary} />
+                          <Text style={{ color: textColor, fontSize: 12, fontWeight: '700', flex: 1 }}>Linked: {selectedClub.name}</Text>
+                          <TouchableOpacity onPress={() => setSelectedClub(null)}>
+                            <Feather name="x" size={14} color="#ef4444" />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
                   <TextInput
                     style={[se.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 8 }]}
                     placeholder={sportMeta.team_sport ? 'Team name...' : 'Athlete / participant name...'}

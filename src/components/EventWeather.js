@@ -107,7 +107,7 @@ export const EventWeather = ({ event, primary, textColor, muted, surface }) => {
 
   const info = getWeatherInfo(weather.code);
   const isWet = (weather.rainChance || 0) > 50;
-  const accentColor = isWet ? '#06b6d4' : weather.tempMax >= 28 ? '#f59e0b' : primary;
+  const accentColor = isWet ? "#06b6d4" : weather.tempMax >= 28 ? "#f59e0b" : primary;
 
   return (
     <View style={[w.container, { backgroundColor: `${accentColor}08`, borderColor: `${accentColor}25` }]}>
@@ -135,7 +135,7 @@ export const EventWeather = ({ event, primary, textColor, muted, surface }) => {
         </View>
         {isWet && (
           <View style={[w.advisory, { backgroundColor: '#06b6d420', borderColor: '#06b6d440' }]}>
-            <Text style={{ color: '#06b6d4', fontSize: 10, fontWeight: '700' }}>☂ Bring an umbrella</Text>
+            <Text style={{ color: "#06b6d4", fontSize: 10, fontWeight: '700' }}>☂ Bring an umbrella</Text>
           </View>
         )}
       </View>

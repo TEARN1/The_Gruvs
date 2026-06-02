@@ -76,9 +76,9 @@ const AvatarStack = ({ members, primary }) => {
             ]}
           >
             {avatar ? (
-              <Image source={{ uri: avatar }} style={[av.img, { borderColor: '#0d1112' }]} />
+              <Image source={{ uri: avatar }} style={[av.img, { borderColor: "#0d1112" }]} />
             ) : (
-              <View style={[av.fallback, { backgroundColor: `${primary}30`, borderColor: '#0d1112' }]}>
+              <View style={[av.fallback, { backgroundColor: `${primary}30`, borderColor: "#0d1112" }]}>
                 <Text style={[av.initial, { color: primary }]}>{initial}</Text>
               </View>
             )}
@@ -102,10 +102,10 @@ const av = StyleSheet.create({
 export const ReturnPathCard = ({
   event,
   checkins = [],
-  primary = '#00f2ff',
+  primary = "#00f2ff",
   muted = 'rgba(255,255,255,0.45)',
   textColor = '#fff',
-  bg = '#0d1112',
+  bg = "#0d1112",
   onDismiss,
   onCheckinsFetch,
 }) => {

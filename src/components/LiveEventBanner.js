@@ -93,7 +93,7 @@ const EnergyBar = ({ pct, color }) => {
     }).start();
   }, [pct, width]);
 
-  const barColor = pct > 0.85 ? '#ef4444' : pct > 0.6 ? '#f59e0b' : color;
+  const barColor = pct > 0.85 ? "#ef4444" : pct > 0.6 ? "#f59e0b" : color;
 
   return (
     <View style={lb.energyTrack}>
@@ -112,7 +112,7 @@ const EnergyBar = ({ pct, color }) => {
 
 // ── Avatar chip ────────────────────────────────────────────────────────────────
 const AvatarChip = ({ profile, color }) => {
-  const bg = ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777', '#dc2626'];
+  const bg = ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777", "#dc2626"];
   const c = bg[(profile?.username?.charCodeAt(0) || 0) % bg.length];
   return (
     <View style={lb.chip}>
@@ -201,7 +201,7 @@ export const LiveEventBanner = ({
   };
 
   const energyLabel = pct > 0.9 ? 'PACKED' : pct > 0.7 ? 'HYPE' : pct > 0.4 ? 'VIBING' : checkinCount > 0 ? 'BUILDING' : 'ARRIVING';
-  const energyColor = pct > 0.85 ? '#ef4444' : pct > 0.6 ? '#f59e0b' : primary;
+  const energyColor = pct > 0.85 ? "#ef4444" : pct > 0.6 ? "#f59e0b" : primary;
 
   return (
     <View style={[lb.root, { backgroundColor: '#ff000012', borderColor: '#ff000030' }]}>
@@ -299,7 +299,7 @@ const lb = StyleSheet.create({
   liveLabel: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#ef4444',
+    color: "#ef4444",
     letterSpacing: 1.5,
   },
   sep: {

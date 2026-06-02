@@ -37,7 +37,7 @@ export const RatingSection = ({ eventId, onAuthRequired }) => {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const primary = currentTheme?.primary || '#00f2ff';
+  const primary = currentTheme?.primary || "#00f2ff";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
@@ -51,12 +51,12 @@ export const RatingSection = ({ eventId, onAuthRequired }) => {
     try {
       const filled = [stars.overall, stars.atmosphere, stars.organisation].filter(v => v > 0);
       const avgRating = Math.round(filled.reduce((a, b) => a + b, 0) / filled.length);
-      const ratingPayload = { event_id: eventId, user_id: user.id, rating: avgRating, review: review.trim() || null };
+      const ratingPayload = { event_id: eventId, user_id: user?.id, rating: avgRating, review: review.trim() || null };
       const ok = await resilient(
         [
           () => supabase.from('event_ratings').upsert(ratingPayload, { onConflict: 'event_id,user_id' }),
           () => supabase.from('event_ratings').insert(ratingPayload),
-          () => supabase.rpc('submit_event_rating', { p_event_id: eventId, p_user_id: user.id, p_rating: avgRating, p_review: review.trim() || null }),
+          () => supabase.rpc('submit_event_rating', { p_event_id: eventId, p_user_id: user?.id, p_rating: avgRating, p_review: review.trim() || null }),
         ],
         { attemptsPerTier: 3, baseMs: 400, label: `RatingSection.submit:${eventId}`, fallbackValue: null }
       );

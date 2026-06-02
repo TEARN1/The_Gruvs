@@ -12,6 +12,7 @@ REVOKE CREATE ON SCHEMA public FROM authenticated;
 
 -- ── public_profiles view (safe projection) ───────────────────
 -- Exposes only what anonymous visitors should see
+DROP VIEW IF EXISTS public.public_profiles;
 CREATE OR REPLACE VIEW public.public_profiles AS
 SELECT
   p.id,
@@ -138,7 +139,7 @@ CREATE POLICY "suspensions_admin" ON public.user_suspensions FOR ALL
 
 -- ── Grant execute on safe RPCs ────────────────────────────────
 GRANT EXECUTE ON FUNCTION public.upsert_own_profile       TO authenticated;
-GRANT EXECUTE ON FUNCTION public.check_rate_limit          TO authenticated;
+GRANT EXECUTE ON FUNCTION public.check_rate_limit(text, integer, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.log_security_event        TO authenticated;
 GRANT EXECUTE ON FUNCTION public.secure_check_in           TO authenticated;
 GRANT EXECUTE ON FUNCTION public.upsert_rsvp_tier          TO authenticated;

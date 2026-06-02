@@ -20,8 +20,8 @@ export const AppLockGate = ({ children }) => {
   const [label, setLabel] = useState('Biometrics');
   const appState = useRef(AppState.currentState);
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const text = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 

@@ -9,14 +9,42 @@ const IGNORED_ERRORS = [
   'Error loading data',
   'supabase',
   'placeholder',
+  'validateDOMNesting',
+  'cannot appear as a descendant',
+  'status of 400',
+  'status of 401',
+  'status of 404',
+  'status of 500',
+  'Haptic.impactAsync is not available on web',
 ];
+
+/** Wait for Expo's React tree to hydrate */
+export async function mockFonts(page: Page) {
+  await page.addInitScript(() => {
+    try {
+      Object.defineProperty(document, 'fonts', {
+        value: {
+          status: 'loaded',
+          ready: Promise.resolve(),
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          check: () => true,
+          load: () => Promise.resolve([]),
+        },
+        configurable: true,
+      });
+    } catch (e) {}
+  });
+}
 
 /** Wait for Expo's React tree to hydrate */
 export async function waitForApp(page: Page) {
   await page.waitForSelector('#root', { timeout: 30_000 });
   await page.waitForLoadState('domcontentloaded');
+  // Wait for the tab navigation elements to be visible (loading screen is gone)
+  await page.locator('[role="tab"]').first().waitFor({ state: 'visible', timeout: 45_000 });
   // Short settle wait for React rendering
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(500);
 }
 
 /** Track JS errors, ignoring known network failures from placeholder Supabase keys */

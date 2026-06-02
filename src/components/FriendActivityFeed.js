@@ -17,14 +17,14 @@ import { ActivityFeedManager } from '../services/dataFlow';
 import { supabase } from '../services/supabase';
 
 const avatarBg = (u = '') =>
-  ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u?.charCodeAt(0) || 0) % 5];
+  ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u?.charCodeAt(0) || 0) % 5];
 
 const ACTION_CONFIG = {
-  rsvp_going:  { icon: 'check-circle', color: '#10b981', verb: 'is going to' },
-  vibe_sent:   { icon: 'zap',          color: '#f59e0b', verb: 'vibed'       },
-  check_in:    { icon: 'map-pin',      color: '#8b5cf6', verb: 'checked in at' },
-  new_reel:    { icon: 'film',         color: '#06b6d4', verb: 'posted a reel' },
-  new_event:   { icon: 'calendar',     color: '#ef4444', verb: 'created'     },
+  rsvp_going:  { icon: 'check-circle', color: "#10b981", verb: 'is going to' },
+  vibe_sent:   { icon: 'zap',          color: "#f59e0b", verb: 'vibed'       },
+  check_in:    { icon: 'map-pin',      color: "#8b5cf6", verb: 'checked in at' },
+  new_reel:    { icon: 'film',         color: "#06b6d4", verb: 'posted a reel' },
+  new_event:   { icon: 'calendar',     color: "#ef4444", verb: 'created'     },
 };
 
 const timeAgo = (iso) => {
@@ -71,8 +71,8 @@ const ActivityCard = ({ item, primary, textColor, muted, surface, onPress }) => 
 export const FriendActivityFeed = ({ onPressActivity }) => {
   const { user } = useAuth();
   const { currentTheme } = useTheme();
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const surface   = currentTheme?.surface    || "#1a1f21";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -100,8 +100,8 @@ export const FriendActivityFeed = ({ onPressActivity }) => {
     const unsub = ActivityFeedManager.subscribe(user.id, (newItem) => {
       setActivities(prev => [newItem, ...prev].slice(0, 20));
       setUnread(n => n + 1);
-    });
-    return unsub;
+    } ,);
+    return () => unsub();
   }, [user?.id]);
 
   const handlePressItem = (item) => {
@@ -273,7 +273,7 @@ const ac = StyleSheet.create({
     position: 'absolute', bottom: -2, right: -2,
     width: 16, height: 16, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: '#0d1112',
+    borderWidth: 1.5, borderColor: "#0d1112",
   },
   text: { gap: 1 },
   actor: { fontSize: 11, fontWeight: '800' },

@@ -33,11 +33,11 @@ export const EventGuestsModal = ({ visible, eventId, category = null, sportType 
   const { user } = useAuth();
   const toast = useToast();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   const [guests, setGuests]   = useState([]);
   const [loading, setLoading] = useState(true);

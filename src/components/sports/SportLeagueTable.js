@@ -9,17 +9,17 @@ import { Feather } from '@expo/vector-icons';
 import { TableManager, SportConfig, SPORT_REGISTRY } from '../../services/sportsEngine';
 import { supabase } from '../../services/supabase';
 
-const FORM_COLORS = { W: '#10b981', D: '#f59e0b', L: '#ef4444' };
+const FORM_COLORS = { W: "#10b981", D: "#f59e0b", L: "#ef4444" };
 
 function FormPill({ result }) {
   return (
-    <View style={{ width: 16, height: 16, borderRadius: 3, backgroundColor: FORM_COLORS[result] || '#374151', alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: 16, height: 16, borderRadius: 3, backgroundColor: FORM_COLORS[result] || "#374151", alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>{result}</Text>
     </View>
   );
 }
 
-export const SportLeagueTable = ({ eventId, groupId = null, primary = '#00f2ff', bg = '#0d1112', textColor = '#fff', muted = 'rgba(255,255,255,0.5)', onTeamPress }) => {
+export const SportLeagueTable = ({ eventId, groupId = null, primary = "#00f2ff", bg = "#0d1112", textColor = '#fff', muted = 'rgba(255,255,255,0.5)', onTeamPress }) => {
   const [table, setTable] = useState([]);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +82,7 @@ export const SportLeagueTable = ({ eventId, groupId = null, primary = '#00f2ff',
         const isTop2 = idx < 2;
         const isBottom2 = idx >= table.length - 2 && table.length > 4;
         const rowBg = isTop2 ? `${primary}08` : isBottom2 ? 'rgba(239,68,68,0.05)' : 'transparent';
-        const accentColor = isTop2 ? primary : isBottom2 ? '#ef4444' : 'transparent';
+        const accentColor = isTop2 ? primary : isBottom2 ? "#ef4444" : 'transparent';
 
         const statValues = {
           P: row.played, W: row.won, D: row.drawn, L: row.lost,
@@ -113,7 +113,7 @@ export const SportLeagueTable = ({ eventId, groupId = null, primary = '#00f2ff',
 
             {columns.map(col => (
               <Text key={col} style={[s.statCol, {
-                color: col === 'Pts' ? primary : col === 'GD' ? (row.goal_diff > 0 ? '#10b981' : row.goal_diff < 0 ? '#ef4444' : muted) : textColor,
+                color: col === 'Pts' ? primary : col === 'GD' ? (row.goal_diff > 0 ? "#10b981" : row.goal_diff < 0 ? "#ef4444" : muted) : textColor,
                 fontWeight: col === 'Pts' ? '900' : '600',
               }]}>
                 {statValues[col] ?? '-'}
@@ -136,7 +136,7 @@ export const SportLeagueTable = ({ eventId, groupId = null, primary = '#00f2ff',
           <Text style={{ color: muted, fontSize: 10 }}>Promotion zone</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#ef4444' }} />
+          <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: "#ef4444" }} />
           <Text style={{ color: muted, fontSize: 10 }}>Relegation zone</Text>
         </View>
         {lastUpdated && (

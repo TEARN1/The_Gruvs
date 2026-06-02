@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Image,
-  StyleSheet, RefreshControl, TextInput, BackHandler, Platform,
+  StyleSheet, RefreshControl, TextInput, BackHandler, Platform, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -14,6 +14,8 @@ import { thumb } from '../utils/storageThumb';
 import { CrewFeedScreen } from './CrewFeedScreen';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LiquidBackground } from '../components/LiquidBackground';
+import { SmartImage } from '../components/SmartImage';
+import { GlassView } from '../components/GlassView';
 
 const fmtAge = (ts) => {
   if (!ts) return '';
@@ -27,12 +29,12 @@ const fmtAge = (ts) => {
 };
 
 const avatarBg = (name) => {
-  const colors = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706', '#db2777'];
+  const colors = ["#0891b2", "#7c3aed", "#dc2626", "#059669", "#d97706", "#db2777"];
   return colors[(name?.charCodeAt(0) || 0) % colors.length];
 };
 
 // ── Conversation Row ──────────────────────────────────────────────────────────
-const ConvoRow = ({ item, userId, primary, textColor, muted, surface, onPress }) => {
+const ConvoRow = React.memo(({ item, userId, primary, textColor, muted, surface, onPress, index }) => {
   const partner      = item.partner;
   const isUnread     = !item.read_at && item.recipient_id === userId;
   const isPending    = item.is_request && !item.request_accepted && item.recipient_id === userId;
@@ -43,60 +45,101 @@ const ConvoRow = ({ item, userId, primary, textColor, muted, surface, onPress })
   const timeLabel = item.created_at ? `, ${fmtAge(item.created_at)}` : '';
   const rowLabel = `@${partner?.username || 'Unknown'}${unreadLabel}, ${previewLabel}${timeLabel}`;
 
-  return (
-    <TouchableOpacity
-      style={[cs.row, { borderBottomColor: `${primary}12` }]}
-      onPress={onPress}
-      activeOpacity={0.8}
-      accessibilityRole="button"
-      accessibilityLabel={rowLabel}
-      accessibilityHint="Double-tap to open conversation"
-    >
-      {/* Avatar */}
-      <View style={{ position: 'relative' }}>
-        {partner?.avatar_url
-          ? <Image source={{ uri: thumb.avatar(partner.avatar_url) }} style={cs.avatar} />
-          : <View style={[cs.avatar, { backgroundColor: avatarBg(partner?.username), alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>
-                {(partner?.username || '?').slice(0, 2).toUpperCase()}
-              </Text>
-            </View>
-        }
-        {checkOnline(partner) && (
-          <View style={[cs.onlineDot, { borderColor: surface }]} />
-        )}
-      </View>
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
-      {/* Text */}
-      <View style={cs.info}>
-        <View style={cs.topRow}>
-          <Text style={[cs.name, { color: textColor }, isUnread && { fontWeight: '900' }]} numberOfLines={1}>
-            @{partner?.username || 'Unknown'}
-          </Text>
-          <Text style={[cs.time, { color: muted }]}>{fmtAge(item.created_at)}</Text>
-        </View>
-        <View style={cs.bottomRow}>
-          {isPending
-            ? <Text style={[cs.preview, { color: primary, fontWeight: '800' }]} numberOfLines={1}>
-                🔔 Wants to link up
-              </Text>
-            : <Text style={[cs.preview, { color: isUnread ? textColor : muted, fontWeight: isUnread ? '700' : '400' }]} numberOfLines={1}>
-                {item.sender_id === userId ? 'You: ' : ''}{lastMsg}
-              </Text>
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 350,
+        delay: Math.min(index * 60, 450),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 350,
+        delay: Math.min(index * 60, 450),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      <TouchableOpacity
+        style={[cs.row, { borderBottomColor: `${primary}12` }]}
+        onPress={onPress}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={rowLabel}
+        accessibilityHint="Double-tap to open conversation"
+      >
+        {/* Avatar */}
+        <View style={{ position: 'relative' }}>
+          {partner?.avatar_url
+            ? <SmartImage source={thumb.avatar(partner.avatar_url)} style={cs.avatar} />
+            : <View style={[cs.avatar, { backgroundColor: avatarBg(partner?.username), alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>
+                  {(partner?.username || '?').slice(0, 2).toUpperCase()}
+                </Text>
+              </View>
           }
-          {isUnread && (
-            <View style={[cs.unreadDot, { backgroundColor: primary }]} />
+          {checkOnline(partner) && (
+            <View style={[cs.onlineDot, { borderColor: surface }]} />
           )}
         </View>
-      </View>
-    </TouchableOpacity>
+
+        {/* Text */}
+        <View style={cs.info}>
+          <View style={cs.topRow}>
+            <Text style={[cs.name, { color: textColor }, isUnread && { fontWeight: '900' }]} numberOfLines={1}>
+              @{partner?.username || 'Unknown'}
+            </Text>
+            <Text style={[cs.time, { color: muted }]}>{fmtAge(item.created_at)}</Text>
+          </View>
+          <View style={cs.bottomRow}>
+            {isPending
+              ? <Text style={[cs.preview, { color: primary, fontWeight: '800' }]} numberOfLines={1}>
+                  🔔 Wants to link up
+                </Text>
+              : <Text style={[cs.preview, { color: isUnread ? textColor : muted, fontWeight: isUnread ? '700' : '400' }]} numberOfLines={1}>
+                  {item.sender_id === userId ? 'You: ' : ''}{lastMsg}
+                </Text>
+            }
+            {isUnread && (
+              <View style={[cs.unreadDot, { backgroundColor: primary }]} />
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
-};
+}, (prev, next) => {
+  return (
+    prev.index === next.index &&
+    prev.userId === next.userId &&
+    prev.primary === next.primary &&
+    prev.textColor === next.textColor &&
+    prev.muted === next.muted &&
+    prev.surface === next.surface &&
+    prev.item.id === next.item.id &&
+    prev.item.body === next.item.body &&
+    prev.item.read_at === next.item.read_at &&
+    prev.item.created_at === next.item.created_at &&
+    prev.item.is_request === next.item.is_request &&
+    prev.item.request_accepted === next.item.request_accepted &&
+    prev.item.partner?.username === next.item.partner?.username &&
+    prev.item.partner?.avatar_url === next.item.partner?.avatar_url &&
+    prev.item.partner?.is_online === next.item.partner?.is_online &&
+    prev.item.partner?.last_seen === next.item.partner?.last_seen
+  );
+});
 
 const cs = StyleSheet.create({
   row:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1 },
   avatar:    { width: 50, height: 50, borderRadius: 25 },
-  onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: '#10b981', borderWidth: 2 },
+  onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: "#10b981", borderWidth: 2 },
   info:      { flex: 1, marginLeft: 14 },
   topRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   name:      { fontSize: 14, fontWeight: '700', flex: 1 },
@@ -113,11 +156,11 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   const { currentTheme }  = useTheme();
   const { user }          = useAuth();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   const [pageMode,    setPageMode]    = useState('chats'); // 'chats' | 'crew'
   const [convos,      setConvos]      = useState([]);
@@ -196,9 +239,10 @@ export const ChatsScreen = ({ onAuthRequired }) => {
     [convos, user?.id],
   );
 
-  const renderConvoRow = useCallback(({ item }) => (
+  const renderConvoRow = useCallback(({ item, index }) => (
     <ConvoRow
       item={item}
+      index={index}
       userId={user.id}
       primary={primary}
       textColor={textColor}
@@ -259,7 +303,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
       ) : (
         <>
           {/* Search */}
-          <View style={[ch.searchWrap, { backgroundColor: surface, borderColor: `${primary}20` }]}>
+          <GlassView glow intensity={1.1} style={[ch.searchWrap, { borderColor: primary, backgroundColor: `${surface}95` }]}>
             <Feather name="search" size={15} color={muted} />
             <TextInput
               style={[ch.searchInput, { color: textColor }]}
@@ -273,7 +317,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
                 <Feather name="x" size={15} color={muted} />
               </TouchableOpacity>
             )}
-          </View>
+          </GlassView>
 
           {/* List */}
           {loading ? (

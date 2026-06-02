@@ -20,10 +20,10 @@ const generateReferralCode = (userId) => {
 };
 
 const PLATFORMS = [
-  { id: 'whatsapp', label: 'WhatsApp', icon: 'message-square', color: '#25D366' },
-  { id: 'twitter',  label: 'Twitter',  icon: 'twitter',        color: '#1DA1F2' },
-  { id: 'copy',     label: 'Copy Link', icon: 'link',           color: '#8b5cf6' },
-  { id: 'more',     label: 'More',      icon: 'share-2',        color: '#f59e0b' },
+  { id: 'whatsapp', label: 'WhatsApp', icon: 'message-square', color: "#25D366" },
+  { id: 'twitter',  label: 'Twitter',  icon: 'twitter',        color: "#1DA1F2" },
+  { id: 'copy',     label: 'Copy Link', icon: 'link',           color: "#8b5cf6" },
+  { id: 'more',     label: 'More',      icon: 'share-2',        color: "#f59e0b" },
 ];
 
 export const ReferralCard = ({ userId }) => {
@@ -33,9 +33,9 @@ export const ReferralCard = ({ userId }) => {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const surface   = currentTheme?.surface    || '#1a1f21';
-  const textColor = currentTheme?.text       || '#ffffff';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const surface   = currentTheme?.surface    || "#1a1f21";
+  const textColor = currentTheme?.text       || "#ffffff";
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
   const referralCode = generateReferralCode(userId);
@@ -120,13 +120,15 @@ export const ReferralCard = ({ userId }) => {
       ) : (
         <>
           {/* QR Code — generated natively, works offline */}
-          <View style={[rc.qrWrap, { backgroundColor: '#ffffff', borderColor: `${primary}40` }]}>
+          <View style={[rc.qrWrap, { backgroundColor: "#ffffff", borderColor: `${primary}40` }]}>
             <QRCode
               value={inviteLink}
               size={180}
               color="#0d1112"
               backgroundColor="#ffffff"
               ecl="M"
+              username={username || undefined}
+              label="JOIN THE GRUVS"
             />
             <Text style={rc.qrLabel}>Scan to join The Gruvs</Text>
             <View style={[rc.codeRow, { backgroundColor: `${primary}15`, borderColor: `${primary}35` }]}>
@@ -173,7 +175,7 @@ const rc = StyleSheet.create({
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   badgeText: { fontSize: 10, fontWeight: '800' },
   qrWrap: { alignItems: 'center', borderRadius: 20, borderWidth: 1, padding: 20, gap: 12 },
-  qrLabel: { fontSize: 12, fontWeight: '700', color: '#0d1112' },
+  qrLabel: { fontSize: 12, fontWeight: '700', color: "#0d1112" },
   codeRow: { paddingHorizontal: 20, paddingVertical: 6, borderRadius: 10, borderWidth: 1 },
   code: { fontSize: 18, fontWeight: '900', letterSpacing: 4 },
   shareTitle: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },

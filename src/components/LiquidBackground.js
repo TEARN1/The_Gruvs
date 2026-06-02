@@ -20,7 +20,7 @@ const reducedMotion = () =>
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 const hexA = (hex, a) => {
-  const h = (hex || '#00f2ff').replace('#', '');
+  const h = (hex || "#00f2ff").replace('#', '');
   const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
   const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
   return `rgba(${r},${g},${b},${a})`;
@@ -55,7 +55,7 @@ const Blob = ({ color, size, from, to, duration, delay = 0, style }) => {
           borderRadius: size / 2,
           transform: [{ translateX }, { translateY }, { scale }],
           ...(IS_WEB
-            ? { background: `radial-gradient(circle, ${color} 0%, transparent 70%)` }
+            ? { backgroundImage: `radial-gradient(circle, ${color} 0%, transparent 70%)` }
             : { backgroundColor: color }),
         },
         style,
@@ -66,7 +66,7 @@ const Blob = ({ color, size, from, to, duration, delay = 0, style }) => {
 
 export const LiquidBackground = ({ intensity = 1, secondary }) => {
   const { currentTheme } = useTheme();
-  const primary = currentTheme?.primary || '#00f2ff';
+  const primary = currentTheme?.primary || "#00f2ff";
   const accent = secondary || currentTheme?.secondary || primary;
   const a = Math.min(0.22 * intensity, 0.3);
 

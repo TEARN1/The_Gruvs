@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
         console.warn('[Shield] Session expired — refreshing...');
         supabase.auth.refreshSession().catch(() => {});
       }
-    }, 10 * 60 * 1000);
+    } , 10 * 60 * 1000);
     return () => clearInterval(interval); // ← always cleared on unmount/user-change
   }, [user]);
 

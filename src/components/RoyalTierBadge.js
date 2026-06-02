@@ -3,11 +3,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
 const TIERS = [
-  { label: 'Royal',    min: 10000, color: '#f5c518', icon: '👑' },
-  { label: 'Platinum', min: 2000,  color: '#a5f3fc', icon: '💎' },
-  { label: 'Gold',     min: 500,   color: '#fbbf24', icon: '🥇' },
-  { label: 'Silver',   min: 100,   color: '#94a3b8', icon: '🥈' },
-  { label: 'Bronze',   min: 0,     color: '#cd7f32', icon: '🥉' },
+  { label: 'Royal',    min: 10000, color: "#f5c518", icon: '👑' },
+  { label: 'Platinum', min: 2000,  color: "#a5f3fc", icon: '💎' },
+  { label: 'Gold',     min: 500,   color: "#fbbf24", icon: '🥇' },
+  { label: 'Silver',   min: 100,   color: "#94a3b8", icon: '🥈' },
+  { label: 'Bronze',   min: 0,     color: "#cd7f32", icon: '🥉' },
 ];
 
 export const getTierInfo = (score = 0) => {

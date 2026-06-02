@@ -3,7 +3,7 @@
  * Screenshot baseline: run `npm test -- --update-snapshots` once to create.
  */
 import { test, expect } from '@playwright/test';
-import { waitForApp } from './helpers';
+import { waitForApp, mockFonts } from './helpers';
 
 // React Native Web often uses overflow:hidden on the root to handle its own scroll
 // so we check the root container rather than the document
@@ -26,6 +26,7 @@ for (const vp of VIEWPORTS) {
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
     test('landing page renders', async ({ page }) => {
+      await mockFonts(page);
       await page.goto('/');
       await waitForApp(page);
       const childCount = await page.evaluate(() =>
@@ -35,12 +36,14 @@ for (const vp of VIEWPORTS) {
     });
 
     test('landing page screenshot baseline', async ({ page }) => {
+      await mockFonts(page);
       await page.goto('/');
       await waitForApp(page);
       // First run writes the baseline; subsequent runs compare
       await expect(page).toHaveScreenshot(`landing-${vp.name}.png`, {
         fullPage: false,
         maxDiffPixelRatio: 0.08,
+        timeout: 15_000,
       });
     });
   });

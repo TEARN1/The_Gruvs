@@ -100,7 +100,7 @@ const MomentViewer = ({ moments, startIndex = 0, visible, onClose, primary, user
     });
     // Record view
     if (current.id && user?.id && current.user_id !== user?.id) {
-      supabase.from('event_moment_views').upsert({ moment_id: current.id, viewer_id: user.id }, { onConflict: 'moment_id,viewer_id' }).then(() => {
+      supabase.from('event_moment_views').upsert({ moment_id: current.id, viewer_id: user?.id }, { onConflict: 'moment_id,viewer_id' }).then(() => {
         supabase.from('event_moments').update({ view_count: (current.view_count || 0) + 1 }).eq('id', current.id).then(() => {});
       });
     }
@@ -121,7 +121,7 @@ const MomentViewer = ({ moments, startIndex = 0, visible, onClose, primary, user
     setReactionVisible(false);
     if (!user || !current) return;
     try {
-      await supabase.from('event_moment_reactions').insert({ moment_id: current.id, user_id: user.id, emoji });
+      await supabase.from('event_moment_reactions').insert({ moment_id: current.id, user_id: user?.id, emoji });
     } catch { /* fire-and-forget reaction — silent fail is acceptable */ }
   };
 
@@ -297,7 +297,7 @@ const AddMomentSheet = ({ visible, onClose, eventId, primary, surface, textColor
       const url = await uploadToStorage(media.uri, 'event-media', path, { mimeType });
       const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
       const { error } = await supabase.from('event_moments').insert({
-        event_id: eventId, user_id: user.id,
+        event_id: eventId, user_id: user?.id,
         media_url: url, media_type: media.type,
         caption: caption.trim() || null,
         expires_at: expiresAt,

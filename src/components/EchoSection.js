@@ -51,14 +51,14 @@ const EchoSkeleton = ({ primary }) => {
 };
 
 const RANK_STYLES = [
-  { bg: 'rgba(124,58,237,0.3)', color: '#c084fc', label: 'Top' },
-  { bg: 'rgba(245,158,11,0.3)', color: '#fbbf24', label: '2nd' },
-  { bg: 'rgba(16,185,129,0.2)', color: '#34d399', label: '3rd' },
+  { bg: 'rgba(124,58,237,0.3)', color: "#c084fc", label: 'Top' },
+  { bg: 'rgba(245,158,11,0.3)', color: "#fbbf24", label: '2nd' },
+  { bg: 'rgba(16,185,129,0.2)', color: "#34d399", label: '3rd' },
 ];
 
 const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, onReply }) => {
   const name = echo.profiles?.username || 'Viber';
-  const colors = ['#0891b2', '#0d9488', '#1d4ed8', '#65a30d', '#dc2626', '#7c3aed'];
+  const colors = ["#0891b2", "#0d9488", "#1d4ed8", "#65a30d", "#dc2626", "#7c3aed"];
   const bg = colors[(name?.charCodeAt(0) || 0) % colors.length];
   const initials = name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'G';
   return (
@@ -82,8 +82,8 @@ const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, 
         <Text style={[styles.echoContent, { color: textColor }]}>{echo.body}</Text>
         <View style={styles.echoActions}>
           <TouchableOpacity onPress={() => onLike(echo.id)} style={[styles.likeBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-            <Feather name="heart" size={13} color={isLiked ? '#ef4444' : muted} />
-            <Text style={{ color: isLiked ? '#ef4444' : muted, fontSize: 12 }}>
+            <Feather name="heart" size={13} color={isLiked ? "#ef4444" : muted} />
+            <Text style={{ color: isLiked ? "#ef4444" : muted, fontSize: 12 }}>
               {(echo.likes || 0) + (isLiked ? 1 : 0)}
             </Text>
           </TouchableOpacity>
@@ -106,10 +106,10 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
   const [likedEchoes, setLikedEchoes] = useState(new Set());
   const [posting, setPosting] = useState(false);
 
-  const primary = currentTheme?.primary || '#00f2ff';
+  const primary = currentTheme?.primary || "#00f2ff";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
-  const surface = currentTheme?.surface || '#1a1a1a';
+  const surface = currentTheme?.surface || "#1a1a1a";
 
   const fetchEchoes = useCallback(async () => {
     setEchoes(null);
@@ -151,7 +151,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
     const optimistic = {
       id: tempId,
       event_id: eventId,
-      user_id: user.id,
+      user_id: user?.id,
       body,
       parent_id: replyTo?.id || null,
       created_at: new Date().toISOString(),
@@ -165,7 +165,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
     try {
       const { error } = await supabase.from('echoes').insert({
         event_id: eventId,
-        user_id: user.id,
+        user_id: user?.id,
         body,
         parent_id: optimistic.parent_id,
       });
@@ -205,8 +205,8 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
           () => supabase.from('echoes').update({ likes: currentLikes }).eq('id', echoId),
           // Tier 2: upsert like row — let DB compute count via trigger
           () => isCurrentlyLiked
-            ? supabase.from('echo_likes').delete().eq('echo_id', echoId).eq('user_id', user.id)
-            : supabase.from('echo_likes').upsert({ echo_id: echoId, user_id: user.id }, { onConflict: 'echo_id,user_id', ignoreDuplicates: true }),
+            ? supabase.from('echo_likes').delete().eq('echo_id', echoId).eq('user_id', user?.id)
+            : supabase.from('echo_likes').upsert({ echo_id: echoId, user_id: user?.id }, { onConflict: 'echo_id,user_id', ignoreDuplicates: true }),
           // Tier 3: RPC increment/decrement
           () => supabase.rpc(isCurrentlyLiked ? 'decrement_echo_like' : 'increment_echo_like', { p_echo_id: echoId }),
         ],
@@ -231,7 +231,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
     name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'G';
 
   const avatarColor = (name) => {
-    const colors = ['#0891b2', '#0d9488', '#1d4ed8', '#65a30d', '#dc2626', '#7c3aed'];
+    const colors = ["#0891b2", "#0d9488", "#1d4ed8", "#65a30d", "#dc2626", "#7c3aed"];
     return colors[(name?.charCodeAt(0) || 0) % colors.length];
   };
 

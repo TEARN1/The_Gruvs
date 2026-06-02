@@ -18,7 +18,7 @@ const ICON_MAP = {
 export const RouteJourneyCard = ({ route, onPress }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
-  const primary = currentTheme?.primary || '#00f2ff';
+  const primary = currentTheme?.primary || "#00f2ff";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
@@ -45,9 +45,9 @@ export const RouteJourneyCard = ({ route, onPress }) => {
         setJoinCount(c => Math.max(0, c - 1));
         await resilient(
           [
-            () => supabase.from('route_joins').delete().eq('route_id', route.id).eq('user_id', user.id),
-            () => supabase.from('route_joins').update({ active: false }).eq('route_id', route.id).eq('user_id', user.id),
-            () => supabase.rpc('leave_route', { p_route_id: route.id, p_user_id: user.id }),
+            () => supabase.from('route_joins').delete().eq('route_id', route.id).eq('user_id', user?.id),
+            () => supabase.from('route_joins').update({ active: false }).eq('route_id', route.id).eq('user_id', user?.id),
+            () => supabase.rpc('leave_route', { p_route_id: route.id, p_user_id: user?.id }),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: `RouteJourneyCard.leave:${route.id}`, fallbackValue: null }
         );
@@ -58,9 +58,9 @@ export const RouteJourneyCard = ({ route, onPress }) => {
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
         await resilient(
           [
-            () => supabase.from('route_joins').upsert({ route_id: route.id, user_id: user.id }, { onConflict: 'route_id,user_id', ignoreDuplicates: true }),
-            () => supabase.from('route_joins').insert({ route_id: route.id, user_id: user.id }),
-            () => supabase.rpc('join_route', { p_route_id: route.id, p_user_id: user.id }),
+            () => supabase.from('route_joins').upsert({ route_id: route.id, user_id: user?.id }, { onConflict: 'route_id,user_id', ignoreDuplicates: true }),
+            () => supabase.from('route_joins').insert({ route_id: route.id, user_id: user?.id }),
+            () => supabase.rpc('join_route', { p_route_id: route.id, p_user_id: user?.id }),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: `RouteJourneyCard.join:${route.id}`, fallbackValue: null }
         );

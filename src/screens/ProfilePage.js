@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { AwardManager, MembershipManager, ClubManager } from '../services/clubEngine';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Image,
+  View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
   Switch, Dimensions, Share, Platform, RefreshControl, Modal,
   KeyboardAvoidingView, Pressable,
 } from 'react-native';
+import { SmartImage } from '../components/SmartImage';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
@@ -38,21 +39,22 @@ import { AchievementBadges } from '../components/AchievementBadges';
 import { StreakBadges } from '../components/StreakBadges';
 import { ReferralCard } from '../components/ReferralCard';
 import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
+import { ClubScreen } from './ClubScreen';
 
-// ── Lazy-loaded section components ──
-const DirectMessageModal    = React.lazy(() => import('../components/DirectMessageModal').then(m => ({ default: m.DirectMessageModal })));
-const CategoryPickerModal   = React.lazy(() => import('../components/CategoryPickerModal').then(m => ({ default: m.CategoryPickerModal })));
-const PostEventModal        = React.lazy(() => import('../components/PostEventModal').then(m => ({ default: m.PostEventModal })));
-const EditEventModal        = React.lazy(() => import('../components/EditEventModal').then(m => ({ default: m.EditEventModal })));
-const LeaderboardScreen     = React.lazy(() => import('./LeaderboardScreen').then(m => ({ default: m.LeaderboardScreen })));
-const PathMapScreen         = React.lazy(() => import('./PathMapScreen').then(m => ({ default: m.PathMapScreen })));
-const BusinessDashboardScreen = React.lazy(() => import('./BusinessDashboardScreen').then(m => ({ default: m.BusinessDashboardScreen })));
-const WalletScreen          = React.lazy(() => import('./WalletScreen').then(m => ({ default: m.WalletScreen })));
-const ProviderDashboardScreen = React.lazy(() => import('./ProviderDashboardScreen').then(m => ({ default: m.ProviderDashboardScreen })));
-const TutorialCenter        = React.lazy(() => import('../components/TutorialCenter').then(m => ({ default: m.TutorialCenter })));
-const WhoWasThereModal      = React.lazy(() => import('../components/WhoWasThereModal').then(m => ({ default: m.WhoWasThereModal })));
-const EventTicketModal      = React.lazy(() => import('../components/EventTicketModal').then(m => ({ default: m.EventTicketModal })));
-const CreateReelModal       = React.lazy(() => import('../components/CreateReelModal').then(m => ({ default: m.CreateReelModal })));
+// ── Static imports — avoids "unknown module" chunk failures on web ──
+import { DirectMessageModal }      from '../components/DirectMessageModal';
+import { CategoryPickerModal }     from '../components/CategoryPickerModal';
+import { PostEventModal }          from '../components/PostEventModal';
+import { EditEventModal }          from '../components/EditEventModal';
+import { LeaderboardScreen }       from './LeaderboardScreen';
+import { PathMapScreen }           from './PathMapScreen';
+import { BusinessDashboardScreen } from './BusinessDashboardScreen';
+import { WalletScreen }            from './WalletScreen';
+import { ProviderDashboardScreen } from './ProviderDashboardScreen';
+import { TutorialCenter }          from '../components/TutorialCenter';
+import { WhoWasThereModal }        from '../components/WhoWasThereModal';
+import { EventTicketModal }        from '../components/EventTicketModal';
+import { CreateReelModal }         from '../components/CreateReelModal';
 
 const { width } = Dimensions.get('window');
 
@@ -146,7 +148,9 @@ const AnalyticsChart = ({ primary, muted, textColor, userId }) => {
         const avgVibes = vibes.length > 0 ? (vibes.length / 7).toFixed(1) : '0';
         const rsvpRate = total > 0 ? Math.round((rsvps.length / total) * 100) : 0;
         setStats({ views: total, visits: rsvps.length, avgVibes, rsvpRate: `${rsvpRate}%` });
-      } catch { }
+      } catch (err) {
+        console.warn('ProfilePage.loadStats err:', err);
+      }
     };
     load();
   }, [userId]);
@@ -202,14 +206,14 @@ const chart = StyleSheet.create({
 // ── Person Card for Find Them ─────────────────────────────────────────────────
 const pAvatarInitials = (name) => name ? name.slice(0, 2).toUpperCase() : 'G';
 const pAvatarBg = (name) => {
-  const colors = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706', '#0d9488'];
+  const colors = ["#0891b2", "#7c3aed", "#dc2626", "#059669", "#d97706", "#0d9488"];
   return colors[(name?.charCodeAt(0) || 0) % colors.length];
 };
 
 const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage }) => (
   <View style={[pcard.wrap, { borderColor: `${primary}18` }]}>
     {person.avatar_url
-      ? <Image source={{ uri: thumb.avatar(person.avatar_url) }} style={[pcard.avatar, { borderColor: `${primary}50` }]} />
+      ? <SmartImage source={thumb.avatar(person.avatar_url)} style={[pcard.avatar, { borderColor: `${primary}50` }]} />
       : <View style={[pcard.avatar, { borderColor: `${primary}50`, backgroundColor: pAvatarBg(person.username), alignItems: 'center', justifyContent: 'center' }]}>
         <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{pAvatarInitials(person.username)}</Text>
       </View>
@@ -238,7 +242,7 @@ const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage }) 
 const pcard = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 10, position: 'relative' },
   avatar: { width: 50, height: 50, borderRadius: 25, borderWidth: 2 },
-  onlineDot: { position: 'absolute', top: 14, left: 50, width: 12, height: 12, borderRadius: 6, backgroundColor: '#10b981', borderWidth: 2, borderColor: '#000' },
+  onlineDot: { position: 'absolute', top: 14, left: 50, width: 12, height: 12, borderRadius: 6, backgroundColor: "#10b981", borderWidth: 2, borderColor: '#000' },
   name: { fontSize: 14, fontWeight: '800' },
   meta: { fontSize: 11, marginTop: 2 },
   interestRow: { flexDirection: 'row', gap: 4, marginTop: 5 },
@@ -413,7 +417,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
       />
 
       <GlassView style={fm.section}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <View style={styles.subHeaderNoPad}>
           <Text style={[fm.sectionTitle, { color: primary, marginBottom: 0 }]}>Bio & Location</Text>
           {/* AI Write button — HIDDEN under development */}
         </View>
@@ -591,7 +595,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         <Text style={[fm.sectionTitle, { color: primary }]}>Preview — How others see you</Text>
         <View style={[fm.previewCard, { borderColor: `${primary}25` }]}>
           {profile?.avatar_url
-            ? <Image source={{ uri: thumb.avatar(profile.avatar_url) }} style={[fm.previewAvatar, { borderColor: primary }]} />
+            ? <SmartImage source={thumb.avatar(profile.avatar_url)} style={[fm.previewAvatar, { borderColor: primary }]} />
             : <View style={[fm.previewAvatar, { borderColor: primary, backgroundColor: pAvatarBg(profile?.username), alignItems: 'center', justifyContent: 'center' }]}>
               <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900' }}>{pAvatarInitials(profile?.username)}</Text>
             </View>
@@ -698,7 +702,7 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
       {/* Sovereign Mint Stats */}
       <GlassView style={[fm.section, { borderColor: '#FFD70040', marginBottom: 20 }]}>
-        <Text style={[fm.sectionTitle, { color: '#FFD700' }]}>Sovereign Mint Status</Text>
+        <Text style={[fm.sectionTitle, { color: "#FFD700" }]}>Sovereign Mint Status</Text>
         {mintStats ? (
           <View style={{ gap: 8, marginTop: 10 }}>
             <View style={styles.mintStatRow}>
@@ -707,7 +711,7 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
             </View>
             <View style={styles.mintStatRow}>
               <Text style={{ color: muted, fontSize: 12 }}>Minting Phase</Text>
-              <Text style={{ color: '#FFD700', fontWeight: '900' }}>Phase {mintStats.phase}</Text>
+              <Text style={{ color: "#FFD700", fontWeight: '900' }}>Phase {mintStats.phase}</Text>
             </View>
             <View style={styles.mintStatRow}>
               <Text style={{ color: muted, fontSize: 12 }}>Next Halving</Text>
@@ -715,28 +719,28 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
             </View>
             <View style={styles.mintStatRow}>
               <Text style={{ color: muted, fontSize: 12 }}>Protocol Burn Rate</Text>
-              <Text style={{ color: '#ef4444', fontWeight: '700' }}>{mintStats.burnRate}%</Text>
+              <Text style={{ color: "#ef4444", fontWeight: '700' }}>{mintStats.burnRate}%</Text>
             </View>
           </View>
         ) : <ActivityIndicator color="#FFD700" />}
       </GlassView>
 
       <GlassView style={[fm.section, { borderColor: '#FFD70060', backgroundColor: '#FFD70008' }]}>
-        <Text style={[fm.sectionTitle, { color: '#FFD700' }]}>Active Decrees</Text>
+        <Text style={[fm.sectionTitle, { color: "#FFD700" }]}>Active Decrees</Text>
         <Text style={{ color: muted, fontSize: 11, marginBottom: 16 }}>
           Stake your Vibe-Equity to shape the Kingdom's economic laws.
         </Text>
 
         {loading ? <ActivityIndicator color="#FFD700" /> : proposals.map(p => (
-          <View key={p.id} style={{ marginBottom: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.1)', paddingBottom: 16 }}>
+          <View key={p.id} style={styles.decreeRow}>
             <Text style={{ color: textColor, fontWeight: '900', fontSize: 15 }}>{p.title}</Text>
             <Text style={{ color: muted, fontSize: 12, marginTop: 4, lineHeight: 18 }}>{p.description}</Text>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-              <TouchableOpacity onPress={() => vote(p.id, 'yes')} style={{ flex: 1, padding: 10, borderRadius: 10, backgroundColor: '#10b98120', borderWidth: 1, borderColor: '#10b98150', alignItems: 'center' }}>
-                <Text style={{ color: '#10b981', fontWeight: '900', fontSize: 12 }}>DECREE YES</Text>
+              <TouchableOpacity onPress={() => vote(p.id, 'yes')} style={styles.decreeYesBtn}>
+                <Text style={{ color: "#10b981", fontWeight: '900', fontSize: 12 }}>DECREE YES</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => vote(p.id, 'no')} style={{ flex: 1, padding: 10, borderRadius: 10, backgroundColor: '#ef444420', borderWidth: 1, borderColor: '#ef444450', alignItems: 'center' }}>
-                <Text style={{ color: '#ef4444', fontWeight: '900', fontSize: 12 }}>DECREE NO</Text>
+              <TouchableOpacity onPress={() => vote(p.id, 'no')} style={styles.decreeNoBtn}>
+                <Text style={{ color: "#ef4444", fontWeight: '900', fontSize: 12 }}>DECREE NO</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -752,6 +756,9 @@ const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioLabel, setBioLabel] = useState('Biometrics');
 
+  const inviteBtnStyle = { backgroundColor: `${primary}15`, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: `${primary}30`, marginBottom: 12 };
+  const deleteBtnText = { color: "#ef4444", fontWeight: '800', textAlign: 'center', fontSize: 12, opacity: 0.8 };
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -764,7 +771,7 @@ const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
     return () => { alive = false; };
   }, []);
 
-  const toggleLock = async () => {
+  const handleToggleLock = async () => {
     haptics.select();
     if (!lockEnabled) {
       // Require a successful auth before turning the lock ON
@@ -786,11 +793,17 @@ const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete",
+          text: "Delete My Account",
           style: "destructive",
           onPress: async () => {
-            const ok = await SecurityService.requestAccountDeletion(user.id);
-            if (ok) toast.show("Deletion requested. You will be signed out.", "info");
+            try {
+              const { error } = await supabase.from('profiles').update({ is_deleted: true }).eq('id', user.id);
+              if (error) throw error;
+              toast.show('Account deletion requested.', 'success');
+              signOut();
+            } catch (err) {
+              toast.show('Could not process request.', 'error');
+            }
           }
         }
       ]
@@ -799,48 +812,47 @@ const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
-      <GlassView style={fm.section}>
-        <Text style={[fm.sectionTitle, { color: primary }]}>Encryption & Safety</Text>
+      {/* App Lock Settings */}
+      {bioAvailable && (
+        <GlassView style={[fm.section, { marginBottom: 20 }]}>
+          <Text style={[fm.sectionTitle, { color: primary }]}>App Lock Settings</Text>
+          <View style={fm.toggleRow}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[fm.toggleLabel, { color: textColor }]}>Enable App Lock</Text>
+              <Text style={[fm.toggleSub, { color: muted }]}>Requires {bioLabel} authentication to access the app.</Text>
+            </View>
+            <TouchableOpacity onPress={handleToggleLock} style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: lockEnabled ? primary : '#333', padding: 2, justifyContent: 'center' }}>
+              <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transform: [{ translateX: lockEnabled ? 20 : 0 }] }} />
+            </TouchableOpacity>
+          </View>
+        </GlassView>
+      )}
+
+      {/* Security Info Card */}
+      <GlassView style={[fm.section, { marginBottom: 20 }]}>
+        <Text style={[fm.sectionTitle, { color: primary }]}>Security & Encryption</Text>
         <View style={{ gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Feather name="lock" size={18} color={primary} />
-            <View>
+            <Feather name="shield" size={18} color={primary} />
+            <View style={{ flex: 1 }}>
               <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>End-to-End Encryption</Text>
               <Text style={{ color: muted, fontSize: 11 }}>Your DMs are private and encrypted.</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Feather name="shield" size={18} color={primary} />
-            <View>
+            <Feather name="key" size={18} color={primary} />
+            <View style={{ flex: 1 }}>
               <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>Session Integrity</Text>
               <Text style={{ color: muted, fontSize: 11 }}>Protected by Supabase Auth with secure tokens.</Text>
             </View>
           </View>
-
-          {/* Biometric app lock */}
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
-            onPress={toggleLock}
-            activeOpacity={0.8}
-            disabled={!bioAvailable && Platform.OS !== 'web'}
-          >
-            <Feather name="smartphone" size={18} color={lockEnabled ? primary : muted} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Feather name="lock" size={18} color={primary} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>App Lock ({bioLabel})</Text>
-              <Text style={{ color: muted, fontSize: 11 }}>
-                {bioAvailable || Platform.OS === 'web'
-                  ? `Require ${bioLabel} every time the app opens.`
-                  : 'No biometrics enrolled on this device.'}
-              </Text>
+              <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>Hardware Bound Tokens</Text>
+              <Text style={{ color: muted, fontSize: 11 }}>Key material is stored in your device's Secure Enclave.</Text>
             </View>
-            <View style={{
-              width: 44, height: 26, borderRadius: 13, padding: 3,
-              backgroundColor: lockEnabled ? primary : `${muted}40`,
-              alignItems: lockEnabled ? 'flex-end' : 'flex-start', justifyContent: 'center',
-            }}>
-              <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' }} />
-            </View>
-          </TouchableOpacity>
+          </View>
         </View>
       </GlassView>
 
@@ -850,7 +862,7 @@ const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
           Manage your presence and visibility. Use Identity Modes (Ghost/Celebrity) on the main profile to fuzz your location or stay invisible.
         </Text>
         <TouchableOpacity
-          style={{ backgroundColor: `${primary}15`, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: `${primary}30`, marginBottom: 12 }}
+          style={inviteBtnStyle}
           onPress={() => Share.share({ message: 'Join me on The Gruvs — safer social discovery.' })}
         >
           <Text style={{ color: primary, fontWeight: '900', textAlign: 'center' }}>Invite a Friend</Text>
@@ -858,7 +870,7 @@ const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
 
         <TouchableOpacity
           style={{ padding: 14 }}
-          onPress={() => Linking.openURL('https://thegruvs.com/privacy')}
+          onPress={() => Linking.openURL('https://thegruvs.com/privacy').catch(() => {})}
         >
           <Text style={{ color: muted, fontWeight: '700', textAlign: 'center', fontSize: 12 }}>View Privacy Policy</Text>
         </TouchableOpacity>
@@ -867,7 +879,7 @@ const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
           style={{ marginTop: 24, padding: 10 }}
           onPress={handleDeleteAccount}
         >
-          <Text style={{ color: '#ef4444', fontWeight: '800', textAlign: 'center', fontSize: 12, opacity: 0.8 }}>Request Account Deletion</Text>
+          <Text style={deleteBtnText}>Request Account Deletion</Text>
         </TouchableOpacity>
       </GlassView>
 
@@ -1055,7 +1067,7 @@ const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPres
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[mec.wrap, { borderColor: `${primary}20` }]}>
       {imgUrl
-        ? <Image source={{ uri: imgUrl }} style={mec.img} resizeMode="cover" />
+        ? <SmartImage source={imgUrl} style={mec.img} resizeMode="cover" />
         : <View style={[mec.img, { backgroundColor: `${primary}12`, alignItems: 'center', justifyContent: 'center' }]}><Feather name="image" size={18} color={`${primary}40`} /></View>
       }
       <View style={mec.info}>
@@ -1085,7 +1097,7 @@ const mec = StyleSheet.create({
 const isVideoUrl = (url) => /\.(mp4|mov|webm|avi|m4v)(\?|$)/i.test(url || '');
 
 // ── Clubs modal — create, browse clubs + pending invitations ─────────────────
-const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose }) => {
+const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose, onClubSelect }) => {
   const [tab, setTab]               = useState('my');  // 'my' | 'invitations' | 'create'
   const [myClubs, setMyClubs]       = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -1139,9 +1151,9 @@ const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose }) => 
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        <View style={{ backgroundColor: surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '88%', paddingBottom: 32 }}>
+        <View style={[styles.modalSheet, { backgroundColor: surface }]}>
           {/* Header */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+          <View style={styles.modalHeaderRow}>
             <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>⚔️ My Clubs</Text>
             <TouchableOpacity onPress={onClose}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
           </View>
@@ -1179,9 +1191,9 @@ const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose }) => 
                   </View>
                 )}
                 {myClubs.map(m => (
-                  <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: `${primary}08`, borderRadius: 14, borderWidth: 1, borderColor: `${primary}20`, padding: 14 }}>
+                  <TouchableOpacity key={m.id} onPress={() => onClubSelect && onClubSelect(m.club_id || m.clubs?.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: `${primary}08`, borderRadius: 14, borderWidth: 1, borderColor: `${primary}20`, padding: 14 }}>
                     {m.clubs?.logo_url
-                      ? <Image source={{ uri: m.clubs.logo_url }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                      ? <SmartImage source={m.clubs.logo_url} style={{ width: 44, height: 44, borderRadius: 22 }} />
                       : <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}><Feather name="shield" size={20} color={primary} /></View>
                     }
                     <View style={{ flex: 1 }}>
@@ -1194,7 +1206,7 @@ const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose }) => 
                         <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>{m.clubs.sport_type}</Text>
                       </View>
                     )}
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
@@ -1212,7 +1224,7 @@ const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose }) => 
                   <View key={inv.id} style={{ backgroundColor: `${primary}08`, borderRadius: 16, borderWidth: 1, borderColor: `${primary}25`, padding: 16, gap: 10 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                       {inv.clubs?.logo_url
-                        ? <Image source={{ uri: inv.clubs.logo_url }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                        ? <SmartImage source={inv.clubs.logo_url} style={{ width: 40, height: 40, borderRadius: 20 }} />
                         : <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}><Feather name="shield" size={18} color={primary} /></View>
                       }
                       <View style={{ flex: 1 }}>
@@ -1224,7 +1236,7 @@ const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose }) => 
                     {inv.message ? <Text style={{ color: muted, fontSize: 13 }}>"{inv.message}"</Text> : null}
                     <View style={{ flexDirection: 'row', gap: 10 }}>
                       <TouchableOpacity
-                        style={{ flex: 1, backgroundColor: primary, borderRadius: 12, paddingVertical: 11, alignItems: 'center' }}
+                        style={[styles.btnPrimary, { backgroundColor: primary }]}
                         onPress={() => handleRespond(inv, true)}
                       >
                         <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Accept</Text>
@@ -1296,7 +1308,7 @@ const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose }) => 
                   onChangeText={v => setForm(f => ({ ...f, bio: v }))}
                 />
                 <TouchableOpacity
-                  style={{ backgroundColor: primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', opacity: !form.name.trim() || saving ? 0.5 : 1 }}
+                  style={[styles.btnLarge, { backgroundColor: primary, opacity: !form.name.trim() || saving ? 0.5 : 1 }]}
                   onPress={handleCreate}
                   disabled={!form.name.trim() || saving}
                 >
@@ -1315,7 +1327,7 @@ const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose }) => 
 };
 
 // ── Clubs & Awards section (shown on profile above tabs) ─────────────────────
-const ClubsAndAwardsSection = ({ userId, primary, textColor, muted, surface }) => {
+const ClubsAndAwardsSection = ({ userId, primary, textColor, muted, surface, onClubSelect }) => {
   const [clubs, setClubs]   = useState([]);
   const [awards, setAwards] = useState([]);
 
@@ -1332,17 +1344,17 @@ const ClubsAndAwardsSection = ({ userId, primary, textColor, muted, surface }) =
       {/* Clubs */}
       {clubs.length > 0 && (
         <View style={{ marginBottom: 12 }}>
-          <Text style={{ color: muted, fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 8 }}>CLUBS</Text>
+          <Text style={[styles.subLabelAlt, { color: muted }]}>CLUBS</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {clubs.map(m => (
-              <View key={m.id} style={{ alignItems: 'center', gap: 4, width: 70 }}>
+              <TouchableOpacity key={m.id} onPress={() => onClubSelect && onClubSelect(m.club_id || m.clubs?.id)} style={{ alignItems: 'center', gap: 4, width: 70 }}>
                 {m.clubs?.logo_url
-                  ? <Image source={{ uri: m.clubs.logo_url }} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: `${primary}40` }} />
+                  ? <SmartImage source={m.clubs.logo_url} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: `${primary}40` }} />
                   : <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}><Feather name="shield" size={18} color={primary} /></View>
                 }
                 <Text style={{ color: textColor, fontSize: 10, fontWeight: '800', textAlign: 'center' }} numberOfLines={2}>{m.clubs?.short_name || m.clubs?.name}</Text>
                 <Text style={{ color: primary, fontSize: 9, fontWeight: '700' }}>{m.role}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
@@ -1351,7 +1363,7 @@ const ClubsAndAwardsSection = ({ userId, primary, textColor, muted, surface }) =
       {/* Awards */}
       {awards.length > 0 && (
         <View>
-          <Text style={{ color: muted, fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 8 }}>AWARDS</Text>
+          <Text style={[styles.subLabelAlt, { color: muted }]}>AWARDS</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {awards.map(a => (
               <View key={a.id} style={{ alignItems: 'center', gap: 3, width: 70, backgroundColor: `${primary}10`, borderRadius: 12, borderWidth: 1, borderColor: `${primary}25`, padding: 8 }}>
@@ -1485,9 +1497,9 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
             activeOpacity={0.85}
             style={{ width: cellSize, height: cellSize, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}15` }}
           >
-            <Image source={{ uri: item.url }} style={{ width: cellSize, height: cellSize }} resizeMode="cover" />
+            <SmartImage source={item.url} style={{ width: cellSize, height: cellSize }} resizeMode="cover" />
             {item.isVideo && (
-              <View style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+              <View style={styles.lightboxOverlay}>
                 <Feather name="play-circle" size={28} color="#fff" />
               </View>
             )}
@@ -1497,7 +1509,7 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
 
       {/* Lightbox */}
       <Modal visible={!!lightboxItem} transparent animationType="fade" onRequestClose={() => setLightboxItem(null)}>
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' }} onPress={() => setLightboxItem(null)}>
+        <Pressable style={styles.lightboxPressable} onPress={() => setLightboxItem(null)}>
           <TouchableOpacity
             style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 10 }}
             onPress={() => setLightboxItem(null)}
@@ -1529,7 +1541,7 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
 };
 
 // ── App Updates Section ───────────────────────────────────────────────────────
-const UPDATE_TYPE_COLOR = { feature: '#00f2ff', fix: '#10b981', improvement: '#8b5cf6', security: '#ef4444' };
+const UPDATE_TYPE_COLOR = { feature: "#00f2ff", fix: "#10b981", improvement: "#8b5cf6", security: "#ef4444" };
 const UPDATE_TYPE_ICON  = { feature: 'star', fix: 'tool', improvement: 'trending-up', security: 'shield' };
 
 const AppUpdatesSection = ({ primary, muted, textColor, surface }) => {
@@ -1558,7 +1570,7 @@ const AppUpdatesSection = ({ primary, muted, textColor, surface }) => {
         const color = UPDATE_TYPE_COLOR[u.type] || primary;
         const icon  = UPDATE_TYPE_ICON[u.type]  || 'zap';
         return (
-          <View key={u.id} style={{ flexDirection: 'row', gap: 12, paddingVertical: 10, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: 'rgba(255,255,255,0.06)' }}>
+          <View key={u.id} style={[styles.inviteRow, { borderTopWidth: i > 0 ? 1 : 0 }]}>
             <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: `${color}18`, alignItems: 'center', justifyContent: 'center' }}>
               <Feather name={icon} size={14} color={color} />
             </View>
@@ -1603,7 +1615,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     try {
       const result = await BehavioralEngine.analyze(user?.id, profile);
       if (result) setVibeCoachData(result);
-    } catch {}
+    } catch (err) {
+      console.warn('ProfilePage.loadVibeCoach err:', err);
+    }
     setVibeCoachLoading(false);
   };
   const [tutorialCenterVisible, setTutorialCenterVisible] = useState(false);
@@ -1612,6 +1626,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [postModalVisible, setPostModalVisible] = useState(false);
   const [createReelVisible, setCreateReelVisible] = useState(false);
   const [clubsModalVisible, setClubsModalVisible] = useState(false);
+  const [activeClubId, setActiveClubId] = useState(null);
   const [pendingInvites, setPendingInvites] = useState(0);
   const { identityMode, modeConfig, setIdentityMode, applyLocationPrivacy } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs');
@@ -1667,9 +1682,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [imageViewerUri, setImageViewerUri] = useState(null);
   const [editProfileVisible, setEditProfileVisible] = useState(false);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
+  const surface   = currentTheme?.surface    || "#1a1f21";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -1680,7 +1695,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const avatarInitials = (name) =>
     name ? name.split(/[\s_]/).map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'G';
   const avatarBgColor = (name) => {
-    const colors = ['#0891b2', '#0d9488', '#7c3aed', '#dc2626', '#d97706', '#059669'];
+    const colors = ["#0891b2", "#0d9488", "#7c3aed", "#dc2626", "#d97706", "#059669"];
     return colors[(name?.charCodeAt(0) || 0) % colors.length];
   };
 
@@ -1771,7 +1786,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const [evRes, followRes, saveRes] = await Promise.allSettled([
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', user.id),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', user.id),
-        supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', user?.id),
       ]);
       if (evRes.status === 'fulfilled') setEventCount(evRes.value.count || 0);
       if (followRes.status === 'fulfilled') setFollowerCount(followRes.value.count || 0);
@@ -1834,7 +1849,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             const { data: d, error } = await supabase
               .from('saved_events')
               .select('events(*)')
-              .eq('user_id', user.id)
+              .eq('user_id', user?.id)
               .order('created_at', { ascending: false })
               .limit(20);
             if (error) throw error;
@@ -1844,7 +1859,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             const { data: d, error } = await supabase
               .from('saved_events')
               .select('event_id, created_at')
-              .eq('user_id', user.id)
+              .eq('user_id', user?.id)
               .order('created_at', { ascending: false })
               .limit(20);
             if (error) throw error;
@@ -1854,7 +1869,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             const { data: d, error } = await supabase
               .from('saved_events')
               .select('event_id')
-              .eq('user_id', user.id)
+              .eq('user_id', user?.id)
               .limit(10);
             if (error) throw error;
             return (d || []).map(r => ({ id: r.event_id }));
@@ -1869,7 +1884,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             const { data: d, error } = await supabase
               .from('event_vibes')
               .select('events(*)')
-              .eq('user_id', user.id)
+              .eq('user_id', user?.id)
               .order('created_at', { ascending: false })
               .limit(20);
             if (error) throw error;
@@ -1879,7 +1894,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             const { data: d, error } = await supabase
               .from('event_vibes')
               .select('event_id, created_at')
-              .eq('user_id', user.id)
+              .eq('user_id', user?.id)
               .order('created_at', { ascending: false })
               .limit(20);
             if (error) throw error;
@@ -1889,7 +1904,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             const { data: d, error } = await supabase
               .from('event_vibes')
               .select('event_id')
-              .eq('user_id', user.id)
+              .eq('user_id', user?.id)
               .limit(10);
             if (error) throw error;
             return (d || []).map(r => ({ id: r.event_id }));
@@ -1903,7 +1918,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         const { data: d } = await supabase
           .from('event_roles')
           .select('events(id, title, date, cover_url, status, category, author_id, profiles:author_id(username))')
-          .eq('user_id', user.id)
+          .eq('user_id', user?.id)
           .eq('role', 'co_host')
           .order('created_at', { ascending: false })
           .limit(20);
@@ -1912,7 +1927,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         const items = await ActivityFeedManager.fetch(user.id, { limit: 40 });
         setActivityItems(items || []);
       }
-    } catch { }
+    } catch (err) {
+      console.warn('ProfilePage.loadTab err:', err);
+    }
     finally { setTabLoading(false); }
   }, [user]);
 
@@ -1928,8 +1945,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const ok = await resilient(
         [
           () => supabase.from('profiles').update({ username: trimmed }).eq('id', user.id),
-          () => supabase.rpc('update_username', { p_user_id: user.id, p_username: trimmed }),
-          () => supabase.from('profiles').upsert({ id: user.id, username: trimmed }, { onConflict: 'id' }),
+          () => supabase.rpc('update_username', { p_user_id: user?.id, p_username: trimmed }),
+          () => supabase.from('profiles').upsert({ id: user?.id, username: trimmed }, { onConflict: 'id' }),
         ],
         { attemptsPerTier: 3, baseMs: 400, label: 'ProfilePage.saveUsername', fallbackValue: null }
       );
@@ -2013,7 +2030,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         message: `Check out my vibe on The Gruvs! @${username} 👑`,
         url: 'https://thegruvs.com/profile/' + username,
       });
-    } catch { }
+    } catch (err) {
+      console.warn('ProfilePage.handleShareProfile err:', err);
+    }
   };
 
   const handleCoverUpload = async () => {
@@ -2112,7 +2131,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <TouchableOpacity onPress={() => setSubView(null)} style={styles.backBtn}>
             <Feather name="arrow-left" size={22} color="#FFD700" />
           </TouchableOpacity>
-          <Text style={[styles.subTitle, { color: '#FFD700' }]}>Royal Council</Text>
+          <Text style={[styles.subTitle, { color: "#FFD700" }]}>Royal Council</Text>
           <View style={{ width: 40 }} />
         </View>
         <RoyalCouncilPage primary={primary} textColor={textColor} muted={muted} user={user} toast={toast} />
@@ -2137,7 +2156,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       >
 
         {/* Brand Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 }}>
+        <View style={styles.modalHeaderRowTall}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <BrandLogo size={32} showGlow />
             <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', letterSpacing: 2 }}>MY ROYALTY</Text>
@@ -2157,7 +2176,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Feather name="shield" size={14} color={primary} />
               <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Clubs</Text>
               {pendingInvites > 0 && (
-                <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={styles.badgeRed}>
                   <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>{pendingInvites}</Text>
                 </View>
               )}
@@ -2170,13 +2189,13 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Leaderboard</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(139,92,246,0.15)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)' }}
+              style={styles.identityBtn}
               onPress={() => setTutorialCenterVisible(true)}
             >
               <Feather name="book-open" size={14} color="#8b5cf6" />
-              <Text style={{ color: '#8b5cf6', fontSize: 11, fontWeight: '800' }}>Tutorials</Text>
+              <Text style={{ color: "#8b5cf6", fontSize: 11, fontWeight: '800' }}>Tutorials</Text>
               {tutorialsDone.length < 3 && (
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#ef4444' }} />
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#ef4444" }} />
               )}
             </TouchableOpacity>
           </View>
@@ -2189,7 +2208,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           onPress={() => profile?.cover_url && setImageViewerUri(profile.cover_url)}
         >
           {profile?.cover_url
-            ? <Image source={{ uri: thumb.cover(profile.cover_url) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            ? <SmartImage source={thumb.cover(profile.cover_url)} style={StyleSheet.absoluteFill} resizeMode="cover" />
             : <>
               <View style={[styles.coverPattern, { borderColor: `${primary}12` }]} />
               <View style={[styles.coverPatternAlt, { borderColor: `${primary}10` }]} />
@@ -2211,12 +2230,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             activeOpacity={0.85}
           >
             {avatarUrl
-              ? <Image source={{ uri: thumb.avatarLg(avatarUrl) }} style={[styles.avatar, { borderColor: primary }]} />
+              ? <SmartImage source={thumb.avatarLg(avatarUrl)} style={[styles.avatar, { borderColor: primary }]} />
               : <View style={[styles.avatar, { borderColor: primary, backgroundColor: avatarBgColor(username), alignItems: 'center', justifyContent: 'center' }]}>
                 <Text style={{ color: '#fff', fontSize: 28, fontWeight: '900' }}>{avatarInitials(username)}</Text>
               </View>
             }
-            <View style={[styles.onlineDot, { backgroundColor: '#10b981' }]} />
+            <View style={[styles.onlineDot, { backgroundColor: "#10b981" }]} />
             {user && (
               <View style={[styles.avatarEditBadge, { backgroundColor: primary }]}>
                 <Feather name="camera" size={10} color="#000" />
@@ -2345,7 +2364,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 </View>
                 <Text style={{ color: muted, fontSize: 11, fontWeight: '700' }}>{xp} XP</Text>
               </View>
-              <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+              <View style={styles.progressBarBg}>
                 <View style={{ width: `${pct}%`, height: '100%', backgroundColor: primary, borderRadius: 3 }} />
               </View>
               {level < 100 && (
@@ -2410,9 +2429,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         {/* Identity Mode Switcher */}
         {user && (
           <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
-            <Text style={{ color: muted, fontSize: 10, fontWeight: '800', letterSpacing: 1, marginBottom: 8 }}>IDENTITY MODE</Text>
+            <Text style={[styles.subLabelAlt, { color: muted }]}>IDENTITY MODE</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              {Object.values({ public: { key: 'public', label: 'Public', icon: 'eye', color: '#10b981', desc: 'Fully visible' }, ghost: { key: 'ghost', label: 'Ghost', icon: 'eye-off', color: '#8b5cf6', desc: 'Alias + fuzzed' }, celebrity: { key: 'celebrity', label: 'Celebrity', icon: 'star', color: '#f59e0b', desc: 'Read-only' } }).map(mode => {
+              {Object.values({ public: { key: 'public', label: 'Public', icon: 'eye', color: "#10b981", desc: 'Fully visible' }, ghost: { key: 'ghost', label: 'Ghost', icon: 'eye-off', color: "#8b5cf6", desc: 'Alias + fuzzed' }, celebrity: { key: 'celebrity', label: 'Celebrity', icon: 'star', color: "#f59e0b", desc: 'Read-only' } }).map(mode => {
                 const isActive = identityMode === mode.key;
                 return (
                   <TouchableOpacity
@@ -2421,7 +2440,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, borderWidth: isActive ? 2 : 1, borderColor: isActive ? mode.color : `${muted}40`, backgroundColor: isActive ? `${mode.color}20` : 'transparent' }}
                   >
                     <Feather name={mode.icon} size={16} color={isActive ? mode.color : muted} />
-                    <Text style={{ color: isActive ? mode.color : muted, fontSize: 10, fontWeight: '800', marginTop: 4 }}>{mode.label}</Text>
+                    <Text style={[styles.identityModeText, { color: isActive ? mode.color : muted }]}>{mode.label}</Text>
                     <Text style={{ color: muted, fontSize: 8, marginTop: 2, opacity: 0.7 }}>{mode.desc}</Text>
                   </TouchableOpacity>
                 );
@@ -2488,7 +2507,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               onPress={() => setSubView('council')}
             >
               <Feather name="shield" size={16} color="#FFD700" />
-              <Text style={[styles.findBtnText, { color: '#FFD700' }]}>Council</Text>
+              <Text style={[styles.findBtnText, { color: "#FFD700" }]}>Council</Text>
             </TouchableOpacity>
           )}
 
@@ -2505,16 +2524,16 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         <TouchableOpacity
           onPress={() => setTutorialCenterVisible(true)}
           activeOpacity={0.85}
-          style={{ marginHorizontal: 16, marginBottom: 14, borderRadius: 20, borderWidth: 1.5, borderColor: 'rgba(139,92,246,0.35)', backgroundColor: 'rgba(139,92,246,0.08)', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}
+          style={styles.vibeCoachBanner}
         >
-          <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(139,92,246,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={styles.vibeCoachIconWrap}>
             <Feather name="book-open" size={22} color="#8b5cf6" />
           </View>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-              <Text style={{ color: '#8b5cf6', fontSize: 14, fontWeight: '900' }}>Tutorials</Text>
+              <Text style={{ color: "#8b5cf6", fontSize: 14, fontWeight: '900' }}>Tutorials</Text>
               {tutorialsDone.length < 3 && (
-                <View style={{ backgroundColor: '#ef4444', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 }}>
+                <View style={styles.badgeAlert}>
                   <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>NEW</Text>
                 </View>
               )}
@@ -2563,7 +2582,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
         {/* ── AI Vibe Coach ──────────────────────────────────────── */}
         <GlassView style={[styles.section, { borderColor: `${primary}30` }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <View style={styles.rowSpaceBetween10}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={{ fontSize: 16 }}>✦</Text>
               <Text style={[styles.sectionTitle, { color: primary, marginBottom: 0 }]}>Vibe Coach</Text>
@@ -2586,7 +2605,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
                   {vibeCoachData.trend && (
                     <View style={{ flex: 1, padding: 8, borderRadius: 10, backgroundColor: `${primary}10`, alignItems: 'center' }}>
-                      <Text style={{ color: vibeCoachData.trend.direction === 'up' ? '#10b981' : vibeCoachData.trend.direction === 'down' ? '#ef4444' : muted, fontSize: 16, fontWeight: '900' }}>
+                      <Text style={{ color: vibeCoachData.trend.direction === 'up' ? "#10b981" : vibeCoachData.trend.direction === 'down' ? "#ef4444" : muted, fontSize: 16, fontWeight: '900' }}>
                         {vibeCoachData.trend.direction === 'up' ? '↑' : vibeCoachData.trend.direction === 'down' ? '↓' : '→'} {Math.abs(vibeCoachData.trend.pct)}%
                       </Text>
                       <Text style={{ color: muted, fontSize: 10, marginTop: 2 }}>vs last week</Text>
@@ -2611,7 +2630,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               )}
               {(vibeCoachData.tips || []).map((tip, i) => (
                 <View key={i} style={{ flexDirection: 'row', gap: 10, marginBottom: 8, padding: 10, borderRadius: 10, backgroundColor: `${primary}08`, borderWidth: 1, borderColor: `${primary}15` }}>
-                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: primary, alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={[styles.smallBadge, { backgroundColor: primary }]}>
                     <Text style={{ color: '#000', fontSize: 11, fontWeight: '900' }}>{i + 1}</Text>
                   </View>
                   <Text style={{ color: textColor, fontSize: 12, lineHeight: 17, flex: 1 }}>{tip}</Text>
@@ -2627,7 +2646,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         </GlassView>
 
         {/* Clubs & Awards */}
-        <ClubsAndAwardsSection userId={user?.id} primary={primary} textColor={textColor} muted={muted} surface={surface} />
+        <ClubsAndAwardsSection userId={user?.id} primary={primary} textColor={textColor} muted={muted} surface={surface} onClubSelect={setActiveClubId} />
 
         {/* Profile Content Tabs */}
         <View style={[styles.contentTabRow, { borderColor: `${primary}20` }]}>
@@ -2684,10 +2703,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                           </TouchableOpacity>
                           <TouchableOpacity
                             onPress={() => handleDeleteEvent(ev)}
-                            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: '#ef444440' }}
+                            style={styles.outlineDangerBtn}
                           >
                             <Feather name="trash-2" size={13} color="#ef4444" />
-                            <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '700' }}>Delete</Text>
+                            <Text style={{ color: "#ef4444", fontSize: 12, fontWeight: '700' }}>Delete</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -2998,7 +3017,17 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           muted={muted}
           surface={surface}
           onClose={() => { setClubsModalVisible(false); setPendingInvites(0); }}
+          onClubSelect={setActiveClubId}
         />
+      )}
+      {activeClubId && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setActiveClubId(null)}>
+          <ClubScreen
+            clubId={activeClubId}
+            onClose={() => setActiveClubId(null)}
+            navigation={navigation}
+          />
+        </Modal>
       )}
       {pathMapVisible && (
         <SafeSection label="Path Map" primary={primary}>
@@ -3071,7 +3100,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         onRequestClose={() => setImageViewerUri(null)}
       >
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' }}
+          style={styles.lightboxPressable}
           activeOpacity={1}
           onPress={() => setImageViewerUri(null)}
         >
@@ -3083,7 +3112,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setImageViewerUri(null)}
-            style={{ position: 'absolute', top: 52, right: 18, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, padding: 8 }}
+            style={styles.absoluteCloseBtn}
           >
             <Feather name="x" size={22} color="#fff" />
           </TouchableOpacity>
@@ -3106,7 +3135,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             activeOpacity={1}
             onPress={() => setEditProfileVisible(false)}
           />
-          <View style={{ backgroundColor: bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingBottom: 36, paddingTop: 16, maxHeight: '88%' }}>
+          <View style={[styles.modalSheetTall, { backgroundColor: bg }]}>
             {/* Handle */}
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: `${primary}40`, alignSelf: 'center', marginBottom: 18 }} />
             <Text style={{ color: textColor, fontSize: 18, fontWeight: '900', marginBottom: 6 }}>Edit Profile</Text>
@@ -3121,7 +3150,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 onPress={handleAvatarUpload}
               >
                 {avatarUrl
-                  ? <Image source={{ uri: thumb.avatarLg(avatarUrl) }} style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: primary }} />
+                  ? <SmartImage source={thumb.avatarLg(avatarUrl)} style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: primary }} />
                   : <View style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: primary, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
                       <Feather name="user" size={32} color={primary} />
                     </View>
@@ -3137,7 +3166,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 style={{ height: 80, borderRadius: 14, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30`, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 18 }}
               >
                 {profile?.cover_url
-                  ? <Image source={{ uri: thumb.coverSm(profile.cover_url) }} style={{ ...StyleSheet.absoluteFillObject, borderRadius: 14 }} resizeMode="cover" />
+                  ? <SmartImage source={thumb.coverSm(profile.cover_url)} style={{ ...StyleSheet.absoluteFillObject, borderRadius: 14 }} resizeMode="cover" />
                   : null}
                 <View style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
                   <Feather name="image" size={15} color="#fff" />
@@ -3187,7 +3216,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     onPress={() => setProfileGender(profileGender === g.toLowerCase() ? '' : g.toLowerCase())}
                     style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: profileGender === g.toLowerCase() ? primary : `${primary}30`, backgroundColor: profileGender === g.toLowerCase() ? `${primary}20` : 'transparent' }}
                   >
-                    <Text style={{ color: profileGender === g.toLowerCase() ? primary : muted, fontSize: 12, fontWeight: '700' }}>{g}</Text>
+                    <Text style={[styles.genderTextAlt, { color: profileGender === g.toLowerCase() ? primary : muted }]}>{g}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -3229,7 +3258,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               />
 
               <TouchableOpacity
-                style={{ backgroundColor: primary, borderRadius: 14, paddingVertical: 15, alignItems: 'center' }}
+                style={[styles.btnLargePrimary, { backgroundColor: primary }]}
                 onPress={async () => {
                   await handleSaveProfile();
                   setEditProfileVisible(false);
@@ -3351,8 +3380,8 @@ const styles = StyleSheet.create({
   guestBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
 
   // Sign out
-  signOutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginTop: 8, marginBottom: 20, paddingVertical: 14, borderRadius: 30, borderWidth: 1.5, borderColor: '#ef4444' },
-  signOutText: { color: '#ef4444', fontWeight: '800', fontSize: 14, letterSpacing: 0.5 },
+  signOutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginTop: 8, marginBottom: 20, paddingVertical: 14, borderRadius: 30, borderWidth: 1.5, borderColor: "#ef4444" },
+  signOutText: { color: "#ef4444", fontWeight: '800', fontSize: 14, letterSpacing: 0.5 },
 
   // Career / Looks edit fields
   editRow: { marginBottom: 14 },

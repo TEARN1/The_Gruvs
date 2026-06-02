@@ -93,15 +93,11 @@ const TeamsTab = ({ event, sportMeta, primary, textColor, muted }) => {
   const [adding, setAdding] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [form, setForm] = useState({ name: '', short_name: '', color1: primary, club_id: null });
-  const [myClubs, setMyClubs] = useState([]);
+  const [clubSearchQuery, setClubSearchQuery] = useState('');
+  const [clubSearchResults, setClubSearchResults] = useState([]);
+  const [searchingClubs, setSearchingClubs] = useState(false);
+  const [selectedClub, setSelectedClub] = useState(null);
   const toast = useToast();
-
-  useEffect(() => {
-    if (!user) return;
-    import('../services/clubEngine').then(({ MembershipManager }) => {
-      MembershipManager.getPlayerClubs(user.id).then(clubs => setMyClubs(clubs || [])).catch(() => {});
-    });
-  }, [user?.id]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,19 +107,73 @@ const TeamsTab = ({ event, sportMeta, primary, textColor, muted }) => {
 
   useEffect(() => { load(); }, [load]);
 
+  const searchClubs = async (q) => {
+    setClubSearchQuery(q);
+    if (!q.trim()) {
+      setClubSearchResults([]);
+      return;
+    }
+    setSearchingClubs(true);
+    try {
+      const { ClubManager: LocalClubManager } = await import('../services/clubEngine');
+      const results = await LocalClubManager.search(q, event?.sport_type || event?.category);
+      setClubSearchResults(results || []);
+    } catch (e) {
+      console.warn('Error searching clubs:', e);
+    } finally {
+      setSearchingClubs(false);
+    }
+  };
+
+  const handleSelectClub = (club) => {
+    setSelectedClub(club);
+    setForm(p => ({
+      ...p,
+      club_id: club.id,
+      name: club.name,
+      short_name: club.short_name || club.name.slice(0, 3).toUpperCase()
+    }));
+    setClubSearchQuery('');
+    setClubSearchResults([]);
+  };
+
   const handleSave = async () => {
     if (!form.name.trim()) return toast.show('Enter a team name', 'error');
+    setLoading(true);
     try {
+      const teamData = { ...form };
+      if (selectedClub) {
+        teamData.club_id = selectedClub.id;
+        teamData.logo_url = selectedClub.logo_url || null;
+        try {
+          const { MembershipManager: LocalMembershipManager } = await import('../services/clubEngine');
+          const roster = await LocalMembershipManager.getRoster(selectedClub.id);
+          if (roster && roster.length > 0) {
+            teamData.players = roster.map(m => ({
+              id: m.profiles?.id || m.user_id,
+              name: m.profiles?.display_name || m.profiles?.username || m.display_name,
+              number: m.jersey_number || '',
+              position: m.position || '',
+              photo_url: m.profiles?.avatar_url || m.photo_url || null,
+            }));
+          }
+        } catch (rosterErr) {
+          console.warn('Failed to load roster from club:', rosterErr);
+        }
+      }
+
       if (editTarget) {
-        await TeamManager.update(editTarget.id, form);
+        await TeamManager.update(editTarget.id, teamData);
         toast.show('Team updated', 'success');
       } else {
-        await TeamManager.create(event.id, form);
+        await TeamManager.create(event.id, teamData);
         toast.show('Team added', 'success');
       }
       setAdding(false);
+      setSelectedClub(null);
       load();
     } catch (e) { toast.show(e.message || 'Error', 'error'); }
+    setLoading(false);
   };
 
   const handleDelete = (id) => {
@@ -141,7 +191,7 @@ const TeamsTab = ({ event, sportMeta, primary, textColor, muted }) => {
         <Text style={{ color: textColor, fontWeight: '900', fontSize: 15 }}>
           {sportMeta?.team_sport ? 'Teams' : 'Athletes'} ({teams.length})
         </Text>
-        <ActionBtn icon="plus" label="Add" onPress={() => { setForm({ name: '', short_name: '', color1: primary }); setEditTarget(null); setAdding(true); }} color={primary} />
+        <ActionBtn icon="plus" label="Add" onPress={() => { setForm({ name: '', short_name: '', color1: primary, club_id: null }); setSelectedClub(null); setEditTarget(null); setAdding(true); }} color={primary} />
       </Row>
 
       {teams.length === 0 && (
@@ -160,7 +210,7 @@ const TeamsTab = ({ event, sportMeta, primary, textColor, muted }) => {
               {team.short_name ? <Text style={{ color: muted, fontSize: 12 }}>({team.short_name})</Text> : null}
             </Row>
             <Row>
-              <TouchableOpacity onPress={() => { setForm({ name: team.name, short_name: team.short_name || '', color1: team.color1 || primary, club_id: team.club_id || null }); setEditTarget(team); setAdding(true); }} style={{ padding: 5 }}>
+              <TouchableOpacity onPress={() => { setForm({ name: team.name, short_name: team.short_name || '', color1: team.color1 || primary, club_id: team.club_id || null }); setEditTarget(team); setSelectedClub(team.club_id ? { id: team.club_id, name: team.name } : null); setAdding(true); }} style={{ padding: 5 }}>
                 <Feather name="edit-2" size={14} color={muted} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleDelete(team.id)} style={{ padding: 5 }}>
@@ -179,38 +229,61 @@ const TeamsTab = ({ event, sportMeta, primary, textColor, muted }) => {
       <Modal visible={adding} animationType="slide" transparent onRequestClose={() => setAdding(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' }}>
-            <View style={{ backgroundColor: '#0d1112', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 }}>
+            <View style={{ backgroundColor: "#0d1112", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 }}>
               <Row style={{ justifyContent: 'space-between', marginBottom: 14 }}>
                 <Text style={{ color: textColor, fontWeight: '900', fontSize: 16 }}>{editTarget ? 'Edit' : 'Add'} Team</Text>
                 <TouchableOpacity onPress={() => setAdding(false)}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
               </Row>
               <Field label="Team Name *" value={form.name} onChangeText={v => setForm(p => ({ ...p, name: v }))} placeholder="Team name" color={primary} textColor={textColor} />
               <Field label="Short Name" value={form.short_name} onChangeText={v => setForm(p => ({ ...p, short_name: v }))} placeholder="e.g. FCB" color={primary} textColor={textColor} />
-              {/* Club link — optional but enables trophies, career stats, roster sync */}
-              {myClubs.length > 0 && (
+              
+              {/* Search Global Clubs */}
+              {sportMeta?.team_sport && (
                 <View style={{ marginBottom: 12 }}>
-                  <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>LINK TO CLUB (optional)</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TouchableOpacity
-                        style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, backgroundColor: !form.club_id ? primary : `${primary}12`, borderColor: primary }}
-                        onPress={() => setForm(p => ({ ...p, club_id: null }))}
-                      >
-                        <Text style={{ color: !form.club_id ? '#000' : primary, fontSize: 12, fontWeight: '700' }}>No Club</Text>
-                      </TouchableOpacity>
-                      {myClubs.map(m => (
-                        <TouchableOpacity
-                          key={m.club_id}
-                          style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, backgroundColor: form.club_id === m.club_id ? primary : `${primary}12`, borderColor: primary }}
-                          onPress={() => setForm(p => ({ ...p, club_id: m.club_id, name: p.name || m.clubs?.name || '', short_name: p.short_name || m.clubs?.short_name || '' }))}
-                        >
-                          <Text style={{ color: form.club_id === m.club_id ? '#000' : primary, fontSize: 12, fontWeight: '700' }}>{m.clubs?.short_name || m.clubs?.name}</Text>
+                  <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>LINK TO REGISTERED CLUB (OPTIONAL)</Text>
+                  <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', borderWidth: 1, borderColor: `${primary}30`, borderRadius: 10, paddingHorizontal: 10, height: 40, backgroundColor: `${primary}05` }}>
+                    <Feather name="search" size={14} color={muted} />
+                    <TextInput
+                      style={{ flex: 1, color: textColor, fontSize: 13 }}
+                      placeholder="Search clubs on The Gruvs..."
+                      placeholderTextColor={`${textColor}35`}
+                      value={clubSearchQuery}
+                      onChangeText={searchClubs}
+                    />
+                    {searchingClubs && <ActivityIndicator size="small" color={primary} />}
+                  </View>
+
+                  {clubSearchResults.length > 0 && (
+                    <ScrollView style={{ maxHeight: 120, marginTop: 6, borderRadius: 10, borderWidth: 1, borderColor: `${primary}20`, backgroundColor: "#0d1112" }}>
+                      {clubSearchResults.map(club => (
+                        <TouchableOpacity key={club.id} onPress={() => handleSelectClub(club)}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, borderBottomWidth: 1, borderBottomColor: `${primary}10` }}>
+                          {club.logo_url
+                            ? <Image source={{ uri: club.logo_url }} style={{ width: 24, height: 24, borderRadius: 12 }} />
+                            : <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}><Feather name="shield" size={12} color={primary} /></View>
+                          }
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: textColor, fontSize: 12, fontWeight: '800' }}>{club.name}</Text>
+                            {club.city && <Text style={{ color: muted, fontSize: 10 }}>{club.city}</Text>}
+                          </View>
+                          {club.is_verified && <Feather name="check-circle" size={12} color={primary} />}
                         </TouchableOpacity>
                       ))}
+                    </ScrollView>
+                  )}
+
+                  {selectedClub && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, padding: 8, borderRadius: 10, borderWidth: 1, borderColor: primary, backgroundColor: `${primary}15` }}>
+                      <Feather name="link" size={14} color={primary} />
+                      <Text style={{ color: textColor, fontSize: 12, fontWeight: '700', flex: 1 }}>Linked: {selectedClub.name}</Text>
+                      <TouchableOpacity onPress={() => setSelectedClub(null)}>
+                        <Feather name="x" size={14} color="#ef4444" />
+                      </TouchableOpacity>
                     </View>
-                  </ScrollView>
+                  )}
                 </View>
               )}
+              
               <TouchableOpacity onPress={handleSave} style={{ backgroundColor: primary, borderRadius: 10, paddingVertical: 13, alignItems: 'center', marginTop: 6 }}>
                 <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>Save Team</Text>
               </TouchableOpacity>
@@ -269,7 +342,7 @@ const FixturesTab = ({ event, sportMeta, primary, textColor, muted }) => {
 
   const teamName = (id) => teams.find(t => t.id === id)?.name || '?';
 
-  const statusColor = (s) => ({ scheduled: muted, live: '#ef4444', completed: '#10b981', postponed: '#f59e0b' }[s] || muted);
+  const statusColor = (s) => ({ scheduled: muted, live: "#ef4444", completed: "#10b981", postponed: "#f59e0b" }[s] || muted);
 
   if (loading) return <ActivityIndicator color={primary} style={{ marginTop: 20 }} />;
 
@@ -317,7 +390,7 @@ const FixturesTab = ({ event, sportMeta, primary, textColor, muted }) => {
       <Modal visible={adding} animationType="slide" transparent onRequestClose={() => setAdding(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' }}>
-            <View style={{ backgroundColor: '#0d1112', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 }}>
+            <View style={{ backgroundColor: "#0d1112", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 }}>
               <Row style={{ justifyContent: 'space-between', marginBottom: 14 }}>
                 <Text style={{ color: textColor, fontWeight: '900', fontSize: 16 }}>Add Fixture</Text>
                 <TouchableOpacity onPress={() => setAdding(false)}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
@@ -351,7 +424,7 @@ const FixturesTab = ({ event, sportMeta, primary, textColor, muted }) => {
       {scoring && (
         <Modal visible animationType="fade" transparent onRequestClose={() => setScoring(null)}>
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.7)', padding: 24 }}>
-            <View style={{ backgroundColor: '#0d1112', borderRadius: 20, padding: 24, width: '100%' }}>
+            <View style={{ backgroundColor: "#0d1112", borderRadius: 20, padding: 24, width: '100%' }}>
               <Text style={{ color: textColor, fontWeight: '900', fontSize: 16, marginBottom: 16, textAlign: 'center' }}>Update Score</Text>
               <Row style={{ justifyContent: 'center', gap: 20, marginBottom: 20 }}>
                 <View style={{ alignItems: 'center' }}>
@@ -672,7 +745,7 @@ const MediaTab = ({ event, primary, textColor, muted }) => {
       const { data: liked } = await supabase
         .from('sport_media_likes')
         .select('media_id')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .in('media_id', (data || []).map(m => m.id));
       setLikedSet(new Set((liked || []).map(l => l.media_id)));
     }
@@ -685,16 +758,18 @@ const MediaTab = ({ event, primary, textColor, muted }) => {
     if (!user) return;
     setLiking(l => ({ ...l, [mediaId]: true }));
     const isLiked = likedSet.has(mediaId);
-    if (isLiked) {
-      await supabase.from('sport_media_likes').delete()
-        .eq('media_id', mediaId).eq('user_id', user.id);
-      setLikedSet(s => { const n = new Set(s); n.delete(mediaId); return n; });
-      setMedia(m => m.map(x => x.id === mediaId ? { ...x, likes_count: Math.max(0, (x.likes_count || 1) - 1) } : x));
-    } else {
-      await supabase.from('sport_media_likes').insert({ media_id: mediaId, user_id: user.id });
-      setLikedSet(s => new Set([...s, mediaId]));
-      setMedia(m => m.map(x => x.id === mediaId ? { ...x, likes_count: (x.likes_count || 0) + 1 } : x));
-    }
+    try {
+      if (isLiked) {
+        await supabase.from('sport_media_likes').delete()
+          .eq('media_id', mediaId).eq('user_id', user?.id);
+        setLikedSet(s => { const n = new Set(s); n.delete(mediaId); return n; });
+        setMedia(m => m.map(x => x.id === mediaId ? { ...x, likes_count: Math.max(0, (x.likes_count || 1) - 1) } : x));
+      } else {
+        await supabase.from('sport_media_likes').insert({ media_id: mediaId, user_id: user?.id });
+        setLikedSet(s => new Set([...s, mediaId]));
+        setMedia(m => m.map(x => x.id === mediaId ? { ...x, likes_count: (x.likes_count || 0) + 1 } : x));
+      }
+    } catch { /* handle error */ }
     setLiking(l => ({ ...l, [mediaId]: false }));
   };
 
@@ -730,7 +805,7 @@ const MediaTab = ({ event, primary, textColor, muted }) => {
               style={{ alignItems: 'center', gap: 3 }}
               accessibilityLabel={likedSet.has(item.id) ? 'Unlike' : 'Like'}
             >
-              <Feather name="heart" size={20} color={likedSet.has(item.id) ? '#f43f5e' : muted} />
+              <Feather name="heart" size={20} color={likedSet.has(item.id) ? "#f43f5e" : muted} />
               <Text style={{ color: muted, fontSize: 11, fontWeight: '700' }}>{item.likes_count || 0}</Text>
             </TouchableOpacity>
           </View>

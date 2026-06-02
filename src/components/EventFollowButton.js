@@ -20,7 +20,7 @@ const DEFAULT_EVENT_PREFS = { notify_lineup: true, notify_updates: true, notify_
 export const EventFollowButton = ({ eventId, isSport = false, teamId = null, style }) => {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const primary = colors?.primary || '#00f2ff';
+  const primary = colors?.primary || "#00f2ff";
   const bg = colors?.card || '#111';
   const textColor = colors?.text || '#fff';
   const muted = colors?.muted || 'rgba(255,255,255,0.5)';
@@ -39,7 +39,7 @@ export const EventFollowButton = ({ eventId, isSport = false, teamId = null, sty
       .from(table)
       .select('*')
       .eq('event_id', eventId)
-      .eq('user_id', user.id)
+      .eq('user_id', user?.id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) { setFollowing(true); setPrefs(p => ({ ...p, ...data })); }
@@ -53,10 +53,10 @@ export const EventFollowButton = ({ eventId, isSport = false, teamId = null, sty
 
     if (following) {
       setFollowing(false);
-      await supabase.from(table).delete().eq('event_id', eventId).eq('user_id', user.id);
+      await supabase.from(table).delete().eq('event_id', eventId).eq('user_id', user?.id);
     } else {
       setFollowing(true);
-      const row = { event_id: eventId, user_id: user.id, ...prefs };
+      const row = { event_id: eventId, user_id: user?.id, ...prefs };
       if (isSport && teamId) row.team_id = teamId;
       await supabase.from(table).upsert(row, { onConflict: 'event_id,user_id' });
     }
@@ -66,7 +66,7 @@ export const EventFollowButton = ({ eventId, isSport = false, teamId = null, sty
     if (!user || !isSupabaseEnabled) return;
     setSaving(true);
     await supabase.from(table).upsert(
-      { event_id: eventId, user_id: user.id, ...prefs },
+      { event_id: eventId, user_id: user?.id, ...prefs },
       { onConflict: 'event_id,user_id' }
     );
     setSaving(false);

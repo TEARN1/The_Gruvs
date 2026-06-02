@@ -50,9 +50,9 @@ function groupByDate(events) {
 }
 
 function sourceColor(source, primary) {
-  if (source === 'my_rsvp') return '#10b981';
+  if (source === 'my_rsvp') return "#10b981";
   if (source === 'routed')  return primary;
-  return '#6366f1';
+  return "#6366f1";
 }
 
 function RecurrencePill({ event, primary }) {
@@ -81,8 +81,8 @@ export const PersonalPlannerModal = ({ visible, onClose, onNavigateToEvent }) =>
   const [showPlan, setShowPlan]   = useState(true);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
   const card      = currentTheme?.card       || 'rgba(255,255,255,0.05)';
@@ -94,7 +94,7 @@ export const PersonalPlannerModal = ({ visible, onClose, onNavigateToEvent }) =>
     setEvents([]);
     fadeAnim.setValue(0);
     try {
-      const result = await planPersonalCalendar({ userId: user.id, timeframe: tab });
+      const result = await planPersonalCalendar({ userId: user?.id, timeframe: tab });
       setPlanText(result.plan || '');
       setEvents(result.events || []);
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
@@ -234,7 +234,7 @@ export const PersonalPlannerModal = ({ visible, onClose, onNavigateToEvent }) =>
                                 </View>
                               )}
                               {e.price_min != null && (
-                                <Text style={{ color: e.price_min === 0 ? '#10b981' : muted, fontSize: 11, fontWeight: '700' }}>
+                                <Text style={{ color: e.price_min === 0 ? "#10b981" : muted, fontSize: 11, fontWeight: '700' }}>
                                   {e.price_min === 0 ? 'Free' : `R${e.price_min}`}
                                 </Text>
                               )}

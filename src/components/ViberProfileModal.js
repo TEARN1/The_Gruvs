@@ -5,9 +5,10 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Modal, View, Text, StyleSheet, Image, TouchableOpacity,
+  Modal, View, Text, StyleSheet, TouchableOpacity,
   ScrollView, ActivityIndicator, Animated,
 } from 'react-native';
+import { SmartImage } from './SmartImage';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -23,11 +24,11 @@ import { useToast } from './ToastNotification';
 import { ReportModal } from './ReportModal';
 
 const RANK_LABELS = [
-  { min: 0,     max: 100,    name: 'Viber',       color: '#94a3b8' },
-  { min: 101,   max: 500,    name: 'Elite Viber', color: '#06b6d4' },
-  { min: 501,   max: 2000,   name: 'Royal Viber', color: '#8b5cf6' },
-  { min: 2001,  max: 10000,  name: 'Gruv Master', color: '#f59e0b' },
-  { min: 10001, max: Infinity, name: 'Grand Viber', color: '#ef4444' },
+  { min: 0,     max: 100,    name: 'Viber',       color: "#94a3b8" },
+  { min: 101,   max: 500,    name: 'Elite Viber', color: "#06b6d4" },
+  { min: 501,   max: 2000,   name: 'Royal Viber', color: "#8b5cf6" },
+  { min: 2001,  max: 10000,  name: 'Gruv Master', color: "#f59e0b" },
+  { min: 10001, max: Infinity, name: 'Grand Viber', color: "#ef4444" },
 ];
 const getRank = (score) => RANK_LABELS.find(r => score >= r.min && score <= r.max) || RANK_LABELS[0];
 
@@ -53,7 +54,7 @@ const ProfileEventCard = ({ ev, primary, textColor, muted, onPress }) => {
   return (
     <TouchableOpacity style={[pec.wrap, { borderColor: `${catColor}25` }]} onPress={onPress} activeOpacity={0.85}>
       {imgUrl
-        ? <Image source={{ uri: imgUrl }} style={pec.img} resizeMode="cover" />
+        ? <SmartImage source={imgUrl} style={pec.img} resizeMode="cover" />
         : <View style={[pec.img, { backgroundColor: `${catColor}15`, alignItems: 'center', justifyContent: 'center' }]}><Feather name="image" size={16} color={`${catColor}60`} /></View>
       }
       <View style={pec.info}>
@@ -100,7 +101,7 @@ const UserListModal = ({ visible: v, onClose: oc, title, users, bg, primary, mut
             : users.map(u => (
               <View key={u.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: `${primary}10`, gap: 12 }}>
                 {u.avatar_url
-                  ? <Image source={{ uri: thumb.avatar(u.avatar_url) }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: `${primary}40` }} />
+                  ? <SmartImage source={thumb.avatar(u.avatar_url)} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: `${primary}40` }} />
                   : <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
                       <Text style={{ color: primary, fontWeight: '900', fontSize: 14 }}>{(u.username || '?').slice(0, 2).toUpperCase()}</Text>
                     </View>
@@ -183,8 +184,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -396,7 +397,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
               {/* Cover / header area with Dynamic Aura */}
               <View style={[s.coverArea, { backgroundColor: (profile.interests ? AuraService.getAura(profile.interests) : primary) + '20' }]}>
                 {profile.cover_url
-                  ? <Image source={{ uri: thumb.cover(profile.cover_url) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                  ? <SmartImage source={thumb.cover(profile.cover_url)} style={StyleSheet.absoluteFill} resizeMode="cover" />
                   : (
                     <View 
                       style={[
@@ -422,8 +423,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
               <View style={s.avatarRow}>
                 <View style={s.avatarWrap}>
                   {profile.avatar_url
-                    ? <Image source={{ uri: thumb.avatarLg(profile.avatar_url) }} style={[s.avatar, { borderColor: rank?.color || primary }]} />
-                    : <View style={[s.avatar, { borderColor: rank?.color || primary, backgroundColor: '#1a2428', alignItems: 'center', justifyContent: 'center' }]}>
+                    ? <SmartImage source={thumb.avatarLg(profile.avatar_url)} style={[s.avatar, { borderColor: rank?.color || primary }]} />
+                    : <View style={[s.avatar, { borderColor: rank?.color || primary, backgroundColor: "#1a2428", alignItems: 'center', justifyContent: 'center' }]}>
                         <Text style={{ color: '#fff', fontSize: 28, fontWeight: '900' }}>
                           {(profile.username || '?').slice(0, 2).toUpperCase()}
                         </Text>
@@ -515,9 +516,9 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
               <View style={[s.statsRow, { borderColor: `${primary}15` }]}>
                 {[
                   { label: 'Vibe Score', value: profile.vibe_score || 0, icon: 'zap', color: primary, onPress: null },
-                  { label: 'Followers',  value: followerCount,            icon: 'users', color: '#10b981', onPress: loadFollowersList },
-                  { label: 'Following',  value: followingCount,           icon: 'user-check', color: '#8b5cf6', onPress: loadFollowingList },
-                  { label: 'Gruvs',      value: events.length,            icon: 'calendar', color: '#f59e0b', onPress: null },
+                  { label: 'Followers',  value: followerCount,            icon: 'users', color: "#10b981", onPress: loadFollowersList },
+                  { label: 'Following',  value: followingCount,           icon: 'user-check', color: "#8b5cf6", onPress: loadFollowingList },
+                  { label: 'Gruvs',      value: events.length,            icon: 'calendar', color: "#f59e0b", onPress: null },
                 ].map((stat, i, arr) => (
                   <React.Fragment key={stat.label}>
                     <TouchableOpacity style={s.stat} onPress={stat.onPress} activeOpacity={stat.onPress ? 0.7 : 1} disabled={!stat.onPress}>
@@ -573,7 +574,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                       <View key={ev.id} style={{ position: 'relative' }}>
                         <ProfileEventCard
                           ev={ev}
-                          primary={ev.is_cancelled ? '#ef4444' : primary}
+                          primary={ev.is_cancelled ? "#ef4444" : primary}
                           textColor={ev.is_cancelled ? 'rgba(255,255,255,0.4)' : textColor}
                           muted={muted}
                           onPress={() => { if (!ev.is_cancelled) { onClose(); onNavigateToEvent?.(ev); } }}
@@ -623,7 +624,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                         <Text style={[s.sectionLabel, { color: muted }]}>GALLERY</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                           {profile.profile_gallery.map((url, i) => (
-                            <Image key={i} source={{ uri: thumb.thumbnail(url) }} style={{ width: 140, height: 180, borderRadius: 14, borderWidth: 1, borderColor: `${primary}20` }} resizeMode="cover" />
+                            <SmartImage key={i} source={thumb.thumbnail(url)} style={{ width: 140, height: 180, borderRadius: 14, borderWidth: 1, borderColor: `${primary}20` }} resizeMode="cover" />
                           ))}
                         </ScrollView>
                       </View>
@@ -636,7 +637,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                           {[
                             { label: 'Vibers', value: platformStats.vibers, icon: 'users', color: primary },
-                            { label: 'Gruvs',  value: platformStats.gruvs,  icon: 'calendar', color: '#f59e0b' },
+                            { label: 'Gruvs',  value: platformStats.gruvs,  icon: 'calendar', color: "#f59e0b" },
                           ].map(s2 => (
                             <View key={s2.label} style={[s.communityPill, { borderColor: `${s2.color}25`, backgroundColor: `${s2.color}10` }]}>
                               <Text style={[{ color: s2.color, fontSize: 18, fontWeight: '900' }]}>
@@ -720,15 +721,15 @@ const s = StyleSheet.create({
   avatarRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: -36, marginBottom: 8 },
   avatarWrap: { position: 'relative' },
   avatar: { width: 76, height: 76, borderRadius: 38, borderWidth: 3 },
-  onlineDot: { position: 'absolute', bottom: 3, right: 3, width: 14, height: 14, borderRadius: 7, backgroundColor: '#10b981', borderWidth: 2.5, borderColor: '#0d1112' },
+  onlineDot: { position: 'absolute', bottom: 3, right: 3, width: 14, height: 14, borderRadius: 7, backgroundColor: "#10b981", borderWidth: 2.5, borderColor: "#0d1112" },
   actionBtns: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 8 },
   followBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, minWidth: 100, justifyContent: 'center' },
   followBtnText: { fontWeight: '900', fontSize: 12 },
   msgBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
   editEventBtn: { position: 'absolute', top: 6, right: 6, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   cancelledOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', borderRadius: 14, overflow: 'hidden' },
-  cancelledLine: { position: 'absolute', top: '50%', left: 0, right: 0, height: 1.5, backgroundColor: '#ef4444', opacity: 0.7, transform: [{ rotate: '-8deg' }] },
-  cancelledLabel: { color: '#ef4444', fontWeight: '900', fontSize: 11, letterSpacing: 2, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  cancelledLine: { position: 'absolute', top: '50%', left: 0, right: 0, height: 1.5, backgroundColor: "#ef4444", opacity: 0.7, transform: [{ rotate: '-8deg' }] },
+  cancelledLabel: { color: "#ef4444", fontWeight: '900', fontSize: 11, letterSpacing: 2, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
 
   nameSection: { paddingHorizontal: 16, marginBottom: 14, gap: 4 },
   username: { fontSize: 20, fontWeight: '900', letterSpacing: 0.3 },

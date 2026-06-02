@@ -301,7 +301,7 @@ export const GodViewDashboard = ({ visible, onClose }) => {
            <Text style={[s.meshLabel, { color: muted }]}>SAI PhD NODES:</Text>
            {['Complexity', 'Game Theory', 'Psychology', 'Cybernetics', 'Royale'].map(node => (
              <View key={node} style={s.nodeRow}>
-                <View style={[s.nodeDot, { backgroundColor: '#10b981' }]} />
+                <View style={[s.nodeDot, { backgroundColor: "#10b981" }]} />
                 <Text style={{ color: '#fff', fontSize: 10 }}>NODE_${node.toUpperCase()}_STABLE</Text>
              </View>
            ))}
@@ -329,8 +329,8 @@ const s = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   sectionTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 1.5 },
   pulse: { width: 10, height: 10, borderRadius: 5 },
-  logTerminal: { backgroundColor: '#0a0a0a', padding: 16, borderRadius: 16, minHeight: 200, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  logText: { color: '#00ff00', fontSize: 11, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', marginBottom: 6 },
+  logTerminal: { backgroundColor: "#0a0a0a", padding: 16, borderRadius: 16, minHeight: 200, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  logText: { color: "#00ff00", fontSize: 11, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', marginBottom: 6 },
   auditBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 18, borderRadius: 16, marginTop: 10 },
   auditBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
   governorCard: { padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', gap: 8 },

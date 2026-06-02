@@ -10,13 +10,13 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 
 const TYPE_META = {
-  vibe:    { icon: 'zap',            label: 'Vibed',    color: '#f97316' },
-  echo:    { icon: 'message-circle', label: 'Echoed',   color: '#8b5cf6' },
-  follow:  { icon: 'user-plus',      label: 'Followed', color: '#10b981' },
-  rsvp:    { icon: 'check-circle',   label: 'RSVP\'d',  color: '#3b82f6' },
-  comment: { icon: 'message-square', label: 'Comment',  color: '#06b6d4' },
-  royal:   { icon: 'star',           label: 'Royal',    color: '#f59e0b' },
-  rating:  { icon: 'award',          label: 'Rating',   color: '#ec4899' },
+  vibe:    { icon: 'zap',            label: 'Vibed',    color: "#f97316" },
+  echo:    { icon: 'message-circle', label: 'Echoed',   color: "#8b5cf6" },
+  follow:  { icon: 'user-plus',      label: 'Followed', color: "#10b981" },
+  rsvp:    { icon: 'check-circle',   label: 'RSVP\'d',  color: "#3b82f6" },
+  comment: { icon: 'message-square', label: 'Comment',  color: "#06b6d4" },
+  royal:   { icon: 'star',           label: 'Royal',    color: "#f59e0b" },
+  rating:  { icon: 'award',          label: 'Rating',   color: "#ec4899" },
 };
 
 const FILTERS = ['all', 'vibe', 'echo', 'follow', 'rsvp'];
@@ -42,8 +42,8 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -74,19 +74,19 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
         queries.push(
           supabase.from('event_vibes')
             .select('id, event_id, user_id, created_at, profiles(username, avatar_url)')
-            .in('event_id', eventIds).neq('user_id', user.id)
+            .in('event_id', eventIds).neq('user_id', user?.id)
             .order('created_at', { ascending: false }).limit(30),
           supabase.from('event_rsvps')
             .select('id, event_id, user_id, created_at, profiles(username, avatar_url)')
-            .in('event_id', eventIds).neq('user_id', user.id)
+            .in('event_id', eventIds).neq('user_id', user?.id)
             .order('created_at', { ascending: false }).limit(30),
           supabase.from('echoes')
             .select('id, event_id, user_id, body, created_at, profiles(username, avatar_url)')
-            .in('event_id', eventIds).neq('user_id', user.id)
+            .in('event_id', eventIds).neq('user_id', user?.id)
             .order('created_at', { ascending: false }).limit(30),
           supabase.from('event_ratings')
             .select('id, event_id, user_id, rating, created_at, profiles(username, avatar_url)')
-            .in('event_id', eventIds).neq('user_id', user.id)
+            .in('event_id', eventIds).neq('user_id', user?.id)
             .order('created_at', { ascending: false }).limit(20),
         );
       }
@@ -163,7 +163,7 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
   const renderActivityItem = useCallback(({ item }) => {
     const meta = TYPE_META[item.type] || TYPE_META.vibe;
     const initials = item.actor?.[0]?.toUpperCase() || 'G';
-    const COLORS = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706'];
+    const COLORS = ["#0891b2", "#7c3aed", "#dc2626", "#059669", "#d97706"];
     const bgColor = COLORS[(item.actor?.charCodeAt(0) || 0) % COLORS.length];
     const isNew = Date.now() - new Date(item.created_at) < 3600000;
     return (

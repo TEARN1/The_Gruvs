@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS public.notification_preferences (
 );
 
 -- ── generate_ticket_token RPC ─────────────────────────────────
+DROP FUNCTION IF EXISTS public.generate_ticket_token(uuid);
 CREATE OR REPLACE FUNCTION public.generate_ticket_token(p_rsvp_id UUID)
 RETURNS TABLE(token TEXT, qr_payload TEXT, expires_at TIMESTAMPTZ)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$

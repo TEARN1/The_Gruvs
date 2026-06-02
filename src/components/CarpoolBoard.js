@@ -30,9 +30,9 @@ const timeLabel = (iso) => {
 const REQUEST_STATUS = { pending: 'pending', accepted: 'accepted', declined: 'declined' };
 
 const statusMeta = (status, primary) => ({
-  pending:  { label: 'Pending',  color: '#f59e0b', icon: 'clock'     },
-  accepted: { label: 'Accepted', color: '#22c55e', icon: 'check-circle' },
-  declined: { label: 'Declined', color: '#ef4444', icon: 'x-circle'  },
+  pending:  { label: 'Pending',  color: "#f59e0b", icon: 'clock'     },
+  accepted: { label: 'Accepted', color: "#22c55e", icon: 'check-circle' },
+  declined: { label: 'Declined', color: "#ef4444", icon: 'x-circle'  },
 }[status] || { label: 'Request Seat', color: primary, icon: 'send' });
 
 // ─── Time Picker Modal ────────────────────────────────────────────────────────
@@ -158,9 +158,9 @@ const OfferCard = React.memo(({ offer, user, primary, textColor, muted, surface,
           <Text style={[cp.driverName, { color: textColor }]}>@{offer.driver_username}</Text>
           <Text style={[cp.area, { color: primary }]} numberOfLines={1}>{offer.departure_area}</Text>
         </View>
-        <View style={[cp.seatBadge, { backgroundColor: full ? '#ef444422' : `${primary}20`, borderColor: full ? '#ef4444' : primary }]}>
-          <Feather name="users" size={10} color={full ? '#ef4444' : primary} />
-          <Text style={[cp.seatText, { color: full ? '#ef4444' : primary }]}>{seatsLeft}/{offer.seats_available}</Text>
+        <View style={[cp.seatBadge, { backgroundColor: full ? '#ef444422' : `${primary}20`, borderColor: full ? "#ef4444" : primary }]}>
+          <Feather name="users" size={10} color={full ? "#ef4444" : primary} />
+          <Text style={[cp.seatText, { color: full ? "#ef4444" : primary }]}>{seatsLeft}/{offer.seats_available}</Text>
         </View>
       </View>
 
@@ -195,15 +195,15 @@ const OfferCard = React.memo(({ offer, user, primary, textColor, muted, surface,
         <TouchableOpacity
           style={[cp.requestBtn, {
             backgroundColor: status ? `${meta.color}18` : full ? '#ef444422' : `${primary}20`,
-            borderColor: status ? meta.color : full ? '#ef4444' : `${primary}40`,
+            borderColor: status ? meta.color : full ? "#ef4444" : `${primary}40`,
           }]}
           onPress={() => { if (!full && !status) { pulse(); onRequest(offer); } }}
           disabled={!!status || full}
           activeOpacity={0.8}
         >
           <Feather name={status ? meta.icon : full ? 'x' : 'send'} size={12}
-            color={status ? meta.color : full ? '#ef4444' : primary} />
-          <Text style={[cp.requestText, { color: status ? meta.color : full ? '#ef4444' : primary }]}>
+            color={status ? meta.color : full ? "#ef4444" : primary} />
+          <Text style={[cp.requestText, { color: status ? meta.color : full ? "#ef4444" : primary }]}>
             {status ? meta.label : full ? 'Full' : 'Request Seat'}
           </Text>
         </TouchableOpacity>
@@ -247,7 +247,9 @@ export const CarpoolDriverPanel = ({ visible, onClose, carpoolId, primary, surfa
     setLoading(false);
   }, [carpoolId]);
 
-  useEffect(() => { if (visible && carpoolId) fetchRequests(); }, [visible, carpoolId, fetchRequests]);
+  useEffect(() => {
+    if (visible && carpoolId) fetchRequests();
+  }, [visible, carpoolId, fetchRequests]);
 
   // Realtime updates for this carpool's requests
   useEffect(() => {
@@ -256,7 +258,7 @@ export const CarpoolDriverPanel = ({ visible, onClose, carpoolId, primary, surfa
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'event_carpool_requests',
         filter: `carpool_id=eq.${carpoolId}`,
-      }, () => fetchRequests())
+      } , () => fetchRequests())
       .subscribe();
     return () => supabase.removeChannel(ch);
   }, [visible, carpoolId, fetchRequests]);
@@ -267,7 +269,7 @@ export const CarpoolDriverPanel = ({ visible, onClose, carpoolId, primary, surfa
     setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: newStatus } : r));
     try {
       const rpc = action === 'accept' ? 'accept_carpool_request' : 'decline_carpool_request';
-      const { error } = await supabase.rpc(rpc, { p_request_id: requestId, p_driver_id: user.id });
+      const { error } = await supabase.rpc(rpc, { p_request_id: requestId, p_driver_id: user?.id });
       if (error) throw error;
       toast.show(action === 'accept' ? 'Rider accepted!' : 'Request declined', action === 'accept' ? 'success' : 'info');
     } catch {
@@ -320,13 +322,13 @@ export const CarpoolDriverPanel = ({ visible, onClose, carpoolId, primary, surfa
                         {req.status === REQUEST_STATUS.pending && (
                           <View style={dp.actions}>
                             <TouchableOpacity
-                              style={[dp.actionBtn, { backgroundColor: '#22c55e22', borderColor: '#22c55e' }]}
+                              style={[dp.actionBtn, { backgroundColor: '#22c55e22', borderColor: "#22c55e" }]}
                               onPress={() => respondToRequest(req.id, 'accept')}
                             >
                               <Feather name="check" size={14} color="#22c55e" />
                             </TouchableOpacity>
                             <TouchableOpacity
-                              style={[dp.actionBtn, { backgroundColor: '#ef444422', borderColor: '#ef4444' }]}
+                              style={[dp.actionBtn, { backgroundColor: '#ef444422', borderColor: "#ef4444" }]}
                               onPress={() => respondToRequest(req.id, 'decline')}
                             >
                               <Feather name="x" size={14} color="#ef4444" />
@@ -423,7 +425,9 @@ export const CarpoolBoard = ({ event, primary, textColor, muted, surface }) => {
     finally { setLoading(false); }
   }, [event?.id, user]);
 
-  useEffect(() => { fetchOffers(); }, [fetchOffers]);
+  useEffect(() => {
+    fetchOffers();
+  }, [fetchOffers]);
 
   // ── Realtime seat + request updates ──────────────────────────────────────
 
@@ -433,11 +437,11 @@ export const CarpoolBoard = ({ event, primary, textColor, muted, surface }) => {
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'event_carpools',
         filter: `event_id=eq.${event.id}`,
-      }, () => fetchOffers())
+      } , () => fetchOffers())
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'event_carpool_requests',
         filter: `event_id=eq.${event.id}`,
-      }, (payload) => {
+      } , (payload) => {
         // Fast-path: update just the affected offer's count + current user's status
         const req = payload.new || payload.old;
         if (!req) { fetchOffers(); return; }
@@ -464,7 +468,7 @@ export const CarpoolBoard = ({ event, primary, textColor, muted, surface }) => {
     try {
       const payload = {
         event_id: event.id,
-        driver_id: user.id,
+        driver_id: user?.id,
         seats_available: s,
         departure_area: area.trim(),
         departure_time: depTime || null,
@@ -498,7 +502,7 @@ export const CarpoolBoard = ({ event, primary, textColor, muted, surface }) => {
     try {
       const ok = await resilient(
         [() => supabase.from('event_carpool_requests').insert({
-          carpool_id: offer.id, rider_id: user.id, event_id: event.id, status: REQUEST_STATUS.pending,
+          carpool_id: offer.id, rider_id: user?.id, event_id: event.id, status: REQUEST_STATUS.pending,
         })],
         { attemptsPerTier: 2, baseMs: 400, label: 'Carpool.request' }
       );

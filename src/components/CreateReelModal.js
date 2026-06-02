@@ -35,11 +35,11 @@ const VISIBILITIES = [
 ];
 
 const VIBE_COLORS = [
-  { id: '#00f2ff', label: 'Cyan' },
-  { id: '#d946ef', label: 'Magenta' },
-  { id: '#eab308', label: 'Gold' },
-  { id: '#10b981', label: 'Emerald' },
-  { id: '#8b5cf6', label: 'Purple' }
+  { id: "#00f2ff", label: 'Cyan' },
+  { id: "#d946ef", label: 'Magenta' },
+  { id: "#eab308", label: 'Gold' },
+  { id: "#10b981", label: 'Emerald' },
+  { id: "#8b5cf6", label: 'Purple' }
 ];
 
 export const CreateReelModal = ({ visible, onClose, onPosted }) => {
@@ -47,8 +47,8 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
   const { user } = useAuth();
   const toast = useToast();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
   const surface   = currentTheme?.surface    || 'rgba(255,255,255,0.06)';
@@ -73,7 +73,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
   const [showStickerForm, setShowStickerForm] = useState(false);
 
   // Aura lighting settings
-  const [vibeColor, setVibeColor] = useState('#00f2ff');
+  const [vibeColor, setVibeColor] = useState("#00f2ff");
   const [vibeIntensity, setVibeIntensity] = useState(70);
 
   const videoRef = useRef(null);
@@ -94,7 +94,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     setStickerY(0.4);
     setStickerStyle('glow');
     setShowStickerForm(false);
-    setVibeColor('#00f2ff');
+    setVibeColor("#00f2ff");
     setVibeIntensity(70);
   };
 
@@ -160,7 +160,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
       const publicUrl = await uploadToStorage(asset.uri, 'reels', storagePath, { mimeType: asset.mimeType });
 
       const payload = {
-        user_id: user.id,
+        user_id: user?.id,
         media_url: publicUrl,
         media_type: isVideo ? 'video' : 'image',
         caption: caption.trim(),
@@ -179,7 +179,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
         [
           () => supabase.from('reels').insert(payload),
           () => supabase.from('reels').upsert(payload),
-          () => supabase.rpc('create_reel', { p_user_id: user.id, p_media_url: publicUrl, p_caption: payload.caption, p_sound_name: payload.sound_name || null, p_metadata: payload.metadata, p_visibility: payload.visibility }),
+          () => supabase.rpc('create_reel', { p_user_id: user?.id, p_media_url: publicUrl, p_caption: payload.caption, p_sound_name: payload.sound_name || null, p_metadata: payload.metadata, p_visibility: payload.visibility }),
         ],
         { attemptsPerTier: 3, baseMs: 500, label: 'CreateReelModal.insert', fallbackValue: null }
       );

@@ -10,37 +10,114 @@ const TTL_MS = 5 * 60 * 1000; // 5 minutes before stale
 
 const key = (ns, id) => `${PREFIX}${ns}:${id}`;
 
+// ── L1 IN-MEMORY CACHE (FAST PATH) ───────────────────────────────────────────
+const L1_CACHE = new Map();
+
+// Intercept AsyncStorage modifications to keep L1 cache perfectly in sync
+// (especially important during direct AsyncStorage manipulation in unit tests)
+const originalClear = AsyncStorage.clear;
+if (originalClear) {
+  AsyncStorage.clear = async (...args) => {
+    L1_CACHE.clear();
+    return originalClear.apply(AsyncStorage, args);
+  };
+}
+
+const originalSetItem = AsyncStorage.setItem;
+if (originalSetItem) {
+  AsyncStorage.setItem = async (storageKey, value, ...args) => {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && 'ts' in parsed) {
+        L1_CACHE.set(storageKey, parsed);
+      }
+    } catch {
+      // not a cache object or not JSON
+    }
+    return originalSetItem.call(AsyncStorage, storageKey, value, ...args);
+  };
+}
+
+const originalRemoveItem = AsyncStorage.removeItem;
+if (originalRemoveItem) {
+  AsyncStorage.removeItem = async (storageKey, ...args) => {
+    L1_CACHE.delete(storageKey);
+    return originalRemoveItem.call(AsyncStorage, storageKey, ...args);
+  };
+}
+
 async function write(ns, id, data) {
+  const ts = Date.now();
+  const cacheObj = { data, ts };
+  const cacheKey = key(ns, id);
+
+  // Write to L1 (synchronous, instant)
+  L1_CACHE.set(cacheKey, cacheObj);
+
+  // Write to L2 (AsyncStorage, persistent)
   try {
-    await AsyncStorage.setItem(key(ns, id), JSON.stringify({ data, ts: Date.now() }));
+    await originalSetItem.call(AsyncStorage, cacheKey, JSON.stringify(cacheObj));
   } catch {}
 }
 
 async function read(ns, id, maxAgeMs = TTL_MS) {
+  const cacheKey = key(ns, id);
+
+  // 1. Check L1 cache first
+  const cachedL1 = L1_CACHE.get(cacheKey);
+  if (cachedL1) {
+    if (Date.now() - cachedL1.ts <= maxAgeMs) {
+      return cachedL1.data;
+    }
+    return null; // Expired in L1
+  }
+
+  // 2. Check L2 (AsyncStorage)
   try {
-    const raw = await AsyncStorage.getItem(key(ns, id));
+    const raw = await AsyncStorage.getItem(cacheKey);
     if (!raw) return null;
-    const { data, ts } = JSON.parse(raw);
-    if (Date.now() - ts > maxAgeMs) return null;
-    return data;
+    const cacheObj = JSON.parse(raw);
+
+    // Save to L1 for subsequent reads
+    L1_CACHE.set(cacheKey, cacheObj);
+
+    if (Date.now() - cacheObj.ts > maxAgeMs) return null;
+    return cacheObj.data;
   } catch {
     return null;
   }
 }
 
 async function readStale(ns, id) {
-  // Returns cached data regardless of age — used when offline
+  const cacheKey = key(ns, id);
+
+  // 1. Check L1 cache first
+  const cachedL1 = L1_CACHE.get(cacheKey);
+  if (cachedL1) {
+    return cachedL1.data;
+  }
+
+  // 2. Check L2 (AsyncStorage)
   try {
-    const raw = await AsyncStorage.getItem(key(ns, id));
+    const raw = await AsyncStorage.getItem(cacheKey);
     if (!raw) return null;
-    return JSON.parse(raw).data;
+    const cacheObj = JSON.parse(raw);
+
+    // Save to L1 for subsequent reads
+    L1_CACHE.set(cacheKey, cacheObj);
+
+    return cacheObj.data;
   } catch {
     return null;
   }
 }
 
 async function clear(ns, id) {
-  try { await AsyncStorage.removeItem(key(ns, id)); } catch {}
+  const cacheKey = key(ns, id);
+  L1_CACHE.delete(cacheKey);
+  try {
+    await originalRemoveItem.call(AsyncStorage, cacheKey);
+  } catch {}
 }
 
 // ── Domain helpers ────────────────────────────────────────────────────────────
@@ -56,7 +133,7 @@ export const MatchCache = {
 
   async saveCommentary(matchId, items) { await write('commentary', matchId, items); },
   async getCommentary(matchId) { return read('commentary', matchId); },
-  async getCommentaryStale(matchId) { return readStale('match_events', matchId); },
+  async getCommentaryStale(matchId) { return readStale('commentary', matchId); },
 
   async saveLeagueTable(eventId, rows) { await write('league_table', eventId, rows); },
   async getLeagueTable(eventId) { return read('league_table', eventId); },

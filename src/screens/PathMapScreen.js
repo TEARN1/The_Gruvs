@@ -176,7 +176,7 @@ const DashedPath = ({ x1, y1, x2, y2, color }) => {
 // The Canvas map
 // ---------------------------------------------------------------------------
 const FootprintCanvas = ({ checkins, paths, primary, onIntersectionPress }) => {
-  const GOLD = '#FFD700';
+  const GOLD = "#FFD700";
 
   // Collect all coordinates to determine bounds
   const allCoords = useMemo(() => {
@@ -299,7 +299,7 @@ const FootprintCanvas = ({ checkins, paths, primary, onIntersectionPress }) => {
 };
 
 const canvas = StyleSheet.create({
-  root: { backgroundColor: '#08161a', position: 'relative', overflow: 'hidden' },
+  root: { backgroundColor: "#08161a", position: 'relative', overflow: 'hidden' },
   gridH: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
   gridV: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
   compass: { position: 'absolute', top: 10, right: 12, alignItems: 'center', gap: 2 },
@@ -376,9 +376,9 @@ export const PathMapScreen = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
   const { show: showToast } = useToast();
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
-  const surface = currentTheme?.surface || '#111c22';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
+  const surface = currentTheme?.surface || "#111c22";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.45)';
 
@@ -449,7 +449,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
       const { data: ciData } = await supabase
         .from('live_checkins')
         .select('*, events(id, title, lat, lon, city, venue_city)')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .order('checked_in_at', { ascending: true });
 
       // Map lat/lon from event onto checkin for convenience
@@ -464,7 +464,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
       const { data: pathData } = await supabase
         .from('user_paths')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       setSavedPaths(pathData || []);
 
@@ -472,7 +472,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
       const { data: crossData } = await supabase
         .from('path_crossings')
         .select('*, profiles:other_user_id(id, username, avatar_url)')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .order('cross_count', { ascending: false });
       setCrossings(crossData || []);
     } catch {
@@ -496,9 +496,9 @@ export const PathMapScreen = ({ visible, onClose }) => {
     if (!user?.id) return;
     await resilient(
       [
-        () => supabase.from('path_stars').insert({ from_user_id: user.id, to_user_id: toUserId, event_id: null }),
-        () => supabase.from('path_stars').upsert({ from_user_id: user.id, to_user_id: toUserId, event_id: null }, { onConflict: 'from_user_id,to_user_id', ignoreDuplicates: true }),
-        () => supabase.rpc('send_path_star', { p_from: user.id, p_to: toUserId }),
+        () => supabase.from('path_stars').insert({ from_user_id: user?.id, to_user_id: toUserId, event_id: null }),
+        () => supabase.from('path_stars').upsert({ from_user_id: user?.id, to_user_id: toUserId, event_id: null }, { onConflict: 'from_user_id,to_user_id', ignoreDuplicates: true }),
+        () => supabase.rpc('send_path_star', { p_from: user?.id, p_to: toUserId }),
       ],
       { attemptsPerTier: 2, baseMs: 300, label: `PathMap.star:${toUserId}`, fallbackValue: null }
     );
@@ -517,14 +517,14 @@ export const PathMapScreen = ({ visible, onClose }) => {
   const handleDropTrace = async () => {
     if (!user?.id || !showTraceCreator) return;
     const note = traceNote.trim();
-    const payload = { user_id: user.id, lat: showTraceCreator.lat, lon: showTraceCreator.lon, note: note || null };
+    const payload = { user_id: user?.id, lat: showTraceCreator.lat, lon: showTraceCreator.lon, note: note || null };
     setShowTraceCreator(null);
     setTraceNote('');
     const ok = await resilient(
       [
         () => supabase.from('path_traces').insert(payload),
         () => supabase.from('path_traces').upsert(payload),
-        () => supabase.rpc('drop_path_trace', { p_user_id: user.id, p_lat: payload.lat, p_lon: payload.lon, p_note: payload.note }),
+        () => supabase.rpc('drop_path_trace', { p_user_id: user?.id, p_lat: payload.lat, p_lon: payload.lon, p_note: payload.note }),
       ],
       { attemptsPerTier: 2, baseMs: 400, label: 'PathMap.dropTrace', fallbackValue: null }
     );
@@ -605,7 +605,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
               <Text style={[s.legendLabel, { color: muted }]}>Path</Text>
             </View>
             <View style={s.legendItem}>
-              <View style={[s.legendDot, { backgroundColor: '#FFD700', width: 14, height: 14, borderRadius: 7, shadowColor: '#FFD700', shadowOpacity: 0.9, shadowRadius: 6 }]} />
+              <View style={[s.legendDot, { backgroundColor: "#FFD700", width: 14, height: 14, borderRadius: 7, shadowColor: "#FFD700", shadowOpacity: 0.9, shadowRadius: 6 }]} />
               <Text style={[s.legendLabel, { color: muted }]}>Intersection</Text>
             </View>
           </View>
@@ -784,14 +784,14 @@ export const PathMapScreen = ({ visible, onClose }) => {
                           type: 'spark',
                           title: 'Someone sent you a Spark!',
                           body: 'You crossed paths — they want to connect.',
-                          data: { sender_id: user.id },
+                          data: { sender_id: user?.id },
                           read: false,
                         }));
                         const ok = await resilient(
                           [
                             () => supabase.from('notifications').insert(notifications),
                             () => Promise.allSettled(targets.map(c => supabase.from('notifications').insert(notifications.find(n => n.user_id === c.other_user_id)))),
-                            () => supabase.rpc('send_spark_notifications', { p_sender_id: user.id, p_recipient_ids: targets.map(c => c.other_user_id) }),
+                            () => supabase.rpc('send_spark_notifications', { p_sender_id: user?.id, p_recipient_ids: targets.map(c => c.other_user_id) }),
                           ],
                           { attemptsPerTier: 2, baseMs: 400, label: 'PathMap.spark', fallbackValue: null }
                         );

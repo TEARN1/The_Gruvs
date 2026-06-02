@@ -42,11 +42,11 @@ export const CategoryPickerModal = ({
   title = 'Pick Categories',
 }) => {
   const { currentTheme } = useTheme();
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#131a1c';
+  const surface   = currentTheme?.surface    || "#131a1c";
 
   const [query, setQuery] = useState('');
   const [activeGroup, setActiveGroup] = useState('All');

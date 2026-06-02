@@ -72,11 +72,11 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
   const [setupVisible, setSetupVisible] = useState(false);
   const [togglingAvail, setTogglingAvail] = useState(false);
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
-  const surface = currentTheme?.surface || '#1a1f21';
+  const surface = currentTheme?.surface || "#1a1f21";
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -104,7 +104,7 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
     try {
       const { error } = await supabase
         .from('service_nodes')
-        .upsert({ user_id: user.id, available: newVal, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+        .upsert({ user_id: user?.id, available: newVal, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
       if (error) {
         setStats(prev => prev ? { ...prev, isAvailable: !newVal } : prev);
         toast.show('Failed to update status', 'error');
@@ -162,12 +162,12 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
                 <TouchableOpacity
                   onPress={toggleAvailability}
                   disabled={togglingAvail}
-                  style={[s.statusBadge, { backgroundColor: stats?.isAvailable ? '#10b98120' : '#ef444420', borderColor: stats?.isAvailable ? '#10b981' : '#ef4444' }]}
+                  style={[s.statusBadge, { backgroundColor: stats?.isAvailable ? '#10b98120' : '#ef444420', borderColor: stats?.isAvailable ? "#10b981" : "#ef4444" }]}
                   activeOpacity={0.7}
                 >
                   {togglingAvail
-                    ? <ActivityIndicator size={10} color={stats?.isAvailable ? '#10b981' : '#ef4444'} />
-                    : <Text style={[s.statusText, { color: stats?.isAvailable ? '#10b981' : '#ef4444' }]}>
+                    ? <ActivityIndicator size={10} color={stats?.isAvailable ? "#10b981" : "#ef4444"} />
+                    : <Text style={[s.statusText, { color: stats?.isAvailable ? "#10b981" : "#ef4444" }]}>
                         {stats?.isAvailable ? '● OPEN FOR BUSINESS' : '● OFFLINE'}
                       </Text>
                   }

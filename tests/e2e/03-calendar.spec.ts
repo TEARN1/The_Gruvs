@@ -5,9 +5,7 @@ test.describe('Calendar Page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await waitForApp(page);
-    // Nav tab is "Calendar" based on actual rendered text
-    const calTab = page.locator('text=Calendar').last(); // last = nav bar, not heading
-    await calTab.click().catch(() => {});
+    await goToTab(page, 'Lineup', 'Calendar');
     await page.waitForTimeout(800);
   });
 

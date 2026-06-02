@@ -81,9 +81,27 @@ CREATE TRIGGER trg_now_playing_insert
   AFTER INSERT ON public.event_now_playing
   FOR EACH ROW EXECUTE FUNCTION public.on_now_playing_insert();
 
+-- ── EVENT MEDIA TABLE (created if missing) ────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.event_media (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id    UUID        NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  uploader_id UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  media_url   TEXT        NOT NULL,
+  media_type  TEXT        DEFAULT 'image' CHECK (media_type IN ('image','video')),
+  caption     TEXT,
+  tags        TEXT[],
+  likes_count INTEGER     DEFAULT 0,
+  deleted_at  TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_event_media_event ON public.event_media(event_id, created_at DESC);
+ALTER TABLE public.event_media ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "event_media_read" ON public.event_media;
+CREATE POLICY "event_media_read" ON public.event_media FOR SELECT USING (deleted_at IS NULL);
+DROP POLICY IF EXISTS "event_media_own" ON public.event_media;
+CREATE POLICY "event_media_own" ON public.event_media FOR INSERT WITH CHECK (uploader_id = auth.uid());
+
 -- ── EVENT MEDIA LIKES (for general event photos/videos) ──────────────────────
--- Assumes event_media table exists (from earlier migrations).
--- If your table is named differently, adjust the FK below.
 CREATE TABLE IF NOT EXISTS public.event_media_likes (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   media_id   UUID        NOT NULL REFERENCES public.event_media(id) ON DELETE CASCADE,

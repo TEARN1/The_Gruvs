@@ -20,11 +20,11 @@ import { NotificationService } from '../services/notificationService';
 export const SetNowPlayingModal = ({ eventId, visible, onClose }) => {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const primary    = colors?.primary    || '#00f2ff';
+  const primary    = colors?.primary    || "#00f2ff";
   const bg         = colors?.card       || '#111';
   const textColor  = colors?.text       || '#fff';
   const muted      = colors?.muted      || 'rgba(255,255,255,0.5)';
-  const surface    = colors?.surface    || '#1a1f21';
+  const surface    = colors?.surface    || "#1a1f21";
 
   const [setlists, setSetlists] = useState([]);   // grouped by lineup_id
   const [lineups, setLineups]   = useState([]);

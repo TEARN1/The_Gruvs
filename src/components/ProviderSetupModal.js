@@ -24,8 +24,8 @@ export const ProviderSetupModal = ({ visible, onClose, onSaveSuccess }) => {
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const surface = currentTheme?.surface || 'rgba(255,255,255,0.06)';
@@ -42,7 +42,7 @@ export const ProviderSetupModal = ({ visible, onClose, onSaveSuccess }) => {
       const { data, error } = await supabase
         .from('service_nodes')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .maybeSingle();
 
       if (data) {
@@ -68,7 +68,7 @@ export const ProviderSetupModal = ({ visible, onClose, onSaveSuccess }) => {
     setError('');
 
     const payload = {
-      user_id: user.id,
+      user_id: user?.id,
       service_type: serviceType,
       price_min: parseFloat(priceMin),
       price_max: parseFloat(priceMax),
@@ -204,5 +204,5 @@ const s = StyleSheet.create({
   saveBtn: { paddingVertical: 16, borderRadius: 30, alignItems: 'center', marginTop: 10 },
   saveBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
   errorBox: { backgroundColor: 'rgba(239,68,68,0.1)', padding: 12, borderRadius: 10, marginBottom: 16 },
-  errorText: { color: '#ef4444', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  errorText: { color: "#ef4444", fontSize: 12, fontWeight: '600', textAlign: 'center' },
 });

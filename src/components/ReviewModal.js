@@ -21,8 +21,8 @@ export const ReviewModal = ({ visible, onClose, booking, onReviewSubmitted }) =>
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const surface = currentTheme?.surface || 'rgba(255,255,255,0.06)';
@@ -94,8 +94,8 @@ export const ReviewModal = ({ visible, onClose, booking, onReviewSubmitted }) =>
                 <Feather
                   name="star"
                   size={32}
-                  color={num <= rating ? '#FFD700' : muted}
-                  fill={num <= rating ? '#FFD700' : 'transparent'}
+                  color={num <= rating ? "#FFD700" : muted}
+                  fill={num <= rating ? "#FFD700" : 'transparent'}
                 />
               </TouchableOpacity>
             ))}
@@ -141,5 +141,5 @@ const s = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 14, padding: 16, fontSize: 14, minHeight: 100, textAlignVertical: 'top' },
   submitBtn: { paddingVertical: 16, borderRadius: 30, alignItems: 'center', marginTop: 24 },
   submitText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
-  errorText: { color: '#ef4444', fontSize: 12, fontWeight: '600', marginTop: 12, textAlign: 'center' }
+  errorText: { color: "#ef4444", fontSize: 12, fontWeight: '600', marginTop: 12, textAlign: 'center' }
 });

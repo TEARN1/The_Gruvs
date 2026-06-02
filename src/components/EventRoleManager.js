@@ -20,10 +20,10 @@ import { useToast } from './ToastNotification';
 import { invalidateEventRoleCache } from '../hooks/useEventRole';
 
 const ROLES = [
-  { key: 'co_host',     icon: 'star',    color: '#f59e0b', label: 'Co-Host',     desc: 'Full management access' },
-  { key: 'moderator',   icon: 'shield',  color: '#3b82f6', label: 'Moderator',   desc: 'Manage chat & check-ins' },
-  { key: 'scanner',     icon: 'scan',    color: '#10b981', label: 'Scanner',     desc: 'Scan tickets at the door' },
-  { key: 'vip_manager', icon: 'award',   color: '#8b5cf6', label: 'VIP Manager', desc: 'Approve VIP bookings' },
+  { key: 'co_host',     icon: 'star',    color: "#f59e0b", label: 'Co-Host',     desc: 'Full management access' },
+  { key: 'moderator',   icon: 'shield',  color: "#3b82f6", label: 'Moderator',   desc: 'Manage chat & check-ins' },
+  { key: 'scanner',     icon: 'scan',    color: "#10b981", label: 'Scanner',     desc: 'Scan tickets at the door' },
+  { key: 'vip_manager', icon: 'award',   color: "#8b5cf6", label: 'VIP Manager', desc: 'Approve VIP bookings' },
 ];
 
 const RoleBadge = ({ role, size = 'sm', style }) => {
@@ -176,7 +176,7 @@ export const EventRoleManager = ({ visible, onClose, event, primary, textColor, 
         event_id:   event.id,
         user_id:    targetProfile.id,
         role,
-        granted_by: user.id,
+        granted_by: user?.id,
       });
       if (error) throw error;
 
@@ -184,7 +184,7 @@ export const EventRoleManager = ({ visible, onClose, event, primary, textColor, 
       await supabase.rpc('notify_cohost_invite', {
         p_event_id:    event.id,
         p_invitee_id:  targetProfile.id,
-        p_inviter_id:  user.id,
+        p_inviter_id: user?.id,
         p_event_title: event.title,
       });
 
@@ -203,11 +203,11 @@ export const EventRoleManager = ({ visible, onClose, event, primary, textColor, 
     !search.trim() || a.profiles?.username?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const p = primary || '#00f2ff';
+  const p = primary || "#00f2ff";
   const tc = textColor || '#fff';
   const mu = muted || 'rgba(255,255,255,0.5)';
-  const su = surface || '#1a1f21';
-  const bk = bg || '#0d1112';
+  const su = surface || "#1a1f21";
+  const bk = bg || "#0d1112";
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>

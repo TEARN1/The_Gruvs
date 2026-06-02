@@ -36,14 +36,14 @@ const BLOCK_TYPES = [
 ];
 
 const THEME_PRESETS = [
-  { id: 'midnight', label: 'Midnight', bg: '#0d1112', primary: '#00f2ff', text: '#ffffff' },
-  { id: 'royal', label: 'Royal', bg: '#0a0a1a', primary: '#8b5cf6', text: '#e8e8ff' },
-  { id: 'ember', label: 'Ember', bg: '#1a0a00', primary: '#f59e0b', text: '#fff8e8' },
-  { id: 'forest', label: 'Forest', bg: '#040d0a', primary: '#10b981', text: '#e8fff5' },
-  { id: 'crimson', label: 'Crimson', bg: '#1a0505', primary: '#ef4444', text: '#ffe8e8' },
-  { id: 'pearl', label: 'Pearl', bg: '#f8f9fa', primary: '#1e293b', text: '#1e293b' },
-  { id: 'slate', label: 'Slate', bg: '#1e293b', primary: '#38bdf8', text: '#e2e8f0' },
-  { id: 'gold', label: 'Gold Rush', bg: '#111108', primary: '#eab308', text: '#fefce8' },
+  { id: 'midnight', label: 'Midnight', bg: "#0d1112", primary: "#00f2ff", text: "#ffffff" },
+  { id: 'royal', label: 'Royal', bg: "#0a0a1a", primary: "#8b5cf6", text: "#e8e8ff" },
+  { id: 'ember', label: 'Ember', bg: "#1a0a00", primary: "#f59e0b", text: "#fff8e8" },
+  { id: 'forest', label: 'Forest', bg: "#040d0a", primary: "#10b981", text: "#e8fff5" },
+  { id: 'crimson', label: 'Crimson', bg: "#1a0505", primary: "#ef4444", text: "#ffe8e8" },
+  { id: 'pearl', label: 'Pearl', bg: "#f8f9fa", primary: "#1e293b", text: "#1e293b" },
+  { id: 'slate', label: 'Slate', bg: "#1e293b", primary: "#38bdf8", text: "#e2e8f0" },
+  { id: 'gold', label: 'Gold Rush', bg: "#111108", primary: "#eab308", text: "#fefce8" },
 ];
 
 const defaultConfig = {

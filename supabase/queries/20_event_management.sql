@@ -209,6 +209,26 @@ ALTER TABLE public.event_updates ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFA
 ALTER TABLE public.event_updates ADD COLUMN IF NOT EXISTS reactions_count INTEGER DEFAULT 0;
 
 -- Enable realtime on management tables
-ALTER PUBLICATION supabase_realtime ADD TABLE public.event_lineup;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.event_sessions;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.event_updates;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'event_lineup'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.event_lineup;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'event_sessions'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.event_sessions;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'event_updates'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.event_updates;
+  END IF;
+END $$;

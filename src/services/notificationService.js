@@ -11,6 +11,7 @@ export const NotificationService = {
 
   // Called once on app mount — configures how notifications display when app is foregrounded
   setupHandler() {
+    if (Platform.OS === 'web') return;
     try {
       Notifications.setNotificationHandler({
         handleNotification: async () => ({

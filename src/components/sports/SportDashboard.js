@@ -30,13 +30,13 @@ import { LiveMatchLogger } from './LiveMatchLogger';
 import { SportEventSetupModal } from './SportEventSetupModal';
 
 const STATUS_COLORS = {
-  scheduled: '#6366f1',
-  live: '#ef4444',
-  half_time: '#f59e0b',
-  completed: '#10b981',
-  postponed: '#64748b',
-  cancelled: '#ef4444',
-  abandoned: '#ef4444',
+  scheduled: "#6366f1",
+  live: "#ef4444",
+  half_time: "#f59e0b",
+  completed: "#10b981",
+  postponed: "#64748b",
+  cancelled: "#ef4444",
+  abandoned: "#ef4444",
 };
 
 const STATUS_LABELS = {
@@ -53,7 +53,7 @@ function MatchCard({ match, onPress, isHost, primary, textColor, muted, bg }) {
   const away = match.away_team;
   const isLive = match.status === 'live' || match.status === 'half_time';
   const isDone = match.status === 'completed';
-  const statusColor = STATUS_COLORS[match.status] || '#6366f1';
+  const statusColor = STATUS_COLORS[match.status] || "#6366f1";
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.82}
@@ -130,7 +130,7 @@ function MatchCard({ match, onPress, isHost, primary, textColor, muted, bg }) {
         <View style={[mc.teamBlock, { alignItems: 'flex-end' }]}>
           {away?.logo_url
             ? <Image source={{ uri: away.logo_url }} style={mc.teamLogo} />
-            : <View style={[mc.teamLogo, { backgroundColor: away?.color1 || '#6366f1', alignItems: 'center', justifyContent: 'center', borderRadius: 22 }]}>
+            : <View style={[mc.teamLogo, { backgroundColor: away?.color1 || "#6366f1", alignItems: 'center', justifyContent: 'center', borderRadius: 22 }]}>
                 <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>{(away?.short_name || away?.name || '?')[0]}</Text>
               </View>
           }
@@ -141,7 +141,7 @@ function MatchCard({ match, onPress, isHost, primary, textColor, muted, bg }) {
   );
 }
 
-export const SportDashboard = ({ eventId, event, onNavigateToEvent, primary = '#00f2ff', bg = '#0d1112', textColor = '#fff', muted = 'rgba(255,255,255,0.5)' }) => {
+export const SportDashboard = ({ eventId, event, onNavigateToEvent, primary = "#00f2ff", bg = "#0d1112", textColor = '#fff', muted = 'rgba(255,255,255,0.5)' }) => {
   const { user } = useAuth();
   const [config, setConfig] = useState(null);
   const [fixtures, setFixtures] = useState([]);
@@ -211,7 +211,7 @@ export const SportDashboard = ({ eventId, event, onNavigateToEvent, primary = '#
       setFollowData(null);
     } else {
       await SportFollowerManager.follow(eventId, user.id);
-      setFollowData({ event_id: eventId, user_id: user.id });
+      setFollowData({ event_id: eventId, user_id: user?.id });
     }
   };
 
@@ -284,9 +284,9 @@ export const SportDashboard = ({ eventId, event, onNavigateToEvent, primary = '#
       {/* Live match alert */}
       {liveMatches.map(m => (
         <TouchableOpacity key={m.id} onPress={() => { setSelectedMatch(m); setLoggerVisible(true); }}
-          style={[sd.liveAlert, { borderColor: '#ef4444' }]}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' }} />
-          <Text style={{ color: '#ef4444', fontWeight: '900', fontSize: 12, flex: 1 }}>
+          style={[sd.liveAlert, { borderColor: "#ef4444" }]}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444" }} />
+          <Text style={{ color: "#ef4444", fontWeight: '900', fontSize: 12, flex: 1 }}>
             🔴 LIVE: {m.home_team?.name} {m.home_score}–{m.away_score} {m.away_team?.name}
             {m.current_minute > 0 ? ` (${m.current_minute}')` : ''}
           </Text>
@@ -426,18 +426,18 @@ export const SportDashboard = ({ eventId, event, onNavigateToEvent, primary = '#
                 const resultText = r.result_time || (r.result_distance ? `${r.result_distance}m` : r.result_score != null ? String(r.result_score) : '—');
                 return (
                   <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: `${primary}10` }}>
-                    <Text style={{ width: 28, color: r.finish_position === 1 ? '#f59e0b' : muted, fontWeight: '900', fontSize: 12 }}>
+                    <Text style={{ width: 28, color: r.finish_position === 1 ? "#f59e0b" : muted, fontWeight: '900', fontSize: 12 }}>
                       {r.finish_position || i + 1}
                     </Text>
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: textColor, fontWeight: '700', fontSize: 12 }}>{athlete?.name || r.athlete_id}</Text>
                       {athlete?.nationality && <Text style={{ color: muted, fontSize: 10 }}>{athlete.nationality}</Text>}
                     </View>
-                    <Text style={{ width: 80, color: r.is_personal_best ? '#f59e0b' : r.is_record ? primary : textColor, fontWeight: r.is_record ? '900' : '700', fontSize: 13, textAlign: 'right' }}>
+                    <Text style={{ width: 80, color: r.is_personal_best ? "#f59e0b" : r.is_record ? primary : textColor, fontWeight: r.is_record ? '900' : '700', fontSize: 13, textAlign: 'right' }}>
                       {resultText}
                     </Text>
                     <Text style={{ width: 40, textAlign: 'right', fontSize: 10, fontWeight: '700',
-                                   color: r.status === 'dq' ? '#ef4444' : r.status === 'pb' ? '#f59e0b' : muted }}>
+                                   color: r.status === 'dq' ? "#ef4444" : r.status === 'pb' ? "#f59e0b" : muted }}>
                       {r.status?.toUpperCase() || ''}
                     </Text>
                   </View>
@@ -467,7 +467,7 @@ export const SportDashboard = ({ eventId, event, onNavigateToEvent, primary = '#
                   </Text>
                   {items.slice(0, 8).map((p, i) => (
                     <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                      <Text style={{ color: i === 0 ? '#f59e0b' : muted, fontWeight: '900', width: 20, fontSize: 12 }}>{p.position}</Text>
+                      <Text style={{ color: i === 0 ? "#f59e0b" : muted, fontWeight: '900', width: 20, fontSize: 12 }}>{p.position}</Text>
                       {p.player_photo
                         ? <Image source={{ uri: p.player_photo }} style={{ width: 28, height: 28, borderRadius: 14 }} />
                         : <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
@@ -517,6 +517,7 @@ export const SportDashboard = ({ eventId, event, onNavigateToEvent, primary = '#
           visible={loggerVisible}
           onClose={() => { setLoggerVisible(false); setSelectedMatch(null); load(true); }}
           primary={primary} bg={bg} textColor={textColor} muted={muted}
+          isHost={isHost}
         />
       )}
 

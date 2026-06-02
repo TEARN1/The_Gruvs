@@ -35,7 +35,7 @@ export const Shimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = '
           position: 'absolute', top: 0, bottom: 0, width: '50%',
           transform: [{ translateX }, { skewX: '-18deg' }],
           ...(IS_WEB
-            ? { background: `linear-gradient(90deg, transparent, ${highlight}, transparent)` }
+            ? { backgroundImage: `linear-gradient(90deg, transparent, ${highlight}, transparent)` }
             : { backgroundColor: highlight, opacity: 0.5 }),
         }}
       />
@@ -81,7 +81,7 @@ export const PressableScale = ({ children, onPress, style, scaleTo = 0.95, hapti
 
 // ── LiquidRefresh ────────────────────────────────────────────────────────────
 // A small water-droplet pulse for custom loading states.
-export const LiquidRefresh = ({ color = '#00f2ff', size = 26 }) => {
+export const LiquidRefresh = ({ color = "#00f2ff", size = 26 }) => {
   const p = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (reducedMotion()) return;

@@ -6,9 +6,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, Modal, FlatList, TextInput, TouchableOpacity,
-  Image, StyleSheet, KeyboardAvoidingView, Platform,
+  StyleSheet, KeyboardAvoidingView, Platform,
   ActivityIndicator, Animated, Alert, Linking,
 } from 'react-native';
+import { SmartImage } from './SmartImage';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -22,7 +23,11 @@ import { useToast } from '../components/ToastNotification';
 import { LocationService } from '../services/locationService';
 import { uploadToStorage } from '../services/storageService';
 
-const ViberProfileModal = React.lazy(() => import('./ViberProfileModal').then(m => ({ default: m.ViberProfileModal })));
+// Dynamic wrapper to break static circular import cycle
+const ViberProfileModal = (props) => {
+  const { ViberProfileModal: Component } = require('./ViberProfileModal');
+  return <Component {...props} />;
+};
 
 const EMOJI_REACTIONS = ['❤️', '😂', '🔥', '💯', '👀', '🙏'];
 
@@ -45,7 +50,7 @@ const fmtDate = (ts) => {
 // ── Read receipt ticks ─────────────────────────────────────────────────────────
 const Ticks = ({ msg, userId, primary }) => {
   if (msg.sender_id !== userId) return null;
-  if (msg._failed) return <Text style={{ fontSize: 11, color: '#ef4444', marginLeft: 4 }}>!</Text>;
+  if (msg._failed) return <Text style={{ fontSize: 11, color: "#ef4444", marginLeft: 4 }}>!</Text>;
   if (msg._optimistic) return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>○</Text>;
   if (msg.read_at) return <Text style={{ fontSize: 11, color: primary, marginLeft: 4 }}>✓✓</Text>;
   if (msg.delivered_at) return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginLeft: 4 }}>✓✓</Text>;
@@ -90,7 +95,7 @@ const TypingDots = ({ primary, bg }) => {
     );
   }, []);
   return (
-    <View style={{ flexDirection: 'row', gap: 4, padding: 10, paddingHorizontal: 14, backgroundColor: bg || '#1e2a2d', borderRadius: 18, alignSelf: 'flex-start', marginBottom: 8 }}>
+    <View style={{ flexDirection: 'row', gap: 4, padding: 10, paddingHorizontal: 14, backgroundColor: bg || "#1e2a2d", borderRadius: 18, alignSelf: 'flex-start', marginBottom: 8 }}>
       {anims.map((d, i) => <Animated.View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: primary, opacity: d }} />)}
     </View>
   );
@@ -100,7 +105,7 @@ const TypingDots = ({ primary, bg }) => {
 const RequestBanner = ({ sender, onAccept, onDecline, primary, textColor, muted }) => (
   <View style={[rb.wrap, { borderColor: `${primary}25`, backgroundColor: `${primary}08` }]}>
     {sender?.avatar_url
-      ? <Image source={{ uri: sender.avatar_url }} style={rb.avatar} />
+      ? <SmartImage source={sender.avatar_url} style={rb.avatar} />
       : <View style={[rb.avatar, { backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center' }]}>
         <Feather name="user" size={22} color={primary} />
       </View>
@@ -110,7 +115,7 @@ const RequestBanner = ({ sender, onAccept, onDecline, primary, textColor, muted 
     <View style={rb.actions}>
       <TouchableOpacity onPress={onDecline} style={[rb.btn, rb.declineBtn]}>
         <Feather name="x" size={16} color="#ef4444" />
-        <Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 13 }}>Decline</Text>
+        <Text style={{ color: "#ef4444", fontWeight: '800', fontSize: 13 }}>Decline</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={onAccept} style={[rb.btn, rb.acceptBtn, { backgroundColor: primary }]}>
         <Feather name="check" size={16} color="#000" />
@@ -164,8 +169,8 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const { show: showToast } = useToast();
   const insets = useSafeAreaInsets();
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
@@ -227,7 +232,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         const count = await resilientRead(
           async () => {
             const [myPathsRes, theirPathsRes] = await Promise.allSettled([
-              supabase.from('paths').select('id').eq('user_id', user.id),
+              supabase.from('paths').select('id').eq('user_id', user?.id),
               supabase.from('paths').select('id').eq('user_id', recipient.id),
             ]);
             const myIds = (myPathsRes.status === 'fulfilled' ? myPathsRes.value?.data || [] : []).map(p => p.id);
@@ -242,7 +247,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             return fwd + rev;
           },
           async () => {
-            const { count: c } = await supabase.rpc('count_path_crossings', { p_user_a: user.id, p_user_b: recipient.id });
+            const { count: c } = await supabase.rpc('count_path_crossings', { p_user_a: user?.id, p_user_b: recipient.id });
             return c || 0;
           },
           async () => 0,
@@ -302,7 +307,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'messages',
         filter: `recipient_id=eq.${user.id}`,
-      }, async (payload) => {
+      } , async (payload) => {
         if (payload.new.sender_id !== recipient.id) return;
         if (payload.new.deleted_at) return;
         // Merge: broadcast may have already added this message
@@ -318,7 +323,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'messages',
         filter: `sender_id=eq.${user.id}`,
-      }, (payload) => {
+      } , (payload) => {
         // Sync read receipts and delivered_at back onto our optimistic messages
         setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new, _optimistic: false } : m));
       })
@@ -327,7 +332,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 
     // ── Presence for typing indicator ────────────────────────────────────────
     const presKey = `presence_dm_${[user.id, recipient.id].sort().join('_')}_${Date.now()}`;
-    const presence = supabase.channel(presKey, { config: { presence: { key: user.id } } });
+    const presence = supabase.channel(presKey, { config: { presence: { key: user?.id } } });
     presence
       .on('presence', { event: 'sync' }, () => {
         const state = presence.presenceState();
@@ -396,7 +401,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     const now = new Date().toISOString();
     const optimistic = {
       id: msgId,
-      sender_id: user.id,
+      sender_id: user?.id,
       recipient_id: recipient.id,
       body: trimmed,
       message_type: 'text',
@@ -450,7 +455,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         .eq('id', user.id)
         .single();
       const cardText = `🎴 Vibe Card\n@${profile?.username || user.email}\n⚡ ${profile?.vibe_score || 0} pts${profile?.bio ? `\n"${profile.bio}"` : ''}`;
-      const newMsg = await MessageManager.send(user.id, recipient.id, cardText, { messageType: 'vibe_card', profile_id: user.id });
+      const newMsg = await MessageManager.send(user.id, recipient.id, cardText, { messageType: 'vibe_card', profile_id: user?.id });
       if (newMsg) {
         setMessages(prev => [...prev, newMsg]);
         if (requestStatus === 'none') setRequestStatus('pending');
@@ -640,7 +645,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
               </View>
             )}
             {item.message_type === 'image' && item.media_url && (
-              <Image source={{ uri: item.media_url }} style={dm.bubbleImage} resizeMode="cover" />
+              <SmartImage source={item.media_url} style={dm.bubbleImage} resizeMode="cover" />
             )}
             {item.event_id && renderEventShare(item.event_id)}
             {item.message_type === 'location' && item.latitude && item.longitude ? (
@@ -731,7 +736,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           </TouchableOpacity>
           <TouchableOpacity style={dm.headerInfo} onPress={() => setProfileModalVisible(true)} activeOpacity={0.8}>
             {recipient?.avatar_url
-              ? <Image source={{ uri: recipient.avatar_url }} style={dm.headerAvatar} />
+              ? <SmartImage source={recipient.avatar_url} style={dm.headerAvatar} />
               : <View style={[dm.headerAvatar, { backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center' }]}>
                 <Feather name="user" size={16} color={primary} />
               </View>
@@ -741,7 +746,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
               {isTyping
                 ? <Text style={[dm.headerSub, { color: primary }]}>typing...</Text>
                 : checkOnline(recipient)
-                  ? <Text style={[dm.headerSub, { color: '#10b981' }]}>● Online</Text>
+                  ? <Text style={[dm.headerSub, { color: "#10b981" }]}>● Online</Text>
                   : <Text style={[dm.headerSub, { color: muted }]}>Offline</Text>
               }
               {crossPathCount > 0 && (
@@ -814,7 +819,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         {requestStatus === 'declined' && !isIAmRecipientOfPendingRequest && (
           <View style={[dm.pendingLimitBar, { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)' }]}>
             <Feather name="x-circle" size={13} color="#ef4444" />
-            <Text style={[dm.pendingLimitText, { color: '#ef4444' }]}>Request declined — messaging blocked.</Text>
+            <Text style={[dm.pendingLimitText, { color: "#ef4444" }]}>Request declined — messaging blocked.</Text>
           </View>
         )}
 
@@ -914,7 +919,7 @@ const dm = StyleSheet.create({
   bubbleInner: { maxWidth: '78%', borderRadius: 18, padding: 12 },
   bodyText: { fontSize: 14, lineHeight: 20 },
   timeText: { fontSize: 10, marginTop: 2 },
-  reactionBubble: { position: 'absolute', bottom: -10, right: 6, backgroundColor: '#1a2225', borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2 },
+  reactionBubble: { position: 'absolute', bottom: -10, right: 6, backgroundColor: "#1a2225", borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2 },
   deleteBtn: { marginTop: 4, padding: 8, borderRadius: 10, alignSelf: 'flex-end' },
   reactionPickerWrap: {},
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1 },

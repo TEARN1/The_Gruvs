@@ -4,6 +4,41 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const CACHE_PREFIX = 'gruv_cache_';
 const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
 
+// ── L1 IN-MEMORY CACHE FOR HOOKS (FAST PATH) ──────────────────────────────────
+const L1_HOOK_CACHE = new Map();
+
+// Intercept AsyncStorage modifications to keep L1 hook cache in sync
+const originalClear = AsyncStorage.clear;
+if (originalClear) {
+  AsyncStorage.clear = async (...args) => {
+    L1_HOOK_CACHE.clear();
+    return originalClear.apply(AsyncStorage, args);
+  };
+}
+
+const originalSetItem = AsyncStorage.setItem;
+if (originalSetItem) {
+  AsyncStorage.setItem = async (storageKey, value, ...args) => {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && 'timestamp' in parsed) {
+        L1_HOOK_CACHE.set(storageKey, parsed);
+      }
+    } catch {
+      // not a cache object or not JSON
+    }
+    return originalSetItem.call(AsyncStorage, storageKey, value, ...args);
+  };
+}
+
+const originalRemoveItem = AsyncStorage.removeItem;
+if (originalRemoveItem) {
+  AsyncStorage.removeItem = async (storageKey, ...args) => {
+    L1_HOOK_CACHE.delete(storageKey);
+    return originalRemoveItem.call(AsyncStorage, storageKey, ...args);
+  };
+}
+
 /**
  * useOfflineCache
  *
@@ -31,10 +66,23 @@ export const useOfflineCache = (key, fetcher, deps = [], options = {}) => {
   }, []);
 
   const loadCache = useCallback(async () => {
+    // 1. Try L1 cache first (instant, synchronous return)
+    const cachedL1 = L1_HOOK_CACHE.get(storageKey);
+    if (cachedL1) {
+      const age = Date.now() - cachedL1.timestamp;
+      if (mountedRef.current) {
+        setData(cachedL1.payload);
+        setIsStale(age > ttl);
+      }
+      return { payload: cachedL1.payload, stale: age > ttl };
+    }
+
+    // 2. Try L2 (AsyncStorage)
     try {
       const raw = await AsyncStorage.getItem(storageKey);
       if (raw) {
         const { payload, timestamp } = JSON.parse(raw);
+        L1_HOOK_CACHE.set(storageKey, { payload, timestamp });
         const age = Date.now() - timestamp;
         if (mountedRef.current) {
           setData(payload);
@@ -49,10 +97,12 @@ export const useOfflineCache = (key, fetcher, deps = [], options = {}) => {
   }, [storageKey, ttl]);
 
   const saveCache = useCallback(async (payload) => {
+    const timestamp = Date.now();
+    L1_HOOK_CACHE.set(storageKey, { payload, timestamp });
     try {
       await AsyncStorage.setItem(
         storageKey,
-        JSON.stringify({ payload, timestamp: Date.now() })
+        JSON.stringify({ payload, timestamp })
       );
     } catch {
       // ignore cache write errors

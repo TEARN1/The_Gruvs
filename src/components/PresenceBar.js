@@ -21,7 +21,7 @@ import { useToast } from '../components/ToastNotification';
 // ---------------------------------------------------------------------------
 // Initials avatar fallback
 // ---------------------------------------------------------------------------
-const InitialsAvatar = ({ name = '', size = 40, color = '#00f2ff' }) => {
+const InitialsAvatar = ({ name = '', size = 40, color = "#00f2ff" }) => {
   const initials = name
     .split(' ')
     .slice(0, 2)
@@ -52,10 +52,10 @@ export const PresenceBar = ({
   eventLat,
   eventLon,
   onAuthRequired,
-  primary = '#00f2ff',
+  primary = "#00f2ff",
   muted = 'rgba(255,255,255,0.45)',
   textColor = '#fff',
-  bg = '#0d1112',
+  bg = "#0d1112",
 }) => {
   const { user, profile } = useAuth();
   const { show: showToast } = useToast();
@@ -219,16 +219,17 @@ export const PresenceBar = ({
 
       setUserLocation(loc.coords);
 
-      // Strict proximity check
+      // Proximity check — web GPS is IP/WiFi-based and imprecise, so relax on web
       if (eventLat && eventLon) {
         const dist = GeoUtils.getDistance(loc.coords.latitude, loc.coords.longitude, Number(eventLat), Number(eventLon));
-        if (dist > 2.0) throw new Error(`You're too far (${dist.toFixed(1)}km). Must be within 2km to Touch Down.`);
+        const maxDist = Platform.OS === 'web' ? 10.0 : 2.0;
+        if (dist > maxDist) throw new Error(`You're too far (${dist.toFixed(1)}km). Must be within ${maxDist}km to Touch Down.`);
       }
 
       const identityMode = (await AsyncStorage.getItem('gruv_identity_mode')) || 'public';
       const checkInPayload = {
         event_id: eventId,
-        user_id: user.id,
+        user_id: user?.id,
         checked_in_at: new Date().toISOString(),
         identity_mode: identityMode,
         expires_at: expiresAt(),
@@ -239,7 +240,7 @@ export const PresenceBar = ({
         [
           () => supabase.from('live_checkins').insert(checkInPayload),
           () => supabase.from('live_checkins').upsert(checkInPayload, { onConflict: 'event_id,user_id' }),
-          () => supabase.rpc('check_in_live', { p_event_id: eventId, p_user_id: user.id, p_lat: loc.coords.latitude, p_lon: loc.coords.longitude }),
+          () => supabase.rpc('check_in_live', { p_event_id: eventId, p_user_id: user?.id, p_lat: loc.coords.latitude, p_lon: loc.coords.longitude }),
         ],
         { attemptsPerTier: 3, baseMs: 400, label: `PresenceBar.checkIn:${eventId}`, fallbackValue: null }
       );
@@ -267,12 +268,12 @@ export const PresenceBar = ({
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const starPayload = { from_user_id: user.id, to_user_id: toUserId, event_id: eventId };
+    const starPayload = { from_user_id: user?.id, to_user_id: toUserId, event_id: eventId };
     const ok = await resilient(
       [
         () => supabase.from('path_stars').insert(starPayload),
         () => supabase.from('path_stars').upsert(starPayload, { onConflict: 'from_user_id,to_user_id,event_id', ignoreDuplicates: true }),
-        () => supabase.rpc('send_path_star', { p_from: user.id, p_to: toUserId, p_event_id: eventId }),
+        () => supabase.rpc('send_path_star', { p_from: user?.id, p_to: toUserId, p_event_id: eventId }),
       ],
       { attemptsPerTier: 2, baseMs: 300, label: `PresenceBar.star:${toUserId}`, fallbackValue: null }
     );
@@ -298,11 +299,11 @@ export const PresenceBar = ({
         await resilient(
           [
             () => supabase.from('dm_rooms').upsert(
-              { participant_1: user.id < toUserId ? user.id : toUserId, participant_2: user.id < toUserId ? toUserId : user.id },
+              { participant_1: user?.id < toUserId ? user.id : toUserId, participant_2: user?.id < toUserId ? toUserId : user?.id },
               { onConflict: 'participant_1,participant_2', ignoreDuplicates: true }
             ),
-            () => supabase.from('dm_rooms').insert({ participant_1: user.id < toUserId ? user.id : toUserId, participant_2: user.id < toUserId ? toUserId : user.id }),
-            () => supabase.rpc('create_dm_room', { p_user_a: user.id, p_user_b: toUserId }),
+            () => supabase.from('dm_rooms').insert({ participant_1: user?.id < toUserId ? user.id : toUserId, participant_2: user?.id < toUserId ? toUserId : user?.id }),
+            () => supabase.rpc('create_dm_room', { p_user_a: user?.id, p_user_b: toUserId }),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: `PresenceBar.dmRoom:${toUserId}`, fallbackValue: null }
         );

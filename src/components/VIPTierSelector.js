@@ -40,7 +40,7 @@ export const VIPTierSelector = ({ event, primary, textColor, muted, surface, onB
     try {
       const [countRes, myRes] = await Promise.allSettled([
         supabase.from('event_rsvps').select('tier_id').eq('event_id', event.id).in('status', ['going', 'maybe']),
-        user ? supabase.from('event_rsvps').select('tier_id').eq('event_id', event.id).eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+        user ? supabase.from('event_rsvps').select('tier_id').eq('event_id', event.id).eq('user_id', user?.id).maybeSingle() : Promise.resolve({ data: null }),
       ]);
       if (countRes.status === 'fulfilled' && countRes.value.data) {
         const counts = {};
@@ -74,10 +74,10 @@ export const VIPTierSelector = ({ event, primary, textColor, muted, surface, onB
       const ok = await resilient(
         [
           () => supabase.from('event_rsvps').upsert(
-            { event_id: event.id, user_id: user.id, status: 'going', tier_id: tier.id },
+            { event_id: event.id, user_id: user?.id, status: 'going', tier_id: tier.id },
             { onConflict: 'event_id,user_id' }
           ),
-          () => supabase.rpc('upsert_rsvp_tier', { p_event_id: event.id, p_user_id: user.id, p_tier_id: tier.id }),
+          () => supabase.rpc('upsert_rsvp_tier', { p_event_id: event.id, p_user_id: user?.id, p_tier_id: tier.id }),
         ],
         { attemptsPerTier: 2, baseMs: 400, label: `VIPTier.book:${tier.id}`, fallbackValue: null }
       );
@@ -143,7 +143,7 @@ export const VIPTierSelector = ({ event, primary, textColor, muted, surface, onB
                 {tier.price > 0 ? `R${tier.price}` : 'Free'}
               </Text>
               {spotsLeft !== null && (
-                <Text style={[vt.spots, { color: spotsLeft <= 5 ? '#ef4444' : muted }]}>
+                <Text style={[vt.spots, { color: spotsLeft <= 5 ? "#ef4444" : muted }]}>
                   {isSoldOut ? 'Sold Out' : `${spotsLeft} left`}
                 </Text>
               )}

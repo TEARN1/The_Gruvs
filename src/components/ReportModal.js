@@ -28,8 +28,8 @@ export const ReportModal = ({ visible, onClose, targetId, targetType = 'event' }
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -44,12 +44,12 @@ export const ReportModal = ({ visible, onClose, targetId, targetType = 'event' }
     if (!selected || !user) return;
     setSubmitting(true);
     try {
-      const payload = { reporter_id: user.id, target_id: targetId, target_type: targetType, reason: selected, details: details.trim() || null };
+      const payload = { reporter_id: user?.id, target_id: targetId, target_type: targetType, reason: selected, details: details.trim() || null };
       await resilient(
         [
           () => supabase.from('reports').insert(payload),
           () => supabase.from('reports').upsert(payload, { onConflict: 'reporter_id,target_id,target_type', ignoreDuplicates: true }),
-          () => supabase.rpc('submit_report', { p_reporter_id: user.id, p_target_id: targetId, p_target_type: targetType, p_reason: selected }),
+          () => supabase.rpc('submit_report', { p_reporter_id: user?.id, p_target_id: targetId, p_target_type: targetType, p_reason: selected }),
         ],
         { attemptsPerTier: 2, baseMs: 300, label: `ReportModal.submit:${targetId}`, fallbackValue: null }
       );
@@ -65,7 +65,7 @@ export const ReportModal = ({ visible, onClose, targetId, targetType = 'event' }
           <View style={[s.pill, { backgroundColor: `${primary}40` }]} />
 
           <View style={s.header}>
-            <Text style={[s.title, { color: '#ef4444' }]}>
+            <Text style={[s.title, { color: "#ef4444" }]}>
               <Feather name="flag" size={16} color="#ef4444" /> Report {targetType === 'event' ? 'Event' : 'User'}
             </Text>
             <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -116,7 +116,7 @@ export const ReportModal = ({ visible, onClose, targetId, targetType = 'event' }
               />
 
               <TouchableOpacity
-                style={[s.submitBtn, { backgroundColor: selected ? '#ef4444' : `rgba(239,68,68,0.3)` }]}
+                style={[s.submitBtn, { backgroundColor: selected ? "#ef4444" : `rgba(239,68,68,0.3)` }]}
                 onPress={submit}
                 disabled={!selected || submitting}
               >

@@ -202,7 +202,7 @@ const LineupTab = ({ event, config, primary, textColor, surface, muted }) => {
       <Modal visible={adding} animationType="slide" transparent onRequestClose={() => setAdding(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View style={[s.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-            <View style={[s.modalSheet, { backgroundColor: '#0d1112' }]}>
+            <View style={[s.modalSheet, { backgroundColor: "#0d1112" }]}>
               <Row style={{ justifyContent: 'space-between', marginBottom: 16 }}>
                 <Text style={{ color: textColor, fontWeight: '900', fontSize: 16 }}>
                   {editTarget ? 'Edit' : 'Add'} to Lineup
@@ -341,7 +341,7 @@ const SessionsTab = ({ event, config, primary, textColor, surface, muted }) => {
       <Modal visible={adding} animationType="slide" transparent onRequestClose={() => setAdding(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View style={[s.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-            <View style={[s.modalSheet, { backgroundColor: '#0d1112' }]}>
+            <View style={[s.modalSheet, { backgroundColor: "#0d1112" }]}>
               <Row style={{ justifyContent: 'space-between', marginBottom: 16 }}>
                 <Text style={{ color: textColor, fontWeight: '900', fontSize: 16 }}>{editTarget ? 'Edit' : 'Add'} Session</Text>
                 <TouchableOpacity onPress={() => setAdding(false)}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
@@ -438,7 +438,7 @@ const VendorsTab = ({ event, config, primary, textColor, surface, muted }) => {
             <View style={{ flex: 1 }}>
               <Row>
                 <Text style={{ color: textColor, fontWeight: '800', fontSize: 14 }}>{item.name}</Text>
-                <View style={{ backgroundColor: item.is_confirmed ? '#10b981' : '#f59e0b', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                <View style={{ backgroundColor: item.is_confirmed ? "#10b981" : "#f59e0b", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
                   <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{item.is_confirmed ? 'CONFIRMED' : 'PENDING'}</Text>
                 </View>
               </Row>
@@ -459,7 +459,7 @@ const VendorsTab = ({ event, config, primary, textColor, surface, muted }) => {
       <Modal visible={adding} animationType="slide" transparent onRequestClose={() => setAdding(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View style={[s.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-            <View style={[s.modalSheet, { backgroundColor: '#0d1112' }]}>
+            <View style={[s.modalSheet, { backgroundColor: "#0d1112" }]}>
               <Row style={{ justifyContent: 'space-between', marginBottom: 16 }}>
                 <Text style={{ color: textColor, fontWeight: '900', fontSize: 16 }}>{editTarget ? 'Edit' : 'Add'} Vendor</Text>
                 <TouchableOpacity onPress={() => setAdding(false)}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
@@ -546,17 +546,17 @@ const UpdatesTab = ({ event, primary, textColor, muted }) => {
 
   const types = {
     announcement:    { icon: 'mic',            color: primary },
-    general:         { icon: 'info',           color: '#3b82f6' },
-    artist_change:   { icon: 'user-check',     color: '#8b5cf6' },
-    delay:           { icon: 'clock',          color: '#f59e0b' },
-    cancellation:    { icon: 'x-circle',       color: '#ef4444' },
-    set_now_playing: { icon: 'music',          color: '#10b981' },
-    vendor_spotlight:{ icon: 'shopping-bag',   color: '#f97316' },
-    session_starting:{ icon: 'play-circle',    color: '#06b6d4' },
-    result:          { icon: 'award',          color: '#f59e0b' },
-    award:           { icon: 'award',          color: '#f59e0b' },
-    safety:          { icon: 'alert-triangle', color: '#ef4444' },
-    weather:         { icon: 'cloud',          color: '#64748b' },
+    general:         { icon: 'info',           color: "#3b82f6" },
+    artist_change:   { icon: 'user-check',     color: "#8b5cf6" },
+    delay:           { icon: 'clock',          color: "#f59e0b" },
+    cancellation:    { icon: 'x-circle',       color: "#ef4444" },
+    set_now_playing: { icon: 'music',          color: "#10b981" },
+    vendor_spotlight:{ icon: 'shopping-bag',   color: "#f97316" },
+    session_starting:{ icon: 'play-circle',    color: "#06b6d4" },
+    result:          { icon: 'award',          color: "#f59e0b" },
+    award:           { icon: 'award',          color: "#f59e0b" },
+    safety:          { icon: 'alert-triangle', color: "#ef4444" },
+    weather:         { icon: 'cloud',          color: "#64748b" },
   };
 
   return (
@@ -635,7 +635,7 @@ const StagesTab = ({ event, primary, textColor, muted }) => {
   const [form, setForm] = useState({ name: '', description: '', capacity: '' });
   const [editTarget, setEditTarget] = useState(null);
   const toast = useToast();
-  const STAGE_COLORS = ['#00f2ff', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#ec4899'];
+  const STAGE_COLORS = ["#00f2ff", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#ec4899"];
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -682,7 +682,7 @@ const StagesTab = ({ event, primary, textColor, muted }) => {
       <Modal visible={adding} animationType="slide" transparent onRequestClose={() => setAdding(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View style={[s.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-            <View style={[s.modalSheet, { backgroundColor: '#0d1112' }]}>
+            <View style={[s.modalSheet, { backgroundColor: "#0d1112" }]}>
               <Row style={{ justifyContent: 'space-between', marginBottom: 16 }}>
                 <Text style={{ color: textColor, fontWeight: '900', fontSize: 16 }}>{editTarget ? 'Edit' : 'Add'} Stage</Text>
                 <TouchableOpacity onPress={() => setAdding(false)}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
@@ -720,7 +720,7 @@ export const EventManagementPanel = ({ event, primary, textColor, surface, muted
 
   if (!event?.id) return null;
 
-  const bg = '#0d1112';
+  const bg = "#0d1112";
 
   return (
     <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
@@ -822,7 +822,7 @@ const ScoresTab = ({ event, primary, textColor, surface, muted }) => {
   const deleteScore = (id) => {
     Alert.alert('Delete', 'Remove this score?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => { await supabase.from('event_judge_scores').delete().eq('id', id); load(); } },
+      { text: 'Delete', style: 'destructive', onPress: async () => { try { await supabase.from('event_judge_scores').delete().eq('id', id); load(); } catch { toast.show('Failed to delete score', 'error'); } } },
     ]);
   };
 
@@ -848,7 +848,7 @@ const ScoresTab = ({ event, primary, textColor, surface, muted }) => {
       {scores.map(sc => {
         const team = teams.find(t => t.id === sc.participant_id);
         const pct  = Math.round((sc.score / (sc.max_score || 10)) * 100);
-        const col  = pct >= 75 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
+        const col  = pct >= 75 ? "#10b981" : pct >= 50 ? "#f59e0b" : "#ef4444";
         return (
           <View key={sc.id} style={[s.card, { borderColor: `${primary}20`, backgroundColor: `${primary}06` }]}>
             <Row style={{ justifyContent: 'space-between' }}>
@@ -873,7 +873,7 @@ const ScoresTab = ({ event, primary, textColor, surface, muted }) => {
       <Modal visible={adding} animationType="slide" transparent onRequestClose={() => setAdding(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View style={[s.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-            <View style={[s.modalSheet, { backgroundColor: '#0d1112' }]}>
+            <View style={[s.modalSheet, { backgroundColor: "#0d1112" }]}>
               <Row style={{ justifyContent: 'space-between', marginBottom: 16 }}>
                 <Text style={{ color: textColor, fontWeight: '900', fontSize: 16 }}>Submit Score</Text>
                 <TouchableOpacity onPress={() => setAdding(false)}><Feather name="x" size={20} color={muted} /></TouchableOpacity>

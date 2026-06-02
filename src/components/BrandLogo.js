@@ -11,7 +11,7 @@ try {
 
 export const BrandLogo = ({ size = 42, showGlow = false, style }) => {
   const { currentTheme } = useTheme();
-  const primary = currentTheme?.primary || '#00f2ff';
+  const primary = currentTheme?.primary || "#00f2ff";
   const glowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -109,7 +109,7 @@ export const BrandLogo = ({ size = 42, showGlow = false, style }) => {
 // ── Wordmark ───────────────────────────────────────────────────────────────────
 export const BrandWordmark = ({ primary, muted }) => (
   <View style={s.wordmark}>
-    <Text style={[s.wordTitle, { color: primary || '#00f2ff' }]}>THE GRUVS</Text>
+    <Text style={[s.wordTitle, { color: primary || "#00f2ff" }]}>THE GRUVS</Text>
     <Text style={[s.wordSub, { color: muted || 'rgba(255,255,255,0.45)' }]}>I got you</Text>
   </View>
 );

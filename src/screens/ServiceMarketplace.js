@@ -88,10 +88,10 @@ function ServiceCard({ provider, onBook, primary, muted, textColor, bg }) {
             <View
               style={[
                 styles.availDot,
-                { backgroundColor: provider.available ? '#10b981' : '#6b7280' },
+                { backgroundColor: provider.available ? "#10b981" : "#6b7280" },
               ]}
             />
-            <Text style={[styles.availText, { color: provider.available ? '#10b981' : muted }]}>
+            <Text style={[styles.availText, { color: provider.available ? "#10b981" : muted }]}>
               {provider.available ? 'Online' : 'Offline'}
             </Text>
           </View>
@@ -121,7 +121,7 @@ function ServiceCard({ provider, onBook, primary, muted, textColor, bg }) {
             key={i}
             name="star"
             size={14}
-            color={i < stars ? '#FFD700' : '#374151'}
+            color={i < stars ? "#FFD700" : "#374151"}
           />
         ))}
         <Text style={[styles.sisLabel, { color: muted }]}>SIS {sis}</Text>
@@ -340,7 +340,7 @@ function BookingModal({
                   <Feather name="tag" size={16} color={primary} />
                   <Text style={[styles.priceEstimateText, { color: textColor }]}>
                     Estimated:{' '}
-                    <Text style={{ color: '#10b981', fontWeight: '800' }}>
+                    <Text style={{ color: "#10b981", fontWeight: '800' }}>
                       R{estimatedPrice}
                     </Text>
                   </Text>
@@ -369,7 +369,7 @@ function BookingModal({
               <View style={styles.modalBody}>
                 <View style={[styles.escrowBadge, { backgroundColor: '#10b98122' }]}>
                   <Feather name="shield" size={28} color="#10b981" />
-                  <Text style={[styles.escrowTitle, { color: '#10b981' }]}>
+                  <Text style={[styles.escrowTitle, { color: "#10b981" }]}>
                     Escrow Active
                   </Text>
                   <Text style={[styles.escrowSub, { color: muted }]}>
@@ -378,7 +378,7 @@ function BookingModal({
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.ctaBtn, { backgroundColor: '#10b981', marginBottom: 12, opacity: loading ? 0.6 : 1 }]}
+                  style={[styles.ctaBtn, { backgroundColor: "#10b981", marginBottom: 12, opacity: loading ? 0.6 : 1 }]}
                   onPress={handleReceived}
                   disabled={loading}
                   activeOpacity={0.8}
@@ -394,7 +394,7 @@ function BookingModal({
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.ctaBtn, { backgroundColor: '#ef4444', opacity: loading ? 0.6 : 1 }]}
+                  style={[styles.ctaBtn, { backgroundColor: "#ef4444", opacity: loading ? 0.6 : 1 }]}
                   onPress={handleDispute}
                   disabled={loading}
                   activeOpacity={0.8}
@@ -449,11 +449,11 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
   const { user } = useAuth();
   const { show: showToast } = useToast();
 
-  const primary = currentTheme?.primary ?? '#f97316';
-  const background = currentTheme?.background ?? '#0d0d1a';
-  const surface = currentTheme?.surface ?? '#1a1a2e';
-  const textColor = currentTheme?.text ?? '#f9fafb';
-  const muted = currentTheme?.textMuted ?? '#9ca3af';
+  const primary = currentTheme?.primary ?? "#f97316";
+  const background = currentTheme?.background ?? "#0d0d1a";
+  const surface = currentTheme?.surface ?? "#1a1a2e";
+  const textColor = currentTheme?.text ?? "#f9fafb";
+  const muted = currentTheme?.textMuted ?? "#9ca3af";
 
   const [gigMode, setGigMode] = useState(false);
   const [activeTab, setActiveTab] = useState(TABS[0]);
@@ -539,7 +539,7 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
 
   const handleAcceptGig = useCallback(async (gig) => {
     if (!user?.id) { showToast('Sign in to accept gigs', 'info'); return; }
-    const payload = { gig_id: gig.id, worker_id: user.id, status: 'accepted' };
+    const payload = { gig_id: gig.id, worker_id: user?.id, status: 'accepted' };
     await resilient(
       [
         () => supabase.from('gig_acceptances').insert([payload]),

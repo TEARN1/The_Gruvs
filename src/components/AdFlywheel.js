@@ -25,8 +25,8 @@ const intentToAdType = (intent) => {
 export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateToServices }) => {
   const { currentTheme } = useTheme();
   const { identityMode } = useIdentity();
-  const primary    = currentTheme?.primary   || '#00f2ff';
-  const textColor  = currentTheme?.text       || '#ffffff';
+  const primary    = currentTheme?.primary   || "#00f2ff";
+  const textColor  = currentTheme?.text       || "#ffffff";
   const muted      = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
   const [ad, setAd]           = useState(null);

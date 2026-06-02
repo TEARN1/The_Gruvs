@@ -21,7 +21,7 @@ export const GlassView = ({ children, style, intensity = 1, glow = false, sheen 
   const { currentTheme } = useTheme();
   if (!currentTheme) return <View style={style}>{children}</View>;
 
-  const primary = currentTheme.primary || '#00f2ff';
+  const primary = currentTheme.primary || "#00f2ff";
   const radius = currentTheme.borderRadius || GLASS.radius;
 
   const depthStyle = glow

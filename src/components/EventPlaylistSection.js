@@ -83,7 +83,7 @@ const TrackSearchModal = ({ visible, onClose, onSelect, primary, bg, textColor, 
           </View>
 
           {!spotifyOk && !youtubeOk && (
-            <Text style={{ color: '#ef4444', fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
+            <Text style={{ color: "#ef4444", fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
               Add EXPO_PUBLIC_SPOTIFY_CLIENT_ID or EXPO_PUBLIC_YOUTUBE_API_KEY to your .env to enable search.
             </Text>
           )}
@@ -141,7 +141,7 @@ const TrackSearchModal = ({ visible, onClose, onSelect, primary, bg, textColor, 
                     <Text style={[ts.trackArtist, { color: muted }]} numberOfLines={1}>{item.artist}</Text>
                   </View>
                   {item.durationFmt && <Text style={[ts.duration, { color: muted }]}>{item.durationFmt}</Text>}
-                  <View style={[ts.platformDot, { backgroundColor: item.platform === 'spotify' ? '#1DB954' : '#FF0000' }]} />
+                  <View style={[ts.platformDot, { backgroundColor: item.platform === 'spotify' ? "#1DB954" : "#FF0000" }]} />
                 </TouchableOpacity>
               )}
             />
@@ -203,11 +203,14 @@ const TrackRow = memo(({ track, rank, voted, onVote, onRemove, canRemove, primar
 
       {/* Platform open */}
       <TouchableOpacity
-        onPress={() => Linking.openURL(MusicService.getOpenUrl({ platform: track.platform, id: track.track_id, externalUrl: null })).catch(() => {})}
+        onPress={() => {
+          const url = MusicService.getOpenUrl({ platform: track.platform, id: track.track_id, externalUrl: null });
+          Linking.openURL(url).catch(() => {});
+        }}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <View style={[tr.platformIcon, { backgroundColor: track.platform === 'spotify' ? '#1DB95420' : '#FF000020' }]}>
-          <Feather name="external-link" size={12} color={track.platform === 'spotify' ? '#1DB954' : '#FF0000'} />
+          <Feather name="external-link" size={12} color={track.platform === 'spotify' ? "#1DB954" : "#FF0000"} />
         </View>
       </TouchableOpacity>
 
@@ -245,11 +248,11 @@ export const EventPlaylistSection = ({ eventId, canModerate = false }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   const [playlist, setPlaylist] = useState(null);
   const [tracks, setTracks] = useState([]);
@@ -273,12 +276,14 @@ export const EventPlaylistSection = ({ eventId, canModerate = false }) => {
     finally { setLoading(false); }
   }, [eventId, user?.id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   useEffect(() => {
     if (!playlist?.id) return;
     const unsub = PlaylistManager.subscribe(playlist.id, () => load());
-    return unsub;
+    return () => unsub();
   }, [playlist?.id, load]);
 
   const handleAddTrack = async (track) => {

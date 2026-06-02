@@ -928,8 +928,15 @@ CREATE TABLE IF NOT EXISTS public.path_stars (
   lon         DOUBLE PRECISION,
   created_at  TIMESTAMPTZ DEFAULT now()
 );
--- Drop view if it exists from a prior migration (views don't support RLS)
-DROP VIEW IF EXISTS public.user_paths;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relname = 'user_paths' AND c.relkind = 'v'
+  ) THEN
+    DROP VIEW public.user_paths CASCADE;
+  END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS public.user_paths (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,

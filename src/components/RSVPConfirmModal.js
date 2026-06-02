@@ -14,18 +14,15 @@ import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
 import { SecurityService } from '../services/securityService';
 
-// QRCode is not supported on web — lazy-require to avoid web crash
-let QRCode = null;
-if (Platform.OS !== 'web') {
-  try { QRCode = require('react-native-qrcode-svg').default; } catch { QRCode = null; }
-}
+// QRCode resolves to our web shim on web (via metro resolveRequest) — works everywhere
+import QRCode from 'react-native-qrcode-svg';
 
 const SCREEN_W = Dimensions.get('window').width;
 
 const OPTIONS = [
-  { status: 'going',     label: 'Going',     icon: 'check-circle', color: '#10b981' },
-  { status: 'maybe',     label: 'Maybe',     icon: 'help-circle',  color: '#f59e0b' },
-  { status: 'not_going', label: 'Not Going', icon: 'x-circle',     color: '#ef4444' },
+  { status: 'going',     label: 'Going',     icon: 'check-circle', color: "#10b981" },
+  { status: 'maybe',     label: 'Maybe',     icon: 'help-circle',  color: "#f59e0b" },
+  { status: 'not_going', label: 'Not Going', icon: 'x-circle',     color: "#ef4444" },
 ];
 
 export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
@@ -37,8 +34,8 @@ export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
   const [confirmed, setConfirmed] = useState(false);
   const [rsvpId, setRsvpId] = useState(null);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -57,19 +54,19 @@ export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
         [
           async () => {
             const { data, error } = await supabase.from('event_rsvps')
-              .upsert({ event_id: event.id, user_id: user.id, status: selected }, { onConflict: 'event_id,user_id' })
+              .upsert({ event_id: event.id, user_id: user?.id, status: selected }, { onConflict: 'event_id,user_id' })
               .select('id').single();
             if (error) throw error;
             return data;
           },
           async () => {
             const { data, error } = await supabase.from('event_rsvps')
-              .insert({ event_id: event.id, user_id: user.id, status: selected })
+              .insert({ event_id: event.id, user_id: user?.id, status: selected })
               .select('id').single();
             if (error) throw error;
             return data;
           },
-          () => supabase.rpc('upsert_rsvp', { p_event_id: event.id, p_user_id: user.id, p_status: selected }),
+          () => supabase.rpc('upsert_rsvp', { p_event_id: event.id, p_user_id: user?.id, p_status: selected }),
         ],
         { attemptsPerTier: 3, baseMs: 400, label: `RSVPConfirmModal.confirm:${event.id}`, fallbackValue: null }
       );
@@ -124,21 +121,14 @@ export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
                 <>
                   <Text style={[s.qrLabel, { color: muted }]}>YOUR TICKET — SHOW AT DOOR</Text>
                   <View style={[s.qrWrap, { borderColor: `${primary}40` }]}>
-                    {QRCode ? (
-                      <QRCode
-                        value={`gruvsticket://${event.id}/${user?.id}/${rsvpId}`}
-                        size={140}
-                        color="#000"
-                        backgroundColor="#fff"
-                      />
-                    ) : (
-                      <View style={{ alignItems: 'center', padding: 16, gap: 6 }}>
-                        <Feather name="check-circle" size={48} color={primary} />
-                        <Text style={{ color: muted, fontSize: 11, textAlign: 'center' }}>
-                          Ticket confirmed — show this screen at the door
-                        </Text>
-                      </View>
-                    )}
+                    <QRCode
+                      value={`gruvsticket://${event.id}/${user?.id}/${rsvpId}`}
+                      size={140}
+                      color="#000"
+                      backgroundColor="#fff"
+                      username={user?.user_metadata?.username || user?.email?.split('@')[0] || 'Viber'}
+                      label="YOUR TICKET — SHOW AT DOOR"
+                    />
                   </View>
                   <Text style={[s.refText, { color: muted }]}>Ref: {rsvpId.slice(0, 8).toUpperCase()}</Text>
                 </>
@@ -196,7 +186,7 @@ export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
               {spotsLeft === 0 && (
                 <View style={[s.spotsBadge, { backgroundColor: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.3)' }]}>
                   <Feather name="alert-circle" size={12} color="#ef4444" />
-                  <Text style={[s.spotsText, { color: '#ef4444' }]}>Event is full</Text>
+                  <Text style={[s.spotsText, { color: "#ef4444" }]}>Event is full</Text>
                 </View>
               )}
 

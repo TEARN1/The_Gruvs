@@ -30,8 +30,8 @@ export const PostGigModal = ({ visible, onClose, onPostSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const surface = currentTheme?.surface || 'rgba(255,255,255,0.06)';
@@ -65,7 +65,7 @@ export const PostGigModal = ({ visible, onClose, onPostSuccess }) => {
     setError('');
 
     const payload = {
-      user_id: user.id,
+      user_id: user?.id,
       title: title.trim(),
       description: description.trim(),
       category,
@@ -209,5 +209,5 @@ const s = StyleSheet.create({
   postBtn: { paddingVertical: 16, borderRadius: 30, alignItems: 'center', marginTop: 10 },
   postBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
   errorBox: { backgroundColor: 'rgba(239,68,68,0.1)', padding: 12, borderRadius: 10, marginBottom: 16 },
-  errorText: { color: '#ef4444', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  errorText: { color: "#ef4444", fontSize: 12, fontWeight: '600', textAlign: 'center' },
 });

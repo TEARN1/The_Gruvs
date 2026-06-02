@@ -45,7 +45,7 @@ const ResultCard = ({ result, primary, onDismiss }) => {
   }, []);
 
   const ok = result?.ok;
-  const color = ok ? '#10b981' : '#ef4444';
+  const color = ok ? "#10b981" : "#ef4444";
 
   return (
     <Animated.View style={[rs.card, { borderColor: color, transform: [{ scale }], opacity }]}>
@@ -66,7 +66,7 @@ const ResultCard = ({ result, primary, onDismiss }) => {
       <Text style={[rs.username, { color }]}>
         {result.username ? `@${result.username}` : (ok ? 'Checked In' : 'Denied')}
       </Text>
-      <Text style={[rs.msg, { color: ok ? '#10b981' : '#ef4444' }]}>{result.msg}</Text>
+      <Text style={[rs.msg, { color: ok ? "#10b981" : "#ef4444" }]}>{result.msg}</Text>
 
       {result.tier && (
         <View style={[rs.tierPill, { backgroundColor: `${color}20`, borderColor: `${color}40` }]}>
@@ -89,7 +89,7 @@ const rs = StyleSheet.create({
     bottom: 32,
     left: 24,
     right: 24,
-    backgroundColor: '#0d1112',
+    backgroundColor: "#0d1112",
     borderWidth: 1.5,
     borderRadius: 20,
     padding: 20,

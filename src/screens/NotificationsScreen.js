@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  RefreshControl, Image,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -15,25 +15,26 @@ import { log } from '../utils/log';
 import { thumb } from '../utils/storageThumb';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LiquidBackground } from '../components/LiquidBackground';
+import { SmartImage } from '../components/SmartImage';
 
 const TYPE_META = {
-  vibe:             { icon: 'zap',            color: '#f97316' },
-  rsvp:             { icon: 'check-circle',   color: '#10b981' },
-  echo:             { icon: 'message-circle', color: '#8b5cf6' },
-  follow:           { icon: 'user-plus',      color: '#06b6d4' },
-  comment:          { icon: 'message-square', color: '#3b82f6' },
-  royal:            { icon: 'star',           color: '#f59e0b' },
-  rating:           { icon: 'award',          color: '#ec4899' },
-  profile_view:     { icon: 'eye',            color: '#a78bfa' },
-  event_day:        { icon: 'calendar',       color: '#10b981' },
+  vibe:             { icon: 'zap',            color: "#f97316" },
+  rsvp:             { icon: 'check-circle',   color: "#10b981" },
+  echo:             { icon: 'message-circle', color: "#8b5cf6" },
+  follow:           { icon: 'user-plus',      color: "#06b6d4" },
+  comment:          { icon: 'message-square', color: "#3b82f6" },
+  royal:            { icon: 'star',           color: "#f59e0b" },
+  rating:           { icon: 'award',          color: "#ec4899" },
+  profile_view:     { icon: 'eye',            color: "#a78bfa" },
+  event_day:        { icon: 'calendar',       color: "#10b981" },
   // Sport notifications
-  sport_goal:       { icon: 'target',         color: '#10b981' },
-  sport_result:     { icon: 'flag',           color: '#3b82f6' },
-  sport_fixture:    { icon: 'calendar',       color: '#8b5cf6' },
+  sport_goal:       { icon: 'target',         color: "#10b981" },
+  sport_result:     { icon: 'flag',           color: "#3b82f6" },
+  sport_fixture:    { icon: 'calendar',       color: "#8b5cf6" },
   // Music / event notifications
-  now_playing:      { icon: 'music',          color: '#ec4899' },
-  lineup_change:    { icon: 'alert-circle',   color: '#f59e0b' },
-  session_starting: { icon: 'play-circle',    color: '#06b6d4' },
+  now_playing:      { icon: 'music',          color: "#ec4899" },
+  lineup_change:    { icon: 'alert-circle',   color: "#f59e0b" },
+  session_starting: { icon: 'play-circle',    color: "#06b6d4" },
 };
 
 const SEGMENTS = ['Today', 'This Week', 'Older'];
@@ -61,6 +62,75 @@ const isInSegment = (dateStr, segment) => {
   return date < weekStart;
 };
 
+// ── Notification Row ─────────────────────────────────────────────────────────
+const NotificationRow = React.memo(({ item, primary, textColor, muted, onPress }) => {
+  const meta = TYPE_META[item.type] || TYPE_META.vibe;
+  const avatarUrl = thumb.avatar(item.actor?.avatar_url || item.data?.viewer_avatar || item.data?.actor_avatar || null);
+  const isActionable = [
+    'profile_view', 'follow', 'vibe', 'rsvp', 'echo', 'event_day',
+    'sport_goal', 'sport_result', 'sport_fixture',
+    'now_playing', 'lineup_change', 'session_starting', 'rating',
+  ].includes(item.type);
+
+  return (
+    <TouchableOpacity
+      onPress={() => onPress(item)}
+      activeOpacity={isActionable ? 0.75 : 1}
+    >
+      <View
+        style={[
+          ns.item,
+          { borderBottomColor: `${primary}15` },
+          !item.read && { backgroundColor: `${primary}08` },
+        ]}
+      >
+        {avatarUrl ? (
+          <View style={[ns.iconWrap, { backgroundColor: `${meta.color}15` }]}>
+            <SmartImage source={avatarUrl} style={ns.avatarImg} />
+            <View style={[ns.typeIcon, { backgroundColor: meta.color }]}>
+              <Feather name={meta.icon} size={9} color="#fff" />
+            </View>
+          </View>
+        ) : (
+          <View style={[ns.iconWrap, { backgroundColor: `${meta.color}22` }]}>
+            <Feather name={meta.icon} size={18} color={meta.color} />
+          </View>
+        )}
+        <View style={{ flex: 1, marginLeft: 14 }}>
+          <Text style={[ns.title, { color: textColor }]}>
+            <Text style={{ fontWeight: '900' }}>{item.title}</Text>
+          </Text>
+          {!!item.body && (
+            <Text style={[ns.body, { color: muted }]} numberOfLines={2}>{item.body}</Text>
+          )}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+            <Text style={[ns.time, { color: muted }]}>{formatAge(item.created_at)}</Text>
+            {isActionable && (
+              <Text style={[ns.tapHint, { color: `${primary}70` }]}>· tap to view</Text>
+            )}
+          </View>
+        </View>
+        {!item.read && (
+          <View style={[ns.unreadDot, { backgroundColor: primary }]} />
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}, (prev, next) => {
+  return (
+    prev.primary === next.primary &&
+    prev.textColor === next.textColor &&
+    prev.muted === next.muted &&
+    prev.item.id === next.item.id &&
+    prev.item.read === next.item.read &&
+    prev.item.title === next.item.title &&
+    prev.item.body === next.item.body &&
+    prev.item.created_at === next.item.created_at &&
+    prev.item.actor?.avatar_url === next.item.actor?.avatar_url &&
+    prev.item.actor?.username === next.item.actor?.username
+  );
+});
+
 export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
@@ -71,11 +141,11 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [profileModalUserId, setProfileModalUserId] = useState(null);
   const channelRef = useRef(null);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text       || '#ffffff';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
+  const textColor = currentTheme?.text       || "#ffffff";
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   const fetchNotifications = useCallback(async (isRefresh = false) => {
     if (!user) { setNotifications([]); return; }
@@ -187,59 +257,15 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   }, [markRead, onNavigateToEvent]);
 
-  const renderItem = useCallback(({ item }) => {
-    const meta = TYPE_META[item.type] || TYPE_META.vibe;
-    const avatarUrl = thumb.avatar(item.actor?.avatar_url || item.data?.viewer_avatar || item.data?.actor_avatar || null);
-    const isActionable = [
-      'profile_view', 'follow', 'vibe', 'rsvp', 'echo', 'event_day',
-      'sport_goal', 'sport_result', 'sport_fixture',
-      'now_playing', 'lineup_change', 'session_starting', 'rating',
-    ].includes(item.type);
-    return (
-      <TouchableOpacity
-        onPress={() => handleNotifPress(item)}
-        activeOpacity={isActionable ? 0.75 : 1}
-      >
-        <View
-          style={[
-            ns.item,
-            { borderBottomColor: `${primary}15` },
-            !item.read && { backgroundColor: `${primary}08` },
-          ]}
-        >
-          {avatarUrl ? (
-            <View style={[ns.iconWrap, { backgroundColor: `${meta.color}15` }]}>
-              <Image source={{ uri: avatarUrl }} style={ns.avatarImg} />
-              <View style={[ns.typeIcon, { backgroundColor: meta.color }]}>
-                <Feather name={meta.icon} size={9} color="#fff" />
-              </View>
-            </View>
-          ) : (
-            <View style={[ns.iconWrap, { backgroundColor: `${meta.color}22` }]}>
-              <Feather name={meta.icon} size={18} color={meta.color} />
-            </View>
-          )}
-          <View style={{ flex: 1, marginLeft: 14 }}>
-            <Text style={[ns.title, { color: textColor }]}>
-              <Text style={{ fontWeight: '900' }}>{item.title}</Text>
-            </Text>
-            {!!item.body && (
-              <Text style={[ns.body, { color: muted }]} numberOfLines={2}>{item.body}</Text>
-            )}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-              <Text style={[ns.time, { color: muted }]}>{formatAge(item.created_at)}</Text>
-              {isActionable && (
-                <Text style={[ns.tapHint, { color: `${primary}70` }]}>· tap to view</Text>
-              )}
-            </View>
-          </View>
-          {!item.read && (
-            <View style={[ns.unreadDot, { backgroundColor: primary }]} />
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  }, [primary, textColor, muted, handleNotifPress]);
+  const renderItem = useCallback(({ item }) => (
+    <NotificationRow
+      item={item}
+      primary={primary}
+      textColor={textColor}
+      muted={muted}
+      onPress={handleNotifPress}
+    />
+  ), [primary, textColor, muted, handleNotifPress]);
 
   if (!user) {
     return (
@@ -394,7 +420,7 @@ export const useUnreadCount = () => {
 };
 
 const ns = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#0d1112' },
+  screen: { flex: 1, backgroundColor: "#0d1112" },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -439,10 +465,9 @@ const ns = StyleSheet.create({
   time: { fontSize: 11, marginTop: 4, fontWeight: '600' },
   unreadDot: { width: 9, height: 9, borderRadius: 5, marginLeft: 10 },
   avatarImg: { width: 42, height: 42, borderRadius: 21 },
-  typeIcon: { position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#0d1112' },
+  typeIcon: { position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: "#0d1112" },
   tapHint: { fontSize: 10, fontWeight: '600' },
   skeleton: {
-    background: 'transparent',
     backgroundColor: 'rgba(255,255,255,0.07)',
     overflow: 'hidden',
   },

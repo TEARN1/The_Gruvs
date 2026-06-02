@@ -18,15 +18,15 @@ const { width: SW } = Dimensions.get('window');
 
 // ── Category icon map ─────────────────────────────────────────────────────────
 const CAT_ICONS = {
-  'Tune In':              { icon: 'zap',       color: '#00f2ff' },
-  'The Drop & Gruvs':     { icon: 'home',      color: '#ef4444' },
-  'Scout & Discover':     { icon: 'compass',   color: '#f59e0b' },
-  'Vibe Card & Identity': { icon: 'user',      color: '#06b6d4' },
-  'Biz Hub & Missions':   { icon: 'briefcase', color: '#f59e0b' },
-  'Lineup & Pings':       { icon: 'calendar',  color: '#10b981' },
-  'Reels':                { icon: 'film',      color: '#ec4899' },
-  'Social & Connections': { icon: 'users',     color: '#8b5cf6' },
-  'Event Management':     { icon: 'settings',  color: '#00f2ff' },
+  'Tune In':              { icon: 'zap',       color: "#00f2ff" },
+  'The Drop & Gruvs':     { icon: 'home',      color: "#ef4444" },
+  'Scout & Discover':     { icon: 'compass',   color: "#f59e0b" },
+  'Vibe Card & Identity': { icon: 'user',      color: "#06b6d4" },
+  'Biz Hub & Missions':   { icon: 'briefcase', color: "#f59e0b" },
+  'Lineup & Pings':       { icon: 'calendar',  color: "#10b981" },
+  'Reels':                { icon: 'film',      color: "#ec4899" },
+  'Social & Connections': { icon: 'users',     color: "#8b5cf6" },
+  'Event Management':     { icon: 'settings',  color: "#00f2ff" },
 };
 
 // ── Tutorial Card ─────────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ const TutorialCard = ({ tutorial, isDone, onStart, primary, textColor, muted }) 
         <GlassView style={[tc.card, { borderColor: isDone ? `${tutorial.color}40` : `${tutorial.color}20` }]}>
           {/* Done checkmark */}
           {isDone && (
-            <View style={[tc.doneBadge, { backgroundColor: '#10b981' }]}>
+            <View style={[tc.doneBadge, { backgroundColor: "#10b981" }]}>
               <Feather name="check" size={9} color="#fff" />
             </View>
           )}
@@ -83,7 +83,7 @@ const TutorialCard = ({ tutorial, isDone, onStart, primary, textColor, muted }) 
 
 // ── Category Section Header ───────────────────────────────────────────────────
 const CategoryHeader = ({ category, count, doneCount, textColor, muted }) => {
-  const meta = CAT_ICONS[category] || { icon: 'grid', color: '#00f2ff' };
+  const meta = CAT_ICONS[category] || { icon: 'grid', color: "#00f2ff" };
   const pct  = count > 0 ? (doneCount / count) * 100 : 0;
   return (
     <View style={ch.row}>
@@ -139,14 +139,14 @@ const ProgressBanner = ({ completed, total, primary, textColor, muted, onReset }
       <View style={pb.trackWrap}>
         <Animated.View style={[pb.fill, {
           width: fillW.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-          backgroundColor: pct === 100 ? '#10b981' : primary,
+          backgroundColor: pct === 100 ? "#10b981" : primary,
         }]} />
       </View>
 
       {pct === 100 && (
         <View style={pb.completeRow}>
           <Feather name="award" size={13} color="#10b981" />
-          <Text style={[pb.completeText, { color: '#10b981' }]}>Gruv Master — you know every move!</Text>
+          <Text style={[pb.completeText, { color: "#10b981" }]}>Gruv Master — you know every move!</Text>
         </View>
       )}
 
@@ -194,9 +194,9 @@ export const TutorialCenter = ({ visible, onClose }) => {
   const { isCompleted, openTutorial, resetAll, completed } = useTutorial();
   const { currentTheme } = useTheme();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text       || '#ffffff';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
+  const textColor = currentTheme?.text       || "#ffffff";
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
   const [search, setSearch] = useState('');

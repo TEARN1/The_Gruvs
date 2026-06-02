@@ -13,7 +13,7 @@ export const AIAssistant = ({ bottomOffset = 90 }) => {
   const [open, setOpen] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const primary = currentTheme?.primary || '#00f2ff';
+  const primary = currentTheme?.primary || "#00f2ff";
 
   const handlePress = () => {
     Animated.sequence([

@@ -21,10 +21,10 @@ import { NotificationService } from '../services/notificationService';
 export const AwardCeremonyPanel = ({ event }) => {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const primary   = colors?.primary   || '#00f2ff';
+  const primary   = colors?.primary   || "#00f2ff";
   const textColor = colors?.text      || '#fff';
   const muted     = colors?.muted     || 'rgba(255,255,255,0.5)';
-  const surface   = colors?.surface   || '#1a1f21';
+  const surface   = colors?.surface   || "#1a1f21";
 
   const [awards, setAwards]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -105,7 +105,7 @@ export const AwardCeremonyPanel = ({ event }) => {
           title: `🏆 You won: ${form.award_label}`,
           body: `Awarded at ${event.title}`,
           eventId: event.id,
-          actorId: user.id,
+          actorId: user?.id,
         });
       }
 
@@ -178,7 +178,7 @@ export const AwardCeremonyPanel = ({ event }) => {
           </View>
           <View style={{ gap: 6 }}>
             {!a.is_published && (
-              <TouchableOpacity onPress={() => handlePublish(a.id)} style={[ss.publishBtn, { backgroundColor: '#10b981' }]}>
+              <TouchableOpacity onPress={() => handlePublish(a.id)} style={[ss.publishBtn, { backgroundColor: "#10b981" }]}>
                 <Text style={ss.publishBtnText}>Publish</Text>
               </TouchableOpacity>
             )}
@@ -349,7 +349,7 @@ const ss = StyleSheet.create({
   recipientName:  { fontSize: 13, fontWeight: '700', marginTop: 2 },
   stat:           { fontSize: 11, marginTop: 2 },
   publishedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  publishedText:  { fontSize: 10, fontWeight: '700', color: '#10b981' },
+  publishedText:  { fontSize: 10, fontWeight: '700', color: "#10b981" },
   publishBtn:     { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   publishBtnText: { fontSize: 11, fontWeight: '900', color: '#fff' },
   empty:          { alignItems: 'center', paddingVertical: 30, gap: 8 },

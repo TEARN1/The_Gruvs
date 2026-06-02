@@ -69,23 +69,24 @@ export const OfflineBanner = () => {
     const initTimer = setTimeout(() => {
       checkConnectivity();
       intervalRef.current = setInterval(checkConnectivity, 15000);
-    }, 2000);
+    } , 2000);
 
-    // Web: listen to native browser online/offline events
+    let handleOnline, handleOffline;
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const handleOnline  = () => { setIsOffline(false); setJustCameBack(true); setTimeout(() => setJustCameBack(false), 2500); };
-      const handleOffline = () => setIsOffline(true);
+      handleOnline  = () => { setIsOffline(false); setJustCameBack(true); setTimeout(() => setJustCameBack(false), 2500); };
+      handleOffline = () => setIsOffline(true);
       window.addEventListener('online',  handleOnline);
       window.addEventListener('offline', handleOffline);
-      return () => {
-        clearTimeout(initTimer);
-        clearInterval(intervalRef.current);
-        window.removeEventListener('online',  handleOnline);
-        window.removeEventListener('offline', handleOffline);
-      };
     }
 
-    return () => { clearTimeout(initTimer); clearInterval(intervalRef.current); };
+    return () => {
+      clearTimeout(initTimer);
+      clearInterval(intervalRef.current);
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.removeEventListener('online',  handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -101,7 +102,7 @@ export const OfflineBanner = () => {
       accessibilityLiveRegion="assertive"
       style={[
         styles.banner,
-        { backgroundColor: isBack ? '#10b981' : '#ef4444', paddingTop: (insets.top || 0) + 10 },
+        { backgroundColor: isBack ? "#10b981" : "#ef4444", paddingTop: (insets.top || 0) + 10 },
         { transform: [{ translateY: slideY }] },
       ]}
       pointerEvents="none"

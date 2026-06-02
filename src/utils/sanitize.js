@@ -31,4 +31,74 @@ export function isUuid(v) {
   return typeof v === 'string' && UUID_RE.test(v);
 }
 
-export default { sanitizeSearch, isUuid };
+/**
+ * Safe URL validation and opening wrapper.
+ * Checks that the URL uses approved schemes (http, https, maps, mailto, tel)
+ * and hostnames to protect against malicious redirects.
+ */
+export async function safeOpenURL(url) {
+  const { Linking } = require('react-native');
+  if (typeof url !== 'string') {
+    console.warn('safeOpenURL: Input url must be a string.');
+    return false;
+  }
+
+  const ALLOWED_SCHEMES = ['https:', 'http:', 'maps:', 'mailto:', 'tel:'];
+  const ALLOWED_HOSTS = [
+    'thegruvs.com',
+    'www.thegruvs.com',
+    'spotify.com',
+    'open.spotify.com',
+    'youtube.com',
+    'www.youtube.com',
+    'youtu.be',
+    'google.com',
+    'maps.google.com',
+    'www.google.com',
+    'twitter.com',
+    'x.com',
+  ];
+
+  try {
+    const parsed = new URL(url);
+    if (!ALLOWED_SCHEMES.includes(parsed.protocol)) {
+      console.warn(`safeOpenURL: Scheme ${parsed.protocol} is not allowed.`);
+      return false;
+    }
+
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      const hostname = parsed.hostname.toLowerCase();
+      const isAllowedHost = ALLOWED_HOSTS.some(allowed => 
+        hostname === allowed || hostname.endsWith('.' + allowed)
+      );
+      if (!isAllowedHost) {
+        console.warn(`safeOpenURL: Host ${hostname} is not whitelisted.`);
+        return false;
+      }
+    }
+  } catch (e) {
+    const lower = url.toLowerCase();
+    const hasAllowedScheme = ALLOWED_SCHEMES.some(scheme => lower.startsWith(scheme));
+    if (!hasAllowedScheme) {
+      console.warn('safeOpenURL: Invalid URL format or scheme.');
+      return false;
+    }
+  }
+
+  try {
+    const supported = await Linking.canOpenURL(url);
+    if (supported) {
+      await Linking.openURL(url);
+      return true;
+    } else {
+      console.warn('safeOpenURL: Scheme not supported by device:', url);
+      return false;
+    }
+  } catch (err) {
+    console.warn('safeOpenURL: Error opening URL:', err);
+    return false;
+  }
+}
+
+export default { sanitizeSearch, isUuid, safeOpenURL };
+

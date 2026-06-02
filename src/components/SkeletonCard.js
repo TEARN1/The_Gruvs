@@ -45,8 +45,8 @@ const Block = ({ primary, style }) => {
 // ─── SkeletonCard ─────────────────────────────────────────────────────────────
 export const SkeletonCard = ({ primary: primaryProp }) => {
   const { currentTheme } = useTheme();
-  const primary = primaryProp || currentTheme?.primary || '#00f2ff';
-  const surface = currentTheme?.surface || '#131a1c';
+  const primary = primaryProp || currentTheme?.primary || "#00f2ff";
+  const surface = currentTheme?.surface || "#131a1c";
 
   return (
     // Items 78-79: contain layout, accessible loading state
@@ -87,8 +87,8 @@ export const SkeletonCard = ({ primary: primaryProp }) => {
 // ─── SkeletonProfile ──────────────────────────────────────────────────────────
 export const SkeletonProfile = ({ primary: primaryProp }) => {
   const { currentTheme } = useTheme();
-  const primary = primaryProp || currentTheme?.primary || '#00f2ff';
-  const surface = currentTheme?.surface || '#131a1c';
+  const primary = primaryProp || currentTheme?.primary || "#00f2ff";
+  const surface = currentTheme?.surface || "#131a1c";
 
   return (
     <View style={[styles.profileWrapper, { backgroundColor: surface }]}>
@@ -112,8 +112,8 @@ export const SkeletonProfile = ({ primary: primaryProp }) => {
 // ─── SkeletonCalendar ─────────────────────────────────────────────────────────
 export const SkeletonCalendar = ({ primary: primaryProp }) => {
   const { currentTheme } = useTheme();
-  const primary = primaryProp || currentTheme?.primary || '#00f2ff';
-  const surface = currentTheme?.surface || '#131a1c';
+  const primary = primaryProp || currentTheme?.primary || "#00f2ff";
+  const surface = currentTheme?.surface || "#131a1c";
 
   const dots = Array.from({ length: 35 }); // 7 cols × 5 rows
   const cols = 7;
@@ -155,8 +155,8 @@ export const SkeletonCalendar = ({ primary: primaryProp }) => {
 // ─── SkeletonExplore ──────────────────────────────────────────────────────────
 export const SkeletonExplore = ({ primary: primaryProp }) => {
   const { currentTheme } = useTheme();
-  const primary = primaryProp || currentTheme?.primary || '#00f2ff';
-  const surface = currentTheme?.surface || '#131a1c';
+  const primary = primaryProp || currentTheme?.primary || "#00f2ff";
+  const surface = currentTheme?.surface || "#131a1c";
 
   const smallCards = Array.from({ length: 4 });
 

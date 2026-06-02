@@ -186,11 +186,11 @@ export const AdminAIScreen = ({ onClose }) => {
 
   const MAX_MESSAGES = 60;
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text       || '#ffffff';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
+  const textColor = currentTheme?.text       || "#ffffff";
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   // renderMessage must be before the early return so hook order is stable
   const renderMessage = useCallback(({ item }) => {
@@ -246,7 +246,7 @@ export const AdminAIScreen = ({ onClose }) => {
     setLoading(true);
 
     try {
-      const result = await runHealthCheck({ userId: user.id });
+      const result = await runHealthCheck({ userId: user?.id });
       if (!isMounted.current) return;
       setMessages(prev => {
         const next = [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', text: result.text || 'No response received from the AI.' }];
@@ -279,7 +279,7 @@ export const AdminAIScreen = ({ onClose }) => {
       .map(m => ({ role: m.role, content: m.text }));
 
     try {
-      let result = await adminChat(history, { userId: user.id });
+      let result = await adminChat(history, { userId: user?.id });
 
       // If Claude wants to use a tool, execute it and feed result back
       if (result.toolUse) {
@@ -288,7 +288,7 @@ export const AdminAIScreen = ({ onClose }) => {
           ...history,
           { role: 'assistant', content: [result.toolUse] },
           { role: 'user', content: [{ type: 'tool_result', tool_use_id: result.toolUse.id, content: toolResult }] },
-        ], { userId: user.id });
+        ], { userId: user?.id });
         result = followUp;
       }
 

@@ -42,10 +42,10 @@ export const TonightAlert = ({ events = [], onViewEvent }) => {
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const surface = currentTheme?.surface || '#131a1c';
-  const text = currentTheme?.text || '#ffffff';
-  const background = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const surface = currentTheme?.surface || "#131a1c";
+  const text = currentTheme?.text || "#ffffff";
+  const background = currentTheme?.background || "#0d1112";
 
   // Check if already dismissed today
   useEffect(() => {

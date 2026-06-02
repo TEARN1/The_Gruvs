@@ -29,7 +29,7 @@ export class ErrorBoundary extends React.Component {
   render() {
     if (!this.state.hasError) return this.props.children;
 
-    const primary  = this.props.primary  || '#00f2ff';
+    const primary  = this.props.primary  || "#00f2ff";
     const label    = this.props.label    || 'This section';
     const inline   = this.props.inline   || false;
 
@@ -59,7 +59,7 @@ export class ErrorBoundary extends React.Component {
         <Text style={[s.sub, { color: 'rgba(255,255,255,0.45)' }]}>
           Something went wrong here. The rest of the app is still working.
         </Text>
-        <Text style={[s.sub, { color: '#f59e0b' }]} selectable>
+        <Text style={[s.sub, { color: "#f59e0b" }]} selectable>
           {this.state.error?.message || String(this.state.error || '')}
         </Text>
         {this.state.componentStack ? (
@@ -85,5 +85,5 @@ const s = StyleSheet.create({
   inlineWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 10, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)', margin: 6 },
   inlineText: { color: 'rgba(255,255,255,0.6)', fontSize: 11, flex: 1 },
   inlineBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(245,158,11,0.2)' },
-  inlineBtnText: { color: '#f59e0b', fontSize: 10, fontWeight: '800' },
+  inlineBtnText: { color: "#f59e0b", fontSize: 10, fontWeight: '800' },
 });

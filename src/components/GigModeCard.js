@@ -16,10 +16,10 @@ try {
 }
 
 const CATEGORY_COLORS = {
-  moving:   '#f97316', // orange
-  assembly: '#8b5cf6', // purple
-  packing:  '#3b82f6', // blue
-  crew:     '#10b981', // green
+  moving:   "#f97316", // orange
+  assembly: "#8b5cf6", // purple
+  packing:  "#3b82f6", // blue
+  crew:     "#10b981", // green
 };
 
 const CATEGORY_ICONS = {
@@ -53,7 +53,7 @@ export function GigModeCard({ gig, onAccept, primary, muted, textColor, bg }) {
   const [accepted, setAccepted] = useState(false);
 
   const category = gig?.category ?? 'moving';
-  const accentColor = CATEGORY_COLORS[category] ?? primary ?? '#f97316';
+  const accentColor = CATEGORY_COLORS[category] ?? primary ?? "#f97316";
   const iconName = CATEGORY_ICONS[category] ?? 'truck';
 
   const rawPay = gig?.pay_rands ?? gig?.pay ?? 0;
@@ -80,14 +80,14 @@ export function GigModeCard({ gig, onAccept, primary, muted, textColor, bg }) {
     onAccept?.(gig);
   };
 
-  const cardBorderColor = accepted ? '#10b981' : 'transparent';
+  const cardBorderColor = accepted ? "#10b981" : 'transparent';
 
   return (
     <View
       style={[
         styles.card,
         {
-          backgroundColor: bg ?? '#1a1a2e',
+          backgroundColor: bg ?? "#1a1a2e",
           borderColor: cardBorderColor,
           borderWidth: accepted ? 1.5 : 0,
         },
@@ -111,7 +111,7 @@ export function GigModeCard({ gig, onAccept, primary, muted, textColor, bg }) {
               {gig?.title ?? 'Gig Opportunity'}
             </Text>
             <Text
-              style={[styles.description, { color: muted ?? '#9ca3af' }]}
+              style={[styles.description, { color: muted ?? "#9ca3af" }]}
               numberOfLines={2}
             >
               {gig?.description ?? 'No description provided.'}
@@ -129,8 +129,8 @@ export function GigModeCard({ gig, onAccept, primary, muted, textColor, bg }) {
 
           {/* Time window pill */}
           <View style={[styles.pill, { backgroundColor: '#ffffff12' }]}>
-            <Feather name="clock" size={11} color={muted ?? '#9ca3af'} />
-            <Text style={[styles.pillText, { color: muted ?? '#9ca3af' }]}>{timeWindow}</Text>
+            <Feather name="clock" size={11} color={muted ?? "#9ca3af"} />
+            <Text style={[styles.pillText, { color: muted ?? "#9ca3af" }]}>{timeWindow}</Text>
           </View>
         </View>
 
@@ -138,7 +138,7 @@ export function GigModeCard({ gig, onAccept, primary, muted, textColor, bg }) {
         <View style={styles.bottomRow}>
           {/* Poster */}
           <View style={styles.posterRow}>
-            <View style={[styles.avatar, { backgroundColor: primary ?? '#f97316' }]}>
+            <View style={[styles.avatar, { backgroundColor: primary ?? "#f97316" }]}>
               <Text style={styles.avatarText}>{getInitials(posterName)}</Text>
             </View>
             <View style={styles.posterInfo}>
@@ -160,7 +160,7 @@ export function GigModeCard({ gig, onAccept, primary, muted, textColor, bg }) {
               style={[
                 styles.acceptBtn,
                 {
-                  backgroundColor: accepted ? '#10b981' : (primary ?? '#f97316'),
+                  backgroundColor: accepted ? "#10b981" : (primary ?? "#f97316"),
                 },
               ]}
               onPress={handleAccept}
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   },
   sisText: {
     fontSize: 11,
-    color: '#06b6d4',
+    color: "#06b6d4",
     fontWeight: '600',
   },
   rightBlock: {
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   pay: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#10b981',
+    color: "#10b981",
     letterSpacing: 0.5,
   },
   acceptBtn: {

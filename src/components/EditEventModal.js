@@ -60,8 +60,8 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -598,7 +598,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
                     : (
                       <View style={f.btnInner}>
                         <Feather name="slash" size={15} color="#f97316" />
-                        <Text style={[f.actionBtnText, { color: '#f97316' }]}>Cancel Event</Text>
+                        <Text style={[f.actionBtnText, { color: "#f97316" }]}>Cancel Event</Text>
                       </View>
                     )
                   }
@@ -611,7 +611,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
                     : (
                       <View style={f.btnInner}>
                         <Feather name="trash-2" size={15} color="#ef4444" />
-                        <Text style={[f.actionBtnText, { color: '#ef4444' }]}>Delete Event</Text>
+                        <Text style={[f.actionBtnText, { color: "#ef4444" }]}>Delete Event</Text>
                       </View>
                     )
                   }

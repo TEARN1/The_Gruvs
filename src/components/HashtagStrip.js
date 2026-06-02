@@ -78,10 +78,10 @@ export const HashtagStrip = ({ onTagSelect }) => {
   const [loading, setLoading] = useState(true);
   const [activeTag, setActiveTag] = useState(null);
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const surface = currentTheme?.surface || '#131a1c';
-  const text = currentTheme?.text || '#ffffff';
-  const background = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const surface = currentTheme?.surface || "#131a1c";
+  const text = currentTheme?.text || "#ffffff";
+  const background = currentTheme?.background || "#0d1112";
 
   const loadTags = useCallback(async () => {
     setLoading(true);

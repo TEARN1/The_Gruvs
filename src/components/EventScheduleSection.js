@@ -42,7 +42,7 @@ const CreatePollModal = ({ visible, onClose, eventId, scheduleSlot, primary, bg,
     try {
       const pollPayload = {
         event_id: eventId,
-        author_id: user.id,
+        author_id: user?.id,
         question: question.trim(),
         options: validOptions,
         schedule_slot: scheduleSlot || null,
@@ -53,7 +53,7 @@ const CreatePollModal = ({ visible, onClose, eventId, scheduleSlot, primary, bg,
         [
           () => supabase.from('event_polls').insert(pollPayload),
           () => supabase.from('event_polls').upsert(pollPayload),
-          () => supabase.rpc('create_event_poll', { p_event_id: eventId, p_author_id: user.id, p_question: question.trim(), p_options: validOptions }),
+          () => supabase.rpc('create_event_poll', { p_event_id: eventId, p_author_id: user?.id, p_question: question.trim(), p_options: validOptions }),
         ],
         { attemptsPerTier: 2, baseMs: 400, label: `EventSchedule.createPoll:${eventId}`, fallbackValue: null }
       );

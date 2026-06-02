@@ -65,9 +65,9 @@ export const SearchHistoryBar = ({ onSelect, currentQuery }) => {
 
   if (currentQuery || history.length === 0) return null;
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const surface = currentTheme?.surface || '#131a1c';
-  const text = currentTheme?.text || '#ffffff';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const surface = currentTheme?.surface || "#131a1c";
+  const text = currentTheme?.text || "#ffffff";
 
   return (
     <View style={styles.wrapper}>

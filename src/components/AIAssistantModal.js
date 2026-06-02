@@ -46,18 +46,18 @@ export const AIAssistantModal = ({ visible, onClose }) => {
     return () => { isMounted.current = false; };
   }, []);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text       || '#ffffff';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
+  const textColor = currentTheme?.text       || "#ffffff";
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const surface   = currentTheme?.surface    || "#1a1f21";
 
   // Build session context from user profile + recent events
   const buildContext = useCallback(async () => {
     if (!user) return '';
     try {
       const [memRes, eventsRes] = await Promise.allSettled([
-        supabase.from('ai_user_memory').select('summary').eq('user_id', user.id).single(),
+        supabase.from('ai_user_memory').select('summary').eq('user_id', user?.id).single(),
         supabase.from('events')
           .select('title, city, category, event_date, trending_score')
           .gte('event_date', new Date().toISOString().split('T')[0])
@@ -192,7 +192,7 @@ export const AIAssistantModal = ({ visible, onClose }) => {
                 <Feather name="thumbs-up" size={12} color={item.feedback === 1 ? primary : muted} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleFeedback(item, -1)} style={styles.feedbackBtn}>
-                <Feather name="thumbs-down" size={12} color={item.feedback === -1 ? '#ef4444' : muted} />
+                <Feather name="thumbs-down" size={12} color={item.feedback === -1 ? "#ef4444" : muted} />
               </TouchableOpacity>
             </View>
           )}

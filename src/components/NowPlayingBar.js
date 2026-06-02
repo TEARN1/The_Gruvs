@@ -14,7 +14,7 @@ import { useTheme } from '../context/ThemeContext';
 
 export const NowPlayingBar = ({ eventId, onPress }) => {
   const { colors } = useTheme();
-  const primary = colors?.primary || '#00f2ff';
+  const primary = colors?.primary || "#00f2ff";
   const bg = colors?.card || '#111';
   const textColor = colors?.text || '#fff';
   const muted = colors?.muted || 'rgba(255,255,255,0.5)';

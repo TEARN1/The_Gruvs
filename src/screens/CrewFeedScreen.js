@@ -41,14 +41,14 @@ const ACTION_ICON = {
 };
 
 const ACTION_COLOR = {
-  rsvp: '#10b981',
-  checkin: '#f97316',
-  vibe: '#00f2ff',
+  rsvp: "#10b981",
+  checkin: "#f97316",
+  vibe: "#00f2ff",
 };
 
 // ── Avatar fallback color ──────────────────────────────────────────────────────
 const avatarBg = (username) =>
-  ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][
+  ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][
     (username?.charCodeAt(0) || 0) % 5
   ];
 
@@ -69,7 +69,7 @@ const LiveBubble = ({ item, textColor, muted, onPress }) => {
               </Text>
             </View>
         }
-        <View style={[lb.dot, { backgroundColor: '#10b981' }]} />
+        <View style={[lb.dot, { backgroundColor: "#10b981" }]} />
       </View>
       <Text style={[lb.username, { color: textColor }]} numberOfLines={1}>@{actor?.username}</Text>
       <Text style={[lb.venue, { color: muted }]} numberOfLines={1}>{event?.venue_name || event?.title}</Text>
@@ -81,7 +81,7 @@ const lb = StyleSheet.create({
   wrap: { width: 72, alignItems: 'center', marginRight: 14 },
   avatarWrap: { position: 'relative', marginBottom: 6 },
   avatar: { width: 56, height: 56, borderRadius: 28 },
-  dot: { position: 'absolute', bottom: 1, right: 1, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#0d1112' },
+  dot: { position: 'absolute', bottom: 1, right: 1, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: "#0d1112" },
   username: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
   venue: { fontSize: 10, textAlign: 'center', marginTop: 1 },
 });
@@ -172,7 +172,7 @@ const ActivityRow = ({ item, primary, textColor, muted, onPress }) => {
 const ar = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
   avatar: { width: 42, height: 42, borderRadius: 21 },
-  typeIcon: { position: 'absolute', bottom: -1, right: -1, width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#0d1112' },
+  typeIcon: { position: 'absolute', bottom: -1, right: -1, width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: "#0d1112" },
   line: { fontSize: 13, lineHeight: 18, marginBottom: 3 },
   time: { fontSize: 11 },
 });
@@ -233,8 +233,8 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [discoverVisible,  setDiscoverVisible]  = useState(false);
   const realtimeChanRef = useRef(null);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 

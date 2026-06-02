@@ -19,11 +19,11 @@ import { EventCache, withCache } from '../services/offlineCache';
 
 export const VendorMenuSheet = ({ eventId, vendorId, style }) => {
   const { colors } = useTheme();
-  const primary   = colors?.primary   || '#00f2ff';
+  const primary   = colors?.primary   || "#00f2ff";
   const bg        = colors?.card      || '#111';
   const textColor = colors?.text      || '#fff';
   const muted     = colors?.muted     || 'rgba(255,255,255,0.5)';
-  const surface   = colors?.surface   || '#1a1f21';
+  const surface   = colors?.surface   || "#1a1f21";
 
   const [vendors, setVendors]         = useState([]);
   const [selected, setSelected]       = useState(null); // open vendor

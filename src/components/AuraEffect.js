@@ -6,7 +6,7 @@ const reducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-export const AuraEffect = ({ color = '#00f2ff', intensity = 0.18 }) => {
+export const AuraEffect = ({ color = "#00f2ff", intensity = 0.18 }) => {
   if (Platform.OS !== 'web' || reducedMotion()) return null;
 
   const alpha = Math.min(intensity, 0.35);
@@ -26,7 +26,7 @@ export const AuraEffect = ({ color = '#00f2ff', intensity = 0.18 }) => {
         top: '-20%', left: '-20%',
         width: '70%', height: '70%',
         borderRadius: 9999,
-        background: `radial-gradient(circle, ${color}${Math.round(alpha * 255).toString(16).padStart(2,'0')} 0%, transparent 70%)`,
+        backgroundImage: `radial-gradient(circle, ${color}${Math.round(alpha * 255).toString(16).padStart(2,'0')} 0%, transparent 70%)`,
       }} />
       {/* Bottom-right blob */}
       <View style={{
@@ -34,7 +34,7 @@ export const AuraEffect = ({ color = '#00f2ff', intensity = 0.18 }) => {
         bottom: '-20%', right: '-20%',
         width: '60%', height: '60%',
         borderRadius: 9999,
-        background: `radial-gradient(circle, ${color}${Math.round(alpha * 0.6 * 255).toString(16).padStart(2,'0')} 0%, transparent 70%)`,
+        backgroundImage: `radial-gradient(circle, ${color}${Math.round(alpha * 0.6 * 255).toString(16).padStart(2,'0')} 0%, transparent 70%)`,
       }} />
     </View>
   );

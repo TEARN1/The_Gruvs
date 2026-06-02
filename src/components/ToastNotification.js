@@ -8,11 +8,11 @@ import { useTheme } from '../context/ThemeContext';
 const ToastContext = createContext();
 
 const TYPES = {
-  success: { icon: 'check-circle', color: '#10b981' },
-  error:   { icon: 'alert-triangle', color: '#ef4444' },
-  info:    { icon: 'info',           color: '#3b82f6' },
-  vibe:    { icon: 'zap',            color: '#f97316' },
-  warning: { icon: 'alert-circle',   color: '#f59e0b' },
+  success: { icon: 'check-circle', color: "#10b981" },
+  error:   { icon: 'alert-triangle', color: "#ef4444" },
+  info:    { icon: 'info',           color: "#3b82f6" },
+  vibe:    { icon: 'zap',            color: "#f97316" },
+  warning: { icon: 'alert-circle',   color: "#f59e0b" },
 };
 
 export const ToastProvider = ({ children }) => {
@@ -62,7 +62,7 @@ const ToastItem = ({ toast, onDone }) => {
   const slideX  = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const config  = TYPES[toast.type] || TYPES.info;
-  const surface = currentTheme?.surface || '#1a1a2e';
+  const surface = currentTheme?.surface || "#1a1a2e";
   const text    = currentTheme?.text    || '#fff';
   const timerRef = useRef(null);
 

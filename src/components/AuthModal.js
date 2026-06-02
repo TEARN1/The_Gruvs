@@ -52,8 +52,8 @@ export const AuthModal = ({ visible, onClose }) => {
   const [success, setSuccess] = useState('');
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
@@ -457,9 +457,9 @@ const styles = StyleSheet.create({
   interestPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
   interestText: { fontSize: 12, fontWeight: '700' },
   errorBox: { marginHorizontal: HM, marginBottom: 15, backgroundColor: 'rgba(255,60,60,0.12)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(255,60,60,0.3)' },
-  errorText: { color: '#ff6b6b', fontSize: 12, fontWeight: '600' },
+  errorText: { color: "#ff6b6b", fontSize: 12, fontWeight: '600' },
   successBox: { marginHorizontal: HM, marginBottom: 15, backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)' },
-  successText: { color: '#10b981', fontSize: 12, fontWeight: '600' },
+  successText: { color: "#10b981", fontSize: 12, fontWeight: '600' },
   actionBtn: { marginHorizontal: HM, paddingVertical: 16, borderRadius: 30, alignItems: 'center', marginBottom: 18, marginTop: 5 },
   actionText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1.5 },
   disabled: { opacity: 0.7 },

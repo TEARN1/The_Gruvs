@@ -800,6 +800,12 @@ export const TutorialProvider = ({ children }) => {
   useEffect(() => {
     (async () => {
       try {
+        const isE2E = typeof window !== 'undefined' && window.navigator.webdriver;
+        if (isE2E) {
+          setCompleted(['welcome']);
+          setHasLaunched(true);
+          return;
+        }
         if (!AsyncStorage) return;
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {

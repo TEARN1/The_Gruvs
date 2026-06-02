@@ -9,9 +9,9 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 
 const RSVP_OPTIONS = [
-  { key: 'going',  label: '✅ Going',  activeColor: '#10b981' },
-  { key: 'maybe',  label: '🤔 Maybe',  activeColor: '#f59e0b' },
-  { key: 'no',     label: '❌ Can\'t', activeColor: '#ef4444' },
+  { key: 'going',  label: '✅ Going',  activeColor: "#10b981" },
+  { key: 'maybe',  label: '🤔 Maybe',  activeColor: "#f59e0b" },
+  { key: 'no',     label: '❌ Can\'t', activeColor: "#ef4444" },
 ];
 
 const formatTime = (dateStr) => {
@@ -38,7 +38,7 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
   const [loadingRsvp, setLoadingRsvp] = useState(false);
   const [postingComment, setPostingComment] = useState(false);
 
-  const primary = currentTheme?.primary || '#00f2ff';
+  const primary = currentTheme?.primary || "#00f2ff";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
@@ -62,7 +62,7 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
           .from('event_rsvps')
           .select('status')
           .eq('event_id', eventId)
-          .eq('user_id', user.id)
+          .eq('user_id', user?.id)
           .maybeSingle();
         if (myRsvp) setRsvpStatus(myRsvp.status);
       }
@@ -105,7 +105,7 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
     try {
       const { error } = await supabase
         .from('event_rsvps')
-        .upsert({ event_id: eventId, user_id: user.id, status }, { onConflict: 'event_id,user_id' });
+        .upsert({ event_id: eventId, user_id: user?.id, status }, { onConflict: 'event_id,user_id' });
       if (!error) {
         setRsvpStatus(status);
         setRsvpCounts(prev => ({ ...prev, [status]: (prev[status] || 0) + 1 }));
@@ -122,7 +122,7 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
     try {
       const { error } = await supabase
         .from('echoes')
-        .insert({ event_id: eventId, user_id: user.id, body: newComment.trim() });
+        .insert({ event_id: eventId, user_id: user?.id, body: newComment.trim() });
       if (!error) {
         setNewComment('');
         fetchSocialData();
@@ -202,7 +202,7 @@ export const EventSocials = ({ eventId, onAuthRequired }) => {
               <View key={item.id} style={styles.commentItem}>
                 {item.profiles?.avatar_url
                 ? <Image source={{ uri: item.profiles.avatar_url }} style={[styles.commentAvatar, { borderColor: `${primary}50` }]} />
-                : <View style={[styles.commentAvatar, { borderColor: `${primary}50`, backgroundColor: '#0891b2', alignItems: 'center', justifyContent: 'center' }]}>
+                : <View style={[styles.commentAvatar, { borderColor: `${primary}50`, backgroundColor: "#0891b2", alignItems: 'center', justifyContent: 'center' }]}>
                     <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>{(item.profiles?.username || 'V')[0].toUpperCase()}</Text>
                   </View>
               }

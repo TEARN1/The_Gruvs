@@ -97,8 +97,14 @@ CREATE POLICY "memberships_self"       ON public.club_memberships FOR ALL
               EXISTS (SELECT 1 FROM public.clubs WHERE id = club_id AND owner_id = auth.uid()));
 
 -- ── LINK sport_teams TO clubs ─────────────────────────────────────────────────
-ALTER TABLE public.sport_teams ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES public.clubs(id) ON DELETE SET NULL;
-CREATE INDEX IF NOT EXISTS idx_sport_teams_club ON public.sport_teams(club_id);
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'sport_teams') THEN
+    EXECUTE 'ALTER TABLE public.sport_teams ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES public.clubs(id) ON DELETE SET NULL';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_sport_teams_club ON public.sport_teams(club_id)';
+  END IF;
+END;
+$$;
 
 -- ── EVENT AWARDS — universal for all event types ──────────────────────────────
 CREATE TABLE IF NOT EXISTS public.event_awards (

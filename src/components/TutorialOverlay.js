@@ -138,9 +138,9 @@ export const TutorialOverlay = () => {
   const { activeTutorial, closeTutorial, markCompleted } = useTutorial();
   const { currentTheme } = useTheme();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const textColor = currentTheme?.text       || '#ffffff';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
+  const textColor = currentTheme?.text       || "#ffffff";
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
   const [step, setStep] = useState(0);

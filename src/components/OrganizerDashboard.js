@@ -93,18 +93,18 @@ const RSVPBar = ({ going, maybe, notGoing, primary }) => {
           <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700' }}>Going {going}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#f59e0b' }} />
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#f59e0b" }} />
           <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700' }}>Maybe {maybe}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' }} />
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444" }} />
           <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700' }}>Not Going {notGoing}</Text>
         </View>
       </View>
       <View style={{ flexDirection: 'row', height: 6, borderRadius: 4, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)' }}>
         <View style={{ width: pct(going || 0), backgroundColor: primary }} />
-        <View style={{ width: pct(maybe || 0), backgroundColor: '#f59e0b' }} />
-        <View style={{ width: pct(notGoing || 0), backgroundColor: '#ef4444' }} />
+        <View style={{ width: pct(maybe || 0), backgroundColor: "#f59e0b" }} />
+        <View style={{ width: pct(notGoing || 0), backgroundColor: "#ef4444" }} />
       </View>
       <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 4, textAlign: 'right' }}>
         {total} total responses

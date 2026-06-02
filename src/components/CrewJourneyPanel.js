@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 
 const avatarBg = (name) => {
-  const cols = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706', '#0d9488'];
+  const cols = ["#0891b2", "#7c3aed", "#dc2626", "#059669", "#d97706", "#0d9488"];
   return cols[(name?.charCodeAt(0) || 0) % cols.length];
 };
 
@@ -23,7 +23,7 @@ const formatDate = (d) => {
 export const CrewJourneyPanel = ({ onEventPress }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
-  const primary = currentTheme?.primary || '#00f2ff';
+  const primary = currentTheme?.primary || "#00f2ff";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 

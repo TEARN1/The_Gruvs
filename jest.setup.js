@@ -44,3 +44,23 @@ console.error = (...args) => {
   if (typeof args[0] === 'string' && /not wrapped in act/.test(args[0])) return;
   _consoleError(...args);
 };
+
+// ── Global mock for Supabase client to prevent teardown leaks ────────────────
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    auth: {
+      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
+      getUser: jest.fn(() => Promise.resolve({ data: { user: null } })),
+    },
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: null, error: null }),
+    })),
+  })),
+}));
+

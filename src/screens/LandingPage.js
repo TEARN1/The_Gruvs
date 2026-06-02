@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
+import { SmartImage } from '../components/SmartImage';
 import { FadeInView } from '../components/FadeInView';
 import { BrandLogo } from '../components/BrandLogo';
 import { OfflineBanner } from '../components/OfflineBanner';
@@ -49,18 +50,18 @@ import { PulseScheduleSection } from '../components/PulseScheduleSection';
 import { EventGallery } from '../components/EventGallery';
 import { ReactPicker } from '../components/ReactPicker';
 
-// ── Lazy-loaded section components ──
-const PostEventModal      = React.lazy(() => import('../components/PostEventModal').then(m => ({ default: m.PostEventModal })));
-const PersonalPlannerModal = React.lazy(() => import('../components/PersonalPlannerModal').then(m => ({ default: m.PersonalPlannerModal })));
-const ViberProfileModal   = React.lazy(() => import('../components/ViberProfileModal').then(m => ({ default: m.ViberProfileModal })));
-const ActivityCenterModal = React.lazy(() => import('../components/ActivityCenterModal').then(m => ({ default: m.ActivityCenterModal })));
-const EventAdminPanel     = React.lazy(() => import('../components/EventAdminPanel').then(m => ({ default: m.EventAdminPanel })));
-const EditEventModal      = React.lazy(() => import('../components/EditEventModal').then(m => ({ default: m.EditEventModal })));
-const RSVPConfirmModal    = React.lazy(() => import('../components/RSVPConfirmModal').then(m => ({ default: m.RSVPConfirmModal })));
-const ReportModal         = React.lazy(() => import('../components/ReportModal').then(m => ({ default: m.ReportModal })));
-const EventMapView        = React.lazy(() => import('../components/EventMapView').then(m => ({ default: m.EventMapView })));
-const PathMapScreen       = React.lazy(() => import('./PathMapScreen').then(m => ({ default: m.PathMapScreen })));
-const EventDetailScreen   = React.lazy(() => import('./EventDetailScreen').then(m => ({ default: m.EventDetailScreen })));
+// ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
+import { PostEventModal }       from '../components/PostEventModal';
+import { PersonalPlannerModal } from '../components/PersonalPlannerModal';
+import { ViberProfileModal }    from '../components/ViberProfileModal';
+import { ActivityCenterModal }  from '../components/ActivityCenterModal';
+import { EventAdminPanel }      from '../components/EventAdminPanel';
+import { EditEventModal }       from '../components/EditEventModal';
+import { RSVPConfirmModal }     from '../components/RSVPConfirmModal';
+import { ReportModal }          from '../components/ReportModal';
+import { EventMapView }         from '../components/EventMapView';
+import { PathMapScreen }        from './PathMapScreen';
+import { EventDetailScreen }    from './EventDetailScreen';
 
 const SCREEN_W = Dimensions.get('window').width;
 const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
@@ -73,7 +74,7 @@ const safeHaptic = (fn) => {
 };
 
 // ── Skeleton card shown while loading ─────────────────────────────────────────
-const AVATAR_COLORS = ['#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706', '#db2777'];
+const AVATAR_COLORS = ["#0891b2", "#7c3aed", "#dc2626", "#059669", "#d97706", "#db2777"];
 const AvatarStack = ({ count, size = 20 }) => {
   if (!count || count === 0) return null;
   const displayCount = Math.min(3, count);
@@ -224,6 +225,567 @@ const tm = StyleSheet.create({
   metaText: { fontSize: 11 },
 });
 
+// ── Memoized EventCard Component for FlatList ────────────────────────────────
+const EventCard = React.memo(({
+  event,
+  index,
+  user,
+  primary,
+  surface,
+  textColor,
+  muted,
+  isVibed,
+  vibeCounts,
+  isSaved,
+  userReaction,
+  crewCount,
+  isHighlighted,
+  flashColor,
+  isRoute,
+  isFollowing,
+  checkins,
+  onAuthRequired,
+  onNavigateToServices,
+  onSelectEvent,
+  onEditEvent,
+  onAdminEvent,
+  onRsvpEvent,
+  onReportTarget,
+  onSetReactorsEvent,
+  onFetchCheckins,
+  onOpenViberProfile,
+  onFollow,
+  onImageTap,
+  onImageLongPress,
+  onCardPressIn,
+  onCardPressOut,
+  scaleValue,
+  heartAnim,
+  openSection,
+  onVibe,
+  onBookmark,
+  onReact,
+  onShare,
+  onToggleRoute,
+  onToggleSection,
+}) => {
+  const id = event.id;
+  const isSample = event.is_sample === true;
+  const isOwner = user && event.author_id === user.id;
+  const catColor = event.category_color || getCategoryColor(event.category) || primary;
+  const title = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
+  const goingPct = event.capacity ? Math.min(100, Math.round(((event.going || 0) / event.capacity) * 100)) : 0;
+
+  const getCountdown = (dateStr) => {
+    if (!dateStr) return null;
+    const diff = new Date(dateStr).getTime() - Date.now();
+    if (diff <= 0) return null;
+    const days = Math.floor(diff / 86400000);
+    const hrs = Math.floor((diff % 86400000) / 3600000);
+    return days > 0 ? `${days}d ${hrs}h` : `${hrs}h away`;
+  };
+  const countdown = getCountdown(event.event_date);
+  const isWeb = Platform.OS === 'web';
+  const cardDate = event.event_date
+    ? new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '';
+
+  const showAd = index > 0 && index % 5 === 4;
+
+  return (
+    <React.Fragment>
+      <FadeInView delay={Math.min(index, 5) * 60} direction="up">
+        <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+        <View
+          style={[
+            styles.eventCard,
+            {
+              backgroundColor: flashColor ? `${flashColor}12` : surface,
+              borderColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
+              borderTopColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
+              borderTopWidth: flashColor ? 2 : 1,
+            },
+            (isHighlighted || flashColor) && {
+              borderWidth: 2,
+              ...(isWeb ? { boxShadow: `0 0 25px ${(flashColor || primary)}80` } : { shadowColor: flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
+            },
+            isWeb && !flashColor && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
+            isWeb && flashColor && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
+            isWeb && { cursor: 'pointer' },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={`${title}${cardDate ? ', ' + cardDate : ''}${event.venue_name ? ', at ' + event.venue_name : ''}`}
+          {...(isWeb ? {
+            className: 'event-card',
+            tabIndex: 0,
+            onKeyPress: (e) => e.nativeEvent?.key === 'Enter' && onSelectEvent(event),
+          } : {})}
+        >
+
+          {/* Trending crown banner */}
+          {event._isTrending && (
+            <View style={[styles.trendingBanner, { backgroundColor: primary }]}>
+              <Text style={styles.trendingBannerText}>
+                🔥 #{event._trendingRank} TRENDING NOW
+              </Text>
+            </View>
+          )}
+
+          {/* Recurring series banner */}
+          {event.is_recurring && !event._isTrending && (
+            <View style={[styles.trendingBanner, { backgroundColor: "#6366f1" }]}>
+              <Feather name="repeat" size={10} color="#fff" style={{ marginRight: 4 }} />
+              <Text style={styles.trendingBannerText}>
+                {event.recurrence_type === 'weekly'   ? 'WEEKLY SERIES' :
+                 event.recurrence_type === 'monthly'  ? 'MONTHLY SERIES' :
+                 event.recurrence_type === 'annually' ? 'ANNUAL EVENT' :
+                 event.recurrence_type === 'custom'   ? 'EVENT SERIES' : 'RECURRING'}
+                {event.next_occurrence ? ` · NEXT ${new Date(event.next_occurrence).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' }).toUpperCase()}` : ''}
+              </Text>
+            </View>
+          )}
+
+          {/* AI-routed personalisation badge */}
+          {event._aiRecommended && !event._isTrending && !event.is_recurring && (
+            <View style={[styles.trendingBanner, { backgroundColor: "#7c3aed" }]}>
+              <Text style={styles.trendingBannerText}>✦ MATCHED TO YOUR VIBE</Text>
+            </View>
+          )}
+
+          {/* Media — double-tap to vibe, long-press for quick actions */}
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => onImageTap(event)}
+            onPressIn={() => onCardPressIn(id)}
+            onPressOut={() => onCardPressOut(id)}
+            onLongPress={() => onImageLongPress(event)}
+            delayLongPress={400}
+          >
+          <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }, isWeb && { aspectRatio: '2/1' }]}>
+            <MediaViewer aspectRatio={2} media={(() => {
+              let m = event.media;
+              if (!m?.length && event.media_urls?.length) {
+                m = event.media_urls.map(u => ({ url: u, type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image' }));
+              }
+              if (!m?.length && event.cover_url) m = [{ url: event.cover_url, type: 'image' }];
+              if (!m?.length && event.cover_image) m = [{ url: event.cover_image, type: 'image' }];
+              if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
+              return m?.length ? m : null;
+            })()} />
+            {/* Double-tap heart burst overlay */}
+            {heartAnim && (
+              <Animated.View pointerEvents="none" style={{
+                ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center',
+                opacity: heartAnim.opacity,
+                transform: [{ scale: heartAnim.scale }],
+              }}>
+                <Text style={{ fontSize: 72 }}>❤️</Text>
+              </Animated.View>
+            )}
+            {/* Item 48: vignette gradient */}
+            <View style={{
+              ...StyleSheet.absoluteFillObject,
+              ...(isWeb
+                ? { backgroundImage: 'linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.65) 100%)' }
+                : { backgroundColor: 'rgba(0,0,0,0.15)' }
+              ),
+            }} />
+            {/* Item 52: glassmorphic category badge */}
+            {event.category && (
+              <View style={[
+                styles.catBadge,
+                { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` },
+                isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
+              ]}>
+                <Text style={[styles.catBadgeText, { color: catColor }]}>
+                  {(CATEGORY_CONFIG[event.category]?.label || event.category).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            {/* Bookmark — separate touch target, stops propagation to image tap */}
+            <TouchableOpacity
+              style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
+              onPress={(e) => { e.stopPropagation?.(); onBookmark(id); }}
+              accessibilityRole="button"
+              accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} />
+            </TouchableOpacity>
+          </View>
+          </TouchableOpacity>
+
+          {/* Body */}
+          <View style={styles.cardBody}>
+            {/* User row */}
+            <View style={styles.userRow}>
+              <TouchableOpacity onPress={() => onOpenViberProfile(event.profiles)}>
+                <View style={styles.avatarWrap}>
+                  {event.profiles?.avatar_url
+                    ? <SmartImage source={thumb.avatar(event.profiles.avatar_url)} style={[styles.avatar, { borderColor: primary }]} />
+                    : <View style={[styles.avatar, { borderColor: primary, backgroundColor: AVATAR_COLORS[(event.profiles?.username?.charCodeAt(0) || 0) % AVATAR_COLORS.length], alignItems: 'center', justifyContent: 'center' }]}>
+                      <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>{(event.profiles?.username || 'V')[0].toUpperCase()}</Text>
+                    </View>
+                  }
+                  {checkOnline(event.profiles) && <View style={[styles.onlineDot, { backgroundColor: "#10b981" }]} />}
+                </View>
+              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Text style={[styles.username, { color: textColor }]}>
+                    {event.profiles?.username || 'Viber'}
+                  </Text>
+                  {event.profiles?.vibe_score && (
+                    <View style={[styles.vibeScoreBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
+                      <Feather name="zap" size={8} color={primary} />
+                      <Text style={[styles.vibeScoreText, { color: primary }]}>{event.profiles.vibe_score}</Text>
+                    </View>
+                  )}
+                  {event.profiles?.is_verified && (
+                    <View style={[styles.verifiedBadge, { backgroundColor: primary }]}>
+                      <Feather name="check" size={8} color="#000" />
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.handle, { color: muted }]}>
+                  @{(event.profiles?.username || 'viber').toLowerCase().replace(/\s+/g, '')}
+                </Text>
+              </View>
+              {user && event.profiles?.id && event.profiles.id !== user.id && (
+                <TouchableOpacity
+                  onPress={() => onFollow(event.profiles.id)}
+                  style={[styles.feedFollowBtn, isFollowing && { backgroundColor: 'transparent', borderColor: muted }]}
+                >
+                  <Text style={[styles.feedFollowText, isFollowing && { color: muted }]}>
+                    {isFollowing ? 'Following' : '+ Follow'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <View style={[styles.priceBadge, {
+                backgroundColor: (!event.price || event.price === 'FREE' || event.price === 0) ? 'rgba(16,185,129,0.15)' : `${catColor}22`,
+                borderColor: (!event.price || event.price === 'FREE' || event.price === 0) ? "#10b981" : catColor,
+              }]}>
+                <Text style={[styles.priceText, {
+                  color: (!event.price || event.price === 'FREE' || event.price === 0) ? "#10b981" : catColor,
+                }]}>
+                  {(!event.price || event.price === 0) ? 'FREE' : event.price}
+                </Text>
+              </View>
+            </View>
+
+            {/* Crew signal badge */}
+            {crewCount >= 1 && (
+              <View style={[styles.crewBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}35` }]}>
+                <Feather name="users" size={11} color={primary} />
+                <Text style={[styles.crewBadgeText, { color: primary }]}>
+                  {crewCount} {crewCount === 1 ? 'person' : 'people'} you follow {crewCount === 1 ? 'is' : 'are'} going
+                </Text>
+              </View>
+            )}
+
+            {/* Two-column row: title+desc LEFT, meta chips RIGHT */}
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                activeOpacity={0.8}
+                onPress={() => onSelectEvent(event)}
+                accessibilityHint="Double-tap to open event details"
+              >
+                <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
+                <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>
+              </TouchableOpacity>
+
+              {/* Right column: date / time / venue / countdown chips */}
+              <View style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0, maxWidth: 110 }}>
+                {event.event_date ? (
+                  <View style={[styles.metaChip, { borderColor: `${primary}22` }]}>
+                    <Feather name="calendar" size={10} color={primary} />
+                    <Text style={[styles.metaChipText, { color: primary }]}>
+                      {new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}
+                    </Text>
+                  </View>
+                ) : null}
+                {event.event_time ? (
+                  <View style={[styles.metaChip, { borderColor: `${muted}30` }]}>
+                    <Feather name="clock" size={10} color={muted} />
+                    <Text style={[styles.metaChipText, { color: muted }]}>{event.event_time}</Text>
+                  </View>
+                ) : null}
+                {(event.venue_name || event.address) ? (
+                  <TouchableOpacity
+                    style={[styles.metaChip, { borderColor: `${primary}30` }]}
+                    onPress={() => SecurityService.safeOpenURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
+                  >
+                    <Feather name="map-pin" size={10} color={primary} />
+                    <Text style={[styles.metaChipText, { color: primary }]} numberOfLines={1}>
+                      {event.venue_name || event.address}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+                {countdown ? (
+                  <View style={[styles.metaChip, { borderColor: `${primary}35`, backgroundColor: `${primary}10` }]}>
+                    <Feather name="clock" size={10} color={primary} />
+                    <Text style={[styles.metaChipText, { color: primary, fontWeight: '800' }]}>{countdown}</Text>
+                  </View>
+                ) : null}
+                {event._aiRecommended ? (
+                  <View style={[styles.metaChip, { borderColor: '#7c3aed50', backgroundColor: '#7c3aed12' }]}>
+                    <Text style={{ fontSize: 9 }}>✦</Text>
+                    <Text style={[styles.metaChipText, { color: "#a78bfa" }]}>AI Pick</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
+            {/* Item 62: RSVP progress bar with progressbar role */}
+            {event.capacity > 0 ? (
+              <View style={styles.rsvpWrap}>
+                <View style={[styles.rsvpTrack, { backgroundColor: `${catColor}15` }]}>
+                  <View
+                    style={[
+                      styles.rsvpFill,
+                      { width: `${goingPct}%`, backgroundColor: catColor },
+                      isWeb && { boxShadow: `0 0 10px ${catColor}80` }
+                    ]}
+                    accessibilityRole="progressbar"
+                    accessibilityLabel={`${goingPct}% capacity filled`}
+                    {...(isWeb ? { role: 'progressbar', 'aria-valuenow': goingPct, 'aria-valuemin': 0, 'aria-valuemax': 100 } : {})}
+                  />
+                </View>
+                <View style={styles.rsvpLabels}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <AvatarStack count={event.going || 0} primary={primary} />
+                    <Text style={[styles.rsvpText, { color: textColor }]}>{event.going || 0} going</Text>
+                  </View>
+                  {event.capacity - (event.going || 0) > 0 && (
+                    <Text style={[styles.rsvpText, { color: muted }]}>
+                      {event.capacity - (event.going || 0)} spots left
+                    </Text>
+                  )}
+                </View>
+              </View>
+            ) : null}
+
+            {/* Ticket */}
+            {event.ticket_url ? (
+              <TouchableOpacity
+                style={[styles.ticketBtn, { borderColor: catColor }]}
+                onPress={() => SecurityService.safeOpenURL(event.ticket_url)}
+              >
+                <Feather name="tag" size={13} color={catColor} />
+                <Text style={[styles.ticketText, { color: catColor }]}>Get Tickets / RSVP</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {/* Schedule preview — tap card to see full schedule + polls */}
+          {event.schedule?.length > 0 && (
+            <TouchableOpacity
+              style={[styles.schedulePreview, { backgroundColor: `${primary}0d`, borderTopColor: `${primary}20` }]}
+              onPress={() => onSelectEvent(event)}
+              activeOpacity={0.8}
+            >
+              <Feather name="calendar" size={13} color={primary} />
+              <Text style={[styles.schedulePreviewText, { color: primary }]}>
+                {event.schedule.length} schedule slot{event.schedule.length !== 1 ? 's' : ''}
+                {' · '}{event.schedule.slice(0, 2).map(s => s.time).join(', ')}
+                {event.schedule.length > 2 ? ' …' : ''}
+              </Text>
+              <Feather name="chevron-right" size={13} color={primary} />
+            </TouchableOpacity>
+          )}
+
+          {event.reaction_count > 0 ? (
+            <TouchableOpacity
+              style={[styles.reactionSummary, { borderTopColor: `${primary}12`, borderBottomColor: `${primary}12` }]}
+              onPress={() => onSetReactorsEvent(id)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.reactionEmojis}>
+                {event.reactions_summary
+                  || (userReaction ? (REACTION_LIST.find(r => r.key === userReaction)?.emoji || '✨') : '✨')}
+              </Text>
+              <Text style={[styles.reactionCount, { color: muted }]}>
+                {event.reaction_count} {event.reaction_count === 1 ? 'reaction' : 'reactions'}
+              </Text>
+              <Feather name="chevron-right" size={12} color={muted} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+          ) : null}
+
+          {/* Action bar — Item 51: accessible labels on all action buttons */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
+            <View style={styles.actionBar}>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onVibe(id)}
+                accessibilityRole="button"
+                accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
+              >
+                <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
+                <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? "#ef4444" : muted }]} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onToggleSection(id, 'react')}
+                accessibilityRole="button"
+                accessibilityLabel="React to this event"
+              >
+                {userReaction
+                  ? <Text style={{ fontSize: 19 }}>{REACTION_LIST.find(r => r.key === userReaction)?.emoji || '😊'}</Text>
+                  : <Feather name="smile" size={19} color={muted} />
+                }
+                <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onToggleSection(id, 'echo')}
+                accessibilityRole="button"
+                accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
+              >
+                <Feather name="message-circle" size={19} color={openSection === 'echo' ? primary : muted} />
+                <Text style={[styles.actionCount, { color: openSection === 'echo' ? primary : muted }]}>{event.echo_count || 0}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onToggleSection(id, 'gallery')}
+                accessibilityRole="button"
+                accessibilityLabel="View event gallery"
+              >
+                <Feather name="camera" size={19} color={openSection === 'gallery' ? primary : muted} />
+                <Text style={[styles.actionLabel, { color: openSection === 'gallery' ? primary : muted }]}>Gallery</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onToggleSection(id, 'pulse')}
+                accessibilityRole="button"
+                accessibilityLabel="View Pulse Schedule"
+              >
+                <Feather name="activity" size={19} color={openSection === 'pulse' ? primary : muted} />
+                <Text style={[styles.actionLabel, { color: openSection === 'pulse' ? primary : muted }]}>Pulse</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onToggleRoute(event)}
+                accessibilityRole="button"
+                accessibilityLabel={isRoute ? 'Remove from journey' : 'Pin to your journey'}
+              >
+                <Feather
+                  name={isRoute ? "map-pin" : "plus-circle"}
+                  size={19}
+                  color={isRoute ? primary : muted}
+                />
+                <Text style={[styles.actionLabel, { color: isRoute ? primary : muted }]}>Journey</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onToggleSection(id, 'rate')}
+                accessibilityRole="button"
+                accessibilityLabel="Rate this event"
+              >
+                <Feather name="star" size={19} color={openSection === 'rate' ? primary : muted} />
+                <Text style={[styles.actionLabel, { color: openSection === 'rate' ? primary : muted }]}>Rate</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onShare(event)}
+                accessibilityRole="button"
+                accessibilityLabel={`Share event: ${title}`}
+              >
+                <Feather name="share-2" size={19} color={muted} />
+                <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.actionBtn} onPress={() => {
+                safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+                user ? onRsvpEvent(event) : onAuthRequired();
+              }}>
+                <Feather name="check-circle" size={19} color={muted} />
+                <Text style={[styles.actionLabel, { color: muted }]}>RSVP</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.actionBtn} onPress={() => onReportTarget({ id, type: 'event' })}>
+                <Feather name="flag" size={19} color={muted} />
+              </TouchableOpacity>
+
+              {isOwner && (
+                <TouchableOpacity style={styles.actionBtn} onPress={() => onEditEvent(event)}>
+                  <Feather name="edit-2" size={19} color={primary} />
+                </TouchableOpacity>
+              )}
+
+              {isOwner && (
+                <TouchableOpacity style={styles.actionBtn} onPress={() => onAdminEvent(event)}>
+                  <Feather name="bar-chart-2" size={19} color={primary} />
+                  <Text style={[styles.actionLabel, { color: primary }]}>Admin</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </ScrollView>
+
+          {/* Collapsible sections — each in its own SafeSection */}
+          {openSection === 'react' && (
+            <ReactPicker visible onReact={key => onReact(id, key)} userReaction={userReaction} />
+          )}
+          {openSection === 'echo' && (
+            <EchoSection eventId={id} onAuthRequired={onAuthRequired} />
+          )}
+          {openSection === 'gallery' && (
+            <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+              <EventGallery eventId={id} />
+            </View>
+          )}
+          {openSection === 'rate' && (
+            <RatingSection eventId={id} onAuthRequired={onAuthRequired} />
+          )}
+          {openSection === 'pulse' && (
+            <PulseScheduleSection eventId={id} eventCategory={event.category} onAuthRequired={onAuthRequired} />
+          )}
+          {!isSample && (() => {
+            let isEventDay = true;
+            if (event.event_date) {
+              const evMs = new Date(event.event_date).getTime();
+              const diffDays = (Date.now() - evMs) / 86400000;
+              isEventDay = diffDays >= -1 && diffDays < 2;
+            }
+            return isEventDay ? (
+              <PresenceBar
+                eventId={id}
+                eventEndTime={event.end_time}
+                eventLat={event.lat}
+                eventLon={event.lon}
+                onAuthRequired={onAuthRequired}
+              />
+            ) : null;
+          })()}
+          {!isSample && (
+            <ReturnPathCard
+              event={event}
+              checkins={checkins || []}
+              primary={primary}
+              muted={muted}
+              textColor={textColor}
+              bg={surface}
+              onDismiss={() => {}}
+              onCheckinsFetch={() => onFetchCheckins(id)}
+            />
+          )}
+        </View>
+        </Animated.View>
+      </FadeInView>
+      {showAd && (
+        <AdFlywheel intentTag="attending" onNavigateToServices={onNavigateToServices} />
+      )}
+    </React.Fragment>
+  );
+});
+
 // ── Main LandingPage ──────────────────────────────────────────────────────────
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices }) => {
   const insets = useSafeAreaInsets();
@@ -365,11 +927,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     activityVisible, postModalVisible, editEvent, rsvpEvent, reportTarget, reactorsEvent
   ]);
 
-  const primary = currentTheme?.primary || '#00f2ff';
-  const bg = currentTheme?.background || '#0d1112';
+  const primary = currentTheme?.primary || "#00f2ff";
+  const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
-  const surface = currentTheme?.surface || '#131a1c';
+  const surface = currentTheme?.surface || "#131a1c";
 
   const loadTrending = useCallback(async () => {
     try {
@@ -462,8 +1024,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       if (user?.id && newEvents.length > 0) {
         const eventIds = newEvents.map(e => e.id);
         const [vibeRes, reactRes] = await Promise.allSettled([
-          supabase.from('event_vibes').select('event_id').eq('user_id', user.id).in('event_id', eventIds),
-          supabase.from('event_reactions').select('event_id, reaction_key').eq('user_id', user.id).in('event_id', eventIds),
+          supabase.from('event_vibes').select('event_id').eq('user_id', user?.id).in('event_id', eventIds),
+          supabase.from('event_reactions').select('event_id, reaction_key').eq('user_id', user?.id).in('event_id', eventIds),
         ]);
         if (vibeRes.status === 'fulfilled' && vibeRes.value.data) {
           setMyVibes(prev => {
@@ -481,7 +1043,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         }
       }
 
-      if (!isRefreshing && newEvents.length > 0) {
+      if (newEvents.length > 0) {
         pageRef.current = currentPage + 1;
         setPage(pageRef.current);
         FeedManager.prefetchPage({ ...fetchOpts, page: currentPage + 1 });
@@ -729,15 +1291,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             [
               () => supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profileId),
               () => supabase.from('follows').update({ unfollowed_at: new Date().toISOString() }).eq('follower_id', user.id).eq('following_id', profileId),
-              () => supabase.rpc('unfollow_user', { p_follower_id: user.id, p_following_id: profileId }),
+              () => supabase.rpc('unfollow_user', { p_follower_id: user?.id, p_following_id: profileId }),
             ],
             { attemptsPerTier: 2, baseMs: 300, label: `LandingPage.unfollow:${profileId}`, fallbackValue: null }
           )
         : await resilient(
             [
-              () => supabase.from('follows').upsert({ follower_id: user.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
-              () => supabase.from('follows').insert({ follower_id: user.id, following_id: profileId }),
-              () => supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: profileId }),
+              () => supabase.from('follows').upsert({ follower_id: user?.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
+              () => supabase.from('follows').insert({ follower_id: user?.id, following_id: profileId }),
+              () => supabase.rpc('follow_user', { p_follower_id: user?.id, p_following_id: profileId }),
             ],
             { attemptsPerTier: 2, baseMs: 300, label: `LandingPage.follow:${profileId}`, fallbackValue: null }
           );
@@ -817,10 +1379,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   };
 
   const REACTION_COLORS = {
-    fire: '#f97316', heart: '#ef4444', hype: '#f59e0b', wow: '#8b5cf6',
-    laugh: '#facc15', crown: '#fbbf24', gem: '#06b6d4', rocket: '#3b82f6',
-    '100': '#10b981', wave: '#0ea5e9', star: '#eab308', magic: '#a78bfa',
-    electric: '#00f2ff', goat: '#84cc16', clap: '#fb923c',
+    fire: "#f97316", heart: "#ef4444", hype: "#f59e0b", wow: "#8b5cf6",
+    laugh: "#facc15", crown: "#fbbf24", gem: "#06b6d4", rocket: "#3b82f6",
+    '100': "#10b981", wave: "#0ea5e9", star: "#eab308", magic: "#a78bfa",
+    electric: "#00f2ff", goat: "#84cc16", clap: "#fb923c",
   };
 
   const handleReact = useCallback(async (eventId, key) => {
@@ -840,18 +1402,18 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       if (newKey === null) {
         await resilient(
           [
-            () => supabase.from('event_reactions').delete().eq('event_id', eventId).eq('user_id', user.id),
-            () => supabase.from('event_reactions').update({ reaction_key: null }).eq('event_id', eventId).eq('user_id', user.id),
-            () => supabase.rpc('remove_event_reaction', { p_event_id: eventId, p_user_id: user.id }),
+            () => supabase.from('event_reactions').delete().eq('event_id', eventId).eq('user_id', user?.id),
+            () => supabase.from('event_reactions').update({ reaction_key: null }).eq('event_id', eventId).eq('user_id', user?.id),
+            () => supabase.rpc('remove_event_reaction', { p_event_id: eventId, p_user_id: user?.id }),
           ],
           { attemptsPerTier: 2, baseMs: 200, label: `LandingPage.unreact:${eventId}`, fallbackValue: null }
         );
       } else {
         await resilient(
           [
-            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user.id, reaction_key: newKey }, { onConflict: 'event_id,user_id' }),
-            () => supabase.from('event_reactions').insert({ event_id: eventId, user_id: user.id, reaction_key: newKey }),
-            () => supabase.rpc('upsert_event_reaction', { p_event_id: eventId, p_user_id: user.id, p_key: newKey }),
+            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user?.id, reaction_key: newKey }, { onConflict: 'event_id,user_id' }),
+            () => supabase.from('event_reactions').insert({ event_id: eventId, user_id: user?.id, reaction_key: newKey }),
+            () => supabase.rpc('upsert_event_reaction', { p_event_id: eventId, p_user_id: user?.id, p_key: newKey }),
           ],
           { attemptsPerTier: 2, baseMs: 200, label: `LandingPage.react:${eventId}`, fallbackValue: null }
         );
@@ -1252,529 +1814,50 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // ── EVENT CARD ────────────────────────────────────────────────────────────────
   const renderCard = useCallback(({ item: event, index }) => {
     const id = event.id;
-    // Insert AdFlywheel every 5 cards (index 4, 9, 14…)
-    const showAd = index > 0 && index % 5 === 4;
-    const isVibed = myVibes.has(id);
-    const isSaved = savedEvents.has(id);
-    const isSample = event.is_sample === true;
-    const isOwner = user && event.author_id === user.id;
-    const userReaction = reactions[id] || null;
-    const crewCount = crewRsvpMap[id] || 0;
-    const isHighlighted = highlightedId === id;
-    const catColor = event.category_color || getCategoryColor(event.category) || primary;
-    const title = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
-    const goingPct = event.capacity ? Math.min(100, Math.round(((event.going || 0) / event.capacity) * 100)) : 0;
-
-    const getCountdown = (dateStr) => {
-      if (!dateStr) return null;
-      const diff = new Date(dateStr).getTime() - Date.now();
-      if (diff <= 0) return null;
-      const days = Math.floor(diff / 86400000);
-      const hrs = Math.floor((diff % 86400000) / 3600000);
-      return days > 0 ? `${days}d ${hrs}h` : `${hrs}h away`;
-    };
-    const countdown = getCountdown(event.event_date);
-
-    const isWeb = Platform.OS === 'web';
-
-    const flashColor = reactionFlash[id];
-
-    const cardDate = event.event_date
-      ? new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' })
-      : '';
-
     return (
-      <React.Fragment>
-        <FadeInView delay={Math.min(index, 5) * 60} direction="up">
-          <Animated.View style={{ transform: [{ scale: getCardScale(id) }] }}>
-          <View
-            style={[
-              styles.eventCard,
-              {
-                backgroundColor: flashColor ? `${flashColor}12` : surface,
-                borderColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
-                borderTopColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
-                borderTopWidth: flashColor ? 2 : 1,
-              },
-              (isHighlighted || flashColor) && {
-                borderWidth: 2,
-                ...(isWeb ? { boxShadow: `0 0 25px ${(flashColor || primary)}80` } : { shadowColor: flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
-              },
-              isWeb && !flashColor && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
-              isWeb && flashColor && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
-              isWeb && { cursor: 'pointer' },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={`${title}${cardDate ? ', ' + cardDate : ''}${event.venue_name ? ', at ' + event.venue_name : ''}`}
-            {...(isWeb ? {
-              className: 'event-card',
-              tabIndex: 0,
-              onKeyPress: (e) => e.nativeEvent?.key === 'Enter' && setSelectedEvent(event),
-            } : {})}
-          >
-
-            {/* Trending crown banner */}
-            {event._isTrending && (
-              <View style={[styles.trendingBanner, { backgroundColor: primary }]}>
-                <Text style={styles.trendingBannerText}>
-                  🔥 #{event._trendingRank} TRENDING NOW
-                </Text>
-              </View>
-            )}
-
-            {/* Recurring series banner */}
-            {event.is_recurring && !event._isTrending && (
-              <View style={[styles.trendingBanner, { backgroundColor: '#6366f1' }]}>
-                <Feather name="repeat" size={10} color="#fff" style={{ marginRight: 4 }} />
-                <Text style={styles.trendingBannerText}>
-                  {event.recurrence_type === 'weekly'   ? 'WEEKLY SERIES' :
-                   event.recurrence_type === 'monthly'  ? 'MONTHLY SERIES' :
-                   event.recurrence_type === 'annually' ? 'ANNUAL EVENT' :
-                   event.recurrence_type === 'custom'   ? 'EVENT SERIES' : 'RECURRING'}
-                  {event.next_occurrence ? ` · NEXT ${new Date(event.next_occurrence).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' }).toUpperCase()}` : ''}
-                </Text>
-              </View>
-            )}
-
-            {/* AI-routed personalisation badge */}
-            {event._aiRecommended && !event._isTrending && !event.is_recurring && (
-              <View style={[styles.trendingBanner, { backgroundColor: '#7c3aed' }]}>
-                <Text style={styles.trendingBannerText}>✦ MATCHED TO YOUR VIBE</Text>
-              </View>
-            )}
-
-            {/* Media — double-tap to vibe, long-press for quick actions */}
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={() => handleImageTap(event)}
-              onPressIn={() => onCardPressIn(id)}
-              onPressOut={() => onCardPressOut(id)}
-              onLongPress={() => handleImageLongPress(event)}
-              delayLongPress={400}
-            >
-            <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }, isWeb && { aspectRatio: '2/1' }]}>
-              <MediaViewer aspectRatio={2} media={(() => {
-                let m = event.media;
-                if (typeof m === 'string') { try { m = JSON.parse(m); } catch { m = null; } }
-                if (!m?.length && event.media_urls?.length) {
-                  m = event.media_urls.map(u => ({ url: u, type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image' }));
-                }
-                if (!m?.length && event.cover_url) m = [{ url: event.cover_url, type: 'image' }];
-                if (!m?.length && event.cover_image) m = [{ url: event.cover_image, type: 'image' }];
-                if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
-                return m?.length ? m : null;
-              })()} />
-              {/* Double-tap heart burst overlay */}
-              {heartAnimRef.current[id] && (
-                <Animated.View pointerEvents="none" style={{
-                  ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center',
-                  opacity: heartAnimRef.current[id].opacity,
-                  transform: [{ scale: heartAnimRef.current[id].scale }],
-                }}>
-                  <Text style={{ fontSize: 72 }}>❤️</Text>
-                </Animated.View>
-              )}
-              {/* Item 48: vignette gradient */}
-              <View style={{
-                ...StyleSheet.absoluteFillObject,
-                ...(isWeb
-                  ? { backgroundImage: 'linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.65) 100%)' }
-                  : { backgroundColor: 'rgba(0,0,0,0.15)' }
-                ),
-              }} />
-              {/* Item 52: glassmorphic category badge */}
-              {event.category && (
-                <View style={[
-                  styles.catBadge,
-                  { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` },
-                  isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
-                ]}>
-                  <Text style={[styles.catBadgeText, { color: catColor }]}>
-                    {(CATEGORY_CONFIG[event.category]?.label || event.category).toUpperCase()}
-                  </Text>
-                </View>
-              )}
-              {/* Bookmark — separate touch target, stops propagation to image tap */}
-              <TouchableOpacity
-                style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
-                onPress={(e) => { e.stopPropagation?.(); handleBookmark(id); }}
-                accessibilityRole="button"
-                accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} />
-              </TouchableOpacity>
-            </View>
-            </TouchableOpacity>
-
-            {/* Body */}
-            <View style={styles.cardBody}>
-              {/* User row */}
-              <View style={styles.userRow}>
-                <TouchableOpacity onPress={() => openViberProfile(event.profiles)}>
-                  <View style={styles.avatarWrap}>
-                    {event.profiles?.avatar_url
-                      ? <Image source={{ uri: thumb.avatar(event.profiles.avatar_url) }} style={[styles.avatar, { borderColor: primary }]} />
-                      : <View style={[styles.avatar, { borderColor: primary, backgroundColor: AVATAR_COLORS[(event.profiles?.username?.charCodeAt(0) || 0) % AVATAR_COLORS.length], alignItems: 'center', justifyContent: 'center' }]}>
-                        <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>{(event.profiles?.username || 'V')[0].toUpperCase()}</Text>
-                      </View>
-                    }
-                    {checkOnline(event.profiles) && <View style={[styles.onlineDot, { backgroundColor: '#10b981' }]} />}
-                  </View>
-                </TouchableOpacity>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    <Text style={[styles.username, { color: textColor }]}>
-                      {event.profiles?.username || 'Viber'}
-                    </Text>
-                    {event.profiles?.vibe_score && (
-                      <View style={[styles.vibeScoreBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
-                        <Feather name="zap" size={8} color={primary} />
-                        <Text style={[styles.vibeScoreText, { color: primary }]}>{event.profiles.vibe_score}</Text>
-                      </View>
-                    )}
-                    {event.profiles?.is_verified && (
-                      <View style={[styles.verifiedBadge, { backgroundColor: primary }]}>
-                        <Feather name="check" size={8} color="#000" />
-                      </View>
-                    )}
-                  </View>
-                  <Text style={[styles.handle, { color: muted }]}>
-                    @{(event.profiles?.username || 'viber').toLowerCase().replace(/\s+/g, '')}
-                  </Text>
-                </View>
-                {user && event.profiles?.id && event.profiles.id !== user.id && (
-                  <TouchableOpacity
-                    onPress={() => handleFollowFromFeed(event.profiles.id)}
-                    style={[styles.feedFollowBtn, followingSet.has(event.profiles.id) && { backgroundColor: 'transparent', borderColor: muted }]}
-                  >
-                    <Text style={[styles.feedFollowText, followingSet.has(event.profiles.id) && { color: muted }]}>
-                      {followingSet.has(event.profiles.id) ? 'Following' : '+ Follow'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                <View style={[styles.priceBadge, {
-                  backgroundColor: (!event.price || event.price === 'FREE' || event.price === 0) ? 'rgba(16,185,129,0.15)' : `${catColor}22`,
-                  borderColor: (!event.price || event.price === 'FREE' || event.price === 0) ? '#10b981' : catColor,
-                }]}>
-                  <Text style={[styles.priceText, {
-                    color: (!event.price || event.price === 'FREE' || event.price === 0) ? '#10b981' : catColor,
-                  }]}>
-                    {(!event.price || event.price === 0) ? 'FREE' : event.price}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Crew signal badge */}
-              {crewCount >= 1 && (
-                <View style={[styles.crewBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}35` }]}>
-                  <Feather name="users" size={11} color={primary} />
-                  <Text style={[styles.crewBadgeText, { color: primary }]}>
-                    {crewCount} {crewCount === 1 ? 'person' : 'people'} you follow {crewCount === 1 ? 'is' : 'are'} going
-                  </Text>
-                </View>
-              )}
-
-              {/* Two-column row: title+desc LEFT, meta chips RIGHT */}
-              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-                <TouchableOpacity
-                  style={{ flex: 1 }}
-                  activeOpacity={0.8}
-                  onPress={() => setSelectedEvent(event)}
-                  accessibilityHint="Double-tap to open event details"
-                >
-                  <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
-                  <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>
-                </TouchableOpacity>
-
-                {/* Right column: date / time / venue / countdown chips */}
-                <View style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0, maxWidth: 110 }}>
-                  {event.event_date ? (
-                    <View style={[styles.metaChip, { borderColor: `${primary}22` }]}>
-                      <Feather name="calendar" size={10} color={primary} />
-                      <Text style={[styles.metaChipText, { color: primary }]}>
-                        {new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}
-                      </Text>
-                    </View>
-                  ) : null}
-                  {event.event_time ? (
-                    <View style={[styles.metaChip, { borderColor: `${muted}30` }]}>
-                      <Feather name="clock" size={10} color={muted} />
-                      <Text style={[styles.metaChipText, { color: muted }]}>{event.event_time}</Text>
-                    </View>
-                  ) : null}
-                  {(event.venue_name || event.address) ? (
-                    <TouchableOpacity
-                      style={[styles.metaChip, { borderColor: `${primary}30` }]}
-                      onPress={() => SecurityService.safeOpenURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
-                    >
-                      <Feather name="map-pin" size={10} color={primary} />
-                      <Text style={[styles.metaChipText, { color: primary }]} numberOfLines={1}>
-                        {event.venue_name || event.address}
-                      </Text>
-                    </TouchableOpacity>
-                  ) : null}
-                  {countdown ? (
-                    <View style={[styles.metaChip, { borderColor: `${primary}35`, backgroundColor: `${primary}10` }]}>
-                      <Feather name="clock" size={10} color={primary} />
-                      <Text style={[styles.metaChipText, { color: primary, fontWeight: '800' }]}>{countdown}</Text>
-                    </View>
-                  ) : null}
-                  {event._aiRecommended ? (
-                    <View style={[styles.metaChip, { borderColor: '#7c3aed50', backgroundColor: '#7c3aed12' }]}>
-                      <Text style={{ fontSize: 9 }}>✦</Text>
-                      <Text style={[styles.metaChipText, { color: '#a78bfa' }]}>AI Pick</Text>
-                    </View>
-                  ) : null}
-                </View>
-              </View>
-
-              {/* Item 62: RSVP progress bar with progressbar role */}
-              {event.capacity > 0 ? (
-                <View style={styles.rsvpWrap}>
-                  <View style={[styles.rsvpTrack, { backgroundColor: `${catColor}15` }]}>
-                    <View
-                      style={[
-                        styles.rsvpFill,
-                        { width: `${goingPct}%`, backgroundColor: catColor },
-                        isWeb && { boxShadow: `0 0 10px ${catColor}80` }
-                      ]}
-                      accessibilityRole="progressbar"
-                      accessibilityLabel={`${goingPct}% capacity filled`}
-                      {...(isWeb ? { role: 'progressbar', 'aria-valuenow': goingPct, 'aria-valuemin': 0, 'aria-valuemax': 100 } : {})}
-                    />
-                  </View>
-                  <View style={styles.rsvpLabels}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <AvatarStack count={event.going || 0} primary={primary} />
-                      <Text style={[styles.rsvpText, { color: textColor }]}>{event.going || 0} going</Text>
-                    </View>
-                    {event.capacity - (event.going || 0) > 0 && (
-                      <Text style={[styles.rsvpText, { color: muted }]}>
-                        {event.capacity - (event.going || 0)} spots left
-                      </Text>
-                    )}
-                  </View>
-                </View>
-              ) : null}
-
-              {/* Ticket */}
-              {event.ticket_url ? (
-                <TouchableOpacity
-                  style={[styles.ticketBtn, { borderColor: catColor }]}
-                  onPress={() => SecurityService.safeOpenURL(event.ticket_url)}
-                >
-                  <Feather name="tag" size={13} color={catColor} />
-                  <Text style={[styles.ticketText, { color: catColor }]}>Get Tickets / RSVP</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-
-            {/* Schedule preview — tap card to see full schedule + polls */}
-            {event.schedule?.length > 0 && (
-              <TouchableOpacity
-                style={[styles.schedulePreview, { backgroundColor: `${primary}0d`, borderTopColor: `${primary}20` }]}
-                onPress={() => setSelectedEvent(event)}
-                activeOpacity={0.8}
-              >
-                <Feather name="calendar" size={13} color={primary} />
-                <Text style={[styles.schedulePreviewText, { color: primary }]}>
-                  {event.schedule.length} schedule slot{event.schedule.length !== 1 ? 's' : ''}
-                  {' · '}{event.schedule.slice(0, 2).map(s => s.time).join(', ')}
-                  {event.schedule.length > 2 ? ' …' : ''}
-                </Text>
-                <Feather name="chevron-right" size={13} color={primary} />
-              </TouchableOpacity>
-            )}
-
-            {event.reaction_count > 0 ? (
-              <TouchableOpacity
-                style={[styles.reactionSummary, { borderTopColor: `${primary}12`, borderBottomColor: `${primary}12` }]}
-                onPress={() => { setReactorsEvent(id); setReactorsFilter('all'); fetchReactors(id); }}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.reactionEmojis}>
-                  {event.reactions_summary
-                    || (userReaction ? (REACTION_LIST.find(r => r.key === userReaction)?.emoji || '✨') : '✨')}
-                </Text>
-                <Text style={[styles.reactionCount, { color: muted }]}>
-                  {event.reaction_count} {event.reaction_count === 1 ? 'reaction' : 'reactions'}
-                </Text>
-                <Feather name="chevron-right" size={12} color={muted} style={{ marginLeft: 'auto' }} />
-              </TouchableOpacity>
-            ) : null}
-
-            {/* Action bar — Item 51: accessible labels on all action buttons */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
-              <View style={styles.actionBar}>
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => handleVibe(id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
-                >
-                  <Feather name="zap" size={19} color={isVibed ? '#ef4444' : muted} />
-                  <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? '#ef4444' : muted }]} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => toggleSection(id, 'react')}
-                  accessibilityRole="button"
-                  accessibilityLabel="React to this event"
-                >
-                  {userReaction
-                    ? <Text style={{ fontSize: 19 }}>{REACTION_LIST.find(r => r.key === userReaction)?.emoji || '😊'}</Text>
-                    : <Feather name="smile" size={19} color={muted} />
-                  }
-                  <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => toggleSection(id, 'echo')}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
-                >
-                  <Feather name="message-circle" size={19} color={openSection[id] === 'echo' ? primary : muted} />
-                  <Text style={[styles.actionCount, { color: openSection[id] === 'echo' ? primary : muted }]}>{event.echo_count || 0}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => toggleSection(id, 'gallery')}
-                  accessibilityRole="button"
-                  accessibilityLabel="View event gallery"
-                >
-                  <Feather name="camera" size={19} color={openSection[id] === 'gallery' ? primary : muted} />
-                  <Text style={[styles.actionLabel, { color: openSection[id] === 'gallery' ? primary : muted }]}>Gallery</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => toggleSection(id, 'pulse')}
-                  accessibilityRole="button"
-                  accessibilityLabel="View Pulse Schedule"
-                >
-                  <Feather name="activity" size={19} color={openSection[id] === 'pulse' ? primary : muted} />
-                  <Text style={[styles.actionLabel, { color: openSection[id] === 'pulse' ? primary : muted }]}>Pulse</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => handleToggleRoute(event)}
-                  accessibilityRole="button"
-                  accessibilityLabel={routeEvents.some(re => re.id === id) ? 'Remove from journey' : 'Pin to your journey'}
-                >
-                  <Feather
-                    name={routeEvents.some(re => re.id === id) ? "map-pin" : "plus-circle"}
-                    size={19}
-                    color={routeEvents.some(re => re.id === id) ? primary : muted}
-                  />
-                  <Text style={[styles.actionLabel, { color: routeEvents.some(re => re.id === id) ? primary : muted }]}>Journey</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => toggleSection(id, 'rate')}
-                  accessibilityRole="button"
-                  accessibilityLabel="Rate this event"
-                >
-                  <Feather name="star" size={19} color={openSection[id] === 'rate' ? primary : muted} />
-                  <Text style={[styles.actionLabel, { color: openSection[id] === 'rate' ? primary : muted }]}>Rate</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => handleShare(event)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Share event: ${title}`}
-                >
-                  <Feather name="share-2" size={19} color={muted} />
-                  <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionBtn} onPress={() => {
-                  safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
-                  user ? setRsvpEvent(event) : onAuthRequired();
-                }}>
-                  <Feather name="check-circle" size={19} color={muted} />
-                  <Text style={[styles.actionLabel, { color: muted }]}>RSVP</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionBtn} onPress={() => setReportTarget({ id, type: 'event' })}>
-                  <Feather name="flag" size={19} color={muted} />
-                </TouchableOpacity>
-
-                {isOwner && (
-                  <TouchableOpacity style={styles.actionBtn} onPress={() => setEditEvent(event)}>
-                    <Feather name="edit-2" size={19} color={primary} />
-                  </TouchableOpacity>
-                )}
-
-                {isOwner && (
-                  <TouchableOpacity style={styles.actionBtn} onPress={() => setAdminEvent(event)}>
-                    <Feather name="bar-chart-2" size={19} color={primary} />
-                    <Text style={[styles.actionLabel, { color: primary }]}>Admin</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </ScrollView>
-
-            {/* Collapsible sections — each in its own SafeSection */}
-            {openSection[id] === 'react' && (
-              <ReactPicker visible onReact={key => handleReact(id, key)} userReaction={userReaction} />
-            )}
-            {openSection[id] === 'echo' && (
-              <EchoSection eventId={id} onAuthRequired={onAuthRequired} />
-            )}
-            {openSection[id] === 'gallery' && (
-              <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
-                <EventGallery eventId={id} />
-              </View>
-            )}
-            {openSection[id] === 'rate' && (
-              <RatingSection eventId={id} onAuthRequired={onAuthRequired} />
-            )}
-            {openSection[id] === 'pulse' && (
-              <PulseScheduleSection eventId={id} eventCategory={event.category} onAuthRequired={onAuthRequired} />
-            )}
-            {!isSample && (() => {
-              let isEventDay = true;
-              if (event.event_date) {
-                const evMs = new Date(event.event_date).getTime();
-                const diffDays = (Date.now() - evMs) / 86400000;
-                isEventDay = diffDays >= -1 && diffDays < 2;
-              }
-              return isEventDay ? (
-                <PresenceBar
-                  eventId={id}
-                  eventEndTime={event.end_time}
-                  eventLat={event.lat}
-                  eventLon={event.lon}
-                  onAuthRequired={onAuthRequired}
-                />
-              ) : null;
-            })()}
-            {!isSample && (
-              <ReturnPathCard
-                event={event}
-                checkins={eventCheckins[id] || []}
-                primary={primary}
-                muted={muted}
-                textColor={textColor}
-                bg={surface}
-                onDismiss={() => toast?.show('Return path dismissed', 'info')}
-                onCheckinsFetch={() => fetchEventCheckins(id)}
-              />
-            )}
-          </View>
-          </Animated.View>
-        </FadeInView>
-        {showAd && (
-          <AdFlywheel intentTag="attending" onNavigateToServices={onNavigateToServices} />
-        )}
-      </React.Fragment>
+      <EventCard
+        event={event}
+        index={index}
+        user={user}
+        primary={primary}
+        surface={surface}
+        textColor={textColor}
+        muted={muted}
+        isVibed={myVibes.has(id)}
+        vibeCounts={vibeCounts}
+        isSaved={savedEvents.has(id)}
+        userReaction={reactions[id]}
+        crewCount={crewRsvpMap[id] || 0}
+        isHighlighted={highlightedId === id}
+        flashColor={reactionFlash[id]}
+        isRoute={routeEvents.some(re => re.id === id)}
+        isFollowing={followingSet.has(event.profiles?.id)}
+        checkins={eventCheckins[id]}
+        onAuthRequired={onAuthRequired}
+        onNavigateToServices={onNavigateToServices}
+        onSelectEvent={setSelectedEvent}
+        onEditEvent={setEditEvent}
+        onAdminEvent={setAdminEvent}
+        onRsvpEvent={setRsvpEvent}
+        onReportTarget={setReportTarget}
+        onSetReactorsEvent={(eventId) => { setReactorsEvent(eventId); setReactorsFilter('all'); fetchReactors(eventId); }}
+        onFetchCheckins={fetchEventCheckins}
+        onOpenViberProfile={openViberProfile}
+        onFollow={handleFollowFromFeed}
+        onImageTap={handleImageTap}
+        onImageLongPress={handleImageLongPress}
+        onCardPressIn={onCardPressIn}
+        onCardPressOut={onCardPressOut}
+        scaleValue={getCardScale(id)}
+        heartAnim={heartAnimRef.current[id]}
+        openSection={openSection[id]}
+        onVibe={handleVibe}
+        onBookmark={handleBookmark}
+        onReact={handleReact}
+        onShare={handleShare}
+        onToggleRoute={handleToggleRoute}
+        onToggleSection={toggleSection}
+      />
     );
   }, [myVibes, vibeCounts, reactions, savedEvents, openSection, reactionFlash, routeEvents, crewRsvpMap,
       followingSet, highlightedId, eventCheckins, user, primary, surface, textColor, muted, mode,
@@ -2111,7 +2194,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {/* ── Vibe Plan FAB (bottom left, above nav bar) ────────────────────── */}
       {!!user && (
         <TouchableOpacity
-          style={[styles.createFab, { backgroundColor: '#6366f1', bottom: (insets.bottom || 0) + 20, right: undefined, left: 20 }]}
+          style={[styles.createFab, { backgroundColor: "#6366f1", bottom: (insets.bottom || 0) + 20, right: undefined, left: 20 }]}
           onPress={() => {
             safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
             setPlannerVisible(true);
@@ -2247,8 +2330,8 @@ const styles = StyleSheet.create({
   verifiedBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   priceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
   priceText: { fontSize: 11, fontWeight: '900' },
-  feedFollowBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#00f2ff', backgroundColor: 'rgba(0,242,255,0.1)', marginRight: 6 },
-  feedFollowText: { fontSize: 11, fontWeight: '700', color: '#00f2ff' },
+  feedFollowBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: "#00f2ff", backgroundColor: 'rgba(0,242,255,0.1)', marginRight: 6 },
+  feedFollowText: { fontSize: 11, fontWeight: '700', color: "#00f2ff" },
 
   eventTitle: { fontSize: 22, fontWeight: '900', marginBottom: 8, letterSpacing: -0.3 },
   eventDesc: { fontSize: 14, lineHeight: 22, marginBottom: 14, opacity: 0.85 },
@@ -2297,7 +2380,7 @@ const styles = StyleSheet.create({
 
   // Royal Journey FAB
   routeFab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, elevation: 10, zIndex: 100 },
-  routeFabBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: '#ef4444', minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#000' },
+  routeFabBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: "#ef4444", minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#000' },
   routeFabBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
   reactorsSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, paddingBottom: 0, maxHeight: '65%' },
   reactorsHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 12 },

@@ -47,6 +47,18 @@ DROP POLICY IF EXISTS "sport_config_host" ON public.event_sport_config;
 CREATE POLICY "sport_config_host" ON public.event_sport_config FOR ALL
   USING (EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND author_id = auth.uid()));
 
+-- ── SPORT GROUPS (for group-stage tournaments) ───────────────────────────────
+CREATE TABLE IF NOT EXISTS public.sport_groups (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id    UUID        NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  name        TEXT        NOT NULL,           -- "Group A", "Pool 1", etc.
+  position    INTEGER     DEFAULT 0,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.sport_groups ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "sport_groups_read" ON public.sport_groups;
+CREATE POLICY "sport_groups_read" ON public.sport_groups FOR SELECT USING (true);
+
 -- ── SPORT TEAMS ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.sport_teams (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -456,26 +468,51 @@ CREATE TRIGGER trg_sport_media_likes_count
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --  PART 3 — MIGRATION 22: SOFT DELETE
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ALTER TABLE public.events        ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-ALTER TABLE public.sport_media   ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-ALTER TABLE public.event_lineup  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-ALTER TABLE public.event_vendors ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+-- ── EVENTS ───────────────────────────────────────────────────────────────────
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'events') THEN
+    EXECUTE 'ALTER TABLE public.events ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_events_not_deleted ON public.events(event_date DESC) WHERE deleted_at IS NULL';
+    EXECUTE 'DROP POLICY IF EXISTS "events_select" ON public.events';
+    EXECUTE 'CREATE POLICY "events_select" ON public.events FOR SELECT USING (deleted_at IS NULL AND (is_published = true OR author_id = auth.uid()))';
+  END IF;
+END;
+$$;
 
-CREATE INDEX IF NOT EXISTS idx_events_not_deleted
-  ON public.events(event_date DESC) WHERE deleted_at IS NULL;
-CREATE INDEX IF NOT EXISTS idx_sport_media_not_deleted
-  ON public.sport_media(event_id, created_at DESC) WHERE deleted_at IS NULL;
+-- ── SPORT MEDIA ──────────────────────────────────────────────────────────────
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'sport_media') THEN
+    EXECUTE 'ALTER TABLE public.sport_media ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_sport_media_not_deleted ON public.sport_media(event_id, created_at DESC) WHERE deleted_at IS NULL';
+    EXECUTE 'DROP POLICY IF EXISTS "sport_media_read" ON public.sport_media';
+    EXECUTE 'CREATE POLICY "sport_media_read" ON public.sport_media FOR SELECT USING (deleted_at IS NULL)';
+  END IF;
+END;
+$$;
 
--- Update events SELECT policy to exclude soft-deleted rows
-DROP POLICY IF EXISTS "events_select" ON public.events;
-CREATE POLICY "events_select" ON public.events FOR SELECT
-  USING (deleted_at IS NULL AND (is_published = true OR author_id = auth.uid()));
+-- ── EVENT LINEUP ─────────────────────────────────────────────────────────────
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'event_lineup') THEN
+    EXECUTE 'ALTER TABLE public.event_lineup ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ';
+    EXECUTE 'DROP POLICY IF EXISTS "lineup_read" ON public.event_lineup';
+    EXECUTE 'CREATE POLICY "lineup_read" ON public.event_lineup FOR SELECT USING (deleted_at IS NULL)';
+  END IF;
+END;
+$$;
 
--- lineup and vendors read policies
-DROP POLICY IF EXISTS "lineup_read" ON public.event_lineup;
-CREATE POLICY "lineup_read" ON public.event_lineup FOR SELECT USING (deleted_at IS NULL);
-DROP POLICY IF EXISTS "vendors_read" ON public.event_vendors;
-CREATE POLICY "vendors_read" ON public.event_vendors FOR SELECT USING (deleted_at IS NULL);
+-- ── EVENT VENDORS ────────────────────────────────────────────────────────────
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'event_vendors') THEN
+    EXECUTE 'ALTER TABLE public.event_vendors ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ';
+    EXECUTE 'DROP POLICY IF EXISTS "vendors_read" ON public.event_vendors';
+    EXECUTE 'CREATE POLICY "vendors_read" ON public.event_vendors FOR SELECT USING (deleted_at IS NULL)';
+  END IF;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.soft_delete(p_table TEXT, p_id UUID)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -607,8 +644,15 @@ CREATE TRIGGER trg_event_media_likes_count
   AFTER INSERT OR DELETE ON public.event_media_likes
   FOR EACH ROW EXECUTE FUNCTION public.sync_event_media_likes_count();
 
-ALTER TABLE public.event_sessions ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ;
-ALTER TABLE public.event_sessions ADD COLUMN IF NOT EXISTS recording_live_url TEXT;
+-- ── EVENT SESSIONS ALTERATION ────────────────────────────────────────────────
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'event_sessions') THEN
+    EXECUTE 'ALTER TABLE public.event_sessions ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ';
+    EXECUTE 'ALTER TABLE public.event_sessions ADD COLUMN IF NOT EXISTS recording_live_url TEXT';
+  END IF;
+END;
+$$;
 
 -- Realtime (event parity tables)
 DO $$
@@ -691,8 +735,14 @@ CREATE POLICY "memberships_self"  ON public.club_memberships FOR ALL
   WITH CHECK (user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.clubs WHERE id = club_id AND owner_id = auth.uid()));
 
 -- Link sport_teams to clubs
-ALTER TABLE public.sport_teams ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES public.clubs(id) ON DELETE SET NULL;
-CREATE INDEX IF NOT EXISTS idx_sport_teams_club ON public.sport_teams(club_id);
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'sport_teams') THEN
+    EXECUTE 'ALTER TABLE public.sport_teams ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES public.clubs(id) ON DELETE SET NULL';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_sport_teams_club ON public.sport_teams(club_id)';
+  END IF;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS public.event_awards (
   id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),

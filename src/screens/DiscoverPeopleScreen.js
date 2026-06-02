@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
-  Image, ActivityIndicator, RefreshControl, Platform, ScrollView, Animated,
+  ActivityIndicator, RefreshControl, Platform, ScrollView, Animated,
   PanResponder, Dimensions,
 } from 'react-native';
+import { SmartImage } from '../components/SmartImage';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
@@ -14,6 +15,7 @@ import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { useToast } from '../components/ToastNotification';
 import { DiscoveryManager, isOnline as checkOnline } from '../services/dataFlow';
+import { LocationService } from '../services/locationService';
 import { resilientRead, resilient } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
 
@@ -60,7 +62,7 @@ const SimpleSlider = ({ min, max, value, onChange, primary, muted, unit = '' }) 
           left: 16,
           transform: [{ translateX: thumbX }],
           width: 22, height: 22, borderRadius: 11,
-          backgroundColor: primary, borderWidth: 3, borderColor: '#0d1112',
+          backgroundColor: primary, borderWidth: 3, borderColor: "#0d1112",
           shadowColor: primary, shadowOpacity: 0.6, shadowRadius: 4, shadowOffset: { width: 0, height: 0 },
         }}
       />
@@ -90,13 +92,13 @@ const DESC_HAIR = [
 const DESC_BODY = ['Slim', 'Athletic', 'Average', 'Curvy', 'Plus Size', 'Tall', 'Short', 'Muscular'];
 
 const DESC_SKIN = [
-  { key: 'very_light', label: 'Very Light', color: '#fddbc4' },
-  { key: 'light',      label: 'Light',      color: '#f1c89b' },
-  { key: 'medium',     label: 'Medium',     color: '#c8926b' },
-  { key: 'tan',        label: 'Tan/Olive',  color: '#9c6b42' },
-  { key: 'brown',      label: 'Brown',      color: '#7c4a28' },
-  { key: 'dark',       label: 'Dark Brown', color: '#4a2712' },
-  { key: 'deep',       label: 'Deep/Ebony', color: '#2d1408' },
+  { key: 'very_light', label: 'Very Light', color: "#fddbc4" },
+  { key: 'light',      label: 'Light',      color: "#f1c89b" },
+  { key: 'medium',     label: 'Medium',     color: "#c8926b" },
+  { key: 'tan',        label: 'Tan/Olive',  color: "#9c6b42" },
+  { key: 'brown',      label: 'Brown',      color: "#7c4a28" },
+  { key: 'dark',       label: 'Dark Brown', color: "#4a2712" },
+  { key: 'deep',       label: 'Deep/Ebony', color: "#2d1408" },
 ];
 
 const DESC_INTERESTS = [
@@ -105,16 +107,16 @@ const DESC_INTERESTS = [
 ];
 
 const RANK_LABELS = [
-  { min: 0,     max: 100,    name: 'Viber',       color: '#94a3b8' },
-  { min: 101,   max: 500,    name: 'Elite Viber', color: '#06b6d4' },
-  { min: 501,   max: 2000,   name: 'Royal Viber', color: '#8b5cf6' },
-  { min: 2001,  max: 10000,  name: 'Gruv Master', color: '#f59e0b' },
-  { min: 10001, max: Infinity, name: 'Grand Viber', color: '#ef4444' },
+  { min: 0,     max: 100,    name: 'Viber',       color: "#94a3b8" },
+  { min: 101,   max: 500,    name: 'Elite Viber', color: "#06b6d4" },
+  { min: 501,   max: 2000,   name: 'Royal Viber', color: "#8b5cf6" },
+  { min: 2001,  max: 10000,  name: 'Gruv Master', color: "#f59e0b" },
+  { min: 10001, max: Infinity, name: 'Grand Viber', color: "#ef4444" },
 ];
 const getRank = (score = 0) => RANK_LABELS.find(r => score >= r.min && score <= r.max) || RANK_LABELS[0];
 
 const avatarBg = (u = '') =>
-  ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(u.charCodeAt(0) || 0) % 5];
+  ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u.charCodeAt(0) || 0) % 5];
 
 function ViberSkeleton({ primary, surface }) {
   const pulse = useRef(new Animated.Value(0.4)).current;
@@ -151,7 +153,7 @@ function ViberRow({ viber, primary, textColor, muted, bg, onPress, onMessage, is
       {/* Avatar */}
       <View style={{ position: 'relative' }}>
         {viber.avatar_url
-          ? <Image source={{ uri: viber.avatar_url }} style={s.avatar} />
+          ? <SmartImage source={viber.avatar_url} style={s.avatar} />
           : <View style={[s.avatar, { backgroundColor: avatarBg(viber.username), alignItems: 'center', justifyContent: 'center' }]}>
               <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>{(viber.username || 'V')[0].toUpperCase()}</Text>
             </View>
@@ -201,12 +203,12 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
-  const { applyProfilePrivacy } = useIdentity();
+  const { applyProfilePrivacy, applyLocationPrivacy } = useIdentity();
   const { show: showToast } = useToast();
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
-  const surface   = currentTheme?.surface    || '#1a1f21';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
+  const surface   = currentTheme?.surface    || "#1a1f21";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -253,7 +255,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
     try {
       const scored = await resilientRead(
         async () => {
-          const { data, error } = await supabase.rpc('suggested_follows', { p_user: user.id, p_limit: 6 });
+          const { data, error } = await supabase.rpc('suggested_follows', { p_user: user?.id, p_limit: 6 });
           if (error) throw error;
           if (!data?.length) return [];
           const ids = data.map(r => r.suggested_id);
@@ -304,9 +306,19 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
 
   const fetchNearby = useCallback(async () => {
     if (!user) return [];
+    let coords = LocationService.getCached();
+    if (!coords) {
+      coords = await LocationService.requestAndGet();
+    }
+    if (coords) {
+      const privateCoords = applyLocationPrivacy(coords.lat, coords.lon);
+      if (privateCoords) {
+        await LocationService.saveToProfile(user.id, privateCoords.lat, privateCoords.lon);
+      }
+    }
     const results = await DiscoveryManager.findNearbyVibers(user.id, nearbyRadius);
     return (results || []).filter(v => v.id !== user.id);
-  }, [user, nearbyRadius]);
+  }, [user, nearbyRadius, applyLocationPrivacy]);
 
   const load = useCallback(async (isRefresh = false, q = '') => {
     if (isRefresh) setRefreshing(true);
@@ -399,7 +411,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
     if (!user) return;
     try {
       await supabase.from('user_blocks').upsert(
-        { blocker_id: user.id, blocked_id: viber.id },
+        { blocker_id: user?.id, blocked_id: viber.id },
         { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
       );
       setBlockedIds(prev => new Set([...prev, viber.id]));
@@ -489,7 +501,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
             <Text style={{ color: textColor, fontSize: 13, fontWeight: '900' }}>Describe who you're looking for</Text>
             {(descGender || descHair || descBody || descSkin || descInterest || minAge !== 18 || maxAge !== 45) && (
               <TouchableOpacity onPress={() => { setDescGender(null); setDescHair(null); setDescBody(null); setDescSkin(null); setDescInterest(null); setMinAge(18); setMaxAge(45); }}>
-                <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '800' }}>Clear All</Text>
+                <Text style={{ color: "#ef4444", fontSize: 11, fontWeight: '800' }}>Clear All</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -562,7 +574,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       ) : fetchError ? (
         <View style={s.empty}>
           <Feather name="alert-circle" size={44} color="#ef4444" style={{ opacity: 0.7 }} />
-          <Text style={[s.emptyTitle, { color: '#ef4444' }]}>Could not load Vibers</Text>
+          <Text style={[s.emptyTitle, { color: "#ef4444" }]}>Could not load Vibers</Text>
           <Text style={[s.emptySub, { color: muted }]}>{fetchError}</Text>
           <TouchableOpacity
             style={[s.retryBtn, { backgroundColor: primary }]}
@@ -593,7 +605,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
                         activeOpacity={0.8}
                       >
                         {v.avatar_url
-                          ? <Image source={{ uri: v.avatar_url }} style={s.suggestAvatar} />
+                          ? <SmartImage source={v.avatar_url} style={s.suggestAvatar} />
                           : <View style={[s.suggestAvatar, { backgroundColor: avatarBg(v.username), alignItems: 'center', justifyContent: 'center' }]}>
                               <Text style={{ color: '#fff', fontWeight: '900', fontSize: 15 }}>{(v.username || 'V')[0].toUpperCase()}</Text>
                             </View>
@@ -612,7 +624,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
                                   [
                                     () => supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', v.id),
                                     () => supabase.from('follows').update({ unfollowed_at: new Date().toISOString() }).eq('follower_id', user.id).eq('following_id', v.id),
-                                    () => supabase.rpc('unfollow_user', { p_follower_id: user.id, p_following_id: v.id }),
+                                    () => supabase.rpc('unfollow_user', { p_follower_id: user?.id, p_following_id: v.id }),
                                   ],
                                   { attemptsPerTier: 2, baseMs: 300, label: `DiscoverPeople.unfollow:${v.id}`, fallbackValue: null }
                                 );
@@ -621,9 +633,9 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
                                 setFollowedIds(prev => new Set([...prev, v.id]));
                                 const ok = await resilient(
                                   [
-                                    () => supabase.from('follows').upsert({ follower_id: user.id, following_id: v.id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
-                                    () => supabase.from('follows').insert({ follower_id: user.id, following_id: v.id }),
-                                    () => supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: v.id }),
+                                    () => supabase.from('follows').upsert({ follower_id: user?.id, following_id: v.id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
+                                    () => supabase.from('follows').insert({ follower_id: user?.id, following_id: v.id }),
+                                    () => supabase.rpc('follow_user', { p_follower_id: user?.id, p_following_id: v.id }),
                                   ],
                                   { attemptsPerTier: 2, baseMs: 300, label: `DiscoverPeople.follow:${v.id}`, fallbackValue: null }
                                 );
@@ -697,8 +709,8 @@ const s = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '900', letterSpacing: 0.3 },
   sub: { fontSize: 11, fontWeight: '600', marginTop: 1 },
   onlineBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  onlinePip: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#10b981' },
-  onlineBadgeText: { color: '#10b981', fontSize: 11, fontWeight: '800' },
+  onlinePip: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#10b981" },
+  onlineBadgeText: { color: "#10b981", fontSize: 11, fontWeight: '800' },
   searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 14, height: 44, borderRadius: 22, borderWidth: 1 },
   searchInput: { flex: 1, fontSize: 14 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, marginBottom: 12 },
@@ -709,7 +721,7 @@ const s = StyleSheet.create({
   descLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4, marginBottom: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 18, padding: 12, marginBottom: 8 },
   avatar: { width: 52, height: 52, borderRadius: 26 },
-  onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: '#10b981', borderWidth: 2 },
+  onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: "#10b981", borderWidth: 2 },
   username: { fontSize: 14, fontWeight: '800' },
   rankLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
   dist: { fontSize: 10, fontWeight: '700' },
