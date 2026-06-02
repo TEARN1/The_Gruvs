@@ -49,6 +49,7 @@ import { RatingSection } from '../components/RatingSection';
 import { PulseScheduleSection } from '../components/PulseScheduleSection';
 import { EventGallery } from '../components/EventGallery';
 import { ReactPicker } from '../components/ReactPicker';
+import { SuggestedFollows } from '../components/SuggestedFollows';
 import { ReactedBadge } from '../components/ReactionFX';
 
 // ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
@@ -1665,6 +1666,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           })}
         </View>
       )}
+
+      {/* Who to follow — suggested people, attractive cards */}
+      {user && <SuggestedFollows />}
 
       {/* Category pills — Item 54: sticky-filter-bar class for glassmorphic sticky on web */}
       <ScrollView

@@ -1,0 +1,161 @@
+/**
+ * SuggestedFollows — "who to follow" card strip for the feed.
+ *
+ * A horizontal rail of people you don't follow yet, ranked by the
+ * suggested_follows RPC (mutuals) with a vibe_score fallback. Each card is a
+ * tappable mini-profile with a one-tap Follow. Self-contained: it fetches,
+ * follows, and opens profiles on its own — drop <SuggestedFollows /> anywhere.
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator,
+} from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../services/supabase';
+import { resilientRead } from '../utils/resilience';
+import { haptics } from '../utils/haptics';
+import { ViberProfileModal } from './ViberProfileModal';
+
+const AV_COLORS = ['#8b5cf6', '#ec4899', '#f97316', '#10b981', '#3b82f6', '#f59e0b', '#06b6d4', '#a78bfa'];
+const avatarBg = (name = '') => AV_COLORS[(name.charCodeAt(0) || 0) % AV_COLORS.length];
+
+export const SuggestedFollows = ({ onNavigateToEvent }) => {
+  const { currentTheme } = useTheme();
+  const { user } = useAuth();
+  const primary   = currentTheme?.primary    || '#00f2ff';
+  const textColor = currentTheme?.text       || '#fff';
+  const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.55)';
+  const surface   = currentTheme?.surface    || '#131a1c';
+
+  const [people, setPeople]   = useState([]);
+  const [followed, setFollowed] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+  const [openId, setOpenId]   = useState(null);
+
+  const load = useCallback(async () => {
+    if (!user) { setLoading(false); return; }
+    let followingIds = new Set();
+    try {
+      const { data } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
+      followingIds = new Set((data || []).map(r => r.following_id));
+    } catch { /* ignore */ }
+
+    const cols = 'id, username, display_name, avatar_url, is_verified, vibe_score, bio, career_title';
+    const scored = await resilientRead(
+      async () => {
+        const { data, error } = await supabase.rpc('suggested_follows', { p_user: user.id, p_limit: 14 });
+        if (error) throw error;
+        if (!data?.length) return [];
+        const ids = data.map(r => r.suggested_id);
+        const { data: profiles, error: pErr } = await supabase.from('profiles').select(cols).in('id', ids);
+        if (pErr) throw pErr;
+        return (profiles || [])
+          .map(p => ({ ...p, mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0 }))
+          .sort((a, b) => b.mutual_count - a.mutual_count);
+      },
+      async () => {
+        const { data, error } = await supabase.from('profiles').select(cols)
+          .neq('id', user.id).order('vibe_score', { ascending: false }).limit(14);
+        if (error) throw error;
+        return (data || []).map(p => ({ ...p, mutual_count: 0 }));
+      },
+      async () => [],
+      [],
+      'SuggestedFollows.load',
+    );
+    setPeople((scored || []).filter(p => p.id !== user.id && !followingIds.has(p.id)));
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const follow = useCallback(async (id) => {
+    if (!user) return;
+    try { haptics.select?.(); } catch {}
+    setFollowed(prev => new Set(prev).add(id));
+    try {
+      const { error } = await supabase.from('follows')
+        .upsert({ follower_id: user.id, following_id: id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
+      if (error) {
+        await supabase.from('follows').insert({ follower_id: user.id, following_id: id });
+      }
+    } catch {
+      setFollowed(prev => { const n = new Set(prev); n.delete(id); return n; });
+    }
+  }, [user]);
+
+  if (!user) return null;
+  if (!loading && people.length === 0) return null;
+
+  return (
+    <View style={sf.wrap}>
+      <View style={sf.header}>
+        <Feather name="user-plus" size={15} color={primary} />
+        <Text style={[sf.title, { color: textColor }]}>Suggested for you</Text>
+      </View>
+
+      {loading ? (
+        <ActivityIndicator color={primary} style={{ marginVertical: 26 }} />
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 12, paddingBottom: 4 }}>
+          {people.map(p => {
+            const isFollowed = followed.has(p.id);
+            const name = p.display_name || p.username || 'Viber';
+            const sub = p.career_title || p.bio
+              || (p.mutual_count > 0 ? `${p.mutual_count} mutual${p.mutual_count !== 1 ? 's' : ''}` : 'On The Gruvs');
+            return (
+              <View key={p.id} style={[sf.card, { backgroundColor: surface, borderColor: `${primary}22` }]}>
+                <TouchableOpacity activeOpacity={0.85} onPress={() => { try { haptics.light?.(); } catch {} setOpenId(p.id); }} style={{ alignItems: 'center' }}>
+                  {p.avatar_url
+                    ? <Image source={{ uri: p.avatar_url }} style={[sf.avatar, { borderColor: `${primary}40` }]} />
+                    : <View style={[sf.avatar, { backgroundColor: avatarBg(name), alignItems: 'center', justifyContent: 'center', borderColor: `${primary}40` }]}>
+                        <Text style={{ color: '#fff', fontWeight: '900', fontSize: 26 }}>{name[0].toUpperCase()}</Text>
+                      </View>}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 9, maxWidth: 120 }}>
+                    <Text style={[sf.name, { color: textColor }]} numberOfLines={1}>{name}</Text>
+                    {p.is_verified && <Feather name="check-circle" size={12} color={primary} />}
+                  </View>
+                  <Text style={[sf.sub, { color: muted }]} numberOfLines={2}>{sub}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => { if (!isFollowed) follow(p.id); }}
+                  activeOpacity={0.85}
+                  style={[sf.followBtn, isFollowed
+                    ? { backgroundColor: 'transparent', borderColor: muted }
+                    : { backgroundColor: primary, borderColor: primary }]}
+                >
+                  {isFollowed && <Feather name="check" size={12} color={muted} />}
+                  <Text style={{ color: isFollowed ? muted : '#000', fontWeight: '900', fontSize: 12 }}>
+                    {isFollowed ? 'Following' : '+ Follow'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      <ViberProfileModal
+        visible={!!openId}
+        userId={openId}
+        onClose={() => setOpenId(null)}
+        onNavigateToEvent={onNavigateToEvent}
+      />
+    </View>
+  );
+};
+
+const sf = StyleSheet.create({
+  wrap: { marginBottom: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, marginBottom: 10 },
+  title: { fontSize: 15, fontWeight: '900', letterSpacing: 0.3 },
+  card: { width: 150, borderRadius: 18, borderWidth: 1, padding: 14, alignItems: 'center' },
+  avatar: { width: 64, height: 64, borderRadius: 32, borderWidth: 2 },
+  name: { fontSize: 14, fontWeight: '900' },
+  sub: { fontSize: 11, textAlign: 'center', marginTop: 3, lineHeight: 15, minHeight: 30 },
+  followBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 10, paddingVertical: 8, borderRadius: 12, borderWidth: 1, alignSelf: 'stretch' },
+});
+
+export default SuggestedFollows;
