@@ -5,15 +5,15 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-
-// QRCode is native-only — safe conditional require so web bundle doesn't crash
-let QRCode = null;
-try { QRCode = require('react-native-qrcode-svg').default; } catch { QRCode = null; }
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 
+// On web, we use our enhanced SVG-based QRCode that's actually scannable
+import QRCode from 'react-native-qrcode-svg';
+
+
 // ── Single ticket card ─────────────────────────────────────────────────────────
-const TicketCard = ({ rsvp, event, primary, textColor, muted }) => {
+const TicketCard = ({ rsvp, event, primary, textColor, muted, username }) => {
   const [payload, setPayload] = useState(null);
   const [tokenLoading, setTokenLoading] = useState(true);
 
@@ -73,13 +73,13 @@ const TicketCard = ({ rsvp, event, primary, textColor, muted }) => {
 
       {/* Perforated divider */}
       <View style={[tc.divider, { borderColor: `${primary}30` }]}>
-        <View style={[tc.circle, tc.circleLeft, { backgroundColor: '#0d1112' }]} />
+        <View style={[tc.circle, tc.circleLeft, { backgroundColor: "#0d1112" }]} />
         <View style={tc.dots}>
           {Array.from({ length: 18 }).map((_, i) => (
             <View key={i} style={[tc.dot, { backgroundColor: `${primary}30` }]} />
           ))}
         </View>
-        <View style={[tc.circle, tc.circleRight, { backgroundColor: '#0d1112' }]} />
+        <View style={[tc.circle, tc.circleRight, { backgroundColor: "#0d1112" }]} />
       </View>
 
       {/* Ticket body */}
@@ -101,16 +101,15 @@ const TicketCard = ({ rsvp, event, primary, textColor, muted }) => {
         <View style={[tc.qrWrap, { backgroundColor: '#fff', borderColor: `${primary}40` }]}>
           {tokenLoading || !payload ? (
             <ActivityIndicator color={primary} size="small" style={{ width: 100, height: 100 }} />
-          ) : QRCode ? (
-            <QRCode value={payload} size={100} color="#000" backgroundColor="#fff" />
           ) : (
-            // Web fallback — QR not available; show ticket ID instead
-            <View style={{ width: 100, height: 100, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <Feather name="credit-card" size={32} color={primary} />
-              <Text style={{ color: primary, fontSize: 9, fontWeight: '800', textAlign: 'center' }} selectable>
-                {payload?.slice(-12)}
-              </Text>
-            </View>
+            <QRCode
+              value={payload}
+              size={100}
+              color="#000"
+              backgroundColor="#fff"
+              username={username}
+              label="YOUR TICKET"
+            />
           )}
         </View>
       </View>
@@ -150,8 +149,8 @@ export const EventTicketModal = ({ visible, onClose }) => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const primary   = currentTheme?.primary    || '#00f2ff';
-  const bg        = currentTheme?.background || '#0d1112';
+  const primary   = currentTheme?.primary    || "#00f2ff";
+  const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
 
@@ -163,7 +162,7 @@ export const EventTicketModal = ({ visible, onClose }) => {
         const { data } = await supabase
           .from('event_rsvps')
           .select('*, events(id, title, event_date, venue_name, media)')
-          .eq('user_id', user.id)
+          .eq('user_id', user?.id)
           .order('created_at', { ascending: false })
           .limit(20);
         setTickets(data || []);
@@ -209,6 +208,7 @@ export const EventTicketModal = ({ visible, onClose }) => {
                 primary={primary}
                 textColor={textColor}
                 muted={muted}
+                username={user?.user_metadata?.username || user?.email?.split('@')[0] || 'Viber'}
               />
             ))}
           </ScrollView>

@@ -16,6 +16,8 @@ import * as Calendar from 'expo-calendar';
 import * as MediaLibrary from 'expo-media-library';
 import * as Network from 'expo-network';
 import { Accelerometer } from 'expo-sensors';
+import * as Haptics from 'expo-haptics';
+
 
 // ── BIOMETRIC AUTH ────────────────────────────────────────────────────────────
 
@@ -221,8 +223,6 @@ export const ShakeDetector = {
 };
 
 // ── HAPTIC PATTERNS (richer than basic impact) ────────────────────────────────
-
-import * as Haptics from 'expo-haptics';
 
 export const RichHaptics = {
   async success() {
