@@ -20,7 +20,7 @@ const ALLOWED_TYPES = [
   'video/mp4', 'video/quicktime', 'video/x-m4v',
 ];
 
-const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_SIZE = 150 * 1024 * 1024; // 150 MB — matches the Reel composer's stated limit
 
 const extFromPath = (storagePath) => {
   const base = storagePath.split('?')[0];

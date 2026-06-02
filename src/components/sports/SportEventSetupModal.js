@@ -18,6 +18,13 @@ import {
   TeamManager, AthleteManager, MatchManager,
 } from '../../services/sportsEngine';
 import { MembershipManager, ClubManager } from '../../services/clubEngine';
+import { supabase } from '../../services/supabase';
+
+// A two-team event (Team A vs Team B) gets a "match_card" stamped onto the
+// event so the feed/detail can show both crests as the match's face. Cleared
+// when the line-up isn't exactly two teams (e.g. a multi-team league).
+const toCardTeam = (t) => ({ name: t?.name || 'Team', logo_url: t?.logo_url || null, color: t?.color1 || null });
+const buildMatchCard = (list) => (list.length === 2 ? { home: toCardTeam(list[0]), away: toCardTeam(list[1]) } : null);
 
 const FORMATS = [
   { key: 'league',       label: 'League',         icon: 'list',      desc: 'All teams play each other. Points table decides winner.' },
@@ -56,6 +63,13 @@ export const SportEventSetupModal = ({
   const [startDate, setStartDate] = useState('');
 
   const sportMeta = SPORT_REGISTRY[sportType] || SPORT_REGISTRY.other;
+
+  // Stamp (or clear) the match crest on the parent event. Non-blocking: if the
+  // events.match_card column isn't migrated yet, the error is simply ignored.
+  const syncMatchCard = async (list) => {
+    if (!eventId) return;
+    try { await supabase.from('events').update({ match_card: buildMatchCard(list) }).eq('id', eventId); } catch {}
+  };
 
   const load = useCallback(async () => {
     if (!eventId) return;
@@ -127,7 +141,9 @@ export const SportEventSetupModal = ({
         }
       }
       const team = await TeamManager.create(eventId, teamData);
-      setTeams(prev => [...prev, team]);
+      const next = [...teams, team];
+      setTeams(next);
+      syncMatchCard(next);
       setNewTeamName('');
       setSelectedClub(null);
     } catch (e) {
@@ -139,7 +155,9 @@ export const SportEventSetupModal = ({
     setSaving(true);
     try {
       await TeamManager.delete(teamId);
-      setTeams(prev => prev.filter(t => t.id !== teamId));
+      const next = teams.filter(t => t.id !== teamId);
+      setTeams(next);
+      syncMatchCard(next);
     } finally { setSaving(false); }
   };
 
@@ -171,6 +189,7 @@ export const SportEventSetupModal = ({
         ? MatchManager.generateKnockout(teams, startDate || null)
         : MatchManager.generateRoundRobin(teams, startDate || null);
       await MatchManager.bulkCreateFixtures(eventId, fixtures);
+      await syncMatchCard(teams);
       Alert.alert('Done!', `${fixtures.length} fixtures generated.`);
       onSetupComplete?.();
       onClose();

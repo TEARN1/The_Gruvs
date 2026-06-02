@@ -13,65 +13,7 @@ import { supabase } from './supabase';
 import { resilient } from '../utils/resilience';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ── 1. OFFLINE MOCK FEED GENERATOR ───────────────────────────────────────────
-const MOCK_AVATARS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150'
-];
-
-const MOCK_VIDEOS = [
-  'https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-with-neon-lights-in-background-34288-large.mp4',
-  'https://assets.mixkit.co/videos/preview/mixkit-young-man-singing-into-a-vintage-microphone-41712-large.mp4',
-  'https://assets.mixkit.co/videos/preview/mixkit-dj-playing-music-at-a-club-party-42289-large.mp4',
-  'https://assets.mixkit.co/videos/preview/mixkit-crowd-raising-hands-at-a-music-festival-42416-large.mp4',
-  'https://assets.mixkit.co/videos/preview/mixkit-dancing-feet-of-a-crowd-at-a-party-42417-large.mp4'
-];
-
-export const generateOfflineMockReels = () => {
-  return Array.from({ length: 30 }).map((_, i) => {
-    const id = `mock-reel-${i + 1}`;
-    const user_id = `mock-user-${(i % 5) + 1}`;
-    const username = `vibe_master_${(i % 4) + 1}`;
-    return {
-      id,
-      user_id,
-      caption: `Experiencing Cape Town's finest underground event! Loving the beats here tonight #party #gruv #vibe #${i % 2 === 0 ? 'capetown' : 'nightlife'}`,
-      media_url: MOCK_VIDEOS[i % MOCK_VIDEOS.length],
-      media_type: 'video',
-      sound_name: i % 3 === 0 ? `Original Sound - @vibe_master_${(i % 4) + 1}` : `Cyberpunk Bassline (Mix ${i})`,
-      event_id: i % 2 === 0 ? 'mock-event-1' : null,
-      event_title: i % 2 === 0 ? 'Midnight Oasis Warehouse' : null,
-      like_count: Math.floor(Math.random() * 1200) + 100,
-      comment_count: Math.floor(Math.random() * 200) + 12,
-      view_count: Math.floor(Math.random() * 8000) + 1000,
-      is_deleted: false,
-      created_at: new Date(Date.now() - i * 3600000).toISOString(),
-      profiles: {
-        id: user_id,
-        username,
-        avatar_url: MOCK_AVATARS[i % MOCK_AVATARS.length],
-        vibe_score: 92 + (i % 8),
-        is_verified: i % 3 === 0,
-      },
-      metadata: {
-        filter: i % 4 === 0 ? 'cyberpunk' : i % 4 === 1 ? 'vintage' : 'none',
-        stickers: i % 5 === 0 ? [{ text: 'LIVE AT MIDNIGHT 🎧', y: 0.15, style: 'glow' }] : [],
-        trim: { start: 0, end: 30 },
-        vibeColor: i % 3 === 0 ? '#00f2ff' : '#d946ef',
-        vibeIntensity: 80
-      },
-      visibility: 'public',
-      _liked: i % 3 === 1,
-      _saved: i % 4 === 2,
-      _following: i % 5 === 0
-    };
-  });
-};
-
-// ── 2. OBSERVER REGISTRY PATTERN ─────────────────────────────────────────────
+// ── 1. OBSERVER REGISTRY PATTERN ─────────────────────────────────────────────
 class ObserverRegistry {
   constructor() {
     this.observers = new Map();
@@ -244,15 +186,13 @@ export const ReelsRepository = {
         parsedData = parsedData.filter(item => item.visibility === 'public');
       }
 
-      // If database is completely empty or network offline, provide offline mocks
-      if (!parsedData.length) {
-        return generateOfflineMockReels();
-      }
-
+      // Real data only — never fabricate reels. An empty feed shows the
+      // "Be the first to post" empty state instead of fake sample content.
       return parsedData;
     } catch (e) {
-      console.warn('Reels fetch failed, falling back to offline mocks:', e);
-      return generateOfflineMockReels();
+      console.warn('Reels fetch failed:', e);
+      // Re-throw so the screen can show its error/retry state rather than mocks.
+      throw e;
     }
   },
 

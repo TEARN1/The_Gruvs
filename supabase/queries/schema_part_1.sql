@@ -1764,6 +1764,10 @@ CREATE TABLE IF NOT EXISTS public.reels (
   created_at    TIMESTAMPTZ DEFAULT now(),
   updated_at    TIMESTAMPTZ DEFAULT now()
 );
+-- Reel composer extras: creator metadata (filters/stickers/trim/aura) + visibility.
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS metadata   JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS visibility TEXT  DEFAULT 'public'
+  CHECK (visibility IN ('public','private','attendees'));
 CREATE INDEX IF NOT EXISTS idx_reels_user       ON public.reels(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reels_event      ON public.reels(event_id);
 CREATE INDEX IF NOT EXISTS idx_reels_feed       ON public.reels(created_at DESC) WHERE is_deleted = false;
@@ -2420,6 +2424,7 @@ CREATE TABLE IF NOT EXISTS public.events (
   event_time      TIME,
   end_time        TIME,
   end_date        DATE,
+  match_card      JSONB,
   venue_name      TEXT,
   venue_address   TEXT,
   address         TEXT,

@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
+import { MatchVersus } from '../components/MatchVersus';
 import { SmartImage } from '../components/SmartImage';
 import { FadeInView } from '../components/FadeInView';
 import { BrandLogo } from '../components/BrandLogo';
@@ -363,6 +364,25 @@ const EventCard = React.memo(({
             onLongPress={() => onImageLongPress(event)}
             delayLongPress={400}
           >
+          {event.match_card?.home && event.match_card?.away ? (
+            <View style={[styles.imgSection, { backgroundColor: '#0b0e0f' }, isWeb && { aspectRatio: '2/1' }]}>
+              <MatchVersus match={event.match_card} height={isWeb ? 200 : 168} isWeb={isWeb} />
+              {event.category && (
+                <View style={[styles.catBadge, { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` }, isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }]}>
+                  <Text style={[styles.catBadgeText, { color: catColor }]}>{(CATEGORY_CONFIG[event.category]?.label || event.category).toUpperCase()}</Text>
+                </View>
+              )}
+              <TouchableOpacity
+                style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
+                onPress={(e) => { e.stopPropagation?.(); onBookmark(id); }}
+                accessibilityRole="button"
+                accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} />
+              </TouchableOpacity>
+            </View>
+          ) : (
           <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }, isWeb && { aspectRatio: '2/1' }]}>
             <MediaViewer aspectRatio={2} media={(() => {
               let m = event.media;
@@ -415,6 +435,7 @@ const EventCard = React.memo(({
               <Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} />
             </TouchableOpacity>
           </View>
+          )}
           </TouchableOpacity>
 
           {/* Body */}

@@ -1317,6 +1317,24 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     );
   }
 
+  if (!reels.length) {
+    return (
+      <View style={[rs.screen, { backgroundColor: '#000' }]}>
+        <ReelTabSwitcher {...tabSwitcherProps} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
+          <Feather name="film" size={44} color={primary} style={{ marginBottom: 14, opacity: 0.9 }} />
+          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17, marginBottom: 8 }}>No reels yet</Text>
+          <Text style={{ color: muted, fontSize: 13, textAlign: 'center', marginBottom: 20, lineHeight: 19 }}>
+            {hashtagFilter ? `Nothing tagged ${hashtagFilter} yet.` : 'Be the first to drop a reel and set the vibe.'}
+          </Text>
+          <TouchableOpacity onPress={() => setCreateVisible(true)} style={[rs.retryBtn, { borderColor: primary, backgroundColor: `${primary}14` }]} activeOpacity={0.85}>
+            <Text style={{ color: primary, fontWeight: '900' }}>Create a Reel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   const reelFeed = (
     <View style={IS_WEB
       ? { width: REEL_W, height: REEL_H, overflow: 'hidden', backgroundColor: '#000', borderRadius: IS_WEB ? 16 : 0 }

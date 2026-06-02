@@ -159,31 +159,42 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
       const storagePath = `${user.id}/reel_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'reels', storagePath, { mimeType: asset.mimeType });
 
-      const payload = {
+      // Core columns exist on every reels schema version; visibility + metadata
+      // are newer and may not be migrated yet, so we insert in progressively
+      // smaller tiers — a missing optional column can never block the post.
+      const baseRow = {
         user_id: user?.id,
         media_url: publicUrl,
         media_type: isVideo ? 'video' : 'image',
         caption: caption.trim(),
-        visibility,
-        metadata: {
-          filter,
-          stickers,
-          trim: { start: trimStart, end: trimEnd },
-          vibeColor,
-          vibeIntensity
-        }
       };
-      if (soundName.trim()) payload.sound_name = soundName.trim();
+      if (soundName.trim()) baseRow.sound_name = soundName.trim();
 
-      const ok = await resilient(
+      const metadata = {
+        filter,
+        stickers,
+        trim: { start: trimStart, end: trimEnd },
+        vibeColor,
+        vibeIntensity,
+      };
+
+      // Each tier throws on error so resilient correctly falls through to the
+      // next (simpler) shape instead of silently swallowing a schema mismatch.
+      const insertRow = (row) => async () => {
+        const { data, error } = await supabase.from('reels').insert(row).select('id').single();
+        if (error) throw error;
+        return data;
+      };
+
+      const saved = await resilient(
         [
-          () => supabase.from('reels').insert(payload),
-          () => supabase.from('reels').upsert(payload),
-          () => supabase.rpc('create_reel', { p_user_id: user?.id, p_media_url: publicUrl, p_caption: payload.caption, p_sound_name: payload.sound_name || null, p_metadata: payload.metadata, p_visibility: payload.visibility }),
+          insertRow({ ...baseRow, visibility, metadata }), // full — needs both new columns
+          insertRow({ ...baseRow, metadata }),             // drop visibility
+          insertRow(baseRow),                              // core only — always present
         ],
-        { attemptsPerTier: 3, baseMs: 500, label: 'CreateReelModal.insert', fallbackValue: null }
+        { attemptsPerTier: 2, baseMs: 400, label: 'CreateReelModal.insert', fallbackValue: null }
       );
-      if (ok === null) throw new Error('Could not save reel');
+      if (!saved?.id) throw new Error('Could not save reel');
 
       toast.show('Reel posted! 🎬', 'success');
       onPosted?.();

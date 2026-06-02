@@ -323,11 +323,11 @@ const MainNavigator = () => {
   const isWide = width >= WIDE_BREAKPOINT;
 
   // ── Swipe between tabs ──────────────────────────────────────────────────────
-  // Right = forward (Drop→Reels→Explore→Lineup→Linked Up→Pings→Vibe Card),
-  // left = backward. Reels owns its own horizontal gestures (right = poster
-  // profile, left = Drop), so the shell skips it. We use onMoveShouldSet (not
-  // the Capture variant) so inner horizontal carousels still claim their own
-  // swipes — only swipes over plain/vertical content bubble up to change tabs.
+  // Natural pager feel: swipe LEFT = next (Drop→Reels→Explore→Lineup→Linked Up→
+  // Pings→Vibe Card), swipe RIGHT = previous. Reels owns its own horizontal
+  // gestures (right = poster profile, left = Drop), so the shell skips it. We use
+  // onMoveShouldSet (not the Capture variant) so inner horizontal carousels still
+  // claim their own swipes — only swipes over plain/vertical content change tabs.
   const currentTabRef = useRef(currentTab);
   currentTabRef.current = currentTab;
   const tabSwipe = useMemo(() => {
@@ -342,7 +342,7 @@ const MainNavigator = () => {
         if (Math.abs(g.dx) < 55 && Math.abs(g.vx) < 0.3) return;
         const i = order.indexOf(currentTabRef.current);
         if (i === -1) return;
-        const ni = i + (g.dx > 0 ? 1 : -1);   // right → forward, left → back
+        const ni = i + (g.dx > 0 ? -1 : 1);   // swipe right → previous tab, swipe left → next tab
         if (ni < 0 || ni >= order.length) return;
         handleTabChange(order[ni]);
       },
@@ -385,6 +385,34 @@ const MainNavigator = () => {
     const sub = BackHandler.addEventListener('hardwareBackPress', handler);
     return () => { sub.remove(); clearTimeout(backPressTimer.current); };
   }, [currentTab, godViewVisible, authModalVisible, targetProfile, targetEvent, handleTabChange]);
+
+  // Web: trap the browser / phone back button so it walks back to The Drop
+  // instead of leaving the app (the Android handler above is native-only).
+  const webBackRef = useRef(() => false);
+  webBackRef.current = () => {
+    if (godViewVisible) { setGodViewVisible(false); return true; }
+    if (authModalVisible) { setAuthModalVisible(false); return true; }
+    if (targetProfile) { setTargetProfile(null); return true; }
+    if (targetEvent) { setTargetEvent(null); return true; }
+    if (currentTab !== TABS[0].key) { handleTabChange(TABS[0].key); return true; }
+    return false; // already on The Drop, nothing open -> allow the app to leave
+  };
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return undefined;
+    let exiting = false;
+    window.history.pushState({ gruvs: 'root' }, '');
+    const onPop = () => {
+      if (exiting) return;
+      if (webBackRef.current()) {
+        window.history.pushState({ gruvs: 1 }, ''); // re-trap so a single back never leaves mid-app
+      } else {
+        exiting = true;
+        window.history.back(); // on The Drop with nothing open -> actually exit
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   const handleNotifNavigate = useCallback((type, data) => {
     if (type === 'event' && data?.event_id) {
