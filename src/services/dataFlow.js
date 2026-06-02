@@ -623,6 +623,12 @@ export const FeedManager = {
       } else {
         q = q.order('created_at', { ascending: false });
       }
+      // Following tab: actually restrict to events authored by people you follow.
+      // (Previously 'following' only re-ranked, so the feed looked unfiltered.)
+      if (mode === 'following') {
+        const ids = resolvedFollowedIds && resolvedFollowedIds.length ? resolvedFollowedIds : ['00000000-0000-0000-0000-000000000000'];
+        q = q.in('author_id', ids);
+      }
       return q;
     };
 
