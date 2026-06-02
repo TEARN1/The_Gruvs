@@ -133,10 +133,13 @@ export const ReelsRepository = {
             if (error) throw error;
             return data || [];
           },
-          // Tier 2: No Profile Join
+          // Tier 2: keep the author join, drop the newer columns (metadata/
+          // visibility). This is the path taken before those columns are
+          // migrated — the feed still shows usernames + avatars instead of
+          // collapsing to the bare, author-less tier 3.
           async () => {
             let qb = supabase.from('reels')
-              .select('id, caption, media_url, media_type, like_count, comment_count, view_count, user_id, created_at, metadata, visibility')
+              .select('id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
               .neq('is_deleted', true).limit(30);
             if (tab === 'following' && followedIds.length) qb = qb.in('user_id', followedIds);
             if (hashtag) qb = qb.ilike('caption', `%${hashtag}%`);

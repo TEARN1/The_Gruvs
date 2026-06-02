@@ -1197,13 +1197,16 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reels' }, async (payload) => {
         const newReel = payload.new;
         if (!newReel?.id || !newReel?.media_url) return;
-        // Fetch full reel with profile join before prepending
+        // Fetch full reel with profile join before prepending. Fall back to a
+        // column set that omits metadata/visibility so the prepend still works
+        // before those columns are migrated.
         try {
-          const { data } = await supabase
-            .from('reels')
-            .select('id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, metadata, visibility, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
-            .eq('id', newReel.id)
-            .single();
+          const FULL = 'id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, metadata, visibility, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)';
+          const SAFE = 'id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)';
+          let { data } = await supabase.from('reels').select(FULL).eq('id', newReel.id).single();
+          if (!data) {
+            ({ data } = await supabase.from('reels').select(SAFE).eq('id', newReel.id).single());
+          }
           if (data) {
             setReels(prev => {
               if (prev.some(r => r.id === data.id)) return prev;
