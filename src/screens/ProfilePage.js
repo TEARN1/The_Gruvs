@@ -1443,40 +1443,58 @@ const FollowingTab = ({ userId, primary, textColor, muted, surface, onNavigateTo
   );
 };
 
-const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
-  const [lightboxItem, setLightboxItem] = useState(null); // { url, isVideo }
+const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDeleteGallery, isOwner = true }) => {
+  const [lightboxItem, setLightboxItem] = useState(null); // { url, isVideo, source, id }
   const [userReels, setUserReels] = useState([]);
+  const [expanded, setExpanded] = useState(false);
+  const [deleting, setDeleting] = useState(null);
 
   useEffect(() => {
     if (!userId) return;
-    supabase.from('reels').select('media_url, media_type').eq('user_id', userId).eq('is_deleted', false).order('created_at', { ascending: false }).limit(30)
+    supabase.from('reels').select('id, media_url, media_type').eq('user_id', userId).eq('is_deleted', false).order('created_at', { ascending: false }).limit(30)
       .then(({ data }) => { if (data) setUserReels(data); });
   }, [userId]);
 
   const allItems = useMemo(() => {
     const items = [
-      ...(profileGallery || []).map(url => ({ url, isVideo: isVideoUrl(url) })),
-      ...userReels.map(r => ({ url: r.media_url, isVideo: r.media_type === 'video' })).filter(r => r.url),
+      ...(profileGallery || []).map(url => ({ url, isVideo: isVideoUrl(url), source: 'gallery', id: url })),
+      ...userReels.map(r => ({ url: r.media_url, isVideo: r.media_type === 'video' || isVideoUrl(r.media_url), source: 'reel', id: r.id })).filter(r => r.url),
       ...myEvents.flatMap(ev => {
         let mediaArr = ev.media;
         if (typeof mediaArr === 'string') { try { mediaArr = JSON.parse(mediaArr); } catch { mediaArr = null; } }
         if (Array.isArray(mediaArr) && mediaArr.length > 0) {
-          return mediaArr.map(m => {
-            const url = typeof m === 'string' ? m : m?.url;
-            return url ? { url, isVideo: m?.type === 'video' || isVideoUrl(url) } : null;
-          }).filter(Boolean);
+          return mediaArr.map(m => { const url = typeof m === 'string' ? m : m?.url; return url ? { url, isVideo: m?.type === 'video' || isVideoUrl(url), source: 'event', id: null } : null; }).filter(Boolean);
         }
-        if (Array.isArray(ev.media_urls) && ev.media_urls.length > 0) {
-          return ev.media_urls.map(url => ({ url, isVideo: isVideoUrl(url) }));
-        }
-        if (ev.cover_url) return [{ url: ev.cover_url, isVideo: false }];
+        if (Array.isArray(ev.media_urls) && ev.media_urls.length > 0) return ev.media_urls.map(url => ({ url, isVideo: isVideoUrl(url), source: 'event', id: null }));
+        if (ev.cover_url) return [{ url: ev.cover_url, isVideo: false, source: 'event', id: null }];
         return [];
       }),
     ];
     return items.filter(item => item?.url).slice(0, 60);
   }, [profileGallery, userReels, myEvents]);
 
+  const visibleItems = expanded ? allItems : allItems.slice(0, 6);
   const cellSize = Math.floor((width - 44) / 3);
+
+  const doDelete = async (item) => {
+    if (!item || item.source === 'event') return;
+    setDeleting(item.id);
+    try {
+      if (item.source === 'reel') {
+        await supabase.from('reels').update({ is_deleted: true }).eq('id', item.id).eq('user_id', userId);
+        setUserReels(prev => prev.filter(r => r.id !== item.id));
+      } else if (item.source === 'gallery') {
+        await onDeleteGallery?.(item.url);
+      }
+      if (lightboxItem?.url === item.url) setLightboxItem(null);
+    } catch { /* ignore */ }
+    setDeleting(null);
+  };
+  const confirmDelete = (item) => {
+    const msg = item.isVideo ? 'Delete this video permanently?' : 'Delete this photo permanently?';
+    if (Platform.OS === 'web') { if (typeof window !== 'undefined' && window.confirm(msg)) doDelete(item); return; }
+    Alert.alert('Delete', msg, [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => doDelete(item) }]);
+  };
 
   if (allItems.length === 0) {
     return (
@@ -1490,49 +1508,50 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery }) => {
   return (
     <>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {allItems.map((item, i) => (
-          <TouchableOpacity
-            key={i}
-            onPress={() => setLightboxItem(item)}
-            activeOpacity={0.85}
-            style={{ width: cellSize, height: cellSize, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}15` }}
-          >
-            <SmartImage source={item.url} style={{ width: cellSize, height: cellSize }} resizeMode="cover" />
-            {item.isVideo && (
-              <View style={styles.lightboxOverlay}>
-                <Feather name="play-circle" size={28} color="#fff" />
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
+        {visibleItems.map((item, i) => {
+          const canDelete = isOwner && item.source !== 'event';
+          return (
+            <TouchableOpacity key={`${item.source}-${item.id || i}`} onPress={() => setLightboxItem(item)} activeOpacity={0.85}
+              style={{ width: cellSize, height: cellSize, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}15` }}>
+              <SmartImage source={item.url} style={{ width: cellSize, height: cellSize }} resizeMode="cover" />
+              {item.isVideo && (<View style={styles.lightboxOverlay}><Feather name="play-circle" size={28} color="#fff" /></View>)}
+              {canDelete && (
+                <TouchableOpacity onPress={() => confirmDelete(item)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  style={{ position: 'absolute', top: 5, right: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
+                  {deleting === item.id ? <ActivityIndicator size="small" color="#fff" /> : <Feather name="trash-2" size={12} color="#fff" />}
+                </TouchableOpacity>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
+
+      {allItems.length > 6 && (
+        <TouchableOpacity onPress={() => setExpanded(v => !v)} activeOpacity={0.85}
+          style={{ marginTop: 12, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}08`, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>{expanded ? 'Show less' : `See all ${allItems.length}`}</Text>
+          <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={primary} />
+        </TouchableOpacity>
+      )}
 
       {/* Lightbox */}
       <Modal visible={!!lightboxItem} transparent animationType="fade" onRequestClose={() => setLightboxItem(null)}>
         <Pressable style={styles.lightboxPressable} onPress={() => setLightboxItem(null)}>
-          <TouchableOpacity
-            style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 10 }}
-            onPress={() => setLightboxItem(null)}
-          >
+          <TouchableOpacity style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 10 }} onPress={() => setLightboxItem(null)}>
             <Feather name="x" size={28} color="#fff" />
           </TouchableOpacity>
+          {isOwner && lightboxItem && lightboxItem.source !== 'event' && (
+            <TouchableOpacity style={{ position: 'absolute', top: 50, left: 20, zIndex: 10, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }} onPress={() => confirmDelete(lightboxItem)}>
+              <Feather name="trash-2" size={20} color="#ef4444" />
+              <Text style={{ color: '#ef4444', fontWeight: '800' }}>Delete</Text>
+            </TouchableOpacity>
+          )}
           {lightboxItem?.isVideo ? (
             <Pressable onPress={e => e.stopPropagation()}>
-              <Video
-                source={{ uri: lightboxItem.url }}
-                style={{ width: width - 32, height: (width - 32) * 9 / 16, borderRadius: 12 }}
-                resizeMode={ResizeMode.CONTAIN}
-                shouldPlay
-                isLooping
-                useNativeControls
-              />
+              <Video source={{ uri: lightboxItem.url }} style={{ width: width - 32, height: (width - 32) * 9 / 16, borderRadius: 12 }} resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping useNativeControls />
             </Pressable>
           ) : (
-            <Image
-              source={{ uri: lightboxItem?.url }}
-              style={{ width: width - 32, height: width - 32, borderRadius: 12 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: lightboxItem?.url }} style={{ width: width - 32, height: width - 32, borderRadius: 12 }} resizeMode="contain" />
           )}
         </Pressable>
       </Modal>
@@ -1732,6 +1751,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       toast.show('Upload failed: ' + (e.message || 'Unknown error'), 'error');
     }
   };
+
+  const deleteGalleryUrl = useCallback(async (url) => {
+    const next = (profileGallery || []).filter(u => u !== url);
+    setProfileGallery(next);
+    try { await supabase.from('profiles').update({ profile_gallery: next }).eq('id', user.id); } catch { /* ignore */ }
+  }, [profileGallery, user]);
 
   const handleGalleryUpload = async () => {
     try {
@@ -2834,7 +2859,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                       <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>Post Reel</Text>
                     </TouchableOpacity>
                   </View>
-                  <GalleryTab userId={user?.id} primary={primary} muted={muted} myEvents={myEvents} profileGallery={profileGallery} />
+                  <GalleryTab userId={user?.id} primary={primary} muted={muted} myEvents={myEvents} profileGallery={profileGallery} onDeleteGallery={deleteGalleryUrl} isOwner />
                 </View>
               )}
             </>
