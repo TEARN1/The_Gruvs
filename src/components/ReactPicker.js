@@ -15,13 +15,11 @@ const reducedMotion = () =>
 // Curated "signature" reactions — the distinctive, out-of-this-world ones,
 // not the full 30-emoji grid. Keys all exist in REACTION_LIST so counts/displays
 // elsewhere keep mapping correctly.
-const SIGNATURE = ['fire', 'heart', 'hype', 'crown', 'gem', 'rocket', 'wave', 'star', 'goat', '100', 'magic', 'drip'];
-const SIGNATURE_LIST = SIGNATURE
-  .map(key => REACTION_LIST.find(r => r.key === key))
-  .filter(Boolean);
+// The full signature set — all 50 reactions (REACTION_LIST is already curated).
+const SIGNATURE_LIST = REACTION_LIST;
 
 // ── A single floating, glowing reaction orb ──────────────────────────────────
-const ReactionOrb = ({ reaction, index, isActive, primary, onPress }) => {
+const ReactionOrb = ({ reaction, index, isActive, primary, onPress, idle = true }) => {
   const enter = useRef(new Animated.Value(0)).current;   // entrance pop
   const float = useRef(new Animated.Value(0)).current;   // idle hover
   const pop = useRef(new Animated.Value(1)).current;     // press/active bounce
@@ -31,22 +29,24 @@ const ReactionOrb = ({ reaction, index, isActive, primary, onPress }) => {
   const accent = themeForReaction(reaction.key).ring;
 
   useEffect(() => {
-    // Staggered entrance
+    // Staggered entrance (delay capped so 50 orbs don't trickle in forever)
     Animated.spring(enter, {
-      toValue: 1, delay: index * 45, useNativeDriver: true, tension: 140, friction: 9,
+      toValue: 1, delay: Math.min(index, 16) * 35, useNativeDriver: true, tension: 140, friction: 9,
     }).start();
 
-    if (reducedMotion()) return;
-    // Continuous gentle float — each orb out of phase so the row feels alive
+    // Idle float is opt-out: the always-on card bar passes idle={false} so 50
+    // orbs x N cards don't each run a forever-loop (the press burst is the wow).
+    if (idle === false || reducedMotion()) return;
+    const ph = index % 8;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(float, { toValue: 1, duration: 1300 + index * 80, delay: index * 90, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(float, { toValue: 0, duration: 1300 + index * 80, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(float, { toValue: 1, duration: 1300 + ph * 80, delay: ph * 90, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(float, { toValue: 0, duration: 1300 + ph * 80, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ])
     );
     loop.start();
     return () => loop.stop();
-  }, [enter, float, index]);
+  }, [enter, float, index, idle]);
 
   useEffect(() => {
     Animated.spring(pop, { toValue: isActive ? 1.18 : 1, useNativeDriver: true, tension: 200, friction: 7 }).start();
@@ -89,7 +89,7 @@ const ReactionOrb = ({ reaction, index, isActive, primary, onPress }) => {
   );
 };
 
-export const ReactPicker = ({ visible, onReact, userReaction }) => {
+export const ReactPicker = ({ visible, onReact, userReaction, idle = true }) => {
   const { currentTheme } = useTheme();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const primary = currentTheme?.primary || "#00f2ff";
@@ -125,6 +125,7 @@ export const ReactPicker = ({ visible, onReact, userReaction }) => {
             isActive={userReaction === r.key}
             primary={primary}
             onPress={handleReact}
+            idle={idle}
           />
         ))}
       </ScrollView>

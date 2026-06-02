@@ -49,6 +49,7 @@ import { RatingSection } from '../components/RatingSection';
 import { PulseScheduleSection } from '../components/PulseScheduleSection';
 import { EventGallery } from '../components/EventGallery';
 import { ReactPicker } from '../components/ReactPicker';
+import { ReactedBadge } from '../components/ReactionFX';
 
 // ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
 import { PostEventModal }       from '../components/PostEventModal';

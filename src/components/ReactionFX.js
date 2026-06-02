@@ -25,6 +25,10 @@ const THEMES = {
   royal:     { name: 'ANTIGRAVITY GOLD', glyphs: ['✦', '★', '◆', '•'], colors: ['#fde047', '#facc15', '#fff7cd', '#fbbf24'], ring: '#fde047' },
   love:      { name: 'RISING HEARTS',  glyphs: ['♥', '✦', '•', '❤️'],  colors: ['#fb7185', '#f43f5e', '#fecdd3', '#ffffff'], ring: '#fb7185' },
   surge:     { name: 'SURGE',          glyphs: ['⚡', '✦', '▲', '•'],  colors: ['#00f2ff', '#67e8f9', '#ffffff', '#22d3ee'], ring: '#00f2ff' },
+  cosmic:    { name: 'COSMIC',         glyphs: ['✦', '★', '🌌', '•'],  colors: ['#a78bfa', '#7c3aed', '#f0abfc', '#22d3ee'], ring: '#a78bfa' },
+  spooky:    { name: 'SPOOKY',         glyphs: ['✦', '☁', '•', '◦'],  colors: ['#86efac', '#a78bfa', '#e5e7eb', '#34d399'], ring: '#86efac' },
+  erupt:     { name: 'ERUPT',          glyphs: ['▲', '✦', '✧', '•'],  colors: ['#f97316', '#ef4444', '#fbbf24', '#fde68a'], ring: '#f97316' },
+  laugh:     { name: 'TEARS',          glyphs: ['😂', '✦', '•', '◦'],  colors: ['#fde047', '#38bdf8', '#ffffff', '#facc15'], ring: '#fde047' },
 };
 
 // Each signature reaction → an opposite-world theme.
@@ -33,7 +37,13 @@ const KEY_THEME = {
   gem: 'frost', wave: 'frost', drip: 'reverserain',
   crown: 'royal', star: 'royal', goat: 'royal', '100': 'royal', magic: 'royal',
   heart: 'love',
-  hype: 'surge', rocket: 'surge',
+  hype: 'surge', rocket: 'surge', electric: 'surge', pulse: 'surge', wave: 'frost',
+  laugh: 'laugh', wow: 'cosmic', mind: 'cosmic', eyes: 'cosmic', alien: 'cosmic',
+  unicorn: 'cosmic', comet: 'cosmic', cosmic: 'cosmic', mystic: 'cosmic', dragon: 'cosmic', galaxy: 'cosmic',
+  skull: 'spooky', spooky: 'spooky', devilish: 'spooky', sad: 'frost', peace: 'frost', frost: 'frost', drip: 'reverserain',
+  erupt: 'erupt', storm: 'erupt', boom: 'erupt', rock: 'erupt', heat: 'erupt', confetti: 'erupt', drop: 'erupt',
+  legend: 'royal', gold: 'royal', bag: 'royal', genius: 'royal', respect: 'royal', clap: 'royal', muscle: 'royal',
+  '100': 'royal', vibe: 'love', real: 'love', gang: 'love', growth: 'royal', angel: 'royal', rainbow: 'cosmic', growth2: 'royal',
 };
 
 export const themeForReaction = (key) => THEMES[KEY_THEME[key] || 'surge'];
@@ -143,5 +153,37 @@ const fx = StyleSheet.create({
     includeFontPadding: false,
   },
 });
+
+// ── ReactedBadge — your chosen reaction, glowing forever ──────────────────────
+// Shown on the card's React button after you react: the emoji keeps pulsing in
+// its theme colour ("shouldn't stop flaming / glittering").
+export const ReactedBadge = ({ emoji, reactionKey, size = 19 }) => {
+  const glow = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!reactionKey || reducedMotion()) return;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(glow, { toValue: 1, duration: 850, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(glow, { toValue: 0, duration: 850, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [reactionKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ring = themeForReaction(reactionKey).ring;
+  const haloScale = glow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.5] });
+  const haloOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0] });
+  const emojiScale = glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] });
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center', width: size + 8, height: size + 8 }}>
+      <Animated.View
+        style={{
+          position: 'absolute', width: size + 6, height: size + 6, borderRadius: (size + 6) / 2,
+          backgroundColor: ring, opacity: haloOpacity, transform: [{ scale: haloScale }],
+          ...(IS_WEB ? { boxShadow: `0 0 10px ${ring}` } : { shadowColor: ring, shadowOpacity: 0.9, shadowRadius: 8 }),
+        }}
+      />
+      <Animated.Text style={{ fontSize: size, transform: [{ scale: emojiScale }] }}>{emoji}</Animated.Text>
+    </View>
+  );
+};
 
 export default ReactionFX;
