@@ -25,6 +25,18 @@ const FULL_MONTH = ['January','February','March','April','May','June','July','Au
 const DAY_SHORT = ['S','M','T','W','T','F','S'];
 const DAY_FULL  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+// Universal event-category filter — EVERY category, equal footing. The Gruvs is
+// a networking platform for ALL events (music, nightlife, comedy, art, tech,
+// food, fashion, faith, sport, …), not a sports app. Sport is just one chip.
+const CATEGORY_FILTERS = [
+  { key: null, label: '✦ All' },
+  ...Object.keys(CATEGORY_CONFIG)
+    .filter((k) => k !== 'all')
+    .map((k) => ({ key: k, label: `${CATEGORY_CONFIG[k].icon} ${CATEGORY_CONFIG[k].label}` })),
+];
+const eventInCategory = (ev, key) =>
+  !key || ev.category === key || (Array.isArray(ev.categories) && ev.categories.includes(key));
+
 const today = new Date();
 const pad2 = n => String(n).padStart(2, '0');
 const dateKey = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
@@ -376,7 +388,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'my_rsvps' | 'free'
   const [myRsvpIds, setMyRsvpIds] = useState(new Set());
-  const [sportFilter, setSportFilter] = useState(null); // null | sport_type string
+  const [categoryFilter, setCategoryFilter] = useState(null); // null | category key — ALL event types
   const [searchResults, setSearchResults] = useState([]); // cross-catalog hits (all dates)
   const [searching, setSearching] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -496,9 +508,9 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
     let evs = monthEvents.filter(ev => ev.event_date === selectedKey);
     if (filterMode === 'my_rsvps') evs = evs.filter(ev => myRsvpIds.has(ev.id));
     if (filterMode === 'free') evs = evs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
-    if (sportFilter) evs = evs.filter(ev => ev.sport_type === sportFilter || ev.category === 'sport');
+    if (categoryFilter) evs = evs.filter((ev) => eventInCategory(ev, categoryFilter));
     return evs;
-  }, [monthEvents, selectedKey, filterMode, myRsvpIds, sportFilter]);
+  }, [monthEvents, selectedKey, filterMode, myRsvpIds, categoryFilter]);
 
   // ── Advanced search: query the WHOLE catalog (all dates), debounced ─────────
   // Routes through FeedManager.searchAll → Postgres full-text (search_events_fts)
@@ -530,12 +542,12 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
     let evs = searchResults;
     if (filterMode === 'my_rsvps') evs = evs.filter(ev => myRsvpIds.has(ev.id));
     if (filterMode === 'free')     evs = evs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
-    if (sportFilter)               evs = evs.filter(ev => ev.sport_type === sportFilter || ev.category === 'sport');
+    if (categoryFilter) evs = evs.filter((ev) => eventInCategory(ev, categoryFilter));
     return evs
       .map(ev => ({ ev, s: scoreEvent(ev, tokens) }))
       .sort((a, b) => b.s - a.s)
       .map(x => x.ev);
-  }, [searchResults, trimmedQuery, inSearch, filterMode, sportFilter, myRsvpIds]);
+  }, [searchResults, trimmedQuery, inSearch, filterMode, categoryFilter, myRsvpIds]);
 
   const goToToday = () => {
     setSelectedDate(new Date(today));
@@ -617,29 +629,18 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
           ))}
         </ScrollView>
 
-        {/* Sport type quick-filter */}
+        {/* Category quick-filter — ALL event types, equal footing (not a sports app) */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 12 }}>
-          {[
-            { key: null,          label: '🗓 All Sports' },
-            { key: 'soccer',      label: '⚽ Soccer' },
-            { key: 'rugby',       label: '🏉 Rugby' },
-            { key: 'basketball',  label: '🏀 Basketball' },
-            { key: 'cricket',     label: '🏏 Cricket' },
-            { key: 'athletics',   label: '🏃 Athletics' },
-            { key: 'tennis',      label: '🎾 Tennis' },
-            { key: 'boxing',      label: '🥊 Boxing' },
-            { key: 'esports',     label: '🎮 Esports' },
-            { key: 'golf',        label: '⛳ Golf' },
-            { key: 'swimming',    label: '🏊 Swimming' },
-          ].map(f => {
-            const active = sportFilter === f.key;
+          {CATEGORY_FILTERS.map((f) => {
+            const active = categoryFilter === f.key;
+            const accent = f.key ? (CATEGORY_CONFIG[f.key]?.color || primary) : primary;
             return (
               <TouchableOpacity
                 key={String(f.key)}
-                style={[calS.filterPill, { backgroundColor: active ? primary : `${primary}12`, borderColor: active ? primary : `${primary}30` }]}
-                onPress={() => setSportFilter(f.key)}
+                style={[calS.filterPill, { backgroundColor: active ? accent : `${accent}12`, borderColor: active ? accent : `${accent}30` }]}
+                onPress={() => setCategoryFilter(f.key)}
               >
-                <Text style={[calS.filterText, { color: active ? '#000' : primary }]}>{f.label}</Text>
+                <Text style={[calS.filterText, { color: active ? '#000' : accent }]} numberOfLines={1}>{f.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -811,7 +812,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
           let allEvs = monthEvents;
           if (filterMode === 'my_rsvps') allEvs = allEvs.filter(ev => myRsvpIds.has(ev.id));
           if (filterMode === 'free') allEvs = allEvs.filter(ev => !ev.price || ev.price === 0 || ev.price === 'FREE');
-          if (sportFilter) allEvs = allEvs.filter(ev => ev.sport_type === sportFilter || ev.category === 'sport');
+          if (categoryFilter) allEvs = allEvs.filter((ev) => eventInCategory(ev, categoryFilter));
           if (!allEvs.length) return null;
           return (
           <View style={styles.allEventsSection}>

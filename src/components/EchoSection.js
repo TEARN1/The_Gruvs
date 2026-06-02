@@ -84,7 +84,7 @@ const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, 
           <TouchableOpacity onPress={() => onLike(echo.id)} style={[styles.likeBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
             <Feather name="heart" size={13} color={isLiked ? "#ef4444" : muted} />
             <Text style={{ color: isLiked ? "#ef4444" : muted, fontSize: 12 }}>
-              {(echo.likes || 0) + (isLiked ? 1 : 0)}
+              {echo.likes || 0}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onReply({ id: echo.id, username: name })}>
