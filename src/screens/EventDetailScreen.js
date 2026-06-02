@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
+import { MatchVersus } from '../components/MatchVersus';
 import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
@@ -510,7 +511,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       >
 
         <View style={styles.hero}>
-          <MediaViewer media={media} containerWidth={undefined} />
+          {event?.match_card?.home && event?.match_card?.away ? (
+            <MatchVersus match={event.match_card} height={HERO_H} isWeb={Platform.OS === 'web'} />
+          ) : (
+            <MediaViewer media={media} containerWidth={undefined} />
+          )}
           <View style={styles.heroScrim} pointerEvents="none" />
 
           {event?.category && (
