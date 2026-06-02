@@ -1761,7 +1761,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     try {
       setSaving(true);
       const parsedBirthYear = birthYear.trim() ? parseInt(birthYear.trim(), 10) : null;
-      const { error } = await supabase.from('profiles').update({
+      // Resilient: write everything, but if profiles is missing an optional
+      // column (website / gender / birth_year / looking_for / preferred_areas)
+      // strip just that one and retry instead of failing the whole save.
+      let payload = {
         bio, location, website, interests,
         looks_description: looksDescription,
         career_title: careerTitle,
@@ -1770,8 +1773,17 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         birth_year: parsedBirthYear && !isNaN(parsedBirthYear) ? parsedBirthYear : null,
         looking_for: lookingFor || null,
         preferred_areas: preferredAreas || null,
-      }).eq('id', user.id);
-      if (error) throw error;
+      };
+      let saved = false;
+      for (let i = 0; i < 10 && Object.keys(payload).length; i++) {
+        const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
+        if (!error) { saved = true; break; }
+        const msg = error.message || '';
+        const miss = msg.match(/'([a-zA-Z_]+)' column/) || msg.match(/column "?([a-zA-Z_]+)"? does not exist/i);
+        if (miss && Object.prototype.hasOwnProperty.call(payload, miss[1])) { delete payload[miss[1]]; continue; }
+        throw error;
+      }
+      if (!saved) throw new Error('Could not save profile');
       toast.show('Profile updated!', 'success');
     } catch (e) {
       toast.show('Save failed: ' + (e.message || 'Unknown error'), 'error');
@@ -2044,7 +2056,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const rawExt = fileName.includes('.') ? fileName.split('.').pop() : '';
       const ext = (rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'jpg').toLowerCase().slice(0, 5);
       const storagePath = `${user.id}/cover_${Date.now()}.${ext}`;
-      const publicUrl = await uploadToStorage(asset.uri, 'covers', storagePath, { mimeType: asset.mimeType });
+      const publicUrl = await uploadToStorage(asset.uri, 'avatars', storagePath, { mimeType: asset.mimeType });
       const { error: updateErr } = await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', user.id);
       if (updateErr) throw new Error(updateErr.message);
       refreshProfile();

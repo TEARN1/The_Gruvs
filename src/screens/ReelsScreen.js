@@ -127,29 +127,32 @@ const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, 
   }, [visible, reel?.id]);
 
   const handleDelete = () => {
+    const doDelete = async () => {
+      onClose();
+      if (!user || reel.user_id !== user.id) return; // IDOR guard — never delete another user's reel
+      try {
+        await resilient(
+          [
+            () => supabase.from('reels').update({ is_deleted: true }).eq('id', reel.id).eq('user_id', user?.id),
+            () => supabase.from('reels').delete().eq('id', reel.id).eq('user_id', user?.id),
+          ],
+          { attemptsPerTier: 3, baseMs: 400, label: 'ReelManageSheet.delete', fallbackValue: null }
+        );
+        onDeleted(reel.id);
+      } catch { /* silent */ }
+    };
+    // RN-web's Alert.alert ignores button callbacks, so the Delete press never
+    // fired on web. Use the browser confirm there; keep the native Alert on device.
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Delete this reel permanently? This cannot be undone.')) doDelete();
+      return;
+    }
     Alert.alert(
       'Delete Reel',
       'This will permanently remove your reel. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            onClose();
-            if (!user || reel.user_id !== user.id) return; // IDOR guard — never delete another user's reel
-            try {
-              await resilient(
-                [
-                  () => supabase.from('reels').update({ is_deleted: true }).eq('id', reel.id).eq('user_id', user?.id),
-                  () => supabase.from('reels').delete().eq('id', reel.id).eq('user_id', user?.id),
-                ],
-                { attemptsPerTier: 3, baseMs: 400, label: 'ReelManageSheet.delete', fallbackValue: null }
-              );
-              onDeleted(reel.id);
-            } catch { /* silent */ }
-          },
-        },
+        { text: 'Delete', style: 'destructive', onPress: doDelete },
       ]
     );
   };
