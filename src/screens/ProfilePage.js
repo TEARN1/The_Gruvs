@@ -4,7 +4,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
   Switch, Dimensions, Share, Platform, RefreshControl, Modal,
-  KeyboardAvoidingView, Pressable,
+  KeyboardAvoidingView, Pressable, Image,
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
