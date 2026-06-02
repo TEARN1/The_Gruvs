@@ -164,6 +164,71 @@ const rp = StyleSheet.create({
 });
 
 // ── Main component ─────────────────────────────────────────────────────────────
+const _sharedEventCache = {};
+const _shareDate = (d) => { if (!d) return ''; const dt = new Date(d); return isNaN(dt.getTime()) ? '' : dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
+
+// Shared-event card in a DM — fetches the real event so it actually reflects
+// the original Gruv (cover, title, date, venue, price) instead of a placeholder.
+const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
+  const [ev, setEv] = useState(_sharedEventCache[evId] || null);
+  const [loading, setLoading] = useState(!_sharedEventCache[evId]);
+  useEffect(() => {
+    if (_sharedEventCache[evId]) { setEv(_sharedEventCache[evId]); setLoading(false); return undefined; }
+    let alive = true;
+    supabase.from('events').select('id, title, cover_url, cover_image, media, media_urls, event_date, event_time, venue_name, city, category, price').eq('id', evId).maybeSingle()
+      .then(({ data }) => { if (!alive) return; if (data) { _sharedEventCache[evId] = data; setEv(data); } setLoading(false); })
+      .catch(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [evId]);
+
+  let thumb = null;
+  if (ev) {
+    thumb = ev.cover_url || ev.cover_image || null;
+    if (!thumb) { let m = ev.media; if (typeof m === 'string') { try { m = JSON.parse(m); } catch { m = null; } } if (Array.isArray(m) && m[0]) thumb = typeof m[0] === 'string' ? m[0] : m[0]?.url; }
+    if (!thumb && Array.isArray(ev.media_urls) && ev.media_urls[0]) thumb = ev.media_urls[0];
+  }
+  const free = !ev?.price || ev.price === 0 || ev.price === 'FREE';
+
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={[sec.card, { borderColor: `${primary}33`, backgroundColor: `${primary}0d` }]}>
+      <View style={sec.thumbWrap}>
+        {thumb
+          ? <SmartImage source={thumb} style={sec.thumb} resizeMode="cover" />
+          : <View style={[sec.thumb, { backgroundColor: `${primary}1a`, alignItems: 'center', justifyContent: 'center' }]}><Feather name="calendar" size={22} color={primary} /></View>}
+        {ev?.category ? <View style={sec.catPill}><Text style={sec.catText}>{String(ev.category).toUpperCase()}</Text></View> : null}
+      </View>
+      <View style={{ flex: 1, padding: 10, justifyContent: 'center' }}>
+        <Text style={[sec.title, { color: textColor }]} numberOfLines={2}>{loading ? 'Loading Gruv…' : (ev?.title || 'Shared Gruv')}</Text>
+        {ev ? (
+          <>
+            <View style={sec.metaRow}><Feather name="calendar" size={11} color={muted} /><Text style={[sec.meta, { color: muted }]} numberOfLines={1}>{_shareDate(ev.event_date)}{ev.event_time ? ` · ${ev.event_time}` : ''}</Text></View>
+            {(ev.venue_name || ev.city) ? <View style={sec.metaRow}><Feather name="map-pin" size={11} color={muted} /><Text style={[sec.meta, { color: muted }]} numberOfLines={1}>{ev.venue_name || ev.city}</Text></View> : null}
+          </>
+        ) : null}
+        <View style={sec.footer}>
+          <View style={[sec.cta, { backgroundColor: primary }]}><Text style={sec.ctaText}>View Gruv</Text><Feather name="arrow-right" size={11} color="#000" /></View>
+          {ev ? <Text style={[sec.price, { color: free ? '#10b981' : primary }]}>{free ? 'FREE' : `R${ev.price}`}</Text> : null}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+const sec = StyleSheet.create({
+  card: { flexDirection: 'row', borderRadius: 14, borderWidth: 1, overflow: 'hidden', marginBottom: 6, width: 270 },
+  thumbWrap: { width: 88, position: 'relative' },
+  thumb: { width: 88, height: '100%', minHeight: 104 },
+  catPill: { position: 'absolute', top: 6, left: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.55)' },
+  catText: { color: '#fff', fontSize: 7, fontWeight: '900', letterSpacing: 0.4 },
+  title: { fontSize: 13, fontWeight: '900', marginBottom: 3 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  meta: { fontSize: 10, flex: 1 },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 7 },
+  cta: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 9 },
+  ctaText: { color: '#000', fontSize: 11, fontWeight: '900' },
+  price: { fontSize: 11, fontWeight: '900' },
+});
+
 export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
@@ -493,20 +558,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   };
 
   // ── Render Shared Event ──────────────────────────────────────────────────────
-  const renderEventShare = (evId) => {
-    // Conceptually, you'd fetch the event data if not cached
-    // For now, render a placeholder card style
-    return (
-      <TouchableOpacity onPress={() => onNavigateToEvent?.({ id: evId })} style={dm.eventCard}>
-        <View style={[dm.eventBar, { backgroundColor: primary }]} />
-        <View style={{ flex: 1, padding: 8 }}>
-          <Text style={[dm.eventTitle, { color: textColor }]}>View Shared Gruv</Text>
-          <Text style={[dm.eventSub, { color: muted }]}>Tap to see passes and vibes</Text>
-        </View>
-        <Feather name="chevron-right" size={14} color={muted} />
-      </TouchableOpacity>
-    );
-  };
+  const renderEventShare = (evId) => (
+    <SharedEventCard
+      evId={evId}
+      onPress={() => onNavigateToEvent?.({ id: evId })}
+      primary={primary}
+      textColor={textColor}
+      muted={muted}
+    />
+  );
 
   const handleImageUpload = async () => {
     if (inputLocked || requestStatus === 'incoming_request') return;
