@@ -4,12 +4,12 @@
  * volume control, caption expand, duet/stitch concept, mute toggle, speed control,
  * progress bar, double-tap like, swipe-up details, hashtag discovery.
  */
-import React, { useState, useRef, useCallback, useEffect, memo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback,
   Image, Dimensions, Platform, TextInput, Modal, ScrollView, KeyboardAvoidingView,
   Animated, ActivityIndicator, Share, Alert, RefreshControl, AppState,
-  useWindowDimensions, BackHandler,
+  useWindowDimensions, BackHandler, PanResponder,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1047,7 +1047,7 @@ const as = StyleSheet.create({
 });
 
 // ── Main ReelsScreen ──────────────────────────────────────────────────────────
-export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialReelHandled }) => {
+export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialReelHandled, onExitToDrop }) => {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
@@ -1224,6 +1224,25 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const onComment = useCallback((r) => { setCommentTarget(r); setCommentsVisible(true); }, []);
   const onProfile = useCallback((p) => { setProfileTarget(p); setProfileVisible(true); }, []);
   const onDmMessage = useCallback((p) => { setDmTarget(p); setDmVisible(true); }, []);
+
+  // Horizontal swipe on a reel: right -> the poster's profile, left -> back to The Drop.
+  // Refs keep the memoised responder reading the live reel/index without stale closures.
+  const reelsRef = useRef(reels); reelsRef.current = reels;
+  const activeIndexRef = useRef(activeIndex); activeIndexRef.current = activeIndex;
+  const hSwipe = useMemo(() => PanResponder.create({
+    // Only claim clearly-horizontal drags; vertical paging stays with the FlatList.
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 30 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+    onPanResponderRelease: (_e, g) => {
+      if (Math.abs(g.dx) < Math.abs(g.dy)) return;
+      if (Math.abs(g.dx) < 60 && Math.abs(g.vx) < 0.3) return;
+      if (g.dx > 0) {
+        const author = reelsRef.current?.[activeIndexRef.current]?.profiles;
+        if (author?.id) { try { haptics.select?.(); } catch {} onProfile(author); }
+      } else {
+        try { haptics.select?.(); } catch {} onExitToDrop?.();
+      }
+    },
+  }), [onProfile, onExitToDrop]);
   const onManage = useCallback((r) => { setManageTarget(r); setManageVisible(true); }, []);
 
   const handleReelDeleted = useCallback((reelId) => {
@@ -1372,7 +1391,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       )}
 
       {/* Centre reel feed + FAB wrapper */}
-      <View style={{ position: 'relative', flex: IS_WEB ? undefined : 1 }}>
+      <View style={{ position: 'relative', flex: IS_WEB ? undefined : 1 }} {...hSwipe.panHandlers}>
         {reelFeed}
         {/* Create Reel FAB — anchored to the feed frame */}
         {user && (

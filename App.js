@@ -322,6 +322,33 @@ const MainNavigator = () => {
 
   const isWide = width >= WIDE_BREAKPOINT;
 
+  // ── Swipe between tabs ──────────────────────────────────────────────────────
+  // Right = forward (Drop→Reels→Explore→Lineup→Linked Up→Pings→Vibe Card),
+  // left = backward. Reels owns its own horizontal gestures (right = poster
+  // profile, left = Drop), so the shell skips it. We use onMoveShouldSet (not
+  // the Capture variant) so inner horizontal carousels still claim their own
+  // swipes — only swipes over plain/vertical content bubble up to change tabs.
+  const currentTabRef = useRef(currentTab);
+  currentTabRef.current = currentTab;
+  const tabSwipe = useMemo(() => {
+    const order = TABS.map(t => t.key);
+    return PanResponder.create({
+      onMoveShouldSetPanResponder: (_e, g) => {
+        if (currentTabRef.current === 'reels') return false;
+        return Math.abs(g.dx) > 22 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8;
+      },
+      onPanResponderRelease: (_e, g) => {
+        if (Math.abs(g.dx) < Math.abs(g.dy)) return;
+        if (Math.abs(g.dx) < 55 && Math.abs(g.vx) < 0.3) return;
+        const i = order.indexOf(currentTabRef.current);
+        if (i === -1) return;
+        const ni = i + (g.dx > 0 ? 1 : -1);   // right → forward, left → back
+        if (ni < 0 || ni >= order.length) return;
+        handleTabChange(order[ni]);
+      },
+    });
+  }, [handleTabChange]);
+
   // Android hardware back: close open overlays first, then tab-switch to feed, else double-press to exit
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -548,6 +575,7 @@ const MainNavigator = () => {
             onAuthRequired={handleAuthRequired}
             initialReelId={targetReel}
             onInitialReelHandled={() => setTargetReel(null)}
+            onExitToDrop={() => handleTabChange('feed')}
           />
         ));
       case 'explore':
@@ -636,7 +664,7 @@ const MainNavigator = () => {
           // ── Narrow screen: bottom tab bar ──────────────────────────────
           <View style={styles.narrowLayout}>
             {/* Item 43: nativeID for skip-link anchor */}
-            <Animated.View nativeID="main-content" style={[styles.content, { opacity: screenOpacity }]}>
+            <Animated.View nativeID="main-content" style={[styles.content, { opacity: screenOpacity }]} {...tabSwipe.panHandlers}>
               {renderScreen()}
             </Animated.View>
             <TabBar
