@@ -624,7 +624,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           )}
 
           <View style={styles.metaRow}>
-            <MetaChip icon="calendar" label={formatDate(event?.event_date)} color={primary} />
+            <MetaChip icon="calendar" label={event?.end_date && event.end_date !== event.event_date ? `${formatDate(event?.event_date)} → ${formatDate(event.end_date)}` : formatDate(event?.event_date)} color={primary} />
             {!!(event?.event_time || event?.date_time) && (
               <MetaChip
                 icon="clock"

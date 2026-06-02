@@ -38,6 +38,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [pickedDate, setPickedDate] = useState(null);      // Date object
+  const [endDate, setEndDate] = useState(null);            // optional end date (multi-day events)
+  const [endCalendarVisible, setEndCalendarVisible] = useState(false);
   const [pickedHour, setPickedHour] = useState(20);
   const [pickedMinute, setPickedMinute] = useState(0);
   const [timeSet, setTimeSet] = useState(false);
@@ -111,17 +113,18 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (Array.isArray(d.selectedCategories)) setSelectedCategories(d.selectedCategories);
     if (Array.isArray(d.scheduleItems)) setScheduleItems(d.scheduleItems);
     if (d.competitionId) setCompetitionId(d.competitionId);
+    if (d.endDate) { const ed = new Date(d.endDate); if (!isNaN(ed.getTime())) setEndDate(ed); }
   };
   const { clearDraft } = useDraft(
     user ? `draft:event:${user.id}` : null,
-    () => ({ title, description, address, city, ticketUrl, contactPhone, contactEmail, entryPrice, vipPrice, vvipPrice, otherTickets, eventType, ageMin, ageMax, selectedCategories, scheduleItems, competitionId }),
+    () => ({ title, description, address, city, ticketUrl, contactPhone, contactEmail, entryPrice, vipPrice, vvipPrice, otherTickets, eventType, ageMin, ageMax, selectedCategories, scheduleItems, competitionId, endDate: endDate ? endDate.toISOString() : null }),
     restoreDraft,
     { enabled: visible && !!user },
   );
 
   const reset = () => {
     setTitle(''); setDescription(''); setAddress(''); setCity('');
-    setPickedDate(null); setPickedHour(20); setPickedMinute(0); setTimeSet(false);
+    setPickedDate(null); setEndDate(null); setPickedHour(20); setPickedMinute(0); setTimeSet(false);
     setTicketUrl(''); setEntryPrice(''); setVipPrice(''); setVvipPrice(''); setOtherTickets(''); setEventType('');
     setContactPhone(''); setContactEmail('');
     setLat(null); setLon(null);
@@ -355,6 +358,13 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       payload.media_urls = mediaUrls.map(m => m.url);
       payload.cover_url = mediaUrls[0].url;
     }
+    if (endDate && pickedDate) {
+      const ey = endDate.getFullYear();
+      const emo = String(endDate.getMonth() + 1).padStart(2, '0');
+      const ed = String(endDate.getDate()).padStart(2, '0');
+      const endStr = `${ey}-${emo}-${ed}`;
+      if (endStr > payload.event_date) payload.end_date = endStr; // multi-day, only if after start
+    }
     if (scheduleItems.length > 0) payload.schedule = scheduleItems.map(({ id, ...rest }) => rest);
     if (competitionId) payload.competition_id = competitionId;
     if (ageMin > 0) payload.age_restriction = ageMin;
@@ -437,7 +447,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         },
         async () => {
           // Tier 2: strip coords + schedule + categories array (may not be a DB column)
-          const { coords: _c, schedule: _s, categories: _cats, ...safePayload } = payload;
+          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, ...safePayload } = payload;
           const { data, error } = await supabase.from('events').insert(safePayload).select().single();
           if (error) throw error;
           return data || true;
@@ -813,6 +823,26 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                           : 'End (opt)'}
                       </Text>
                     </TouchableOpacity>
+                  </View>
+
+                  {/* Optional end date — multi-day events (tournaments, festivals) */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                    <TouchableOpacity
+                      style={[pm.pickerBtn, { borderColor: endDate ? primary : `${primary}25`, backgroundColor: endDate ? `${primary}12` : 'rgba(255,255,255,0.03)', flex: 1 }]}
+                      onPress={() => setEndCalendarVisible(true)}
+                    >
+                      <Feather name="calendar" size={15} color={endDate ? primary : muted} />
+                      <Text style={[pm.pickerBtnText, { color: endDate ? primary : muted }]} numberOfLines={1}>
+                        {endDate
+                          ? `Ends ${endDate.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                          : 'End date — optional, for multi-day events'}
+                      </Text>
+                    </TouchableOpacity>
+                    {endDate && (
+                      <TouchableOpacity onPress={() => setEndDate(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                        <Feather name="x" size={16} color={muted} />
+                      </TouchableOpacity>
+                    )}
                   </View>
 
                   {/* ── Recurrence toggle ──────────────────────────────────── */}
@@ -1305,6 +1335,14 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         onClose={() => setCalendarVisible(false)}
         onConfirm={(date) => { setPickedDate(date); setCalendarVisible(false); }}
         value={pickedDate}
+        primary={primary} bg={bg} textColor={textColor} muted={muted}
+      />
+
+      <CalendarPicker
+        visible={endCalendarVisible}
+        onClose={() => setEndCalendarVisible(false)}
+        onConfirm={(date) => { setEndDate(date); setEndCalendarVisible(false); }}
+        value={endDate}
         primary={primary} bg={bg} textColor={textColor} muted={muted}
       />
 
