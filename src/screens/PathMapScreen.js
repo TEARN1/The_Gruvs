@@ -450,7 +450,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
       // Checkins joined with events
       const { data: ciData } = await supabase
         .from('live_checkins')
-        .select('*, events(id, title, lat, lon, city, venue_city)')
+        .select('id, user_id, event_id, checked_in_at, expires_at, events(id, title, lat, lon, city, venue_city)')
         .eq('user_id', user?.id)
         .order('checked_in_at', { ascending: true });
 

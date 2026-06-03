@@ -9,6 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
 import { GlassView } from './GlassView';
 import { supabase } from '../services/supabase';
+import { SecurityService } from '../services/securityService';
 
 // When the app is published to stores, swap this to the App Store / Play Store URL.
 // For now this points to the Expo Go project page so new users can install and open the app.
@@ -85,11 +86,11 @@ export const ReferralCard = ({ userId }) => {
       if (id === 'whatsapp') {
         const url = `whatsapp://send?text=${encodeURIComponent(inviteMsg)}`;
         const supported = await Linking.canOpenURL(url);
-        if (supported) { await Linking.openURL(url); return; }
+        if (supported) { await SecurityService.safeOpenURL(url); return; }
       }
 
       if (id === 'twitter') {
-        await Linking.openURL(`https://twitter.com/intent/tweet?text=${encodeURIComponent(inviteMsg)}`);
+        await SecurityService.safeOpenURL(`https://twitter.com/intent/tweet?text=${encodeURIComponent(inviteMsg)}`);
         return;
       }
 

@@ -1,5 +1,5 @@
-import { sanitizeSearch, isUuid, safeOpenURL } from '../src/utils/sanitize';
-import { Linking } from 'react-native';
+import { sanitizeSearch, isUuid, safeOpenURL, safeOpenExternal } from '../src/utils/sanitize';
+import { Linking, Alert } from 'react-native';
 
 jest.spyOn(Linking, 'canOpenURL').mockImplementation(async () => true);
 jest.spyOn(Linking, 'openURL').mockImplementation(async () => {});
@@ -74,6 +74,66 @@ describe('safeOpenURL', () => {
   it('handles invalid inputs gracefully', async () => {
     const res = await safeOpenURL(null);
     expect(res).toBe(false);
+  });
+});
+
+describe('safeOpenExternal', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('allows safe http/https external links after user confirmation', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
+      // Simulate clicking "Proceed"
+      const proceed = buttons.find(b => b.text === 'Proceed');
+      if (proceed) proceed.onPress();
+    });
+
+    const res = await safeOpenExternal('https://another-site.com/hello');
+    expect(res).toBe(true);
+    expect(alertSpy).toHaveBeenCalled();
+    expect(Linking.openURL).toHaveBeenCalledWith('https://another-site.com/hello');
+  });
+
+  it('blocks navigation when user cancels the confirmation', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
+      // Simulate clicking "Cancel"
+      const cancel = buttons.find(b => b.text === 'Cancel');
+      if (cancel) cancel.onPress();
+    });
+
+    const res = await safeOpenExternal('https://another-site.com/hello');
+    expect(res).toBe(false);
+    expect(alertSpy).toHaveBeenCalled();
+    expect(Linking.openURL).not.toHaveBeenCalled();
+  });
+
+  it('allows mailto: and tel: links without confirmation dialog', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    const resMail = await safeOpenExternal('mailto:test@example.com');
+    expect(resMail).toBe(true);
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(Linking.openURL).toHaveBeenCalledWith('mailto:test@example.com');
+
+    const resTel = await safeOpenExternal('tel:+27123456789');
+    expect(resTel).toBe(true);
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(Linking.openURL).toHaveBeenCalledWith('tel:+27123456789');
+  });
+
+  it('blocks unsafe schemes like javascript:, data:, and file:', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    const resJS = await safeOpenExternal('javascript:alert(1)');
+    expect(resJS).toBe(false);
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(Linking.openURL).not.toHaveBeenCalled();
+
+    const resData = await safeOpenExternal('data:text/html,<h1>Hack</h1>');
+    expect(resData).toBe(false);
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(Linking.openURL).not.toHaveBeenCalled();
   });
 });
 

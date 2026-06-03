@@ -34,7 +34,6 @@ import { validateEnv } from './src/utils/validateEnv';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { SecurityService } from './src/services/securityService';
 import { VibeEconomyEngine } from './src/services/revenueEngine';
-import { NeuralUI } from './src/services/neuralUI';
 import { supabase } from './src/services/supabase';
 import { backStack } from './src/utils/backStack';
 
@@ -515,12 +514,7 @@ const MainNavigator = () => {
         applyNeuralTheme({ glowIntensity: glowIntensity * 0.5 });
       }
 
-      // Advanced Neural UI adaptation
-      if (status.isRoyal || status.sis > 90) {
-        NeuralUI.calculateOptimalEnvironment({ sis: status.sis, equity: status.equity })
-          .then(res => applyNeuralTheme(res.custom_tokens))
-          .catch(() => { });
-      }
+
     };
 
     checkStatus();

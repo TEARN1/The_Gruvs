@@ -55,7 +55,6 @@ import { ReactedBadge } from '../components/ReactionFX';
 
 // ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
 import { PostEventModal }       from '../components/PostEventModal';
-import { PersonalPlannerModal } from '../components/PersonalPlannerModal';
 import { ViberProfileModal }    from '../components/ViberProfileModal';
 import { ActivityCenterModal }  from '../components/ActivityCenterModal';
 import { EventAdminPanel }      from '../components/EventAdminPanel';
@@ -349,12 +348,7 @@ const EventCard = React.memo(({
             </View>
           )}
 
-          {/* AI-routed personalisation badge */}
-          {event._aiRecommended && !event._isTrending && !event.is_recurring && (
-            <View style={[styles.trendingBanner, { backgroundColor: "#7c3aed" }]}>
-              <Text style={styles.trendingBannerText}>✦ MATCHED TO YOUR VIBE</Text>
-            </View>
-          )}
+
 
           {/* Media — double-tap to vibe, long-press for quick actions */}
           <TouchableOpacity
@@ -552,12 +546,7 @@ const EventCard = React.memo(({
                     <Text style={[styles.metaChipText, { color: primary, fontWeight: '800' }]}>{countdown}</Text>
                   </View>
                 ) : null}
-                {event._aiRecommended ? (
-                  <View style={[styles.metaChip, { borderColor: '#7c3aed50', backgroundColor: '#7c3aed12' }]}>
-                    <Text style={{ fontSize: 9 }}>✦</Text>
-                    <Text style={[styles.metaChipText, { color: "#a78bfa" }]}>AI Pick</Text>
-                  </View>
-                ) : null}
+
               </View>
             </View>
 
@@ -850,7 +839,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // Modals
   const [postModalVisible, setPostModalVisible] = useState(false);
-  const [plannerVisible, setPlannerVisible] = useState(false);
   const [trendingModalVisible, setTrendingModalVisible] = useState(false);
   const [selectedViber, setSelectedViber] = useState(null);
   const [viberModalVisible, setViberModalVisible] = useState(false);
@@ -1268,7 +1256,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     try {
       const { data } = await supabase
         .from('live_checkins')
-        .select('*, profiles(username, avatar_url, city, address, home_base)')
+        .select('id, user_id, event_id, checked_in_at, expires_at, profiles(username, avatar_url, city, address, home_base)')
         .eq('event_id', eventId)
         .order('checked_in_at', { ascending: false });
       setEventCheckins(prev => ({ ...prev, [eventId]: data || [] }));
@@ -2004,15 +1992,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </SafeSection>
       )}
 
-      {plannerVisible && (
-        <SafeSection label="Vibe Planner" primary={primary}>
-          <PersonalPlannerModal
-            visible={plannerVisible}
-            onClose={() => setPlannerVisible(false)}
-            onNavigateToEvent={(ev) => setSelectedEvent(ev)}
-          />
-        </SafeSection>
-      )}
+
       {viberModalVisible && (
         <SafeSection label="Profile" primary={primary}>
           <ViberProfileModal
@@ -2220,21 +2200,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </TouchableOpacity>
       )}
 
-      {/* ── Vibe Plan FAB (bottom left, above nav bar) ────────────────────── */}
-      {!!user && (
-        <TouchableOpacity
-          style={[styles.createFab, { backgroundColor: "#6366f1", bottom: (insets.bottom || 0) + 20, right: undefined, left: 20 }]}
-          onPress={() => {
-            safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
-            setPlannerVisible(true);
-          }}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel="Open your personalised vibe plan"
-        >
-          <Feather name="calendar" size={22} color="#fff" />
-        </TouchableOpacity>
-      )}
+
 
       {/* ── Create event FAB (bottom right, above nav bar) ───────────────── */}
       <TouchableOpacity

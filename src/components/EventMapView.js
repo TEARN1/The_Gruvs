@@ -7,7 +7,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal,
-  ScrollView, Image, Dimensions, Linking, Platform,
+  ScrollView, Image, Dimensions, Platform,
 } from 'react-native';
 import Svg, { Line, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { useBackClose } from '../hooks/useBackClose';
+import { SecurityService } from '../services/securityService';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const MAP_H = SH * 0.55;
@@ -33,8 +34,8 @@ const openDirections = (event) => {
   const url = Platform.OS === 'ios'
     ? `maps://?q=${q}`
     : `geo:0,0?q=${q}`;
-  Linking.openURL(url).catch(() =>
-    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${q}`)
+  SecurityService.safeOpenURL(url).catch(() =>
+    SecurityService.safeOpenURL(`https://www.google.com/maps/search/?api=1&query=${q}`)
   );
 };
 

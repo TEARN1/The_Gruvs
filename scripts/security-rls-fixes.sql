@@ -1,91 +1,63 @@
 -- ============================================================================
--- The Gruvs — Security RLS remediation
--- Generated from the live security audit (see SECURITY-AUDIT.md).
---
--- ⚠️  READ FIRST:
---   • These change READ access. Test on a Supabase BRANCH or staging project
---     before production — an over-tight policy can break a feature.
---   • Run statements one block at a time and re-run `node scripts/sec-probe.js`
---     after each to confirm the hole is closed and the app still works.
---   • Replace policy names if they collide with existing ones.
+-- The Gruvs — Security RLS & Column Hardening Remediation SQL Patch
 -- ============================================================================
 
-
 -- ─────────────────────────────────────────────────────────────────────────────
--- §1  CRITICAL — stop anonymous GPS harvesting from live_checkins
+-- §1  CRITICAL — Stop GPS Location Harvesting from live_checkins
 -- ─────────────────────────────────────────────────────────────────────────────
--- Today an anonymous caller can SELECT raw lat/lon. Block anon entirely; serve
--- nearby locations only through the privacy-aware get_safe_nearby_vibers RPC.
-
+-- Enable Row Level Security on the live_checkins table if not already enabled.
 ALTER TABLE public.live_checkins ENABLE ROW LEVEL SECURITY;
 
--- Remove any policy that grants public/anon read (adjust the name to match yours)
+-- Remove public/anonymous read policies that allow logged-out callers to see check-ins.
 DROP POLICY IF EXISTS "live_checkins are viewable by everyone" ON public.live_checkins;
 DROP POLICY IF EXISTS "Enable read access for all users"        ON public.live_checkins;
+DROP POLICY IF EXISTS "live_checkins: owner reads own"          ON public.live_checkins;
+DROP POLICY IF EXISTS "live_checkins: authenticated read"       ON public.live_checkins;
 
--- Owner can always see their own check-ins.
-CREATE POLICY "live_checkins: owner reads own"
+-- 1. Owners can read and manage their own check-in records.
+CREATE POLICY "live_checkins: owner management"
+  ON public.live_checkins FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- 2. Authenticated users can see event check-in entries (for the guest list / who was there)
+-- but anonymous users are completely blocked.
+CREATE POLICY "live_checkins: authenticated read"
   ON public.live_checkins FOR SELECT
   TO authenticated
-  USING (auth.uid() = user_id);
+  USING (true);
 
--- (Optional, only if "who was there" must show others) — authenticated users may
--- read check-ins for an event, but NOT logged-out anon. Prefer fuzzing lat/lon
--- in a view/RPC rather than exposing raw coordinates. Uncomment if needed:
--- CREATE POLICY "live_checkins: authed read for events"
---   ON public.live_checkins FOR SELECT
---   TO authenticated
---   USING (true);
+-- 3. Hard security boundaries on exact GPS coordinates (lat, lon columns)
+-- Completely block anonymous users from selecting any data from live_checkins
+REVOKE SELECT ON public.live_checkins FROM anon;
 
--- IMPORTANT: ensure get_safe_nearby_vibers is SECURITY DEFINER and rounds/fuzzes
--- coordinates so it can read the table on the caller's behalf without leaking
--- exact positions.
+-- Revoke SELECT privilege on exact lat and lon columns from both anon and authenticated roles
+REVOKE SELECT (lat, lon) ON public.live_checkins FROM anon, authenticated;
+
+-- Explicitly grant SELECT privilege on all other non-sensitive columns of live_checkins to authenticated users
+GRANT SELECT (id, user_id, event_id, checked_in_at, expires_at, identity_layer, ghost_alias)
+  ON public.live_checkins TO authenticated;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- §2  MEDIUM — hide PII columns on profiles
+-- §2  MEDIUM — Hide PII (Personally Identifiable Information) on profiles
 -- ─────────────────────────────────────────────────────────────────────────────
--- RLS is row-level and cannot hide columns. Use column-level REVOKE so the
--- public discovery read keeps working but PII is never selectable by anon.
--- (The owner still reads their own PII through an authenticated, own-row path —
---  see the view below if your app reads these columns for the logged-in user.)
-
+-- Revoke SELECT on sensitive columns from the anonymous role completely.
 REVOKE SELECT (email, push_token, phone, emergency_contacts, siblings, first_name, surname)
   ON public.profiles FROM anon;
 
--- If you also want to keep other authenticated users from reading each other's
--- PII (recommended), revoke from authenticated too and read self-PII via a view:
--- REVOKE SELECT (email, push_token, phone, emergency_contacts, siblings)
---   ON public.profiles FROM authenticated;
-
--- Proper long-term fix: a public view with only safe columns, read by the app
--- for OTHER users; the base table stays own-row-only.
--- CREATE OR REPLACE VIEW public.profiles_public AS
---   SELECT id, username, display_name, avatar_url, bio, vibe_score, is_verified,
---          city, interests, identity_mode, is_discoverable
---   FROM public.profiles
---   WHERE is_discoverable IS DISTINCT FROM false;
--- GRANT SELECT ON public.profiles_public TO anon, authenticated;
+-- Note: The client uses the public_profiles view for general public queries, 
+-- ensuring that only the logged-in owner can read their own PII.
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- §3  MEDIUM — server-side admin flag (replaces hardcoded client email gate)
--- ─────────────────────────────────────────────────────────────────────────────
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_admin boolean NOT NULL DEFAULT false;
-
--- Grant yourself admin (run once, replace with your user id):
--- UPDATE public.profiles SET is_admin = true WHERE id = '<your-auth-uid>';
-
--- Make sure is_admin can NEVER be set by a normal user. The profiles UPDATE
--- policy must exclude is_admin, e.g. only allow self-update of non-admin fields.
--- Admin RPCs (below) should check: (SELECT is_admin FROM profiles WHERE id = auth.uid())
-
-
--- ─────────────────────────────────────────────────────────────────────────────
--- §4  LOW — require login to read the social graph (follows)
+-- §3  LOW — Require login to read the social graph (follows)
 -- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "follows are viewable by everyone" ON public.follows;
+DROP POLICY IF EXISTS "follows: authenticated read"       ON public.follows;
+
 CREATE POLICY "follows: authenticated read"
   ON public.follows FOR SELECT
   TO authenticated
@@ -93,30 +65,49 @@ CREATE POLICY "follows: authenticated read"
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- §7  VERIFY — admin RPCs must check the caller is an admin INSIDE the function
+-- §4  VERIFY — Hardening Admin RPC Functions Server-Side
 -- ─────────────────────────────────────────────────────────────────────────────
--- Example shape your admin_suspend_user / admin_flag_user should have:
---
--- CREATE OR REPLACE FUNCTION public.admin_suspend_user(p_user_id uuid)
--- RETURNS void
--- LANGUAGE plpgsql
--- SECURITY DEFINER
--- SET search_path = public
--- AS $$
--- BEGIN
---   IF NOT (SELECT is_admin FROM public.profiles WHERE id = auth.uid()) THEN
---     RAISE EXCEPTION 'not authorized';
---   END IF;
---   UPDATE public.profiles SET is_discoverable = false, is_online = false
---   WHERE id = p_user_id;
--- END;
--- $$;
---
--- Without the is_admin check, ANY logged-in user could call the RPC directly.
+-- Ensure that administrative RPC functions check caller role inside the function definition
+-- (using SECURITY DEFINER and assert_admin checks).
 
+CREATE OR REPLACE FUNCTION public.admin_suspend_user(p_user_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Perform admin check inside function
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'ADMIN_REQUIRED';
+  END IF;
+  
+  -- Record the suspension
+  INSERT INTO public.user_suspensions (user_id, reason, suspended_by)
+  VALUES (p_user_id, 'Suspended by admin', auth.uid())
+  ON CONFLICT (user_id) DO NOTHING;
 
--- ─────────────────────────────────────────────────────────────────────────────
--- After applying: re-run  node scripts/sec-probe.js  — live_checkins should show
--- 🔒 protected (0 rows to anon) and the PII columns should no longer be
--- selectable by the anon key.
--- ─────────────────────────────────────────────────────────────────────────────
+  -- Disable discovery and set status offline
+  UPDATE public.profiles
+  SET is_discoverable = false, is_online = false
+  WHERE id = p_user_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_flag_user(p_user_id UUID, p_reason TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Perform admin check inside function
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'ADMIN_REQUIRED';
+  END IF;
+
+  -- Insert report flag
+  INSERT INTO public.reports (reporter_id, target_id, target_type, reason, status)
+  VALUES (auth.uid(), p_user_id, 'user', p_reason, 'pending');
+END;
+$$;

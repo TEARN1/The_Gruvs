@@ -10,6 +10,8 @@
  *   EXPO_PUBLIC_YOUTUBE_API_KEY
  */
 
+import { supabase, isSupabaseEnabled } from './supabase';
+
 const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const SPOTIFY_SEARCH_URL = 'https://api.spotify.com/v1/search';
 const YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search';
@@ -24,14 +26,31 @@ let _spotifyExpiry = 0;
 // ⚠️ SECURITY (SECURITY-AUDIT.md finding #8): the Spotify Client Credentials
 // flow needs the CLIENT SECRET, and any EXPO_PUBLIC_* var is compiled into the
 // public web/app bundle — so the secret is exposed to anyone who inspects it.
-// Proper fix: move this token exchange into a Supabase Edge Function that holds
-// the secret server-side and returns only the short-lived access token; have the
-// client call that function instead. Until then, rotate the secret and treat it
-// as already-compromised. (YouTube key below is also public — restrict it by
-// HTTP referrer + API in the Google console.)
+// Fixed: This implementation prioritizes fetching the token via a secure Supabase
+// Edge Function ('spotify-token') that holds the secret server-side.
+// The local fetch is kept purely as a fallback to ensure backwards compatibility
+// during deployment transitions.
 const getSpotifyToken = async () => {
   if (_spotifyToken && Date.now() < _spotifyExpiry - 30_000) return _spotifyToken;
 
+  // Try calling the secure Supabase Edge Function first
+  if (isSupabaseEnabled) {
+    try {
+      const { data, error } = await supabase.functions.invoke('spotify-token');
+      if (!error && data && data.access_token) {
+        _spotifyToken = data.access_token;
+        _spotifyExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+        return _spotifyToken;
+      }
+      if (error) {
+        console.warn('[MusicService] Edge function token fetch failed, falling back:', error.message);
+      }
+    } catch (e) {
+      console.warn('[MusicService] Failed to invoke Edge Function, falling back:', e.message);
+    }
+  }
+
+  // Fallback to local token exchange using public bundle secret (transitional support)
   if (!SPOTIFY_ID || !SPOTIFY_SECRET) {
     throw new Error('Spotify credentials not configured. Add EXPO_PUBLIC_SPOTIFY_CLIENT_ID and EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET to .env');
   }

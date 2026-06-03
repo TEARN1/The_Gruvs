@@ -92,7 +92,7 @@ export const pathService = {
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('live_checkins')
-      .select('*, profiles(username, avatar_url, social_integrity_score)')
+      .select('id, user_id, event_id, checked_in_at, expires_at, identity_layer, ghost_alias, profiles(username, avatar_url, social_integrity_score)')
       .eq('event_id', eventId)
       .gt('expires_at', now)
       .order('checked_in_at', { ascending: false });

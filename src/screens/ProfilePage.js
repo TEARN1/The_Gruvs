@@ -26,6 +26,7 @@ import { thumb } from '../utils/storageThumb';
 import { DiscoveryManager, UserManager, AnalyticsManager, BehavioralEngine, ActivityFeedManager, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient, resilientRead } from '../utils/resilience';
 import { LocationService } from '../services/locationService';
+import { SecurityService } from '../services/securityService';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
@@ -873,7 +874,7 @@ const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
 
         <TouchableOpacity
           style={{ padding: 14 }}
-          onPress={() => Linking.openURL('https://thegruvs.com/privacy').catch(() => {})}
+          onPress={() => SecurityService.safeOpenURL('https://thegruvs.com/privacy').catch(() => {})}
         >
           <Text style={{ color: muted, fontWeight: '700', textAlign: 'center', fontSize: 12 }}>View Privacy Policy</Text>
         </TouchableOpacity>

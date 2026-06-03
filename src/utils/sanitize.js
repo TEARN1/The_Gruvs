@@ -108,7 +108,7 @@ export async function safeOpenURL(url) {
  * files (especially on web). Returns true if it opened.
  */
 export async function safeOpenExternal(url) {
-  const { Linking } = require('react-native');
+  const { Linking, Alert, Platform } = require('react-native');
   if (typeof url !== 'string' || !url.trim()) return false;
   let raw = url.trim();
   // Default bare "domain.com/x" links to https rather than letting the platform
@@ -126,6 +126,33 @@ export async function safeOpenExternal(url) {
     const lower = raw.toLowerCase();
     if (!ALLOWED.some((s) => lower.startsWith(s))) return false;
   }
+
+  // Show a confirmation dialog to protect against Consent Phishing, In-Session Phishing,
+  // and Browser-in-the-Browser (BitB) credential harvesting.
+  // Mailto and tel links don't load external websites, so they don't need a warning.
+  const lowerUrl = raw.toLowerCase();
+  if (lowerUrl.startsWith('http:') || lowerUrl.startsWith('https:')) {
+    const message = `You are leaving The Gruvs to visit:\n\n${raw}\n\nTo keep your account secure, never enter your password or share sensitive information on unverified external sites.`;
+
+    if (Platform.OS === 'web') {
+      const confirm = typeof window !== 'undefined' && window.confirm && window.confirm(message);
+      if (!confirm) return false;
+    } else {
+      const confirm = await new Promise((resolve) => {
+        Alert.alert(
+          'Security Warning',
+          message,
+          [
+            { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
+            { text: 'Proceed', onPress: () => resolve(true) }
+          ],
+          { cancelable: true }
+        );
+      });
+      if (!confirm) return false;
+    }
+  }
+
   try { await Linking.openURL(raw); return true; }
   catch (e) { console.warn('safeOpenExternal: failed to open', e); return false; }
 }

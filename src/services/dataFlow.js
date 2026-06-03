@@ -587,18 +587,8 @@ export const FeedManager = {
     dateRange = null,
   } = {}, cacheKey) {
 
-    // Load AI recommendations for this user (non-blocking, best-effort)
-    let aiRecommendedIds = new Set();
-    if (userId) {
-      try {
-        const { data: rec } = await supabase
-          .from('ai_recommendations_cache')
-          .select('event_ids')
-          .eq('user_id', userId)
-          .single();
-        if (rec?.event_ids?.length) aiRecommendedIds = new Set(rec.event_ids);
-      } catch { /* ignore */ }
-    }
+    // AI recommendations cache query removed
+    const aiRecommendedIds = new Set();
 
     // ── Tier helpers ──────────────────────────────────────────────────────────
     const buildBaseQuery = (select, opts = {}) => {
@@ -651,9 +641,7 @@ export const FeedManager = {
         }));
         events.sort((a, b) => b._heatScore - a._heatScore);
       }
-      if (aiRecommendedIds.size > 0) {
-        events = events.map(e => aiRecommendedIds.has(e.id) ? { ...e, _aiRecommended: true } : e);
-      }
+      // AI recommendations assignment removed
       // Apply personalised traffic routing boost (non-blocking, best-effort)
       if (userId && page === 0) {
         try {

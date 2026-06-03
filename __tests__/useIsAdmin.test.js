@@ -19,8 +19,6 @@ jest.mock('../src/services/supabase', () => ({
 
 import { useIsAdmin } from '../src/hooks/useIsAdmin';
 
-const OWNER_EMAIL = 'asemahlenkwali@gmail.com';
-
 describe('useIsAdmin gate', () => {
   it('denies when there is no signed-in user', async () => {
     mockUser = null;
@@ -35,17 +33,17 @@ describe('useIsAdmin gate', () => {
     await waitFor(() => expect(result.current).toBe(true));
   });
 
-  it('denies a normal user (role user, not the owner email)', async () => {
+  it('denies a normal user (role user)', async () => {
     mockUser = { id: 'u2', email: 'someone@example.com' };
     mockProfileResult = { data: { role: 'user' }, error: null };
     const { result } = renderHook(() => useIsAdmin(true));
     await waitFor(() => expect(result.current).toBe(false));
   });
 
-  it('bootstraps via owner email when the role column is missing', async () => {
-    mockUser = { id: 'u3', email: OWNER_EMAIL };
+  it('denies access when the role column is missing or query fails', async () => {
+    mockUser = { id: 'u3', email: 'owner@example.com' };
     mockProfileResult = { data: null, error: { code: '42703' } }; // undefined_column
     const { result } = renderHook(() => useIsAdmin(true));
-    await waitFor(() => expect(result.current).toBe(true));
+    await waitFor(() => expect(result.current).toBe(false));
   });
 });

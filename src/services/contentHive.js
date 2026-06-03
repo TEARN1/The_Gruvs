@@ -5,7 +5,6 @@
  * them into viral marketing assets.
  */
 import { supabase } from './supabase';
-import { chat, AIFeature } from './claudeService';
 import projectDNA from './projectDNA.json';
 
 export const ContentHive = {
@@ -24,41 +23,30 @@ export const ContentHive = {
 
     if (!event) return null;
 
-    // 2. 32M-Token Viral Synthesis
-    const prompt = `[VIRAL HOOK ENGINE]
-    EVENT: ${event.title}
-    CITY: ${event.city}
-    HOST: @${event.profiles?.username}
-    CATEGORY: ${event.category}
-    VIBE VELOCITY: ${event.vibe_count} vibes in 24h
+    // Local, deterministic viral asset generation
+    const slang = projectDNA.learned_context?.slang || ['lekker', 'groove', 'vibe'];
+    const randomSlang = () => slang[Math.floor(Math.random() * slang.length)];
 
-    TASK: Generate a "Market-Dominating" social media campaign.
-    Requirements:
-    - 1 Instagram Caption (Visual-heavy, luxury tone).
-    - 3 X (Twitter) Threads (Engagement-bait, FOMO).
-    - 1 WhatsApp Status Blast (Viral, short, SA slang).
-    - Descriptions for AI-generated visuals.
+    const instagram = `🔥 The Ultimate ${event.category} in ${event.city || 'South Africa'}! @${event.profiles?.username || 'viber'} is hosting ${event.title} at ${event.venue_name || 'The Venue'}. Current vibe velocity is sitting at ${event.vibe_count || 100} vibes! Don't suffer from FOMO, this is going to be ${randomSlang()}! 🏆✨ #TheGruvs #SA${event.category || 'Culture'}`;
+    
+    const x_thread = [
+      `1/ 🚨 Durban, Jozi, Cape Town — the velocity on ${event.title} is absolutely insane right now. Sitting at ${event.vibe_count || 120} vibes in 24 hours. Here's why this is the only spot that matters this weekend... 👇`,
+      `2/ Hosted by @${event.profiles?.username || 'viber'} at ${event.venue_name || 'The Venue'}, this is the peak ${event.category} energy. Ticket price is set at ${event.price === 'FREE' ? 'FREE entry' : `R${event.price}`}.`,
+      `3/ Grab your crew and lock in. It's going to be extremely ${randomSlang()}. See you there! ⚡️`
+    ];
 
-    CULTURAL DNA: ${JSON.stringify(projectDNA.learned_context.slang)}
+    const whatsapp = `Hey! Check out ${event.title} happening on ${event.event_date || 'this weekend'} at ${event.venue_name || 'The Venue'}. It's currently trending on The Gruvs with ${event.vibe_count || 150} vibes. Definitely going to be ${randomSlang()}! 🚀`;
 
-    Return JSON: {
-      "instagram": "copy",
-      "x_thread": ["part1", "part2", "part3"],
-      "whatsapp": "copy",
-      "visual_prompt": "description for Midjourney/DALL-E",
-      "target_audience": "Who should see this?"
-    }`;
+    const visual_prompt = `High-end cinematic photo of a stylish South African crowd enjoying a ${event.category} night at a premium lounge, vibrant neon purple and cyan lighting, luxury vibes, highly detailed.`;
 
-    try {
-      const response = await chat([{ role: 'user', content: prompt }], {
-        feature: AIFeature.ROYAL_REVENUE, // Use revenue feature for marketing
-        systemExtra: "You are the Head of Growth. Make it viral."
-      });
+    const target_audience = `Vibers in ${event.city || 'South Africa'} interested in ${event.category || 'Events'}`;
 
-      return JSON.parse(response.text);
-    } catch (e) {
-      console.error('[ContentHive] Asset generation failed:', e.message);
-      return null;
-    }
+    return {
+      instagram,
+      x_thread,
+      whatsapp,
+      visual_prompt,
+      target_audience
+    };
   }
 };

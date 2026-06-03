@@ -120,7 +120,7 @@ export const SecurityService = {
   isValidUrl(url) {
     if (!url) return false;
     if (url.startsWith('/') || url.startsWith('thegruvs://')) return true;
-    if (url.startsWith('tel:') || url.startsWith('mailto:') || url.startsWith('geo:') || url.startsWith('maps:')) return true;
+    if (url.startsWith('tel:') || url.startsWith('mailto:') || url.startsWith('geo:') || url.startsWith('maps:') || url.startsWith('whatsapp:')) return true;
     try {
       const parsed = new URL(url);
       return ['http:', 'https:'].includes(parsed.protocol);
@@ -146,6 +146,11 @@ export const SecurityService = {
   async safeOpenURL(url) {
     if (!this.isValidUrl(url)) return false;
     try {
+      const lower = String(url).trim().toLowerCase();
+      if (lower.startsWith('http:') || lower.startsWith('https:')) {
+        const { safeOpenExternal } = require('../utils/sanitize');
+        return await safeOpenExternal(url);
+      }
       const { Linking } = require('react-native');
       await Linking.openURL(url);
       return true;

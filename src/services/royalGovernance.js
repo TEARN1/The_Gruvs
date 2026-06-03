@@ -5,7 +5,6 @@
  * Powered by Vibe-Equity and the 32M-Token Neural Mesh.
  */
 import { supabase } from './supabase';
-import { chat, AIFeature } from './claudeService';
 
 export const RoyalGovernance = {
   MIN_EQUITY_FOR_VOTE: 500,
@@ -15,30 +14,31 @@ export const RoyalGovernance = {
    * Scans Echoes and Vibe patterns to find what the kingdom needs.
    */
   async generateAutonomousProposal() {
+    // Local deterministic proposals list
+    const candidates = [
+      {
+        proposal_title: "Amapiano Royalty Tax Rebate",
+        proposal_description: "Reduce treasury cuts from ticket sales of music category events by 2% to incentivize local artist gigs.",
+        equity_reward: 100,
+        strategic_value: "Fosters grassroots growth in the local music economy."
+      },
+      {
+        proposal_title: "Sovereign DJ Backing Fund",
+        proposal_description: "Initialize a communal pool of 50,000 Vibe-Equity to subsidize sound gear rentals for emerging talent.",
+        equity_reward: 150,
+        strategic_value: "Empowers new artists and improves acoustic production values."
+      },
+      {
+        proposal_title: "Decentralized Ticket Fair-Play",
+        proposal_description: "Impose a maximum resale markup cap of 15% on the peer-to-peer secondary market ticket trading.",
+        equity_reward: 80,
+        strategic_value: "Combats scalping and keeps event access fair for the community."
+      }
+    ];
 
-    const { data: echoes } = await supabase.from('echoes').select('body').limit(100);
-
-    const prompt = `[ROYAL COUNCIL PROPOSAL]
-    USER FEEDBACK (Echoes): ${JSON.stringify(echoes)}
-
-    TASK: Analyze current user pain points and market opportunities.
-    Propose ONE major platform feature to be voted on by the Royal Council.
-
-    Return JSON: {
-      "proposal_title": "Copy",
-      "proposal_description": "Detailed logic",
-      "equity_reward": number,
-      "strategic_value": "Why this matters"
-    }`;
+    const proposal = candidates[Math.floor(Math.random() * candidates.length)];
 
     try {
-      const response = await chat([{ role: 'user', content: prompt }], {
-        feature: AIFeature.ADMIN,
-        systemExtra: "You are the Supreme Advisor to the King."
-      });
-
-      const proposal = JSON.parse(response.text);
-
       // Save to governance table
       await supabase.from('governance_proposals').insert({
         title: proposal.proposal_title,

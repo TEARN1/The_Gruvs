@@ -4,7 +4,6 @@
  * Autonomous expansion logic.
  * Handles localization, influencer targeting, and regional "Drop" timing.
  */
-import { chat, AIFeature } from './claudeService';
 import { supabase } from './supabase';
 
 export const MarketEntry = {
@@ -13,36 +12,33 @@ export const MarketEntry = {
    * e.g., "Durban Expansion" or "Joburg Takeover"
    */
   async generateEntryPlan(regionName) {
+    const region = String(regionName || 'South Africa').trim();
 
-    const prompt = `[MARKET ENTRY STRATEGY]
-    REGION: "${regionName}"
-    PLATFORM_STATUS: "Technical Singularity Achieved"
+    // Map typical regional data
+    let target_hubs = ['Sandton', 'Rosebank', 'Melville', 'Maboneng', 'Braamfontein'];
+    let viral_hooks = ['Amapiano Rooftop Sessions', 'First Thursdays Art Crawl', 'Secret Garden Grooves'];
+    let localization = { 'hello': 'Awe', 'party': 'Groove', 'cool': 'Lekker' };
 
-    TASK: Perform a 50x Depth Strategic Analysis for a 30-day takeover.
-    1. Identify 5 top "Micro-Kingdoms" (Neighborhoods/Hotspots) in this region.
-    2. Propose 3 "Vibe Hooks" specifically for the local demographic.
-    3. Generate regional localization strings (Replace standard slang with local dialect).
-    4. Calculate "Launch Window" peaks based on regional social data.
-
-    Return JSON: {
-      "target_hubs": ["hub1", "hub2"],
-      "viral_hooks": ["hook1", "hook2"],
-      "localization": { "key": "regional_val" },
-      "launch_window_utc": "ISO_DATE",
-      "expected_cpa": "Vibe Equity / User"
-    }`;
-
-    try {
-      const response = await chat([{ role: 'user', content: prompt }], {
-        feature: AIFeature.ADMIN,
-        systemExtra: "You are the Head of Global Expansion. Failure to dominate is not an option."
-      });
-
-      return JSON.parse(response.text);
-    } catch (e) {
-      console.error('[MarketEntry] Strategy failed:', e.message);
-      return null;
+    if (region.toLowerCase().includes('durban') || region.toLowerCase().includes('dbn')) {
+      target_hubs = ['Florida Road', 'Umhlanga Arch', 'Morningside', 'Glenwood', 'Westville'];
+      viral_hooks = ['Gqom Beachfront Sunsets', 'Shisanyama Sunday Car Meet', 'Royal Yacht Club Vibe'];
+      localization = { 'hello': 'Sanibona', 'party': 'Groove', 'cool': 'Chilled' };
+    } else if (region.toLowerCase().includes('cape town') || region.toLowerCase().includes('cpt')) {
+      target_hubs = ['Camps Bay', 'Bree Street', 'Observatory', 'Woodstock', 'Green Point'];
+      viral_hooks = ['Table Mountain Sunset DJ Set', 'Deep House Wine Farm Sunday', 'Kalk Bay Harbor Vibe'];
+      localization = { 'hello': 'Molo', 'party': 'Jol', 'cool': 'Kiff' };
     }
+
+    const launchDate = new Date();
+    launchDate.setDate(launchDate.getDate() + 30); // 30 days from now
+
+    return {
+      target_hubs,
+      viral_hooks,
+      localization,
+      launch_window_utc: launchDate.toISOString(),
+      expected_cpa: '0.15 Vibe Equity'
+    };
   },
 
   /**

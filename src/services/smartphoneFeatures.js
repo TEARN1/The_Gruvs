@@ -106,8 +106,8 @@ export const DeviceCalendar = {
       const end   = new Date(start.getTime() + 3 * 60 * 60 * 1000); // +3h
       const fmt   = d => d.toISOString().replace(/-|:|\.\d{3}/g, '');
       const url   = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&location=${loc}`;
-      const { Linking } = require('react-native');
-      Linking.openURL(url).catch(() => {});
+      const { SecurityService } = require('./securityService');
+      SecurityService.safeOpenURL(url).catch(() => {});
       return { success: true };
     }
 
