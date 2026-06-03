@@ -31,7 +31,6 @@ const AGE_MIN_OPTIONS = [0, 13, 16, 18, 21, 25, 30, 35];
 const AGE_MAX_OPTIONS = [0, 17, 20, 25, 30, 35, 45, 99]; // 0 = no upper limit
 
 export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) => {
-  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 
@@ -84,6 +83,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [step, setStep] = useState(1);
+  // Back steps through the wizard before closing it.
+  useBackClose(visible, () => { if (step > 1) setStep((prev) => prev - 1); else onClose(); });
   const scrollRef = useRef(null);
   const titleRef = useRef(null);
   const descriptionRef = useRef(null);

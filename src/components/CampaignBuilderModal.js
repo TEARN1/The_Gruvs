@@ -351,8 +351,9 @@ const estimateReach = (targeting) => {
 
 // ── Main Modal ────────────────────────────────────────────────────────────────
 export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, onSaved, primary, textColor, muted, bg }) => {
-  useBackClose(visible, onClose);
   const [step, setStep]               = useState(1);
+  // Back steps through the wizard before closing it.
+  useBackClose(visible, () => { if (step > 1) setStep((prev) => prev - 1); else onClose(); });
   const [templatePicker, setTemplatePicker] = useState(true);
   const [saving, setSaving]           = useState(false);
 

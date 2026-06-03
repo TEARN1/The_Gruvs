@@ -32,8 +32,9 @@ export const SportEventSetupModal = ({
   visible, onClose, eventId, onSetupComplete,
   primary = "#00f2ff", bg = "#0d1112", textColor = '#fff', muted = 'rgba(255,255,255,0.5)',
 }) => {
-  useBackClose(visible, onClose);
   const [step, setStep] = useState(1);
+  // Back steps through the wizard before closing it.
+  useBackClose(visible, () => { if (step > 1) setStep((prev) => prev - 1); else onClose(); });
   const [saving, setSaving] = useState(false);
   const [existing, setExisting] = useState(null);
 
