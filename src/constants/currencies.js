@@ -85,14 +85,27 @@ export const formatPrice = (amount, currency = DEFAULT_CURRENCY, opts = {}) => {
 // functions (where a React hook isn't available). It's resolved once at launch
 // from GPS (cached), so by the time a price screen mounts it's already correct.
 let _active = DEFAULT_CURRENCY;
+let _rate = 1; // ZAR → active-currency rate (1 = no conversion / offline fallback)
 
 export const setActiveCurrency = (currency) => {
   _active = (typeof currency === 'string' ? CURRENCIES[currency] : currency) || DEFAULT_CURRENCY;
 };
 
-export const getActiveCurrency = () => _active;
+// CurrencyProvider sets this from fxService once rates load. When it's 1 (ZAR,
+// or offline) prices are shown symbol-only with no conversion.
+export const setActiveRate = (rate) => { _rate = (typeof rate === 'number' && rate > 0) ? rate : 1; };
 
-/** Format an amount in the viewer's active currency (symbol/format only). */
-export const money = (amount, opts) => formatPrice(amount, _active, opts);
+export const getActiveCurrency = () => _active;
+export const getActiveRate = () => _rate;
+
+/**
+ * Format a stored (ZAR) amount in the viewer's active currency, converting via
+ * the active FX rate. With rate 1 this is plain symbol/format only.
+ */
+export const money = (amount, opts) => {
+  const n = Number(amount);
+  const value = Number.isFinite(n) ? n * _rate : amount;
+  return formatPrice(value, _active, opts);
+};
 
 export default CURRENCIES;

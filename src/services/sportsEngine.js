@@ -484,6 +484,8 @@ export const TeamManager = {
       .select()
       .single();
     if (error) throw error;
+    // Re-sync the match cover so a renamed team / new logo isn't stale.
+    await MatchManager.syncEventMatchCard(data?.event_id);
     return data;
   },
 

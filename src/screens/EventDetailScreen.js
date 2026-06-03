@@ -13,6 +13,7 @@ import { useIdentity } from '../context/IdentityContext';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
 import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
+import { WeatherService } from '../services/weatherService';
 import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
@@ -147,6 +148,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [dmOpen, setDmOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(null);
+  const [weather, setWeather] = useState(null);
   const [calendarAdded, setCalendarAdded] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
   const [roleManagerVisible, setRoleManagerVisible] = useState(false);
@@ -221,6 +223,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [event?.event_date, event?.event_time]);
+
+  // Free weather forecast for the event location + date (open-meteo, no key).
+  useEffect(() => {
+    let cancelled = false;
+    setWeather(null);
+    if (event?.lat == null || event?.lon == null) return undefined;
+    WeatherService.getForecast(event.lat, event.lon, event.event_date)
+      .then((w) => { if (!cancelled) setWeather(w); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [event?.id, event?.lat, event?.lon, event?.event_date]);
 
   const fetchUserState = useCallback(async () => {
     if (!user || !event?.id) return;
@@ -648,6 +661,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <TouchableOpacity onPress={openMaps}>
                 <MetaChip icon="map-pin" label={event.venue_name} color={primary} pressable />
               </TouchableOpacity>
+            )}
+            {weather && (
+              <MetaChip icon={weather.icon} label={`${weather.tempMax}° · ${weather.label}`} color="#38bdf8" />
             )}
             <MetaChip icon="tag" label={formatPrice(event?.price)} color={primary} />
             {!!event?.age_restriction && (

@@ -1,4 +1,4 @@
-import { formatPrice, currencyForCountry, money, setActiveCurrency, CURRENCIES } from '../src/constants/currencies';
+import { formatPrice, currencyForCountry, money, setActiveCurrency, setActiveRate, CURRENCIES } from '../src/constants/currencies';
 
 describe('formatPrice (symbol/format only — never converts the number)', () => {
   it('whole numbers render with grouping and no decimals', () => {
@@ -48,12 +48,34 @@ describe('currencyForCountry', () => {
 });
 
 describe('money() follows the active currency', () => {
-  afterEach(() => setActiveCurrency(CURRENCIES.ZAR));
+  afterEach(() => { setActiveCurrency(CURRENCIES.ZAR); setActiveRate(1); });
 
   it('formats in whatever currency is active', () => {
     setActiveCurrency('USD');
     expect(money(100)).toBe('$100');
     setActiveCurrency(CURRENCIES.EUR);
     expect(money(100)).toBe('€100');
+  });
+});
+
+describe('money() converts via the active FX rate', () => {
+  afterEach(() => { setActiveCurrency(CURRENCIES.ZAR); setActiveRate(1); });
+
+  it('multiplies the stored (ZAR) amount by the ZAR→currency rate', () => {
+    setActiveCurrency('USD');
+    setActiveRate(0.05); // 200 ZAR → $10
+    expect(money(200)).toBe('$10');
+  });
+
+  it('rate 1 = no conversion (symbol/format only fallback)', () => {
+    setActiveCurrency('USD');
+    setActiveRate(1);
+    expect(money(200)).toBe('$200');
+  });
+
+  it('ignores a bogus rate (falls back to no conversion)', () => {
+    setActiveCurrency('USD');
+    setActiveRate(0);
+    expect(money(200)).toBe('$200');
   });
 });

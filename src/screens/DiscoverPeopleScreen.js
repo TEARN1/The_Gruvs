@@ -247,7 +247,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       ]);
       if (followSettled.status === 'fulfilled') setFollowedIds(new Set((followSettled.value?.data || []).map(r => r.following_id)));
       if (blockSettled.status === 'fulfilled') setBlockedIds(new Set((blockSettled.value?.data || []).map(r => r.blocked_id)));
-    } catch { }
+    } catch (e) { console.warn('DiscoverPeople follow/block load', e); }
   }, [user]);
 
   const loadSuggested = useCallback(async () => {

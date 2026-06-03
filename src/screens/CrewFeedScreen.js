@@ -283,7 +283,7 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           if (!actor || !event) return;
           const newItem = { id: `rsvp_${r.user_id}_${r.event_id}`, type: 'rsvp', actor, event, created_at: r.created_at || new Date().toISOString() };
           setActivity(prev => [newItem, ...prev.filter(a => a.id !== newItem.id).slice(0, 49)]);
-        } catch { }
+        } catch (e) { console.warn('CrewFeed realtime handler', e); }
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_checkins' }, async (payload) => {
         const r = payload.new;
@@ -299,7 +299,7 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           const newItem = { id: `checkin_${r.user_id}_${r.event_id}`, type: 'checkin', actor, event, created_at: r.created_at || new Date().toISOString() };
           setActivity(prev => [newItem, ...prev.filter(a => a.id !== newItem.id).slice(0, 49)]);
           setLiveNow(prev => prev.some(l => l.actor?.id === r.user_id) ? prev : [{ actor, event }, ...prev]);
-        } catch { }
+        } catch (e) { console.warn('CrewFeed realtime handler', e); }
       })
       .subscribe();
 

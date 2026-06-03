@@ -12,8 +12,9 @@
  */
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CURRENCIES, DEFAULT_CURRENCY, currencyForCountry, formatPrice, setActiveCurrency } from '../constants/currencies';
+import { CURRENCIES, DEFAULT_CURRENCY, currencyForCountry, formatPrice, setActiveCurrency, setActiveRate } from '../constants/currencies';
 import { LocationService } from '../services/locationService';
+import { FxService } from '../services/fxService';
 
 const STORAGE_KEY = 'gruvs_currency';
 const MANUAL_KEY = 'gruvs_currency_manual'; // '1' once the user picks one explicitly
@@ -22,6 +23,7 @@ const CurrencyContext = createContext(null);
 
 export const CurrencyProvider = ({ children }) => {
   const [currency, setCurrencyState] = useState(DEFAULT_CURRENCY);
+  const [rate, setRate] = useState(1); // ZAR → currency (1 = no conversion yet)
   const manualRef = useRef(false);
 
   useEffect(() => {
@@ -63,14 +65,30 @@ export const CurrencyProvider = ({ children }) => {
     AsyncStorage.setItem(MANUAL_KEY, '1').catch(() => {});
   }, []);
 
-  // Keep the module-global in sync so the non-hook `money()` helper formats in
-  // the same currency as the context.
-  useEffect(() => { setActiveCurrency(currency); }, [currency]);
+  // Keep the module-globals in sync (so the non-hook `money()` helper matches)
+  // and load the ZAR→currency FX rate for real conversion. Rate 1 (ZAR/offline)
+  // means symbol-only, no conversion.
+  useEffect(() => {
+    setActiveCurrency(currency);
+    let cancelled = false;
+    (async () => {
+      if (currency.code === 'ZAR') { setActiveRate(1); if (!cancelled) setRate(1); return; }
+      await FxService.getRates();
+      const r = FxService.rateTo(currency.code);
+      setActiveRate(r);
+      if (!cancelled) setRate(r);
+    })();
+    return () => { cancelled = true; };
+  }, [currency]);
 
-  const format = useCallback((amount, opts) => formatPrice(amount, currency, opts), [currency]);
+  const format = useCallback((amount, opts) => {
+    const n = Number(amount);
+    const value = Number.isFinite(n) ? n * rate : amount;
+    return formatPrice(value, currency, opts);
+  }, [currency, rate]);
 
   return (
-    <CurrencyContext.Provider value={{ currency, symbol: currency.symbol, format, setCurrency }}>
+    <CurrencyContext.Provider value={{ currency, symbol: currency.symbol, rate, format, setCurrency }}>
       {children}
     </CurrencyContext.Provider>
   );
@@ -81,6 +99,7 @@ export const CurrencyProvider = ({ children }) => {
 export const useCurrency = () => useContext(CurrencyContext) || {
   currency: DEFAULT_CURRENCY,
   symbol: DEFAULT_CURRENCY.symbol,
+  rate: 1,
   format: (amount, opts) => formatPrice(amount, DEFAULT_CURRENCY, opts),
   setCurrency: () => {},
 };
