@@ -544,6 +544,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
       { text: 'Spam', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'spam' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
       { text: 'Inappropriate', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'inappropriate' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
       { text: 'Misleading', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'misleading' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
+      { text: `Block @${reel.profiles?.username || 'user'}`, style: 'destructive', onPress: async () => { try { await supabase.from('user_blocks').upsert({ blocker_id: user?.id, blocked_id: reel.user_id }, { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }); Alert.alert('Blocked', 'You will no longer see their content.'); } catch { Alert.alert('Error', 'Could not block. Try again.'); } } },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -576,7 +577,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
     if (!user) return;
     const newFollowing = !following;
     setFollowing(newFollowing);
-    await resilient(
+    const followRes = await resilient(
       newFollowing ? [
         () => supabase.from('follows').upsert({ follower_id: user?.id, following_id: reel.user_id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
         () => supabase.from('follows').insert({ follower_id: user?.id, following_id: reel.user_id }),
@@ -585,11 +586,13 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
       ],
       { attemptsPerTier: 2, baseMs: 300, label: 'ReelItem.handleFollow', fallbackValue: null }
     );
+    if (!followRes) setFollowing(!newFollowing); // rollback if it failed
   };
 
   const handleShare = async () => {
+    const url = `https://the-gruvs-pt23.vercel.app/?reel=${reel.id}`;
     try {
-      await Share.share({ message: `Check out @${reel.profiles?.username}'s reel on The Gruvs!` });
+      await Share.share({ message: `Check out @${reel.profiles?.username}'s reel on The Gruvs! ${url}`, url });
     } catch (err) {
       console.warn('Share error:', err);
     }

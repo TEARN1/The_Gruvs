@@ -1251,7 +1251,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           // Update vibe count and event data in-place — no refetch needed
           setVibeCounts(prev => ({ ...prev, [updated.id]: updated.vibe_count || 0 }));
           setEvents(prev => prev.map(e =>
-            e.id === updated.id ? { ...e, vibe_count: updated.vibe_count, going: updated.going } : e
+            e.id === updated.id
+              ? { ...e, vibe_count: updated.vibe_count, going: updated.going, match_card: updated.match_card ?? e.match_card }
+              : e
           ));
         }
       )

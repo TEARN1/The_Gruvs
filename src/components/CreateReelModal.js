@@ -361,6 +361,16 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
                       {isVideoAsset ? 'VIDEO' : 'PHOTO'}
                     </Text>
                   </View>
+
+                  {/* Upload status — large videos take a moment */}
+                  {uploading && (
+                    <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', gap: 8 }]}>
+                      <ActivityIndicator color={primary} />
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
+                        Uploading{asset?.fileSize ? ` ${(asset.fileSize / 1048576).toFixed(0)} MB` : ''}…
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 {/* Caption */}
