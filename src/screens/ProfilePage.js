@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
 import { WritingStylePicker } from '../components/WritingStylePicker';
+import { CurrencyPicker } from '../components/CurrencyPicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -3063,6 +3064,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               ))}
             </ScrollView>
           <WritingStylePicker gender={gender} sample={profile?.username || profile?.display_name || 'The Gruvs'} userId={user?.id} primary={primary} muted={muted} />
+          <CurrencyPicker primary={primary} muted={muted} />
           </GlassView>
         )}
 
