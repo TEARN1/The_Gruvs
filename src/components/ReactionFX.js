@@ -44,6 +44,12 @@ const KEY_THEME = {
   erupt: 'erupt', storm: 'erupt', boom: 'erupt', rock: 'erupt', heat: 'erupt', confetti: 'erupt', drop: 'erupt',
   legend: 'royal', gold: 'royal', bag: 'royal', genius: 'royal', respect: 'royal', clap: 'royal', muscle: 'royal',
   '100': 'royal', vibe: 'love', real: 'love', gang: 'love', growth: 'royal', angel: 'royal', rainbow: 'cosmic', growth2: 'royal',
+  love_eyes: 'love', kiss: 'love', sparkleheart: 'love', wink: 'love', bloom: 'love',
+  cool: 'surge', up: 'surge', salute: 'surge',
+  party: 'erupt', melt: 'erupt', bullseye: 'erupt',
+  starstruck: 'royal', pray: 'royal', perfect: 'royal', lion: 'royal', sun: 'royal', cash: 'royal',
+  cheeky: 'laugh', secret: 'spooky', smirk: 'spooky', wolf: 'spooky',
+  hmm: 'cosmic', butterfly: 'cosmic', moon: 'cosmic',
 };
 
 export const themeForReaction = (key) => THEMES[KEY_THEME[key] || 'surge'];
