@@ -50,6 +50,7 @@ import { RatingSection } from '../components/RatingSection';
 import { PulseScheduleSection } from '../components/PulseScheduleSection';
 import { EventGallery } from '../components/EventGallery';
 import { ReactPicker } from '../components/ReactPicker';
+import { GlitterBurst } from '../components/GlitterBurst';
 import { SuggestedFollows } from '../components/SuggestedFollows';
 import { ReactedBadge } from '../components/ReactionFX';
 
@@ -277,6 +278,9 @@ const EventCard = React.memo(({
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
   const title = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
   const matchCard = parseMatchCard(event.match_card);
+  const [saveFx, setSaveFx] = useState(0);
+  const prevSavedRef = useRef(isSaved);
+  useEffect(() => { if (isSaved && !prevSavedRef.current) setSaveFx(Date.now()); prevSavedRef.current = isSaved; }, [isSaved]);
   const goingPct = event.capacity ? Math.min(100, Math.round(((event.going || 0) / event.capacity) * 100)) : 0;
 
   const getCountdown = (dateStr) => {
@@ -374,7 +378,7 @@ const EventCard = React.memo(({
                 accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} />
+                <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}><Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} /><GlitterBurst trigger={saveFx} size={90} colors={[primary, '#fde047', '#ffffff', '#a78bfa']} /></View>
               </TouchableOpacity>
             </View>
           ) : (
@@ -427,7 +431,7 @@ const EventCard = React.memo(({
               accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} />
+              <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}><Feather name="bookmark" size={15} color={isSaved ? primary : '#fff'} /><GlitterBurst trigger={saveFx} size={90} colors={[primary, '#fde047', '#ffffff', '#a78bfa']} /></View>
             </TouchableOpacity>
           </View>
           )}

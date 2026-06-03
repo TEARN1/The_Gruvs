@@ -56,9 +56,9 @@ const EchoSkeleton = ({ primary }) => {
 };
 
 const RANK_STYLES = [
-  { bg: 'rgba(124,58,237,0.3)', color: "#c084fc", label: '👑 Top', glow: "#c084fc" },
-  { bg: 'rgba(245,158,11,0.3)', color: "#fbbf24", label: '🥈 2nd', glow: "#fbbf24" },
-  { bg: 'rgba(16,185,129,0.2)', color: "#34d399", label: '🥉 3rd', glow: "#34d399" },
+  { bg: 'rgba(124,58,237,0.3)', color: "#c084fc", label: 'Top', glow: "#c084fc" },
+  { bg: 'rgba(245,158,11,0.3)', color: "#fbbf24", label: '2nd', glow: "#fbbf24" },
+  { bg: 'rgba(16,185,129,0.2)', color: "#34d399", label: '3rd', glow: "#34d399" },
 ];
 
 const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, onReply }) => {

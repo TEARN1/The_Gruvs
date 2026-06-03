@@ -29,6 +29,7 @@ import {
 } from '../services/reelsDataFlow';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useBackClose } from '../hooks/useBackClose';
+import { GlitterBurst } from '../components/GlitterBurst';
 
 const IS_WEB = Platform.OS === 'web';
 // Mobile fallback (used outside component for getItemLayout)
@@ -549,10 +550,11 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
     ]);
   };
 
+  const [likeFx, setLikeFx] = useState(0);
   const triggerLike = async () => {
     if (!user) return;
     const newLiked = !liked;
-    if (newLiked) haptics.light();
+    if (newLiked) { haptics.light(); setLikeFx(Date.now()); }
     setLiked(newLiked);
     setLikeCount(c => newLiked ? c + 1 : Math.max(0, c - 1));
     heartAnim.setValue(1);
@@ -764,7 +766,10 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
 
             {/* Like */}
             <TouchableOpacity style={ri.actionBtn} onPress={triggerLike} activeOpacity={0.8}>
-              <Text style={{ fontSize: 28 }}>{liked ? '❤️' : '🤍'}</Text>
+              <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 28 }}>{liked ? '❤️' : '🤍'}</Text>
+                <GlitterBurst trigger={likeFx} size={130} colors={['#ef4444', '#fca5a5', '#ffffff', '#fde047', '#f0abfc']} />
+              </View>
               <Text style={[ri.actionLabel, { color: '#fff' }]}>{fmtCount(likeCount)}</Text>
             </TouchableOpacity>
 
