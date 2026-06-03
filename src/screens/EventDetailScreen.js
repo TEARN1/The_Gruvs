@@ -14,6 +14,7 @@ import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
 import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { WeatherService } from '../services/weatherService';
+import { GlitterBurst } from '../components/GlitterBurst';
 import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
@@ -129,6 +130,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const { show: showToast } = useToast();
 
   const [rsvpStatus, setRsvpStatus] = useState(null);
+  const [rsvpFx, setRsvpFx] = useState(0);
+  const [checkinFx, setCheckinFx] = useState(0);
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -318,7 +321,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     // Optimistic update
     const prev = rsvpStatus;
     setRsvpStatus(status);
-    if (status === 'going' && prev !== 'going') setGoingCount((c) => c + 1);
+    if (status === 'going' && prev !== 'going') { setGoingCount((c) => c + 1); setRsvpFx(Date.now()); }
     if (prev === 'going' && status !== 'going') setGoingCount((c) => Math.max(0, c - 1));
     setRsvpLoading(true);
     try {
@@ -495,6 +498,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       const ok = await CheckInManager.touchDown(event.id, user.id, privateCoords || {});
       if (ok) {
         setCheckedIn(true);
+        setCheckinFx(Date.now());
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
         showToast("Touched Down! Your footprint is lit. 🔥", 'success');
       } else {
@@ -885,6 +889,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   >
                     <Feather name={opt.icon} size={16} color={active ? primary : textMuted} />
                     <Text style={[styles.rsvpBtnText, { color: active ? primary : textMuted }]}>{opt.label}</Text>
+                    {opt.key === 'going' && <GlitterBurst trigger={rsvpFx} size={150} colors={[primary, '#fde047', '#ffffff', '#34d399', '#f0abfc']} />}
                   </TouchableOpacity>
                 );
               })}
@@ -1043,6 +1048,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 <Text style={styles.checkInBtnText}>
                   {checkingIn ? 'Touching Down...' : checkedIn ? 'Touched Down ✓' : 'Touch Down'}
                 </Text>
+                <GlitterBurst trigger={checkinFx} size={160} colors={['#10b981', '#fde047', '#ffffff', '#34d399', '#f97316']} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.checkInBtn, {
