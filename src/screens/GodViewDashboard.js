@@ -16,7 +16,8 @@ import { OOS } from '../services/organizationalOverseer';
 import { NeuralMesh } from '../services/neuralMesh';
 import { SaturationSimulator } from '../services/saturationSimulator';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ const PulseIndicator = ({ color }) => {
 };
 
 export const GodViewDashboard = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
 
   // Server-validated admin gate (with owner-email bootstrap). null = still checking.

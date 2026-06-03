@@ -15,7 +15,8 @@ import { useToast } from './ToastNotification';
 import { SecurityService } from '../services/securityService';
 
 // QRCode resolves to our web shim on web (via metro resolveRequest) — works everywhere
-import QRCode from 'react-native-qrcode-svg';
+import QRCode from 'react-native-qrcode-svg';
+import { useBackClose } from '../hooks/useBackClose';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -26,6 +27,7 @@ const OPTIONS = [
 ];
 
 export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();

@@ -11,6 +11,7 @@ import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { SecurityService } from '../services/securityService';
 import { useToast } from './ToastNotification';
+import { useBackClose } from '../hooks/useBackClose';
 
 const SCREEN_W = Dimensions.get('window').width;
 const HM = SCREEN_W < 375 ? 12 : 25;
@@ -33,6 +34,7 @@ const QUICK_INTERESTS = [
 const GENDERS = ['Man', 'Woman', 'Non-binary', 'Prefer not to say'];
 
 export const AuthModal = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const toast = useToast();
   const [mode, setMode] = useState('signin');

@@ -12,7 +12,8 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { uploadToStorage } from '../services/storageService';
 import { resilient } from '../utils/resilience';
-import { useToast } from './ToastNotification';
+import { useToast } from './ToastNotification';
+import { useBackClose } from '../hooks/useBackClose';
 
 const STORY_DURATION = 5000;
 
@@ -66,6 +67,7 @@ const sb = StyleSheet.create({
 
 // ── Story viewer modal ────────────────────────────────────────────────────────
 const StoryViewerModal = ({ visible, stories, startIndex, onClose, primary }) => {
+  useBackClose(visible, onClose);
   const [currentIndex, setCurrentIndex] = useState(startIndex || 0);
   const [storyIndex, setStoryIndex] = useState(0);
   const progress = useRef(new Animated.Value(0)).current;

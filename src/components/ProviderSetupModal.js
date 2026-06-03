@@ -8,11 +8,13 @@ import { Feather } from '@expo/vector-icons';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../services/supabase';
+import { supabase } from '../services/supabase';
+import { useBackClose } from '../hooks/useBackClose';
 
 const SERVICE_TYPES = ['Bakkie', 'Muscle', 'Packing', 'Full Move', 'Photography', 'DJ', 'Equipment'];
 
 export const ProviderSetupModal = ({ visible, onClose, onSaveSuccess }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 

@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { useTutorial, TUTORIALS, TUTORIAL_CATEGORIES } from '../context/TutorialContext';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from './GlassView';
+import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -191,6 +192,7 @@ const qc = StyleSheet.create({
 
 // ── Main TutorialCenter ───────────────────────────────────────────────────────
 export const TutorialCenter = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { isCompleted, openTutorial, resetAll, completed } = useTutorial();
   const { currentTheme } = useTheme();
 

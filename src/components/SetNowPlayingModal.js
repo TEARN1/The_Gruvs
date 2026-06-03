@@ -16,8 +16,10 @@ import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { NotificationService } from '../services/notificationService';
+import { useBackClose } from '../hooks/useBackClose';
 
 export const SetNowPlayingModal = ({ eventId, visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { user } = useAuth();
   const { colors } = useTheme();
   const primary    = colors?.primary    || "#00f2ff";

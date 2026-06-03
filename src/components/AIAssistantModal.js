@@ -13,7 +13,8 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
-import { chat, propagateFeedback, AIFeature } from '../services/claudeService';
+import { chat, propagateFeedback, AIFeature } from '../services/claudeService';
+import { useBackClose } from '../hooks/useBackClose';
 
 const QUICK_PROMPTS = [
   { label: "What's on tonight? 🔥",  query: "What events are happening tonight near me?" },
@@ -29,6 +30,7 @@ const MSG_ROLE = { USER: 'user', AI: 'assistant' };
 const MAX_MESSAGES = 60; // 30 turns — prevents unbounded memory growth
 
 export const AIAssistantModal = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
   const [messages, setMessages] = useState([]);

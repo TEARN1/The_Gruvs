@@ -17,7 +17,8 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
-import { invalidateEventRoleCache } from '../hooks/useEventRole';
+import { invalidateEventRoleCache } from '../hooks/useEventRole';
+import { useBackClose } from '../hooks/useBackClose';
 
 const ROLES = [
   { key: 'co_host',     icon: 'star',    color: "#f59e0b", label: 'Co-Host',     desc: 'Full management access' },
@@ -103,6 +104,7 @@ const AttendeeRow = React.memo(({ item, onGrant, primary, textColor, muted, surf
 ));
 
 export const EventRoleManager = ({ visible, onClose, event, primary, textColor, muted, surface, bg }) => {
+  useBackClose(visible, onClose);
   const { user } = useAuth();
   const { showToast } = useToast();
 

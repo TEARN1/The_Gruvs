@@ -16,7 +16,8 @@ import { TrustLedger } from '../services/trustLedger';
 import { ProviderSetupModal } from '../components/ProviderSetupModal';
 import { supabase } from '../services/supabase';
 import { useToast } from '../components/ToastNotification';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -61,6 +62,7 @@ const ProviderSkeleton = ({ primary }) => {
 };
 
 export const ProviderDashboardScreen = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();

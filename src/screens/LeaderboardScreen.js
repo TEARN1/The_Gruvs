@@ -9,7 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
 import { supabase } from '../services/supabase';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { SmartImage } from '../components/SmartImage';
+import { SmartImage } from '../components/SmartImage';
+import { useBackClose } from '../hooks/useBackClose';
 
 const TABS = ['Weekly', 'Monthly', 'All-Time'];
 
@@ -64,6 +65,7 @@ const sk = StyleSheet.create({
 });
 
 export const LeaderboardScreen = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const [tab, setTab] = useState('All-Time');

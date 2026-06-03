@@ -9,7 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 
 // On web, we use our enhanced SVG-based QRCode that's actually scannable
-import QRCode from 'react-native-qrcode-svg';
+import QRCode from 'react-native-qrcode-svg';
+import { useBackClose } from '../hooks/useBackClose';
 
 
 // ── Single ticket card ─────────────────────────────────────────────────────────
@@ -144,6 +145,7 @@ const tc = StyleSheet.create({
 
 // ── Main modal ────────────────────────────────────────────────────────────────
 export const EventTicketModal = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const [tickets, setTickets] = useState([]);

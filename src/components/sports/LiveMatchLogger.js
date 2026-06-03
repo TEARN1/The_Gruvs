@@ -22,6 +22,7 @@ import {
 } from '../../services/sportsEngine';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
+import { useBackClose } from '../../hooks/useBackClose';
 
 const { width } = Dimensions.get('window');
 
@@ -151,6 +152,7 @@ export const LiveMatchLogger = ({
   matchId, eventId, visible, onClose, isHost = false,
   primary = "#00f2ff", bg = "#0d1112", textColor = '#fff', muted = 'rgba(255,255,255,0.5)',
 }) => {
+  useBackClose(visible, onClose);
   const [match, setMatch] = useState(null);
   const [config, setConfig] = useState(null);
   const [events, setEvents] = useState([]);

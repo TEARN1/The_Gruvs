@@ -9,7 +9,8 @@ import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
-import { resilient } from '../utils/resilience';
+import { resilient } from '../utils/resilience';
+import { useBackClose } from '../hooks/useBackClose';
 
 const GIG_CATEGORIES = [
   { key: 'moving',   label: 'Moving',   icon: 'truck' },
@@ -19,6 +20,7 @@ const GIG_CATEGORIES = [
 ];
 
 export const PostGigModal = ({ visible, onClose, onPostSuccess }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 

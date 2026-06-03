@@ -16,7 +16,8 @@ import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { uploadToStorage } from '../services/storageService';
-import { resilient } from '../utils/resilience';
+import { resilient } from '../utils/resilience';
+import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -76,6 +77,7 @@ const mr = StyleSheet.create({
 // ─── Moment Viewer (fullscreen story) ─────────────────────────────────────────
 
 const MomentViewer = ({ moments, startIndex = 0, visible, onClose, primary, user }) => {
+  useBackClose(visible, onClose);
   const [idx, setIdx] = useState(startIndex);
   const [reactionVisible, setReactionVisible] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -258,6 +260,7 @@ const sv = StyleSheet.create({
 // ─── Add Moment sheet ──────────────────────────────────────────────────────────
 
 const AddMomentSheet = ({ visible, onClose, eventId, primary, surface, textColor, muted, onAdded }) => {
+  useBackClose(visible, onClose);
   const { user } = useAuth();
   const toast = useToast();
   const [media, setMedia] = useState(null);

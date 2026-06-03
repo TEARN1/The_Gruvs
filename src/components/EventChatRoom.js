@@ -12,7 +12,8 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { ChatManager } from '../services/dataFlow';
+import { ChatManager } from '../services/dataFlow';
+import { useBackClose } from '../hooks/useBackClose';
 
 const avatarBg = (u = '') =>
   ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u?.charCodeAt(0) || 0) % 5];
@@ -159,6 +160,7 @@ const mb = StyleSheet.create({
 
 // ── Main EventChatRoom ────────────────────────────────────────────────────────
 export const EventChatRoom = ({ visible, onClose, eventId, eventTitle, canModerate = false }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 

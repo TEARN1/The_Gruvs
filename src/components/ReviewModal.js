@@ -12,9 +12,11 @@ import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
-import { TrustLedger } from '../services/trustLedger';
+import { TrustLedger } from '../services/trustLedger';
+import { useBackClose } from '../hooks/useBackClose';
 
 export const ReviewModal = ({ visible, onClose, booking, onReviewSubmitted }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');

@@ -8,10 +8,12 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from './ToastNotification';
+import { useToast } from './ToastNotification';
+import { useBackClose } from '../hooks/useBackClose';
 
 // ─── Poll creation modal ──────────────────────────────────────────────────────
 const CreatePollModal = ({ visible, onClose, eventId, scheduleSlot, primary, bg, textColor, muted }) => {
+  useBackClose(visible, onClose);
   const { user } = useAuth();
   const toast = useToast();
   const [question, setQuestion] = useState('');

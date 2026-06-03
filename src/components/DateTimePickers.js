@@ -3,6 +3,7 @@ import {
   Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useBackClose } from '../hooks/useBackClose';
 
 const SCREEN_W = Dimensions.get('window').width;
 const ITEM_H = 52;
@@ -18,6 +19,7 @@ export const CalendarPicker = ({
   visible, onClose, onConfirm, value,
   primary, bg, textColor, muted,
 }) => {
+  useBackClose(visible, onClose);
   const today = new Date();
   const init = value instanceof Date ? value : today;
 
@@ -178,6 +180,7 @@ export const TimePicker = ({
   visible, onClose, onConfirm, initialHour = 20, initialMinute = 0,
   primary, bg, textColor, muted,
 }) => {
+  useBackClose(visible, onClose);
   const [hour, setHour] = useState(initialHour);
   const [minute, setMinute] = useState(initialMinute);
   const hourRef = useRef(null);

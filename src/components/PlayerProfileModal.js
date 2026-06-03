@@ -21,6 +21,7 @@ import { AnimatedCounter } from './Motion';
 import { haptics } from '../utils/haptics';
 import { TalentEngine, playerOVR } from '../services/talentEngine';
 import { talentConfig, resolveStat, statLabel } from '../constants/TalentConfig';
+import { useBackClose } from '../hooks/useBackClose';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -38,6 +39,7 @@ const SectionTitle = ({ children, muted }) => (
 );
 
 export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();

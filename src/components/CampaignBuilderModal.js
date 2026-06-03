@@ -15,6 +15,7 @@ import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { GlassView } from './GlassView';
 import { LiquidBackground } from './LiquidBackground';
+import { useBackClose } from '../hooks/useBackClose';
 
 
 // ── Targeting Definitions ────────────────────────────────────────────────────
@@ -350,6 +351,7 @@ const estimateReach = (targeting) => {
 
 // ── Main Modal ────────────────────────────────────────────────────────────────
 export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, onSaved, primary, textColor, muted, bg }) => {
+  useBackClose(visible, onClose);
   const [step, setStep]               = useState(1);
   const [templatePicker, setTemplatePicker] = useState(true);
   const [saving, setSaving]           = useState(false);

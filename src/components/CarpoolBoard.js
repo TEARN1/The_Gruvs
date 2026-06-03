@@ -13,7 +13,8 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from './ToastNotification';
+import { useToast } from './ToastNotification';
+import { useBackClose } from '../hooks/useBackClose';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ const statusMeta = (status, primary) => ({
 // ─── Time Picker Modal ────────────────────────────────────────────────────────
 
 const TimePicker = ({ visible, value, onConfirm, onClose, primary, surface, textColor, muted }) => {
+  useBackClose(visible, onClose);
   const [h, setH] = useState(value ? new Date(value).getHours() : 20);
   const [m, setM] = useState(value ? new Date(value).getMinutes() : 0);
 
@@ -225,6 +227,7 @@ const OfferCard = React.memo(({ offer, user, primary, textColor, muted, surface,
 // ─── CarpoolDriverPanel ───────────────────────────────────────────────────────
 
 export const CarpoolDriverPanel = ({ visible, onClose, carpoolId, primary, surface, textColor, muted }) => {
+  useBackClose(visible, onClose);
   const { user } = useAuth();
   const toast = useToast();
   const [requests, setRequests] = useState([]);

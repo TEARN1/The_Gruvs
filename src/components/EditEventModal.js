@@ -13,6 +13,7 @@ import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
 import { uploadToStorage } from '../services/storageService';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
+import { useBackClose } from '../hooks/useBackClose';
 
 const Field = ({ label, value, onChange, placeholder, multiline, keyboardType, textColor, muted, primary }) => (
   <View style={f.fieldWrap}>
@@ -30,6 +31,7 @@ const Field = ({ label, value, onChange, placeholder, multiline, keyboardType, t
 );
 
 export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, onUpdated }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();

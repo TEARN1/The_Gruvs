@@ -17,7 +17,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from '../components/GlassView';
 import { useToast } from '../components/ToastNotification';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const MAP_W = SW;
@@ -371,6 +372,7 @@ const cr = StyleSheet.create({
 // PathMapScreen
 // ---------------------------------------------------------------------------
 export const PathMapScreen = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();

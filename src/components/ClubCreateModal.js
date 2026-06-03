@@ -16,10 +16,12 @@ import { useToast } from './ToastNotification';
 import { haptics } from '../utils/haptics';
 import { TournamentEngine } from '../services/tournamentEngine';
 import { TALENT_CATEGORIES } from '../constants/TalentConfig';
+import { useBackClose } from '../hooks/useBackClose';
 
 const CATEGORY_KEYS = Object.keys(TALENT_CATEGORIES).filter(k => k !== 'default');
 
 export const ClubCreateModal = ({ visible, onClose, onCreated }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();

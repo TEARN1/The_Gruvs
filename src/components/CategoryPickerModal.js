@@ -6,6 +6,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { ALL_CATEGORIES, CATEGORY_GROUPS, searchCategories } from '../constants/AllCategories';
+import { useBackClose } from '../hooks/useBackClose';
 
 const CategoryCell = React.memo(({ item, isSelected, color, textColor, onPress }) => (
   <TouchableOpacity
@@ -41,6 +42,7 @@ export const CategoryPickerModal = ({
   maxSelect = null,    // null = unlimited
   title = 'Pick Categories',
 }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const primary   = currentTheme?.primary    || "#00f2ff";
   const bg        = currentTheme?.background || "#0d1112";

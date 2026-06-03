@@ -16,10 +16,12 @@ import { useToast } from './ToastNotification';
 import { haptics } from '../utils/haptics';
 import { TalentEngine } from '../services/talentEngine';
 import { TALENT_CATEGORIES } from '../constants/TalentConfig';
+import { useBackClose } from '../hooks/useBackClose';
 
 const CATEGORY_KEYS = Object.keys(TALENT_CATEGORIES).filter(k => k !== 'default');
 
 export const PlayerEditModal = ({ visible, player, onClose, onSaved }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const toast = useToast();
 

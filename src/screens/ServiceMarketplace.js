@@ -26,7 +26,8 @@ import { useToast } from '../components/ToastNotification';
 import { GigModeCard } from '../components/GigModeCard';
 import { PostGigModal } from '../components/PostGigModal';
 import { ProviderSetupModal } from '../components/ProviderSetupModal';
-import { ProviderDashboardScreen } from './ProviderDashboardScreen';
+import { ProviderDashboardScreen } from './ProviderDashboardScreen';
+import { useBackClose } from '../hooks/useBackClose';
 
 // ---------------------------------------------------------------------------
 // Sample fallback data
@@ -161,6 +162,7 @@ function BookingModal({
   onSuccess,
   showToast,
 }) {
+  useBackClose(visible, onClose);
   const [cargoType, setCargoType] = useState(CARGO_TYPES[0]);
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');

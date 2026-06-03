@@ -20,6 +20,7 @@ import { AnimatedCounter } from './Motion';
 import { haptics } from '../utils/haptics';
 import { PlayerProfileModal } from './PlayerProfileModal';
 import { TalentEngine, playerOVR } from '../services/talentEngine';
+import { useBackClose } from '../hooks/useBackClose';
 
 const METRICS = [
   { key: 'rating',    label: 'Rating' },
@@ -67,6 +68,7 @@ const metricValue = (p, metric) => {
 const displayName = (p) => p.known_as || p.full_name || 'Unknown';
 
 export const TalentLeaderboardModal = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const primary   = currentTheme?.primary    || "#00f2ff";
   const bg        = currentTheme?.background || "#0d1112";

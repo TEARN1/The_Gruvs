@@ -19,8 +19,10 @@ import { LiquidBackground } from './LiquidBackground';
 import { ClubCreateModal } from './ClubCreateModal';
 import { haptics } from '../utils/haptics';
 import { TournamentEngine, TOURNAMENT_ROLES } from '../services/tournamentEngine';
+import { useBackClose } from '../hooks/useBackClose';
 
 export const TournamentGovernancePanel = ({ visible, competitionId, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
   const toast = useToast();

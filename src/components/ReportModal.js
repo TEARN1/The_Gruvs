@@ -8,7 +8,8 @@ import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
-import { resilient } from '../utils/resilience';
+import { resilient } from '../utils/resilience';
+import { useBackClose } from '../hooks/useBackClose';
 
 const REASONS = [
   'Misleading information',
@@ -21,6 +22,7 @@ const REASONS = [
 ];
 
 export const ReportModal = ({ visible, onClose, targetId, targetType = 'event' }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const [selected, setSelected] = useState(null);

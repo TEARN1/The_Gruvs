@@ -8,7 +8,8 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
-import { QRCheckInScanner } from './QRCheckInScanner';
+import { QRCheckInScanner } from './QRCheckInScanner';
+import { useBackClose } from '../hooks/useBackClose';
 
 const buildCSV = (rsvps) => {
   const header = 'Username,Status,RSVP Date\n';
@@ -63,6 +64,7 @@ const avatarBg = (name) => {
 };
 
 export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
+  useBackClose(visible, onClose);
   // SECURITY: reject immediately if caller is not the event owner
   const isAuthorized = !!(event?.author_id && userId && event.author_id === userId);
 

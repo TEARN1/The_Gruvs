@@ -27,7 +27,8 @@ import {
   ReelsPreferences, ReelsObservers, ReelsRepository, ReelsAnalytics,
   PLAYBACK_SPEEDS, ASPECT_RATIOS, VISUAL_FILTERS
 } from '../services/reelsDataFlow';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { useBackClose } from '../hooks/useBackClose';
 
 const IS_WEB = Platform.OS === 'web';
 // Mobile fallback (used outside component for getItemLayout)
@@ -111,6 +112,7 @@ const ReelSkeleton = ({ primary, reelW, reelH }) => {
 
 // ── Reel manage sheet (own reels: edit caption / delete) ─────────────────────
 const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, primary, bg, textColor, muted, surface, user }) => {
+  useBackClose(visible, onClose);
   const [mode, setMode] = useState('menu'); // 'menu' | 'edit'
   const [caption, setCaption] = useState('');
   const [saving, setSaving] = useState(false);
@@ -283,6 +285,7 @@ const ms = StyleSheet.create({
 
 // ── Comment sheet ─────────────────────────────────────────────────────────────
 const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, surface, user }) => {
+  useBackClose(visible, onClose);
   const [comments, setComments] = useState([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
@@ -880,6 +883,7 @@ const ri = StyleSheet.create({
 
 // ── Advanced Player Options Sheet ───────────────────────────────────────────
 const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, primary, bg, textColor, muted, surface }) => {
+  useBackClose(visible, onClose);
   const slideAnim = useRef(new Animated.Value(400)).current;
 
   useEffect(() => {

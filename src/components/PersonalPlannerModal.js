@@ -17,7 +17,8 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { planPersonalCalendar } from '../services/claudeService';
+import { planPersonalCalendar } from '../services/claudeService';
+import { useBackClose } from '../hooks/useBackClose';
 
 const TABS = [
   { key: 'week',  label: 'This Week',  icon: 'calendar' },
@@ -71,6 +72,7 @@ function RecurrencePill({ event, primary }) {
 }
 
 export const PersonalPlannerModal = ({ visible, onClose, onNavigateToEvent }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 

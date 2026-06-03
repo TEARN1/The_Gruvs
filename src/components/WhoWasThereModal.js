@@ -12,7 +12,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { DirectMessageModal } from './DirectMessageModal';
-import { ViberProfileModal } from './ViberProfileModal';
+import { ViberProfileModal } from './ViberProfileModal';
+import { useBackClose } from '../hooks/useBackClose';
 
 const avatarBg = (u = '') =>
   ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u.charCodeAt(0) || 0) % 5];
@@ -84,6 +85,7 @@ const ChipRow = ({ label, options, selected, onSelect, renderLabel, primary, mut
 );
 
 export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
+  useBackClose(visible, onClose);
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user } = useAuth();

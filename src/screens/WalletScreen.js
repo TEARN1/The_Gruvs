@@ -18,7 +18,8 @@ import { EscrowService } from '../services/escrowService';
 import { VibeEconomyEngine } from '../services/revenueEngine';
 import { useToast } from '../components/ToastNotification';
 import { ReviewModal } from '../components/ReviewModal';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { useBackClose } from '../hooks/useBackClose';
 
 const WalletSkeleton = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
@@ -42,6 +43,7 @@ const WalletSkeleton = ({ primary }) => {
 };
 
 export const WalletScreen = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
   const toast = useToast();

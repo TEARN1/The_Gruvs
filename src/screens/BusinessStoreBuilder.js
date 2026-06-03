@@ -13,7 +13,8 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { GlassView } from '../components/GlassView';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { useBackClose } from '../hooks/useBackClose';
 
 
 const BLOCK_TYPES = [
@@ -161,6 +162,7 @@ const BlockPreviewCard = ({ block, primary, textColor, muted, onEdit, onDelete, 
 
 // ── Block Editor Modal ────────────────────────────────────────────────────────
 const BlockEditorModal = ({ visible, block, onClose, onSave, primary, textColor, muted, bg }) => {
+  useBackClose(visible, onClose);
   const [config, setConfig] = useState({});
   const [itemInput, setItemInput] = useState({ name: '', value: '', price: '', desc: '', q: '', a: '' });
 

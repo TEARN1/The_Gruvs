@@ -7,7 +7,8 @@ import { Feather } from '@expo/vector-icons';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../services/supabase';
+import { supabase } from '../services/supabase';
+import { useBackClose } from '../hooks/useBackClose';
 
 const TYPE_META = {
   vibe:    { icon: 'zap',            label: 'Vibed',    color: "#f97316" },
@@ -34,6 +35,7 @@ const formatAge = (dateStr) => {
 
 
 export const ActivityCenterModal = ({ visible, onClose }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const [activities, setActivities] = useState([]);

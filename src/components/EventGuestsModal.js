@@ -19,6 +19,7 @@ import { GlassView } from './GlassView';
 import { haptics } from '../utils/haptics';
 import { TalentEngine } from '../services/talentEngine';
 import { talentConfig } from '../constants/TalentConfig';
+import { useBackClose } from '../hooks/useBackClose';
 
 const SIDES = [
   { key: null,   label: '—' },
@@ -27,6 +28,7 @@ const SIDES = [
 ];
 
 export const EventGuestsModal = ({ visible, eventId, category = null, sportType = null, onClose, onChanged }) => {
+  useBackClose(visible, onClose);
   const cfg = talentConfig(category);
   const ROLES = cfg.roles;
   const { currentTheme } = useTheme();

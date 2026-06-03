@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
+import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const MAP_H = SH * 0.55;
@@ -283,6 +284,7 @@ const geocodeAddress = async (query) => {
 };
 
 export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, onClose, isRoute = false }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const primary = currentTheme?.primary || "#00f2ff";

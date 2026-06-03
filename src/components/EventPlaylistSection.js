@@ -13,6 +13,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MusicService } from '../services/musicService';
 import { PlaylistManager } from '../services/dataFlow';
+import { useBackClose } from '../hooks/useBackClose';
 
 const fmtDuration = (ms) => {
   if (!ms) return '';
@@ -22,6 +23,7 @@ const fmtDuration = (ms) => {
 
 // ── Track search modal (Spotify + YouTube) ────────────────────────────────────
 const TrackSearchModal = ({ visible, onClose, onSelect, primary, bg, textColor, muted, surface }) => {
+  useBackClose(visible, onClose);
   const [query, setQuery] = useState('');
   const [platform, setPlatform] = useState('spotify');
   const [results, setResults] = useState([]);

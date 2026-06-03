@@ -18,6 +18,7 @@ import {
   TeamManager, AthleteManager, MatchManager,
 } from '../../services/sportsEngine';
 import { MembershipManager, ClubManager } from '../../services/clubEngine';
+import { useBackClose } from '../../hooks/useBackClose';
 
 const FORMATS = [
   { key: 'league',       label: 'League',         icon: 'list',      desc: 'All teams play each other. Points table decides winner.' },
@@ -31,6 +32,7 @@ export const SportEventSetupModal = ({
   visible, onClose, eventId, onSetupComplete,
   primary = "#00f2ff", bg = "#0d1112", textColor = '#fff', muted = 'rgba(255,255,255,0.5)',
 }) => {
+  useBackClose(visible, onClose);
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [existing, setExisting] = useState(null);
