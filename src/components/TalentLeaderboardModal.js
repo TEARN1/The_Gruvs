@@ -87,16 +87,19 @@ export const TalentLeaderboardModal = ({ visible, onClose }) => {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     const ab = AGE_BRACKETS.find(a => a.key === ageKey) || AGE_BRACKETS[0];
-    const data = await TalentEngine.searchTopPlayers({
-      metric,
-      category: category === 'all' ? null : category,
-      region: region.trim() || null,
-      minAge: ab.min,
-      maxAge: ab.max,
-      limit: 50,
-    });
-    setRows(data || []);
-    setLoading(false); setRefreshing(false);
+    try {
+      const data = await TalentEngine.searchTopPlayers({
+        metric,
+        category: category === 'all' ? null : category,
+        region: region.trim() || null,
+        minAge: ab.min,
+        maxAge: ab.max,
+        limit: 50,
+      });
+      setRows(data || []);
+    } finally {
+      setLoading(false); setRefreshing(false);
+    }
   }, [metric, category, ageKey, region]);
 
   useEffect(() => { if (visible) load(); }, [visible, load]);

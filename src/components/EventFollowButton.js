@@ -65,12 +65,15 @@ export const EventFollowButton = ({ eventId, isSport = false, teamId = null, sty
   const savePrefs = async () => {
     if (!user || !isSupabaseEnabled) return;
     setSaving(true);
-    await supabase.from(table).upsert(
-      { event_id: eventId, user_id: user?.id, ...prefs },
-      { onConflict: 'event_id,user_id' }
-    );
-    setSaving(false);
-    setPrefsOpen(false);
+    try {
+      await supabase.from(table).upsert(
+        { event_id: eventId, user_id: user?.id, ...prefs },
+        { onConflict: 'event_id,user_id' }
+      );
+      setPrefsOpen(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!user) return null;

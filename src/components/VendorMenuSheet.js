@@ -32,25 +32,28 @@ export const VendorMenuSheet = ({ eventId, vendorId, style }) => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await withCache(
-      () => EventCache.getVendors(eventId || vendorId),
-      () => EventCache.getVendors(eventId || vendorId),
-      async () => {
-        let q = supabase
-          .from('event_vendors')
-          .select('id, name, category, description, logo_url, stall_number, menu_items, contact, is_active')
-          .eq('is_active', true)
-          .order('name');
-        if (eventId)  q = q.eq('event_id', eventId);
-        if (vendorId) q = q.eq('id', vendorId);
-        const { data } = await q;
-        return data || [];
-      },
-      (d) => EventCache.saveVendors(eventId || vendorId, d),
-    );
-    setVendors(data || []);
-    if (vendorId && data?.length) setSelected(data[0]);
-    setLoading(false);
+    try {
+      const data = await withCache(
+        () => EventCache.getVendors(eventId || vendorId),
+        () => EventCache.getVendors(eventId || vendorId),
+        async () => {
+          let q = supabase
+            .from('event_vendors')
+            .select('id, name, category, description, logo_url, stall_number, menu_items, contact, is_active')
+            .eq('is_active', true)
+            .order('name');
+          if (eventId)  q = q.eq('event_id', eventId);
+          if (vendorId) q = q.eq('id', vendorId);
+          const { data } = await q;
+          return data || [];
+        },
+        (d) => EventCache.saveVendors(eventId || vendorId, d),
+      );
+      setVendors(data || []);
+      if (vendorId && data?.length) setSelected(data[0]);
+    } finally {
+      setLoading(false);
+    }
   }, [eventId, vendorId]);
 
   useEffect(() => { load(); }, [load]);

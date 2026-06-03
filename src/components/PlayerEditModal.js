@@ -68,8 +68,12 @@ export const PlayerEditModal = ({ visible, player, onClose, onSaved }) => {
       region: form.region.trim() || null,
       photo_url: form.photo_url.trim() || null,
     };
-    const ok = await TalentEngine.updateTalent(player.id, patch);
-    setSaving(false);
+    let ok = false;
+    try {
+      ok = await TalentEngine.updateTalent(player.id, patch);
+    } finally {
+      setSaving(false);
+    }
     if (ok) { haptics.success(); toast.show('Profile saved', 'success'); onSaved?.(patch); onClose(); }
     else toast.show('Could not save', 'error');
   };

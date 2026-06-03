@@ -56,9 +56,12 @@ export const AwardCeremonyPanel = ({ event }) => {
   const load = useCallback(async () => {
     if (!event?.id) return;
     setLoading(true);
-    const data = await AwardManager.listForEvent(event.id, false); // load all, including unpublished
-    setAwards(data);
-    setLoading(false);
+    try {
+      const data = await AwardManager.listForEvent(event.id, false); // load all, including unpublished
+      setAwards(data);
+    } finally {
+      setLoading(false);
+    }
   }, [event?.id]);
 
   useEffect(() => { load(); }, [load]);
@@ -114,8 +117,9 @@ export const AwardCeremonyPanel = ({ event }) => {
       load();
     } catch (e) {
       Alert.alert('Error', e.message);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handlePublish = async (awardId) => {

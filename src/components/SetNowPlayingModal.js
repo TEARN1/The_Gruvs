@@ -40,15 +40,18 @@ export const SetNowPlayingModal = ({ eventId, visible, onClose }) => {
   const load = useCallback(async () => {
     if (!eventId) return;
     setLoading(true);
-    const [{ data: ldata }, { data: sdata }, { data: cdata }] = await Promise.all([
-      supabase.from('event_lineup').select('id, name, role, stage').eq('event_id', eventId).is('deleted_at', null).order('position'),
-      supabase.from('event_setlists').select('id, lineup_id, song_title, track_number, is_played').eq('event_id', eventId).order('track_number'),
-      supabase.from('event_now_playing').select('*').eq('event_id', eventId).eq('is_active', true).maybeSingle(),
-    ]);
-    setLineups(ldata || []);
-    setSetlists(sdata || []);
-    setCurrent(cdata || null);
-    setLoading(false);
+    try {
+      const [{ data: ldata }, { data: sdata }, { data: cdata }] = await Promise.all([
+        supabase.from('event_lineup').select('id, name, role, stage').eq('event_id', eventId).is('deleted_at', null).order('position'),
+        supabase.from('event_setlists').select('id, lineup_id, song_title, track_number, is_played').eq('event_id', eventId).order('track_number'),
+        supabase.from('event_now_playing').select('*').eq('event_id', eventId).eq('is_active', true).maybeSingle(),
+      ]);
+      setLineups(ldata || []);
+      setSetlists(sdata || []);
+      setCurrent(cdata || null);
+    } finally {
+      setLoading(false);
+    }
   }, [eventId]);
 
   useEffect(() => { if (visible) load(); }, [visible, load]);
@@ -71,18 +74,22 @@ export const SetNowPlayingModal = ({ eventId, visible, onClose }) => {
       onClose();
     } catch (e) {
       console.warn('SetNowPlaying error', e);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const clearPlaying = async () => {
     if (!current) return;
     setSaving(true);
-    await supabase.from('event_now_playing')
-      .update({ is_active: false, ended_at: new Date().toISOString() })
-      .eq('id', current.id);
-    setCurrent(null);
-    setSaving(false);
+    try {
+      await supabase.from('event_now_playing')
+        .update({ is_active: false, ended_at: new Date().toISOString() })
+        .eq('id', current.id);
+      setCurrent(null);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

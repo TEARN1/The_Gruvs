@@ -782,13 +782,16 @@ const ScoresTab = ({ event, primary, textColor, surface, muted }) => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: teamData }, { data: scoreData }] = await Promise.all([
-      supabase.from('event_teams').select('id, name, project_title, submitted').eq('event_id', event.id).order('name'),
-      supabase.from('event_judge_scores').select('*').eq('event_id', event.id).order('created_at', { ascending: false }),
-    ]);
-    setTeams(teamData || []);
-    setScores(scoreData || []);
-    setLoading(false);
+    try {
+      const [{ data: teamData }, { data: scoreData }] = await Promise.all([
+        supabase.from('event_teams').select('id, name, project_title, submitted').eq('event_id', event.id).order('name'),
+        supabase.from('event_judge_scores').select('*').eq('event_id', event.id).order('created_at', { ascending: false }),
+      ]);
+      setTeams(teamData || []);
+      setScores(scoreData || []);
+    } finally {
+      setLoading(false);
+    }
   }, [event.id]);
 
   useEffect(() => { load(); }, [load]);

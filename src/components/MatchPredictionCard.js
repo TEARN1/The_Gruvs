@@ -47,15 +47,18 @@ export const MatchPredictionCard = ({ eventId, primary: primaryProp }) => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [opts, t, mine] = await Promise.all([
-      buildOptions(),
-      TournamentEngine.getPredictionTally(eventId),
-      TournamentEngine.getMyPrediction(eventId, user?.id),
-    ]);
-    setOptions(opts);
-    setTally(t.tally || {}); setTotal(t.total || 0);
-    setMyPick(mine?.predicted_label || null);
-    setLoading(false);
+    try {
+      const [opts, t, mine] = await Promise.all([
+        buildOptions(),
+        TournamentEngine.getPredictionTally(eventId),
+        TournamentEngine.getMyPrediction(eventId, user?.id),
+      ]);
+      setOptions(opts);
+      setTally(t.tally || {}); setTotal(t.total || 0);
+      setMyPick(mine?.predicted_label || null);
+    } finally {
+      setLoading(false);
+    }
   }, [eventId, buildOptions, user?.id]);
 
   useEffect(() => { load(); }, [load]);
@@ -76,12 +79,17 @@ export const MatchPredictionCard = ({ eventId, primary: primaryProp }) => {
     });
     if (!prevPick) setTotal(t => t + 1);
 
-    const res = await TournamentEngine.castPrediction({
-      eventId, side: opt.side, teamId: opt.teamId, label: opt.label,
-    });
-    if (res.ok) { haptics.success(); if (res.total != null) setTotal(res.total); if (res.tally) setTally(res.tally); }
-    else { toast.show('Could not save prediction', 'error'); load(); }
-    setBusy(false);
+    try {
+      const res = await TournamentEngine.castPrediction({
+        eventId, side: opt.side, teamId: opt.teamId, label: opt.label,
+      });
+      if (res.ok) { haptics.success(); if (res.total != null) setTotal(res.total); if (res.tally) setTally(res.tally); }
+      else { toast.show('Could not save prediction', 'error'); load(); }
+    } catch {
+      toast.show('Could not save prediction', 'error'); load();
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (loading) return null;

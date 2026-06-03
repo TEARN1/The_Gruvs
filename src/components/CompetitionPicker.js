@@ -32,8 +32,11 @@ export const CompetitionPicker = ({ value, onChange, sportType = null }) => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    setComps(await TournamentEngine.getMyCompetitions(user?.id));
-    setLoading(false);
+    try {
+      setComps(await TournamentEngine.getMyCompetitions(user?.id));
+    } finally {
+      setLoading(false);
+    }
   }, [user?.id]);
   useEffect(() => { load(); }, [load]);
 
@@ -41,11 +44,15 @@ export const CompetitionPicker = ({ value, onChange, sportType = null }) => {
     if (!newName.trim() || busy) return;
     setBusy(true);
     haptics.medium();
-    const comp = await TournamentEngine.createCompetition({
-      name: newName, sport_type: sportType, kind: 'league', organizerId: user?.id,
-      seasonName: new Date().getFullYear() + '/' + String((new Date().getFullYear() + 1)).slice(2),
-    });
-    setBusy(false);
+    let comp = null;
+    try {
+      comp = await TournamentEngine.createCompetition({
+        name: newName, sport_type: sportType, kind: 'league', organizerId: user?.id,
+        seasonName: new Date().getFullYear() + '/' + String((new Date().getFullYear() + 1)).slice(2),
+      });
+    } finally {
+      setBusy(false);
+    }
     if (comp) {
       haptics.success(); toast.show(`${comp.name} created`, 'success');
       setComps(c => [comp, ...c]); setNewName(''); setCreating(false);

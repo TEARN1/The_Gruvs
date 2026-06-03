@@ -45,24 +45,27 @@ export const TournamentGovernancePanel = ({ visible, competitionId, onClose }) =
   const load = useCallback(async () => {
     if (!competitionId) return;
     setLoading(true);
-    const [c, offs, teams] = await Promise.all([
-      TournamentEngine.getCompetition(competitionId),
-      TournamentEngine.getOfficials(competitionId),
-      TournamentEngine.getMyTeams(user?.id),
-    ]);
-    setComp(c);
-    setOfficials(Object.fromEntries((offs || []).map(o => [o.role, o])));
-    setMyTeams(teams || []);
-    const club = teams?.[0]?.id || null;
-    setTeamId(prev => prev || club);
+    try {
+      const [c, offs, teams] = await Promise.all([
+        TournamentEngine.getCompetition(competitionId),
+        TournamentEngine.getOfficials(competitionId),
+        TournamentEngine.getMyTeams(user?.id),
+      ]);
+      setComp(c);
+      setOfficials(Object.fromEntries((offs || []).map(o => [o.role, o])));
+      setMyTeams(teams || []);
+      const club = teams?.[0]?.id || null;
+      setTeamId(prev => prev || club);
 
-    const stMap = {}; const voteMap = {};
-    await Promise.all(TOURNAMENT_ROLES.map(async (r) => {
-      stMap[r.key] = await TournamentEngine.getRoleStandings(competitionId, r.key);
-      if (club) voteMap[r.key] = await TournamentEngine.getMyVote(competitionId, r.key, teamId || club);
-    }));
-    setStandings(stMap); setMyVotes(voteMap);
-    setLoading(false);
+      const stMap = {}; const voteMap = {};
+      await Promise.all(TOURNAMENT_ROLES.map(async (r) => {
+        stMap[r.key] = await TournamentEngine.getRoleStandings(competitionId, r.key);
+        if (club) voteMap[r.key] = await TournamentEngine.getMyVote(competitionId, r.key, teamId || club);
+      }));
+      setStandings(stMap); setMyVotes(voteMap);
+    } finally {
+      setLoading(false);
+    }
   }, [competitionId, user?.id]);
 
   useEffect(() => { if (visible) load(); }, [visible, load]);

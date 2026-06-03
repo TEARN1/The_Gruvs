@@ -38,12 +38,16 @@ export const ClubCreateModal = ({ visible, onClose, onCreated }) => {
     if (!form.name.trim()) { toast.show('Club name is required', 'error'); return; }
     setSaving(true);
     haptics.medium();
-    const club = await TournamentEngine.createClub({
-      name: form.name, short_name: form.short_name.trim() || null,
-      sport_type: form.category === 'sport' ? null : form.category, category: form.category,
-      city: form.city.trim() || null, logo_url: form.logo_url.trim() || null, ownerId: user?.id,
-    });
-    setSaving(false);
+    let club = null;
+    try {
+      club = await TournamentEngine.createClub({
+        name: form.name, short_name: form.short_name.trim() || null,
+        sport_type: form.category === 'sport' ? null : form.category, category: form.category,
+        city: form.city.trim() || null, logo_url: form.logo_url.trim() || null, ownerId: user?.id,
+      });
+    } finally {
+      setSaving(false);
+    }
     if (club) { haptics.success(); toast.show(`${club.name} created`, 'success'); onCreated?.(club); onClose(); }
     else toast.show('Could not create club', 'error');
   };

@@ -54,8 +54,11 @@ export const EventGuestsModal = ({ visible, eventId, category = null, sportType 
   const loadGuests = useCallback(async () => {
     if (!eventId) return;
     setLoading(true);
-    setGuests(await TalentEngine.getEventGuests(eventId));
-    setLoading(false);
+    try {
+      setGuests(await TalentEngine.getEventGuests(eventId));
+    } finally {
+      setLoading(false);
+    }
   }, [eventId]);
 
   useEffect(() => { if (visible) loadGuests(); }, [visible, loadGuests]);

@@ -732,24 +732,27 @@ const MediaTab = ({ event, primary, textColor, muted }) => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('sport_media')
-      .select('id, media_url, media_type, caption, minute, likes_count, uploader_id, profiles(username, avatar_url)')
-      .eq('event_id', event.id)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .limit(40);
-    setMedia(data || []);
+    try {
+      const { data } = await supabase
+        .from('sport_media')
+        .select('id, media_url, media_type, caption, minute, likes_count, uploader_id, profiles(username, avatar_url)')
+        .eq('event_id', event.id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(40);
+      setMedia(data || []);
 
-    if (user) {
-      const { data: liked } = await supabase
-        .from('sport_media_likes')
-        .select('media_id')
-        .eq('user_id', user?.id)
-        .in('media_id', (data || []).map(m => m.id));
-      setLikedSet(new Set((liked || []).map(l => l.media_id)));
+      if (user) {
+        const { data: liked } = await supabase
+          .from('sport_media_likes')
+          .select('media_id')
+          .eq('user_id', user?.id)
+          .in('media_id', (data || []).map(m => m.id));
+        setLikedSet(new Set((liked || []).map(l => l.media_id)));
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [event.id, user?.id]);
 
   useEffect(() => { load(); }, [load]);

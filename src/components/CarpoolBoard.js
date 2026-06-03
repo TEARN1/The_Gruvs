@@ -238,13 +238,16 @@ export const CarpoolDriverPanel = ({ visible, onClose, carpoolId, primary, surfa
   const fetchRequests = useCallback(async () => {
     if (!carpoolId) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('event_carpool_requests')
-      .select('id, rider_id, status, created_at, profiles:rider_id(username, avatar_url)')
-      .eq('carpool_id', carpoolId)
-      .order('created_at');
-    setRequests(data || []);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from('event_carpool_requests')
+        .select('id, rider_id, status, created_at, profiles:rider_id(username, avatar_url)')
+        .eq('carpool_id', carpoolId)
+        .order('created_at');
+      setRequests(data || []);
+    } finally {
+      setLoading(false);
+    }
   }, [carpoolId]);
 
   useEffect(() => {
