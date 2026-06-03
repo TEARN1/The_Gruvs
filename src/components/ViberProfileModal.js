@@ -252,7 +252,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
           vibers: vRes.status === 'fulfilled' ? (vRes.value.count || 0) : 0,
           gruvs:  gRes.status === 'fulfilled' ? (gRes.value.count || 0) : 0,
         });
-      });
+      }).catch(() => { /* platform stats are best-effort */ });
 
       if (profileRes.status === 'fulfilled' && profileRes.value.data) {
         const p = profileRes.value.data;
