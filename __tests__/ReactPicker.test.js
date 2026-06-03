@@ -18,26 +18,31 @@ const renderPicker = (props) =>
 
 describe('ReactPicker', () => {
   it('renders nothing when not visible', () => {
-    const { queryByText } = render(
+    const { queryByLabelText } = render(
       <ThemeProvider>
         <ReactPicker visible={false} onReact={() => {}} />
       </ThemeProvider>
     );
-    // "Fire" is the label of the first signature reaction; absent when hidden
-    expect(queryByText('Fire')).toBeNull();
+    // The picker is now emoji-only; "Fire" lives on accessibilityLabel.
+    expect(queryByLabelText('Fire')).toBeNull();
   });
 
   it('renders the signature reactions when visible', () => {
-    const { getByText } = renderPicker();
-    const fireLabel = REACTION_LIST.find(r => r.key === 'fire')?.label || 'Fire';
-    expect(getByText(fireLabel)).toBeTruthy();
+    const { getByLabelText } = renderPicker();
+    const fire = REACTION_LIST.find(r => r.key === 'fire');
+    expect(getByLabelText(fire.label)).toBeTruthy();
   });
 
   it('calls onReact with the reaction key when an orb is pressed', () => {
     const onReact = jest.fn();
-    const { getByText } = renderPicker({ onReact });
+    const { getByLabelText } = renderPicker({ onReact });
     const fire = REACTION_LIST.find(r => r.key === 'fire');
-    fireEvent.press(getByText(fire.label));
+    fireEvent.press(getByLabelText(fire.label));
     expect(onReact).toHaveBeenCalledWith('fire');
+  });
+
+  it('shows a count badge on the picked reaction', () => {
+    const { getByText } = renderPicker({ userReaction: 'fire', counts: { fire: 7 } });
+    expect(getByText('7')).toBeTruthy();
   });
 });
