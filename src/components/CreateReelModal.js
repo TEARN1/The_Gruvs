@@ -14,6 +14,7 @@ import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { uploadToStorage } from '../services/storageService';
 import { useBackClose } from '../hooks/useBackClose';
+import { useDraft } from '../hooks/useDraft';
 
 const SW = Dimensions.get('window').width;
 
@@ -126,6 +127,12 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
 
   const handleClose = () => { reset(); onClose(); };
   useBackClose(visible, handleClose);
+  const { clearDraft } = useDraft(
+    user ? `draft:reel:${user.id}` : null,
+    () => ({ caption }),
+    (d) => { if (d.caption) setCaption(d.caption); },
+    { enabled: visible && step === 'details' },
+  );
 
   const pickMedia = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -224,6 +231,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
       );
       if (!saved?.id) throw new Error('Could not save reel');
 
+      clearDraft();
       toast.show('Reel posted! 🎬', 'success');
       onPosted?.();
       handleClose();

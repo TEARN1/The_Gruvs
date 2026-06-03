@@ -455,7 +455,7 @@ const cs = StyleSheet.create({
 });
 
 // ── Single Reel Item ──────────────────────────────────────────────────────────
-const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onManage, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
+const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onManage, onOpenEvent, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
   const videoRef = useRef(null);
   const lastTap = useRef(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
@@ -836,10 +836,10 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
               <Text style={[ri.caption, { fontSize: captionFontSize, lineHeight: captionLineHeight }]} numberOfLines={captionExpanded ? 0 : 2}>{parsedCaption}</Text>
             </TouchableOpacity>
             {reel.event_title && (
-              <View style={ri.eventPill}>
+              <TouchableOpacity style={ri.eventPill} activeOpacity={0.8} onPress={() => onOpenEvent?.()} accessibilityRole="button" accessibilityLabel={`Open event: ${reel.event_title}`}>
                 <Feather name="calendar" size={10} color={primary} />
                 <Text style={[ri.eventPillText, { color: primary }]}>{reel.event_title}</Text>
-              </View>
+              </TouchableOpacity>
             )}
             {/* Rotating audio info */}
             <View style={ri.audioPill}>
@@ -1050,7 +1050,7 @@ const as = StyleSheet.create({
 });
 
 // ── Main ReelsScreen ──────────────────────────────────────────────────────────
-export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialReelHandled, onExitToDrop }) => {
+export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialReelHandled, onExitToDrop, onNavigateToEvent }) => {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
@@ -1288,13 +1288,14 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       onMessage={onDmMessage}
       onHashtag={onHashtag}
       onManage={onManage}
+      onOpenEvent={() => item.event_id && onNavigateToEvent?.({ id: item.event_id, title: item.event_title })}
       onOpenSettings={() => setSettingsVisible(true)}
       playerPref={playerPref}
       onVideoFinish={handleVideoFinish}
       reelW={REEL_W}
       reelH={REEL_H}
     />
-  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag, onManage, playerPref, handleVideoFinish, REEL_W, REEL_H]);
+  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag, onManage, onNavigateToEvent, playerPref, handleVideoFinish, REEL_W, REEL_H]);
 
   if (loading) {
     return (

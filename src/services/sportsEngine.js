@@ -722,6 +722,7 @@ export const MatchManager = {
       .update({ status: 'live', started_at: new Date().toISOString(), current_minute: 0 })
       .eq('id', matchId).select().single();
     if (error) throw error;
+    await this.syncEventMatchCard(data?.event_id); // flip the cover to LIVE at kickoff
     return data;
   },
 
@@ -769,7 +770,7 @@ export const MatchManager = {
       }
       const { data: matches } = await supabase
         .from('sport_matches')
-        .select('home_team_id, away_team_id, home_score, away_score, status')
+        .select('home_team_id, away_team_id, home_score, away_score, home_score_pens, away_score_pens, status, scheduled_at')
         .eq('event_id', eventId)
         .limit(2);
       const m = (matches && matches.length === 1) ? matches[0] : null;
@@ -780,9 +781,18 @@ export const MatchManager = {
       if (!homeT || !awayT) { homeT = teams[0]; awayT = teams[1]; }
       const card = { home: crest(homeT), away: crest(awayT) };
       if (m) {
-        card.home_score = m.home_score ?? 0;
-        card.away_score = m.away_score ?? 0;
         card.status = m.status || null;
+        card.scheduled_at = m.scheduled_at || null;
+        // Only surface a score once the match is live/done — a scheduled match
+        // shows VS + a kickoff countdown, not a misleading 0–0.
+        if (m.status === 'live' || m.status === 'completed' || m.status === 'half_time') {
+          card.home_score = m.home_score ?? 0;
+          card.away_score = m.away_score ?? 0;
+          if (m.home_score_pens != null && m.away_score_pens != null) {
+            card.home_score_pens = m.home_score_pens;
+            card.away_score_pens = m.away_score_pens;
+          }
+        }
       }
       await supabase.from('events').update({ match_card: card }).eq('id', eventId);
     } catch { /* best-effort denormalisation */ }
@@ -909,6 +919,7 @@ export const MatchManager = {
       .from('sport_matches')
       .update({ status: 'half_time', current_period: 1 })
       .eq('id', matchId).select().single();
+    await this.syncEventMatchCard(data?.event_id);
     return data;
   },
 
@@ -917,6 +928,7 @@ export const MatchManager = {
       .from('sport_matches')
       .update({ status: 'live', current_period: 2 })
       .eq('id', matchId).select().single();
+    await this.syncEventMatchCard(data?.event_id);
     return data;
   },
 };

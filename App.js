@@ -604,6 +604,7 @@ const MainNavigator = () => {
         return wrap('Reels', (
           <ReelsScreen
             onAuthRequired={handleAuthRequired}
+            onNavigateToEvent={handleNavigateToEvent}
             initialReelId={targetReel}
             onInitialReelHandled={() => setTargetReel(null)}
             onExitToDrop={() => handleTabChange('feed')}
