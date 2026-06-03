@@ -157,8 +157,12 @@ export const ReelsRepository = {
             return data || [];
           }
         ],
-        { attemptsPerTier: 2, baseMs: 300, label: 'ReelsRepository.getReelsFeed', fallbackValue: [] }
+        { attemptsPerTier: 2, baseMs: 300, label: 'ReelsRepository.getReelsFeed', fallbackValue: null }
       );
+
+      // null === every tier failed (not an empty table). Surface it so the
+      // screen shows its retry state instead of a misleading "no reels" empty.
+      if (rawData === null) throw new Error('Could not reach the reels service. Pull to retry.');
 
       // Parse metadata if returned as string
       let parsedData = (rawData || []).map(item => {
@@ -179,14 +183,16 @@ export const ReelsRepository = {
         };
       });
 
-      // Filter access visibility on client side as an extra safety measure
+      // Filter access visibility on client side as an extra safety measure.
+      // A missing visibility (tier 2, before the column is migrated) is treated
+      // as public so reels don't vanish for signed-out viewers.
       if (userId) {
         parsedData = parsedData.filter(item => {
           if (item.visibility === 'private' && item.user_id !== userId) return false;
           return true;
         });
       } else {
-        parsedData = parsedData.filter(item => item.visibility === 'public');
+        parsedData = parsedData.filter(item => item.visibility == null || item.visibility === 'public');
       }
 
       // Real data only — never fabricate reels. An empty feed shows the

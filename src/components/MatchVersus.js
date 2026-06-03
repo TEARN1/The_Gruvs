@@ -12,6 +12,17 @@ import { View, Text, StyleSheet, Image } from 'react-native';
 
 const initial = (name) => (name || '?').trim().charAt(0).toUpperCase() || '?';
 
+// Supabase returns jsonb as an object, but guard the string case (and bad data)
+// so a stray value never throws or silently hides the cover.
+export const parseMatchCard = (mc) => {
+  if (!mc) return null;
+  let card = mc;
+  if (typeof card === 'string') { try { card = JSON.parse(card); } catch { return null; } }
+  return (card && card.home && card.away) ? card : null;
+};
+
+const STATUS_LABEL = { live: 'LIVE', completed: 'FT', scheduled: null };
+
 const Crest = ({ team, size, isWeb }) => {
   const color = team?.color || team?.color1 || '#00f2ff';
   const logo = team?.logo_url || team?.logo;
@@ -37,6 +48,10 @@ export const MatchVersus = ({ match, height = 150, showNames = true, isWeb = fal
   const homeColor = home.color || home.color1 || '#00f2ff';
   const awayColor = away.color || away.color1 || '#d946ef';
 
+  const hasScore = match.home_score != null && match.away_score != null;
+  const statusLabel = STATUS_LABEL[match.status] ?? null;
+  const isLive = match.status === 'live';
+
   return (
     <View style={[vs.wrap, { height }]}>
       {/* Split team-colour wash behind each crest */}
@@ -55,9 +70,21 @@ export const MatchVersus = ({ match, height = 150, showNames = true, isWeb = fal
           {showNames && <Text style={[vs.name, { color: '#fff' }]} numberOfLines={1}>{home.name}</Text>}
         </View>
 
-        <View style={vs.vsBadge}>
-          <Text style={vs.vsText}>VS</Text>
-        </View>
+        {hasScore ? (
+          <View style={vs.scoreCol}>
+            {statusLabel && (
+              <View style={[vs.statusPill, isLive && vs.statusPillLive]}>
+                {isLive && <View style={vs.liveDot} />}
+                <Text style={[vs.statusText, isLive && { color: '#fff' }]}>{statusLabel}</Text>
+              </View>
+            )}
+            <Text style={vs.scoreText}>{match.home_score} – {match.away_score}</Text>
+          </View>
+        ) : (
+          <View style={vs.vsBadge}>
+            <Text style={vs.vsText}>VS</Text>
+          </View>
+        )}
 
         <View style={vs.side}>
           <Crest team={away} size={crestSize} isWeb={isWeb} />
@@ -78,6 +105,12 @@ const vs = StyleSheet.create({
   name: { fontSize: 13, fontWeight: '900', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 4 },
   vsBadge: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.35)', alignItems: 'center', justifyContent: 'center' },
   vsText: { color: '#fff', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
+  scoreCol: { alignItems: 'center', gap: 4, minWidth: 56 },
+  scoreText: { color: '#fff', fontWeight: '900', fontSize: 22, letterSpacing: 1, textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 4 },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.5)' },
+  statusPillLive: { backgroundColor: '#ef4444' },
+  statusText: { color: 'rgba(255,255,255,0.75)', fontWeight: '900', fontSize: 9, letterSpacing: 1 },
+  liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#fff' },
 });
 
 export default MatchVersus;

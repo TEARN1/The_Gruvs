@@ -22,6 +22,7 @@ import { EditEventModal } from './EditEventModal';
 import { UserManager, PresenceManager, AuraService, isOnline as checkOnline } from '../services/dataFlow';
 import { useToast } from './ToastNotification';
 import { ReportModal } from './ReportModal';
+import { useBackClose } from '../hooks/useBackClose';
 
 const RANK_LABELS = [
   { min: 0,     max: 100,    name: 'Viber',       color: "#94a3b8" },
@@ -155,6 +156,7 @@ const ProfileSkeleton = ({ primary }) => {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId, onClose, onNavigateToEvent }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user: currentUser } = useAuth();
   const toast = useToast();

@@ -36,6 +36,7 @@ import { SecurityService } from './src/services/securityService';
 import { VibeEconomyEngine } from './src/services/revenueEngine';
 import { NeuralUI } from './src/services/neuralUI';
 import { supabase } from './src/services/supabase';
+import { backStack } from './src/utils/backStack';
 
 // Install before any component mounts so all boot errors are captured
 installGlobalErrorHandler();
@@ -353,6 +354,7 @@ const MainNavigator = () => {
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const handler = () => {
+      if (backStack.pop()) return true; // close the topmost modal/sheet first
       if (godViewVisible) {
         setGodViewVisible(false);
         return true;
@@ -390,6 +392,7 @@ const MainNavigator = () => {
   // instead of leaving the app (the Android handler above is native-only).
   const webBackRef = useRef(() => false);
   webBackRef.current = () => {
+    if (backStack.pop()) return true; // close the topmost modal/sheet first
     if (godViewVisible) { setGodViewVisible(false); return true; }
     if (authModalVisible) { setAuthModalVisible(false); return true; }
     if (targetProfile) { setTargetProfile(null); return true; }

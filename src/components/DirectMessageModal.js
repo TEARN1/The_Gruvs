@@ -23,7 +23,8 @@ import { useDraft } from '../hooks/useDraft';
 import { transform } from '../utils/writingStyles';
 import { useToast } from '../components/ToastNotification';
 import { LocationService } from '../services/locationService';
-import { uploadToStorage } from '../services/storageService';
+import { uploadToStorage } from '../services/storageService';
+import { useBackClose } from '../hooks/useBackClose';
 
 // Dynamic wrapper to break static circular import cycle
 const ViberProfileModal = (props) => {
@@ -231,6 +232,7 @@ const sec = StyleSheet.create({
 });
 
 export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEvent }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const { show: showToast } = useToast();

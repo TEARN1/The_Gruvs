@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
-import { MatchVersus } from '../components/MatchVersus';
+import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
@@ -54,7 +54,8 @@ import { SportManagementPanel }   from '../components/SportManagementPanel';
 import { EventGuestsModal }       from '../components/EventGuestsModal';
 import { PlayerProfileModal }     from '../components/PlayerProfileModal';
 import { MatchPredictionCard }    from '../components/MatchPredictionCard';
-import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
+import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
+import { useBackClose } from '../hooks/useBackClose';
 
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
@@ -118,6 +119,7 @@ const formatPrice = (price) => {
 };
 
 export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
   const { applyLocationPrivacy, applyProfilePrivacy } = useIdentity();
@@ -196,6 +198,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       }
     }
   } catch { media = []; }
+  const matchCard = parseMatchCard(event?.match_card);
 
   // Countdown clock — ticks every second while event is in the future
   useEffect(() => {
@@ -511,8 +514,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       >
 
         <View style={styles.hero}>
-          {event?.match_card?.home && event?.match_card?.away ? (
-            <MatchVersus match={event.match_card} height={HERO_H} isWeb={Platform.OS === 'web'} />
+          {matchCard ? (
+            <MatchVersus match={matchCard} height={HERO_H} isWeb={Platform.OS === 'web'} />
           ) : (
             <MediaViewer media={media} containerWidth={undefined} />
           )}

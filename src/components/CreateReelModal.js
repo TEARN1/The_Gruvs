@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator,
@@ -13,6 +13,7 @@ import { useToast } from './ToastNotification';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { uploadToStorage } from '../services/storageService';
+import { useBackClose } from '../hooks/useBackClose';
 
 const SW = Dimensions.get('window').width;
 
@@ -59,6 +60,10 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState('pick'); // 'pick' | 'details'
 
+  // Optional: tag the reel to one of the user's events
+  const [myEvents, setMyEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
   // Advanced Reel Creator settings state
   const [filter, setFilter] = useState('none');
   const [visibility, setVisibility] = useState('public');
@@ -78,6 +83,26 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
 
   const videoRef = useRef(null);
 
+  // Load the events this user can tag a reel to (their own + ones they RSVP'd).
+  useEffect(() => {
+    if (!visible || !user?.id) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [authored, rsvped] = await Promise.all([
+          supabase.from('events').select('id, title, event_date').eq('author_id', user.id).order('event_date', { ascending: false }).limit(20),
+          supabase.from('event_rsvps').select('events(id, title, event_date)').eq('user_id', user.id).limit(20),
+        ]);
+        const map = new Map();
+        (authored.data || []).forEach(e => { if (e?.id) map.set(e.id, e); });
+        (rsvped.data || []).forEach(r => { const e = r.events; if (e?.id) map.set(e.id, e); });
+        const list = Array.from(map.values()).sort((a, b) => (b.event_date || '').localeCompare(a.event_date || ''));
+        if (!cancelled) setMyEvents(list);
+      } catch { if (!cancelled) setMyEvents([]); }
+    })();
+    return () => { cancelled = true; };
+  }, [visible, user?.id]);
+
   const reset = () => {
     videoRef.current?.pauseAsync().catch(() => {});
     setAsset(null);
@@ -96,9 +121,11 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     setShowStickerForm(false);
     setVibeColor("#00f2ff");
     setVibeIntensity(70);
+    setSelectedEvent(null);
   };
 
   const handleClose = () => { reset(); onClose(); };
+  useBackClose(visible, handleClose);
 
   const pickMedia = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -169,6 +196,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
         caption: caption.trim(),
       };
       if (soundName.trim()) baseRow.sound_name = soundName.trim();
+      if (selectedEvent?.id) { baseRow.event_id = selectedEvent.id; baseRow.event_title = selectedEvent.title || null; }
 
       const metadata = {
         filter,
@@ -353,6 +381,34 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
+
+                {/* Tag an event (optional) */}
+                {myEvents.length > 0 && (
+                  <>
+                    <Text style={[s.fieldLabel, { color: muted, marginTop: 12 }]}>TAG AN EVENT (OPTIONAL)</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
+                      <TouchableOpacity
+                        onPress={() => setSelectedEvent(null)}
+                        style={[s.tagChip, { flexDirection: 'row', alignItems: 'center', borderColor: !selectedEvent ? primary : `${primary}40`, backgroundColor: !selectedEvent ? primary : `${primary}10` }]}
+                      >
+                        <Text style={{ color: !selectedEvent ? '#000' : primary, fontSize: 11, fontWeight: '700' }}>None</Text>
+                      </TouchableOpacity>
+                      {myEvents.map(ev => {
+                        const active = selectedEvent?.id === ev.id;
+                        return (
+                          <TouchableOpacity
+                            key={ev.id}
+                            onPress={() => setSelectedEvent(ev)}
+                            style={[s.tagChip, { flexDirection: 'row', alignItems: 'center', maxWidth: 200, borderColor: active ? primary : `${primary}40`, backgroundColor: active ? primary : `${primary}10` }]}
+                          >
+                            <Feather name="calendar" size={10} color={active ? '#000' : primary} style={{ marginRight: 5 }} />
+                            <Text numberOfLines={1} style={{ color: active ? '#000' : primary, fontSize: 11, fontWeight: '700' }}>{ev.title}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </>
+                )}
 
                 {/* ADVANCED CREATOR EDITOR CONTROLS */}
                 <View style={[s.divider, { backgroundColor: `${primary}20` }]} />

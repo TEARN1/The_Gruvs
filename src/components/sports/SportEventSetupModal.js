@@ -18,13 +18,6 @@ import {
   TeamManager, AthleteManager, MatchManager,
 } from '../../services/sportsEngine';
 import { MembershipManager, ClubManager } from '../../services/clubEngine';
-import { supabase } from '../../services/supabase';
-
-// A two-team event (Team A vs Team B) gets a "match_card" stamped onto the
-// event so the feed/detail can show both crests as the match's face. Cleared
-// when the line-up isn't exactly two teams (e.g. a multi-team league).
-const toCardTeam = (t) => ({ name: t?.name || 'Team', logo_url: t?.logo_url || null, color: t?.color1 || null });
-const buildMatchCard = (list) => (list.length === 2 ? { home: toCardTeam(list[0]), away: toCardTeam(list[1]) } : null);
 
 const FORMATS = [
   { key: 'league',       label: 'League',         icon: 'list',      desc: 'All teams play each other. Points table decides winner.' },
@@ -64,12 +57,10 @@ export const SportEventSetupModal = ({
 
   const sportMeta = SPORT_REGISTRY[sportType] || SPORT_REGISTRY.other;
 
-  // Stamp (or clear) the match crest on the parent event. Non-blocking: if the
-  // events.match_card column isn't migrated yet, the error is simply ignored.
-  const syncMatchCard = async (list) => {
-    if (!eventId) return;
-    try { await supabase.from('events').update({ match_card: buildMatchCard(list) }).eq('id', eventId); } catch {}
-  };
+  // Stamp (or clear) the match crest on the parent event. The engine reads the
+  // freshly-persisted teams/fixture from the DB and rebuilds the card (crests +
+  // any score), so we call it after each team add/remove/fixture write.
+  const syncMatchCard = () => MatchManager.syncEventMatchCard(eventId);
 
   const load = useCallback(async () => {
     if (!eventId) return;

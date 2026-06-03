@@ -736,6 +736,9 @@ export const MatchManager = {
       .from('sport_matches').update(updates).eq('id', matchId).select().single();
     if (error) throw error;
 
+    // Keep the event's match cover score in step with the live fixture
+    await this.syncEventMatchCard(data?.event_id);
+
     // Check for auto-end conditions
     const match = await this.getMatch(matchId);
     if (match) {
@@ -745,6 +748,44 @@ export const MatchManager = {
       }
     }
     return data;
+  },
+
+  // Keep the parent event's denormalised match_card (crest + score + status)
+  // in sync with its live fixture, for two-team head-to-head events. Self-heals:
+  // clears the card if the line-up isn't exactly two teams. Best-effort — a
+  // missing events.match_card column is simply ignored.
+  async syncEventMatchCard(eventId) {
+    if (!eventId) return;
+    try {
+      const { data: teams } = await supabase
+        .from('sport_teams')
+        .select('id, name, logo_url, color1, position')
+        .eq('event_id', eventId)
+        .order('position', { ascending: true, nullsFirst: false })
+        .limit(3);
+      if (!teams || teams.length !== 2) {
+        await supabase.from('events').update({ match_card: null }).eq('id', eventId);
+        return;
+      }
+      const { data: matches } = await supabase
+        .from('sport_matches')
+        .select('home_team_id, away_team_id, home_score, away_score, status')
+        .eq('event_id', eventId)
+        .limit(2);
+      const m = (matches && matches.length === 1) ? matches[0] : null;
+      const crest = (t) => ({ id: t.id, name: t.name, logo_url: t.logo_url || null, color: t.color1 || null });
+      const byId = (id) => teams.find(t => t.id === id);
+      let homeT = m ? byId(m.home_team_id) : null;
+      let awayT = m ? byId(m.away_team_id) : null;
+      if (!homeT || !awayT) { homeT = teams[0]; awayT = teams[1]; }
+      const card = { home: crest(homeT), away: crest(awayT) };
+      if (m) {
+        card.home_score = m.home_score ?? 0;
+        card.away_score = m.away_score ?? 0;
+        card.status = m.status || null;
+      }
+      await supabase.from('events').update({ match_card: card }).eq('id', eventId);
+    } catch { /* best-effort denormalisation */ }
   },
 
   async submitResult(matchId, homeScore, awayScore, options = {}) {
@@ -812,6 +853,8 @@ export const MatchManager = {
         }
       }
     }
+
+    await this.syncEventMatchCard(updatedMatch?.event_id);
 
     return updatedMatch;
   },

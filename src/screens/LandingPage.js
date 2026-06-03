@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
-import { MatchVersus } from '../components/MatchVersus';
+import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { SmartImage } from '../components/SmartImage';
 import { FadeInView } from '../components/FadeInView';
 import { BrandLogo } from '../components/BrandLogo';
@@ -277,6 +277,7 @@ const EventCard = React.memo(({
   const isOwner = user && event.author_id === user.id;
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
   const title = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
+  const matchCard = parseMatchCard(event.match_card);
   const goingPct = event.capacity ? Math.min(100, Math.round(((event.going || 0) / event.capacity) * 100)) : 0;
 
   const getCountdown = (dateStr) => {
@@ -364,9 +365,9 @@ const EventCard = React.memo(({
             onLongPress={() => onImageLongPress(event)}
             delayLongPress={400}
           >
-          {event.match_card?.home && event.match_card?.away ? (
+          {matchCard ? (
             <View style={[styles.imgSection, { backgroundColor: '#0b0e0f' }, isWeb && { aspectRatio: '2/1' }]}>
-              <MatchVersus match={event.match_card} height={isWeb ? 200 : 168} isWeb={isWeb} />
+              <MatchVersus match={matchCard} height={isWeb ? 200 : 168} isWeb={isWeb} />
               {event.category && (
                 <View style={[styles.catBadge, { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` }, isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }]}>
                   <Text style={[styles.catBadgeText, { color: catColor }]}>{(CATEGORY_CONFIG[event.category]?.label || event.category).toUpperCase()}</Text>

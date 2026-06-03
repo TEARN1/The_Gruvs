@@ -19,7 +19,8 @@ import { CategoryPickerModal } from './CategoryPickerModal';
 import { CompetitionPicker } from './CompetitionPicker';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
-import { CalendarPicker, TimePicker } from './DateTimePickers';
+import { CalendarPicker, TimePicker } from './DateTimePickers';
+import { useBackClose } from '../hooks/useBackClose';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -29,6 +30,7 @@ const AGE_MIN_OPTIONS = [0, 13, 16, 18, 21, 25, 30, 35];
 const AGE_MAX_OPTIONS = [0, 17, 20, 25, 30, 35, 45, 99]; // 0 = no upper limit
 
 export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) => {
+  useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
 
