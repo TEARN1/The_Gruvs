@@ -15,23 +15,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { resilientRead } from '../utils/resilience';
-/**
- * DirectMessageModal — Advanced real-time 1-on-1 messaging.
- * Features: DB-backed message requests, read receipts (✓/✓✓/coloured ✓✓),
- * typing indicator via Presence, soft-delete, emoji reactions, block sender.
- */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  View, Text, Modal, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Animated, Alert, Linking,
-} from 'react-native';
-import { SmartImage } from './SmartImage';
-import { Feather } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
-import { supabase } from '../services/supabase';
-import { resilientRead } from '../utils/resilience';
 import { MessageManager, BlockManager, isOnline as checkOnline } from '../services/dataFlow';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
@@ -40,8 +23,7 @@ import { useDraft } from '../hooks/useDraft';
 import { transform } from '../utils/writingStyles';
 import { useToast } from '../components/ToastNotification';
 import { LocationService } from '../services/locationService';
-import { SecurityService } from '../services/securityService';
-import { uploadToStorage } from '../services/storageService';
+import { uploadToStorage } from '../services/storageService';
 import { useBackClose } from '../hooks/useBackClose';
 import { money } from '../constants/currencies';
 
@@ -597,6 +579,123 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       textColor={textColor}
       muted={muted}
     />
+  );
+
+  const handleImageUpload = async () => {
+    if (inputLocked || requestStatus === 'incoming_request') return;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setMediaLoading(true);
+        const { uri } = result.assets[0];
+        const ext = (uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
+        const path = `dms/${user.id}_${Date.now()}.${ext}`;
+        const publicUrl = await uploadToStorage(uri, 'chat_media', path);
+        const newMsg = await MessageManager.send(user.id, recipient.id, '', { messageType: 'image', mediaUrl: publicUrl });
+        if (newMsg) setMessages(prev => [...prev, newMsg]);
+        setMediaLoading(false);
+      }
+    } catch (e) {
+      setMediaLoading(false);
+    }
+  };
+
+  // ── Share Location ───────────────────────────────────────────────────────────
+  const handleShareLocation = async () => {
+    if (inputLocked || requestStatus === 'incoming_request') return;
+    setMediaLoading(true); // Use mediaLoading for any attachment type
+    try {
+      const coords = await LocationService.requestAndGet();
+      if (coords && user && recipient) {
+        // Apply fuzzing based on identity mode, or offer an explicit option
+        // For now, let's assume we send the raw location and let the recipient's app decide to fuzz if they are in ghost mode.
+        // Or, we can explicitly fuzz here if the sender is in ghost mode.
+        // For this example, we'll send the raw coordinates and let the display logic handle fuzzing if needed.
+        const newMsg = await MessageManager.send(
+          user.id,
+          recipient.id,
+          'Shared location', // Default body for location message
+          { messageType: 'location', latitude: coords.latitude, longitude: coords.longitude }
+        );
+        if (newMsg) {
+          setMessages(prev => [...prev, newMsg]);
+          if (requestStatus === 'none') setRequestStatus('pending');
+        }
+      } else {
+        showToast('Could not get your location. Enable location services.', 'error');
+      }
+    } catch { showToast('Failed to share location.', 'error'); }
+    finally { setMediaLoading(false); }
+  };
+
+  // ── Accept request ────────────────────────────────────────────────────────────
+  const handleAccept = async () => {
+    setRequestStatus('accepted');
+    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
+    try {
+      await MessageManager.acceptRequest(recipient.id, user.id);
+      const welcomeMsg = await MessageManager.send(user.id, recipient.id, "🔒 Locked in! Let's talk.");
+      if (welcomeMsg) setMessages(prev => [...prev, welcomeMsg]);
+      await fetchMessages();
+    } catch {
+      showToast('Could not accept request. Try again.', 'error');
+    }
+  };
+
+  // ── Decline / block ───────────────────────────────────────────────────────────
+  const handleDecline = () => {
+    Alert.alert(
+      'Decline & Block',
+      `Block messages from @${recipient?.username}? They won't know you blocked them.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block', style: 'destructive',
+          onPress: async () => {
+            setRequestStatus('declined');
+            await BlockManager.block(user.id, recipient.id);
+            onClose();
+          },
+        },
+      ]
+    );
+  };
+
+  // ── Delete message (soft) ────────────────────────────────────────────────────
+  const handleDelete = (msgId) => {
+    Alert.alert('Delete Message', 'Remove this message?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          await MessageManager.deleteMessage(msgId, user.id);
+          setMessages(prev => prev.filter(m => m.id !== msgId));
+          setSelectedMsgId(null);
+        },
+      },
+    ]);
+  };
+
+  // ── React to message ──────────────────────────────────────────────────────────
+  const handleReact = async (msgId, emoji) => {
+    setShowReactions(false);
+    setReactionMsgId(null);
+    await MessageManager.reactToMessage(msgId, emoji);
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reaction: emoji } : m));
+  };
+
+  // ── Render message bubble ─────────────────────────────────────────────────────
+  const renderItem = useCallback(({ item, index }) => {
+    const isMine = item.sender_id === user?.id;
+    const showDate = index === 0 || fmtDate(item.created_at) !== fmtDate(messages[index - 1]?.created_at);
+    const isSelected = selectedMsgId === item.id;
+
+    return (
+      <>
         {showDate && <DateSep label={fmtDate(item.created_at)} muted={muted} />}
         <TouchableOpacity
           onLongPress={() => {
