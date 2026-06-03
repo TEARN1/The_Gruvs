@@ -14,6 +14,7 @@ import { useToast } from './ToastNotification';
 import { uploadToStorage } from '../services/storageService';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
 import { useBackClose } from '../hooks/useBackClose';
+import { money } from '../constants/currencies';
 
 const Field = ({ label, value, onChange, placeholder, multiline, keyboardType, textColor, muted, primary }) => (
   <View style={f.fieldWrap}>
@@ -507,7 +508,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
                       <View style={{ flex: 1 }}>
                         <Text style={[{ fontSize: 13, fontWeight: '800', color: textColor }]}>{tier.name || 'Unnamed'}</Text>
                         <Text style={[{ fontSize: 11, color: muted }]}>
-                          {tier.price > 0 ? `R${tier.price}` : 'Free'}{tier.capacity > 0 ? ` · ${tier.capacity} spots` : ''}
+                          {tier.price > 0 ? money(tier.price) : 'Free'}{tier.capacity > 0 ? ` · ${tier.capacity} spots` : ''}
                         </Text>
                       </View>
                       <TouchableOpacity onPress={() => setTierForm({ ...tier, price: String(tier.price || ''), capacity: String(tier.capacity || '') })} style={{ padding: 4 }}>

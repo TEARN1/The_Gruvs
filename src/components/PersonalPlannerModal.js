@@ -19,6 +19,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { planPersonalCalendar } from '../services/claudeService';
 import { useBackClose } from '../hooks/useBackClose';
+import { money } from '../constants/currencies';
 
 const TABS = [
   { key: 'week',  label: 'This Week',  icon: 'calendar' },
@@ -237,7 +238,7 @@ export const PersonalPlannerModal = ({ visible, onClose, onNavigateToEvent }) =>
                               )}
                               {e.price_min != null && (
                                 <Text style={{ color: e.price_min === 0 ? "#10b981" : muted, fontSize: 11, fontWeight: '700' }}>
-                                  {e.price_min === 0 ? 'Free' : `R${e.price_min}`}
+                                  {e.price_min === 0 ? 'Free' : money(e.price_min)}
                                 </Text>
                               )}
                             </View>

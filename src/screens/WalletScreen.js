@@ -20,6 +20,7 @@ import { useToast } from '../components/ToastNotification';
 import { ReviewModal } from '../components/ReviewModal';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useBackClose } from '../hooks/useBackClose';
+import { money } from '../constants/currencies';
 
 const WalletSkeleton = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
@@ -171,7 +172,7 @@ export const WalletScreen = ({ visible, onClose }) => {
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={[s.bookingAmount, { color: isProvider ? "#10b981" : textColor }]}>
-              {isProvider ? '+' : '-'} R{amount}
+              {isProvider ? '+' : '-'} {money(amount)}
             </Text>
             <View style={[s.statusBadge, { backgroundColor: item.status === 'completed' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)' }]}>
               <Text style={[s.statusText, { color: item.status === 'completed' ? "#10b981" : "#f59e0b" }]}>

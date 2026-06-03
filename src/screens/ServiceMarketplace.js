@@ -28,6 +28,7 @@ import { PostGigModal } from '../components/PostGigModal';
 import { ProviderSetupModal } from '../components/ProviderSetupModal';
 import { ProviderDashboardScreen } from './ProviderDashboardScreen';
 import { useBackClose } from '../hooks/useBackClose';
+import { money } from '../constants/currencies';
 
 // ---------------------------------------------------------------------------
 // Sample fallback data
@@ -131,7 +132,7 @@ function ServiceCard({ provider, onBook, primary, muted, textColor, bg }) {
       {/* Price range + Book */}
       <View style={styles.cardFooter}>
         <Text style={[styles.price, { color: textColor }]}>
-          R{provider.price_min ?? '?'} – R{provider.price_max ?? '?'}
+          {provider.price_min != null ? money(provider.price_min) : '?'} – {provider.price_max != null ? money(provider.price_max) : '?'}
         </Text>
         <TouchableOpacity
           style={[styles.bookBtn, { backgroundColor: primary }]}
@@ -227,7 +228,7 @@ function BookingModal({
     try {
       const ok = await EscrowService.releaseToProvider(bookingId, provider?.user_id); // FIX: provider's user profile ID
       if (ok) {
-        showToast(`R${estimatedPrice} released to ${provider?.username}!`, 'success');
+        showToast(`${money(estimatedPrice)} released to ${provider?.username}!`, 'success');
         onSuccess?.();
         handleClose();
       } else {
@@ -343,7 +344,7 @@ function BookingModal({
                   <Text style={[styles.priceEstimateText, { color: textColor }]}>
                     Estimated:{' '}
                     <Text style={{ color: "#10b981", fontWeight: '800' }}>
-                      R{estimatedPrice}
+                      {money(estimatedPrice)}
                     </Text>
                   </Text>
                 </View>
@@ -375,7 +376,7 @@ function BookingModal({
                     Escrow Active
                   </Text>
                   <Text style={[styles.escrowSub, { color: muted }]}>
-                    R{estimatedPrice} is held securely. Release only when satisfied.
+                    {money(estimatedPrice)} is held securely. Release only when satisfied.
                   </Text>
                 </View>
 

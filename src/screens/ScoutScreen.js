@@ -17,7 +17,8 @@ import { DiscoveryManager, UserManager, CAT_KEY_TO_SUBCATS } from '../services/d
 import { resilientRead, resilient } from '../utils/resilience';
 import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { EventMapView } from '../components/EventMapView';
+import { EventMapView } from '../components/EventMapView';
+import { money } from '../constants/currencies';
 
 // react-native-maps is native-only — lazy require prevents web crash
 let RNMapView = null;
@@ -117,7 +118,7 @@ const MiniVibeCard = ({ event, primary, onView, onClose }) => {
   const date = event?.event_date
     ? new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
     : 'TBD';
-  const price = !event?.price || event.price === 0 ? 'FREE' : `R${event.price}`;
+  const price = !event?.price || event.price === 0 ? 'FREE' : money(event.price);
 
   return (
     <Animated.View style={[cvS.root, { transform: [{ translateY: slideAnim }] }]}>

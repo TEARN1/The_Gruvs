@@ -21,6 +21,7 @@ import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
 import { useBackClose } from '../hooks/useBackClose';
+import { money } from '../constants/currencies';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -1258,9 +1259,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     ) : null}
                     {entryPrice || vipPrice || vvipPrice || otherTickets ? (
                       <Text style={[pm.summaryLine, { color: muted }]}>
-                        🎟️ {entryPrice ? `Gen: R${entryPrice} ` : ''}
-                        {vipPrice ? `VIP: R${vipPrice} ` : ''}
-                        {vvipPrice ? `VVIP: R${vvipPrice} ` : ''}
+                        🎟️ {entryPrice ? `Gen: ${money(entryPrice)} ` : ''}
+                        {vipPrice ? `VIP: ${money(vipPrice)} ` : ''}
+                        {vvipPrice ? `VVIP: ${money(vvipPrice)} ` : ''}
                         {otherTickets ? `(${otherTickets})` : ''}
                       </Text>
                     ) : (

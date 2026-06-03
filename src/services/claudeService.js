@@ -16,6 +16,7 @@
 import { supabase } from './supabase';
 import { HyperReasoning } from './hyperReasoning';
 import { sanitizeSearch } from '../utils/sanitize';
+import { money } from '../constants/currencies';
 
 const AI_BACKEND_RAW = process.env.EXPO_PUBLIC_AI_BACKEND || 'claude';
 const AI_BACKEND = String(AI_BACKEND_RAW).trim().toLowerCase();
@@ -1846,7 +1847,7 @@ DEEP PROFILE INSIGHTS:
 • Preferred time: ${(deepProf.hour_buckets || []).reduce((best, v, i, arr) => v > arr[best] ? i : best, 0)}:00 SAST
 • Busiest day: ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][(deepProf.day_buckets || []).reduce((best, v, i, arr) => v > arr[best] ? i : best, 0)]}
 • Usual radius: ${Math.round(deepProf.avg_distance_km || 15)} km
-• Price comfort: up to R${deepProf.price_ceiling || 200}
+• Price comfort: up to ${money(deepProf.price_ceiling || 200)}
 • Style: ${deepProf.social_mode || 'mixed'} crowd
 • Cohorts: ${(deepProf.cohort_tags || []).join(', ') || 'general'}
 • RSVP follow-through: ${Math.round((deepProf.completion_rate || 0.5) * 100)}%

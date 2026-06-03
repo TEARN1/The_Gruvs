@@ -25,6 +25,7 @@ import { useToast } from '../components/ToastNotification';
 import { LocationService } from '../services/locationService';
 import { uploadToStorage } from '../services/storageService';
 import { useBackClose } from '../hooks/useBackClose';
+import { money } from '../constants/currencies';
 
 // Dynamic wrapper to break static circular import cycle
 const ViberProfileModal = (props) => {
@@ -209,7 +210,7 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
         ) : null}
         <View style={sec.footer}>
           <View style={[sec.cta, { backgroundColor: primary }]}><Text style={sec.ctaText}>View Gruv</Text><Feather name="arrow-right" size={11} color="#000" /></View>
-          {ev ? <Text style={[sec.price, { color: free ? '#10b981' : primary }]}>{free ? 'FREE' : `R${ev.price}`}</Text> : null}
+          {ev ? <Text style={[sec.price, { color: free ? '#10b981' : primary }]}>{free ? 'FREE' : money(ev.price)}</Text> : null}
         </View>
       </View>
     </TouchableOpacity>

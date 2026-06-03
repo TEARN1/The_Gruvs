@@ -11,6 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { IdentityProvider } from './src/context/IdentityContext';
+import { CurrencyProvider } from './src/context/CurrencyContext';
 import { ToastProvider, useToast } from './src/components/ToastNotification';
 import { LandingPage } from './src/screens/LandingPage';
 // Hooks from these modules are used at shell level — keep eager
@@ -777,6 +778,7 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
             <IdentityProvider>
+              <CurrencyProvider>
               <TutorialProvider>
                 <ToastProvider>
                   <ErrorBoundary>
@@ -786,6 +788,7 @@ export default function App() {
                   </ErrorBoundary>
                 </ToastProvider>
               </TutorialProvider>
+              </CurrencyProvider>
             </IdentityProvider>
           </AuthProvider>
         </ThemeProvider>

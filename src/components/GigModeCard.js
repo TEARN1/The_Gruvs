@@ -6,6 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { money } from '../constants/currencies';
 
 // Expo Haptics — optional dependency, graceful fallback
 let Haptics = null;
@@ -57,7 +58,7 @@ export function GigModeCard({ gig, onAccept, primary, muted, textColor, bg }) {
   const iconName = CATEGORY_ICONS[category] ?? 'truck';
 
   const rawPay = gig?.pay_rands ?? gig?.pay ?? 0;
-  const payRands = typeof rawPay === 'number' ? `R${rawPay.toFixed(0)}` : String(rawPay || 'R0');
+  const payRands = typeof rawPay === 'number' ? money(rawPay) : String(rawPay || money(0));
 
   const distance = gig?.distance_km != null
     ? `${gig.distance_km} km`

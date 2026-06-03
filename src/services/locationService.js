@@ -28,6 +28,19 @@ export const LocationService = {
     return _cachedCoords;
   },
 
+  // Resolve the viewer's ISO country code (e.g. 'ZA', 'US') from GPS, used to
+  // pick the local display currency. Best-effort: returns null if denied/offline.
+  async getCountryCode() {
+    try {
+      const coords = _cachedCoords || (await this.requestAndGet());
+      if (!coords) return null;
+      const results = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lon });
+      return results?.[0]?.isoCountryCode || null;
+    } catch {
+      return null;
+    }
+  },
+
   // Save coords to the user's profile so PostGIS RPCs can use them
   async saveToProfile(userId, lat, lon) {
     if (!userId) return;

@@ -16,6 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { EventCache, withCache } from '../services/offlineCache';
+import { money } from '../constants/currencies';
 
 export const VendorMenuSheet = ({ eventId, vendorId, style }) => {
   const { colors } = useTheme();
@@ -139,8 +140,8 @@ const VendorDetail = ({ vendor, primary, textColor, muted, surface, onClose }) =
 
   const formatPrice = (p) => {
     if (!p && p !== 0) return '';
-    if (typeof p === 'string') return p.startsWith('R') ? p : `R${p}`;
-    return `R${p}`;
+    if (typeof p === 'string') return p.startsWith('R') ? p : money(p);
+    return money(p);
   };
 
   return (

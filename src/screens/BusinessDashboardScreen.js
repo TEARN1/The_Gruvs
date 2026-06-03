@@ -21,7 +21,8 @@ import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 import { CampaignManager, EcosystemManager, NotificationManager, AnalyticsManager } from '../services/dataFlow';
 import { useToast } from '../components/ToastNotification';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { money } from '../constants/currencies';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -313,7 +314,7 @@ const CampaignRow = ({ campaign, primary, textColor, muted, onEdit, onToggle }) 
           { label: 'Clicks', value: (campaign.clicks || 0).toLocaleString() },
           { label: 'CTR', value: `${ctr}%` },
           { label: 'ROI', value: roi === '—' ? '—' : `${roi}%` },
-          { label: 'Spent', value: `R${(campaign.budget_spent || 0).toFixed(0)}` },
+          { label: 'Spent', value: money(campaign.budget_spent || 0) },
         ].map(s => (
           <View key={s.label} style={sc.campStat}>
             <Text style={[sc.campStatVal, { color: textColor }]}>{s.value}</Text>

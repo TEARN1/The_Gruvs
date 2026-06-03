@@ -56,6 +56,7 @@ import { PlayerProfileModal }     from '../components/PlayerProfileModal';
 import { MatchPredictionCard }    from '../components/MatchPredictionCard';
 import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
 import { useBackClose } from '../hooks/useBackClose';
+import { money } from '../constants/currencies';
 
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
@@ -106,16 +107,16 @@ const formatPrice = (price) => {
       const genVal = parseFloat(parsed.general);
       if (!isNaN(genVal)) {
         if (parsed.vip || parsed.vvip) {
-          return `R${genVal.toFixed(2)}+`;
+          return `${money(genVal, { decimals: true })}+`;
         }
-        return `R${genVal.toFixed(2)}`;
+        return money(genVal, { decimals: true });
       }
     }
     return 'TICKETS';
   }
   const parsedFloat = parseFloat(price);
   if (isNaN(parsedFloat)) return price;
-  return `R${parsedFloat.toFixed(2)}`;
+  return money(parsedFloat, { decimals: true });
 };
 
 export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) => {
@@ -385,7 +386,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const handleShare = async () => {
     try {
       const eventUrl = `https://thegruvs.app?event=${event?.id}`;
-      const freeTag = (!event?.price || event?.price === 0 || event?.price === 'FREE') ? '\n🆓 FREE entry' : (event?.price ? `\n🎟 R${event.price}` : '');
+      const freeTag = (!event?.price || event?.price === 0 || event?.price === 'FREE') ? '\n🆓 FREE entry' : (event?.price ? `\n🎟 ${money(event.price)}` : '');
       const shareText = `🎉 ${event?.title || 'Check out this Gruv'}\n📅 ${formatDate(event?.event_date)}${event?.venue_name ? `\n📍 ${event.venue_name}` : ''}${freeTag}\n\nDownload The Gruvs 👉 ${eventUrl}`;
       await Share.share({ message: shareText, title: event?.title });
     } catch { }
@@ -689,19 +690,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                       {parsed.general ? (
                         <View style={styles.ticketTier}>
                           <Text style={[styles.ticketLabel, { color: textMuted }]}>General / Entry</Text>
-                          <Text style={[styles.ticketValue, { color: textColor }]}>R{parseFloat(parsed.general).toFixed(2)}</Text>
+                          <Text style={[styles.ticketValue, { color: textColor }]}>{money(parseFloat(parsed.general), { decimals: true })}</Text>
                         </View>
                       ) : null}
                       {parsed.vip ? (
                         <View style={styles.ticketTier}>
                           <Text style={[styles.ticketLabel, { color: "#f59e0b" }]}>👑 VIP</Text>
-                          <Text style={[styles.ticketValue, { color: "#f59e0b" }]}>R{parseFloat(parsed.vip).toFixed(2)}</Text>
+                          <Text style={[styles.ticketValue, { color: "#f59e0b" }]}>{money(parseFloat(parsed.vip), { decimals: true })}</Text>
                         </View>
                       ) : null}
                       {parsed.vvip ? (
                         <View style={styles.ticketTier}>
                           <Text style={[styles.ticketLabel, { color: "#d946ef" }]}>💎 VVIP</Text>
-                          <Text style={[styles.ticketValue, { color: "#d946ef" }]}>R{parseFloat(parsed.vvip).toFixed(2)}</Text>
+                          <Text style={[styles.ticketValue, { color: "#d946ef" }]}>{money(parseFloat(parsed.vvip), { decimals: true })}</Text>
                         </View>
                       ) : null}
                     </View>

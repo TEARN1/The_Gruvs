@@ -11,6 +11,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
+import { money } from '../constants/currencies';
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
@@ -201,8 +202,8 @@ export const OrganizerDashboard = ({ event, primary, textColor, surface, muted }
         checkins: checkinsRes?.count ?? 0,
         vibes: vibesRes?.count ?? 0,
         chat: chatRes?.count ?? 0,
-        revenue: priceVal > 0 ? `R${(going * priceVal).toLocaleString()}` : 'Free',
-        revenueNote: priceVal > 0 ? `${going} × R${priceVal}` : 'No entry fee',
+        revenue: priceVal > 0 ? money(going * priceVal) : 'Free',
+        revenueNote: priceVal > 0 ? `${going} × ${money(priceVal)}` : 'No entry fee',
         topAttendees: attendeesRes?.data || [],
       });
     } finally {

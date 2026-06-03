@@ -13,7 +13,8 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from './ToastNotification';
+import { useToast } from './ToastNotification';
+import { money } from '../constants/currencies';
 
 const TIER_ICONS = {
   general: 'users',
@@ -82,7 +83,7 @@ export const VIPTierSelector = ({ event, primary, textColor, muted, surface, onB
         { attemptsPerTier: 2, baseMs: 400, label: `VIPTier.book:${tier.id}`, fallbackValue: null }
       );
       if (ok === null) throw new Error('booking failed');
-      toast.show(`${tier.name} booked! ${tier.price > 0 ? `R${tier.price}` : 'Free'}`, 'success');
+      toast.show(`${tier.name} booked! ${tier.price > 0 ? money(tier.price) : 'Free'}`, 'success');
       onBooked?.(tier);
     } catch {
       setMyTierId(prevTier);
@@ -140,7 +141,7 @@ export const VIPTierSelector = ({ event, primary, textColor, muted, surface, onB
                 <Text style={[vt.tierDesc, { color: muted }]} numberOfLines={2}>{tier.description}</Text>
               )}
               <Text style={[vt.price, { color: tierColor }]}>
-                {tier.price > 0 ? `R${tier.price}` : 'Free'}
+                {tier.price > 0 ? money(tier.price) : 'Free'}
               </Text>
               {spotsLeft !== null && (
                 <Text style={[vt.spots, { color: spotsLeft <= 5 ? "#ef4444" : muted }]}>
