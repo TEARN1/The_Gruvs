@@ -19,7 +19,7 @@ const reducedMotion = () =>
 const SIGNATURE_LIST = REACTION_LIST;
 
 // ── A single floating, glowing reaction orb ──────────────────────────────────
-const ReactionOrb = ({ reaction, index, isActive, primary, onPress, idle = true }) => {
+const ReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle = true }) => {
   const enter = useRef(new Animated.Value(0)).current;   // entrance pop
   const float = useRef(new Animated.Value(0)).current;   // idle hover
   const pop = useRef(new Animated.Value(1)).current;     // press/active bounce
@@ -71,25 +71,32 @@ const ReactionOrb = ({ reaction, index, isActive, primary, onPress, idle = true 
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={reaction.label}
+        accessibilityState={{ selected: isActive }}
         style={[
           styles.orb,
+          isActive && styles.orbActive,
           {
             borderColor: isActive ? accent : `${primary}22`,
             backgroundColor: isActive ? `${accent}26` : 'rgba(255,255,255,0.05)',
           },
           isActive && (IS_WEB
-            ? { boxShadow: `0 0 18px ${accent}` }
+            ? { boxShadow: `0 0 14px ${accent}` }
             : { shadowColor: accent, shadowOpacity: 0.9, shadowRadius: 12, elevation: 8 }),
         ]}
       >
         <Text style={styles.emoji}>{reaction.emoji}</Text>
-        <Text style={[styles.label, { color: isActive ? accent : 'rgba(255,255,255,0.6)' }]}>{reaction.label}</Text>
+        {/* Picked reactions become a glowing pill showing their count. */}
+        {isActive && (
+          <Text style={[styles.count, { color: accent }]}>{count != null ? count : 1}</Text>
+        )}
       </TouchableOpacity>
     </Animated.View>
   );
 };
 
-export const ReactPicker = ({ visible, onReact, userReaction, idle = true }) => {
+export const ReactPicker = ({ visible, onReact, userReaction, counts = {}, idle = true }) => {
   const { currentTheme } = useTheme();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const primary = currentTheme?.primary || "#00f2ff";
@@ -123,6 +130,7 @@ export const ReactPicker = ({ visible, onReact, userReaction, idle = true }) => 
             reaction={r}
             index={i}
             isActive={userReaction === r.key}
+            count={counts[r.key]}
             primary={primary}
             onPress={handleReact}
             idle={idle}
@@ -137,11 +145,13 @@ export const ReactPicker = ({ visible, onReact, userReaction, idle = true }) => 
 const styles = StyleSheet.create({
   container: { borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 10, overflow: 'visible', position: 'relative' },
   scroll: { paddingHorizontal: 12, gap: 8, alignItems: 'center' },
+  // Emoji-only square chip (no text label).
   orb: {
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 18, borderWidth: 1, minWidth: 58,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    width: 44, height: 44, borderRadius: 14, borderWidth: 1,
   },
+  // When picked it grows into a pill to fit the count badge.
+  orbActive: { width: undefined, minWidth: 44, paddingHorizontal: 12, gap: 5 },
   emoji: { fontSize: 22 },
-  label: { fontSize: 9, fontWeight: '800', marginTop: 3, letterSpacing: 0.2 },
+  count: { fontSize: 13, fontWeight: '900' },
 });

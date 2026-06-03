@@ -1857,6 +1857,18 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       }
       if (!saved) throw new Error('Could not save profile');
       serverSnapRef.current = profileSnap(); if (PROFILE_DRAFT_KEY) AsyncStorage.removeItem(PROFILE_DRAFT_KEY).catch(() => {});
+
+      // Auto-align global theme if gender changed
+      const normalizedNewGender = (() => {
+        const raw = (profileGender || '').toLowerCase().trim();
+        if (raw === 'male') return 'male';
+        if (raw === 'female') return 'female';
+        return 'non_binary';
+      })();
+      if (gender !== normalizedNewGender) {
+        changeTheme(normalizedNewGender, 0);
+      }
+
       toast.show('Profile updated!', 'success');
     } catch (e) {
       toast.show('Save failed: ' + (e.message || 'Unknown error'), 'error');
@@ -1886,6 +1898,16 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         .catch(() => {});
     }
   }, [user]);
+
+  // Auto-align active theme gender with profile gender on mount / profile load
+  useEffect(() => {
+    if (!profile) return;
+    const profileGenderRaw = (profile.gender || '').toLowerCase().trim();
+    const normalizedProfileGender = profileGenderRaw === 'male' ? 'male' : profileGenderRaw === 'female' ? 'female' : 'non_binary';
+    if (gender !== normalizedProfileGender) {
+      changeTheme(normalizedProfileGender, 0);
+    }
+  }, [profile, gender]);
 
   const loadTab = useCallback(async (tab) => {
     if (!user) return;
@@ -3024,50 +3046,46 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         )}
 
         {/* Aura / Theme Picker */}
-        {settingsTab === 'aura' && (
-          <GlassView style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: primary }]}>Switch Aura</Text>
-            <View style={styles.genderRow}>
-              {Object.entries(GENDERS).map(([key, val]) => (
-                <TouchableOpacity
-                  key={val}
-                  onPress={() => changeTheme(val, 0)}
-                  style={[styles.genderBtn, {
-                    backgroundColor: gender === val ? `${primary}22` : 'transparent',
-                    borderColor: gender === val ? primary : 'rgba(255,255,255,0.15)',
-                  }]}
-                >
-                  <Text style={[styles.genderText, { color: gender === val ? primary : muted }]}>
-                    {val.replace('_', ' ')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }}>
-              {THEMES[gender].map((t, idx) => (
-                <TouchableOpacity
-                  key={t.id}
-                  onPress={() => changeTheme(gender, idx)}
-                  style={[styles.themeCard, {
-                    backgroundColor: t.background,
-                    borderColor: themeIndex === idx ? '#fff' : 'transparent',
-                    borderWidth: themeIndex === idx ? 2.5 : 0,
-                  }]}
-                >
-                  <View style={[styles.themeAccent, { backgroundColor: t.primary }]} />
-                  <Text style={[styles.themeName, { color: t.text || '#fff' }]}>{t.name}</Text>
-                  {themeIndex === idx && (
-                    <View style={[styles.activeCheck, { backgroundColor: t.primary }]}>
-                      <Feather name="check" size={10} color="#000" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          <WritingStylePicker gender={gender} sample={profile?.username || profile?.display_name || 'The Gruvs'} userId={user?.id} primary={primary} muted={muted} />
-          <CurrencyPicker primary={primary} muted={muted} />
-          </GlassView>
-        )}
+        {settingsTab === 'aura' && (() => {
+          const targetGender = (() => {
+            const raw = (profileGender || profile?.gender || '').toLowerCase().trim();
+            if (raw === 'male') return 'male';
+            if (raw === 'female') return 'female';
+            return 'non_binary';
+          })();
+          const targetThemes = THEMES[targetGender] || THEMES.non_binary;
+          return (
+            <GlassView style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: primary }]}>Switch Aura</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }}>
+                {targetThemes.map((t, idx) => {
+                  const isActive = currentTheme?.id === t.id;
+                  return (
+                    <TouchableOpacity
+                      key={t.id}
+                      onPress={() => changeTheme(targetGender, idx)}
+                      style={[styles.themeCard, {
+                        backgroundColor: t.background,
+                        borderColor: isActive ? '#fff' : 'transparent',
+                        borderWidth: isActive ? 2.5 : 0,
+                      }]}
+                    >
+                      <View style={[styles.themeAccent, { backgroundColor: t.primary }]} />
+                      <Text style={[styles.themeName, { color: t.text || '#fff' }]}>{t.name}</Text>
+                      {isActive && (
+                        <View style={[styles.activeCheck, { backgroundColor: t.primary }]}>
+                          <Feather name="check" size={10} color="#000" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              <WritingStylePicker gender={targetGender} sample={profile?.username || profile?.display_name || 'The Gruvs'} userId={user?.id} primary={primary} muted={muted} />
+              <CurrencyPicker primary={primary} muted={muted} />
+            </GlassView>
+          );
+        })()}
 
         {/* Sign Out */}
         <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>

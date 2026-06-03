@@ -4,7 +4,7 @@ import { UserManager, clearAllCache, PresenceManager } from '../services/dataFlo
 import { SecurityService } from '../services/securityService';
 
 // Explicit field list — never use select('*') to avoid leaking private columns
-const PROFILE_FIELDS = 'id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, is_discoverable, push_token, interests, location, career_title, career_description, looks_description, profile_gallery, share_events, show_online';
+const PROFILE_FIELDS = 'id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, is_discoverable, push_token, interests, location, career_title, career_description, looks_description, profile_gallery, share_events, show_online, gender';
 
 const AuthContext = createContext();
 

@@ -15,6 +15,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
+import QRCode from 'qrcode';
 
 // ── QR Canvas Renderer ───────────────────────────────────────────────────────
 const QRCanvas = ({ value, size, fgColor, bgColor }) => {
@@ -27,7 +28,6 @@ const QRCanvas = ({ value, size, fgColor, bgColor }) => {
 
     const render = async () => {
       try {
-        const QRCode = (await import('qrcode')).default || (await import('qrcode'));
         if (cancelled || !canvasRef.current) return;
         await QRCode.toCanvas(canvasRef.current, value, {
           width: size * 2,      // 2× for retina sharpness

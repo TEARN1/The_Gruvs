@@ -1287,7 +1287,7 @@ export const UserManager = {
       // Tier 1: public profile fields (no sensitive columns)
       async () => {
         const { data, error } = await supabase.from('profiles')
-          .select('id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, interests, location, career_title, is_discoverable, share_events')
+          .select('id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, interests, location, career_title, is_discoverable, share_events, gender')
           .eq('id', userId).single();
         if (error) throw error;
         if (data) cache.set(cacheKey, data);
