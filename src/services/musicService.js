@@ -21,6 +21,14 @@ const YOUTUBE_KEY    = process.env.EXPO_PUBLIC_YOUTUBE_API_KEY       || '';
 let _spotifyToken  = null;
 let _spotifyExpiry = 0;
 
+// ⚠️ SECURITY (SECURITY-AUDIT.md finding #8): the Spotify Client Credentials
+// flow needs the CLIENT SECRET, and any EXPO_PUBLIC_* var is compiled into the
+// public web/app bundle — so the secret is exposed to anyone who inspects it.
+// Proper fix: move this token exchange into a Supabase Edge Function that holds
+// the secret server-side and returns only the short-lived access token; have the
+// client call that function instead. Until then, rotate the secret and treat it
+// as already-compromised. (YouTube key below is also public — restrict it by
+// HTTP referrer + API in the Google console.)
 const getSpotifyToken = async () => {
   if (_spotifyToken && Date.now() < _spotifyExpiry - 30_000) return _spotifyToken;
 

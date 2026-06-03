@@ -138,3 +138,74 @@ That file addresses findings #1, #2, #4 and #5, with comments on each.
 node scripts/sec-probe.js            # live anon read/write/PII probe
 node scripts/validate-schema.js      # schema + (with service key) RPC check
 ```
+
+---
+
+# Round 2 (2026-06-03) — code-side hardening + threat-model mapping
+
+Three new findings beyond the original 7. The code-side ones are fixed in this
+commit; the rest need your Supabase/Vercel.
+
+## 8. 🔴 CRITICAL — Spotify **client secret** ships in the bundle
+`src/services/musicService.js` runs the Spotify *Client Credentials* flow in the
+client using `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET`. **Every `EXPO_PUBLIC_*` var is
+compiled into the public web/app bundle**, so the secret is extractable by
+anyone. (The original audit only checked for the Supabase service_role + Anthropic
+keys, which are correctly absent — this one slipped through.)
+**Fix (you):** rotate the secret now; move the token exchange into a Supabase
+**Edge Function** that holds the secret server-side and returns only the
+short-lived access token; point the client at that function. Also restrict the
+`EXPO_PUBLIC_YOUTUBE_API_KEY` by HTTP-referrer + API in the Google console.
+A warning is now in `musicService.js` at the call site.
+
+## 9. 🟠 → ✅ Unsafe-scheme link opening (hardened in code)
+`Linking.openURL()` on app-constructed links (maps from coords, music URLs)
+didn't validate the scheme. Added `safeOpenExternal()` to `src/utils/sanitize.js`
+— allows only `http/https/mailto/tel` (blocks `javascript:`, `data:`, `file:`,
+`intent:`, `blob:` which can run code / read local files, esp. on web) while
+allowing any host (users share arbitrary legit links). Routed the music-link
+opener through it; the helper is ready for any future "linkify user text" feature.
+Note: no current screen opens a *raw user-typed* URL — messages/captions render as
+plain RN `<Text>`, which can't execute links (so **no stored/reflected XSS sink**).
+
+## 10. 🟠 → ✅ Missing web security headers (added to `vercel.json`)
+The web deploy sent no security headers. Added for `/(.*)`:
+`Strict-Transport-Security` (HSTS — blocks **SSL/TLS stripping**),
+`X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` (blocks **clickjacking /
+UI-redress**), `X-Content-Type-Options: nosniff` (blocks **MIME confusion**),
+`Referrer-Policy` (limits referrer leakage), `Permissions-Policy` (locks down
+USB/Bluetooth; allows geolocation/camera/mic/payment the app uses). A full
+script/connect CSP was deliberately *not* added yet — it needs a runtime pass to
+enumerate allowed origins (Supabase, open-meteo, open.er-api, Spotify, YouTube)
+without breaking the Expo web runtime.
+
+## Dependency audit (supply chain)
+`npm audit` reports 29 issues (14 high / 14 moderate / 1 low) — almost all in
+**Expo build/CLI tooling** (`@expo/bunyan`, `xcode`, `ws`, `@expo/rudder-sdk-node`),
+i.e. build-time, not shipped to users. Run `npm audit fix` (safe subset); avoid
+`--force` without testing — it can break the SDK 51 build.
+
+## Threat-model applicability (vs the broad attack list)
+This is a **React Native/Expo client + Supabase (managed Postgres/Auth/Storage)
++ Vercel static hosting**. There is **no server, OS, Active Directory, Kubernetes,
+SCADA/OT, or datacenter of yours** to attack, so whole categories don't apply.
+
+| Category | Applies? | Status |
+|---|---|---|
+| XSS (stored/reflected/DOM) | Partly (web) | ✅ No HTML sinks; RN `<Text>` auto-escapes; no `dangerouslySetInnerHTML`/`eval` |
+| SQL/NoSQL/filter injection | Yes | ✅ Supabase parameterises; PostgREST `.or()` injection fixed (`sanitizeSearch`) |
+| IDOR / BOLA / BFLA | Yes | ⚠️ = server-side RLS (findings #1–#5, #7) — run `security-rls-fixes.sql` |
+| Clickjacking / UI-redress | Yes (web) | ✅ X-Frame-Options + CSP frame-ancestors |
+| CSRF | Low | ✅ Auth is JWT in `Authorization` header, not cookies |
+| SSL/TLS stripping | Yes (web) | ✅ HSTS |
+| Open redirect / scheme abuse | Yes | ✅ `safeOpenURL` / `safeOpenExternal` |
+| Secrets in client | Yes | 🔴 Spotify secret (#8); ✅ no service_role/Anthropic key |
+| Quishing (malicious QR) | Yes | ✅ QR scanner only accepts ticket-prefixed payloads, never opens URLs |
+| Credential stuffing / brute force / MFA fatigue | Yes | ⚠️ Supabase Auth side — enable rate-limits + leaked-password protection in the dashboard |
+| Supply chain (deps/typosquat) | Yes | ⚠️ `npm audit` (build-time); review lockfile |
+| DoS / ReDoS / zip-bomb | Yes | ✅ upload type+size caps; search regex is linear; file size capped |
+| AI prompt injection | Yes | ⚠️ `claudeService` builds prompts from user data — treat model output as untrusted, never auto-execute |
+| Phishing / vishing / BEC / SIM-swap / social eng. | Yes | 👤 People-process, not app code — needs a staff/user policy + the admin-email cleanup (#3) |
+| DDoS (network/amplification) | N/A to app code | Vercel + Supabase absorb at the edge |
+| Malware / ransomware / rootkits / LotL | N/A | No server/endpoint you operate |
+| Kerberos/AD, K8s, cloud-IAM, SCADA/OT, hardware/IoT, BGP/DNS infra | N/A | No such infrastructure in this stack |

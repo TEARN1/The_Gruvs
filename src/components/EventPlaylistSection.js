@@ -4,6 +4,7 @@
  * top-voted tracks rise to the top in real-time.
  */
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import { safeOpenExternal } from '../utils/sanitize';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList,
   Image, ActivityIndicator, Modal, Animated, Linking, Alert,
@@ -207,7 +208,7 @@ const TrackRow = memo(({ track, rank, voted, onVote, onRemove, canRemove, primar
       <TouchableOpacity
         onPress={() => {
           const url = MusicService.getOpenUrl({ platform: track.platform, id: track.track_id, externalUrl: null });
-          Linking.openURL(url).catch(() => {});
+          safeOpenExternal(url);
         }}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
