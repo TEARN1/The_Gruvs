@@ -458,7 +458,7 @@ const cs = StyleSheet.create({
 });
 
 // ── Single Reel Item ──────────────────────────────────────────────────────────
-const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onManage, onOpenEvent, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
+const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onManage, onOpenEvent, onBlocked, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
   const videoRef = useRef(null);
   const lastTap = useRef(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
@@ -544,7 +544,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
       { text: 'Spam', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'spam' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
       { text: 'Inappropriate', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'inappropriate' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
       { text: 'Misleading', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'misleading' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
-      { text: `Block @${reel.profiles?.username || 'user'}`, style: 'destructive', onPress: async () => { try { await supabase.from('user_blocks').upsert({ blocker_id: user?.id, blocked_id: reel.user_id }, { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }); Alert.alert('Blocked', 'You will no longer see their content.'); } catch { Alert.alert('Error', 'Could not block. Try again.'); } } },
+      { text: `Block @${reel.profiles?.username || 'user'}`, style: 'destructive', onPress: async () => { try { await supabase.from('user_blocks').upsert({ blocker_id: user?.id, blocked_id: reel.user_id }, { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }); Alert.alert('Blocked', 'You will no longer see their content.'); onBlocked?.(); } catch { Alert.alert('Error', 'Could not block. Try again.'); } } },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -1296,6 +1296,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       onHashtag={onHashtag}
       onManage={onManage}
       onOpenEvent={() => item.event_id && onNavigateToEvent?.({ id: item.event_id, title: item.event_title })}
+      onBlocked={() => setReels(prev => prev.filter(r => r.user_id !== item.user_id))}
       onOpenSettings={() => setSettingsVisible(true)}
       playerPref={playerPref}
       onVideoFinish={handleVideoFinish}
