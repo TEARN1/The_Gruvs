@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Image, ActivityIndicator, Animated,
+  Image, ActivityIndicator, Animated, Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -12,6 +12,9 @@ import { log } from '../utils/log';
 import { transform } from '../utils/writingStyles';
 import { thumb } from '../utils/storageThumb';
 import { resilient } from '../utils/resilience';
+import { GlitterBurst } from './GlitterBurst';
+
+const IS_WEB = Platform.OS === 'web';
 
 const formatAge = (dateStr) => {
   if (!dateStr) return '';
@@ -53,12 +56,18 @@ const EchoSkeleton = ({ primary }) => {
 };
 
 const RANK_STYLES = [
-  { bg: 'rgba(124,58,237,0.3)', color: "#c084fc", label: 'Top' },
-  { bg: 'rgba(245,158,11,0.3)', color: "#fbbf24", label: '2nd' },
-  { bg: 'rgba(16,185,129,0.2)', color: "#34d399", label: '3rd' },
+  { bg: 'rgba(124,58,237,0.3)', color: "#c084fc", label: '👑 Top', glow: "#c084fc" },
+  { bg: 'rgba(245,158,11,0.3)', color: "#fbbf24", label: '🥈 2nd', glow: "#fbbf24" },
+  { bg: 'rgba(16,185,129,0.2)', color: "#34d399", label: '🥉 3rd', glow: "#34d399" },
 ];
 
 const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, onReply }) => {
+  const [likeFx, setLikeFx] = useState(0);
+  const prevLiked = useRef(isLiked);
+  useEffect(() => {
+    if (isLiked && !prevLiked.current) setLikeFx(Date.now()); // sparkle on a fresh like
+    prevLiked.current = isLiked;
+  }, [isLiked]);
   const name = echo.profiles?.username || 'Viber';
   const colors = ["#0891b2", "#0d9488", "#1d4ed8", "#65a30d", "#dc2626", "#7c3aed"];
   const bg = colors[(name?.charCodeAt(0) || 0) % colors.length];
@@ -71,7 +80,7 @@ const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, 
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
       }
-      <View style={[styles.bubble, { backgroundColor: `${primary}08`, borderColor: `${primary}18` }]}>
+      <View style={[styles.bubble, { backgroundColor: `${primary}08`, borderColor: rank ? rank.glow : `${primary}18` }, rank && (IS_WEB ? { boxShadow: `0 0 12px ${rank.glow}55` } : { shadowColor: rank.glow, shadowOpacity: 0.45, shadowRadius: 7, elevation: 4 })]}>
         <View style={styles.bubbleHeader}>
           <Text style={[styles.echoName, { color: primary }]}>{name}</Text>
           {rank && (
@@ -84,7 +93,10 @@ const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, 
         <Text style={[styles.echoContent, { color: textColor }]}>{transform(echo.body, echo.profiles?.writing_style)}</Text>
         <View style={styles.echoActions}>
           <TouchableOpacity onPress={() => onLike(echo.id)} style={[styles.likeBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-            <Feather name="heart" size={13} color={isLiked ? "#ef4444" : muted} />
+            <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+              <Feather name="heart" size={13} color={isLiked ? "#ef4444" : muted} />
+              <GlitterBurst trigger={likeFx} size={84} />
+            </View>
             <Text style={{ color: isLiked ? "#ef4444" : muted, fontSize: 12 }}>
               {echo.likes || 0}
             </Text>

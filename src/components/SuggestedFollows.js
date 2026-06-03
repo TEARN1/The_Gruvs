@@ -17,6 +17,7 @@ import { supabase } from '../services/supabase';
 import { resilientRead } from '../utils/resilience';
 import { haptics } from '../utils/haptics';
 import { ViberProfileModal } from './ViberProfileModal';
+import { GlitterBurst } from './GlitterBurst';
 
 const AV_COLORS = ['#8b5cf6', '#ec4899', '#f97316', '#10b981', '#3b82f6', '#f59e0b', '#06b6d4', '#a78bfa'];
 const avatarBg = (name = '') => AV_COLORS[(name.charCodeAt(0) || 0) % AV_COLORS.length];
@@ -33,6 +34,7 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
   const [followed, setFollowed] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId]   = useState(null);
+  const [followFx, setFollowFx] = useState({ id: null, t: 0 });
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -75,6 +77,7 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
     if (!user) return;
     try { haptics.select?.(); } catch {}
     setFollowed(prev => new Set(prev).add(id));
+    setFollowFx({ id, t: Date.now() }); // sparkle on follow
     try {
       const { error } = await supabase.from('follows')
         .upsert({ follower_id: user.id, following_id: id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
@@ -119,6 +122,7 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
                   </View>
                   <Text style={[sf.sub, { color: muted }]} numberOfLines={2}>{sub}</Text>
                 </TouchableOpacity>
+                <View style={{ position: 'relative', alignSelf: 'stretch' }}>
                 <TouchableOpacity
                   onPress={() => { if (!isFollowed) follow(p.id); }}
                   activeOpacity={0.85}
@@ -131,6 +135,8 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
                     {isFollowed ? 'Following' : '+ Follow'}
                   </Text>
                 </TouchableOpacity>
+                <GlitterBurst trigger={followFx.id === p.id ? followFx.t : 0} size={110} />
+                </View>
               </View>
             );
           })}
