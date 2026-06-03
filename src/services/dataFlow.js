@@ -2087,21 +2087,43 @@ export const MessageManager = {
         parent_id, event_id, latitude, longitude,
       };
 
+      // Columns present on every messages-table version. If the richer columns
+      // (event_id / latitude / is_request / parent_id / media_url …) aren't in
+      // the live table, the full insert fails — but the message still delivers
+      // via this core payload instead of being lost.
+      const corePayload = {
+        ...(_pregenId ? { id: _pregenId } : {}),
+        sender_id: senderId, recipient_id: recipientId,
+        body: msgPayload.body, message_type: msgType,
+      };
+
       const data = await resilient(
         [
-          // Tier 1: insert + return full row
+          // Tier 1: full insert + return full row
           async () => {
             const { data: d, error: e } = await supabase.from('messages').insert(msgPayload).select().single();
             if (e) throw e;
             return d;
           },
-          // Tier 2: insert without select (body-only confirmation)
+          // Tier 2: full insert without select
           async () => {
             const { error: e } = await supabase.from('messages').insert(msgPayload);
             if (e) throw e;
             return { ...msgPayload, id: _pregenId || `local_${Date.now()}`, created_at: new Date().toISOString() };
           },
-          // Tier 3: RPC send_message (bypasses RLS quirks)
+          // Tier 3: core columns only (+ select) — drops any not-yet-migrated columns
+          async () => {
+            const { data: d, error: e } = await supabase.from('messages').insert(corePayload).select().single();
+            if (e) throw e;
+            return d;
+          },
+          // Tier 4: core columns only, no select
+          async () => {
+            const { error: e } = await supabase.from('messages').insert(corePayload);
+            if (e) throw e;
+            return { ...corePayload, id: corePayload.id || `local_${Date.now()}`, created_at: new Date().toISOString() };
+          },
+          // Tier 5: RPC send_message (bypasses RLS quirks)
           async () => {
             const { data: d, error: e } = await supabase.rpc('send_message', {
               p_sender: senderId, p_recipient: recipientId,
@@ -2111,7 +2133,7 @@ export const MessageManager = {
             return d || msgPayload;
           },
         ],
-        { attemptsPerTier: 3, baseMs: 400, label: 'MessageManager.sendMessage' }
+        { attemptsPerTier: 2, baseMs: 400, label: 'MessageManager.sendMessage' }
       );
       if (!data) throw new Error('Message send exhausted all tiers');
 

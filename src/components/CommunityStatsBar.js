@@ -95,7 +95,9 @@ export const CommunityStatsBar = () => {
         .from('profiles')
         .select('id', { count: 'exact', head: true })
         .in('id', mutualIds)
-        .eq('is_online', true);
+        // Truly online = active in the last 5 min. The is_online boolean goes
+        // stale (users rarely get marked offline), so trust last_seen instead.
+        .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString());
       setOnlineCount(count || 0);
     } catch {}
   };
@@ -107,9 +109,9 @@ export const CommunityStatsBar = () => {
       if (!mutualIds.length) { setOnlineVibers([]); return; }
       const { data } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, bio, vibe_score, is_online')
+        .select('id, username, avatar_url, bio, vibe_score, last_seen')
         .in('id', mutualIds)
-        .eq('is_online', true)
+        .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString())
         .order('vibe_score', { ascending: false });
       setOnlineVibers(data || []);
     } catch {} finally {
@@ -214,9 +216,7 @@ export const CommunityStatsBar = () => {
         <DirectMessageModal
           visible={msgVisible}
           onClose={() => { setMsgVisible(false); setMsgTarget(null); }}
-          recipientId={msgTarget.id}
-          recipientUsername={msgTarget.username}
-          recipientAvatar={msgTarget.avatar_url}
+          recipient={msgTarget}
         />
       )}
     </>
