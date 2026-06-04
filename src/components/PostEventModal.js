@@ -21,7 +21,8 @@ import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
 import { useBackClose } from '../hooks/useBackClose';
-import { money } from '../constants/currencies';
+import { money } from '../constants/currencies';
+import { EVENT_TAGS } from '../constants/EventTags';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -52,6 +53,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [powerBackup, setPowerBackup] = useState(null);
   const [secretAct, setSecretAct] = useState('');
   const [revealThreshold, setRevealThreshold] = useState('');
+  const [eventTags, setEventTags] = useState([]);
   const [vipPrice, setVipPrice] = useState('');
   const [vvipPrice, setVvipPrice] = useState('');
   const [otherTickets, setOtherTickets] = useState('');
@@ -352,6 +354,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (lat && lon) payload.coords = `SRID=4326;POINT(${lon} ${lat})`;
     if (city.trim()) payload.city = city.trim();
     if (powerBackup) payload.power_backup = powerBackup;
+    if (eventTags.length > 0) payload.tags = eventTags;
     if (secretAct.trim()) { payload.secret_act = secretAct.trim(); payload.secret_reveal_threshold = parseInt(revealThreshold) || 25; }
     if (pickedDate) {
       const y = pickedDate.getFullYear();
@@ -457,7 +460,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         async () => {
           // Tier 2: strip columns that may not be migrated yet (coords/schedule/
           // categories/end_date/power_backup), keeping everything else.
-          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, power_backup: _pb, secret_act: _sa, secret_reveal_threshold: _srt, ...safePayload } = payload;
+          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, power_backup: _pb, secret_act: _sa, secret_reveal_threshold: _srt, tags: _tags, ...safePayload } = payload;
           const { data, error } = await supabase.from('events').insert(safePayload).select().single();
           if (error) throw error;
           return data || true;
@@ -807,6 +810,20 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, borderWidth: 1, borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}20` : 'transparent' }}>
                           <Feather name={o.icon} size={12} color={active ? primary : muted} />
                           <Text style={{ color: active ? primary : muted, fontSize: 12, fontWeight: '700' }}>{o.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Text style={[pm.label, { color: muted }]}>Good to know (accessibility · safety · vibe)</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                    {EVENT_TAGS.map((t) => {
+                      const active = eventTags.includes(t.key);
+                      return (
+                        <TouchableOpacity key={t.key} activeOpacity={0.8} onPress={() => setEventTags((prev) => active ? prev.filter((k) => k !== t.key) : [...prev, t.key])}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 14, borderWidth: 1, borderColor: active ? t.color : `${primary}25`, backgroundColor: active ? `${t.color}22` : 'transparent' }}>
+                          <Text style={{ fontSize: 12 }}>{t.emoji}</Text>
+                          <Text style={{ color: active ? t.color : muted, fontSize: 11, fontWeight: '700' }}>{t.label}</Text>
                         </TouchableOpacity>
                       );
                     })}
