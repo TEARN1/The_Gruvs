@@ -17,7 +17,6 @@ const SPOTIFY_SEARCH_URL = 'https://api.spotify.com/v1/search';
 const YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search';
 
 const SPOTIFY_ID     = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID     || '';
-const SPOTIFY_SECRET = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET || '';
 const YOUTUBE_KEY    = process.env.EXPO_PUBLIC_YOUTUBE_API_KEY       || '';
 
 let _spotifyToken  = null;
@@ -26,10 +25,9 @@ let _spotifyExpiry = 0;
 // ⚠️ SECURITY (SECURITY-AUDIT.md finding #8): the Spotify Client Credentials
 // flow needs the CLIENT SECRET, and any EXPO_PUBLIC_* var is compiled into the
 // public web/app bundle — so the secret is exposed to anyone who inspects it.
-// Fixed: This implementation prioritizes fetching the token via a secure Supabase
+// Fixed: This implementation strictly fetches the token via a secure Supabase
 // Edge Function ('spotify-token') that holds the secret server-side.
-// The local fetch is kept purely as a fallback to ensure backwards compatibility
-// during deployment transitions.
+// The direct client-side fallback has been disabled to prevent secret leakage.
 const getSpotifyToken = async () => {
   if (_spotifyToken && Date.now() < _spotifyExpiry - 30_000) return _spotifyToken;
 
@@ -43,33 +41,14 @@ const getSpotifyToken = async () => {
         return _spotifyToken;
       }
       if (error) {
-        console.warn('[MusicService] Edge function token fetch failed, falling back:', error.message);
+        throw new Error(`Edge function token fetch failed: ${error.message}`);
       }
     } catch (e) {
-      console.warn('[MusicService] Failed to invoke Edge Function, falling back:', e.message);
+      throw new Error(`Failed to invoke Edge Function for Spotify Token: ${e.message}`);
     }
+  } else {
+    throw new Error('Supabase integration is disabled; Spotify token cannot be fetched securely.');
   }
-
-  // Fallback to local token exchange using public bundle secret (transitional support)
-  if (!SPOTIFY_ID || !SPOTIFY_SECRET) {
-    throw new Error('Spotify credentials not configured. Add EXPO_PUBLIC_SPOTIFY_CLIENT_ID and EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET to .env');
-  }
-
-  const credentials = btoa(`${SPOTIFY_ID}:${SPOTIFY_SECRET}`);
-  const res = await fetch(SPOTIFY_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${credentials}`,
-      'Content-Type':  'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-  });
-
-  if (!res.ok) throw new Error(`Spotify auth failed: ${res.status}`);
-  const data = await res.json();
-  _spotifyToken  = data.access_token;
-  _spotifyExpiry = Date.now() + data.expires_in * 1000;
-  return _spotifyToken;
 };
 
 const formatDuration = (ms) => {

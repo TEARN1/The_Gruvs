@@ -93,7 +93,7 @@ export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {
 
   if (blob.size > MAX_SIZE) {
     const mb = (blob.size / 1024 / 1024).toFixed(1);
-    throw new Error(`File is ${mb} MB — maximum size is 50 MB.`);
+    throw new Error(`File is ${mb} MB — maximum size is 150 MB.`);
   }
 
   const finalType = (blob.type && blob.type !== 'application/octet-stream') ? blob.type : type;
