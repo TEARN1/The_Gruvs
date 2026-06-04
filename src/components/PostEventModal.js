@@ -21,8 +21,9 @@ import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
 import { CalendarPicker, TimePicker } from './DateTimePickers';
 import { useBackClose } from '../hooks/useBackClose';
-import { money } from '../constants/currencies';
+import { money } from '../constants/currencies';
 import { EVENT_TAGS } from '../constants/EventTags';
+import { COMMUNITY_TAG_GROUPS, GENDER_OPTIONS, LANGUAGE_OPTIONS, describeAudience, hasAudienceTargeting } from '../constants/AudienceTargeting';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -37,6 +38,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
 
   // Form fields
   const [title, setTitle] = useState('');
+  // Poster mode: the uploaded poster already carries all the details, so the
+  // manual text fields become optional and the event renders as a full poster.
+  const [posterMode, setPosterMode] = useState(false);
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
@@ -62,6 +66,16 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [lon, setLon] = useState(null);
   const [ageMin, setAgeMin] = useState(0);
   const [ageMax, setAgeMax] = useState(0);
+  // ── Audience targeting ── who exactly is this event for? (events.audience JSONB)
+  const [audGenders, setAudGenders] = useState([]);       // ['female', ...]
+  const [audTags, setAudTags] = useState([]);             // community_tags
+  const [audLanguages, setAudLanguages] = useState([]);
+  const [audClans, setAudClans] = useState('');           // comma-separated free text
+  const [audSurnames, setAudSurnames] = useState('');
+  const [audVillages, setAudVillages] = useState('');
+  const [audRadiusKm, setAudRadiusKm] = useState(0);      // 0 = anywhere
+  const [audMatchAll, setAudMatchAll] = useState(false);  // false = ANY (OR), true = ALL (AND)
+  const [showTargeting, setShowTargeting] = useState(false);
   const [endHour, setEndHour] = useState(null);
   const [endMinute, setEndMinute] = useState(null);
   const [endTimeSet, setEndTimeSet] = useState(false);
@@ -106,6 +120,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   // Drafts: autosave the event form so an interruption never wipes your work.
   const restoreDraft = (d) => {
     if (typeof d.title === 'string') setTitle(d.title);
+    if (typeof d.posterMode === 'boolean') setPosterMode(d.posterMode);
     if (typeof d.description === 'string') setDescription(d.description);
     if (typeof d.address === 'string') setAddress(d.address);
     if (typeof d.city === 'string') setCity(d.city);
@@ -132,12 +147,14 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   );
 
   const reset = () => {
-    setTitle(''); setDescription(''); setAddress(''); setCity('');
+    setTitle(''); setPosterMode(false); setDescription(''); setAddress(''); setCity('');
     setPickedDate(null); setEndDate(null); setPickedHour(20); setPickedMinute(0); setTimeSet(false);
     setTicketUrl(''); setEntryPrice(''); setVipPrice(''); setVvipPrice(''); setOtherTickets(''); setEventType('');
     setContactPhone(''); setContactEmail('');
     setLat(null); setLon(null);
     setAgeMin(0); setAgeMax(0); setSelectedCategories([]); setMediaItems([]);
+    setAudGenders([]); setAudTags([]); setAudLanguages([]); setAudClans(''); setAudSurnames('');
+    setAudVillages(''); setAudRadiusKm(0); setAudMatchAll(false); setShowTargeting(false);
     setEndHour(null); setEndMinute(null); setEndTimeSet(false); setEndTimePickerVisible(false);
     setScheduleItems([]); setScheduleFormVisible(false);
     setScheduleForm({ time: '', title: '', performer: '', notes: '', day: 1 });
@@ -289,12 +306,12 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       scrollAndFocus('title', titleRef);
       return;
     }
-    if (!description.trim()) {
+    if (!posterMode && !description.trim()) {
       setError('Describe the vibe — what makes this Gruv special?');
       scrollAndFocus('description', descriptionRef);
       return;
     }
-    if (!address.trim()) {
+    if (!posterMode && !address.trim()) {
       setError('Venue / address is required so people know where to show up.');
       scrollAndFocus('address', addressRef);
       return;
@@ -302,6 +319,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (!pickedDate) {
       setError('Pick a date so people can plan ahead.');
       scrollAndFocus('date', dateRef);
+      return;
+    }
+    if (posterMode && mediaItems.length === 0) {
+      setError('Upload your poster — in poster mode it carries all the details.');
+      setStep(2);
       return;
     }
     if (!user?.id) { setError('Sign in required to post a Gruv.'); return; }
@@ -343,13 +365,16 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     const payload = {
       author_id: user?.id,
       title: title.trim(),
-      description: description.trim(),
-      address: address.trim(),
+      // In poster mode the text fields are optional — fall back so NOT NULL
+      // columns are still satisfied while the poster carries the real details.
+      description: description.trim() || (posterMode ? 'See poster for details.' : ''),
+      address: address.trim() || (posterMode ? 'See poster' : ''),
       lat,
       lon,
       is_published: true,
       is_cancelled: false,
     };
+    if (posterMode) payload.poster_mode = true;
     // coords: only set if PostGIS available — computed from lat/lon
     if (lat && lon) payload.coords = `SRID=4326;POINT(${lon} ${lat})`;
     if (city.trim()) payload.city = city.trim();
@@ -381,6 +406,23 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (competitionId) payload.competition_id = competitionId;
     if (ageMin > 0) payload.age_restriction = ageMin;
     if (ageMax > 0) payload.age_max = ageMax;
+
+    // Audience targeting — who exactly is this event for? (stored as JSONB)
+    const csv = (s) => s.split(',').map(v => v.trim()).filter(Boolean);
+    const audience = {};
+    if (ageMin > 0) audience.age_min = ageMin;
+    if (ageMax > 0) audience.age_max = ageMax;
+    if (audGenders.length) audience.genders = audGenders;
+    if (audTags.length) audience.community_tags = audTags;
+    if (audLanguages.length) audience.languages = audLanguages;
+    if (csv(audClans).length) audience.clans = csv(audClans);
+    if (csv(audSurnames).length) audience.surnames = csv(audSurnames);
+    if (csv(audVillages).length) audience.villages = csv(audVillages);
+    if (audRadiusKm > 0) audience.radius_km = audRadiusKm;
+    if (Object.keys(audience).length) {
+      audience.match_mode = audMatchAll ? 'all' : 'any';
+      payload.audience = audience;
+    }
     if (endTimeSet && endHour !== null) {
       payload.end_time = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
     }
@@ -460,7 +502,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         async () => {
           // Tier 2: strip columns that may not be migrated yet (coords/schedule/
           // categories/end_date/power_backup), keeping everything else.
-          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, power_backup: _pb, secret_act: _sa, secret_reveal_threshold: _srt, tags: _tags, ...safePayload } = payload;
+          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, power_backup: _pb, secret_act: _sa, secret_reveal_threshold: _srt, tags: _tags, poster_mode: _pm, audience: _aud, ...safePayload } = payload;
           const { data, error } = await supabase.from('events').insert(safePayload).select().single();
           if (error) throw error;
           return data || true;
@@ -496,11 +538,17 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
 
     if (result !== null) {
       VibeEquityLedger.mintEquity(user.id, 'EVENT_HOSTING').catch(() => {});
-      // Fire-and-forget: route recurring events to matching users
-      if (isRecurring && result !== true && result?.id) {
-        import('../services/personalizationEngine').then(({ routeRecurringEvent, computeUserDeepProfile }) => {
-          computeUserDeepProfile(user.id).catch(() => {});
-          routeRecurringEvent(result.id, { ...payload, id: result.id }).catch(() => {});
+      // Fire-and-forget: route the event to the right people.
+      if (result !== true && result?.id) {
+        import('../services/personalizationEngine').then(({ routeRecurringEvent, routeTargetedEvent, computeUserDeepProfile }) => {
+          if (isRecurring) {
+            computeUserDeepProfile(user.id).catch(() => {});
+            routeRecurringEvent(result.id, { ...payload, id: result.id }).catch(() => {});
+          }
+          // Explicit audience targeting — deliver straight to matching people.
+          if (payload.audience && Object.keys(payload.audience).length) {
+            routeTargetedEvent(result.id, payload.audience, { lat, lon }).catch(() => {});
+          }
         }).catch(() => {});
       }
       clearDraft();
@@ -538,7 +586,24 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   };
 
 
-  const canProceedStep1 = title.trim().length > 2 && description.trim().length > 5 && address.trim().length > 3;
+  const buildAudiencePreview = () => {
+    const csv = (s) => s.split(',').map(v => v.trim()).filter(Boolean);
+    const a = {};
+    if (ageMin > 0) a.age_min = ageMin;
+    if (ageMax > 0) a.age_max = ageMax;
+    if (audGenders.length) a.genders = audGenders;
+    if (audTags.length) a.community_tags = audTags;
+    if (audLanguages.length) a.languages = audLanguages;
+    if (csv(audClans).length) a.clans = csv(audClans);
+    if (csv(audSurnames).length) a.surnames = csv(audSurnames);
+    if (csv(audVillages).length) a.villages = csv(audVillages);
+    if (audRadiusKm > 0) a.radius_km = audRadiusKm;
+    return a;
+  };
+
+  const canProceedStep1 = posterMode
+    ? title.trim().length > 2
+    : title.trim().length > 2 && description.trim().length > 5 && address.trim().length > 3;
 
   const addScheduleItem = () => {
     if (!scheduleForm.time.trim() || !scheduleForm.title.trim()) return;
@@ -745,11 +810,27 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     onSubmitEditing={() => descriptionRef.current?.focus()}
                   />
 
-                  <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.description = e.nativeEvent.layout.y; }}>What's the vibe? *</Text>
+                  {/* Poster mode — my poster already has all the details */}
+                  <TouchableOpacity
+                    onPress={() => { setPosterMode(v => !v); if (error) setError(''); }}
+                    activeOpacity={0.85}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: posterMode ? primary : `${primary}30`, backgroundColor: posterMode ? `${primary}12` : `${primary}06` }}
+                  >
+                    <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: posterMode ? primary : `${primary}50`, alignItems: 'center', justifyContent: 'center', backgroundColor: posterMode ? primary : 'transparent' }}>
+                      {posterMode && <Feather name="check" size={12} color="#000" />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: posterMode ? primary : textColor, fontWeight: '800', fontSize: 13 }}>My poster already has the details</Text>
+                      <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>Skip the typing — just upload your flyer. We'll show it full-size.</Text>
+                    </View>
+                    <Feather name="image" size={16} color={posterMode ? primary : muted} />
+                  </TouchableOpacity>
+
+                  <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.description = e.nativeEvent.layout.y; }}>{posterMode ? "What's the vibe? (optional)" : "What's the vibe? *"}</Text>
                   <TextInput
                     ref={descriptionRef}
-                    style={[pm.input, pm.textarea, { color: textColor, borderColor: !description.trim() && error ? "#ef4444" : `${primary}35` }]}
-                    placeholder="Describe your event — make it sound elite..."
+                    style={[pm.input, pm.textarea, { color: textColor, borderColor: !posterMode && !description.trim() && error ? "#ef4444" : `${primary}35` }]}
+                    placeholder={posterMode ? "Optional — the poster covers it, but you can add a line..." : "Describe your event — make it sound elite..."}
                     placeholderTextColor={muted}
                     multiline
                     numberOfLines={4}
@@ -759,10 +840,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                   />
                   <Text style={[pm.charCount, { color: muted }]}>{description.length}/600</Text>
 
-                  <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.address = e.nativeEvent.layout.y; }}>Venue / Address *</Text>
+                  <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.address = e.nativeEvent.layout.y; }}>{posterMode ? 'Venue / Address (optional)' : 'Venue / Address *'}</Text>
                   <TextInput
                     ref={addressRef}
-                    style={[pm.input, { color: textColor, borderColor: !address.trim() && error ? "#ef4444" : `${primary}35` }]}
+                    style={[pm.input, { color: textColor, borderColor: !posterMode && !address.trim() && error ? "#ef4444" : `${primary}35` }]}
                     placeholder="Full address or venue name..."
                     placeholderTextColor={muted}
                     value={address}
@@ -1087,12 +1168,12 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                         scrollAndFocus('title', titleRef);
                         return;
                       }
-                      if (!description.trim()) {
+                      if (!posterMode && !description.trim()) {
                         setError('Describe the vibe — what makes this Gruv special?');
                         scrollAndFocus('description', descriptionRef);
                         return;
                       }
-                      if (!address.trim()) {
+                      if (!posterMode && !address.trim()) {
                         setError('Venue / address is required so people know where to show up.');
                         scrollAndFocus('address', addressRef);
                         return;
@@ -1110,11 +1191,16 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                 <>
                   {/* Media */}
                   <View style={pm.sectionHeader}>
-                    <Text style={[pm.label, { color: muted, marginBottom: 0 }]}>
-                      Media ({mediaItems.length}/{MAX_MEDIA})
+                    <Text style={[pm.label, { color: posterMode ? primary : muted, marginBottom: 0 }]}>
+                      {posterMode ? `Poster ${mediaItems.length > 0 ? '✓' : '*'} (${mediaItems.length}/${MAX_MEDIA})` : `Media (${mediaItems.length}/${MAX_MEDIA})`}
                     </Text>
                     <Text style={[{ color: muted, fontSize: 11 }]}>Photos & Videos</Text>
                   </View>
+                  {posterMode && mediaItems.length === 0 && (
+                    <Text style={{ color: muted, fontSize: 12, marginBottom: 10, lineHeight: 17 }}>
+                      Upload your flyer/poster here — it carries all the details and shows full-size on your event card.
+                    </Text>
+                  )}
 
                   {/* Media thumbnails */}
                   {mediaItems.length > 0 && (
@@ -1261,6 +1347,126 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     </Text>
                   )}
 
+                  {/* ── Audience targeting ── who exactly is this Gruv for? ── */}
+                  <TouchableOpacity
+                    onPress={() => setShowTargeting(v => !v)}
+                    activeOpacity={0.85}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16, marginBottom: showTargeting ? 14 : 8, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: hasAudienceTargeting(buildAudiencePreview()) ? primary : `${primary}30`, backgroundColor: hasAudienceTargeting(buildAudiencePreview()) ? `${primary}12` : `${primary}06` }}
+                  >
+                    <Feather name="target" size={16} color={primary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>Who is this for?</Text>
+                      <Text style={{ color: muted, fontSize: 11, marginTop: 1 }} numberOfLines={1}>
+                        {describeAudience(buildAudiencePreview())} — tap to {showTargeting ? 'collapse' : 'target'}
+                      </Text>
+                    </View>
+                    <Feather name={showTargeting ? 'chevron-up' : 'chevron-down'} size={18} color={muted} />
+                  </TouchableOpacity>
+
+                  {showTargeting && (
+                    <View style={{ marginBottom: 18, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: `${primary}25`, backgroundColor: `${primary}06` }}>
+                      <Text style={{ color: muted, fontSize: 11, lineHeight: 16, marginBottom: 14 }}>
+                        Leave it all blank to reach everyone. Anything you pick delivers this Gruv straight to matching people's feeds. We only ever match what users chose to share on their own profile.
+                      </Text>
+
+                      <Text style={[pm.label, { color: muted }]}>Gender</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                        {GENDER_OPTIONS.map(g => {
+                          const active = audGenders.includes(g.key);
+                          return (
+                            <TouchableOpacity key={g.key} activeOpacity={0.8}
+                              onPress={() => setAudGenders(prev => active ? prev.filter(k => k !== g.key) : [...prev, g.key])}
+                              style={[pm.targetChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}20` : 'transparent' }]}>
+                              <Text style={{ fontSize: 12 }}>{g.emoji}</Text>
+                              <Text style={{ color: active ? primary : muted, fontSize: 12, fontWeight: '700' }}>{g.label}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+
+                      {Object.entries(COMMUNITY_TAG_GROUPS).map(([group, tags]) => (
+                        <View key={group} style={{ marginBottom: 14 }}>
+                          <Text style={[pm.label, { color: muted }]}>{group}</Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                            {tags.map(t => {
+                              const active = audTags.includes(t.key);
+                              return (
+                                <TouchableOpacity key={t.key} activeOpacity={0.8}
+                                  onPress={() => setAudTags(prev => active ? prev.filter(k => k !== t.key) : [...prev, t.key])}
+                                  style={[pm.targetChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}20` : 'transparent' }]}>
+                                  <Text style={{ fontSize: 12 }}>{t.emoji}</Text>
+                                  <Text style={{ color: active ? primary : muted, fontSize: 11, fontWeight: '700' }}>{t.label}</Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      ))}
+
+                      <Text style={[pm.label, { color: muted }]}>Language</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                        {LANGUAGE_OPTIONS.map(l => {
+                          const active = audLanguages.includes(l.key);
+                          return (
+                            <TouchableOpacity key={l.key} activeOpacity={0.8}
+                              onPress={() => setAudLanguages(prev => active ? prev.filter(k => k !== l.key) : [...prev, l.key])}
+                              style={[pm.targetChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}20` : 'transparent' }]}>
+                              <Text style={{ color: active ? primary : muted, fontSize: 11, fontWeight: '700' }}>{l.label}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+
+                      <Text style={[pm.label, { color: muted }]}>Clan name(s) — isiduko</Text>
+                      <TextInput
+                        style={[pm.input, { color: textColor, borderColor: `${primary}35`, marginBottom: 12 }]}
+                        placeholder="e.g. Mthethwa, Dlamini (comma-separated)"
+                        placeholderTextColor={muted}
+                        value={audClans}
+                        onChangeText={setAudClans}
+                      />
+                      <Text style={[pm.label, { color: muted }]}>Surname(s)</Text>
+                      <TextInput
+                        style={[pm.input, { color: textColor, borderColor: `${primary}35`, marginBottom: 12 }]}
+                        placeholder="e.g. Nkwali (comma-separated)"
+                        placeholderTextColor={muted}
+                        value={audSurnames}
+                        onChangeText={setAudSurnames}
+                      />
+                      <Text style={[pm.label, { color: muted }]}>Home village / area</Text>
+                      <TextInput
+                        style={[pm.input, { color: textColor, borderColor: `${primary}35`, marginBottom: 12 }]}
+                        placeholder="e.g. Qunu, Soweto (comma-separated)"
+                        placeholderTextColor={muted}
+                        value={audVillages}
+                        onChangeText={setAudVillages}
+                      />
+
+                      <Text style={[pm.label, { color: muted }]}>Distance from venue</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                        {[0, 5, 20, 50, 100].map(r => {
+                          const active = audRadiusKm === r;
+                          return (
+                            <TouchableOpacity key={r} onPress={() => setAudRadiusKm(r)}
+                              style={[pm.targetChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}20` : 'transparent' }]}>
+                              <Text style={{ color: active ? primary : muted, fontSize: 12, fontWeight: '800' }}>{r === 0 ? 'Anywhere' : `${r}km`}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+
+                      <TouchableOpacity onPress={() => setAudMatchAll(v => !v)} activeOpacity={0.8}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <View style={{ width: 20, height: 20, borderRadius: 6, borderWidth: 2, borderColor: audMatchAll ? primary : `${primary}50`, alignItems: 'center', justifyContent: 'center', backgroundColor: audMatchAll ? primary : 'transparent' }}>
+                          {audMatchAll && <Feather name="check" size={12} color="#000" />}
+                        </View>
+                        <Text style={{ color: muted, fontSize: 12, flex: 1 }}>
+                          {audMatchAll ? 'Must match ALL of the above (strict)' : 'Match ANY of the above (wider reach)'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
                   <Text style={[pm.label, { color: muted, marginTop: 12 }]}>Ticket Prices & Entry (Optional)</Text>
                   <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
                     <View style={{ flex: 1 }}>
@@ -1332,6 +1538,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     {ageMin > 0 && (
                       <Text style={[pm.summaryLine, { color: muted }]}>
                         🔞 Ages {ageMin}{ageMax > 0 ? `–${ageMax === 99 ? '99+' : ageMax}` : '+'}
+                      </Text>
+                    )}
+                    {hasAudienceTargeting(buildAudiencePreview()) && (
+                      <Text style={[pm.summaryLine, { color: muted }]}>
+                        🎯 {describeAudience(buildAudiencePreview())}
                       </Text>
                     )}
                     {selectedCategories.length > 0 && (
@@ -1536,6 +1747,7 @@ const pm = StyleSheet.create({
   },
 
   tag: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginRight: 8 },
+  targetChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 14, borderWidth: 1 },
   ageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   ageBtn: { flex: 1, minWidth: SCREEN_W < 375 ? 45 : 60, paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
 

@@ -11,6 +11,7 @@ import { useIdentity } from '../context/IdentityContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FadeInView } from '../components/FadeInView';
 import { HotBadge } from '../components/HotBadge';
+import { isBirthdayToday } from '../utils/birthday';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { TalentLeaderboardModal } from '../components/TalentLeaderboardModal';
@@ -403,8 +404,44 @@ const startsInLabel = (event) => {
 const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false }) => {
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
   const starts = startsInLabel(event);
-  const thumb = event.media?.[0]?.url || (typeof event.media?.[0] === 'string' ? event.media[0] : null) || null;
+  const thumb = event.media?.[0]?.url
+    || (typeof event.media?.[0] === 'string' ? event.media[0] : null)
+    || event.cover_url
+    || (Array.isArray(event.media_urls) ? event.media_urls[0] : null)
+    || null;
     const isWeb = Platform.OS === 'web';
+
+    // Poster mode: the flyer carries all the details — show it whole & uncropped,
+    // no dark overlay, no text on top. Just a small "poster" marker + hot badge.
+    if (event.poster_mode && thumb) {
+      return (
+        <TouchableOpacity
+          style={[
+            et.wrap,
+            { borderColor: `${catColor}35`, backgroundColor: '#000' },
+            isWeb && { boxShadow: '0 8px 25px rgba(0,0,0,0.45)', aspectRatio: 165 / 210 },
+          ]}
+          onPress={onPress}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={`Poster event: ${event.title}`}
+        >
+          <Image source={{ uri: thumb }} style={et.img} resizeMode="contain" />
+          {starts && (
+            <View style={[et.startPill, { position: 'absolute', top: 10, left: 10, marginBottom: 0, backgroundColor: starts.live ? '#ef4444' : starts.soon ? `${primary}E0` : 'rgba(0,0,0,0.6)' }]}>
+              {starts.live ? <View style={et.liveDot} /> : <Feather name="clock" size={9} color="#fff" />}
+              <Text style={et.startText}>{starts.text}</Text>
+            </View>
+          )}
+          {isHot && <HotBadge compact style={et.hotBadge} />}
+          <View style={et.posterPill}>
+            <Feather name="image" size={9} color="#fff" />
+            <Text style={et.posterPillText}>POSTER</Text>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
     return (
       // Items 69-70: accessible label + aspect-ratio on web prevents CLS
       <TouchableOpacity
@@ -448,6 +485,8 @@ const et = StyleSheet.create({
   catBadge: { position: 'absolute', top: 10, left: 10, width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   catText: { fontSize: 14 },
   hotBadge: { position: 'absolute', top: 10, right: 10 },
+  posterPill: { position: 'absolute', bottom: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.6)' },
+  posterPillText: { color: '#fff', fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
   info: { position: 'absolute', bottom: 12, left: 12, right: 12 },
   startPill: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, marginBottom: 6 },
   startText: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
@@ -493,6 +532,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [featuredEvent, setFeaturedEvent] = useState(null);
   const [galleryPhotos, setGalleryPhotos] = useState([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
+  const [birthdays, setBirthdays] = useState([]);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
   const [photoViewerVisible, setPhotoViewerVisible] = useState(false);
   const [happeningNow, setHappeningNow] = useState([]);
@@ -565,6 +605,20 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         TrendingManager.fetchHotIds(),
       ]);
       setHotIds(hotRes.status === 'fulfilled' ? hotRes.value : new Set());
+
+      // Birthdays today among people you follow (free spotlight; best-effort).
+      if (user?.id) {
+        UserManager.getFollowedIds(user.id).then(async (ids) => {
+          if (!ids?.length) { setBirthdays([]); return; }
+          try {
+            const { data } = await supabase
+              .from('profiles')
+              .select('id, username, display_name, avatar_url, birth_date')
+              .in('id', ids.slice(0, 500));
+            setBirthdays((data || []).filter(p => isBirthdayToday(p.birth_date)));
+          } catch { setBirthdays([]); }
+        }).catch(() => setBirthdays([]));
+      }
 
       // Gallery: pull from ALL photo sources across the platform
       setGalleryLoading(true);
@@ -812,7 +866,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     const today = new Date().toISOString().split('T')[0];
     supabase
       .from('events')
-      .select('id, title, category, event_date, event_time, venue_name, city, cover_url, image_url, media_urls, vibe_count, price, lat, lon, profiles!author_id(username, avatar_url)')
+      .select('id, title, category, event_date, event_time, venue_name, city, cover_url, image_url, media_urls, poster_mode, vibe_count, price, lat, lon, profiles!author_id(username, avatar_url)')
       .in('category', catList)
       .gte('event_date', today)
       .neq('is_deleted', true)
@@ -1288,6 +1342,32 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               />
             </View>
 
+            {/* ── Birthdays today (people you follow) ──────────────────────── */}
+            {birthdays.length > 0 && (
+              <View style={{ marginBottom: 20 }}>
+                <SectionHeader title="🎂 Birthdays today" textColor={textColor} primary={primary} />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                  {birthdays.map((b) => (
+                    <TouchableOpacity
+                      key={b.id}
+                      activeOpacity={0.85}
+                      onPress={() => { setSelectedViber(b); setViberModalVisible(true); }}
+                      style={{ alignItems: 'center', width: 76 }}
+                    >
+                      <View style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: '#f59e0b', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: `${primary}10` }}>
+                        {b.avatar_url
+                          ? <SmartImage source={{ uri: b.avatar_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                          : <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>{(b.username || '?').slice(0, 1).toUpperCase()}</Text>}
+                      </View>
+                      <Text style={{ position: 'absolute', top: -2, right: 6, fontSize: 18 }}>🎂</Text>
+                      <Text style={{ color: textColor, fontSize: 11, fontWeight: '700', marginTop: 5 }} numberOfLines={1}>@{b.username || 'viber'}</Text>
+                      <Text style={{ color: muted, fontSize: 9 }}>Wish them 🎉</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             {/* ── Photo Gallery ───────────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
               <SectionHeader title="📸 Photos from Gruvs" textColor={textColor} primary={primary} />
@@ -1300,55 +1380,50 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   <Text style={{ color: muted, fontSize: 13 }}>No photos yet — attend events and upload your shots!</Text>
                 </View>
               ) : (
-                // Single slidable line — editorial, Pinterest-style cards with
-                // varied widths, legibility gradient, category chip + title.
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingVertical: 2 }}
-                >
-                  {galleryPhotos.map((photo, i) => {
-                    const widths = [165, 135, 200, 150, 175];
-                    const w = widths[i % widths.length];
-                    return (
-                      <TouchableOpacity
-                        key={photo.id}
-                        activeOpacity={0.9}
-                        style={{ width: w, height: 220, borderRadius: 18, overflow: 'hidden', backgroundColor: `${primary}10` }}
-                        onPress={() => { setSelectedPhotoIndex(i); setPhotoViewerVisible(true); }}
-                      >
-                        <SmartImage source={{ uri: photo.media_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                        {/* legibility gradient (stacked translucent layers) */}
-                        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 78, backgroundColor: 'rgba(0,0,0,0.32)' }} />
-                        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 42, backgroundColor: 'rgba(0,0,0,0.5)' }} />
-                        {photo.events?.category ? (
-                          <View style={{ position: 'absolute', top: 8, left: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.45)' }}>
-                            <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.4 }} numberOfLines={1}>
-                              {String(photo.events.category).toUpperCase()}
-                            </Text>
-                          </View>
-                        ) : null}
-                        {photo.events?.title ? (
-                          <View style={{ position: 'absolute', left: 10, right: 10, bottom: 10 }}>
-                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }} numberOfLines={2}>{photo.events.title}</Text>
-                          </View>
-                        ) : null}
-                      </TouchableOpacity>
-                    );
-                  })}
-                  {/* trailing "see all" tile */}
-                  {galleryPhotos.length > 6 && (
+                // Pinterest-style masonry: two columns of staggered, varied-height
+                // tiles. Photos alternate L/R column; each keeps its category chip,
+                // title overlay and opens the full-screen viewer at its real index.
+                (() => {
+                  const GAP = 10;
+                  const SIDE = 16;
+                  const colW = (width - SIDE * 2 - GAP) / 2;
+                  // Deterministic varied heights for the masonry rhythm.
+                  const heights = [200, 150, 240, 175, 215, 160];
+                  const cols = [[], []];
+                  galleryPhotos.forEach((photo, i) => {
+                    cols[i % 2].push({ photo, i, h: heights[i % heights.length] });
+                  });
+                  const renderTile = ({ photo, i, h }) => (
                     <TouchableOpacity
+                      key={photo.id}
                       activeOpacity={0.9}
-                      onPress={() => { setSelectedPhotoIndex(0); setPhotoViewerVisible(true); }}
-                      style={{ width: 112, height: 220, borderRadius: 18, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}08`, alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                      style={{ width: colW, height: h, borderRadius: 18, overflow: 'hidden', backgroundColor: `${primary}10`, marginBottom: GAP }}
+                      onPress={() => { setSelectedPhotoIndex(i); setPhotoViewerVisible(true); }}
                     >
-                      <Feather name="grid" size={22} color={primary} />
-                      <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>See all</Text>
-                      <Text style={{ color: muted, fontSize: 10 }}>{galleryPhotos.length} photos</Text>
+                      <SmartImage source={{ uri: photo.media_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 78, backgroundColor: 'rgba(0,0,0,0.32)' }} />
+                      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 42, backgroundColor: 'rgba(0,0,0,0.5)' }} />
+                      {photo.events?.category ? (
+                        <View style={{ position: 'absolute', top: 8, left: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.45)' }}>
+                          <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.4 }} numberOfLines={1}>
+                            {String(photo.events.category).toUpperCase()}
+                          </Text>
+                        </View>
+                      ) : null}
+                      {photo.events?.title ? (
+                        <View style={{ position: 'absolute', left: 10, right: 10, bottom: 10 }}>
+                          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }} numberOfLines={2}>{photo.events.title}</Text>
+                        </View>
+                      ) : null}
                     </TouchableOpacity>
-                  )}
-                </ScrollView>
+                  );
+                  return (
+                    <View style={{ flexDirection: 'row', paddingHorizontal: SIDE, gap: GAP }}>
+                      <View style={{ flex: 1 }}>{cols[0].map(renderTile)}</View>
+                      <View style={{ flex: 1 }}>{cols[1].map(renderTile)}</View>
+                    </View>
+                  );
+                })()
               )}
             </View>
 

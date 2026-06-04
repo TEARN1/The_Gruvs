@@ -18,7 +18,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import QRCode from 'qrcode';
 
 // ── QR Canvas Renderer ───────────────────────────────────────────────────────
-const QRCanvas = ({ value, size, fgColor, bgColor }) => {
+const QRCanvas = ({ value, size, fgColor, bgColor, ecl = 'M' }) => {
   const canvasRef = useRef(null);
   const [ready, setReady] = useState(false);
 
@@ -36,7 +36,7 @@ const QRCanvas = ({ value, size, fgColor, bgColor }) => {
             dark: fgColor  || '#000000ff',
             light: bgColor || '#ffffffff',
           },
-          errorCorrectionLevel: 'M',
+          errorCorrectionLevel: ecl,
         });
         if (!cancelled) setReady(true);
       } catch (err) {
@@ -75,6 +75,9 @@ const QRCodeWeb = ({
   backgroundColor = '#fff',
   username,
   label,
+  ecl = 'M',
+  centerLabel,
+  centerColor = '#00d4ff',
 }) => {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return null;
   if (!value) return null;
@@ -93,7 +96,16 @@ const QRCodeWeb = ({
           size={size}
           fgColor={color}
           bgColor={backgroundColor}
+          ecl={ecl}
         />
+        {/* Centre name plate — "name inside the QR" (ecl='H' keeps it scannable) */}
+        {centerLabel ? (
+          <View style={w.centerOverlay} pointerEvents="none">
+            <View style={[w.centerPlate, { backgroundColor: centerColor }]}>
+              <Text style={w.centerText} numberOfLines={1}>{centerLabel}</Text>
+            </View>
+          </View>
+        ) : null}
       </View>
 
       {/* Username row */}
@@ -148,6 +160,9 @@ const w = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
     overflow: 'hidden',
   },
+  centerOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  centerPlate: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8, borderWidth: 3, borderColor: '#fff', maxWidth: '62%' },
+  centerText: { color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
   usernameRow: {
     flexDirection: 'row',
     alignItems: 'center',

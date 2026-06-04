@@ -24,6 +24,7 @@ import { SecurityService } from '../services/securityService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ShakeDetector, RichHaptics } from '../services/smartphoneFeatures';
 import { FeedManager, TrendingManager, VibeManager, BookmarkManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
+import { recordEventView, flushEventViews } from '../services/personalizationEngine';
 import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
@@ -375,8 +376,11 @@ const EventCard = React.memo(({
               </TouchableOpacity>
             </View>
           ) : (
-          <View style={[styles.imgSection, { backgroundColor: `${catColor}18` }, isWeb && { aspectRatio: '2/1' }]}>
-            <MediaViewer aspectRatio={2} media={(() => {
+          <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && !event.poster_mode && { aspectRatio: '2/1' }]}>
+            <MediaViewer
+              aspectRatio={event.poster_mode ? 3 / 4 : 2}
+              resizeMode={event.poster_mode ? 'contain' : 'cover'}
+              media={(() => {
               let m = event.media;
               if (!m?.length && event.media_urls?.length) {
                 m = event.media_urls.map(u => ({ url: u, type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image' }));
@@ -396,14 +400,16 @@ const EventCard = React.memo(({
                 <Text style={{ fontSize: 72 }}>❤️</Text>
               </Animated.View>
             )}
-            {/* Item 48: vignette gradient */}
-            <View style={{
-              ...StyleSheet.absoluteFillObject,
-              ...(isWeb
-                ? { backgroundImage: 'linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.65) 100%)' }
-                : { backgroundColor: 'rgba(0,0,0,0.15)' }
-              ),
-            }} />
+            {/* Item 48: vignette gradient — skipped for posters so the art shows clean */}
+            {!event.poster_mode && (
+              <View style={{
+                ...StyleSheet.absoluteFillObject,
+                ...(isWeb
+                  ? { backgroundImage: 'linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.65) 100%)' }
+                  : { backgroundColor: 'rgba(0,0,0,0.15)' }
+                ),
+              }} />
+            )}
             {/* Item 52: glassmorphic category badge */}
             {event.category && (
               <View style={[
@@ -507,7 +513,9 @@ const EventCard = React.memo(({
                 accessibilityHint="Double-tap to open event details"
               >
                 <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
-                <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>
+                {event.poster_mode
+                  ? <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={1}>📋 Details on the poster</Text>
+                  : <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>}
               </TouchableOpacity>
 
               {/* Right column: date / time / venue / countdown chips */}
@@ -796,6 +804,40 @@ const EventCard = React.memo(({
   );
 });
 
+// Guest landing order — first impression for logged-out visitors. Lead with
+// urgency (tonight/this weekend), then social proof (vibes), so the feed feels
+// alive and "happening soon" instead of a flat list. Upcoming only.
+const guestExcitementScore = (e) => {
+  const now = Date.now();
+  let when = null;
+  if (e.event_date) {
+    const t = new Date(`${e.event_date}T${e.event_time || '20:00'}`).getTime();
+    if (!isNaN(t)) when = t;
+  }
+  let score = 0;
+  if (when != null) {
+    const days = (when - now) / 86400000;
+    if (days < -1) return -1e9;            // already past — sink it
+    if (days <= 0.5) score += 600;         // happening today/tonight
+    else if (days <= 3) score += 450;      // this weekend / very soon
+    else if (days <= 7) score += 300;      // this week
+    else if (days <= 30) score += 150;     // this month
+    else score += 40;                      // further out
+    score -= Math.max(0, days) * 0.5;      // sooner ranks higher within a band
+  }
+  // Social proof — popular events excite newcomers (log so it can't dominate urgency).
+  const buzz = (e.vibe_count || 0) + (e.going || 0) + (e.reaction_count || 0) * 2;
+  score += Math.log10(1 + buzz) * 60;
+  if (e.cover_url || e.media_urls?.length || e.media?.length) score += 25; // has a poster
+  return score;
+};
+const orderForGuest = (list) =>
+  [...(list || [])]
+    .map((e) => ({ e, s: guestExcitementScore(e) }))
+    .filter((x) => x.s > -1e8)
+    .sort((a, b) => b.s - a.s)
+    .map((x) => x.e);
+
 // ── Main LandingPage ──────────────────────────────────────────────────────────
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices }) => {
   const insets = useSafeAreaInsets();
@@ -874,6 +916,30 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [feedMode, setFeedMode] = useState('all'); // 'all' | 'following'
   const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
   const fetchedCheckinIds = useRef(new Set());
+
+  // ── Dwell-time tracking (feeds the recommendation engine) ──────────────────
+  const viewStartRef = useRef({}); // eventId → ms timestamp when it became visible
+  const onViewableChangedRef = useRef(({ changed }) => {
+    const now = Date.now();
+    changed.forEach(c => {
+      const id = c.item?.id;
+      if (!id) return;
+      if (c.isViewable) {
+        viewStartRef.current[id] = now;
+      } else if (viewStartRef.current[id]) {
+        recordEventView(id, now - viewStartRef.current[id], false);
+        delete viewStartRef.current[id];
+      }
+    });
+  });
+  const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 55, minimumViewTime: 400 });
+  // Flush any buffered dwell + open-times when leaving the feed.
+  useEffect(() => () => {
+    const now = Date.now();
+    Object.entries(viewStartRef.current).forEach(([id, start]) => recordEventView(id, now - start, false));
+    viewStartRef.current = {};
+    flushEventViews();
+  }, []);
 
   // ── Mobile UX: gestures, animations, quick actions ─────────────────────────
   const lastTapRef    = useRef({}); // double-tap tracking per card
@@ -1014,7 +1080,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     };
 
     try {
-      const { events: newEvents, hasMore: moreAvailable } = await FeedManager.fetchPage(fetchOpts);
+      const { events: fetchedEvents, hasMore: moreAvailable } = await FeedManager.fetchPage(fetchOpts);
+      // Logged-out visitors get the "happening soon + buzzing" ordering for an
+      // exciting first impression; signed-in users keep their personalized feed.
+      const newEvents = user?.id ? fetchedEvents : orderForGuest(fetchedEvents);
 
       if (isRefreshing) {
         setEvents(newEvents);
@@ -1816,7 +1885,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       }
     } else {
       lastTapRef.current[id] = now;
-      setTimeout(() => { if (lastTapRef.current[id] === now) setSelectedEvent(eventItem); }, 210);
+      setTimeout(() => { if (lastTapRef.current[id] === now) { recordEventView(id, 0, true); setSelectedEvent(eventItem); } }, 210);
     }
   }, [myVibes, handleVibe]);
 
@@ -1903,6 +1972,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           setShowScrollTop(y > 600);
         }}
         onScrollToIndexFailed={() => { }}
+        onViewableItemsChanged={onViewableChangedRef.current}
+        viewabilityConfig={viewabilityConfigRef.current}
         removeClippedSubviews={Platform.OS !== 'web'}
         maxToRenderPerBatch={5}
         windowSize={10}
@@ -2222,6 +2293,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             <Text style={[styles.quickSheetTitle, { color: textColor }]} numberOfLines={1}>
               {quickActionTarget.title}
             </Text>
+
+            {/* React — tap one reaction (one at a time); the bar floats in front of the card */}
+            <ReactPicker
+              visible
+              userReaction={reactions[quickActionTarget.id]}
+              idle={false}
+              onReact={(key) => { handleReact(quickActionTarget.id, key); setQuickActionTarget(null); }}
+            />
+
             {[
               { icon: 'zap', label: myVibes.has(quickActionTarget.id) ? 'Remove Vibe' : 'Vibe it ⚡', action: () => { handleVibe(quickActionTarget.id); setQuickActionTarget(null); } },
               { icon: 'bookmark', label: savedEvents.has(quickActionTarget.id) ? 'Unsave' : 'Save', action: () => { handleBookmark(quickActionTarget.id); setQuickActionTarget(null); } },

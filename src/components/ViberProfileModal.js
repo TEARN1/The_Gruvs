@@ -23,6 +23,7 @@ import { UserManager, PresenceManager, AuraService, isOnline as checkOnline } fr
 import { useToast } from './ToastNotification';
 import { ReportModal } from './ReportModal';
 import { useBackClose } from '../hooks/useBackClose';
+import { isBirthdayToday } from '../utils/birthday';
 
 const RANK_LABELS = [
   { min: 0,     max: 100,    name: 'Viber',       color: "#94a3b8" },
@@ -180,6 +181,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [followingList, setFollowingList] = useState([]);
   const [followingModalVisible, setFollowingModalVisible] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [avatarViewerVisible, setAvatarViewerVisible] = useState(false);
+  const [birthdayToday, setBirthdayToday] = useState(false);
   const [platformStats, setPlatformStats] = useState({ vibers: 0, gruvs: 0 });
   const slideAnim = useRef(new Animated.Value(300)).current;
   const presenceUnsubRef = useRef(null);
@@ -262,6 +265,10 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         setProfile(propUser);
         setIsOnline(checkOnline(propUser));
       }
+      // Birthday — fetched separately so an un-migrated DB (no birth_date) can't break the load.
+      setBirthdayToday(false);
+      supabase.from('profiles').select('birth_date').eq('id', uid).maybeSingle()
+        .then(({ data }) => setBirthdayToday(isBirthdayToday(data?.birth_date)), () => {});
       if (eventsRes.status === 'fulfilled') setEvents(eventsRes.value.data || []);
       if (followersRes.status === 'fulfilled') setFollowerCount(followersRes.value.count || 0);
       if (followingRes.status === 'fulfilled') setFollowingCount(followingRes.value.count || 0);
@@ -423,7 +430,13 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
               {/* Avatar + actions row */}
               <View style={s.avatarRow}>
-                <View style={s.avatarWrap}>
+                <TouchableOpacity
+                  style={s.avatarWrap}
+                  activeOpacity={0.85}
+                  onPress={() => setAvatarViewerVisible(true)}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={profile.avatar_url ? `View ${profile.username || 'this viber'}'s photo` : 'No profile photo'}
+                >
                   {profile.avatar_url
                     ? <SmartImage source={thumb.avatarLg(profile.avatar_url)} style={[s.avatar, { borderColor: rank?.color || primary }]} />
                     : <View style={[s.avatar, { borderColor: rank?.color || primary, backgroundColor: "#1a2428", alignItems: 'center', justifyContent: 'center' }]}>
@@ -433,7 +446,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                       </View>
                   }
                   {isOnline && <View style={s.onlineDot} />}
-                </View>
+                </TouchableOpacity>
 
                 {!isOwnProfile && currentUser && (
                   <View style={s.actionBtns}>
@@ -478,6 +491,12 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                 {profile.display_name ? (
                   <Text style={[s.displayName, { color: muted }]}>{profile.display_name}</Text>
                 ) : null}
+                {birthdayToday && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18, backgroundColor: '#f59e0b22', borderWidth: 1, borderColor: '#f59e0b' }}>
+                    <Text style={{ fontSize: 14 }}>🎂</Text>
+                    <Text style={{ color: '#f59e0b', fontWeight: '900', fontSize: 12 }}>It's their birthday today!</Text>
+                  </View>
+                )}
                 {playerId && (
                   <TouchableOpacity
                     onPress={() => setPlayerCardOpen(true)}
@@ -694,6 +713,44 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       targetId={targetId}
       targetType="user"
     />
+
+    {/* Full-screen avatar viewer — shows the photo, or a clear empty state */}
+    <Modal
+      visible={avatarViewerVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setAvatarViewerVisible(false)}
+    >
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={() => setAvatarViewerVisible(false)}
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' }}
+      >
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 50, right: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}
+          onPress={() => setAvatarViewerVisible(false)}
+        >
+          <Feather name="x" size={20} color="#fff" />
+        </TouchableOpacity>
+        {profile?.avatar_url ? (
+          <SmartImage
+            source={{ uri: profile.avatar_url }}
+            style={{ width: '92%', aspectRatio: 1, borderRadius: 18 }}
+            resizeMode="contain"
+          />
+        ) : (
+          <View style={{ alignItems: 'center', paddingHorizontal: 40 }}>
+            <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: '#1a2428', alignItems: 'center', justifyContent: 'center', marginBottom: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+              <Feather name="user" size={44} color="rgba(255,255,255,0.4)" />
+            </View>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800', marginBottom: 6 }}>No profile photo</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textAlign: 'center', lineHeight: 19 }}>
+              {(profile?.username || 'This viber')} hasn’t added a profile picture yet.
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </Modal>
 
     {/* Edit / Cancel / Delete own event */}
     <EditEventModal

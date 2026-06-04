@@ -342,3 +342,140 @@ ALTER TABLE public.events ADD COLUMN IF NOT EXISTS end_date DATE;
 -- ============================================================
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS writing_style TEXT;
+-- Cross-device aura sync: stable theme id (see 13_profile_theme_sync.sql)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS theme_id TEXT;
+
+-- ============================================================
+--  PATCHES 12–19  (canonical home — appended here in sequence).
+--  Going forward, new SQL is appended to the LATEST schema_part
+--  file (this one) under the ~4000-line cap, in number order;
+--  when it nears 4000, start schema_part_5. No separate numbered
+--  patch files. Every statement below is idempotent, so this
+--  whole block is safe to run on an existing database too.
+-- ============================================================
+
+-- ── 12: "poster has the details" mode ───────────────────────
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS poster_mode BOOLEAN NOT NULL DEFAULT false;
+
+-- ── 13: cross-device aura sync (also set above with writing_style) ─
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS theme_id TEXT;
+
+-- ── 14: messages columns the chat UI reads/writes (DM fix) ──
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS message_type TEXT DEFAULT 'text';
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS parent_id    UUID REFERENCES public.messages(id) ON DELETE SET NULL;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS event_id     UUID;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS latitude     DOUBLE PRECISION;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS longitude    DOUBLE PRECISION;
+CREATE INDEX IF NOT EXISTS idx_messages_parent ON public.messages(parent_id);
+
+-- ── 15: "I'm here" live presence beacon ─────────────────────
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS beacon_expires_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_profiles_beacon
+  ON public.profiles(is_beacon_active, beacon_expires_at)
+  WHERE is_beacon_active = true;
+
+-- ── 16: clan name + birthday ────────────────────────────────
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS clan_name  TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS birth_date DATE;
+CREATE INDEX IF NOT EXISTS idx_profiles_birth_md
+  ON public.profiles ((EXTRACT(MONTH FROM birth_date)), (EXTRACT(DAY FROM birth_date)))
+  WHERE birth_date IS NOT NULL;
+
+-- ── 17: dwell-time / event views ────────────────────────────
+CREATE TABLE IF NOT EXISTS public.event_views (
+  user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  event_id    UUID NOT NULL REFERENCES public.events(id)   ON DELETE CASCADE,
+  dwell_ms    BIGINT      DEFAULT 0,
+  view_count  INTEGER     DEFAULT 0,
+  opened      BOOLEAN     DEFAULT false,
+  updated_at  TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (user_id, event_id)
+);
+CREATE INDEX IF NOT EXISTS idx_event_views_user  ON public.event_views(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_event_views_event ON public.event_views(event_id);
+ALTER TABLE public.event_views ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "event_views_select" ON public.event_views;
+DROP POLICY IF EXISTS "event_views_upsert" ON public.event_views;
+DROP POLICY IF EXISTS "event_views_update" ON public.event_views;
+CREATE POLICY "event_views_select" ON public.event_views FOR SELECT USING (true);
+CREATE POLICY "event_views_upsert" ON public.event_views FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "event_views_update" ON public.event_views FOR UPDATE USING (user_id = auth.uid());
+CREATE OR REPLACE FUNCTION public.record_event_view(
+  p_event_id UUID, p_dwell_ms BIGINT DEFAULT 0, p_opened BOOLEAN DEFAULT false
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  INSERT INTO public.event_views (user_id, event_id, dwell_ms, view_count, opened, updated_at)
+  VALUES (auth.uid(), p_event_id, GREATEST(0, p_dwell_ms), 1, p_opened, now())
+  ON CONFLICT (user_id, event_id) DO UPDATE
+    SET dwell_ms   = public.event_views.dwell_ms + GREATEST(0, p_dwell_ms),
+        view_count = public.event_views.view_count + 1,
+        opened     = public.event_views.opened OR p_opened,
+        updated_at = now();
+END;
+$$;
+
+-- ── 18: audience targeting (profile attributes + event criteria) ─
+ALTER TABLE public.events   ADD COLUMN IF NOT EXISTS audience       JSONB NOT NULL DEFAULT '{}';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS surname        TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS home_village   TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS community_tags TEXT[] DEFAULT '{}';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS languages      TEXT[] DEFAULT '{}';
+CREATE INDEX IF NOT EXISTS idx_profiles_surname        ON public.profiles(lower(surname))      WHERE surname IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_profiles_clan_lower     ON public.profiles(lower(clan_name))    WHERE clan_name IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_profiles_village_lower  ON public.profiles(lower(home_village)) WHERE home_village IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_profiles_community_tags ON public.profiles USING gin(community_tags) WHERE community_tags IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_profiles_languages      ON public.profiles USING gin(languages)      WHERE languages IS NOT NULL;
+
+-- ── 19: business drip surveys ───────────────────────────────
+CREATE TABLE IF NOT EXISTS public.surveys (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id   UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  business_id UUID,
+  title       TEXT NOT NULL,
+  question    TEXT NOT NULL,
+  answer_type TEXT NOT NULL DEFAULT 'single',
+  options     TEXT[] DEFAULT '{}',
+  audience    JSONB  NOT NULL DEFAULT '{}',
+  is_active   BOOLEAN NOT NULL DEFAULT true,
+  reward_xp   INTEGER DEFAULT 5,
+  expires_at  TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_surveys_active ON public.surveys(is_active, created_at DESC) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_surveys_author ON public.surveys(author_id);
+CREATE TABLE IF NOT EXISTS public.survey_responses (
+  survey_id   UUID NOT NULL REFERENCES public.surveys(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  answer      TEXT[]      DEFAULT '{}',
+  skipped     BOOLEAN     DEFAULT false,
+  answered_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (survey_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_survey_responses_survey ON public.survey_responses(survey_id);
+CREATE INDEX IF NOT EXISTS idx_survey_responses_user   ON public.survey_responses(user_id);
+ALTER TABLE public.surveys          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.survey_responses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "surveys_select"       ON public.surveys;
+DROP POLICY IF EXISTS "surveys_insert"       ON public.surveys;
+DROP POLICY IF EXISTS "surveys_update_own"   ON public.surveys;
+CREATE POLICY "surveys_select"     ON public.surveys FOR SELECT USING (is_active = true OR author_id = auth.uid());
+CREATE POLICY "surveys_insert"     ON public.surveys FOR INSERT WITH CHECK (author_id = auth.uid());
+CREATE POLICY "surveys_update_own" ON public.surveys FOR UPDATE USING (author_id = auth.uid());
+DROP POLICY IF EXISTS "survey_responses_select" ON public.survey_responses;
+DROP POLICY IF EXISTS "survey_responses_insert" ON public.survey_responses;
+DROP POLICY IF EXISTS "survey_responses_owner"  ON public.survey_responses;
+CREATE POLICY "survey_responses_select" ON public.survey_responses FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY "survey_responses_insert" ON public.survey_responses FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "survey_responses_owner"  ON public.survey_responses FOR UPDATE USING (user_id = auth.uid());
+CREATE OR REPLACE FUNCTION public.survey_results(p_survey_id UUID)
+RETURNS TABLE(answer TEXT, votes BIGINT)
+LANGUAGE sql SECURITY DEFINER AS $$
+  SELECT unnest(r.answer) AS answer, count(*) AS votes
+  FROM public.survey_responses r
+  JOIN public.surveys s ON s.id = r.survey_id
+  WHERE r.survey_id = p_survey_id
+    AND r.skipped = false
+    AND s.author_id = auth.uid()
+  GROUP BY 1
+  ORDER BY votes DESC;
+$$;

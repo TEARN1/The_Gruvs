@@ -38,7 +38,7 @@ const downloadImage = async (url) => {
 };
 
 // ── Single media item ────────────────────────────────────────────────────────
-const MediaItem = ({ item, isActive, width, height }) => {
+const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover' }) => {
   const [loadFailed, setLoadFailed] = useState(false);
   const mediaStyle = { width: width || '100%', height: height || '100%' };
   const source = loadFailed
@@ -63,7 +63,7 @@ const MediaItem = ({ item, isActive, width, height }) => {
     <SmartImage
       source={source}
       style={mediaStyle}
-      resizeMode="cover"
+      resizeMode={resizeMode}
       onError={() => setLoadFailed(true)}
     />
   );
@@ -90,7 +90,7 @@ const HeartBurst = ({ onComplete }) => {
 };
 
 // ── Main MediaViewer ─────────────────────────────────────────────────────────
-export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0 }) => {
+export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover' }) => {
   const [measuredWidth, setMeasuredWidth] = useState(containerWidth || SCREEN_WIDTH);
   const MEDIA_WIDTH = measuredWidth;
   const MEDIA_HEIGHT = Math.round(MEDIA_WIDTH / aspectRatio);
@@ -146,7 +146,7 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
 
     return (
       <View style={{ width: MEDIA_WIDTH, height: MEDIA_HEIGHT }}>
-        <MediaItem item={item} isActive={isActive} width={MEDIA_WIDTH} height={MEDIA_HEIGHT} />
+        <MediaItem item={item} isActive={isActive} width={MEDIA_WIDTH} height={MEDIA_HEIGHT} resizeMode={resizeMode} />
 
         {/* Video label */}
         {item.type === 'video' && (

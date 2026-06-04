@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { Platform } from 'react-native';
-import { THEMES, GENDERS } from '../constants/Themes';
+import { THEMES, GENDERS, findThemeById } from '../constants/Themes';
+import { supabase } from '../services/supabase';
 
 const ThemeContext = createContext();
 
@@ -21,7 +22,8 @@ export const ThemeProvider = ({ children }) => {
   const [neuralOverride, setNeuralOverride] = useState(null);
   const [ready, setReady] = useState(false);
 
-  // Load persisted preference on mount
+  // Load persisted preference on mount. Local AsyncStorage first (fast, offline),
+  // then the user's profile (source of truth so the aura follows them app ⇆ web).
   useEffect(() => {
     (async () => {
       try {
@@ -41,6 +43,26 @@ export const ThemeProvider = ({ children }) => {
       } finally {
         setReady(true);
       }
+
+      // Profile sync — overrides local if the signed-in user has a saved theme.
+      try {
+        const { data: { user } = {} } = await supabase.auth.getUser();
+        if (user?.id) {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('theme_id')
+            .eq('id', user.id)
+            .maybeSingle();
+          const match = findThemeById(prof?.theme_id);
+          if (match) {
+            setNeuralOverride(null);
+            setGender(match.gender);
+            setThemeIndex(match.index);
+            setCurrentTheme(match.theme);
+            AsyncStorage?.setItem(STORAGE_KEY, JSON.stringify({ gender: match.gender, index: match.index })).catch(() => {});
+          }
+        }
+      } catch { /* not signed in / offline — local pref already applied */ }
     })();
   }, []);
 
@@ -80,6 +102,15 @@ export const ThemeProvider = ({ children }) => {
     setGender(newGender);
     setThemeIndex(newIndex);
     AsyncStorage?.setItem(STORAGE_KEY, JSON.stringify({ gender: newGender, index: newIndex })).catch(() => {});
+    // Persist to the profile so the aura follows the user across devices (app ⇆ web).
+    const themeId = THEMES[newGender][newIndex]?.id;
+    if (themeId) {
+      supabase.auth.getUser()
+        .then(({ data: { user } = {} }) => {
+          if (user?.id) supabase.from('profiles').update({ theme_id: themeId }).eq('id', user.id).then(() => {}, () => {});
+        })
+        .catch(() => {});
+    }
   };
 
   const applyNeuralTheme = (override) => {

@@ -120,18 +120,34 @@ export const ReferralCard = ({ userId }) => {
         <ActivityIndicator color={primary} style={{ marginVertical: 20 }} />
       ) : (
         <>
-          {/* QR Code — generated natively, works offline */}
+          {/* Designer QR — the user's name sits inside the code (high error
+              correction keeps it scannable around the centre overlay). Scanning
+              opens thegruvs.com/join?ref=… so the invited person signs up on the web. */}
           <View style={[rc.qrWrap, { backgroundColor: "#ffffff", borderColor: `${primary}40` }]}>
-            <QRCode
-              value={inviteLink}
-              size={180}
-              color="#0d1112"
-              backgroundColor="#ffffff"
-              ecl="M"
-              username={username || undefined}
-              label="JOIN THE GRUVS"
-            />
-            <Text style={rc.qrLabel}>Scan to join The Gruvs</Text>
+            <View style={rc.qrInner}>
+              <QRCode
+                value={inviteLink}
+                size={200}
+                color="#0d1112"
+                backgroundColor="#ffffff"
+                ecl="H"
+                quietZone={6}
+                centerLabel={`@${username || 'gruvs'}`}
+                centerColor={primary}
+              />
+              {/* Centre name plate (native) — "name inside the QR". On web the
+                  shim draws its own centred plate via centerLabel. */}
+              {Platform.OS !== 'web' && (
+                <View style={rc.qrCenter} pointerEvents="none">
+                  <View style={[rc.qrNamePlate, { backgroundColor: primary }]}>
+                    <Text style={rc.qrNameText} numberOfLines={1}>
+                      @{username || 'gruvs'}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+            <Text style={rc.qrLabel}>Scan to join {username ? `@${username}` : ''} on The Gruvs</Text>
             <View style={[rc.codeRow, { backgroundColor: `${primary}15`, borderColor: `${primary}35` }]}>
               <Text style={[rc.code, { color: primary }]}>{referralCode}</Text>
             </View>
@@ -176,6 +192,10 @@ const rc = StyleSheet.create({
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   badgeText: { fontSize: 10, fontWeight: '800' },
   qrWrap: { alignItems: 'center', borderRadius: 20, borderWidth: 1, padding: 20, gap: 12 },
+  qrInner: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  qrCenter: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  qrNamePlate: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, borderWidth: 3, borderColor: '#ffffff', maxWidth: 120, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
+  qrNameText: { color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
   qrLabel: { fontSize: 12, fontWeight: '700', color: "#0d1112" },
   codeRow: { paddingHorizontal: 20, paddingVertical: 6, borderRadius: 10, borderWidth: 1 },
   code: { fontSize: 18, fontWeight: '900', letterSpacing: 4 },

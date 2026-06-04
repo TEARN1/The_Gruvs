@@ -23,13 +23,14 @@ import { THEMES } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
-import { DiscoveryManager, UserManager, BehavioralEngine, ActivityFeedManager, isOnline as checkOnline } from '../services/dataFlow';
+import { DiscoveryManager, UserManager, BehavioralEngine, ActivityFeedManager, PresenceManager, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient, resilientRead } from '../utils/resilience';
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
+import { COMMUNITY_TAG_GROUPS, LANGUAGE_OPTIONS } from '../constants/AudienceTargeting';
 import { useToast } from '../components/ToastNotification';
 import { StreakBadge, useStreak } from '../components/StreakBadge';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -261,15 +262,54 @@ const pcard = StyleSheet.create({
 const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => {
   const [discoverable, setDiscoverable] = useState(profile?.is_discoverable ?? true);
   const [showOnline, setShowOnline] = useState(profile?.show_online ?? true);
+  const [beaconActive, setBeaconActive] = useState(profile?.is_beacon_active ?? false);
+  const [beaconBusy, setBeaconBusy] = useState(false);
   const [looksDescription, setLooksDescription] = useState('');
   const [careerTitle, setCareerTitle] = useState('');
   const [careerDescription, setCareerDescription] = useState('');
   const [profileGallery, setProfileGallery] = useState([]);
 
+  // "I'm here" — live presence beacon: GPS fix + broadcast you're active now.
+  const handleBeacon = useCallback(async () => {
+    if (!user) { toast?.show?.('Sign in to go live.', 'error'); return; }
+    if (beaconBusy) return;
+    setBeaconBusy(true);
+    try {
+      if (beaconActive) {
+        await PresenceManager.deactivateBeacon(user.id);
+        setBeaconActive(false);
+        toast?.show?.('You went off the radar.', 'success');
+      } else {
+        let coords = {};
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            coords = { lat: loc.coords.latitude, lon: loc.coords.longitude };
+          }
+        } catch { /* beacon still works without a fresh fix */ }
+        await PresenceManager.activateBeacon(user.id, coords, 60);
+        setBeaconActive(true);
+        haptics.success?.();
+        toast?.show?.("You're live — nearby vibers can see you for the next hour.", 'success');
+      }
+    } catch (e) {
+      toast?.show?.(e?.message || 'Could not update your beacon.', 'error');
+    } finally {
+      setBeaconBusy(false);
+    }
+  }, [user, beaconActive, beaconBusy, toast]);
+
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     try {
       const { data } = await supabase.from('profiles').select('id, username, display_name, avatar_url, bio, location, interests, career_title, career_description, looks_description, profile_gallery, vibe_score, is_verified, share_events, show_online, identity_mode, is_discoverable, is_beacon_active, push_token, first_name, surname, email, age, siblings, emergency_contacts').eq('id', user.id).single();
+      // clan_name / birth_date fetched separately so an un-migrated DB doesn't break the whole load.
+      supabase.from('profiles').select('clan_name, birth_date').eq('id', user.id).maybeSingle()
+        .then(({ data: extra }) => { if (extra) { setClanName(extra.clan_name || ''); setBirthDate(extra.birth_date || ''); } }, () => {});
+      // home_village / community_tags / languages — targeting self-tags, also fetched separately.
+      supabase.from('profiles').select('home_village, community_tags, languages').eq('id', user.id).maybeSingle()
+        .then(({ data: t }) => { if (t) { setHomeVillage(t.home_village || ''); setCommunityTags(t.community_tags || []); setLanguages(t.languages || []); } }, () => {});
       if (data) {
         setBio(data.bio || '');
         setLocation(data.location || '');
@@ -285,6 +325,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         setProfileAge(data.age ? String(data.age) : '');
         setSiblings(data.siblings || []);
         setEmergencyContacts(data.emergency_contacts || []);
+        setBeaconActive(data.is_beacon_active ?? false);
       }
     } catch (err) {
       toast?.show('Failed to refresh profile', 'error');
@@ -306,6 +347,11 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   // Shared fields (also used by linked Next.js app)
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [surname, setSurname] = useState(profile?.surname || '');
+  const [clanName, setClanName] = useState(profile?.clan_name || '');
+  const [birthDate, setBirthDate] = useState(profile?.birth_date || ''); // YYYY-MM-DD
+  const [homeVillage, setHomeVillage] = useState(profile?.home_village || '');
+  const [communityTags, setCommunityTags] = useState(profile?.community_tags || []);
+  const [languages, setLanguages] = useState(profile?.languages || []);
   const [profileEmail, setProfileEmail] = useState(profile?.email || '');
   const [profileAge, setProfileAge] = useState(profile?.age ? String(profile.age) : '');
   const [siblings, setSiblings] = useState(profile?.siblings || []);
@@ -325,12 +371,22 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         interests: selectedInterests,
         first_name: firstName.trim() || null,
         surname: surname.trim() || null,
+        clan_name: clanName.trim() || null,
+        birth_date: /^\d{4}-\d{2}-\d{2}$/.test(birthDate) ? birthDate : null,
+        home_village: homeVillage.trim() || null,
+        community_tags: communityTags,
+        languages,
         email: profileEmail.trim() || null,
         age: profileAge ? parseInt(profileAge, 10) : null,
         siblings,
         emergency_contacts: emergencyContacts,
       };
-      const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
+      // clan_name / birth_date may not be migrated yet — retry without them on failure.
+      let { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
+      if (error && /clan_name|birth_date|home_village|community_tags|languages/.test(error.message || '')) {
+        const { clan_name: _c, birth_date: _b, home_village: _hv, community_tags: _ct, languages: _lg, ...safe } = payload;
+        ({ error } = await supabase.from('profiles').update(safe).eq('id', user.id));
+      }
       if (!error) {
         // Best-effort: update discoverable (column may not exist yet)
         await supabase.from('profiles').update({ is_discoverable: discoverable }).eq('id', user.id).catch(() => {});
@@ -488,7 +544,81 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
           />
         </View>
         <TextInput
-          style={[fm.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 10 }]}
+          style={[fm.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 4 }]}
+          placeholder="Clan name (isiduko)"
+          placeholderTextColor={muted}
+          value={clanName}
+          onChangeText={setClanName}
+          maxLength={60}
+        />
+        <Text style={{ color: muted, fontSize: 11, marginBottom: 10, lineHeight: 15 }}>
+          Lets you invite people who share your name, surname or clan.
+        </Text>
+        <TextInput
+          style={[fm.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 4 }]}
+          placeholder="Birthday — YYYY-MM-DD (e.g. 1998-07-21)"
+          placeholderTextColor={muted}
+          value={birthDate}
+          onChangeText={v => setBirthDate(v.replace(/[^0-9-]/g, '').slice(0, 10))}
+          keyboardType="numbers-and-punctuation"
+          maxLength={10}
+        />
+        <Text style={{ color: muted, fontSize: 11, marginBottom: 10, lineHeight: 15 }}>
+          We’ll celebrate your birthday with you 🎉
+        </Text>
+        <TextInput
+          style={[fm.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 4 }]}
+          placeholder="Home village / area (e.g. Qunu, Soweto)"
+          placeholderTextColor={muted}
+          value={homeVillage}
+          onChangeText={setHomeVillage}
+          maxLength={60}
+        />
+        <Text style={{ color: muted, fontSize: 11, marginBottom: 14, lineHeight: 15 }}>
+          Helps hosts invite people from your home area.
+        </Text>
+
+        {/* Languages — optional, powers language-targeted invites */}
+        <Text style={[fm.subLabel, { color: muted }]}>LANGUAGES YOU SPEAK</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          {LANGUAGE_OPTIONS.map(l => {
+            const active = languages.includes(l.key);
+            return (
+              <TouchableOpacity key={l.key} activeOpacity={0.8}
+                onPress={() => setLanguages(prev => active ? prev.filter(k => k !== l.key) : [...prev, l.key])}
+                style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, borderWidth: 1, borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}20` : 'transparent' }}>
+                <Text style={{ color: active ? primary : muted, fontSize: 12, fontWeight: '700' }}>{l.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Community & needs — opt-in self-identification (never required) */}
+        <Text style={[fm.subLabel, { color: muted }]}>COMMUNITIES & NEEDS (OPTIONAL)</Text>
+        <Text style={{ color: muted, fontSize: 11, marginBottom: 10, lineHeight: 15 }}>
+          Only what you choose to share. Lets events meant for people like you reach you — e.g. accessible events, your faith, your life stage. You can clear these any time.
+        </Text>
+        {Object.entries(COMMUNITY_TAG_GROUPS).map(([group, tags]) => (
+          <View key={group} style={{ marginBottom: 12 }}>
+            <Text style={{ color: muted, fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 6 }}>{group.toUpperCase()}</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {tags.map(t => {
+                const active = communityTags.includes(t.key);
+                return (
+                  <TouchableOpacity key={t.key} activeOpacity={0.8}
+                    onPress={() => setCommunityTags(prev => active ? prev.filter(k => k !== t.key) : [...prev, t.key])}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 14, borderWidth: 1, borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}20` : 'transparent' }}>
+                    <Text style={{ fontSize: 12 }}>{t.emoji}</Text>
+                    <Text style={{ color: active ? primary : muted, fontSize: 11, fontWeight: '700' }}>{t.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+
+        <TextInput
+          style={[fm.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 10, marginTop: 4 }]}
           placeholder="Email address"
           placeholderTextColor={muted}
           value={profileEmail}
@@ -592,6 +722,30 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
             {discoverable ? 'Discoverable — I\'m out there' : 'Hidden — Go invisible'}
           </Text>
         </TouchableOpacity>
+
+        {/* "I'm here" — live presence beacon, broadcasts you're active now for 1 hour */}
+        <TouchableOpacity
+          style={[fm.outThereBtn, { marginTop: 10 }, beaconActive
+            ? { backgroundColor: '#10b981', borderColor: '#10b981' }
+            : { backgroundColor: 'transparent', borderColor: `${primary}40` }
+          ]}
+          onPress={handleBeacon}
+          disabled={beaconBusy}
+          activeOpacity={0.85}
+        >
+          {beaconBusy
+            ? <ActivityIndicator size="small" color={beaconActive ? '#000' : primary} />
+            : <Feather name="map-pin" size={18} color={beaconActive ? '#000' : primary} />
+          }
+          <Text style={[fm.outThereText, { color: beaconActive ? '#000' : primary }]}>
+            {beaconActive ? "I'm here — live now (tap to stop)" : "I'm here — go live"}
+          </Text>
+        </TouchableOpacity>
+        {beaconActive && (
+          <Text style={{ color: muted, fontSize: 11, marginTop: 8, textAlign: 'center' }}>
+            Nearby vibers can see you live. Auto-stops after an hour.
+          </Text>
+        )}
       </GlassView>
 
       {/* Preview Card */}

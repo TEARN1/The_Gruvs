@@ -20,7 +20,23 @@ export const WritingStylePicker = ({ gender = 'male', sample = 'The Gruvs', user
   const styleOptions = stylesForGender((gender || 'male').replace('_', ' '));
 
   useEffect(() => {
-    AsyncStorage.getItem(writingStyleKey(userId)).then(v => { if (v) setSelected(v); }).catch(() => {});
+    let alive = true;
+    (async () => {
+      // Local first (fast), then the profile so the saved style shows on any device.
+      try {
+        const v = await AsyncStorage.getItem(writingStyleKey(userId));
+        if (v && alive) { setSelected(v); return; }
+      } catch {}
+      if (!userId) return;
+      try {
+        const { data } = await supabase.from('profiles').select('writing_style').eq('id', userId).maybeSingle();
+        if (alive && data?.writing_style) {
+          setSelected(data.writing_style);
+          AsyncStorage.setItem(writingStyleKey(userId), data.writing_style).catch(() => {});
+        }
+      } catch {}
+    })();
+    return () => { alive = false; };
   }, [userId]);
 
   const pick = (key) => {

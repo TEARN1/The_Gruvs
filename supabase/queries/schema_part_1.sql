@@ -2258,6 +2258,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   website                TEXT,
   gender                 TEXT,
   birth_year             INTEGER,
+  birth_date             DATE,
+  clan_name              TEXT,
   interests              TEXT[],
   is_verified            BOOLEAN     DEFAULT false,
   is_online              BOOLEAN     DEFAULT false,
@@ -2490,6 +2492,7 @@ ALTER TABLE public.events ADD COLUMN IF NOT EXISTS price_max      NUMERIC;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS max_attendees  INTEGER;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS starts_at      TIMESTAMPTZ;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS ends_at        TIMESTAMPTZ;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS poster_mode    BOOLEAN NOT NULL DEFAULT false;
 
 CREATE INDEX IF NOT EXISTS idx_events_author     ON public.events(author_id);
 CREATE INDEX IF NOT EXISTS idx_events_date       ON public.events(event_date);
@@ -2749,8 +2752,15 @@ CREATE TABLE IF NOT EXISTS public.messages (
   reply_to         UUID REFERENCES public.messages(id) ON DELETE SET NULL,
   created_at       TIMESTAMPTZ DEFAULT now()
 );
+-- Columns the chat UI reads/writes (text/image/location/reply). See 14_messages_missing_columns.sql
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS message_type TEXT DEFAULT 'text';
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS parent_id    UUID REFERENCES public.messages(id) ON DELETE SET NULL;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS event_id     UUID;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS latitude     DOUBLE PRECISION;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS longitude    DOUBLE PRECISION;
 CREATE INDEX IF NOT EXISTS idx_messages_sender    ON public.messages(sender_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_recipient ON public.messages(recipient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_parent    ON public.messages(parent_id);
 
 -- ── ROUTES ────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.routes (

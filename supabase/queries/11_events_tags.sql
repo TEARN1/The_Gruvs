@@ -1,5 +1,5 @@
 -- ============================================================================
--- 10_events_tags.sql
+-- 11_events_tags.sql
 -- ----------------------------------------------------------------------------
 -- Inclusivity & safety "good to know" tags on events (zero cost, no API).
 -- A free text[] of keys from src/constants/EventTags.js — accessibility

@@ -218,7 +218,7 @@ export const AuthModal = ({ visible, onClose }) => {
 
             <View style={styles.headerRow}>
               <Text style={[styles.title, { color: primary }]}>
-                {mode === 'signin' ? '👑 ROYAL ACCESS' : '⚡ JOIN THE ROYALTY'}
+                {mode === 'signin' ? '👑 Welcome back' : '⚡ Create your account'}
               </Text>
               <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Feather name="x" size={22} color={textColor} />
@@ -242,26 +242,29 @@ export const AuthModal = ({ visible, onClose }) => {
             {/* ── SIGN-UP EXTRA FIELDS ── */}
             {mode === 'signup' && (
               <>
-                <Text style={[styles.label, { color: textColor }]}>Royal Name *</Text>
+                <Text style={[styles.label, { color: textColor }]}>Username *</Text>
+                <Text style={[styles.sublabel, { color: muted }]}>This is your @handle — how friends find and tag you</Text>
                 <TextInput
                   style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
-                  placeholder="Your @username..."
+                  placeholder="e.g. @thabo"
                   placeholderTextColor={muted}
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
                 />
 
-                <Text style={[styles.label, { color: textColor }]}>Display Name</Text>
+                <Text style={[styles.label, { color: textColor }]}>Your Name</Text>
+                <Text style={[styles.sublabel, { color: muted }]}>The name people see on your profile</Text>
                 <TextInput
                   style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
-                  placeholder="How you appear to others..."
+                  placeholder="e.g. Thabo Nkosi"
                   placeholderTextColor={muted}
                   value={displayName}
                   onChangeText={setDisplayName}
                 />
 
                 <Text style={[styles.label, { color: textColor }]}>City</Text>
+                <Text style={[styles.sublabel, { color: muted }]}>So we can show you events near you</Text>
                 <TextInput
                   style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
                   placeholder="e.g. Johannesburg, Cape Town..."
@@ -271,6 +274,7 @@ export const AuthModal = ({ visible, onClose }) => {
                 />
 
                 <Text style={[styles.label, { color: textColor }]}>Birth Year</Text>
+                <Text style={[styles.sublabel, { color: muted }]}>So we can celebrate your birthday with you 🎉</Text>
                 <TextInput
                   style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
                   placeholder="e.g. 1998"
@@ -294,8 +298,8 @@ export const AuthModal = ({ visible, onClose }) => {
                   ))}
                 </View>
 
-                <Text style={[styles.label, { color: textColor }]}>Quick Interests</Text>
-                <Text style={[styles.sublabel, { color: muted }]}>Pick what excites you — we'll tailor your feed</Text>
+                <Text style={[styles.label, { color: textColor }]}>What are you into?</Text>
+                <Text style={[styles.sublabel, { color: muted }]}>Pick a few — this helps us show you events you'll love</Text>
                 <View style={styles.interestGrid}>
                   {QUICK_INTERESTS.map(({ label, icon }) => {
                     const sel = selectedInterests.includes(label);
@@ -377,7 +381,7 @@ export const AuthModal = ({ visible, onClose }) => {
                         <View style={[styles.radio, { borderColor: confirmLater ? `${primary}40` : primary }]}>
                           {!confirmLater && <View style={[styles.radioDot, { backgroundColor: primary }]} />}
                         </View>
-                        <Text style={[styles.confirmOptText, { color: confirmLater ? muted : primary }]}>Confirm first</Text>
+                        <Text style={[styles.confirmOptText, { color: confirmLater ? muted : primary }]}>Verify email first</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.confirmOpt, { borderColor: confirmLater ? primary : `${primary}30`, backgroundColor: confirmLater ? `${primary}18` : 'transparent' }]}
@@ -386,7 +390,7 @@ export const AuthModal = ({ visible, onClose }) => {
                         <View style={[styles.radio, { borderColor: confirmLater ? primary : `${primary}40` }]}>
                           {confirmLater && <View style={[styles.radioDot, { backgroundColor: primary }]} />}
                         </View>
-                        <Text style={[styles.confirmOptText, { color: confirmLater ? primary : muted }]}>Use app now, confirm later</Text>
+                        <Text style={[styles.confirmOptText, { color: confirmLater ? primary : muted }]}>Start now, verify later</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -401,7 +405,7 @@ export const AuthModal = ({ visible, onClose }) => {
                     {wantsEmail && <Feather name="check" size={14} color="#000" />}
                   </View>
                   <Text style={[styles.optInText, { color: muted }]}>
-                    Send me emails about new events, updates, and Royal invites.
+                    Email me about new events and updates.
                   </Text>
                 </TouchableOpacity>
               </>
@@ -418,7 +422,7 @@ export const AuthModal = ({ visible, onClose }) => {
               {loading
                 ? <ActivityIndicator color="#000" />
                 : <Text style={styles.actionText}>
-                    {mode === 'signin' ? 'ENTER THE KINGDOM' : 'CLAIM YOUR THRONE'}
+                    {mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
                   </Text>
               }
             </TouchableOpacity>
@@ -426,8 +430,8 @@ export const AuthModal = ({ visible, onClose }) => {
             <TouchableOpacity onPress={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}>
               <Text style={[styles.footerLink, { color: primary }]}>
                 {mode === 'signin'
-                  ? "No account? Join the royalty →"
-                  : "Already a royal? Sign in →"}
+                  ? "New here? Create an account →"
+                  : "Already have an account? Sign in →"}
               </Text>
             </TouchableOpacity>
           </View>

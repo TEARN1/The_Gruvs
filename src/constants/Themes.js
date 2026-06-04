@@ -402,3 +402,14 @@ export const THEMES = {
     },
   ],
 };
+
+// Find a theme's { gender, index } by its stable id — used to restore the
+// exact aura a user picked, across devices (app ⇆ website) via their profile.
+export const findThemeById = (id) => {
+  if (!id) return null;
+  for (const g of Object.keys(THEMES)) {
+    const idx = THEMES[g].findIndex((t) => t.id === id);
+    if (idx !== -1) return { gender: g, index: idx, theme: THEMES[g][idx] };
+  }
+  return null;
+};

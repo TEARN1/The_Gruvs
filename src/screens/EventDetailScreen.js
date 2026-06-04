@@ -50,6 +50,7 @@ import { EventMomentsSection }    from '../components/EventMomentsSection';
 import { OrganizerDashboard }     from '../components/OrganizerDashboard';
 import { LiveEventBanner }        from '../components/LiveEventBanner';
 import { EventManagementPanel }   from '../components/EventManagementPanel';
+import { InviteByNameModal }      from '../components/InviteByNameModal';
 import { SportManagementPanel }   from '../components/SportManagementPanel';
 import { EventGuestsModal }       from '../components/EventGuestsModal';
 import { PlayerProfileModal }     from '../components/PlayerProfileModal';
@@ -155,6 +156,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [calendarAdded, setCalendarAdded] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
   const [roleManagerVisible, setRoleManagerVisible] = useState(false);
+  const [inviteVisible, setInviteVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
@@ -543,9 +545,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {matchCard ? (
             <MatchVersus match={matchCard} height={HERO_H} isWeb={Platform.OS === 'web'} />
           ) : (
-            <MediaViewer media={media} containerWidth={undefined} />
+            <MediaViewer media={media} containerWidth={undefined} aspectRatio={event.poster_mode ? 3 / 4 : 16 / 9} resizeMode={event.poster_mode ? 'contain' : 'cover'} />
           )}
-          <View style={styles.heroScrim} pointerEvents="none" />
+          {!event.poster_mode && <View style={styles.heroScrim} pointerEvents="none" />}
 
           {event?.category && (
             <View style={[styles.categoryBadge, { backgroundColor: primary + 'cc' }]}>
@@ -653,7 +655,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
           <Text style={[styles.title, { color: textColor }]}>{event?.title || 'Untitled Gruv'}</Text>
 
-          {!!event?.description && (
+          {!!event?.description && event.description !== 'See poster for details.' && (
             <Text style={[styles.description, { color: textMuted }]}>{event.description}</Text>
           )}
 
@@ -1234,6 +1236,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <Text style={[styles.mgmtBtnText, { color: primary }]}>Manage Team</Text>
                 </TouchableOpacity>
               )}
+              {isOrganiser && (
+                <TouchableOpacity
+                  style={[styles.mgmtBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}10` }]}
+                  onPress={() => setInviteVisible(true)}
+                >
+                  <Feather name="user-plus" size={14} color={primary} />
+                  <Text style={[styles.mgmtBtnText, { color: primary }]}>Invite My People</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={[styles.mgmtBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}10` }]}
                 onPress={() => setChatVisible(true)}
@@ -1374,6 +1385,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               organiserId={event.author_id ?? event.profiles?.id}
             />
           </SafeSection>
+        )}
+
+        {isOrganiser && event?.id && (
+          <InviteByNameModal
+            visible={inviteVisible}
+            onClose={() => setInviteVisible(false)}
+            event={event}
+          />
         )}
 
         {isOrganiser && event?.id && guestsModalOpen && (

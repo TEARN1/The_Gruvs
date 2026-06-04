@@ -25,7 +25,7 @@ import { useBackClose } from '../hooks/useBackClose';
 const METRICS = [
   { key: 'rating',    label: 'Rating' },
   { key: 'events',    label: 'Events' },
-  { key: 'goals',     label: 'Goals'  },
+  { key: 'goals',     label: 'Highlights' },
   { key: 'awards',    label: 'Awards' },
   { key: 'followers', label: 'Fans'   },
 ];
@@ -48,7 +48,7 @@ const PODIUM_RING = ['#FFD45A', '#C8D2DC', '#E0936A']; // gold / silver / bronze
 const STAT_DEFS = [
   { key: 'rating',    label: 'RTG' },
   { key: 'events',    label: 'EVT' },
-  { key: 'goals',     label: 'GLS' },
+  { key: 'goals',     label: 'HLT' },
   { key: 'awards',    label: 'AWD' },
   { key: 'followers', label: 'FAN' },
 ];
@@ -255,7 +255,7 @@ export const TalentLeaderboardModal = ({ visible, onClose }) => {
           </TouchableOpacity>
           <View style={{ alignItems: 'center' }}>
             <Text style={[lb.headerTitle, { color: textColor }]}>Talent Scout</Text>
-            <Text style={[lb.headerSub, { color: muted }]}>Top players, ranked</Text>
+            <Text style={[lb.headerSub, { color: muted }]}>Top talent, ranked</Text>
           </View>
           <View style={lb.headerBtn} />
         </View>
@@ -343,7 +343,7 @@ export const TalentLeaderboardModal = ({ visible, onClose }) => {
             <Text style={{ color: muted, marginTop: 6, textAlign: 'center', paddingHorizontal: 44, lineHeight: 19 }}>
               {anyFilter
                 ? 'Try a wider age bracket, a different category, or clear the search.'
-                : 'As players are tagged as guests on events, their careers build here — ranked by rating, events, goals, awards and fans.'}
+                : 'As people are tagged as guests on events, their reputations build here — ranked by rating, events, highlights, awards and fans.'}
             </Text>
             {anyFilter && (
               <TouchableOpacity onPress={resetFilters} style={[lb.clearBtn, { backgroundColor: primary }]} activeOpacity={0.85}>

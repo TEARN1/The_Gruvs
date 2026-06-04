@@ -37,6 +37,45 @@
 import { supabase } from './supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// DWELL-TIME SIGNAL  (TikTok-style watch time)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Local accumulator so we batch dwell instead of hammering the DB per card.
+const _dwellBuffer = new Map(); // eventId → { ms, opened }
+let _dwellFlushTimer = null;
+
+/**
+ * recordEventView — call when a user lingers on or opens an event.
+ * @param {string} eventId
+ * @param {number} dwellMs  — milliseconds the card was on screen
+ * @param {boolean} opened  — did they open the detail
+ * Buffers and flushes every ~6s (and dwell < 400ms is ignored as noise).
+ */
+export function recordEventView(eventId, dwellMs = 0, opened = false) {
+  if (!eventId) return;
+  if (dwellMs < 400 && !opened) return; // ignore fly-by glances
+  const cur = _dwellBuffer.get(eventId) || { ms: 0, opened: false };
+  cur.ms += Math.max(0, dwellMs);
+  cur.opened = cur.opened || opened;
+  _dwellBuffer.set(eventId, cur);
+  if (!_dwellFlushTimer) _dwellFlushTimer = setTimeout(flushEventViews, 6000);
+}
+
+/** Flush buffered dwell to the DB via the atomic RPC (best-effort). */
+export async function flushEventViews() {
+  clearTimeout(_dwellFlushTimer);
+  _dwellFlushTimer = null;
+  if (_dwellBuffer.size === 0) return;
+  const batch = [..._dwellBuffer.entries()];
+  _dwellBuffer.clear();
+  for (const [eventId, { ms, opened }] of batch) {
+    try {
+      await supabase.rpc('record_event_view', { p_event_id: eventId, p_dwell_ms: Math.round(ms), p_opened: opened });
+    } catch { /* table/RPC may not be migrated yet — drop silently */ }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -190,6 +229,7 @@ export async function computeUserDeepProfile(userId) {
       savedRes,
       profileRes,
       recentRsvpRes,
+      viewsRes,
     ] = await Promise.allSettled([
       supabase.from('event_rsvps')
         .select('status, created_at, events(category, categories, city, lat, lon, price_min, event_date, event_time, going)')
@@ -225,6 +265,12 @@ export async function computeUserDeepProfile(userId) {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
         .gte('created_at', since30),
+      // Dwell-time signal — what they linger on / open (TikTok-style)
+      supabase.from('event_views')
+        .select('dwell_ms, opened, events(category, categories)')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(300),
     ]);
 
     const rsvps      = rsvpRes.status === 'fulfilled'      ? (rsvpRes.value.data || [])      : [];
@@ -234,6 +280,7 @@ export async function computeUserDeepProfile(userId) {
     const saved      = savedRes.status === 'fulfilled'     ? (savedRes.value.data || [])     : [];
     const profile    = profileRes.status === 'fulfilled'   ? profileRes.value.data           : null;
     const recent30   = recentRsvpRes.status === 'fulfilled' ? (recentRsvpRes.value.count || 0) : 0;
+    const views      = viewsRes.status === 'fulfilled'     ? (viewsRes.value.data || [])      : [];
 
     // ── 1 & 2. Category + subcategory vectors ────────────────────────────────
     // Weights: check-in = 4 (physical presence), RSVP = 2, vibe = 1.5, save = 1, echo = 1.2
@@ -252,6 +299,13 @@ export async function computeUserDeepProfile(userId) {
     vibes.forEach(v => addCatScore(v.events?.category, v.events?.categories, 1.5));
     saved.forEach(s => addCatScore(s.events?.category, s.events?.categories, 1));
     echoes.forEach(() => {}); // no category on echoes
+    // Dwell-time (TikTok-style): weight ∝ how long they lingered (log-scaled so a
+    // few long looks don't swamp everything) + a bump for opening the detail.
+    views.forEach(vw => {
+      const secs = (vw.dwell_ms || 0) / 1000;
+      const dwellWeight = Math.min(2.5, Math.log10(1 + secs)) + (vw.opened ? 0.8 : 0);
+      if (dwellWeight > 0) addCatScore(vw.events?.category, vw.events?.categories, dwellWeight);
+    });
     // Interests from profile as a prior (weak signal)
     (profile?.interests || []).forEach(i => { catVec[i] = (catVec[i] || 0) + 0.5; });
 
@@ -575,6 +629,130 @@ export async function routeRecurringEvent(eventId, eventData, topN = 500) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIENCE TARGETING ROUTER  (hard filters — "deliver to exactly these people")
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CURRENT_YEAR = new Date().getFullYear();
+
+/**
+ * routeTargetedEvent
+ *
+ * When a host sets explicit audience criteria (events.audience), this delivers
+ * the event to *exactly* the people who match — a wedding to the clan, a
+ * deaf-community workshop to deaf users, a recruiter's gig to job seekers, etc.
+ *
+ * Unlike routeRecurringEvent (soft behavioral scoring), this applies HARD
+ * filters: every match_mode rule must pass. We push the matched users into the
+ * same event_traffic_routes table with a high route_score so the feed,
+ * calendar and notifications all light up for them.
+ *
+ * Only matches attributes the user voluntarily put on their own profile.
+ *
+ * @param {string} eventId
+ * @param {object} audience   — the events.audience JSONB object
+ * @param {object} eventGeo   — { lat, lon } of the event (for radius_km)
+ * @param {number} cap        — max users to route (default 5000)
+ * @returns {Promise<number>} how many people it reached
+ */
+export async function routeTargetedEvent(eventId, audience, eventGeo = {}, cap = 5000) {
+  if (!eventId || !audience || typeof audience !== 'object') return 0;
+
+  const mode = audience.match_mode === 'all' ? 'all' : 'any';
+  const lc = (s) => (typeof s === 'string' ? s.trim().toLowerCase() : '');
+  const lcArr = (a) => (Array.isArray(a) ? a.map(lc).filter(Boolean) : []);
+
+  // Which filters did the host actually set?
+  const f = {
+    ageMin:   audience.age_min > 0 ? audience.age_min : null,
+    ageMax:   audience.age_max > 0 ? audience.age_max : null,
+    genders:  lcArr(audience.genders),
+    clans:    lcArr(audience.clans),
+    surnames: lcArr(audience.surnames),
+    villages: lcArr(audience.villages),
+    cities:   lcArr(audience.cities),
+    langs:    lcArr(audience.languages),
+    tags:     Array.isArray(audience.community_tags) ? audience.community_tags : [],
+    radiusKm: audience.radius_km > 0 ? audience.radius_km : null,
+  };
+  const activeFilters = [
+    f.ageMin || f.ageMax ? 'age' : null,
+    f.genders.length ? 'gender' : null,
+    f.clans.length ? 'clan' : null,
+    f.surnames.length ? 'surname' : null,
+    f.villages.length ? 'village' : null,
+    f.cities.length ? 'city' : null,
+    f.langs.length ? 'lang' : null,
+    f.tags.length ? 'tags' : null,
+    f.radiusKm ? 'radius' : null,
+  ].filter(Boolean);
+  if (!activeFilters.length) return 0; // nothing to target
+
+  try {
+    // Pull the candidate pool. We only need the targetable columns; cap keeps it
+    // cheap. is_discoverable respects the user's own privacy switch.
+    const { data: people } = await supabase
+      .from('profiles')
+      .select('id, gender, birth_year, clan_name, surname, home_village, city, languages, community_tags, lat, lon, is_discoverable')
+      .eq('is_discoverable', true)
+      .limit(20000);
+
+    if (!people?.length) return 0;
+
+    const passes = (p) => {
+      const checks = [];
+      if (f.ageMin || f.ageMax) {
+        const age = p.birth_year ? CURRENT_YEAR - p.birth_year : null;
+        checks.push(age != null && (!f.ageMin || age >= f.ageMin) && (!f.ageMax || age <= f.ageMax));
+      }
+      if (f.genders.length)  checks.push(f.genders.includes(lc(p.gender)));
+      if (f.clans.length)    checks.push(f.clans.includes(lc(p.clan_name)));
+      if (f.surnames.length) checks.push(f.surnames.includes(lc(p.surname)));
+      if (f.villages.length) checks.push(f.villages.includes(lc(p.home_village)));
+      if (f.cities.length)   checks.push(f.cities.includes(lc(p.city)));
+      if (f.langs.length)    checks.push((p.languages || []).some((l) => f.langs.includes(lc(l))));
+      if (f.tags.length)     checks.push((p.community_tags || []).some((t) => f.tags.includes(t)));
+      if (f.radiusKm) {
+        const ok = eventGeo.lat && eventGeo.lon && p.lat && p.lon &&
+          haversineKm(eventGeo.lat, eventGeo.lon, p.lat, p.lon) <= f.radiusKm;
+        checks.push(!!ok);
+      }
+      if (!checks.length) return false;
+      return mode === 'all' ? checks.every(Boolean) : checks.some(Boolean);
+    };
+
+    const reason = `for you — ${describeTargetReason(activeFilters)}`;
+    const matched = people.filter(passes).slice(0, cap).map((p) => ({
+      event_id:   eventId,
+      user_id:    p.id,
+      route_score: 0.95,          // explicit targeting outranks soft signals
+      route_reason: reason,
+    }));
+
+    if (!matched.length) return 0;
+
+    for (let i = 0; i < matched.length; i += 100) {
+      await supabase
+        .from('event_traffic_routes')
+        .upsert(matched.slice(i, i + 100), { onConflict: 'event_id,user_id' });
+    }
+    return matched.length;
+  } catch (e) {
+    console.warn('[PersonalizationEngine] routeTargetedEvent failed:', e.message);
+    return 0;
+  }
+}
+
+function describeTargetReason(active) {
+  const names = {
+    age: 'your age group', gender: 'you', clan: 'your clan', surname: 'your family name',
+    village: 'your home area', city: 'your city', lang: 'your language',
+    tags: 'your community', radius: 'nearby you',
+  };
+  const picked = active.map((k) => names[k]).filter(Boolean);
+  return picked.length ? picked.slice(0, 2).join(' & ') : 'a match';
+}
+
 function buildRouteReason(catScore, temporalScore, locationScore, profile) {
   const reasons = [];
   if (catScore > 0.6) reasons.push('strong category match');
@@ -735,24 +913,77 @@ export async function applyPersonalisedBoost(events, userId) {
 
   try {
     const eventIds = events.map(e => e.id);
-    const { data: routes } = await supabase
-      .from('event_traffic_routes')
-      .select('event_id, route_score')
-      .eq('user_id', userId)
-      .in('event_id', eventIds);
-
-    if (!routes?.length) return events;
+    const [routesRes, collab] = await Promise.all([
+      supabase.from('event_traffic_routes')
+        .select('event_id, route_score')
+        .eq('user_id', userId)
+        .in('event_id', eventIds),
+      collaborativeScores(userId, eventIds),
+    ]);
 
     const routeMap = {};
-    routes.forEach(r => { routeMap[r.event_id] = r.route_score; });
+    (routesRes.data || []).forEach(r => { routeMap[r.event_id] = r.route_score; });
 
+    if (!Object.keys(routeMap).length && !Object.keys(collab).length) return events;
+
+    // routed events get up to +80%, "people like you also liked" up to +50%.
     return [...events].sort((a, b) => {
-      const scoreA = (a._heatScore || 0) * (1 + (routeMap[a.id] || 0) * 0.8);
-      const scoreB = (b._heatScore || 0) * (1 + (routeMap[b.id] || 0) * 0.8);
+      const scoreA = (a._heatScore || 0) * (1 + (routeMap[a.id] || 0) * 0.8 + (collab[a.id] || 0) * 0.5);
+      const scoreB = (b._heatScore || 0) * (1 + (routeMap[b.id] || 0) * 0.8 + (collab[b.id] || 0) * 0.5);
       return scoreB - scoreA;
     });
   } catch {
     return events;
+  }
+}
+
+/**
+ * collaborativeScores — Instagram-style "people like you also liked".
+ * Item-based collaborative filtering over event_vibes:
+ *   1. find events I vibed
+ *   2. find OTHER users who vibed those same events (my taste neighbours)
+ *   3. tally which of the candidate events those neighbours also vibed
+ * Returns { eventId: score 0..1 }. Best-effort; empty on any failure.
+ */
+export async function collaborativeScores(userId, candidateEventIds = []) {
+  if (!userId || !candidateEventIds?.length) return {};
+  try {
+    // 1. My liked items
+    const { data: mine } = await supabase
+      .from('event_vibes').select('event_id').eq('user_id', userId).limit(300);
+    const myItems = (mine || []).map(r => r.event_id);
+    if (!myItems.length) return {};
+
+    // 2. Taste neighbours — users who vibed the same events (cap for cost)
+    const { data: neigh } = await supabase
+      .from('event_vibes').select('user_id').in('event_id', myItems).neq('user_id', userId).limit(2000);
+    const neighbourCounts = {};
+    (neigh || []).forEach(r => { neighbourCounts[r.user_id] = (neighbourCounts[r.user_id] || 0) + 1; });
+    const neighbours = Object.entries(neighbourCounts)
+      .sort((a, b) => b[1] - a[1]).slice(0, 200).map(([u]) => u);
+    if (!neighbours.length) return {};
+
+    // 3. What those neighbours also vibed among the candidates
+    const mySet = new Set(myItems);
+    const { data: theirs } = await supabase
+      .from('event_vibes').select('event_id, user_id')
+      .in('event_id', candidateEventIds)
+      .in('user_id', neighbours)
+      .limit(5000);
+
+    const tally = {};
+    (theirs || []).forEach(r => {
+      if (mySet.has(r.event_id)) return; // don't recommend what I already liked
+      // weight by how strong a neighbour they are
+      tally[r.event_id] = (tally[r.event_id] || 0) + (neighbourCounts[r.user_id] || 1);
+    });
+
+    const max = Math.max(1, ...Object.values(tally));
+    const scores = {};
+    Object.entries(tally).forEach(([id, v]) => { scores[id] = v / max; }); // normalise 0..1
+    return scores;
+  } catch {
+    return {};
   }
 }
 
@@ -796,8 +1027,12 @@ export async function getSeriesFollowers(seriesId) {
 export default {
   computeUserDeepProfile,
   routeRecurringEvent,
+  routeTargetedEvent,
   generatePersonalCalendar,
   applyPersonalisedBoost,
+  collaborativeScores,
+  recordEventView,
+  flushEventViews,
   computeNextOccurrence,
   generateOccurrences,
   followSeries,

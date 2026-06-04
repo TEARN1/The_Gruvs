@@ -14,7 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from '../components/GlassView';
 import { useToast } from '../components/ToastNotification';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -447,7 +447,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
       // Checkins joined with events
       const { data: ciData } = await supabase
         .from('live_checkins')
-        .select('id, user_id, event_id, checked_in_at, expires_at, events(id, title, lat, lon, city, venue_city)')
+        .select('id, user_id, event_id, checked_in_at, expires_at, events(id, title, lat, lon, city, venue_name)')
         .eq('user_id', user?.id)
         .order('checked_in_at', { ascending: true });
 
@@ -493,11 +493,25 @@ export const PathMapScreen = ({ visible, onClose }) => {
 
   const handleStar = async (toUserId) => {
     if (!user?.id) return;
+    // Supabase resolves (not rejects) on errors — each tier must inspect `error`
+    // and throw, or a blocked/duplicate write silently looks like success.
     await resilient(
       [
-        () => supabase.from('path_stars').insert({ from_user_id: user?.id, to_user_id: toUserId, event_id: null }),
-        () => supabase.from('path_stars').upsert({ from_user_id: user?.id, to_user_id: toUserId, event_id: null }, { onConflict: 'from_user_id,to_user_id', ignoreDuplicates: true }),
-        () => supabase.rpc('send_path_star', { p_from: user?.id, p_to: toUserId }),
+        async () => {
+          const { error } = await supabase.from('path_stars').insert({ from_user_id: user?.id, to_user_id: toUserId, event_id: null });
+          if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error;
+          return true;
+        },
+        async () => {
+          const { error } = await supabase.from('path_stars').upsert({ from_user_id: user?.id, to_user_id: toUserId, event_id: null }, { onConflict: 'from_user_id,to_user_id', ignoreDuplicates: true });
+          if (error) throw error;
+          return true;
+        },
+        async () => {
+          const { error } = await supabase.rpc('send_path_star', { p_from: user?.id, p_to: toUserId });
+          if (error) throw error;
+          return true;
+        },
       ],
       { attemptsPerTier: 2, baseMs: 300, label: `PathMap.star:${toUserId}`, fallbackValue: null }
     );
@@ -521,9 +535,9 @@ export const PathMapScreen = ({ visible, onClose }) => {
     setTraceNote('');
     const ok = await resilient(
       [
-        () => supabase.from('path_traces').insert(payload),
-        () => supabase.from('path_traces').upsert(payload),
-        () => supabase.rpc('drop_path_trace', { p_user_id: user?.id, p_lat: payload.lat, p_lon: payload.lon, p_note: payload.note }),
+        async () => { const { error } = await supabase.from('path_traces').insert(payload); if (error) throw error; return true; },
+        async () => { const { error } = await supabase.from('path_traces').upsert(payload); if (error) throw error; return true; },
+        async () => { const { error } = await supabase.rpc('drop_path_trace', { p_user_id: user?.id, p_lat: payload.lat, p_lon: payload.lon, p_note: payload.note }); if (error) throw error; return true; },
       ],
       { attemptsPerTier: 2, baseMs: 400, label: 'PathMap.dropTrace', fallbackValue: null }
     );

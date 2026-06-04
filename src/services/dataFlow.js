@@ -874,7 +874,7 @@ export const TrendingManager = {
     try {
       const { data: events } = await supabase
         .from('events')
-        .select('id, title, description, media, vibe_count, going, event_date, event_time, venue_name, category, created_at')
+        .select('id, title, description, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at')
         .neq('is_cancelled', true)
         .neq('is_deleted', true)
         .gte('event_date', new Date().toISOString().split('T')[0])
@@ -945,7 +945,7 @@ export const TrendingManager = {
       // Tier 2: no profile join
       async () => {
         const { data, error } = await supabase.from('events')
-          .select('id, title, media, vibe_count, going, event_date, event_time, venue_name, category, created_at')
+          .select('id, title, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at')
           .gte('event_date', today).lte('event_date', tomorrow)
           .neq('is_deleted', true).neq('is_cancelled', true)
           .order('vibe_count', { ascending: false }).limit(20);
@@ -973,7 +973,7 @@ export const TrendingManager = {
       const weekEnd = endOfWeek.toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
-        .select('id, title, media, vibe_count, going, event_date, event_time, venue_name, category, created_at, profiles(username, avatar_url)')
+        .select('id, title, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at, profiles(username, avatar_url)')
         .gte('event_date', today)
         .lte('event_date', weekEnd)
         .neq('is_deleted', true)
@@ -1218,17 +1218,33 @@ export const BookmarkManager = {
 export const UserManager = {
   async follow(followerId, followingId) {
     if (!isSupabaseEnabled) return true;
-    await resilient(
+    // NOTE: the Supabase client resolves (not rejects) on errors — each tier MUST
+    // inspect `error` and throw, otherwise an RLS denial looks like success and
+    // the follow silently never saves.
+    const res = await resilient(
       [
-        // Tier 1: upsert with conflict ignore
-        () => supabase.from('follows').upsert({ follower_id: followerId, following_id: followingId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
-        // Tier 2: plain insert (if upsert syntax unsupported)
-        () => supabase.from('follows').insert({ follower_id: followerId, following_id: followingId }),
+        // Tier 1: upsert with conflict ignore (no-op if already following)
+        async () => {
+          const { error } = await supabase.from('follows').upsert({ follower_id: followerId, following_id: followingId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
+          if (error) throw error;
+          return true;
+        },
+        // Tier 2: plain insert (if upsert syntax unsupported); ignore duplicate rows
+        async () => {
+          const { error } = await supabase.from('follows').insert({ follower_id: followerId, following_id: followingId });
+          if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error;
+          return true;
+        },
         // Tier 3: RPC follow
-        () => supabase.rpc('follow_user', { p_follower: followerId, p_following: followingId }),
+        async () => {
+          const { error } = await supabase.rpc('follow_user', { p_follower: followerId, p_following: followingId });
+          if (error) throw error;
+          return true;
+        },
       ],
-      { attemptsPerTier: 3, baseMs: 300, label: 'UserManager.follow', fallbackValue: null }
+      { attemptsPerTier: 2, baseMs: 300, label: 'UserManager.follow', fallbackValue: null }
     );
+    if (res === null) throw new Error('Could not save follow — please try again.');
     cache.invalidate(`follows:${followerId}`);
     cache.invalidate(`followers:${followingId}`);
     _notify(followingId, followerId, 'follow', 'Someone locked in to your Gruvs', '').catch(() => {});
@@ -1239,17 +1255,24 @@ export const UserManager = {
 
   async unfollow(followerId, followingId) {
     if (!isSupabaseEnabled) return true;
-    await resilient(
+    const res = await resilient(
       [
         // Tier 1: delete row
-        () => supabase.from('follows').delete().eq('follower_id', followerId).eq('following_id', followingId),
-        // Tier 2: soft-delete via status flag
-        () => supabase.from('follows').update({ unfollowed_at: new Date().toISOString() }).eq('follower_id', followerId).eq('following_id', followingId),
+        async () => {
+          const { error } = await supabase.from('follows').delete().eq('follower_id', followerId).eq('following_id', followingId);
+          if (error) throw error;
+          return true;
+        },
         // Tier 3: RPC unfollow
-        () => supabase.rpc('unfollow_user', { p_follower: followerId, p_following: followingId }),
+        async () => {
+          const { error } = await supabase.rpc('unfollow_user', { p_follower: followerId, p_following: followingId });
+          if (error) throw error;
+          return true;
+        },
       ],
-      { attemptsPerTier: 3, baseMs: 300, label: 'UserManager.unfollow', fallbackValue: null }
+      { attemptsPerTier: 2, baseMs: 300, label: 'UserManager.unfollow', fallbackValue: null }
     );
+    if (res === null) throw new Error('Could not unfollow — please try again.');
     cache.invalidate(`follows:${followerId}`);
     cache.invalidate(`followers:${followingId}`);
     return true;
@@ -1979,6 +2002,7 @@ async function _notify(recipientId, actorId, type, title, body, data = {}) {
       title,
       body,
       actorId,
+      eventId: data?.event_id || null,
       data,
     });
   } catch {
@@ -1986,6 +2010,7 @@ async function _notify(recipientId, actorId, type, title, body, data = {}) {
       await supabase.from('notifications').insert({
         recipient_id: recipientId,
         actor_id: actorId,
+        event_id: data?.event_id || null,
         type,
         title,
         body,
@@ -1995,6 +2020,80 @@ async function _notify(recipientId, actorId, type, title, body, data = {}) {
     } catch { }
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INVITE MANAGER  (invite people who share your name / surname / clan)
+// ─────────────────────────────────────────────────────────────────────────────
+export const InviteManager = {
+  /**
+   * findKin — find people who share the host's first name, surname or clan name.
+   * Returns { groups: { firstName:[], surname:[], clan:[] }, all:[], terms }.
+   * Case-insensitive; excludes the host; caps results.
+   */
+  async findKin(userId, { limit = 200 } = {}) {
+    const empty = { groups: { firstName: [], surname: [], clan: [] }, all: [], terms: {} };
+    if (!userId) return empty;
+    try {
+      const { data: me } = await supabase
+        .from('profiles').select('first_name, surname, clan_name').eq('id', userId).maybeSingle();
+      const terms = {
+        firstName: (me?.first_name || '').trim(),
+        surname: (me?.surname || '').trim(),
+        clan: (me?.clan_name || '').trim(),
+      };
+      if (!terms.firstName && !terms.surname && !terms.clan) return { ...empty, terms };
+
+      const fetchBy = async (col, val) => {
+        if (!val) return [];
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('id, username, display_name, avatar_url, first_name, surname, clan_name, vibe_score')
+            .ilike(col, val)
+            .neq('id', userId)
+            .limit(limit);
+          return data || [];
+        } catch { return []; }
+      };
+
+      const [byFirst, bySur, byClan] = await Promise.all([
+        fetchBy('first_name', terms.firstName),
+        fetchBy('surname', terms.surname),
+        fetchBy('clan_name', terms.clan),
+      ]);
+
+      // De-dupe across groups for the "all" list (a person may match more than one).
+      const seen = new Set();
+      const all = [];
+      [...byFirst, ...bySur, ...byClan].forEach(p => {
+        if (!seen.has(p.id)) { seen.add(p.id); all.push(p); }
+      });
+
+      return { groups: { firstName: byFirst, surname: bySur, clan: byClan }, all, terms };
+    } catch {
+      return empty;
+    }
+  },
+
+  /**
+   * inviteToEvent — send an event invite notification to each user.
+   * Best-effort; returns the number successfully queued.
+   */
+  async inviteToEvent(eventId, eventTitle, recipientIds, hostId, hostName) {
+    if (!eventId || !recipientIds?.length) return 0;
+    const title = 'You\'re invited 🎉';
+    const body = `${hostName || 'A host'} invited you to "${eventTitle || 'an event'}"`;
+    let sent = 0;
+    for (const rid of recipientIds) {
+      if (!rid || rid === hostId) continue;
+      try {
+        await _notify(rid, hostId, 'event_invite', title, body, { event_id: eventId, event_title: eventTitle });
+        sent++;
+      } catch { /* skip this recipient */ }
+    }
+    return sent;
+  },
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MESSAGE MANAGER  (DM inbox, conversations, unread count)
@@ -2107,10 +2206,13 @@ export const MessageManager = {
       // (event_id / latitude / is_request / parent_id / media_url …) aren't in
       // the live table, the full insert fails — but the message still delivers
       // via this core payload instead of being lost.
+      // Only columns guaranteed on every messages-table version. message_type and
+      // the rich columns are intentionally dropped here so a text message still
+      // delivers even if those columns aren't migrated yet (see 14_messages_missing_columns.sql).
       const corePayload = {
         ...(_pregenId ? { id: _pregenId } : {}),
         sender_id: senderId, recipient_id: recipientId,
-        body: msgPayload.body, message_type: msgType,
+        body: msgPayload.body,
       };
 
       const data = await resilient(
@@ -2449,6 +2551,42 @@ export const PresenceManager = {
       await supabase.from('profiles').update({ is_online: false, last_seen: new Date().toISOString() }).eq('id', userId);
       cache.invalidate(`profile:${userId}`);
     } catch { }
+  },
+
+  // ── "I'm here" live presence beacon ──────────────────────────────────────
+  // Broadcasts that the user is active RIGHT NOW at their location for a window
+  // of time (default 60 min) so nearby vibers see them live. Auto-expires.
+  async activateBeacon(userId, coords = {}, minutes = 60) {
+    if (!userId) throw new Error('Sign in to go live.');
+    const expires = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+    const payload = {
+      is_beacon_active: true,
+      is_online: true,
+      last_seen: new Date().toISOString(),
+      beacon_expires_at: expires,
+    };
+    if (coords?.lat != null && coords?.lon != null) { payload.lat = coords.lat; payload.lon = coords.lon; }
+    const res = await resilient(
+      [
+        async () => { const { error } = await supabase.from('profiles').update(payload).eq('id', userId); if (error) throw error; return true; },
+        // Fallback for DBs without beacon_expires_at yet — still flips the beacon on.
+        async () => { const { beacon_expires_at: _x, ...core } = payload; const { error } = await supabase.from('profiles').update(core).eq('id', userId); if (error) throw error; return true; },
+      ],
+      { attemptsPerTier: 2, baseMs: 300, label: 'PresenceManager.activateBeacon', fallbackValue: null }
+    );
+    if (res === null) throw new Error('Could not go live — please try again.');
+    cache.invalidate(`profile:${userId}`);
+    return expires;
+  },
+
+  async deactivateBeacon(userId) {
+    if (!userId) return;
+    try {
+      await supabase.from('profiles').update({ is_beacon_active: false, beacon_expires_at: null }).eq('id', userId);
+    } catch {
+      try { await supabase.from('profiles').update({ is_beacon_active: false }).eq('id', userId); } catch {}
+    }
+    cache.invalidate(`profile:${userId}`);
   },
 
   // Subscribe to a specific user's online status changes
