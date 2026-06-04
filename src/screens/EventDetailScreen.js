@@ -15,6 +15,7 @@ import { MediaViewer } from '../components/MediaViewer';
 import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { WeatherService } from '../services/weatherService';
 import { GlitterBurst } from '../components/GlitterBurst';
+import { CrowdMeter } from '../components/CrowdMeter';
 import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
@@ -669,6 +670,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             {weather && (
               <MetaChip icon={weather.icon} label={`${weather.tempMax}° · ${weather.label}`} color="#38bdf8" />
             )}
+            {event?.power_backup && (() => {
+              const PMAP = { generator: ['Generator', 'zap'], solar: ['Solar', 'sun'], ups: ['UPS / Inverter', 'battery-charging'], grid: ['Grid only', 'zap-off'] };
+              const [plabel, picon] = PMAP[event.power_backup] || ['Power', 'zap'];
+              return <MetaChip icon={picon} label={plabel} color={event.power_backup !== 'grid' ? '#10b981' : '#f59e0b'} />;
+            })()}
             <MetaChip icon="tag" label={formatPrice(event?.price)} color={primary} />
             {!!event?.age_restriction && (
               <MetaChip
@@ -895,6 +901,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               })}
             </View>
           </GlassView>
+
+          {event?.id && event?.event_date === new Date().toISOString().slice(0, 10) && (
+            <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+              <CrowdMeter eventId={event.id} primary={primary} textColor={textColor} muted={textMuted} surface={surface} onAuthRequired={onAuthRequired} />
+            </View>
+          )}
 
           {event?.rsvp_tiers?.length > 0 && (
             <SafeSection label="VIP Tiers" primary={primary}>

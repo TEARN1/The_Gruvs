@@ -19,7 +19,7 @@ import { CategoryPickerModal } from './CategoryPickerModal';
 import { CompetitionPicker } from './CompetitionPicker';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
-import { CalendarPicker, TimePicker } from './DateTimePickers';
+import { CalendarPicker, TimePicker } from './DateTimePickers';
 import { useBackClose } from '../hooks/useBackClose';
 import { money } from '../constants/currencies';
 
@@ -49,6 +49,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [entryPrice, setEntryPrice] = useState('');
+  const [powerBackup, setPowerBackup] = useState(null);
   const [vipPrice, setVipPrice] = useState('');
   const [vvipPrice, setVvipPrice] = useState('');
   const [otherTickets, setOtherTickets] = useState('');
@@ -348,6 +349,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     // coords: only set if PostGIS available — computed from lat/lon
     if (lat && lon) payload.coords = `SRID=4326;POINT(${lon} ${lat})`;
     if (city.trim()) payload.city = city.trim();
+    if (powerBackup) payload.power_backup = powerBackup;
     if (pickedDate) {
       const y = pickedDate.getFullYear();
       const mo = String(pickedDate.getMonth() + 1).padStart(2, '0');
@@ -450,8 +452,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
           return data || true;
         },
         async () => {
-          // Tier 2: strip coords + schedule + categories array (may not be a DB column)
-          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, ...safePayload } = payload;
+          // Tier 2: strip columns that may not be migrated yet (coords/schedule/
+          // categories/end_date/power_backup), keeping everything else.
+          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, power_backup: _pb, ...safePayload } = payload;
           const { data, error } = await supabase.from('events').insert(safePayload).select().single();
           if (error) throw error;
           return data || true;
@@ -786,6 +789,25 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     value={city}
                     onChangeText={setCity}
                   />
+
+                  <Text style={[pm.label, { color: muted }]}>Power during load-shedding</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
+                    {[
+                      { key: 'grid', label: 'Grid only', icon: 'zap-off' },
+                      { key: 'generator', label: 'Generator', icon: 'zap' },
+                      { key: 'solar', label: 'Solar', icon: 'sun' },
+                      { key: 'ups', label: 'UPS / Inverter', icon: 'battery-charging' },
+                    ].map((o) => {
+                      const active = powerBackup === o.key;
+                      return (
+                        <TouchableOpacity key={o.key} onPress={() => setPowerBackup(active ? null : o.key)} activeOpacity={0.8}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, borderWidth: 1, borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}20` : 'transparent' }}>
+                          <Feather name={o.icon} size={12} color={active ? primary : muted} />
+                          <Text style={{ color: active ? primary : muted, fontSize: 12, fontWeight: '700' }}>{o.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
 
                   <Text style={[pm.label, { color: muted }]}>Contact Number (Optional)</Text>
                   <TextInput

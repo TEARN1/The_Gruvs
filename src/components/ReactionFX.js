@@ -48,7 +48,7 @@ const KEY_THEME = {
   cool: 'surge', up: 'surge', salute: 'surge',
   party: 'erupt', melt: 'erupt', bullseye: 'erupt',
   starstruck: 'royal', pray: 'royal', perfect: 'royal', lion: 'royal', sun: 'royal', cash: 'royal',
-  cheeky: 'laugh', secret: 'spooky', smirk: 'spooky', wolf: 'spooky',
+  cheeky: 'laugh', hush: 'spooky', smirk: 'spooky', wolf: 'spooky',
   hmm: 'cosmic', butterfly: 'cosmic', moon: 'cosmic',
 };
 

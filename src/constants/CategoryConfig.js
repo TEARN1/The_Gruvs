@@ -126,7 +126,7 @@ export const REACTION_LIST = [
   { key: 'salute',    emoji: '🫡', label: 'Salute' },
   { key: 'wink',      emoji: '😉', label: 'Wink' },
   { key: 'cheeky',    emoji: '😜', label: 'Cheeky' },
-  { key: 'secret',    emoji: '🤫', label: 'Secret' },
+  { key: 'hush',      emoji: '🤫', label: 'Secret' },
   { key: 'hmm',       emoji: '🤔', label: 'Hmm' },
   { key: 'smirk',     emoji: '😏', label: 'Smirk' },
   { key: 'melt',      emoji: '🫠', label: 'Melt' },
