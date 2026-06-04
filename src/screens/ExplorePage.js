@@ -379,9 +379,31 @@ const nv = StyleSheet.create({
   dist: { fontSize: 9, fontWeight: '900' },
 });
 
+// Relative "starts soon" urgency label for tiles — computed once per render (no
+// per-second ticking, so it's cheap inside horizontal scrolls). Only returns a
+// value inside a 7-day window; far-off events get no pill. The live ticking
+// clock lives on EventDetailScreen.
+const startsInLabel = (event) => {
+  if (!event?.event_date) return null;
+  const start = new Date(`${event.event_date}${event.event_time ? 'T' + event.event_time : 'T00:00:00'}`);
+  if (isNaN(start.getTime())) return null;
+  const diff = start.getTime() - Date.now();
+  if (diff < -3 * 3600000) return null;            // ended (>3h ago) — drop it
+  if (diff <= 0) return { text: 'LIVE', live: true };
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return { text: `in ${mins}m`, soon: true };
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return { text: `in ${hrs}h`, soon: hrs < 6 };
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return { text: 'Tomorrow' };
+  if (days <= 6) return { text: `in ${days}d` };
+  return null;
+};
+
 // ── Compact event tile for horizontal scrolls ─────────────────────────────────
 const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false }) => {
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
+  const starts = startsInLabel(event);
   const thumb = event.media?.[0]?.url || (typeof event.media?.[0] === 'string' ? event.media[0] : null) || null;
     const isWeb = Platform.OS === 'web';
     return (
@@ -404,6 +426,12 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
         </View>
         {isHot && <HotBadge compact style={et.hotBadge} />}
       <View style={et.info}>
+        {starts && (
+          <View style={[et.startPill, { backgroundColor: starts.live ? '#ef4444' : starts.soon ? `${primary}E0` : 'rgba(0,0,0,0.55)' }]}>
+            {starts.live ? <View style={et.liveDot} /> : <Feather name="clock" size={9} color="#fff" />}
+            <Text style={et.startText}>{starts.text}</Text>
+          </View>
+        )}
         <Text style={et.title} numberOfLines={2}>{event.title}</Text>
         <View style={et.meta}>
           <Feather name="zap" size={10} color="rgba(255,255,255,0.8)" />
@@ -422,6 +450,9 @@ const et = StyleSheet.create({
   catText: { fontSize: 14 },
   hotBadge: { position: 'absolute', top: 10, right: 10 },
   info: { position: 'absolute', bottom: 12, left: 12, right: 12 },
+  startPill: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, marginBottom: 6 },
+  startText: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' },
   title: { fontSize: 13, fontWeight: '800', color: '#fff', marginBottom: 6, lineHeight: 17 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
