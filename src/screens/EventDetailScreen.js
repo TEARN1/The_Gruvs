@@ -57,7 +57,7 @@ import { SportManagementPanel }   from '../components/SportManagementPanel';
 import { EventGuestsModal }       from '../components/EventGuestsModal';
 import { PlayerProfileModal }     from '../components/PlayerProfileModal';
 import { MatchPredictionCard }    from '../components/MatchPredictionCard';
-import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
+import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
 import { useBackClose } from '../hooks/useBackClose';
 import { money } from '../constants/currencies';
 
@@ -133,6 +133,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [rsvpStatus, setRsvpStatus] = useState(null);
   const [rsvpFx, setRsvpFx] = useState(0);
   const [checkinFx, setCheckinFx] = useState(0);
+  const [secretFx, setSecretFx] = useState(0);
+  const prevRevealedRef = useRef(false);
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -238,6 +240,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       .catch(() => {});
     return () => { cancelled = true; };
   }, [event?.id, event?.lat, event?.lon, event?.event_date]);
+
+  // Fire a glitter flourish the moment the secret headliner unlocks.
+  useEffect(() => {
+    if (!event?.secret_act) return;
+    const revealed = goingCount >= (event.secret_reveal_threshold || 25);
+    if (revealed && !prevRevealedRef.current) setSecretFx(Date.now());
+    prevRevealedRef.current = revealed;
+  }, [goingCount, event?.secret_act, event?.secret_reveal_threshold]);
 
   const fetchUserState = useCallback(async () => {
     if (!user || !event?.id) return;
@@ -907,6 +917,35 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <CrowdMeter eventId={event.id} primary={primary} textColor={textColor} muted={textMuted} surface={surface} onAuthRequired={onAuthRequired} />
             </View>
           )}
+
+          {!!event?.secret_act && (() => {
+            const threshold = event.secret_reveal_threshold || 25;
+            const revealed = goingCount >= threshold;
+            const toGo = Math.max(0, threshold - goingCount);
+            const pct = Math.min(100, Math.round((goingCount / threshold) * 100));
+            return (
+              <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+                <View style={{ borderWidth: 1, borderColor: revealed ? '#fbbf24' : `${primary}30`, borderRadius: 16, padding: 14, backgroundColor: surface, position: 'relative', overflow: 'hidden' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <Feather name={revealed ? 'star' : 'lock'} size={14} color={revealed ? '#fbbf24' : primary} />
+                    <Text style={{ color: textColor, fontWeight: '900', fontSize: 13 }}>{revealed ? 'Headliner revealed' : 'Secret headliner'}</Text>
+                  </View>
+                  {revealed ? (
+                    <Text style={{ color: '#fbbf24', fontWeight: '900', fontSize: 20 }}>🎤 {event.secret_act}</Text>
+                  ) : (
+                    <>
+                      <Text style={{ color: textColor, fontWeight: '900', fontSize: 20, letterSpacing: 4 }}>▓▓▓▓▓▓</Text>
+                      <View style={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginTop: 10 }}>
+                        <View style={{ height: 6, width: `${pct}%`, backgroundColor: primary }} />
+                      </View>
+                      <Text style={{ color: textMuted, fontSize: 11, marginTop: 6 }}>{goingCount}/{threshold} RSVPs · {toGo} more to reveal</Text>
+                    </>
+                  )}
+                  {revealed && <GlitterBurst trigger={secretFx} size={150} colors={['#fbbf24', '#fde047', '#ffffff', '#f0abfc']} />}
+                </View>
+              </View>
+            );
+          })()}
 
           {event?.rsvp_tiers?.length > 0 && (
             <SafeSection label="VIP Tiers" primary={primary}>

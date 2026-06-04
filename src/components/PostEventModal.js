@@ -50,6 +50,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [contactEmail, setContactEmail] = useState('');
   const [entryPrice, setEntryPrice] = useState('');
   const [powerBackup, setPowerBackup] = useState(null);
+  const [secretAct, setSecretAct] = useState('');
+  const [revealThreshold, setRevealThreshold] = useState('');
   const [vipPrice, setVipPrice] = useState('');
   const [vvipPrice, setVvipPrice] = useState('');
   const [otherTickets, setOtherTickets] = useState('');
@@ -350,6 +352,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (lat && lon) payload.coords = `SRID=4326;POINT(${lon} ${lat})`;
     if (city.trim()) payload.city = city.trim();
     if (powerBackup) payload.power_backup = powerBackup;
+    if (secretAct.trim()) { payload.secret_act = secretAct.trim(); payload.secret_reveal_threshold = parseInt(revealThreshold) || 25; }
     if (pickedDate) {
       const y = pickedDate.getFullYear();
       const mo = String(pickedDate.getMonth() + 1).padStart(2, '0');
@@ -454,7 +457,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         async () => {
           // Tier 2: strip columns that may not be migrated yet (coords/schedule/
           // categories/end_date/power_backup), keeping everything else.
-          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, power_backup: _pb, ...safePayload } = payload;
+          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, power_backup: _pb, secret_act: _sa, secret_reveal_threshold: _srt, ...safePayload } = payload;
           const { data, error } = await supabase.from('events').insert(safePayload).select().single();
           if (error) throw error;
           return data || true;
@@ -808,6 +811,25 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                       );
                     })}
                   </View>
+
+                  <Text style={[pm.label, { color: muted }]}>Secret headliner (optional)</Text>
+                  <TextInput
+                    style={[pm.input, { color: textColor, borderColor: `${primary}35` }]}
+                    placeholder="Hidden act — unlocks when RSVPs hit a target"
+                    placeholderTextColor={muted}
+                    value={secretAct}
+                    onChangeText={setSecretAct}
+                  />
+                  {secretAct.trim().length > 0 && (
+                    <TextInput
+                      style={[pm.input, { color: textColor, borderColor: `${primary}35` }]}
+                      placeholder="Reveal at how many RSVPs? (default 25)"
+                      placeholderTextColor={muted}
+                      value={revealThreshold}
+                      onChangeText={(t) => setRevealThreshold(t.replace(/[^0-9]/g, ''))}
+                      keyboardType="numeric"
+                    />
+                  )}
 
                   <Text style={[pm.label, { color: muted }]}>Contact Number (Optional)</Text>
                   <TextInput

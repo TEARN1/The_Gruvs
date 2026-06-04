@@ -904,6 +904,23 @@ export const TrendingManager = {
     return [];
   },
 
+  // Set of event IDs that are "turning up" right now — recent engagement
+  // velocity well above their city baseline (see get_hot_event_ids SQL).
+  // Returns a Set for O(1) lookup per tile; empty Set if not deployed yet.
+  async fetchHotIds() {
+    const cacheKey = 'hot_event_ids';
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase.rpc('get_hot_event_ids');
+      const ids = new Set((data || []).map((r) => r.event_id));
+      cache.set(cacheKey, ids, 120000); // 2 min — it's a "right now" signal
+      return ids;
+    } catch {
+      return new Set(); // function not migrated / offline
+    }
+  },
+
   async fetchHappeningNow() {
     const cacheKey = 'happening_now';
     const cached = cache.get(cacheKey);

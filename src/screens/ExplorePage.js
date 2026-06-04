@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FadeInView } from '../components/FadeInView';
+import { HotBadge } from '../components/HotBadge';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { TalentLeaderboardModal } from '../components/TalentLeaderboardModal';
@@ -379,7 +380,7 @@ const nv = StyleSheet.create({
 });
 
 // ── Compact event tile for horizontal scrolls ─────────────────────────────────
-const EventTile = ({ event, primary, textColor, muted, onPress }) => {
+const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false }) => {
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
   const thumb = event.media?.[0]?.url || (typeof event.media?.[0] === 'string' ? event.media[0] : null) || null;
     const isWeb = Platform.OS === 'web';
@@ -401,6 +402,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress }) => {
         <View style={[et.catBadge, { backgroundColor: catColor, ...(isWeb ? { boxShadow: `0 0 10px ${catColor}80` } : {}) }]}>
           <Text style={et.catText}>{CATEGORY_CONFIG[event.category]?.icon || '🎭'}</Text>
         </View>
+        {isHot && <HotBadge compact style={et.hotBadge} />}
       <View style={et.info}>
         <Text style={et.title} numberOfLines={2}>{event.title}</Text>
         <View style={et.meta}>
@@ -418,6 +420,7 @@ const et = StyleSheet.create({
   overlay: StyleSheet.absoluteFillObject,
   catBadge: { position: 'absolute', top: 10, left: 10, width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   catText: { fontSize: 14 },
+  hotBadge: { position: 'absolute', top: 10, right: 10 },
   info: { position: 'absolute', bottom: 12, left: 12, right: 12 },
   title: { fontSize: 13, fontWeight: '800', color: '#fff', marginBottom: 6, lineHeight: 17 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -464,6 +467,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [photoViewerVisible, setPhotoViewerVisible] = useState(false);
   const [happeningNow, setHappeningNow] = useState([]);
   const [trendingEvents, setTrendingEvents] = useState([]);
+  const [hotIds, setHotIds] = useState(() => new Set());
   const [nearbyVibers, setNearbyVibers] = useState([]);
   const [categoryCounts, setCategoryCounts] = useState({});
   const [nearbyEvents, setNearbyEvents] = useState([]);
@@ -524,11 +528,13 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [trendingRes, happeningRes, countsRes] = await Promise.allSettled([
+      const [trendingRes, happeningRes, countsRes, hotRes] = await Promise.allSettled([
         TrendingManager.fetch(8),
         TrendingManager.fetchHappeningNow(),
         TrendingManager.fetchCategoryCounts(),
+        TrendingManager.fetchHotIds(),
       ]);
+      setHotIds(hotRes.status === 'fulfilled' ? hotRes.value : new Set());
 
       // Gallery: pull from ALL photo sources across the platform
       setGalleryLoading(true);
@@ -1099,7 +1105,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                       <View key={ev.id} style={[et.wrap, { backgroundColor: `${primary}10` }]} />
                     ) : (
                       <FadeInView key={ev.id} delay={i * 40} direction="right">
-                        <EventTile event={ev} primary={primary} textColor={textColor} muted={muted} onPress={() => onNavigateToEvent && onNavigateToEvent(ev)} />
+                        <EventTile event={ev} primary={primary} textColor={textColor} muted={muted} isHot={hotIds.has(ev.id)} onPress={() => onNavigateToEvent && onNavigateToEvent(ev)} />
                       </FadeInView>
                     )
                   ))}
@@ -1141,6 +1147,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                           primary={primary}
                           textColor={textColor}
                           muted={muted}
+                          isHot={hotIds.has(ev.id)}
                           onPress={() => onNavigateToEvent && onNavigateToEvent(ev)}
                         />
                       </FadeInView>
