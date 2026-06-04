@@ -5,10 +5,7 @@
  */
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { safeOpenExternal } from '../utils/sanitize';
-import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList,
-  Image, ActivityIndicator, Modal, Animated, Linking, Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Image, ActivityIndicator, Modal, Animated, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';

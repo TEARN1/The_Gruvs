@@ -6,7 +6,6 @@
  * They pay with Contribution, Integrity, and Vibe-Equity.
  */
 import { supabase } from './supabase';
-import { VibeEquityLedger } from './vibeEquityLedger';
 // Deferred import to break circular dep with dataFlow.js
 let _IntelligenceMonitor = null;
 const getIM = () => {

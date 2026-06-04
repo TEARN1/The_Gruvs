@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
-import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { EscrowService } from '../services/escrowService';
 import { useTheme } from '../context/ThemeContext';

@@ -6,7 +6,7 @@
  */
 
 import { supabase, isSupabaseEnabled } from './supabase';
-import { resilient, resilientRead, resilientWrite, attemptWithBackoff } from '../utils/resilience';
+import { resilient, resilientRead } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
 import { log } from '../utils/log';
 import { ALL_CATEGORIES } from '../constants/AllCategories';
@@ -14,7 +14,6 @@ import { LocationService } from './locationService';
 import { SecurityService } from './securityService';
 import { VibeEquityLedger } from './vibeEquityLedger';
 import { VibeEconomyEngine } from './revenueEngine';
-import projectDNA from './projectDNA.json';
 import { NotificationService } from './notificationService';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────

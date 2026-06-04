@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
 const MIME_MAP = {

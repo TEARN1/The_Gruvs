@@ -10,7 +10,7 @@
  *   - Screen brightness control (dim for QR scan)
  */
 
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Calendar from 'expo-calendar';
 import * as MediaLibrary from 'expo-media-library';

@@ -15,19 +15,10 @@
  * Uses eventManagementEngine for all DB operations.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, ActivityIndicator, Modal, Image, Alert, Platform,
-  KeyboardAvoidingView, Animated,
-} from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import {
-  getEventMgmtConfig,
-  LineupManager, StageManager, SetlistManager,
-  SessionManager, VendorManager, HackTeamManager,
-  JudgeScoreManager, LiveUpdatesManager,
-} from '../services/eventManagementEngine';
+import { getEventMgmtConfig, LineupManager, StageManager, SessionManager, VendorManager, HackTeamManager, LiveUpdatesManager } from '../services/eventManagementEngine';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { supabase } from '../services/supabase';

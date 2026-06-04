@@ -1,8 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import {
-  View, Image, StyleSheet, Text, FlatList, TouchableOpacity,
-  Dimensions, Animated, Platform,
-} from 'react-native';
+import { View, StyleSheet, Text, FlatList, TouchableOpacity, Dimensions, Animated, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { AutoPlayVideo } from './AutoPlayVideo';
 import { SmartImage } from './SmartImage';

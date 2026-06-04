@@ -3,10 +3,7 @@
  * atomic single/multi-choice voting, real-time result updates.
  */
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
-  Animated, ActivityIndicator, Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Animated, ActivityIndicator, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';

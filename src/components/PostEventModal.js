@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useDraft } from '../hooks/useDraft';
 import {
   Modal, View, Text, StyleSheet, TextInput,

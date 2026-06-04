@@ -6,9 +6,7 @@
  * Booking is stored in event_rsvps with a tier_id column.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';

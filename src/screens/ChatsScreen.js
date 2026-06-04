@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import {
-  View, Text, FlatList, TouchableOpacity, Image,
-  StyleSheet, RefreshControl, TextInput, BackHandler, Platform, Animated,
-} from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, TextInput, BackHandler, Platform, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';

@@ -5,7 +5,7 @@
  * event_rsvps + event_vibes + event_checkins joined with follows.
  * Renders a compact scrollable strip — shown on LandingPage feed header.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Image, ActivityIndicator,

@@ -1,12 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity, Image, StyleSheet,
-  Platform, Linking, Share, Animated, Modal, Dimensions, RefreshControl,
-} from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
@@ -19,11 +15,11 @@ import { CrowdMeter } from '../components/CrowdMeter';
 import { EVENT_TAG_MAP } from '../constants/EventTags';
 import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
-import { supabase, isSupabaseEnabled } from '../services/supabase';
-import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, ScoreEngine, VibeManager } from '../services/dataFlow';
+import { supabase } from '../services/supabase';
+import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, VibeManager } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
-import { DeviceCalendar, MediaSave, RichHaptics } from '../services/smartphoneFeatures';
+import { DeviceCalendar, RichHaptics } from '../services/smartphoneFeatures';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
 import { useEventRole } from '../hooks/useEventRole';

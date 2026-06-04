@@ -3,23 +3,19 @@
  * Tabs: Overview · Store · Campaigns · Audience · Analytics · Finance · Ecosystem
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Animated,
-  TextInput, ActivityIndicator, RefreshControl, Dimensions, Modal, Switch, Platform,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Animated, TextInput, ActivityIndicator, RefreshControl, Dimensions, Modal } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { supabase } from '../services/supabase';
 import { resilientRead, resilient } from '../utils/resilience';
 import { GlassView } from '../components/GlassView';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
-import { haptics } from '../utils/haptics';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
-import { CampaignManager, EcosystemManager, NotificationManager, AnalyticsManager } from '../services/dataFlow';
+import { CampaignManager, EcosystemManager, NotificationManager } from '../services/dataFlow';
 import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { money } from '../constants/currencies';

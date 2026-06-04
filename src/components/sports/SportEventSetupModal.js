@@ -13,10 +13,7 @@ import {
   StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import {
-  SPORT_REGISTRY, SPORT_KEYS, SportConfig,
-  TeamManager, AthleteManager, MatchManager,
-} from '../../services/sportsEngine';
+import { SPORT_REGISTRY, SPORT_KEYS, SportConfig, TeamManager, MatchManager } from '../../services/sportsEngine';
 import { MembershipManager, ClubManager } from '../../services/clubEngine';
 import { useBackClose } from '../../hooks/useBackClose';
 

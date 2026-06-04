@@ -8,9 +8,7 @@
  *   <HackathonLeaderboard eventId={id} />
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Animated,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';

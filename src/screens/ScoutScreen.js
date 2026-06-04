@@ -14,7 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { LocationService } from '../services/locationService';
 import { DiscoveryManager, UserManager, CAT_KEY_TO_SUBCATS } from '../services/dataFlow';
-import { resilientRead, resilient } from '../utils/resilience';
+import { resilientRead } from '../utils/resilience';
 import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { EventMapView } from '../components/EventMapView';

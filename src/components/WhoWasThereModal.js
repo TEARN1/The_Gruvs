@@ -1,8 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, Modal, TouchableOpacity, FlatList,
-  ActivityIndicator, Platform, TextInput, ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, Platform, TextInput, ScrollView } from 'react-native';
 import { SmartImage } from './SmartImage';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

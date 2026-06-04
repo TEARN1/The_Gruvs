@@ -9,7 +9,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Modal,
   ScrollView, Image, Dimensions, Platform,
 } from 'react-native';
-import Svg, { Line, Path } from 'react-native-svg';
+import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';

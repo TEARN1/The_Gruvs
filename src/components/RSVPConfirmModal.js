@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-import { Platform } from 'react-native';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';

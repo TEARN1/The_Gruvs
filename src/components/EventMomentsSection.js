@@ -16,7 +16,7 @@ import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { uploadToStorage } from '../services/storageService';
-import { resilient } from '../utils/resilience';
+
 import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW, height: SH } = Dimensions.get('window');

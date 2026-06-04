@@ -20,7 +20,7 @@ import { SmartImage } from '../components/SmartImage';
 import { MediaViewer } from '../components/MediaViewer';
 import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
 import { resilientRead } from '../utils/resilience';
-import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { supabase } from '../services/supabase';
 import { LocationService } from '../services/locationService';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
@@ -29,7 +29,6 @@ import { ScoutScreen } from './ScoutScreen';
 import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 import { WhoWasThereModal } from '../components/WhoWasThereModal';
 import { TutorialCenter } from '../components/TutorialCenter';
-import { BREAKPOINT } from '../constants/DesignTokens';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const { width } = Dimensions.get('window');

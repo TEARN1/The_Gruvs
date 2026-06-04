@@ -18,10 +18,7 @@ import {
   ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import {
-  SPORT_REGISTRY, TeamManager, MatchManager,
-  TableManager, CommentaryManager, SportConfig,
-} from '../services/sportsEngine';
+import { SPORT_REGISTRY, TeamManager, MatchManager, TableManager, CommentaryManager } from '../services/sportsEngine';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';

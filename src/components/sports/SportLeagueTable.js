@@ -4,8 +4,7 @@
  * Highlights top N promotion spots and bottom N relegation spots.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, StyleSheet } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { View, Text, TouchableOpacity, ActivityIndicator, Image, StyleSheet } from 'react-native';
 import { TableManager, SportConfig, SPORT_REGISTRY } from '../../services/sportsEngine';
 import { supabase } from '../../services/supabase';
 

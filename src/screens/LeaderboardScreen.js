@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Modal, View, Text, StyleSheet, TouchableOpacity, FlatList,
-  ActivityIndicator, RefreshControl, SafeAreaView, Image, Animated,
-} from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl, SafeAreaView, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { GlassView } from '../components/GlassView';
 import { supabase } from '../services/supabase';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SmartImage } from '../components/SmartImage';

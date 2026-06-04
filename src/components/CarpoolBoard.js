@@ -3,12 +3,8 @@
  * Tables: event_carpools, event_carpool_requests
  * Realtime: seat count updates + request status lifecycle
  */
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput,
-  ScrollView, ActivityIndicator, Modal, Animated, Pressable,
-  Platform, Alert, FlatList,
-} from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Modal, Animated, Pressable, FlatList } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';

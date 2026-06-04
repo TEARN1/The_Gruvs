@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image,
-  Animated, Linking, RefreshControl, ScrollView, TextInput,
-  Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,7 +14,7 @@ import { FadeInView } from '../components/FadeInView';
 import { BrandLogo } from '../components/BrandLogo';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { SearchHistoryBar, saveSearch } from '../components/SearchHistoryBar';
-import { DateFilterStrip, dateFilterToRange } from '../components/DateFilterStrip';
+import { DateFilterStrip } from '../components/DateFilterStrip';
 import { HashtagStrip } from '../components/HashtagStrip';
 import { useIdentity } from '../context/IdentityContext';
 import { SafeSection } from '../components/SafeSection';
@@ -27,12 +23,11 @@ import { thumb } from '../utils/storageThumb';
 import { SecurityService } from '../services/securityService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ShakeDetector, RichHaptics } from '../services/smartphoneFeatures';
-import { FeedManager, TrendingManager, VibeManager, BookmarkManager, FollowingFeedManager, ScoreEngine, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
+import { FeedManager, TrendingManager, VibeManager, BookmarkManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
-import { FONT, RADIUS } from '../constants/DesignTokens';
-import { SkeletonCard as SkeletonCardImported } from '../components/SkeletonCard';
+import { FONT } from '../constants/DesignTokens';
 import { CommunityStatsBar } from '../components/CommunityStatsBar';
 import { TonightAlert } from '../components/TonightAlert';
 import { StoriesRow } from '../components/StoriesRow';
@@ -40,7 +35,6 @@ import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
-import { haptics } from '../utils/haptics';
 import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PresenceBar } from '../components/PresenceBar';
@@ -52,7 +46,6 @@ import { EventGallery } from '../components/EventGallery';
 import { ReactPicker } from '../components/ReactPicker';
 import { GlitterBurst } from '../components/GlitterBurst';
 import { SuggestedFollows } from '../components/SuggestedFollows';
-import { ReactedBadge } from '../components/ReactionFX';
 
 // ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
 import { PostEventModal }       from '../components/PostEventModal';

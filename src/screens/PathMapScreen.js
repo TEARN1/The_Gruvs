@@ -4,10 +4,7 @@
  * paths between them, intersection highlights, crossings, and stats.
  */
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView,
-  Animated, RefreshControl, Dimensions, Image, Platform, TextInput,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Animated, RefreshControl, Dimensions, Image, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';

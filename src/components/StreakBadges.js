@@ -7,7 +7,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 
 const BADGES = [

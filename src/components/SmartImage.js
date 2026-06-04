@@ -8,7 +8,7 @@
  * Usage: identical to <Image source={{ uri }} style={...} />
  */
 import React, { useState } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 

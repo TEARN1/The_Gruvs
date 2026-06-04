@@ -14,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
-import { UserManager, GeoUtils } from '../services/dataFlow';
+import { GeoUtils } from '../services/dataFlow';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 

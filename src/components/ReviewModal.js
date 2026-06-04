@@ -8,7 +8,6 @@ import {
   TouchableOpacity, ActivityIndicator, Platform, KeyboardAvoidingView
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
