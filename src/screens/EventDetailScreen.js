@@ -16,6 +16,7 @@ import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { WeatherService } from '../services/weatherService';
 import { GlitterBurst } from '../components/GlitterBurst';
 import { CrowdMeter } from '../components/CrowdMeter';
+import { EVENT_TAG_MAP } from '../constants/EventTags';
 import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
@@ -693,6 +694,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 color="#f59e0b"
               />
             )}
+            {(event?.tags || []).map((key) => {
+              const t = EVENT_TAG_MAP[key];
+              if (!t) return null;
+              return (
+                <View key={key} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: `${t.color}55`, backgroundColor: `${t.color}1a` }}>
+                  <Text style={{ fontSize: 11 }}>{t.emoji}</Text>
+                  <Text style={{ color: t.color, fontSize: 11, fontWeight: '700' }}>{t.label}</Text>
+                </View>
+              );
+            })}
             {!!event?.contact_phone && (
               <TouchableOpacity onPress={() => SecurityService.safeOpenURL(`tel:${event.contact_phone}`)}>
                 <MetaChip icon="phone" label={event.contact_phone} color={primary} pressable />
