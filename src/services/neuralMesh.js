@@ -49,8 +49,7 @@ export const NeuralMesh = {
 
   async initiateTechnicalSingularity() {
     const timestamp = new Date().toLocaleTimeString();
-    console.log(`[NeuralMesh] [${timestamp}] Initiating local Technical Singularity...`);
-    
+
     const manifest = `[TECHNICAL SINGULARITY MANIFEST]
 1. CNS Optimization: dataFlow.js caching layers active.
 2. Zero-Trust Hardening: RLS policies restricting lat/lon columns.
@@ -66,8 +65,7 @@ Singularity achieved successfully in 0.02s (local loop).`;
 
   async performCoronation() {
     const timestamp = new Date().toLocaleTimeString();
-    console.log(`[NeuralMesh] [${timestamp}] Running local Coronation protocol...`);
-    
+
     // Update DNA state
     projectDNA.version = "Sovereign-1.0";
     if (!projectDNA.topology.core.includes("CORONATION_SEAL_ACTIVE")) {
