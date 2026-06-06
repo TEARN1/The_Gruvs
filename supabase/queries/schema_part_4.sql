@@ -346,6 +346,262 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS writing_style TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS theme_id TEXT;
 
 -- ============================================================
+--  PATCHES 01–11  (folded from the old standalone files, which
+--  were deleted 2026-06-05). 03 (match_card) / 07 (crowd_votes)
+--  / 11 (events_tags) already live in schema_part_1, so only the
+--  un-folded ones are here. Runs after parts 1–3, so all
+--  referenced tables/functions exist. Idempotent.
+-- ============================================================
+
+-- ── 01: security hardening ──────────────────────────────────
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE CREATE ON SCHEMA public FROM anon;
+REVOKE CREATE ON SCHEMA public FROM authenticated;
+
+CREATE OR REPLACE VIEW public.public_profiles AS
+SELECT
+  p.id, p.username, p.display_name, p.avatar_url, p.bio, p.location, p.role,
+  p.vibe_score, p.followers_count, p.following_count, p.xp, p.badges, p.verified,
+  p.show_online,
+  CASE WHEN p.show_online THEN p.last_seen ELSE NULL END AS last_seen,
+  p.updated_at
+FROM public.profiles p;
+GRANT SELECT ON public.public_profiles TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.upsert_own_profile(
+  p_display_name TEXT DEFAULT NULL, p_username TEXT DEFAULT NULL, p_bio TEXT DEFAULT NULL,
+  p_location TEXT DEFAULT NULL, p_avatar_url TEXT DEFAULT NULL, p_cover_url TEXT DEFAULT NULL,
+  p_show_online BOOLEAN DEFAULT NULL, p_share_events BOOLEAN DEFAULT NULL
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  UPDATE public.profiles SET
+    display_name = COALESCE(p_display_name, display_name),
+    username     = COALESCE(p_username,     username),
+    bio          = COALESCE(p_bio,          bio),
+    location     = COALESCE(p_location,     location),
+    avatar_url   = COALESCE(p_avatar_url,   avatar_url),
+    cover_url    = COALESCE(p_cover_url,    cover_url),
+    show_online  = COALESCE(p_show_online,  show_online),
+    share_events = COALESCE(p_share_events, share_events),
+    updated_at   = now()
+  WHERE id = auth.uid();
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.check_rate_limit(
+  p_action TEXT, p_window_seconds INTEGER DEFAULT 60, p_max_calls INTEGER DEFAULT 30
+) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO v_count FROM public.security_logs
+  WHERE user_id = auth.uid() AND action = p_action
+    AND created_at > now() - (p_window_seconds || ' seconds')::interval;
+  RETURN v_count < p_max_calls;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.log_security_event(
+  p_action TEXT, p_details JSONB DEFAULT '{}'
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.security_logs (user_id, action, details)
+  VALUES (auth.uid(), p_action, p_details);
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_blocked_users_user    ON public.blocked_users(user_id);
+CREATE INDEX IF NOT EXISTS idx_blocked_users_blocked ON public.blocked_users(blocked_id);
+CREATE INDEX IF NOT EXISTS idx_muted_users_user      ON public.muted_users(user_id);
+CREATE INDEX IF NOT EXISTS idx_muted_users_muted     ON public.muted_users(muted_id);
+
+CREATE OR REPLACE FUNCTION public.assert_admin()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'ADMIN_REQUIRED';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.set_user_role(p_user_id UUID, p_role TEXT)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  PERFORM public.assert_admin();
+  IF p_role NOT IN ('user','host','vendor','moderator','admin') THEN
+    RAISE EXCEPTION 'INVALID_ROLE';
+  END IF;
+  UPDATE public.profiles SET role = p_role WHERE id = p_user_id;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.user_suspensions (
+  user_id      UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+  reason       TEXT NOT NULL,
+  expires_at   TIMESTAMPTZ,
+  suspended_by UUID NOT NULL REFERENCES public.profiles(id),
+  created_at   TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.user_suspensions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "suspensions_admin" ON public.user_suspensions;
+CREATE POLICY "suspensions_admin" ON public.user_suspensions FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Grants are wrapped: only granted if the target function exists, so a fresh
+-- build never errors on a not-yet-created RPC.
+DO $$
+DECLARE fn TEXT;
+BEGIN
+  FOREACH fn IN ARRAY ARRAY[
+    'upsert_own_profile','check_rate_limit','log_security_event','secure_check_in',
+    'upsert_rsvp_tier','generate_ticket_token','increment_wallet_balance',
+    'update_sis_score','refresh_trending_events'
+  ] LOOP
+    IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = fn) THEN
+      EXECUTE format('GRANT EXECUTE ON FUNCTION public.%I TO authenticated', fn);
+    END IF;
+  END LOOP;
+END $$;
+
+-- ── 02: reels metadata + visibility columns ─────────────────
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS metadata   JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS visibility TEXT  DEFAULT 'public';
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'reels_visibility_check' AND conrelid = 'public.reels'::regclass
+  ) THEN
+    ALTER TABLE public.reels ADD CONSTRAINT reels_visibility_check
+      CHECK (visibility IN ('public','private','attendees'));
+  END IF;
+END $$;
+UPDATE public.reels SET visibility = 'public'     WHERE visibility IS NULL;
+UPDATE public.reels SET metadata   = '{}'::jsonb  WHERE metadata IS NULL;
+
+-- ── 04: backfill match_card (one-time DML; guarded so a fresh DB
+--        without the sport tables/columns can never break the build) ─
+DO $$
+BEGIN
+  IF to_regclass('public.sport_teams') IS NOT NULL
+     AND to_regclass('public.sport_matches') IS NOT NULL THEN
+    EXECUTE $bf$
+      WITH t AS (
+        SELECT event_id, count(*) AS n,
+          (array_agg(jsonb_build_object('id', id, 'name', name, 'logo_url', logo_url, 'color', color1) ORDER BY position NULLS LAST, name))[1] AS home,
+          (array_agg(jsonb_build_object('id', id, 'name', name, 'logo_url', logo_url, 'color', color1) ORDER BY position NULLS LAST, name))[2] AS away
+        FROM public.sport_teams GROUP BY event_id
+      )
+      UPDATE public.events e SET match_card = jsonb_build_object('home', t.home, 'away', t.away)
+      FROM t WHERE t.event_id = e.id AND t.n = 2 AND e.match_card IS NULL;
+    $bf$;
+    EXECUTE $bf$
+      WITH single AS (
+        SELECT sm.event_id, sm.home_team_id, sm.away_team_id, sm.home_score, sm.away_score,
+               sm.home_score_pens, sm.away_score_pens, sm.status, sm.scheduled_at
+        FROM public.sport_matches sm
+        WHERE (SELECT count(*) FROM public.sport_matches x WHERE x.event_id = sm.event_id) = 1
+      ),
+      crest AS (
+        SELECT id, jsonb_build_object('id', id, 'name', name, 'logo_url', logo_url, 'color', color1) AS j
+        FROM public.sport_teams
+      )
+      UPDATE public.events e
+      SET match_card =
+            jsonb_build_object('home', h.j, 'away', a.j, 'status', s.status, 'scheduled_at', s.scheduled_at)
+         || CASE WHEN s.status IN ('live','completed','half_time')
+                 THEN jsonb_build_object('home_score', coalesce(s.home_score,0), 'away_score', coalesce(s.away_score,0))
+                 ELSE '{}'::jsonb END
+         || CASE WHEN s.home_score_pens IS NOT NULL AND s.away_score_pens IS NOT NULL
+                 THEN jsonb_build_object('home_score_pens', s.home_score_pens, 'away_score_pens', s.away_score_pens)
+                 ELSE '{}'::jsonb END
+      FROM single s JOIN crest h ON h.id = s.home_team_id JOIN crest a ON a.id = s.away_team_id
+      WHERE e.id = s.event_id;
+    $bf$;
+  END IF;
+EXCEPTION WHEN undefined_column OR undefined_table THEN
+  RAISE NOTICE 'match_card backfill skipped (sport schema not present)';
+END $$;
+
+-- ── 05: reel visibility enforced via RLS ────────────────────
+ALTER TABLE public.reels ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "reels_select_all"               ON public.reels;
+DROP POLICY IF EXISTS "reels are viewable"             ON public.reels;
+DROP POLICY IF EXISTS "reels_public_read"              ON public.reels;
+DROP POLICY IF EXISTS "Reels are viewable by everyone" ON public.reels;
+DROP POLICY IF EXISTS "reels_select_visibility"        ON public.reels;
+CREATE POLICY "reels_select_visibility" ON public.reels FOR SELECT
+USING (
+  coalesce(visibility, 'public') = 'public'
+  OR user_id = auth.uid()
+  OR (visibility = 'attendees' AND event_id IS NOT NULL AND EXISTS (
+        SELECT 1 FROM public.event_rsvps r WHERE r.event_id = reels.event_id AND r.user_id = auth.uid()))
+);
+DROP POLICY IF EXISTS "reels_insert_own" ON public.reels;
+CREATE POLICY "reels_insert_own" ON public.reels FOR INSERT WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "reels_update_own" ON public.reels;
+CREATE POLICY "reels_update_own" ON public.reels FOR UPDATE USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "reels_delete_own" ON public.reels;
+CREATE POLICY "reels_delete_own" ON public.reels FOR DELETE USING (user_id = auth.uid());
+
+-- ── 06: load-shedding power backup ──────────────────────────
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS power_backup TEXT;
+CREATE INDEX IF NOT EXISTS idx_events_power_backup ON public.events (power_backup) WHERE power_backup IS NOT NULL;
+
+-- ── 08: trending HOT velocity radar ─────────────────────────
+CREATE INDEX IF NOT EXISTS idx_rsvps_created ON public.event_rsvps (created_at);
+CREATE INDEX IF NOT EXISTS idx_vibes_created ON public.event_vibes (created_at);
+CREATE OR REPLACE FUNCTION public.get_hot_event_ids()
+RETURNS TABLE (event_id uuid)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  WITH recent AS (
+    SELECT e.id, e.city, COALESCE(r.cnt,0) + COALESCE(v.cnt,0) AS vel
+    FROM public.events e
+    LEFT JOIN (SELECT event_id, COUNT(*) AS cnt FROM public.event_rsvps WHERE created_at > now() - interval '60 minutes' GROUP BY event_id) r ON r.event_id = e.id
+    LEFT JOIN (SELECT event_id, COUNT(*) AS cnt FROM public.event_vibes WHERE created_at > now() - interval '60 minutes' GROUP BY event_id) v ON v.event_id = e.id
+    WHERE e.is_published = true AND e.event_date >= CURRENT_DATE
+  ),
+  baseline AS (SELECT city, AVG(vel) AS avg_vel FROM recent GROUP BY city)
+  SELECT r.id FROM recent r JOIN baseline b ON b.city IS NOT DISTINCT FROM r.city
+  WHERE r.vel >= 3 AND r.vel >= 3 * GREATEST(b.avg_vel, 0.5);
+$$;
+GRANT EXECUTE ON FUNCTION public.get_hot_event_ids() TO anon, authenticated;
+
+-- ── 09: secret act reveal ───────────────────────────────────
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS secret_act TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS secret_reveal_threshold INTEGER;
+
+-- ── 10: path stars + path crossings ─────────────────────────
+CREATE TABLE IF NOT EXISTS public.path_stars (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  from_user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  to_user_id   UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  event_id     UUID REFERENCES public.events(id)   ON DELETE CASCADE,
+  path_id      UUID REFERENCES public.paths(id)    ON DELETE CASCADE,
+  user_id      UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at   TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.path_stars ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow authenticated read path_stars" ON public.path_stars;
+DROP POLICY IF EXISTS "Allow users to insert path_stars"    ON public.path_stars;
+DROP POLICY IF EXISTS "Allow users to delete path_stars"    ON public.path_stars;
+CREATE POLICY "Allow authenticated read path_stars" ON public.path_stars FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow users to insert path_stars"    ON public.path_stars FOR INSERT TO authenticated WITH CHECK (auth.uid() = from_user_id OR auth.uid() = user_id);
+CREATE POLICY "Allow users to delete path_stars"    ON public.path_stars FOR DELETE TO authenticated USING (auth.uid() = from_user_id OR auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.path_crossings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  path_id_a UUID REFERENCES public.paths(id) ON DELETE CASCADE,
+  path_id_b UUID REFERENCES public.paths(id) ON DELETE CASCADE,
+  overlap_score FLOAT8,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.path_crossings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow authenticated read path_crossings"   ON public.path_crossings;
+DROP POLICY IF EXISTS "Allow authenticated insert path_crossings" ON public.path_crossings;
+CREATE POLICY "Allow authenticated read path_crossings"   ON public.path_crossings FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow authenticated insert path_crossings" ON public.path_crossings FOR INSERT TO authenticated WITH CHECK (true);
+
+-- ============================================================
 --  PATCHES 12–19  (canonical home — appended here in sequence).
 --  Going forward, new SQL is appended to the LATEST schema_part
 --  file (this one) under the ~4000-line cap, in number order;
@@ -479,3 +735,39 @@ LANGUAGE sql SECURITY DEFINER AS $$
   GROUP BY 1
   ORDER BY votes DESC;
 $$;
+
+-- ── 20: "Rising Now" momentum feed ──────────────────────────
+-- What's ACCELERATING right now (not just popular). Compares engagement in the
+-- last 60 min vs the prior 60–180 min window and returns a momentum score per
+-- upcoming event. momentum = recent_rate / max(prior_rate, baseline). The app
+-- shows a "Rising Now" rail ranked by this, with the % lift as a badge.
+-- Zero cost, Supabase-only; degrades to empty set if not deployed.
+CREATE OR REPLACE FUNCTION public.get_rising_events(p_limit INTEGER DEFAULT 12)
+RETURNS TABLE (event_id uuid, momentum numeric, recent_count bigint)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  WITH ev AS (
+    SELECT id FROM public.events
+    WHERE is_published = true AND event_date >= CURRENT_DATE
+  ),
+  recent AS (   -- last 60 minutes
+    SELECT e.id,
+      (SELECT count(*) FROM public.event_rsvps r WHERE r.event_id = e.id AND r.created_at > now() - interval '60 minutes')
+    + (SELECT count(*) FROM public.event_vibes  v WHERE v.event_id = e.id AND v.created_at > now() - interval '60 minutes') AS cnt
+    FROM ev e
+  ),
+  prior AS (    -- the 2 hours before that (60–180 min ago), as a 2h rate
+    SELECT e.id,
+      (SELECT count(*) FROM public.event_rsvps r WHERE r.event_id = e.id AND r.created_at BETWEEN now() - interval '180 minutes' AND now() - interval '60 minutes')
+    + (SELECT count(*) FROM public.event_vibes  v WHERE v.event_id = e.id AND v.created_at BETWEEN now() - interval '180 minutes' AND now() - interval '60 minutes') AS cnt
+    FROM ev e
+  )
+  SELECT r.id,
+         round((r.cnt::numeric) / GREATEST((p.cnt::numeric) / 2.0, 0.5), 2) AS momentum,
+         r.cnt AS recent_count
+  FROM recent r JOIN prior p ON p.id = r.id
+  WHERE r.cnt >= 2                                   -- need real recent activity
+    AND r.cnt > GREATEST((p.cnt::numeric) / 2.0, 0.5) -- and it must be accelerating
+  ORDER BY momentum DESC, r.cnt DESC
+  LIMIT GREATEST(1, p_limit);
+$$;
+GRANT EXECUTE ON FUNCTION public.get_rising_events(INTEGER) TO anon, authenticated;

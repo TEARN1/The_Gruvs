@@ -19,6 +19,7 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "forceExit": true,
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.js"
     ],

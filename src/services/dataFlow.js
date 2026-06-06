@@ -544,6 +544,61 @@ export const ScoreEngine = {
     return [...events].sort((a, b) =>
       this.eventScore(b, context) - this.eventScore(a, context)
     );
+  },
+
+  /**
+   * diversify — final re-rank pass over already-scored events (each carries
+   * `_heatScore`). Three advances over a plain score-sort:
+   *
+   *  1. DIVERSITY (MMR-style): greedily pick the best event, then penalise the
+   *     next ones that repeat its category or host, so the feed doesn't show
+   *     five music events / five gruvs from one host back-to-back.
+   *  2. EXPLORATION vs EXPLOITATION: events the user hasn't seen yet get a small
+   *     novelty lift; ones they already dwelled on/opened (seenIds) are gently
+   *     demoted so refreshes feel fresh (ε-greedy style, ε≈0.15).
+   *  3. COLD-START: a brand-new user (no interests/follows) leans harder on
+   *     heat + diversity so their first feed still feels alive.
+   *
+   * Pure + deterministic given inputs (seedable jitter), safe on any array.
+   */
+  diversify(events, { seenIds = new Set(), coldStart = false, categoryPenalty = 0.35, hostPenalty = 0.25, exploration = 0.15 } = {}) {
+    if (!Array.isArray(events) || events.length < 3) return events || [];
+
+    const scoreOf = (e) => (typeof e._heatScore === 'number' ? e._heatScore : 0);
+    const maxScore = Math.max(1, ...events.map(scoreOf));
+
+    // Pre-weight: novelty lift for unseen, demotion for already-seen.
+    const pool = events.map((e) => {
+      let w = scoreOf(e);
+      const seen = seenIds.has(e.id);
+      if (seen) w *= 0.6;                              // exploit less — they've seen it
+      else w += maxScore * exploration * (coldStart ? 1.4 : 1); // explore the new
+      return { e, base: w };
+    });
+
+    const picked = [];
+    const usedCat = new Map();   // category → how many already placed
+    const usedHost = new Map();  // author_id → how many already placed
+    const remaining = pool.slice();
+
+    while (remaining.length) {
+      let bestIdx = 0;
+      let bestVal = -Infinity;
+      for (let i = 0; i < remaining.length; i++) {
+        const { e, base } = remaining[i];
+        const catN = usedCat.get(e.category) || 0;
+        const hostN = usedHost.get(e.author_id) || 0;
+        // Repetition penalty grows with how many of the same we've already shown.
+        const penalty = 1 - Math.min(0.85, catN * categoryPenalty + hostN * hostPenalty);
+        const val = base * penalty;
+        if (val > bestVal) { bestVal = val; bestIdx = i; }
+      }
+      const { e } = remaining.splice(bestIdx, 1)[0];
+      picked.push(e);
+      usedCat.set(e.category, (usedCat.get(e.category) || 0) + 1);
+      usedHost.set(e.author_id, (usedHost.get(e.author_id) || 0) + 1);
+    }
+    return picked;
   }
 };
 
@@ -647,6 +702,20 @@ export const FeedManager = {
           const { applyPersonalisedBoost } = await import('./personalizationEngine');
           events = await applyPersonalisedBoost(events, userId);
         } catch { /* silently skip — personalization is enhancement only */ }
+      }
+      // Final advance: diversity + explore/exploit re-rank (page 0 only, no search).
+      if (page === 0 && !query.trim() && events.length > 3) {
+        let seenIds = new Set();
+        if (userId) {
+          try {
+            const { data: seen } = await supabase
+              .from('event_views').select('event_id').eq('user_id', userId)
+              .order('updated_at', { ascending: false }).limit(120);
+            seenIds = new Set((seen || []).map(r => r.event_id));
+          } catch { /* event_views may not be migrated — skip */ }
+        }
+        const coldStart = (userInterests?.length || 0) === 0 && resolvedFollowedIds.length === 0;
+        events = ScoreEngine.diversify(events, { seenIds, coldStart });
       }
       const result = { events, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
       cache.set(cacheKey, result);
@@ -917,6 +986,38 @@ export const TrendingManager = {
       return ids;
     } catch {
       return new Set(); // function not migrated / offline
+    }
+  },
+
+  // "Rising Now" — events ACCELERATING right now (momentum), not just popular.
+  // Returns event rows enriched with `_momentum` (× lift) and `_risingPct`
+  // (e.g. +240%). Empty array if the RPC isn't deployed. (see get_rising_events)
+  async fetchRising(limit = 12) {
+    const cacheKey = `rising:${limit}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data: rows, error } = await supabase.rpc('get_rising_events', { p_limit: limit });
+      if (error) throw error;
+      const order = (rows || []).filter(r => r.event_id);
+      if (order.length === 0) { cache.set(cacheKey, [], 120000); return []; }
+      const ids = order.map(r => r.event_id);
+      const momById = new Map(order.map(r => [r.event_id, Number(r.momentum) || 0]));
+      const { data: evs } = await supabase.from('events')
+        .select('*, profiles(username, avatar_url)')
+        .in('id', ids)
+        .neq('is_deleted', true).neq('is_cancelled', true);
+      const enriched = normalizeEvents(evs || [])
+        .map(e => {
+          const m = momById.get(e.id) || 0;
+          return { ...e, _momentum: m, _risingPct: Math.round((m - 1) * 100) };
+        })
+        // preserve the RPC's momentum ordering
+        .sort((a, b) => (momById.get(b.id) || 0) - (momById.get(a.id) || 0));
+      cache.set(cacheKey, enriched, 120000); // 2 min — it's a "right now" signal
+      return enriched;
+    } catch {
+      return []; // function not migrated / offline
     }
   },
 

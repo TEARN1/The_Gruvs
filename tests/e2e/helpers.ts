@@ -71,3 +71,29 @@ export async function goToTab(page: Page, ...names: string[]) {
     if (visible) { await el.click(); return; }
   }
 }
+
+/** Verify if a tab is active by checking for active theme color presence in its styles/children */
+export async function expectTabActive(page: Page, label: string) {
+  const isActive = await page.evaluate((lbl) => {
+    const tab = document.querySelector(`[role="tab"][aria-label="${lbl}"]`);
+    if (!tab) return false;
+    const html = tab.outerHTML;
+    return html.includes('rgb(0, 242, 255)') || html.includes('rgba(0, 242, 255') || html.includes('#00f2ff');
+  }, label);
+  expect(isActive).toBe(true);
+}
+
+/** Find which tab is active by looking at its children's color or structure */
+export async function activeTabLabel(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+    for (const tab of tabs) {
+      const html = tab.outerHTML;
+      if (html.includes('rgb(0, 242, 255)') || html.includes('rgba(0, 242, 255') || html.includes('#00f2ff')) {
+        return tab.getAttribute('aria-label') || tab.textContent || null;
+      }
+    }
+    return null;
+  });
+}
+

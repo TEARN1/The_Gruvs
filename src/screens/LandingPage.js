@@ -354,7 +354,7 @@ const EventCard = React.memo(({
             onPress={() => onImageTap(event)}
             onPressIn={() => onCardPressIn(id)}
             onPressOut={() => onCardPressOut(id)}
-            onLongPress={() => onImageLongPress(event)}
+            onLongPress={(e) => onImageLongPress(event, e?.nativeEvent)}
             delayLongPress={400}
           >
           {matchCard ? (
@@ -946,6 +946,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const cardScaleRef  = useRef({}); // press-in scale per card
   const heartAnimRef  = useRef({}); // heart burst per card
   const [quickActionTarget, setQuickActionTarget] = useState(null); // long-press quick sheet
+  const [reactionRing, setReactionRing] = useState(null); // { event, x, y } — under-finger reactions
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Handle native Android hardware back button inside LandingPage
@@ -1889,9 +1890,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
   }, [myVibes, handleVibe]);
 
-  const handleImageLongPress = useCallback((eventItem) => {
+  const handleImageLongPress = useCallback((eventItem, touch) => {
     safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
-    setQuickActionTarget(eventItem);
+    // Pop the reaction ring right where the finger is (falls back to a centred
+    // position if we somehow didn't get touch coords).
+    const x = touch?.pageX ?? Dimensions.get('window').width / 2;
+    const y = touch?.pageY ?? Dimensions.get('window').height / 2;
+    setReactionRing({ event: eventItem, x, y });
   }, []);
 
   // ── EVENT CARD ────────────────────────────────────────────────────────────────
@@ -1968,8 +1973,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         keyboardShouldPersistTaps="handled"
         scrollEventThrottle={16}
         onScroll={(e) => {
-          const y = e.nativeEvent.contentOffset.y;
-          setShowScrollTop(y > 600);
+          const should = e.nativeEvent.contentOffset.y > 600;
+          // Only setState when the threshold is actually crossed — otherwise this
+          // fires (and re-renders the screen) on every scroll frame.
+          setShowScrollTop(prev => (prev === should ? prev : should));
         }}
         onScrollToIndexFailed={() => { }}
         onViewableItemsChanged={onViewableChangedRef.current}
@@ -2321,11 +2328,59 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           </View>
         </Modal>
       )}
+
+      {/* ── Under-finger reaction ring (long-press) ──────────────────────── */}
+      {!!reactionRing && (() => {
+        const EMOJIS = REACTION_LIST.slice(0, 8);
+        const BAR_W = Math.min(SCREEN_W - 24, EMOJIS.length * 44 + 16);
+        const left = Math.max(12, Math.min(reactionRing.x - BAR_W / 2, SCREEN_W - BAR_W - 12));
+        const top = Math.max(70, reactionRing.y - 78); // float above the finger
+        const current = reactions[reactionRing.event.id];
+        return (
+          <Modal visible transparent animationType="fade" onRequestClose={() => setReactionRing(null)}>
+            <TouchableWithoutFeedback onPress={() => setReactionRing(null)}>
+              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }}>
+                <View style={[styles.reactRing, { top, left, width: BAR_W, backgroundColor: surface, borderColor: `${primary}40` }]}>
+                  {EMOJIS.map(r => {
+                    const active = current === r.key;
+                    return (
+                      <TouchableOpacity
+                        key={r.key}
+                        onPress={() => {
+                          safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+                          handleReact(reactionRing.event.id, r.key);
+                          setReactionRing(null);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel={r.label || r.key}
+                        style={[styles.reactRingItem, active && { backgroundColor: `${primary}25` }]}
+                      >
+                        <Text style={{ fontSize: 26 }}>{r.emoji}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  {/* More → full quick-action sheet */}
+                  <TouchableOpacity
+                    onPress={() => { const ev = reactionRing.event; setReactionRing(null); setQuickActionTarget(ev); }}
+                    style={styles.reactRingMore}
+                    accessibilityLabel="More actions"
+                  >
+                    <Feather name="more-horizontal" size={18} color={muted} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
+        );
+      })()}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  reactRing: { position: 'absolute', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 6, borderRadius: 30, borderWidth: 1, gap: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 12 },
+  reactRingItem: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  reactRingMore: { width: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
   crewBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, alignSelf: 'flex-start', marginBottom: 8 },
   crewBadgeText: { fontSize: 11, fontWeight: '700' },
   root: { flex: 1 },

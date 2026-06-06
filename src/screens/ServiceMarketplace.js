@@ -23,10 +23,11 @@ import { EscrowService } from '../services/escrowService';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
+import { EmptyState } from '../components/EmptyState';
 import { GigModeCard } from '../components/GigModeCard';
 import { PostGigModal } from '../components/PostGigModal';
 import { ProviderSetupModal } from '../components/ProviderSetupModal';
-import { ProviderDashboardScreen } from './ProviderDashboardScreen';
+import { ProviderDashboardScreen } from './ProviderDashboardScreen';
 import { useBackClose } from '../hooks/useBackClose';
 import { money } from '../constants/currencies';
 
@@ -415,11 +416,8 @@ function BookingModal({
 }
 
 // ---------------------------------------------------------------------------
-const EmptyStateView = ({ icon, message, muted }) => (
-  <View style={styles.emptyState}>
-    <Feather name={icon} size={48} color={muted} style={{ opacity: 0.5 }} />
-    <Text style={[styles.emptyText, { color: muted }]}>{message}</Text>
-  </View>
+const EmptyStateView = ({ icon, message, title }) => (
+  <EmptyState icon={icon} title={title} subtitle={message} compact />
 );
 
 // Main Screen

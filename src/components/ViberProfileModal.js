@@ -9,6 +9,7 @@ import {
   ScrollView, ActivityIndicator, Animated,
 } from 'react-native';
 import { SmartImage } from './SmartImage';
+import { AvatarViewerModal } from './AvatarViewerModal';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -714,43 +715,14 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       targetType="user"
     />
 
-    {/* Full-screen avatar viewer — shows the photo, or a clear empty state */}
-    <Modal
+    {/* Full-screen avatar viewer — shows the photo, or a clear empty state
+        (handles load failures too, via the shared component). */}
+    <AvatarViewerModal
       visible={avatarViewerVisible}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setAvatarViewerVisible(false)}
-    >
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={() => setAvatarViewerVisible(false)}
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' }}
-      >
-        <TouchableOpacity
-          style={{ position: 'absolute', top: 50, right: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}
-          onPress={() => setAvatarViewerVisible(false)}
-        >
-          <Feather name="x" size={20} color="#fff" />
-        </TouchableOpacity>
-        {profile?.avatar_url ? (
-          <SmartImage
-            source={{ uri: profile.avatar_url }}
-            style={{ width: '92%', aspectRatio: 1, borderRadius: 18 }}
-            resizeMode="contain"
-          />
-        ) : (
-          <View style={{ alignItems: 'center', paddingHorizontal: 40 }}>
-            <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: '#1a2428', alignItems: 'center', justifyContent: 'center', marginBottom: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
-              <Feather name="user" size={44} color="rgba(255,255,255,0.4)" />
-            </View>
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800', marginBottom: 6 }}>No profile photo</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textAlign: 'center', lineHeight: 19 }}>
-              {(profile?.username || 'This viber')} hasn’t added a profile picture yet.
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    </Modal>
+      onClose={() => setAvatarViewerVisible(false)}
+      uri={profile?.avatar_url}
+      username={profile?.username}
+    />
 
     {/* Edit / Cancel / Delete own event */}
     <EditEventModal

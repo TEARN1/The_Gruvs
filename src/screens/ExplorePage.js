@@ -496,6 +496,11 @@ const et = StyleSheet.create({
   metaText: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
 });
 
+const rn = StyleSheet.create({
+  badge: { position: 'absolute', bottom: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, backgroundColor: '#16a34a' },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.3 },
+});
+
 // ── Section header ─────────────────────────────────────────────────────────────
 const SectionHeader = ({ title, actionLabel, onAction, textColor, primary }) => (
   <View style={sh.row}>
@@ -538,6 +543,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [happeningNow, setHappeningNow] = useState([]);
   const [trendingEvents, setTrendingEvents] = useState([]);
   const [hotIds, setHotIds] = useState(() => new Set());
+  const [risingEvents, setRisingEvents] = useState([]);
   const [nearbyVibers, setNearbyVibers] = useState([]);
   const [categoryCounts, setCategoryCounts] = useState({});
   const [nearbyEvents, setNearbyEvents] = useState([]);
@@ -598,13 +604,15 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [trendingRes, happeningRes, countsRes, hotRes] = await Promise.allSettled([
+      const [trendingRes, happeningRes, countsRes, hotRes, risingRes] = await Promise.allSettled([
         TrendingManager.fetch(8),
         TrendingManager.fetchHappeningNow(),
         TrendingManager.fetchCategoryCounts(),
         TrendingManager.fetchHotIds(),
+        TrendingManager.fetchRising(12),
       ]);
       setHotIds(hotRes.status === 'fulfilled' ? hotRes.value : new Set());
+      setRisingEvents(risingRes.status === 'fulfilled' ? risingRes.value : []);
 
       // Birthdays today among people you follow (free spotlight; best-effort).
       if (user?.id) {
@@ -945,7 +953,11 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 140 }}
-        onScroll={Platform.OS === 'web' ? (e) => setScrollY(e.nativeEvent.contentOffset.y) : undefined}
+        onScroll={Platform.OS === 'web' ? (e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          // Only re-render when the scroll-to-top threshold (400) is crossed.
+          setScrollY(prev => ((prev > 400) === (y > 400) ? prev : y));
+        } : undefined}
         scrollEventThrottle={Platform.OS === 'web' ? 100 : undefined}
         refreshControl={
           <RefreshControl
@@ -1158,6 +1170,28 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <View style={{ marginBottom: 20, marginTop: 10 }}>
                 <SectionHeader title="Vibers Near You" actionLabel="Find Them" onAction={() => setDiscoverVisible(true)} textColor={textColor} primary={primary} />
                 <NearbyVibers vibers={nearbyVibers} primary={primary} textColor={textColor} onPress={(v) => { setSelectedViber(v); setViberModalVisible(true); }} />
+              </View>
+            )}
+
+            {/* ── Rising Now (momentum) ───────────────────────────────────── */}
+            {risingEvents.length > 0 && !activeCat && activeMoods.size === 0 && (
+              <View style={{ marginBottom: 20 }}>
+                <SectionHeader title="📈 Rising Now" textColor={textColor} primary={primary} />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                  {risingEvents.map((ev, i) => (
+                    <FadeInView key={ev.id} delay={i * 40} direction="right">
+                      <View style={{ position: 'relative' }}>
+                        <EventTile event={ev} primary={primary} textColor={textColor} muted={muted} isHot={hotIds.has(ev.id)} onPress={() => onNavigateToEvent && onNavigateToEvent(ev)} />
+                        {ev._risingPct > 0 && (
+                          <View style={rn.badge} pointerEvents="none">
+                            <Feather name="trending-up" size={10} color="#fff" />
+                            <Text style={rn.badgeText}>+{ev._risingPct}%</Text>
+                          </View>
+                        )}
+                      </View>
+                    </FadeInView>
+                  ))}
+                </ScrollView>
               </View>
             )}
 
