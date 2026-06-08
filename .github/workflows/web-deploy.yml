@@ -24,9 +24,9 @@ jobs:
       sha: ${{ github.sha }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -44,7 +44,7 @@ jobs:
           EXPO_PUBLIC_YOUTUBE_API_KEY:         ${{ secrets.EXPO_PUBLIC_YOUTUBE_API_KEY }}
 
       - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-dist-${{ github.sha }}
           path: dist/
@@ -57,10 +57,10 @@ jobs:
     needs: check           # ← GATE: job is skipped if check fails
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download dist artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: web-dist-${{ github.sha }}
           path: dist/
@@ -100,7 +100,7 @@ jobs:
 
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request'
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           message: |
             🌐 **Web Preview**: ${{ steps.preview-deploy.outputs.deploy_url }}
