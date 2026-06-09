@@ -43,6 +43,15 @@ export async function waitForApp(page: Page) {
   await page.waitForLoadState('domcontentloaded');
   // Wait for the tab navigation elements to be visible (loading screen is gone)
   await page.locator('[role="tab"]').first().waitFor({ state: 'visible', timeout: 45_000 });
+
+  // Automatically dismiss the onboarding / tour modal if it appears
+  const skipBtn = page.getByText('SKIP').first();
+  const isSkipVisible = await skipBtn.isVisible().catch(() => false);
+  if (isSkipVisible) {
+    await skipBtn.click().catch(() => {});
+    await page.waitForTimeout(500); // Wait for modal slide-out animation
+  }
+
   // Short settle wait for React rendering
   await page.waitForTimeout(500);
 }

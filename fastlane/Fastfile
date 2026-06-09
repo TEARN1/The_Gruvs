@@ -1,0 +1,27 @@
+# Fastfile
+# Fastlane lanes for automating build submissions
+
+default_platform(:android)
+
+platform :android do
+  desc "Submit the compiled Android App Bundle (.aab) to Google Play Internal Testing"
+  lane :deploy_internal do
+    aab_path = ENV['AAB_FILE_PATH'] || './app-release.aab'
+
+    unless File.exist?(aab_path)
+      UI.user_error!("Unable to find target build bundle at path: #{aab_path}")
+    end
+
+    # Upload release artifact to Google Play Developer Console
+    upload_to_play_store(
+      track: 'internal',
+      aab: aab_path,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      release_status: 'draft' # Allows manual review of release notes before promotion
+    )
+    
+    UI.success("Successfully uploaded release to Google Play Internal Testing track.")
+  end
+end

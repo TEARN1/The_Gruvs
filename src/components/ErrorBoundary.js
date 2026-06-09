@@ -22,6 +22,16 @@ export class ErrorBoundary extends React.Component {
       label: this.props.label || 'unknown',
       message: error?.message || String(error)
     });
+    // Ship the full stack to Firebase Crashlytics in production builds. Guarded
+    // require: if the native module isn't installed (Expo Go / web / dev) this is
+    // a silent no-op, so the boundary still works everywhere.
+    try {
+      const mod = require('@react-native-firebase/crashlytics');
+      const crashlytics = mod.default ? mod.default() : mod();
+      crashlytics.setAttributes({ boundary: this.props.label || 'unknown' });
+      crashlytics.log(`UI crash @ ${this.props.label || 'unknown'}: ${info?.componentStack || ''}`.slice(0, 4000));
+      crashlytics.recordError(error instanceof Error ? error : new Error(String(error)));
+    } catch { /* crashlytics not available in this environment — already logged above */ }
   }
 
   reset = () => this.setState({ hasError: false, error: null });

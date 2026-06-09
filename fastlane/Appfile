@@ -1,0 +1,5 @@
+# Appfile
+# Configuration variables for Fastlane deployment
+
+json_key_data(ENV['GOOGLE_PLAY_JSON_KEY_DATA']) # Decoded Google service account credentials
+package_name(ENV['ANDROID_PACKAGE_NAME'] || 'com.thegruvs.app') # Play Store App ID
