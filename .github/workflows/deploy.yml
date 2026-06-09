@@ -35,10 +35,10 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Run Jest Unit & Integration Tests
+        # Run HERMETIC — no Supabase env injected. Some unit tests (e.g. storageThumb)
+        # are written to run without EXPO_PUBLIC_SUPABASE_URL; injecting a real host
+        # changes URL-transform behaviour and fails them. Tests mock Supabase anyway.
         run: npm run test:unit
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Run Node Memory Leak Check
         run: node --expose-gc scripts/memory-leak-check.js
