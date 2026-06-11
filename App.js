@@ -317,8 +317,11 @@ const MainNavigator = () => {
       setFeedRefreshKey(k => k + 1);
     } else {
       setCurrentTab(tab);
+      // Item 41: cross-fade — new screen eases in instead of hard-cutting
+      screenOpacity.setValue(0.25);
+      Animated.timing(screenOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
     }
-  }, [currentTab]);
+  }, [currentTab, screenOpacity]);
 
   const isWide = width >= WIDE_BREAKPOINT;
 
@@ -713,9 +716,6 @@ const MainNavigator = () => {
         accessibilityViewIsModal={true}
       />
 
-      {/* AI Assistant — floating button above TabBar — HIDDEN */}
-      {/* <AIAssistant bottomOffset={80} /> */}
-
       {/* Tutorial overlay — rendered on top of everything */}
       {activeTutorial && <TutorialOverlay />}
 
@@ -859,20 +859,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
 
-  offlineBanner: {
-    height: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-  },
-  offlineText: {
-    color: '#000',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
   loadingScreen: {
     flex: 1,
     justifyContent: 'center',

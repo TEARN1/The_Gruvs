@@ -252,7 +252,7 @@ class ViewsBatchQueue {
   }
 
   queueView(reelId, viewerId) {
-    if (!viewerId || reelId.startsWith('mock-')) return;
+    if (!viewerId || String(reelId).startsWith('mock-')) return;
     this.queue.add(JSON.stringify({ reel_id: reelId, viewer_id: viewerId }));
     
     // Start flush timeout if not active
@@ -266,10 +266,12 @@ class ViewsBatchQueue {
     this.isFlushing = true;
     this.timer = null;
 
-    const items = Array.from(this.queue).map(item => JSON.parse(item));
-    this.queue.clear();
-
     try {
+      // Parse inside the guard — a single corrupt entry must never wedge
+      // isFlushing=true forever and silently kill all future flushes.
+      const items = Array.from(this.queue).map(item => JSON.parse(item));
+      this.queue.clear();
+
       // Direct upsert views
       await resilient([
         async () => {

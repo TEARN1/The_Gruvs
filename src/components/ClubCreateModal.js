@@ -7,14 +7,16 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity,
-  TextInput, Platform, KeyboardAvoidingView,
+  TextInput, Platform, KeyboardAvoidingView, Image, ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { haptics } from '../utils/haptics';
 import { TournamentEngine } from '../services/tournamentEngine';
+import { uploadToStorage } from '../services/storageService';
 import { TALENT_CATEGORIES } from '../constants/TalentConfig';
 import { useBackClose } from '../hooks/useBackClose';
 
@@ -34,7 +36,35 @@ export const ClubCreateModal = ({ visible, onClose, onCreated }) => {
 
   const [form, setForm] = useState({ name: '', short_name: '', category: 'sport', city: '', logo_url: '' });
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Pick a logo image and upload it (mirrors the event media flow) — no more
+  // pasting a URL. Falls back gracefully; a club can still be created without one.
+  const pickLogo = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') { toast.show('Photo access is needed to add a logo.', 'error'); return; }
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true, aspect: [1, 1], quality: 0.85,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      setUploadingLogo(true);
+      const asset = result.assets[0];
+      const ext = (asset.uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
+      const fileName = `${user?.id}/clubs/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const url = await uploadToStorage(asset.uri, 'event-media', fileName, { mimeType: asset.mimeType || `image/${ext === 'jpg' ? 'jpeg' : ext}` });
+      set('logo_url', url);
+      haptics.success();
+    } catch (e) {
+      toast.show('Logo upload failed — you can add it later.', 'error');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const save = async () => {
     if (!form.name.trim()) { toast.show('Club name is required', 'error'); return; }
@@ -91,7 +121,29 @@ export const ClubCreateModal = ({ visible, onClose, onCreated }) => {
               ))}
             </ScrollView>
             <Field label="CITY" k="city" placeholder="Durban · Gauteng" />
-            <Field label="LOGO URL" k="logo_url" placeholder="https://…" />
+
+            <Text style={[c.label, { color: muted }]}>LOGO / BADGE</Text>
+            <TouchableOpacity
+              onPress={pickLogo}
+              disabled={uploadingLogo}
+              activeOpacity={0.85}
+              style={[c.logoPick, { borderColor: `${primary}40`, backgroundColor: surface }]}
+            >
+              {form.logo_url
+                ? <Image source={{ uri: form.logo_url }} style={c.logoPreview} />
+                : <View style={[c.logoPreview, { backgroundColor: `${primary}18`, alignItems: 'center', justifyContent: 'center' }]}>
+                    <Feather name="shield" size={22} color={primary} />
+                  </View>}
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>
+                  {uploadingLogo ? 'Uploading…' : form.logo_url ? 'Logo added — tap to change' : 'Upload a logo'}
+                </Text>
+                <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>Square image works best (PNG/JPG)</Text>
+              </View>
+              {uploadingLogo
+                ? <ActivityIndicator color={primary} />
+                : <Feather name={form.logo_url ? 'check-circle' : 'upload'} size={18} color={form.logo_url ? '#10b981' : primary} />}
+            </TouchableOpacity>
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -107,6 +159,8 @@ const c = StyleSheet.create({
   label: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14 },
   chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, borderWidth: 1 },
+  logoPick: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 14, padding: 10, marginBottom: 14 },
+  logoPreview: { width: 52, height: 52, borderRadius: 12 },
 });
 
 export default ClubCreateModal;

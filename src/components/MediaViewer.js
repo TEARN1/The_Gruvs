@@ -1,17 +1,39 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Text, FlatList, TouchableOpacity, Dimensions, Animated, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { AutoPlayVideo } from './AutoPlayVideo';
 import { SmartImage } from './SmartImage';
+import { useAuth } from '../context/AuthContext';
+import { getMediaLikes, toggleMediaLike } from '../services/mediaLikes';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const placeholderSource = require('../../assets/events/pixel.png');
 
-// ── Per-image like state ─────────────────────────────────────────────────────
-const useLikedImages = () => {
-  const [liked, setLiked] = useState({});
-  const toggle = useCallback((key) => setLiked(prev => ({ ...prev, [key]: !prev[key] })), []);
-  return [liked, toggle];
+// ── Per-image like state — PERSISTED to media_likes, not just local ──────────
+// { [url]: { count, mine } }. Optimistic toggle, rolls back if the write fails
+// (e.g. signed out elsewhere, or media_likes not migrated yet).
+const useLikedImages = (media, userId, eventId) => {
+  const [likes, setLikes] = useState({});
+
+  useEffect(() => {
+    let alive = true;
+    const urls = (media || []).map(m => m.url).filter(Boolean);
+    if (!urls.length) return;
+    getMediaLikes(urls, userId).then((state) => { if (alive && Object.keys(state).length) setLikes(state); });
+    return () => { alive = false; };
+  }, [media, userId]);
+
+  const toggle = useCallback(async (url) => {
+    if (!url) return false;
+    const prev = likes[url] || { count: 0, mine: false };
+    const liking = !prev.mine;
+    setLikes(s => ({ ...s, [url]: { count: Math.max(0, prev.count + (liking ? 1 : -1)), mine: liking } }));
+    const ok = userId ? await toggleMediaLike(url, userId, { like: liking, eventId }) : false;
+    if (!ok) setLikes(s => ({ ...s, [url]: prev })); // roll back — don't pretend it saved
+    return ok && liking;
+  }, [likes, userId, eventId]);
+
+  return [likes, toggle];
 };
 
 // ── Download helper (web) ────────────────────────────────────────────────────
@@ -90,12 +112,13 @@ const HeartBurst = ({ onComplete }) => {
 };
 
 // ── Main MediaViewer ─────────────────────────────────────────────────────────
-export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover' }) => {
+export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', eventId = null, onAuthRequired }) => {
+  const { user } = useAuth();
   const [measuredWidth, setMeasuredWidth] = useState(containerWidth || SCREEN_WIDTH);
   const MEDIA_WIDTH = measuredWidth;
   const MEDIA_HEIGHT = Math.round(MEDIA_WIDTH / aspectRatio);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
-  const [liked, toggleLike] = useLikedImages();
+  const [liked, toggleLike] = useLikedImages(media, user?.id, eventId);
   const [heartBursts, setHeartBursts] = useState({});
   const [downloadedKeys, setDownloadedKeys] = useState({});
   const flatListRef = useRef(null);
@@ -111,11 +134,12 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
 
   const viewabilityConfig = { itemVisiblePercentThreshold: 60 };
 
-  const handleLike = useCallback((key) => {
-    toggleLike(key);
-    // Show heart burst only when liking (not un-liking)
-    setHeartBursts(prev => ({ ...prev, [key]: !liked[key] }));
-  }, [liked, toggleLike]);
+  const handleLike = useCallback(async (key) => {
+    if (!user) { onAuthRequired?.(); return; }
+    const likedNow = await toggleLike(key);
+    // Show heart burst only when liking (not un-liking / failed save)
+    if (likedNow) setHeartBursts(prev => ({ ...prev, [key]: true }));
+  }, [user, toggleLike, onAuthRequired]);
 
   const handleDownload = useCallback(async (url, key) => {
     await downloadImage(url);
@@ -140,7 +164,8 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
   const renderItem = ({ item, index }) => {
     const isActive = index === activeIndex;
     const key = item.url || index.toString();
-    const isLiked = liked[key];
+    const isLiked = !!liked[key]?.mine;
+    const likeCount = liked[key]?.count || 0;
     const isDownloaded = downloadedKeys[key];
     const showBurst = heartBursts[key];
 
@@ -160,13 +185,13 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
           <HeartBurst onComplete={() => setHeartBursts(prev => ({ ...prev, [key]: false }))} />
         )}
 
-        {/* Per-image controls: like + download (only for images with URLs) */}
-        {item.type !== 'video' && item.url && (
+        {/* Per-media controls: like (images AND videos) + download (images) */}
+        {item.url && (
           <View style={s.mediaControls}>
-            {/* Like / Heart */}
+            {/* Like / Heart — persisted to media_likes, count shown when > 0 */}
             <TouchableOpacity
               onPress={() => handleLike(key)}
-              style={[s.mediaBtn, isLiked && s.mediaBtnLiked]}
+              style={[s.mediaBtn, likeCount > 0 && s.mediaBtnWide, isLiked && s.mediaBtnLiked]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
               accessibilityLabel={isLiked ? 'Unlike this image' : 'Like this image'}
@@ -174,22 +199,25 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
               <Text style={[s.mediaIcon, isLiked && s.mediaIconLiked]}>
                 {isLiked ? '❤️' : '🤍'}
               </Text>
+              {likeCount > 0 && <Text style={s.likeCount}>{likeCount}</Text>}
             </TouchableOpacity>
 
             {/* Download */}
-            <TouchableOpacity
-              onPress={() => handleDownload(item.url, key)}
-              style={[s.mediaBtn, isDownloaded && s.mediaBtnDownloaded]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityRole="button"
-              accessibilityLabel="Download image"
-            >
-              <Feather
-                name={isDownloaded ? 'check' : 'download'}
-                size={14}
-                color={isDownloaded ? '#10b981' : '#fff'}
-              />
-            </TouchableOpacity>
+            {item.type !== 'video' && (
+              <TouchableOpacity
+                onPress={() => handleDownload(item.url, key)}
+                style={[s.mediaBtn, isDownloaded && s.mediaBtnDownloaded]}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Download image"
+              >
+                <Feather
+                  name={isDownloaded ? 'check' : 'download'}
+                  size={14}
+                  color={isDownloaded ? '#10b981' : '#fff'}
+                />
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -294,6 +322,8 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
+  mediaBtnWide: { width: undefined, minWidth: 32, paddingHorizontal: 9, flexDirection: 'row', gap: 4 },
+  likeCount: { color: '#fff', fontSize: 11, fontWeight: '900' },
   mediaBtnLiked: { backgroundColor: 'rgba(220,38,38,0.35)', borderColor: '#ef4444' },
   mediaBtnDownloaded: { backgroundColor: 'rgba(16,185,129,0.35)', borderColor: '#10b981' },
   mediaIcon: { fontSize: 15 },

@@ -3,6 +3,13 @@ import { render } from '@testing-library/react-native';
 
 // Avoid pulling in expo-av through AutoPlayVideo.
 jest.mock('../src/components/AutoPlayVideo', () => ({ AutoPlayVideo: () => null }));
+// MediaViewer reads the signed-in user for persisted likes — stub signed-out.
+jest.mock('../src/context/AuthContext', () => ({ useAuth: () => ({ user: null, profile: null }) }));
+// No network in unit tests — like state loader returns empty.
+jest.mock('../src/services/mediaLikes', () => ({
+  getMediaLikes: jest.fn(async () => ({})),
+  toggleMediaLike: jest.fn(async () => false),
+}));
 
 import { MediaViewer } from '../src/components/MediaViewer';
 

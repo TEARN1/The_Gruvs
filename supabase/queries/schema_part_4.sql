@@ -160,11 +160,13 @@ BEGIN
   IF p_role NOT IN ('results_editor','log_keeper','fixtures_manager','disciplinary','head_organizer') THEN
     RAISE EXCEPTION 'INVALID_ROLE';
   END IF;
-  -- The caller must own / captain the team they vote with.
+  -- The caller must own / captain the SPECIFIC team (p_club) they vote with.
+  -- (Both branches must be scoped to p_club — otherwise any club owner or any
+  --  team captain could cast a vote on behalf of a club that isn't theirs.)
   IF NOT EXISTS (
     SELECT 1 FROM public.clubs WHERE id = p_club AND owner_id = auth.uid()
   ) AND NOT EXISTS (
-    SELECT 1 FROM public.sport_teams WHERE event_id IS NOT NULL AND captain_user_id = auth.uid()
+    SELECT 1 FROM public.sport_teams WHERE club_id = p_club AND captain_user_id = auth.uid()
   ) THEN
     RAISE EXCEPTION 'NOT_TEAM_REP';
   END IF;
@@ -447,18 +449,25 @@ CREATE POLICY "suspensions_admin" ON public.user_suspensions FOR ALL
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- Grants are wrapped: only granted if the target function exists, so a fresh
--- build never errors on a not-yet-created RPC.
+-- build never errors on a not-yet-created RPC. We grant by full signature
+-- (oid::regprocedure) and loop over EVERY overload — granting by bare name
+-- fails with 42725 "function name is not unique" when a function like
+-- check_rate_limit exists with more than one argument list.
 DO $$
-DECLARE fn TEXT;
+DECLARE r RECORD;
 BEGIN
-  FOREACH fn IN ARRAY ARRAY[
-    'upsert_own_profile','check_rate_limit','log_security_event','secure_check_in',
-    'upsert_rsvp_tier','generate_ticket_token','increment_wallet_balance',
-    'update_sis_score','refresh_trending_events'
-  ] LOOP
-    IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = fn) THEN
-      EXECUTE format('GRANT EXECUTE ON FUNCTION public.%I TO authenticated', fn);
-    END IF;
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN (
+        'upsert_own_profile','check_rate_limit','log_security_event','secure_check_in',
+        'upsert_rsvp_tier','generate_ticket_token','increment_wallet_balance',
+        'update_sis_score','refresh_trending_events'
+      )
+  LOOP
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', r.sig);
   END LOOP;
 END $$;
 
@@ -580,6 +589,16 @@ CREATE TABLE IF NOT EXISTS public.path_stars (
   user_id      UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_at   TIMESTAMPTZ DEFAULT now()
 );
+-- An earlier definition of path_stars (06_part_2.sql, in schema_part_1) created
+-- this table WITHOUT from_user_id/to_user_id/event_id (it modelled "starred
+-- places"). On such a DB the CREATE TABLE IF NOT EXISTS above is a no-op, so
+-- ensure the columns the policies below reference actually exist first —
+-- otherwise the policy errors with 42703 column "from_user_id" does not exist.
+ALTER TABLE public.path_stars ADD COLUMN IF NOT EXISTS from_user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.path_stars ADD COLUMN IF NOT EXISTS to_user_id   UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.path_stars ADD COLUMN IF NOT EXISTS event_id     UUID REFERENCES public.events(id)   ON DELETE CASCADE;
+ALTER TABLE public.path_stars ADD COLUMN IF NOT EXISTS path_id      UUID REFERENCES public.paths(id)    ON DELETE CASCADE;
+ALTER TABLE public.path_stars ADD COLUMN IF NOT EXISTS user_id      UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.path_stars ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow authenticated read path_stars" ON public.path_stars;
 DROP POLICY IF EXISTS "Allow users to insert path_stars"    ON public.path_stars;
@@ -658,7 +677,7 @@ CREATE POLICY "event_views_upsert" ON public.event_views FOR INSERT WITH CHECK (
 CREATE POLICY "event_views_update" ON public.event_views FOR UPDATE USING (user_id = auth.uid());
 CREATE OR REPLACE FUNCTION public.record_event_view(
   p_event_id UUID, p_dwell_ms BIGINT DEFAULT 0, p_opened BOOLEAN DEFAULT false
-) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   INSERT INTO public.event_views (user_id, event_id, dwell_ms, view_count, opened, updated_at)
   VALUES (auth.uid(), p_event_id, GREATEST(0, p_dwell_ms), 1, p_opened, now())
@@ -725,7 +744,7 @@ CREATE POLICY "survey_responses_insert" ON public.survey_responses FOR INSERT WI
 CREATE POLICY "survey_responses_owner"  ON public.survey_responses FOR UPDATE USING (user_id = auth.uid());
 CREATE OR REPLACE FUNCTION public.survey_results(p_survey_id UUID)
 RETURNS TABLE(answer TEXT, votes BIGINT)
-LANGUAGE sql SECURITY DEFINER AS $$
+LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   SELECT unnest(r.answer) AS answer, count(*) AS votes
   FROM public.survey_responses r
   JOIN public.surveys s ON s.id = r.survey_id
@@ -771,3 +790,139 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   LIMIT GREATEST(1, p_limit);
 $$;
 GRANT EXECUTE ON FUNCTION public.get_rising_events(INTEGER) TO anon, authenticated;
+
+-- ── 20: social interaction persistence pack ─────────────────────────────────
+-- WHY: users reported likes / vibes / follows / DMs "not saving". Client code
+-- writes correctly with multi-tier fallbacks; the failures are server-side —
+-- missing tables (media_likes, event_guest_likes) and missing/els-dropped RLS
+-- policies on the social tables. Everything below is idempotent: safe to
+-- re-run on any database state.
+
+-- 20.1 media_likes — per-photo/per-video hearts, keyed by media URL
+CREATE TABLE IF NOT EXISTS public.media_likes (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  media_url  TEXT NOT NULL,
+  user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  event_id   UUID REFERENCES public.events(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (media_url, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_media_likes_url  ON public.media_likes(media_url);
+CREATE INDEX IF NOT EXISTS idx_media_likes_user ON public.media_likes(user_id);
+ALTER TABLE public.media_likes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "media_likes_select" ON public.media_likes;
+DROP POLICY IF EXISTS "media_likes_insert" ON public.media_likes;
+DROP POLICY IF EXISTS "media_likes_delete" ON public.media_likes;
+CREATE POLICY "media_likes_select" ON public.media_likes FOR SELECT USING (true);
+CREATE POLICY "media_likes_insert" ON public.media_likes FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "media_likes_delete" ON public.media_likes FOR DELETE USING (user_id = auth.uid());
+
+-- 20.2 event_guest_likes — "hype hearts" on lineup guests (performers, judges…)
+CREATE TABLE IF NOT EXISTS public.event_guest_likes (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  guest_id   UUID NOT NULL REFERENCES public.event_guests(id) ON DELETE CASCADE,
+  event_id   UUID REFERENCES public.events(id) ON DELETE CASCADE,
+  user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (guest_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_egl_guest ON public.event_guest_likes(guest_id);
+ALTER TABLE public.event_guest_likes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "egl_select" ON public.event_guest_likes;
+DROP POLICY IF EXISTS "egl_insert" ON public.event_guest_likes;
+DROP POLICY IF EXISTS "egl_delete" ON public.event_guest_likes;
+CREATE POLICY "egl_select" ON public.event_guest_likes FOR SELECT USING (true);
+CREATE POLICY "egl_insert" ON public.event_guest_likes FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "egl_delete" ON public.event_guest_likes FOR DELETE USING (user_id = auth.uid());
+
+-- 20.3 messages — re-assert columns + the RLS the DM layer depends on.
+-- Red "!" on sent DMs = the INSERT was rejected. These cover every tier the
+-- client tries (full insert → core insert).
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS message_type     TEXT DEFAULT 'text';
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS media_url        TEXT;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS parent_id        UUID REFERENCES public.messages(id) ON DELETE SET NULL;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS event_id         UUID REFERENCES public.events(id) ON DELETE SET NULL;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS latitude         DOUBLE PRECISION;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS longitude        DOUBLE PRECISION;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN DEFAULT false;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN DEFAULT true;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "messages_insert_own"   ON public.messages;
+DROP POLICY IF EXISTS "messages_select_own"   ON public.messages;
+DROP POLICY IF EXISTS "messages_update_parts" ON public.messages;
+CREATE POLICY "messages_insert_own" ON public.messages FOR INSERT
+  WITH CHECK (sender_id = auth.uid());
+CREATE POLICY "messages_select_own" ON public.messages FOR SELECT
+  USING (sender_id = auth.uid() OR recipient_id = auth.uid());
+CREATE POLICY "messages_update_parts" ON public.messages FOR UPDATE
+  USING (sender_id = auth.uid() OR recipient_id = auth.uid());
+
+-- 20.4 follows / event_rsvps / event_reactions / echoes / echo_likes —
+-- re-assert the write policies behind "it only toggles, never saves".
+ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "follows_select" ON public.follows;
+DROP POLICY IF EXISTS "follows_insert" ON public.follows;
+DROP POLICY IF EXISTS "follows_delete" ON public.follows;
+CREATE POLICY "follows_select" ON public.follows FOR SELECT USING (true);
+CREATE POLICY "follows_insert" ON public.follows FOR INSERT WITH CHECK (follower_id = auth.uid());
+CREATE POLICY "follows_delete" ON public.follows FOR DELETE USING (follower_id = auth.uid());
+
+ALTER TABLE public.event_rsvps ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "rsvps_select" ON public.event_rsvps;
+DROP POLICY IF EXISTS "rsvps_insert" ON public.event_rsvps;
+DROP POLICY IF EXISTS "rsvps_update" ON public.event_rsvps;
+DROP POLICY IF EXISTS "rsvps_delete" ON public.event_rsvps;
+CREATE POLICY "rsvps_select" ON public.event_rsvps FOR SELECT USING (true);
+CREATE POLICY "rsvps_insert" ON public.event_rsvps FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "rsvps_update" ON public.event_rsvps FOR UPDATE USING (user_id = auth.uid());
+CREATE POLICY "rsvps_delete" ON public.event_rsvps FOR DELETE USING (user_id = auth.uid());
+
+ALTER TABLE public.event_reactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "reactions_select" ON public.event_reactions;
+DROP POLICY IF EXISTS "reactions_insert" ON public.event_reactions;
+DROP POLICY IF EXISTS "reactions_update" ON public.event_reactions;
+DROP POLICY IF EXISTS "reactions_delete" ON public.event_reactions;
+CREATE POLICY "reactions_select" ON public.event_reactions FOR SELECT USING (true);
+CREATE POLICY "reactions_insert" ON public.event_reactions FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "reactions_update" ON public.event_reactions FOR UPDATE USING (user_id = auth.uid());
+CREATE POLICY "reactions_delete" ON public.event_reactions FOR DELETE USING (user_id = auth.uid());
+
+ALTER TABLE public.echoes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "echoes_select" ON public.echoes;
+DROP POLICY IF EXISTS "echoes_insert" ON public.echoes;
+DROP POLICY IF EXISTS "echoes_update" ON public.echoes;
+CREATE POLICY "echoes_select" ON public.echoes FOR SELECT USING (true);
+CREATE POLICY "echoes_insert" ON public.echoes FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "echoes_update" ON public.echoes FOR UPDATE USING (user_id = auth.uid()); -- owner-only; cross-user like counts flow via echo_likes + sync_echo_counts trigger
+
+CREATE TABLE IF NOT EXISTS public.echo_likes (
+  echo_id    UUID NOT NULL REFERENCES public.echoes(id) ON DELETE CASCADE,
+  user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (echo_id, user_id)
+);
+ALTER TABLE public.echo_likes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "echo_likes_select" ON public.echo_likes;
+DROP POLICY IF EXISTS "echo_likes_insert" ON public.echo_likes;
+DROP POLICY IF EXISTS "echo_likes_delete" ON public.echo_likes;
+CREATE POLICY "echo_likes_select" ON public.echo_likes FOR SELECT USING (true);
+CREATE POLICY "echo_likes_insert" ON public.echo_likes FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "echo_likes_delete" ON public.echo_likes FOR DELETE USING (user_id = auth.uid());
+
+-- 20.5 realtime — recipients only get live DMs/RSVPs if the tables are in the
+-- publication. Guarded: skips tables already added.
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['messages','event_rsvps','event_reactions','media_likes','event_guest_likes'] LOOP
+    BEGIN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    EXCEPTION WHEN duplicate_object THEN NULL;
+             WHEN undefined_table  THEN NULL;
+             WHEN undefined_object THEN NULL;
+    END;
+  END LOOP;
+END $$;

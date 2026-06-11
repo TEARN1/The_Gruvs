@@ -31,6 +31,7 @@ import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 import { WhoWasThereModal } from '../components/WhoWasThereModal';
 import { TutorialCenter } from '../components/TutorialCenter';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { SurveyCard } from '../components/SurveyCard';
 
 const { width } = Dimensions.get('window');
 
@@ -575,6 +576,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
+  const surface   = currentTheme?.surface    || '#131a1c';
 
   // Shared helper: fetch nearby vibers + priority-sort followed+online first
   const loadNearbyVibers = useCallback(async (uid) => {
@@ -1402,6 +1404,9 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               </View>
             )}
 
+            {/* ── Drip survey — one community question, max one per 20h ───── */}
+            <SurveyCard primary={primary} textColor={textColor} muted={muted} surface={surface} />
+
             {/* ── Photo Gallery ───────────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
               <SectionHeader title="📸 Photos from Gruvs" textColor={textColor} primary={primary} />
@@ -1574,6 +1579,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 media={galleryPhotos.map(p => ({ url: p.media_url, type: 'image' }))}
                 initialIndex={selectedPhotoIndex}
                 aspectRatio={3/4}
+                onAuthRequired={onAuthRequired}
               />
             </View>
           )}

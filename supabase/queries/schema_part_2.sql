@@ -1806,7 +1806,7 @@ GRANT SELECT (push_token) ON public.profiles TO service_role;
 
 -- pg_cron job: send event-day notifications daily at 08:00 SAST (06:00 UTC)
 CREATE OR REPLACE FUNCTION public.send_event_day_notifications()
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE r RECORD;
 BEGIN
   FOR r IN
@@ -1924,7 +1924,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS coords            geography
 --  2. AUTO-CREATE PROFILE ON SIGNUP (handle_new_user trigger)
 -- ══════════════════════════════════════════════════════════════
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   base_uname  TEXT;
   final_uname TEXT;
@@ -1970,7 +1970,7 @@ CREATE TRIGGER on_auth_user_created
 --  3. FOLLOW COUNT SYNC TRIGGER
 -- ══════════════════════════════════════════════════════════════
 CREATE OR REPLACE FUNCTION public.sync_follow_counts()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.profiles SET followers_count = COALESCE(followers_count, 0) + 1 WHERE id = NEW.following_id;
@@ -2238,7 +2238,7 @@ $$;
 
 -- Purge expired live_checkins (call from pg_cron or edge function)
 CREATE OR REPLACE FUNCTION public.purge_expired_checkins()
-RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   DELETE FROM public.live_checkins WHERE expires_at IS NOT NULL AND expires_at < NOW();
 $$;
 

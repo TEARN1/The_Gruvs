@@ -7,6 +7,7 @@
  * Data model lives in 19_business_surveys.sql.
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -61,9 +62,13 @@ export function audienceMatchesProfile(audience, profile) {
 export async function getNextSurvey(userId, { ignoreCooldown = false } = {}) {
   if (!userId) return null;
 
-  if (!ignoreCooldown && typeof localStorage !== 'undefined') {
-    const last = parseInt(localStorage.getItem(LAST_SHOWN_KEY) || '0', 10);
-    if (last && Date.now() - last < SURVEY_COOLDOWN_HOURS * 3600000) return null;
+  if (!ignoreCooldown) {
+    // AsyncStorage, not localStorage — the cooldown must hold on native too,
+    // otherwise Android/iOS users get pestered on every app open.
+    try {
+      const last = parseInt((await AsyncStorage.getItem(LAST_SHOWN_KEY)) || '0', 10);
+      if (last && Date.now() - last < SURVEY_COOLDOWN_HOURS * 3600000) return null;
+    } catch { /* storage unavailable — fall through and serve */ }
   }
 
   try {
@@ -113,7 +118,7 @@ export async function submitSurveyResponse(surveyId, userId, answer, { skipped =
       { onConflict: 'survey_id,user_id' }
     );
     if (error) throw error;
-    if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_SHOWN_KEY, String(Date.now()));
+    AsyncStorage.setItem(LAST_SHOWN_KEY, String(Date.now())).catch(() => {});
     return true;
   } catch (e) {
     console.warn('[surveys] submitSurveyResponse failed:', e.message);
@@ -144,6 +149,37 @@ export async function createSurvey(authorId, { title, question, answerType = 'si
   }
 }
 
+/** All surveys the caller authored (business side), newest first. */
+export async function listMySurveys(authorId) {
+  if (!authorId) return [];
+  try {
+    const { data, error } = await supabase.from('surveys')
+      .select('id, title, question, answer_type, options, reward_xp, is_active, expires_at, created_at')
+      .eq('author_id', authorId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    return data || [];
+  } catch (e) {
+    console.warn('[surveys] listMySurveys failed:', e.message);
+    return [];
+  }
+}
+
+/** Pause / resume a survey the caller owns (RLS enforces ownership). */
+export async function setSurveyActive(surveyId, isActive) {
+  if (!surveyId) return false;
+  try {
+    const { error } = await supabase.from('surveys')
+      .update({ is_active: !!isActive }).eq('id', surveyId);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.warn('[surveys] setSurveyActive failed:', e.message);
+    return false;
+  }
+}
+
 /** Anonymous aggregate results for a survey the caller owns. */
 export async function getSurveyResults(surveyId) {
   if (!surveyId) return [];
@@ -163,5 +199,7 @@ export default {
   getNextSurvey,
   submitSurveyResponse,
   createSurvey,
+  listMySurveys,
+  setSurveyActive,
   getSurveyResults,
 };

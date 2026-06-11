@@ -52,6 +52,11 @@ export const AuthModal = ({ visible, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // Two-step signup: step 1 = essentials (username/email/password),
+  // step 2 = personalisation (all optional, skippable). One long form was the
+  // #1 "signing up is difficult" complaint.
+  const [signupStep, setSignupStep] = useState(1);
+  const [checkingName, setCheckingName] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const primary = currentTheme?.primary || "#00f2ff";
@@ -67,6 +72,55 @@ export const AuthModal = ({ visible, onClose }) => {
     }).start(() => setMode(newMode));
     setError('');
     setSuccess('');
+    setSignupStep(1);
+  };
+
+  // Step 1 → 2 gate: validate the essentials and make sure the @handle is
+  // free BEFORE the user invests time in the optional fields.
+  const handleContinue = async () => {
+    const trimmedEmail = email.trim();
+    const handle = username.trim().replace(/^@/, '');
+    if (!handle || !trimmedEmail || !password.trim()) {
+      setError('Username, email and password are required.');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_.]{3,24}$/.test(handle)) {
+      setError('Username must be 3–24 characters — letters, numbers, dots or underscores.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    setError('');
+    setCheckingName(true);
+    try {
+      const { data } = await supabase.from('profiles')
+        .select('id').ilike('username', handle).limit(1).maybeSingle();
+      if (data) { setError(`@${handle} is taken — try another username.`); return; }
+    } catch { /* offline / RLS — let signup itself decide */ } finally {
+      setCheckingName(false);
+    }
+    setUsername(handle);
+    setSignupStep(2);
+  };
+
+  // Forgot password — the missing escape hatch that made sign-in feel broken.
+  const handleForgotPassword = async () => {
+    const trimmedEmail = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Type your email above first, then tap "Forgot password" again.');
+      return;
+    }
+    setError('');
+    try {
+      await supabase.auth.resetPasswordForEmail(trimmedEmail);
+    } catch { /* always show the same message — no account enumeration */ }
+    setSuccess(`If an account exists for ${trimmedEmail}, a reset link is on its way.`);
   };
 
   const toggleInterest = (label) => {
@@ -200,7 +254,7 @@ export const AuthModal = ({ visible, onClose }) => {
     setEmail(''); setPassword(''); setUsername(''); setDisplayName('');
     setCity(''); setGender(''); setBirthYear(''); setSelectedInterests([]);
     setError(''); setSuccess(''); setMode('signin'); setShowPassword(false);
-    setConfirmLater(true);
+    setConfirmLater(true); setSignupStep(1);
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -239,8 +293,20 @@ export const AuthModal = ({ visible, onClose }) => {
               ))}
             </View>
 
-            {/* ── SIGN-UP EXTRA FIELDS ── */}
+            {/* Signup progress dots */}
             {mode === 'signup' && (
+              <View style={styles.stepRow}>
+                {[1, 2].map(s => (
+                  <View key={s} style={[styles.stepDot, { backgroundColor: signupStep >= s ? primary : `${primary}25` }, signupStep === s && styles.stepDotActive]} />
+                ))}
+                <Text style={[styles.stepText, { color: muted }]}>
+                  {signupStep === 1 ? 'Step 1 of 2 — the essentials' : 'Step 2 of 2 — make it yours (all optional)'}
+                </Text>
+              </View>
+            )}
+
+            {/* ── SIGN-UP STEP 1: username only (email/password follow below) ── */}
+            {mode === 'signup' && signupStep === 1 && (
               <>
                 <Text style={[styles.label, { color: textColor }]}>Username *</Text>
                 <Text style={[styles.sublabel, { color: muted }]}>This is your @handle — how friends find and tag you</Text>
@@ -252,6 +318,16 @@ export const AuthModal = ({ visible, onClose }) => {
                   onChangeText={setUsername}
                   autoCapitalize="none"
                 />
+              </>
+            )}
+
+            {/* ── SIGN-UP STEP 2: personalisation (skippable) ── */}
+            {mode === 'signup' && signupStep === 2 && (
+              <>
+                <TouchableOpacity onPress={() => setSignupStep(1)} style={styles.backRow}>
+                  <Feather name="arrow-left" size={14} color={muted} />
+                  <Text style={{ color: muted, fontSize: 12, fontWeight: '700' }}>Back to account details</Text>
+                </TouchableOpacity>
 
                 <Text style={[styles.label, { color: textColor }]}>Your Name</Text>
                 <Text style={[styles.sublabel, { color: muted }]}>The name people see on your profile</Text>
@@ -318,7 +394,9 @@ export const AuthModal = ({ visible, onClose }) => {
               </>
             )}
 
-            {/* ── COMMON FIELDS ── */}
+            {/* ── EMAIL + PASSWORD (sign-in, and signup step 1) ── */}
+            {(mode === 'signin' || signupStep === 1) && (
+            <>
             <Text style={[styles.label, { color: textColor }]}>Email</Text>
             <TextInput
               style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
@@ -352,6 +430,14 @@ export const AuthModal = ({ visible, onClose }) => {
               </TouchableOpacity>
             </View>
 
+            {mode === 'signin' && (
+              <TouchableOpacity onPress={handleForgotPassword} style={{ alignSelf: 'flex-end', marginRight: HM, marginTop: -8, marginBottom: 12 }}>
+                <Text style={{ color: primary, fontSize: 12, fontWeight: '700' }}>Forgot password?</Text>
+              </TouchableOpacity>
+            )}
+            </>
+            )}
+
             {!!error && (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>⚠️ {error}</Text>
@@ -363,8 +449,8 @@ export const AuthModal = ({ visible, onClose }) => {
               </View>
             )}
 
-            {/* Email confirmation preference — signup only */}
-            {mode === 'signup' && (
+            {/* Email confirmation preference — signup step 2 only */}
+            {mode === 'signup' && signupStep === 2 && (
               <>
                 <View style={[styles.confirmBox, { borderColor: `${primary}25`, backgroundColor: `${primary}08` }]}>
                   <Feather name="mail" size={14} color={primary} style={{ marginTop: 2 }} />
@@ -411,21 +497,25 @@ export const AuthModal = ({ visible, onClose }) => {
               </>
             )}
 
-            {/* Email Opt-in — signin only (already shown inside signup block above) */}
-            {mode === 'signin' && null}
-
             <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: primary }, loading && styles.disabled]}
-              onPress={mode === 'signin' ? handleSignIn : handleSignUp}
-              disabled={loading}
+              style={[styles.actionBtn, { backgroundColor: primary }, (loading || checkingName) && styles.disabled]}
+              onPress={mode === 'signin' ? handleSignIn : signupStep === 1 ? handleContinue : handleSignUp}
+              disabled={loading || checkingName}
             >
-              {loading
+              {(loading || checkingName)
                 ? <ActivityIndicator color="#000" />
                 : <Text style={styles.actionText}>
-                    {mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
+                    {mode === 'signin' ? 'SIGN IN' : signupStep === 1 ? 'CONTINUE →' : 'CREATE ACCOUNT'}
                   </Text>
               }
             </TouchableOpacity>
+
+            {/* Step 2 is fully optional — one tap finishes either way */}
+            {mode === 'signup' && signupStep === 2 && (
+              <Text style={[styles.sublabel, { color: muted, textAlign: 'center', marginBottom: 12 }]}>
+                Everything on this step is optional — tap CREATE ACCOUNT whenever you're ready.
+              </Text>
+            )}
 
             <TouchableOpacity onPress={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}>
               <Text style={[styles.footerLink, { color: primary }]}>
@@ -478,6 +568,11 @@ const styles = StyleSheet.create({
   confirmSub: { fontSize: 11, lineHeight: 15 },
   confirmOptions: { flexDirection: 'row', gap: 8 },
   confirmOpt: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: HM, marginBottom: 16 },
+  stepDot: { width: 18, height: 5, borderRadius: 3 },
+  stepDotActive: { width: 28 },
+  stepText: { fontSize: 11, fontWeight: '700', marginLeft: 6 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: HM, marginBottom: 14 },
   confirmOptText: { fontSize: 11, fontWeight: '700', flex: 1 },
   radio: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 8, height: 8, borderRadius: 4 },

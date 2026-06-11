@@ -13,6 +13,7 @@ import { transform } from '../utils/writingStyles';
 import { thumb } from '../utils/storageThumb';
 import { resilient } from '../utils/resilience';
 import { GlitterBurst } from './GlitterBurst';
+import { ViberProfileModal } from './ViberProfileModal';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -61,7 +62,7 @@ const RANK_STYLES = [
   { bg: 'rgba(16,185,129,0.2)', color: "#34d399", label: '3rd', glow: "#34d399" },
 ];
 
-const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, onReply }) => {
+const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, onReply, onOpenProfile, isReply = false, replyingToName = null }) => {
   const [likeFx, setLikeFx] = useState(0);
   const prevLiked = useRef(isLiked);
   useEffect(() => {
@@ -73,16 +74,25 @@ const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, 
   const bg = colors[(name?.charCodeAt(0) || 0) % colors.length];
   const initials = name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'G';
   return (
-    <View style={styles.echoItem}>
-      {echo.profiles?.avatar_url
-        ? <Image source={{ uri: thumb.avatar(echo.profiles.avatar_url) }} style={styles.avatar} />
-        : <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: bg }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
-      }
+    <View style={[styles.echoItem, isReply && styles.replyItem]}>
+      {/* One-layer thread guide: replies hang off their parent with an L-line */}
+      {isReply && <View style={[styles.threadLine, { backgroundColor: `${primary}30` }]} />}
+      <TouchableOpacity onPress={() => onOpenProfile?.(echo.user_id)} disabled={!echo.user_id}>
+        {echo.profiles?.avatar_url
+          ? <Image source={{ uri: thumb.avatar(echo.profiles.avatar_url) }} style={[styles.avatar, isReply && styles.avatarSmall]} />
+          : <View style={[styles.avatar, isReply && styles.avatarSmall, styles.avatarFallback, { backgroundColor: bg }]}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+        }
+      </TouchableOpacity>
       <View style={[styles.bubble, { backgroundColor: `${primary}08`, borderColor: rank ? rank.glow : `${primary}18` }, rank && (IS_WEB ? { boxShadow: `0 0 12px ${rank.glow}55` } : { shadowColor: rank.glow, shadowOpacity: 0.45, shadowRadius: 7, elevation: 4 })]}>
         <View style={styles.bubbleHeader}>
-          <Text style={[styles.echoName, { color: primary }]}>{name}</Text>
+          <TouchableOpacity onPress={() => onOpenProfile?.(echo.user_id)} disabled={!echo.user_id}>
+            <Text style={[styles.echoName, { color: primary }]}>{name}</Text>
+          </TouchableOpacity>
+          {isReply && replyingToName && (
+            <Text style={[styles.replyingTo, { color: muted }]}>↩ {replyingToName}</Text>
+          )}
           {rank && (
             <View style={[styles.rankBadge, { backgroundColor: rank.bg }]}>
               <Text style={[styles.rankText, { color: rank.color }]}>{rank.label}</Text>
@@ -154,11 +164,23 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
         return;
       }
       setEchoes(data || []);
+      // Hydrate which of these I already liked — otherwise hearts reset on
+      // every open and "my like disappeared" reports keep coming in.
+      if (user && data?.length) {
+        try {
+          const { data: mine } = await supabase
+            .from('echo_likes')
+            .select('echo_id')
+            .eq('user_id', user.id)
+            .in('echo_id', data.map(e => e.id));
+          if (mine) setLikedEchoes(new Set(mine.map(r => r.echo_id)));
+        } catch { /* echo_likes not migrated — hearts stay session-local */ }
+      }
     } catch (e) {
       log.error('EchoSection:fetch', e);
       setEchoes([]);
     }
-  }, [eventId, sort]);
+  }, [eventId, sort, user]);
 
   useEffect(() => {
     fetchEchoes();
@@ -258,6 +280,33 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
 
   const displayEchoes = echoes ?? [];
 
+  // One-layer thread: top-level echoes keep the chosen sort; replies hang
+  // under their parent chronologically. A reply to a reply still attaches to
+  // the top-level parent (single layer, like Instagram).
+  const { tops, childrenOf, parentNameOf } = React.useMemo(() => {
+    const byId = new Map(displayEchoes.map(e => [e.id, e]));
+    const topList = [];
+    const kidsMap = new Map();
+    for (const e of displayEchoes) {
+      const parent = e.parent_id ? byId.get(e.parent_id) : null;
+      if (!parent) { topList.push(e); continue; }
+      // collapse deeper nesting to the top-level ancestor
+      const rootId = parent.parent_id && byId.has(parent.parent_id) ? parent.parent_id : parent.id;
+      if (!kidsMap.has(rootId)) kidsMap.set(rootId, []);
+      kidsMap.get(rootId).push(e);
+    }
+    for (const kids of kidsMap.values()) {
+      kids.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    }
+    return {
+      tops: topList,
+      childrenOf: kidsMap,
+      parentNameOf: (e) => byId.get(e.parent_id)?.profiles?.username || null,
+    };
+  }, [displayEchoes]);
+
+  const [profileUserId, setProfileUserId] = useState(null);
+
   const myAvatar = thumb.avatar(profile?.avatar_url);
   const myInitials = avatarInitials(profile?.username || user?.email);
   const myColor = avatarColor(profile?.username || user?.email);
@@ -297,18 +346,36 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
         ? <EchoSkeleton primary={primary} />
         : displayEchoes.length === 0
           ? <Text style={[styles.empty, { color: muted }]}>No echoes yet. Be the first.</Text>
-          : displayEchoes.map((echo, idx) => (
-              <EchoRow
-                key={echo.id}
-                echo={echo}
-                rank={idx < 3 ? RANK_STYLES[idx] : null}
-                isLiked={likedEchoes.has(echo.id)}
-                primary={primary}
-                textColor={textColor}
-                muted={muted}
-                onLike={likeEcho}
-                onReply={setReplyTo}
-              />
+          : tops.map((echo, idx) => (
+              <View key={echo.id}>
+                <EchoRow
+                  echo={echo}
+                  rank={idx < 3 ? RANK_STYLES[idx] : null}
+                  isLiked={likedEchoes.has(echo.id)}
+                  primary={primary}
+                  textColor={textColor}
+                  muted={muted}
+                  onLike={likeEcho}
+                  onReply={setReplyTo}
+                  onOpenProfile={setProfileUserId}
+                />
+                {(childrenOf.get(echo.id) || []).map((reply) => (
+                  <EchoRow
+                    key={reply.id}
+                    echo={reply}
+                    rank={null}
+                    isReply
+                    replyingToName={parentNameOf(reply)}
+                    isLiked={likedEchoes.has(reply.id)}
+                    primary={primary}
+                    textColor={textColor}
+                    muted={muted}
+                    onLike={likeEcho}
+                    onReply={setReplyTo}
+                    onOpenProfile={setProfileUserId}
+                  />
+                ))}
+              </View>
             ))
       }
 
@@ -337,6 +404,15 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
           }
         </TouchableOpacity>
       </View>
+
+      {/* Tap a name/avatar anywhere in the thread → their profile */}
+      {profileUserId && (
+        <ViberProfileModal
+          visible={!!profileUserId}
+          userId={profileUserId}
+          onClose={() => setProfileUserId(null)}
+        />
+      )}
     </View>
   );
 };
@@ -352,7 +428,11 @@ const styles = StyleSheet.create({
   replyText: { fontSize: 12, fontWeight: '600' },
   empty: { fontSize: 12, textAlign: 'center', paddingVertical: 8 },
   echoItem: { flexDirection: 'row', marginBottom: 10 },
+  replyItem: { marginLeft: 34, marginTop: -4, position: 'relative' },
+  threadLine: { position: 'absolute', left: -16, top: -6, bottom: 14, width: 1.5, borderRadius: 1 },
+  replyingTo: { fontSize: 10, fontWeight: '700' },
   avatar: { width: 28, height: 28, borderRadius: 14 },
+  avatarSmall: { width: 22, height: 22, borderRadius: 11 },
   avatarFallback: { justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: '#fff', fontSize: 9, fontWeight: '800' },
   bubble: { flex: 1, marginLeft: 8, borderWidth: 1, borderRadius: 12, padding: 10 },

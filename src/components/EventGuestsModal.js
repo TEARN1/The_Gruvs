@@ -153,6 +153,16 @@ export const EventGuestsModal = ({ visible, eventId, category = null, sportType 
             <View style={g.headerBtn} />
           </View>
 
+          {/* How it works — pick the role FIRST, then search/add the person */}
+          <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 10, alignItems: 'flex-start' }}>
+            <Feather name="info" size={13} color={primary} style={{ marginTop: 1 }} />
+            <Text style={{ color: muted, fontSize: 11.5, lineHeight: 16, flex: 1 }}>
+              1. Pick a role below (who they ARE at this Gruv — e.g. a DJ is a Performer, the MC is a Host).{'\n'}
+              2. Search their name and tap to tag them — they appear on the event's lineup and on their own profile.{'\n'}
+              3. After the Gruv, tap ✎ on a guest to score their appearance (rating, placement, award).
+            </Text>
+          </View>
+
           {/* Role + side selectors */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={g.chipRow}>
             {ROLES.map(r => <Chip key={r} active={role === r} onPress={() => setRole(r)}>{r[0].toUpperCase() + r.slice(1)}</Chip>)}

@@ -38,6 +38,13 @@ const QRCanvas = ({ value, size, fgColor, bgColor, ecl = 'M' }) => {
           },
           errorCorrectionLevel: ecl,
         });
+        // QRCode.toCanvas force-sets canvas.style.width/height to the RETINA
+        // pixel size (size*2), blowing the canvas out of its container so only
+        // the top-left quarter shows. Re-assert the display size after render.
+        if (canvasRef.current) {
+          canvasRef.current.style.width = `${size}px`;
+          canvasRef.current.style.height = `${size}px`;
+        }
         if (!cancelled) setReady(true);
       } catch (err) {
         console.warn('[QRCodeWeb] qrcode render failed:', err);
@@ -83,11 +90,12 @@ const QRCodeWeb = ({
   if (!value) return null;
 
   return (
-    <View style={[w.card, { width: size + 40 }]}>
-      {/* Optional caption */}
-      {label ? (
-        <Text style={w.label}>{label}</Text>
-      ) : null}
+    <View style={[w.card, { width: size + 44, borderColor: `${centerColor}55` }]}>
+      {/* Accent halo behind the card top */}
+      <View style={[w.halo, { backgroundColor: centerColor }]} pointerEvents="none" />
+
+      {/* Caption */}
+      <Text style={w.label}>{label || 'SCAN TO VIBE'}</Text>
 
       {/* QR code canvas */}
       <View style={[w.qrWrap, { width: size + 12, height: size + 12 }]}>
@@ -118,9 +126,11 @@ const QRCodeWeb = ({
 
       {/* GRUV branding footer */}
       <View style={w.brandRow}>
-        <View style={w.brandDot} />
-        <Text style={w.brandText}>GRUV</Text>
-        <View style={w.brandDot} />
+        <View style={[w.brandLine, { backgroundColor: `${centerColor}66` }]} />
+        <View style={[w.brandDot, { backgroundColor: centerColor }]} />
+        <Text style={w.brandText}>THE GRUVS</Text>
+        <View style={[w.brandDot, { backgroundColor: centerColor }]} />
+        <View style={[w.brandLine, { backgroundColor: `${centerColor}66` }]} />
       </View>
     </View>
   );
@@ -129,24 +139,31 @@ const QRCodeWeb = ({
 const w = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingVertical: 16,
+    borderRadius: 22,
+    paddingVertical: 18,
     paddingHorizontal: 16,
     alignItems: 'center',
+    overflow: 'hidden',
     // Rich shadow
     shadowColor: '#000',
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.07)',
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 14,
+    borderWidth: 1.5,
+  },
+  // Soft colour glow bleeding in from the top edge
+  halo: {
+    position: 'absolute',
+    top: -70, left: '50%', marginLeft: -90,
+    width: 180, height: 110, borderRadius: 90,
+    opacity: 0.16,
   },
   label: {
     fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 2.5,
-    color: '#666',
+    fontWeight: '900',
+    letterSpacing: 3,
+    color: '#555',
     textTransform: 'uppercase',
     marginBottom: 10,
   },
@@ -184,19 +201,19 @@ const w = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    marginTop: 8,
+    marginTop: 10,
   },
+  brandLine: { width: 22, height: 1.5, borderRadius: 1 },
   brandDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#00d4ff',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
   brandText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '900',
     letterSpacing: 3,
-    color: '#aaa',
+    color: '#888',
   },
 });
 

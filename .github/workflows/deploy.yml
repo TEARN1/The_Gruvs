@@ -72,10 +72,68 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
+  # ── SAFETY GATE: prove pending migrations apply cleanly to a THROWAWAY clone
+  #    before we ever touch production. No migration reaches prod unless it
+  #    applied here first. Skips cleanly until you baseline (supabase db pull).
+  migration-preflight:
+    name: 🧪 Migration Pre-flight (throwaway DB)
+    runs-on: ubuntu-latest
+    needs: ci-gate
+
+    services:
+      postgres:
+        image: postgis/postgis:15-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gruvs_preflight
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: gruvs_preflight
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Detect migrations
+        id: check
+        run: |
+          if [ ! -d supabase/migrations ] || [ -z "$(ls -A supabase/migrations/*.sql 2>/dev/null)" ]; then
+            echo "has_migrations=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No supabase/migrations yet — nothing to pre-flight. Baseline with 'supabase db pull' (see supabase/MIGRATIONS_SETUP.md)."
+          else
+            echo "has_migrations=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bootstrap Supabase-managed objects (roles, auth, realtime, extensions)
+        if: steps.check.outputs.has_migrations == 'true'
+        run: psql -v ON_ERROR_STOP=1 -X -q -f supabase/test/bootstrap.sql
+
+      - name: Apply pending migrations to the throwaway clone (in order)
+        if: steps.check.outputs.has_migrations == 'true'
+        run: |
+          set -e
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            echo "── applying $(basename "$f")"
+            psql -v ON_ERROR_STOP=1 -X -q -f "$f"
+          done
+          echo "✅ All migrations applied cleanly to a throwaway clone — safe to push to prod."
+
   database-migrations:
     name: 🗄️ Supabase Migrations Audit & Sync
     runs-on: ubuntu-latest
-    needs: ci-gate
+    needs: migration-preflight   # ← prod push only runs if the throwaway-clone apply passed
 
     steps:
       - name: Checkout Code
@@ -86,11 +144,18 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Verify Migration Files Integrity
-        run: supabase db lint
-
+      # NOTE: `supabase db lint` needs a LOCAL running Postgres (supabase start) —
+      # not available on a stock CI runner — so it's intentionally omitted here.
       - name: Apply DB Migrations to Production
-        run: supabase db push --db-url "${{ secrets.SUPABASE_PRODUCTION_DB_URL }}"
+        # Only push when migrations exist AND the secret is configured. Until you
+        # baseline (see supabase/MIGRATIONS_SETUP.md), this skips cleanly instead
+        # of failing the whole pipeline.
+        run: |
+          if [ -z "${{ secrets.SUPABASE_PRODUCTION_DB_URL }}" ]; then
+            echo "::warning::SUPABASE_PRODUCTION_DB_URL not set — skipping db push. See supabase/MIGRATIONS_SETUP.md"; exit 0; fi
+          if [ ! -d supabase/migrations ] || [ -z "$(ls -A supabase/migrations 2>/dev/null)" ]; then
+            echo "::warning::No supabase/migrations yet — run 'supabase db pull' to baseline first. Skipping."; exit 0; fi
+          supabase db push --db-url "${{ secrets.SUPABASE_PRODUCTION_DB_URL }}"
 
   cd-deploy-android:
     name: 🤖 Google Play Store CD Release

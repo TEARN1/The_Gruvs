@@ -47,6 +47,7 @@ import { EventGallery } from '../components/EventGallery';
 import { ReactPicker } from '../components/ReactPicker';
 import { GlitterBurst } from '../components/GlitterBurst';
 import { SuggestedFollows } from '../components/SuggestedFollows';
+import { GoOutNudge } from '../components/GoOutNudge';
 
 // ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
 import { PostEventModal }       from '../components/PostEventModal';
@@ -378,6 +379,7 @@ const EventCard = React.memo(({
           ) : (
           <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && !event.poster_mode && { aspectRatio: '2/1' }]}>
             <MediaViewer
+              eventId={event.id}
               aspectRatio={event.poster_mode ? 3 / 4 : 2}
               resizeMode={event.poster_mode ? 'contain' : 'cover'}
               media={(() => {
@@ -1990,6 +1992,19 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <>
             {renderHeader()}
             {renderTrending()}
+            {mode === 'drop' && (
+              <GoOutNudge
+                events={events}
+                topEvent={trendingEvents[0] || null}
+                onHost={() => (user ? setPostModalVisible(true) : onAuthRequired())}
+                onExplore={onNavigateToServices}
+                onViewEvent={(ev) => setSelectedEvent(ev)}
+                primary={primary}
+                textColor={textColor}
+                muted={muted}
+                surface={surface}
+              />
+            )}
             {mode === 'drop' && (
               <CrewJourneyPanel onEventPress={(ev) => {
                 const idx = events.findIndex(e => e.id === ev.id);

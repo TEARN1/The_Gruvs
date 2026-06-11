@@ -1,0 +1,85 @@
+# ────────────────────────────────────────────────────────────────────────────
+# DB SCHEMA CI — builds the schema on a throwaway Postgres on every push.
+#
+# WHY: this is the safety rail from ROADMAP.md / MIGRATIONS_SETUP.md. It proves
+# the schema builds CLEANLY from empty before anything reaches the live DB, and
+# catches the shape/order/idempotency bugs (missing columns, view clashes,
+# duplicate functions, forward references) that have bitten when replaying the
+# files by hand. Runs in isolation — does NOT touch production and does NOT gate
+# deploy.yml; a red run here is an advisory "the schema won't build fresh."
+#
+# Order matters: the consolidated files are NOT topologically sorted. The base
+# schema (13_schema_v5) lives in part_2, so the correct fresh-build order is
+# part_2 → part_3 → part_4 → part_1. See supabase/queries/FRESH_BUILD_ORDER.md.
+#
+# Once `supabase/migrations/` is baselined, add a second job that applies the
+# migrations to this same throwaway DB — that becomes the real per-PR gate.
+# ────────────────────────────────────────────────────────────────────────────
+name: DB Schema CI
+
+on:
+  push:
+    branches: ["**"]
+    paths: ["supabase/queries/**", "supabase/test/**", ".github/workflows/db-schema-ci.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["supabase/queries/**", "supabase/test/**"]
+
+jobs:
+  build-schema:
+    name: Build schema on throwaway Postgres
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:15-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gruvs_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: gruvs_ci
+      PSQL: "psql -v ON_ERROR_STOP=1 -X -q"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Bootstrap Supabase-managed objects (roles, auth, realtime)
+        run: $PSQL -f supabase/test/bootstrap.sql
+
+      # Fresh-build order: 2 → 3 → 4 → 1 (base schema lives in part_2).
+      - name: Apply schema_part_2 (base + v5)
+        run: $PSQL -f supabase/queries/schema_part_2.sql
+
+      - name: Apply schema_part_3 (sports / talent)
+        run: $PSQL -f supabase/queries/schema_part_3.sql
+
+      - name: Apply schema_part_4 (governance / patches)
+        run: $PSQL -f supabase/queries/schema_part_4.sql
+
+      - name: Apply schema_part_1 (extras — push, ai, business)
+        run: $PSQL -f supabase/queries/schema_part_1.sql
+
+      # Re-run part 4's idempotent patch tail to prove idempotency (safe re-run).
+      - name: Re-apply schema_part_4 (idempotency check)
+        run: $PSQL -f supabase/queries/schema_part_4.sql
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## DB Schema CI" >> $GITHUB_STEP_SUMMARY
+          echo "Built schema on throwaway Postgres in fresh-build order (2→3→4→1)." >> $GITHUB_STEP_SUMMARY
+          echo "A green run means the consolidated schema builds cleanly from empty." >> $GITHUB_STEP_SUMMARY

@@ -53,6 +53,7 @@ import { EventManagementPanel }   from '../components/EventManagementPanel';
 import { InviteByNameModal }      from '../components/InviteByNameModal';
 import { SportManagementPanel }   from '../components/SportManagementPanel';
 import { EventGuestsModal }       from '../components/EventGuestsModal';
+import { ViberProfileModal }      from '../components/ViberProfileModal';
 import { PlayerProfileModal }     from '../components/PlayerProfileModal';
 import { MatchPredictionCard }    from '../components/MatchPredictionCard';
 import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
@@ -162,6 +163,10 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [guests, setGuests] = useState([]);
   const [guestsModalOpen, setGuestsModalOpen] = useState(false);
+  // Hype hearts on lineup guests — { [guestId]: { count, mine } }, persisted
+  // in event_guest_likes (SQL patch 20). Degrades silently if un-migrated.
+  const [guestLikes, setGuestLikes] = useState({});
+  const [organizerProfileOpen, setOrganizerProfileOpen] = useState(false);
   const [openGuestPlayer, setOpenGuestPlayer] = useState(null);
   const [govOpen, setGovOpen] = useState(false);
   const scrollRef = useRef(null);
@@ -174,6 +179,52 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     if (event?.id) TalentEngine.getEventGuests(event.id).then(setGuests).catch(() => {});
   }, [event?.id]);
   useEffect(() => { loadGuests(); }, [loadGuests]);
+
+  // Load hype hearts for the lineup once guests are known.
+  useEffect(() => {
+    if (!guests.length) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('event_guest_likes')
+          .select('guest_id, user_id')
+          .in('guest_id', guests.map(g => g.id));
+        if (!alive || !data) return;
+        const state = {};
+        for (const g of guests) state[g.id] = { count: 0, mine: false };
+        for (const row of data) {
+          const s = state[row.guest_id] || (state[row.guest_id] = { count: 0, mine: false });
+          s.count += 1;
+          if (user && row.user_id === user.id) s.mine = true;
+        }
+        setGuestLikes(state);
+      } catch { /* table not migrated yet */ }
+    })();
+    return () => { alive = false; };
+  }, [guests, user]);
+
+  const toggleGuestLike = useCallback(async (guestId) => {
+    if (!user) { onAuthRequired?.(); return; }
+    const prev = guestLikes[guestId] || { count: 0, mine: false };
+    const liking = !prev.mine;
+    setGuestLikes(s => ({ ...s, [guestId]: { count: Math.max(0, prev.count + (liking ? 1 : -1)), mine: liking } }));
+    try {
+      if (liking) {
+        const { error } = await supabase.from('event_guest_likes').upsert(
+          { guest_id: guestId, user_id: user.id, event_id: event?.id },
+          { onConflict: 'guest_id,user_id', ignoreDuplicates: true },
+        );
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('event_guest_likes')
+          .delete().eq('guest_id', guestId).eq('user_id', user.id);
+        if (error) throw error;
+      }
+    } catch {
+      setGuestLikes(s => ({ ...s, [guestId]: prev })); // roll back — don't fake a save
+    }
+  }, [user, guestLikes, event?.id, onAuthRequired]);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -545,7 +596,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {matchCard ? (
             <MatchVersus match={matchCard} height={HERO_H} isWeb={Platform.OS === 'web'} />
           ) : (
-            <MediaViewer media={media} containerWidth={undefined} aspectRatio={event.poster_mode ? 3 / 4 : 16 / 9} resizeMode={event.poster_mode ? 'contain' : 'cover'} />
+            <MediaViewer media={media} containerWidth={undefined} aspectRatio={event.poster_mode ? 3 / 4 : 16 / 9} resizeMode={event.poster_mode ? 'contain' : 'cover'} eventId={event?.id} onAuthRequired={onAuthRequired} />
           )}
           {!event.poster_mode && <View style={styles.heroScrim} pointerEvents="none" />}
 
@@ -602,7 +653,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           )}
 
           <View style={styles.organizerRow}>
-            <View style={styles.avatarWrap}>
+            <TouchableOpacity
+              style={styles.avatarWrap}
+              onPress={() => organizer?.id && setOrganizerProfileOpen(true)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${organizer.username || 'organizer'}'s profile`}
+            >
               {organizer.avatar_url
                 ? <Image source={{ uri: organizer.avatar_url }} style={styles.avatar} />
                 : <View style={[styles.avatar, { backgroundColor: ["#0891b2", "#7c3aed", "#059669", "#dc2626"][(organizer.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
@@ -615,12 +672,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <Feather name="check" size={8} color="#000" />
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
 
             <View style={styles.organizerMeta}>
-              <Text style={[styles.organizerName, { color: textColor }]}>
-                {organizer.username || 'Unknown Organizer'}
-              </Text>
+              <TouchableOpacity onPress={() => organizer?.id && setOrganizerProfileOpen(true)} activeOpacity={0.7}>
+                <Text style={[styles.organizerName, { color: textColor }]}>
+                  {organizer.username || 'Unknown Organizer'}
+                </Text>
+              </TouchableOpacity>
               {organizer.vibe_score != null && (
                 <View style={[styles.vibeBadge, { borderColor: primary + '80' }]}>
                   <Feather name="zap" size={10} color={primary} />
@@ -1072,6 +1131,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                         <Text style={{ color: textMuted, fontSize: 9, textAlign: 'center' }} numberOfLines={1}>
                           {[gst.role, gst.team_side].filter(Boolean).join(' · ')}
                         </Text>
+                        {/* Hype heart — show the crowd which act they're here for */}
+                        <TouchableOpacity
+                          onPress={() => toggleGuestLike(gst.id)}
+                          hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, backgroundColor: guestLikes[gst.id]?.mine ? 'rgba(239,68,68,0.15)' : 'transparent' }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Hype ${name}`}
+                        >
+                          <Feather name="heart" size={11} color={guestLikes[gst.id]?.mine ? '#ef4444' : textMuted} />
+                          <Text style={{ color: guestLikes[gst.id]?.mine ? '#ef4444' : textMuted, fontSize: 10, fontWeight: '800' }}>
+                            {guestLikes[gst.id]?.count || 0}
+                          </Text>
+                        </TouchableOpacity>
                       </TouchableOpacity>
                     );
                   })}
@@ -1335,7 +1407,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {media.length > 0 && (
             <View style={{ marginBottom: 20 }}>
               <Text style={[styles.sectionLabel, { color: textMuted }]}>EVENT PREVIEW</Text>
-              <MediaViewer media={media} />
+              <MediaViewer media={media} eventId={event?.id} onAuthRequired={onAuthRequired} />
             </View>
           )}
 
@@ -1414,6 +1486,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               visible={!!openGuestPlayer}
               playerId={openGuestPlayer}
               onClose={() => setOpenGuestPlayer(null)}
+            />
+          </SafeSection>
+        )}
+
+        {/* Tap the organizer's name/avatar → their full profile */}
+        {organizerProfileOpen && organizer?.id && (
+          <SafeSection label="Organizer" primary={primary}>
+            <ViberProfileModal
+              visible={organizerProfileOpen}
+              userId={organizer.id}
+              onClose={() => setOrganizerProfileOpen(false)}
             />
           </SafeSection>
         )}

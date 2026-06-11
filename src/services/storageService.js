@@ -16,7 +16,7 @@ const MIME_MAP = {
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'image/heic', 'image/heif',
-  'video/mp4', 'video/quicktime', 'video/x-m4v',
+  'video/mp4', 'video/quicktime', 'video/x-m4v', 'video/webm',
 ];
 
 const MAX_SIZE = 150 * 1024 * 1024; // 150 MB — matches the Reel composer's stated limit

@@ -1049,8 +1049,8 @@ const SecurityPage = ({ primary, muted, textColor, user, toast }) => {
 };
 
 // ── Find Them Sub-View ────────────────────────────────────────────────────────
-const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, applyLocationPrivacy }) => {
-  const [distance, setDistance] = useState(5);
+const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, applyLocationPrivacy, initialDistance = 5 }) => {
+  const [distance, setDistance] = useState(initialDistance);
   const [activeFilter, setActiveFilter] = useState(null);
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1602,10 +1602,13 @@ const FollowingTab = ({ userId, primary, textColor, muted, surface, onNavigateTo
 };
 
 const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDeleteGallery, isOwner = true }) => {
+  const { user: viewer } = useAuth();
   const [lightboxItem, setLightboxItem] = useState(null); // { url, isVideo, source, id }
   const [userReels, setUserReels] = useState([]);
   const [expanded, setExpanded] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  // Persisted hearts per media URL (media_likes — SQL patch 20)
+  const [tileLikes, setTileLikes] = useState({});
 
   useEffect(() => {
     if (!userId) return;
@@ -1630,6 +1633,29 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDelete
     ];
     return items.filter(item => item?.url).slice(0, 60);
   }, [profileGallery, userReels, myEvents]);
+
+  // Load persisted hearts for everything on the grid.
+  useEffect(() => {
+    let alive = true;
+    const urls = allItems.map(i => i.url);
+    if (!urls.length) return;
+    import('../services/mediaLikes').then(({ getMediaLikes }) =>
+      getMediaLikes(urls, viewer?.id).then((state) => { if (alive && Object.keys(state).length) setTileLikes(state); })
+    ).catch(() => {});
+    return () => { alive = false; };
+  }, [allItems, viewer?.id]);
+
+  const toggleTileLike = async (url) => {
+    if (!viewer) return;
+    const prev = tileLikes[url] || { count: 0, mine: false };
+    const liking = !prev.mine;
+    setTileLikes(s => ({ ...s, [url]: { count: Math.max(0, prev.count + (liking ? 1 : -1)), mine: liking } }));
+    try {
+      const { toggleMediaLike } = await import('../services/mediaLikes');
+      const ok = await toggleMediaLike(url, viewer.id, { like: liking });
+      if (!ok) setTileLikes(s => ({ ...s, [url]: prev }));
+    } catch { setTileLikes(s => ({ ...s, [url]: prev })); }
+  };
 
   const visibleItems = expanded ? allItems : allItems.slice(0, 6);
   const cellSize = Math.floor((width - 44) / 3);
@@ -1671,8 +1697,32 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDelete
           return (
             <TouchableOpacity key={`${item.source}-${item.id || i}`} onPress={() => setLightboxItem(item)} activeOpacity={0.85}
               style={{ width: cellSize, height: cellSize, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}15` }}>
-              <SmartImage source={item.url} style={{ width: cellSize, height: cellSize }} resizeMode="cover" />
-              {item.isVideo && (<View style={styles.lightboxOverlay}><Feather name="play-circle" size={28} color="#fff" /></View>)}
+              {item.isVideo ? (
+                // Real video preview (muted micro-loop) — a video URL fed to an
+                // <img> renders pure black, which is the bug users reported.
+                <Video
+                  source={{ uri: item.url }}
+                  style={{ width: cellSize, height: cellSize }}
+                  resizeMode={ResizeMode.COVER}
+                  shouldPlay
+                  isMuted
+                  isLooping
+                />
+              ) : (
+                <SmartImage source={item.url} style={{ width: cellSize, height: cellSize }} resizeMode="cover" />
+              )}
+              {item.isVideo && (<View style={styles.lightboxOverlay} pointerEvents="none"><Feather name="play-circle" size={28} color="#fff" /></View>)}
+              {/* Heart — persisted like + live count */}
+              <TouchableOpacity
+                onPress={() => toggleTileLike(item.url)}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                style={{ position: 'absolute', bottom: 5, left: 5, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.55)' }}
+              >
+                <Feather name="heart" size={11} color={tileLikes[item.url]?.mine ? '#ef4444' : '#fff'} />
+                {(tileLikes[item.url]?.count || 0) > 0 && (
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>{tileLikes[item.url].count}</Text>
+                )}
+              </TouchableOpacity>
               {canDelete && (
                 <TouchableOpacity onPress={() => confirmDelete(item)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   style={{ position: 'absolute', top: 5, right: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
@@ -1775,6 +1825,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const toast = useToast();
 
   const [subView, setSubView] = useState(null);
+  const [discoverRadius, setDiscoverRadius] = useState(5); // km — feeds Find Them
   const [refreshing, setRefreshing] = useState(false);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [pathMapVisible, setPathMapVisible] = useState(false);
@@ -1961,12 +2012,16 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const handleGalleryUpload = async () => {
     try {
-      const asset = await pickImage({ allowsEditing: false });
+      // Gallery takes photos AND videos. Videos MUST keep a real video
+      // extension — a video saved as .png renders as a black image tile.
+      const asset = await pickImage({ allowsEditing: false, mediaTypes: ImagePicker.MediaTypeOptions.All });
       if (!asset) return;
+      const isVideo = asset.type === 'video' || /^video\//.test(asset.mimeType || '');
       toast.show('Uploading to gallery...', 'info');
       const fileName = asset.fileName || asset.uri.split('/').pop().split('?')[0];
       const rawExt = fileName.includes('.') ? fileName.split('.').pop() : '';
-      const ext = (rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'jpg').toLowerCase().slice(0, 5);
+      let ext = (rawExt.replace(/[^a-zA-Z0-9]/g, '') || (isVideo ? 'mp4' : 'jpg')).toLowerCase().slice(0, 5);
+      if (isVideo && !/^(mp4|mov|m4v|webm|avi)$/.test(ext)) ext = 'mp4';
       // Gallery images live in event-media/gallery/<user_id>/ so the new
       // storage policy (folder[1]='gallery', filename starts with user_id) allows it.
       const storagePath = `gallery/${user.id}/${user.id}_${Date.now()}.${ext}`;
@@ -2365,6 +2420,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           primary={primary} muted={muted} textColor={textColor}
           user={user} onAuthRequired={onAuthRequired} toast={toast}
           applyLocationPrivacy={applyLocationPrivacy}
+          initialDistance={discoverRadius}
         />
       </View>
     );
@@ -3111,27 +3167,44 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           })}
         </View>
 
-        {/* Discover Settings */}
+        {/* Discover Settings — pick your radius HERE, then jump straight in */}
         {settingsTab === 'discover' && (
           <GlassView style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: primary }]}>Discover People</Text>
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
-              {DIST_OPTIONS.map(d => (
-                <TouchableOpacity
-                  key={d}
-                  onPress={() => setSubView('findthem')}
-                  style={[ft.distBtn, { backgroundColor: `${primary}15`, borderColor: `${primary}25` }]}
-                >
-                  <Text style={[ft.distText, { color: primary }]}>{d}km</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: `${primary}18`, alignItems: 'center', justifyContent: 'center' }}>
+                <Feather name="radio" size={16} color={primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionTitle, { color: primary, marginBottom: 0 }]}>Discover People</Text>
+                <Text style={{ color: muted, fontSize: 11 }}>Vibers around you, within the range you choose</Text>
+              </View>
+            </View>
+            <Text style={{ color: muted, fontSize: 10, fontWeight: '800', letterSpacing: 0.8, marginTop: 10, marginBottom: 8 }}>SEARCH RADIUS</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+              {DIST_OPTIONS.map(d => {
+                const sel = discoverRadius === d;
+                return (
+                  <TouchableOpacity
+                    key={d}
+                    onPress={() => setDiscoverRadius(d)}
+                    style={[ft.distBtn, {
+                      backgroundColor: sel ? primary : `${primary}10`,
+                      borderColor: sel ? primary : `${primary}25`,
+                    }]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: sel }}
+                  >
+                    <Text style={[ft.distText, { color: sel ? '#000' : primary }]}>{d}km</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
             <TouchableOpacity
               style={[styles.findLargeBtn, { backgroundColor: primary }]}
               onPress={() => setSubView('findthem')}
             >
               <Feather name="users" size={16} color="#000" />
-              <Text style={styles.findLargeBtnText}>Open Find Them</Text>
+              <Text style={styles.findLargeBtnText}>Find Vibers within {discoverRadius}km</Text>
             </TouchableOpacity>
           </GlassView>
         )}

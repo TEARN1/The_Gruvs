@@ -15,9 +15,10 @@ import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
+import { SurveyBuilderModal } from '../components/SurveyBuilderModal';
 import { CampaignManager, EcosystemManager, NotificationManager } from '../services/dataFlow';
 import { useToast } from '../components/ToastNotification';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { money } from '../constants/currencies';
 
 const { width: SW } = Dimensions.get('window');
@@ -397,6 +398,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCampaignBuilder, setShowCampaignBuilder] = useState(false);
+  const [showSurveyBuilder, setShowSurveyBuilder] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [activeCampaignFilter, setActiveCampaignFilter] = useState('All'); // New state for filtering missions/promotions
   const [setupMode, setSetupMode] = useState(false);
@@ -825,6 +827,20 @@ export const BusinessDashboardScreen = ({ onClose }) => {
             </View>
           </GlassView>
 
+          {/* Drip surveys — ask the crowd one question at a time */}
+          <GlassView style={[sc.infoCard, { borderColor: `${primary}15` }]}>
+            <Feather name="message-square" size={14} color={primary} />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={[sc.infoTitle, { color: textColor }]}>Drip Surveys</Text>
+              <Text style={[sc.infoBody, { color: muted }]}>Ask your Crowd one question — genres, prices, venues. Served gently (max one per Viber per 20h), answers are anonymous, results live here.</Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowSurveyBuilder(true)}
+              style={[sc.newBtn, { backgroundColor: primary }]}>
+              <Feather name="plus" size={14} color="#000" />
+              <Text style={sc.newBtnText}>ASK</Text>
+            </TouchableOpacity>
+          </GlassView>
+
           {segments.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Feather name="users" size={36} color={muted} />
@@ -1072,6 +1088,12 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         textColor={textColor}
         muted={muted}
         bg={bg}
+      />
+
+      {/* Drip Survey Builder */}
+      <SurveyBuilderModal
+        visible={showSurveyBuilder}
+        onClose={() => setShowSurveyBuilder(false)}
       />
 
       {/* Upgrade Tier Sheet */}

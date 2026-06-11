@@ -2721,7 +2721,12 @@ $$;
 --  SCOUT ENGINE — leaderboard view + flexible search RPC
 -- ============================================================
 -- Public leaderboard surface with computed age (never exposes DOB).
-CREATE OR REPLACE VIEW public.player_leaderboard AS
+-- DROP first (not plain CREATE OR REPLACE): on an existing DB the view may
+-- already be the later category-aware 26-column shape (see source 28 below),
+-- and CREATE OR REPLACE cannot drop columns (ERROR 42P16). CASCADE removes the
+-- dependent search_top_players fn, which is recreated immediately after.
+DROP VIEW IF EXISTS public.player_leaderboard CASCADE;
+CREATE VIEW public.player_leaderboard AS
 SELECT
   p.id, p.full_name, p.known_as, p.sport_type, p.primary_position,
   p.nationality, p.region, p.country, p.photo_url,

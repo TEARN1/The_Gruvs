@@ -1,13 +1,23 @@
 -- ══════════════════════════════════════════════════════════════
 --  THE GRUVS — CONSOLIDATED SCHEMA · PART 1 of 4
 -- ══════════════════════════════════════════════════════════════
---  Run the schema_part_*.sql files IN ORDER on a FRESH Supabase database.
 --  Byte-faithful concatenation of the original numbered migrations — the
 --  originals are preserved in supabase/queries/archive/ (nothing deleted).
 --  Covers: 01_security_hardening.sql … 12_gruvs_social.sql
 --
---  BUILD-ONCE: a handful of CREATE POLICY / ADD COLUMN lack IF-EXISTS guards,
---  so for an existing DB run only the newer archived increments instead.
+--  ⚠️ NOT TOPOLOGICALLY SORTED — does NOT run clean on an EMPTY database.
+--  The blocks are concatenated in original NUMBER order, but the foundational
+--  base schema (profiles, events, event_rsvps, blocked_users, …) lives in the
+--  LAST source block of this file (12_gruvs_social.sql, ~L2228+) and in part_2's
+--  13_schema_v5.sql — yet the earlier 01–11 blocks already reference those
+--  tables/functions. A top-down run on a fresh DB fails on the first forward
+--  reference (e.g. the index on blocked_users near L116, or the GRANTs near
+--  L157 on functions not defined until L1576+).
+--
+--  USE THESE FILES TO RE-APPLY AGAINST AN EXISTING, FULLY-BUILT DATABASE, where
+--  every referenced object already exists and the IF-NOT-EXISTS / DROP-IF-EXISTS
+--  guards make them effectively idempotent. For a brand-new database the base
+--  schema (12_gruvs_social + 13_schema_v5) must be created FIRST.
 -- ══════════════════════════════════════════════════════════════
 
 -- ══════════════════════════════════════════════════════════════
@@ -812,6 +822,22 @@ DROP POLICY IF EXISTS "campaigns_manage" ON public.ad_campaigns;
 CREATE POLICY "campaigns_select" ON public.ad_campaigns FOR SELECT USING (true);
 CREATE POLICY "campaigns_manage" ON public.ad_campaigns FOR ALL USING (user_id = auth.uid());
 
+-- campaign_analytics / audience_segments had RLS enabled but NO policy, which
+-- locks the owner out of their own campaign data. Scope both to the campaign owner.
+-- Guard: an older/stub table may exist WITHOUT campaign_id (CREATE TABLE IF NOT
+-- EXISTS above is a no-op then), so ensure the column exists before the policy
+-- references it — otherwise the policy errors with 42703 column does not exist.
+ALTER TABLE public.campaign_analytics ADD COLUMN IF NOT EXISTS campaign_id UUID REFERENCES public.ad_campaigns(id) ON DELETE CASCADE;
+ALTER TABLE public.audience_segments  ADD COLUMN IF NOT EXISTS campaign_id UUID REFERENCES public.ad_campaigns(id) ON DELETE CASCADE;
+
+DROP POLICY IF EXISTS "campaign_analytics_owner" ON public.campaign_analytics;
+CREATE POLICY "campaign_analytics_owner" ON public.campaign_analytics FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.ad_campaigns c WHERE c.id = campaign_analytics.campaign_id AND c.user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "audience_segments_owner" ON public.audience_segments;
+CREATE POLICY "audience_segments_owner" ON public.audience_segments FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.ad_campaigns c WHERE c.id = audience_segments.campaign_id AND c.user_id = auth.uid()));
+
 DROP POLICY IF EXISTS "proposals_select" ON public.governance_proposals;
 DROP POLICY IF EXISTS "proposals_manage" ON public.governance_proposals;
 CREATE POLICY "proposals_select" ON public.governance_proposals FOR SELECT USING (true);
@@ -1159,7 +1185,7 @@ CREATE INDEX IF NOT EXISTS idx_ecr_carpool ON public.event_carpool_requests(carp
 
 -- ── RPCs ──────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.update_sis_score(p_user_id UUID, p_delta INT)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   UPDATE public.profiles
   SET social_integrity_score = GREATEST(0, LEAST(100, COALESCE(social_integrity_score,50) + p_delta))
@@ -1169,14 +1195,14 @@ $$;
 
 DROP FUNCTION IF EXISTS public.increment_wallet_balance(uuid, numeric);
 CREATE OR REPLACE FUNCTION public.increment_wallet_balance(p_user_id UUID, p_amount NUMERIC)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   UPDATE public.profiles SET wallet_balance = COALESCE(wallet_balance,0) + p_amount WHERE id = p_user_id;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION public.purge_expired_checkins()
-RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   DELETE FROM public.live_checkins WHERE expires_at IS NOT NULL AND expires_at < NOW();
 $$;
 
@@ -2317,7 +2343,7 @@ CREATE TRIGGER touch_profiles_updated_at
 
 -- Auto-create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   base_uname TEXT;
 BEGIN
@@ -2366,7 +2392,7 @@ CREATE INDEX IF NOT EXISTS idx_follows_follower  ON public.follows(follower_id);
 CREATE INDEX IF NOT EXISTS idx_follows_following ON public.follows(following_id);
 
 CREATE OR REPLACE FUNCTION public.sync_follow_counts()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.profiles SET followers_count = COALESCE(followers_count,0)+1 WHERE id = NEW.following_id;
@@ -2538,7 +2564,7 @@ CREATE TRIGGER events_slug_gen BEFORE INSERT ON public.events
   FOR EACH ROW EXECUTE FUNCTION public.events_set_slug();
 
 CREATE OR REPLACE FUNCTION public.sync_events_posted()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.profiles SET events_posted = COALESCE(events_posted,0)+1 WHERE id = NEW.author_id;
@@ -2564,7 +2590,7 @@ CREATE INDEX IF NOT EXISTS idx_event_vibes_event ON public.event_vibes(event_id)
 CREATE INDEX IF NOT EXISTS idx_event_vibes_user  ON public.event_vibes(user_id);
 
 CREATE OR REPLACE FUNCTION public.sync_vibe_count()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.events SET vibe_count = COALESCE(vibe_count,0)+1 WHERE id = NEW.event_id;
@@ -2590,7 +2616,7 @@ CREATE TABLE IF NOT EXISTS public.saved_events (
 );
 
 CREATE OR REPLACE FUNCTION public.sync_save_counts()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.events   SET save_count  = COALESCE(save_count,0)+1  WHERE id = NEW.event_id;
@@ -2639,7 +2665,7 @@ CREATE TABLE IF NOT EXISTS public.echo_likes (
 );
 
 CREATE OR REPLACE FUNCTION public.sync_echo_counts()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.events SET echo_count = COALESCE(echo_count,0)+1 WHERE id = NEW.event_id;
@@ -2819,7 +2845,7 @@ CREATE TABLE IF NOT EXISTS public.pulse_votes (
 );
 
 CREATE OR REPLACE FUNCTION public.sync_pulse_vote_count()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.pulse_requests SET vote_count = COALESCE(vote_count,0)+1 WHERE id = NEW.request_id;
