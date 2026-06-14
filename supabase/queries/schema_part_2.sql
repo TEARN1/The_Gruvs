@@ -2236,17 +2236,20 @@ BEGIN
 END;
 $$;
 
+-- live_checkins: add expires_at for TTL-based presence.
+-- MUST come before purge_expired_checkins() below — that function is LANGUAGE
+-- sql, whose body is validated at CREATE time, so the column has to exist first
+-- (a fresh build otherwise dies with "column expires_at does not exist").
+ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS expires_at     TIMESTAMPTZ;
+ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS identity_layer TEXT DEFAULT 'public';
+ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS ghost_alias    TEXT;
+CREATE INDEX IF NOT EXISTS idx_live_checkins_expires ON public.live_checkins(expires_at) WHERE expires_at IS NOT NULL;
+
 -- Purge expired live_checkins (call from pg_cron or edge function)
 CREATE OR REPLACE FUNCTION public.purge_expired_checkins()
 RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   DELETE FROM public.live_checkins WHERE expires_at IS NOT NULL AND expires_at < NOW();
 $$;
-
--- live_checkins: add expires_at for TTL-based presence
-ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS expires_at     TIMESTAMPTZ;
-ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS identity_layer TEXT DEFAULT 'public';
-ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS ghost_alias    TEXT;
-CREATE INDEX IF NOT EXISTS idx_live_checkins_expires ON public.live_checkins(expires_at) WHERE expires_at IS NOT NULL;
 
 
 -- ══════════════════════════════════════════════════════════════
