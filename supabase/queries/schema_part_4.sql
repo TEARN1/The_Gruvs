@@ -926,3 +926,25 @@ BEGIN
     END;
   END LOOP;
 END $$;
+
+-- ── 21: STORAGE — widen bucket MIME allowlists so users can upload freely ─────
+-- The buckets' allowed_mime_types were narrower than the app's own uploader
+-- accepts, so iPhone HEIC/HEIF photos and webm/m4v videos were rejected at the
+-- bucket level ("mime type not supported") even though the picker allowed them.
+-- Idempotent: a plain UPDATE on the existing rows (guarded for a fresh DB where
+-- storage.buckets may not exist yet under the throwaway CI Postgres image).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='storage' AND table_name='buckets') THEN
+    UPDATE storage.buckets SET allowed_mime_types =
+      ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']
+      WHERE id IN ('avatars','covers');
+    UPDATE storage.buckets SET allowed_mime_types =
+      ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif',
+            'video/mp4','video/quicktime','video/x-m4v','video/webm']
+      WHERE id IN ('event-media','reels','moments');
+    UPDATE storage.buckets SET allowed_mime_types =
+      ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']
+      WHERE id = 'chat_media';
+  END IF;
+END $$;

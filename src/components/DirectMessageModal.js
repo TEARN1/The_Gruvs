@@ -23,7 +23,7 @@ import { useDraft } from '../hooks/useDraft';
 import { transform } from '../utils/writingStyles';
 import { useToast } from '../components/ToastNotification';
 import { LocationService } from '../services/locationService';
-import { uploadToStorage } from '../services/storageService';
+import { uploadToStorage } from '../services/storageService';
 import { useBackClose } from '../hooks/useBackClose';
 import { money } from '../constants/currencies';
 
@@ -593,7 +593,10 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         setMediaLoading(true);
         const { uri } = result.assets[0];
         const ext = (uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
-        const path = `dms/${user.id}_${Date.now()}.${ext}`;
+        // First path segment MUST be the user id — chat_media INSERT policy checks
+        // (storage.foldername(name))[1] = auth.uid(). A "dms/" prefix fails RLS,
+        // which is why DM image sends were silently failing.
+        const path = `${user.id}/dm_${Date.now()}.${ext}`;
         const publicUrl = await uploadToStorage(uri, 'chat_media', path);
         const newMsg = await MessageManager.send(user.id, recipient.id, '', { messageType: 'image', mediaUrl: publicUrl });
         if (newMsg) setMessages(prev => [...prev, newMsg]);

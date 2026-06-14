@@ -12,7 +12,8 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { uploadToStorage } from '../services/storageService';
 import { resilient } from '../utils/resilience';
-import { useToast } from './ToastNotification';
+import { useToast } from './ToastNotification';
+
 import { useBackClose } from '../hooks/useBackClose';
 
 const STORY_DURATION = 5000;
@@ -307,7 +308,10 @@ export const StoriesRow = ({ onAuthRequired }) => {
       const isVideo = asset.type === 'video' || asset.mimeType?.startsWith('video/');
       const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
       const path = `${user.id}/story_${Date.now()}.${ext}`;
-      const url = await uploadToStorage(asset.uri, 'stories', path, { mimeType: asset.mimeType });
+      // There is no dedicated "stories" storage bucket — reuse event-media (public
+      // read, 100 MB, mp4/quicktime + images), with the user id as the first path
+      // segment so the event-media INSERT policy allows it.
+      const url = await uploadToStorage(asset.uri, 'event-media', path, { mimeType: asset.mimeType });
       const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
       const storyPayload = { user_id: user?.id, media_url: url, media_type: isVideo ? 'video' : 'image', caption: '', expires_at: expiresAt };
       await resilient(
@@ -349,7 +353,7 @@ export const StoriesRow = ({ onAuthRequired }) => {
               story={g}
               seen={allSeen}
               primary={primary}
-              onPress={() => openViewer(i)}
+    i            onPress={() => openViewer(i)}
             />
           );
         })}

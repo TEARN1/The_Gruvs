@@ -579,15 +579,21 @@ const MainNavigator = () => {
     setCurrentTab('explore');
   };
 
-  const renderScreen = () => {
-    const wrap = (label, node) => (
-      <ErrorBoundary key={label} label={label}>
-        {node}
-      </ErrorBoundary>
-    );
-    switch (currentTab) {
+  // ── Keep-alive screens ──────────────────────────────────────────────────────
+  // Each tab mounts ONCE on first visit and then stays mounted; switching tabs
+  // only toggles visibility (display:none) instead of unmounting. That means a
+  // screen keeps its loaded data + scroll position, so moving away and back no
+  // longer triggers a fresh "download" each time. Tabs are mounted lazily, so
+  // we don't pay for screens the user never opens.
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set([currentTab]));
+  useEffect(() => {
+    setVisitedTabs(prev => (prev.has(currentTab) ? prev : new Set(prev).add(currentTab)));
+  }, [currentTab]);
+
+  const screenFor = (tabKey) => {
+    switch (tabKey) {
       case 'feed':
-        return wrap('The Drop', (
+        return (
           <LandingPage
             mode="drop"
             onAuthRequired={handleAuthRequired}
@@ -596,44 +602,53 @@ const MainNavigator = () => {
             refreshKey={feedRefreshKey}
             onNavigateToServices={handleNavigateToServices}
           />
-        ));
+        );
       case 'reels':
-        return wrap('Reels', (
+        return (
           <ReelsScreen
             onAuthRequired={handleAuthRequired}
             onNavigateToEvent={handleNavigateToEvent}
             initialReelId={targetReel}
             onInitialReelHandled={() => setTargetReel(null)}
             onExitToDrop={() => handleTabChange('feed')}
+            tabActive={currentTab === 'reels'}
           />
-        ));
+        );
       case 'explore':
-        return wrap('Explore', (
-          <ExplorePage
-            onAuthRequired={handleAuthRequired}
-            onNavigateToEvent={handleNavigateToEvent}
-          />
-        ));
+        return <ExplorePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'calendar':
-        return wrap('Lineup', <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />);
+        return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'chats':
-        return wrap('Chats', <ChatsScreen onAuthRequired={handleAuthRequired} />);
+        return <ChatsScreen onAuthRequired={handleAuthRequired} />;
       case 'notifications':
-        return wrap('Pings', <NotificationsScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />);
+        return <NotificationsScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'profile':
-        return wrap('Vibe Card', <ProfilePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />);
+        return <ProfilePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       default:
-        return wrap('The Drop', (
-          <LandingPage
-            mode="drop"
-            onAuthRequired={handleAuthRequired}
-            targetEvent={targetEvent}
-            onTargetHandled={() => setTargetEvent(null)}
-            refreshKey={feedRefreshKey}
-          />
-        ));
+        return null;
     }
   };
+
+  const renderScreen = () => (
+    <View style={styles.screenHost}>
+      {TABS.map(tab => {
+        if (!visitedTabs.has(tab.key)) return null;
+        const isActive = tab.key === currentTab;
+        return (
+          <View
+            key={tab.key}
+            style={isActive ? styles.screenActive : styles.screenHidden}
+            pointerEvents={isActive ? 'auto' : 'none'}
+            aria-hidden={!isActive}
+          >
+            <ErrorBoundary label={tab.label}>
+              {screenFor(tab.key)}
+            </ErrorBoundary>
+          </View>
+        );
+      })}
+    </View>
+  );
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
@@ -801,6 +816,13 @@ const styles = StyleSheet.create({
   // Narrow layout
   narrowLayout: { flex: 1 },
   content: { flex: 1 },
+
+  // Keep-alive screen host: visited screens stack here; only the active one is
+  // visible. Hidden screens stay mounted (state + scroll preserved) but out of
+  // layout and non-interactive.
+  screenHost: { flex: 1 },
+  screenActive: { ...StyleSheet.absoluteFillObject },
+  screenHidden: { display: 'none' },
 
   // Bottom tab bar — height expands to cover bottom inset (home indicator / nav bar)
   tabBar: {

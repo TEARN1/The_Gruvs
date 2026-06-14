@@ -2021,10 +2021,13 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const fileName = asset.fileName || asset.uri.split('/').pop().split('?')[0];
       const rawExt = fileName.includes('.') ? fileName.split('.').pop() : '';
       let ext = (rawExt.replace(/[^a-zA-Z0-9]/g, '') || (isVideo ? 'mp4' : 'jpg')).toLowerCase().slice(0, 5);
-      if (isVideo && !/^(mp4|mov|m4v|webm|avi)$/.test(ext)) ext = 'mp4';
-      // Gallery images live in event-media/gallery/<user_id>/ so the new
-      // storage policy (folder[1]='gallery', filename starts with user_id) allows it.
-      const storagePath = `gallery/${user.id}/${user.id}_${Date.now()}.${ext}`;
+      // event-media only allows mp4/quicktime at the bucket level, so coerce any
+      // other container to mp4 (webm/avi would be rejected by the bucket).
+      if (isVideo && !/^(mp4|mov)$/.test(ext)) ext = 'mp4';
+      // Path's FIRST segment MUST equal the user id — that's what the event-media
+      // INSERT policy checks ((storage.foldername(name))[1] = auth.uid()). Anything
+      // else (e.g. a "gallery/" prefix) is rejected by RLS and the upload fails.
+      const storagePath = `${user.id}/gallery_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'event-media', storagePath, { mimeType: asset.mimeType });
       const newGallery = [...(profileGallery || []), publicUrl];
       const { error: updateErr } = await supabase.from('profiles').update({ profile_gallery: newGallery }).eq('id', user.id);

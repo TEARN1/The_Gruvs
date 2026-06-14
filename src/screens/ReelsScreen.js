@@ -27,7 +27,7 @@ import {
   ReelsPreferences, ReelsObservers, ReelsRepository, ReelsAnalytics,
   PLAYBACK_SPEEDS, ASPECT_RATIOS, VISUAL_FILTERS
 } from '../services/reelsDataFlow';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useBackClose } from '../hooks/useBackClose';
 import { GlitterBurst } from '../components/GlitterBurst';
 
@@ -1062,7 +1062,7 @@ const as = StyleSheet.create({
 });
 
 // ── Main ReelsScreen ──────────────────────────────────────────────────────────
-export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialReelHandled, onExitToDrop, onNavigateToEvent }) => {
+export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialReelHandled, onExitToDrop, onNavigateToEvent, tabActive = true }) => {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
@@ -1120,12 +1120,20 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     ReelsPreferences.updatePreference(key, value);
   }, []);
 
+  // Pause playback whenever the app backgrounds OR the Reels tab isn't the
+  // one on screen. With keep-alive navigation the screen stays mounted when
+  // you switch tabs, so without the tabActive gate a reel would keep playing
+  // audio in the background.
+  const [appActive, setAppActive] = useState(true);
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => {
-      setScreenFocused(state === 'active');
+      setAppActive(state === 'active');
     });
     return () => sub.remove();
   }, []);
+  useEffect(() => {
+    setScreenFocused(appActive && tabActive);
+  }, [appActive, tabActive]);
 
   // Handle native Android hardware back button inside ReelsScreen
   useEffect(() => {

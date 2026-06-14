@@ -2203,12 +2203,12 @@ CREATE TRIGGER reel_comment_count_trigger AFTER INSERT OR DELETE ON public.reel_
 -- ── Storage buckets ───────────────────────────────────────────
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES
-  ('avatars',     'avatars',     true, 5242880,   ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic']),
-  ('covers',      'covers',      true, 10485760,  ARRAY['image/jpeg','image/png','image/webp']),
-  ('event-media', 'event-media', true, 104857600, ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/quicktime']),
-  ('reels',       'reels',       true, 104857600, ARRAY['video/mp4','video/quicktime','image/jpeg','image/png','image/webp']),
-  ('moments',     'moments',     true, 52428800,  ARRAY['image/jpeg','image/png','image/webp','video/mp4','video/quicktime']),
-  ('chat_media',  'chat_media',  true, 10485760,  ARRAY['image/jpeg','image/png','image/webp','image/gif'])
+  ('avatars',     'avatars',     true, 5242880,   ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']),
+  ('covers',      'covers',      true, 10485760,  ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']),
+  ('event-media', 'event-media', true, 104857600, ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif','video/mp4','video/quicktime','video/x-m4v','video/webm']),
+  ('reels',       'reels',       true, 104857600, ARRAY['video/mp4','video/quicktime','video/x-m4v','video/webm','image/jpeg','image/png','image/webp','image/heic','image/heif']),
+  ('moments',     'moments',     true, 52428800,  ARRAY['image/jpeg','image/png','image/webp','image/heic','image/heif','video/mp4','video/quicktime','video/x-m4v','video/webm']),
+  ('chat_media',  'chat_media',  true, 10485760,  ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif'])
 ON CONFLICT (id) DO UPDATE SET
   public            = EXCLUDED.public,
   file_size_limit   = EXCLUDED.file_size_limit,

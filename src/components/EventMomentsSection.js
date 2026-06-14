@@ -295,7 +295,9 @@ const AddMomentSheet = ({ visible, onClose, eventId, primary, surface, textColor
       const cleanUri = media.uri.split('?')[0];
       let ext = (cleanUri.split('.').pop() || 'jpg').toLowerCase();
       if (!ext || ext.length > 5) ext = media.type === 'video' ? 'mp4' : 'jpg';
-      const path = `moments/${user.id}/${Date.now()}.${ext}`;
+      // First path segment MUST be the user id (event-media INSERT policy checks
+      // (storage.foldername(name))[1] = auth.uid()). A "moments/" prefix fails RLS.
+      const path = `${user.id}/moment_${Date.now()}.${ext}`;
       const mimeType = media.mimeType || (media.type === 'video' ? 'video/mp4' : `image/${ext === 'jpg' ? 'jpeg' : ext}`);
       const url = await uploadToStorage(media.uri, 'event-media', path, { mimeType });
       const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
