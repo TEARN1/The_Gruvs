@@ -2472,94 +2472,50 @@ CREATE INDEX IF NOT EXISTS idx_events_category_city
   ON events (category, city, event_date DESC)
   WHERE is_published = true;
 
--- Follows graph (feed, getFollowedIds)
-CREATE INDEX IF NOT EXISTS idx_follows_follower
-  ON follows (follower_id, following_id);
-
-CREATE INDEX IF NOT EXISTS idx_follows_following
-  ON follows (following_id);
-
--- Vibes
-CREATE INDEX IF NOT EXISTS idx_event_vibes_event
-  ON event_vibes (event_id);
-
-CREATE INDEX IF NOT EXISTS idx_event_vibes_user_event
-  ON event_vibes (user_id, event_id);
-
--- RSVPs
-CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_status
-  ON event_rsvps (event_id, status);
-
-CREATE INDEX IF NOT EXISTS idx_event_rsvps_user
-  ON event_rsvps (user_id, event_id);
-
--- Live check-ins
-CREATE INDEX IF NOT EXISTS idx_live_checkins_event
-  ON live_checkins (event_id, checked_in_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_live_checkins_user
-  ON live_checkins (user_id, checked_in_at DESC);
-
--- Messages (DM inbox)
-CREATE INDEX IF NOT EXISTS idx_messages_conversation
-  ON messages (sender_id, recipient_id, created_at DESC)
-  WHERE deleted_at IS NULL;
-
-CREATE INDEX IF NOT EXISTS idx_messages_recipient_unread
-  ON messages (recipient_id, read_at)
-  WHERE deleted_at IS NULL;
-
--- Notifications
-CREATE INDEX IF NOT EXISTS idx_notifications_user_unread
-  ON notifications (user_id, is_read, created_at DESC);
-
--- Profiles (auth hot path)
-CREATE INDEX IF NOT EXISTS idx_profiles_email
-  ON profiles (email)
-  WHERE email IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_profiles_username
-  ON profiles (username);
-
--- Echoes
-CREATE INDEX IF NOT EXISTS idx_echoes_event
-  ON echoes (event_id, created_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_echoes_user
-  ON echoes (user_id, created_at DESC);
-
--- Saved events
-CREATE INDEX IF NOT EXISTS idx_saved_events_user
-  ON saved_events (user_id, event_id);
-
--- Poll votes
-CREATE INDEX IF NOT EXISTS idx_event_poll_votes_poll_user
-  ON event_poll_votes (poll_id, user_id);
-
--- Service bookings
-CREATE INDEX IF NOT EXISTS idx_service_bookings_provider_status
-  ON service_bookings (provider_id, status, created_at DESC);
-
--- Reels (no is_published column — use is_deleted instead)
-CREATE INDEX IF NOT EXISTS idx_reels_published
-  ON reels (created_at DESC)
-  WHERE is_deleted = false;
-
--- Event moments
-CREATE INDEX IF NOT EXISTS idx_event_moments_event
-  ON event_moments (event_id, created_at DESC);
-
--- Leaderboard (vibe_score)
-CREATE INDEX IF NOT EXISTS idx_profiles_vibe_score
-  ON profiles (vibe_score DESC)
-  WHERE vibe_score > 0;
-
--- Activity feed queries (CrewFeedScreen)
-CREATE INDEX IF NOT EXISTS idx_event_rsvps_user_created
-  ON event_rsvps (user_id, created_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_event_vibes_user_created
-  ON event_vibes (user_id, created_at DESC);
+-- ── Hot-path covering indexes (optional tuning) ──────────────────────────────
+-- Wrapped so a single drifted column/table reference can never abort the whole
+-- build: each index is created if it applies and skipped (with a NOTICE) if the
+-- column/table isn't there. The load-bearing indexes live in the table
+-- definitions above — these are extra covering indexes for hot queries. Two
+-- legacy entries were corrected here: the notifications unread index used
+-- user_id/is_read (the table is recipient_id/read) and a profiles(email) index
+-- referenced a column profiles doesn't have.
+DO $$
+DECLARE
+  stmt  TEXT;
+  stmts TEXT[] := ARRAY[
+    'CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows (follower_id, following_id)',
+    'CREATE INDEX IF NOT EXISTS idx_follows_following ON follows (following_id)',
+    'CREATE INDEX IF NOT EXISTS idx_event_vibes_event ON event_vibes (event_id)',
+    'CREATE INDEX IF NOT EXISTS idx_event_vibes_user_event ON event_vibes (user_id, event_id)',
+    'CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_status ON event_rsvps (event_id, status)',
+    'CREATE INDEX IF NOT EXISTS idx_event_rsvps_user ON event_rsvps (user_id, event_id)',
+    'CREATE INDEX IF NOT EXISTS idx_live_checkins_event ON live_checkins (event_id, checked_in_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_live_checkins_user ON live_checkins (user_id, checked_in_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages (sender_id, recipient_id, created_at DESC) WHERE deleted_at IS NULL',
+    'CREATE INDEX IF NOT EXISTS idx_messages_recipient_unread ON messages (recipient_id, read_at) WHERE deleted_at IS NULL',
+    'CREATE INDEX IF NOT EXISTS idx_notifications_recipient_unread ON notifications (recipient_id, read, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles (username)',
+    'CREATE INDEX IF NOT EXISTS idx_echoes_event ON echoes (event_id, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_echoes_user ON echoes (user_id, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_saved_events_user ON saved_events (user_id, event_id)',
+    'CREATE INDEX IF NOT EXISTS idx_event_poll_votes_poll_user ON event_poll_votes (poll_id, user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_service_bookings_provider_status ON service_bookings (provider_id, status, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_reels_published ON reels (created_at DESC) WHERE is_deleted = false',
+    'CREATE INDEX IF NOT EXISTS idx_event_moments_event ON event_moments (event_id, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_profiles_vibe_score_pos ON profiles (vibe_score DESC) WHERE vibe_score > 0',
+    'CREATE INDEX IF NOT EXISTS idx_event_rsvps_user_created ON event_rsvps (user_id, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_event_vibes_user_created ON event_vibes (user_id, created_at DESC)'
+  ];
+BEGIN
+  FOREACH stmt IN ARRAY stmts LOOP
+    BEGIN
+      EXECUTE stmt;
+    EXCEPTION WHEN undefined_column OR undefined_table THEN
+      RAISE NOTICE 'skipping index (schema drift): %', stmt;
+    END;
+  END LOOP;
+END $$;
 
 -- ── RLS PERFORMANCE: use auth.uid() inline to avoid per-row function calls ───
 -- Note: Supabase auto-wraps auth.uid() calls efficiently, but these policies
