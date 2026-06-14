@@ -2236,10 +2236,13 @@ BEGIN
 END;
 $$;
 
--- live_checkins: add expires_at for TTL-based presence.
--- MUST come before purge_expired_checkins() below — that function is LANGUAGE
--- sql, whose body is validated at CREATE time, so the column has to exist first
--- (a fresh build otherwise dies with "column expires_at does not exist").
+-- live_checkins: the base table is created with only created_at/lat/lon, but the
+-- app inserts AND reads checked_in_at + identity_mode + expires_at (PresenceBar,
+-- CheckInManager, retention/streak queries). Add them here so both a fresh build
+-- and the live DB match the code. MUST come before the index + purge function
+-- below that reference these columns (LANGUAGE sql bodies validate at CREATE).
+ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS checked_in_at  TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS identity_mode  TEXT DEFAULT 'public';
 ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS expires_at     TIMESTAMPTZ;
 ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS identity_layer TEXT DEFAULT 'public';
 ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS ghost_alias    TEXT;
