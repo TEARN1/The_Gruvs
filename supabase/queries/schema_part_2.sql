@@ -2573,8 +2573,8 @@ CREATE INDEX IF NOT EXISTS idx_events_upcoming
   WHERE is_published = true;
 
 CREATE INDEX IF NOT EXISTS idx_notifications_unseen
-  ON notifications (user_id, created_at DESC)
-  WHERE is_read = false;
+  ON notifications (recipient_id, created_at DESC)
+  WHERE read = false;
 
 CREATE INDEX IF NOT EXISTS idx_messages_active
   ON messages (recipient_id, created_at DESC)
@@ -2622,7 +2622,7 @@ SET search_path = public
 AS $$
   SELECT COUNT(*)::BIGINT
   FROM notifications
-  WHERE user_id = p_user_id AND is_read = false;
+  WHERE recipient_id = p_user_id AND read = false;
 $$;
 
 -- ── FUNCTION: event engagement summary (replaces 6 separate count queries) ───
