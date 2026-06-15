@@ -9,6 +9,7 @@ import {
 import { SmartImage } from '../components/SmartImage';
 import { WritingStylePicker } from '../components/WritingStylePicker';
 import { CurrencyPicker } from '../components/CurrencyPicker';
+import { SettingsScreen } from './SettingsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -2394,6 +2395,21 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   }
 
   // Sub-views
+  if (subView === 'settings') {
+    return (
+      <View style={[styles.container, { backgroundColor: bg }]}>
+        <SettingsScreen
+          onBack={() => setSubView(null)}
+          onEditProfile={() => { setSubView(null); setEditProfileVisible(true); }}
+          onSignOut={signOut}
+          onOpenFindThem={() => setSubView('findthem')}
+          discoverRadius={discoverRadius}
+          setDiscoverRadius={setDiscoverRadius}
+        />
+      </View>
+    );
+  }
+
   if (subView === 'findme') {
     return (
       <View style={[styles.container, { backgroundColor: bg }]}>
@@ -2576,6 +2592,16 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Feather name="share-2" size={14} color={primary} />
               <Text style={[styles.actionBtnOutlineText, { color: primary }]}>Share</Text>
             </TouchableOpacity>
+            {user && (
+              <TouchableOpacity
+                style={[styles.actionBtnOutline, { borderColor: `${primary}50`, paddingHorizontal: 12 }]}
+                onPress={() => setSubView('settings')}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+              >
+                <Feather name="settings" size={15} color={primary} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
