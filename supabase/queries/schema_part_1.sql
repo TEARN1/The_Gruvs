@@ -1204,6 +1204,11 @@ CREATE TABLE IF NOT EXISTS public.event_carpool_requests (
   status     TEXT DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
+-- An earlier event_carpool_requests (part_2: carpool_id/user_id only) may have
+-- won the CREATE, so ensure rider_id/event_id exist before the policy below
+-- references rider_id.
+ALTER TABLE public.event_carpool_requests ADD COLUMN IF NOT EXISTS rider_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.event_carpool_requests ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES public.events(id)   ON DELETE CASCADE;
 CREATE INDEX IF NOT EXISTS idx_ecr_carpool ON public.event_carpool_requests(carpool_id);
 
 -- ── RPCs ──────────────────────────────────────────────────────
