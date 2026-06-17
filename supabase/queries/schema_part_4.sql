@@ -363,7 +363,7 @@ REVOKE CREATE ON SCHEMA public FROM authenticated;
 CREATE OR REPLACE VIEW public.public_profiles AS
 SELECT
   p.id, p.username, p.display_name, p.avatar_url, p.bio, p.location, p.role,
-  p.vibe_score, p.followers_count, p.following_count, p.xp, p.badges, p.verified,
+  p.vibe_score, p.followers_count, p.following_count, p.xp, p.badges, p.is_verified AS verified,
   p.show_online,
   CASE WHEN p.show_online THEN p.last_seen ELSE NULL END AS last_seen,
   p.updated_at
@@ -948,3 +948,70 @@ BEGIN
       WHERE id = 'chat_media';
   END IF;
 END $$;
+
+-- ── 22: CROSSED PATHS ─────────────────────────────────────────────────────────
+-- Powers the "Crossed Paths" sheet opened from the Touch Down button: the people
+-- who keep touching down at the SAME events/venues as you, ranked from who you've
+-- crossed paths with the MOST to the least.
+--   get_crossed_paths(p_user_id, p_limit): looks at the events the caller checked
+--   into (most-recent 200), finds every OTHER viber who checked into those same
+--   events, counts distinct shared events (= crossings), collects the venues and
+--   the most-recent crossing time, hides ghost-mode profiles + non-beaconing
+--   celebrities (mirrors the client identity-privacy rules), ranks most → least.
+-- SECURITY DEFINER + STABLE: aggregates over live_checkins (not anon-readable)
+-- without exposing raw GPS. Zero cost. The app falls back to client-side
+-- aggregation if this isn't deployed, so running it is an optimisation.
+CREATE INDEX IF NOT EXISTS idx_live_checkins_user ON public.live_checkins(user_id);
+
+CREATE OR REPLACE FUNCTION public.get_crossed_paths(
+  p_user_id UUID,
+  p_limit   INTEGER DEFAULT 50
+)
+RETURNS TABLE (
+  user_id         UUID,
+  username        TEXT,
+  display_name    TEXT,
+  avatar_url      TEXT,
+  vibe_score      INTEGER,
+  is_online       BOOLEAN,
+  last_seen       TIMESTAMPTZ,
+  is_verified     BOOLEAN,
+  identity_mode   TEXT,
+  crossings       BIGINT,
+  venues          TEXT[],
+  last_crossed_at TIMESTAMPTZ
+)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  WITH my_events AS (
+    SELECT lc.event_id
+    FROM public.live_checkins lc
+    WHERE lc.user_id = p_user_id
+    GROUP BY lc.event_id
+    ORDER BY max(lc.checked_in_at) DESC NULLS LAST
+    LIMIT 200
+  ),
+  cp AS (
+    SELECT
+      lc.user_id,
+      count(DISTINCT lc.event_id)                                              AS crossings,
+      max(lc.checked_in_at)                                                    AS last_crossed_at,
+      array_remove(array_agg(DISTINCT COALESCE(e.venue_name, e.title)), NULL)  AS venues
+    FROM public.live_checkins lc
+    JOIN my_events me         ON me.event_id = lc.event_id
+    LEFT JOIN public.events e ON e.id = lc.event_id
+    WHERE lc.user_id <> p_user_id
+    GROUP BY lc.user_id
+  )
+  SELECT
+    cp.user_id, p.username, p.display_name, p.avatar_url, p.vibe_score,
+    p.is_online, p.last_seen, p.is_verified, p.identity_mode,
+    cp.crossings, cp.venues[1:4] AS venues, cp.last_crossed_at
+  FROM cp
+  JOIN public.profiles p ON p.id = cp.user_id
+  WHERE COALESCE(p.identity_mode, 'public') <> 'ghost'
+    AND NOT (COALESCE(p.identity_mode, 'public') = 'celebrity'
+             AND COALESCE(p.is_beacon_active, false) = false)
+  ORDER BY cp.crossings DESC, cp.last_crossed_at DESC NULLS LAST
+  LIMIT GREATEST(1, p_limit);
+$$;
+GRANT EXECUTE ON FUNCTION public.get_crossed_paths(UUID, INTEGER) TO authenticated;
