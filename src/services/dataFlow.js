@@ -1656,6 +1656,115 @@ export const CheckInManager = {
       return result;
     } catch { return []; }
   },
+
+  /**
+   * Crossed Paths — people who keep touching down at the same events/venues as
+   * the user, across their check-in history. Returned ranked from the person
+   * they've crossed most often to the least.
+   *
+   * Tries the server-side `get_crossed_paths` RPC first (fast, privacy-safe);
+   * falls back to a client-side aggregation so the feature works even before
+   * the RPC is deployed. Ghost-mode check-ins are excluded — they're anonymous
+   * by design and shouldn't surface as a recognisable familiar face.
+   */
+  async getCrossedPaths(userId, { lookback = 100, limit = 50 } = {}) {
+    if (!userId || !isSupabaseEnabled) return [];
+
+    // ── Server-side RPC (preferred) ───────────────────────────────────────
+    try {
+      const { data, error } = await supabase.rpc('get_crossed_paths', {
+        p_user_id: userId,
+        p_limit: limit,
+      });
+      if (!error && Array.isArray(data)) {
+        return data.map(r => ({
+          id:           r.user_id,
+          username:     r.username,
+          display_name: r.display_name,
+          avatar_url:   r.avatar_url,
+          vibe_score:   r.vibe_score,
+          is_online:    r.is_online,
+          last_seen:    r.last_seen,
+          is_verified:  r.is_verified,
+          identity_mode: r.identity_mode,
+          crossings:    Number(r.crossings) || 0,
+          venues:       Array.isArray(r.venues) ? r.venues.filter(Boolean).slice(0, 4) : [],
+          lastCrossedAt: r.last_crossed_at,
+        }));
+      }
+    } catch { /* fall through to client-side aggregation */ }
+
+    // ── Client-side fallback ──────────────────────────────────────────────
+    try {
+      // 1. The user's own check-in history (most-recent events first)
+      const { data: mine } = await supabase
+        .from('live_checkins')
+        .select('event_id, checked_in_at')
+        .eq('user_id', userId)
+        .order('checked_in_at', { ascending: false })
+        .limit(lookback);
+
+      const myEventIds = [...new Set((mine || []).map(r => r.event_id).filter(Boolean))];
+      if (myEventIds.length === 0) return [];
+
+      // 2. Everyone else who touched down at those same events
+      const { data: others } = await supabase
+        .from('live_checkins')
+        .select('user_id, event_id, checked_in_at, identity_mode, profiles(id, username, display_name, avatar_url, vibe_score, is_online, last_seen, is_verified, identity_mode)')
+        .in('event_id', myEventIds)
+        .neq('user_id', userId)
+        .limit(3000);
+
+      // 3. Event → venue/title labels for the "where you crossed" line
+      const { data: evRows } = await supabase
+        .from('events')
+        .select('id, title, venue_name, city')
+        .in('id', myEventIds);
+      const evMap = new Map((evRows || []).map(e => [e.id, e]));
+
+      // 4. Aggregate per person: distinct shared events, venues, last crossing
+      const agg = new Map();
+      for (const row of (others || [])) {
+        if (!row.profiles) continue;
+        const ghost = (row.identity_mode || row.profiles.identity_mode) === 'ghost';
+        if (ghost) continue;
+
+        let a = agg.get(row.user_id);
+        if (!a) {
+          a = { profile: row.profiles, events: new Set(), venues: new Set(), lastCrossedAt: row.checked_in_at };
+          agg.set(row.user_id, a);
+        }
+        a.events.add(row.event_id);
+        const ev = evMap.get(row.event_id);
+        const label = ev?.venue_name || ev?.title || ev?.city;
+        if (label) a.venues.add(label);
+        if (row.checked_in_at && (!a.lastCrossedAt || row.checked_in_at > a.lastCrossedAt)) {
+          a.lastCrossedAt = row.checked_in_at;
+        }
+      }
+
+      // 5. Rank most → least
+      return [...agg.values()]
+        .map(a => ({
+          id:           a.profile.id,
+          username:     a.profile.username,
+          display_name: a.profile.display_name,
+          avatar_url:   a.profile.avatar_url,
+          vibe_score:   a.profile.vibe_score,
+          is_online:    a.profile.is_online,
+          last_seen:    a.profile.last_seen,
+          is_verified:  a.profile.is_verified,
+          identity_mode: a.profile.identity_mode,
+          crossings:    a.events.size,
+          venues:       [...a.venues].slice(0, 4),
+          lastCrossedAt: a.lastCrossedAt,
+        }))
+        .sort((x, y) => (y.crossings - x.crossings) || (new Date(y.lastCrossedAt || 0) - new Date(x.lastCrossedAt || 0)))
+        .slice(0, limit);
+    } catch {
+      return [];
+    }
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

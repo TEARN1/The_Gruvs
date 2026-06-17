@@ -6,6 +6,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Video, ResizeMode, Audio } from 'expo-av';
 import { Feather } from '@expo/vector-icons';
+import { audioState } from '../utils/audioState';
 
 export const AutoPlayVideo = ({
   source,
@@ -16,7 +17,7 @@ export const AutoPlayVideo = ({
 }) => {
   const videoRef = useRef(null);
   const [status, setStatus] = useState({});
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(audioState.isMuted());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,6 +32,11 @@ export const AutoPlayVideo = ({
   }, []);
 
   useEffect(() => {
+    const unsub = audioState.subscribe(setIsMuted);
+    return unsub;
+  }, []);
+
+  useEffect(() => {
     if (!videoRef.current) return;
 
     if (isVisible) {
@@ -42,7 +48,7 @@ export const AutoPlayVideo = ({
 
   const toggleMute = (e) => {
     e.stopPropagation();
-    setIsMuted(!isMuted);
+    audioState.setMuted(!isMuted);
   };
 
   return (

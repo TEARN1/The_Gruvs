@@ -30,6 +30,7 @@ import {
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useBackClose } from '../hooks/useBackClose';
 import { GlitterBurst } from '../components/GlitterBurst';
+import { audioState } from '../utils/audioState';
 
 const IS_WEB = Platform.OS === 'web';
 // Mobile fallback (used outside component for getItemLayout)
@@ -468,7 +469,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
 
   const [liked, setLiked] = useState(reel._liked || false);
   const [likeCount, setLikeCount] = useState(reel.like_count || 0);
-  const [audioMuted, setAudioMuted] = useState(IS_WEB);
+  const [audioMuted, setAudioMuted] = useState(audioState.isMuted());
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -484,6 +485,12 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
     setLiked(reel._liked || false);
     setLikeCount(reel.like_count || 0);
   }, [reel._liked, reel.like_count]);
+
+  // Sync mute state globally across reels
+  useEffect(() => {
+    const unsub = audioState.subscribe(setAudioMuted);
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (isActive && screenFocused && !paused) {
@@ -815,7 +822,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
 
             {/* Mute / Volume */}
             {isVideo && (
-              <TouchableOpacity style={ri.actionBtn} onPress={() => setAudioMuted(m => !m)} activeOpacity={0.8}>
+              <TouchableOpacity style={ri.actionBtn} onPress={() => audioState.setMuted(!audioMuted)} activeOpacity={0.8}>
                 <Feather name={audioMuted ? 'volume-x' : 'volume-2'} size={24} color="#fff" />
               </TouchableOpacity>
             )}
