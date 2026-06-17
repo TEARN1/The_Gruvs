@@ -10,6 +10,7 @@ import { SmartImage } from '../components/SmartImage';
 import { WritingStylePicker } from '../components/WritingStylePicker';
 import { CurrencyPicker } from '../components/CurrencyPicker';
 import { SettingsScreen } from './SettingsScreen';
+import { CrossedPathsScreen } from './CrossedPathsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -2259,6 +2260,21 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     );
   }
 
+  if (subView === 'crossed') {
+    return (
+      <View style={[styles.container, { backgroundColor: bg }]}>
+        <View style={[styles.subHeader, { borderBottomColor: `${primary}20` }]}>
+          <TouchableOpacity onPress={() => setSubView(null)} style={styles.backBtn}>
+            <Feather name="arrow-left" size={22} color={primary} />
+          </TouchableOpacity>
+          <Text style={[styles.subTitle, { color: textColor }]}>Crossed Paths</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <CrossedPathsScreen primary={primary} muted={muted} textColor={textColor} bg={bg} user={user} onAuthRequired={onAuthRequired} />
+      </View>
+    );
+  }
+
   if (subView === 'findme') {
     return (
       <View style={[styles.container, { backgroundColor: bg }]}>
@@ -2628,6 +2644,13 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           >
             <Feather name="clock" size={16} color={primary} />
             <Text style={[styles.findBtnText, { color: primary }]}>History</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => user ? setSubView('crossed') : onAuthRequired()}
+          >
+            <Feather name="shuffle" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Crossed</Text>
           </TouchableOpacity>
         </View>
 

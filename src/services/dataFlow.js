@@ -1710,7 +1710,7 @@ export const CheckInManager = {
       // 2. Everyone else who touched down at those same events
       const { data: others } = await supabase
         .from('live_checkins')
-        .select('user_id, event_id, checked_in_at, identity_mode, profiles(id, username, display_name, avatar_url, vibe_score, is_online, last_seen, is_verified, identity_mode)')
+        .select('user_id, event_id, checked_in_at, identity_mode, profiles(id, username, display_name, avatar_url, vibe_score, is_online, last_seen, is_verified, identity_mode, is_discoverable)')
         .in('event_id', myEventIds)
         .neq('user_id', userId)
         .limit(3000);
@@ -1728,6 +1728,10 @@ export const CheckInManager = {
         if (!row.profiles) continue;
         const ghost = (row.identity_mode || row.profiles.identity_mode) === 'ghost';
         if (ghost) continue;
+        // Privacy opt-out: users who turned off discoverability don't surface as
+        // a crossed path either (consistent with Find Them). Only excludes an
+        // explicit false so un-migrated/null profiles still appear.
+        if (row.profiles.is_discoverable === false) continue;
 
         let a = agg.get(row.user_id);
         if (!a) {
