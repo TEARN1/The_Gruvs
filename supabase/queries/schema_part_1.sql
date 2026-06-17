@@ -164,15 +164,26 @@ CREATE POLICY "suspensions_admin" ON public.user_suspensions FOR ALL
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- ── Grant execute on safe RPCs ────────────────────────────────
-GRANT EXECUTE ON FUNCTION public.upsert_own_profile       TO authenticated;
-GRANT EXECUTE ON FUNCTION public.check_rate_limit(text, integer, integer) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.log_security_event        TO authenticated;
-GRANT EXECUTE ON FUNCTION public.secure_check_in           TO authenticated;
-GRANT EXECUTE ON FUNCTION public.upsert_rsvp_tier          TO authenticated;
-GRANT EXECUTE ON FUNCTION public.generate_ticket_token     TO authenticated;
-GRANT EXECUTE ON FUNCTION public.increment_wallet_balance  TO authenticated;
-GRANT EXECUTE ON FUNCTION public.update_sis_score          TO authenticated;
-GRANT EXECUTE ON FUNCTION public.refresh_trending_events   TO authenticated;
+-- Guarded: grant only functions that already exist, by full signature (every
+-- overload), so a fresh build never errors on a not-yet-created/forward-
+-- referenced RPC and a multi-arg name never trips 42725. (Same loop as parts 3/4.)
+DO $$
+DECLARE r RECORD;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN (
+        'upsert_own_profile','check_rate_limit','log_security_event','secure_check_in',
+        'upsert_rsvp_tier','generate_ticket_token','increment_wallet_balance',
+        'update_sis_score','refresh_trending_events'
+      )
+  LOOP
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', r.sig);
+  END LOOP;
+END $$;
 
 
 -- ══════════════════════════════════════════════════════════════
