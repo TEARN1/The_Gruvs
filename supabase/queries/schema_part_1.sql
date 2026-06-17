@@ -285,12 +285,15 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND tablename='wallet_transactions') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.wallet_transactions; END IF;
 
-  -- Trending
-  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND tablename='trending_events') THEN
+  -- Trending (table may not exist on a fresh build — guard with to_regclass)
+  IF to_regclass('public.trending_events') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND tablename='trending_events') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.trending_events; END IF;
 
-  -- Notification queue (user sees their push notif land live)
-  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND tablename='notification_queue') THEN
+  -- Notification queue (created later in this file — guard so a single-pass
+  -- fresh build doesn't error; a re-run picks it up once it exists)
+  IF to_regclass('public.notification_queue') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND tablename='notification_queue') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.notification_queue; END IF;
 END $$;
 
