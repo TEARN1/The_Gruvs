@@ -557,6 +557,15 @@ CREATE TABLE IF NOT EXISTS public.ai_predictions (
   actual_value  JSONB,
   created_at    TIMESTAMPTZ DEFAULT now()
 );
+-- An earlier minimal ai_predictions (part_2: id/user_id/type/prediction/
+-- created_at) may already exist, making the CREATE above a no-op. Ensure the
+-- richer columns this feature + the indexes below need are present either way.
+ALTER TABLE public.ai_predictions ADD COLUMN IF NOT EXISTS event_id        UUID REFERENCES public.events(id) ON DELETE CASCADE;
+ALTER TABLE public.ai_predictions ADD COLUMN IF NOT EXISTS prediction_type TEXT;
+ALTER TABLE public.ai_predictions ADD COLUMN IF NOT EXISTS predicted_value JSONB DEFAULT '{}';
+ALTER TABLE public.ai_predictions ADD COLUMN IF NOT EXISTS confidence      NUMERIC(3,2) DEFAULT 0.5;
+ALTER TABLE public.ai_predictions ADD COLUMN IF NOT EXISTS resolved        BOOLEAN DEFAULT false;
+ALTER TABLE public.ai_predictions ADD COLUMN IF NOT EXISTS actual_value    JSONB;
 CREATE INDEX IF NOT EXISTS idx_ai_predictions_event ON public.ai_predictions(event_id);
 CREATE INDEX IF NOT EXISTS idx_ai_predictions_user  ON public.ai_predictions(user_id);
 
