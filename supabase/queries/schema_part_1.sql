@@ -1851,7 +1851,11 @@ CREATE TABLE IF NOT EXISTS public.reel_views (
   created_at TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY(reel_id, viewer_id)
 );
-ALTER TABLE public.reel_views ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+-- part_2 defines reel_views as reel_id/user_id only; the app (ViewsBatchQueue)
+-- writes viewer_id and the policy below reads it. Ensure both columns exist
+-- regardless of which CREATE won.
+ALTER TABLE public.reel_views ADD COLUMN IF NOT EXISTS viewer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.reel_views ADD COLUMN IF NOT EXISTS user_id   UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 CREATE TABLE IF NOT EXISTS public.saved_reels (
   reel_id    UUID NOT NULL REFERENCES public.reels(id) ON DELETE CASCADE,
