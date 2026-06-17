@@ -16,7 +16,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch,
-  Platform, Linking, Alert, ActivityIndicator,
+  Platform, Linking, Alert, ActivityIndicator, TextInput,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -114,12 +114,22 @@ export const SettingsScreen = ({
   const [bioLabel, setBioLabel] = useState('Biometrics');
   const [lockEnabled, setLockEnabled] = useState(false);
 
+  // Career & looks
+  const [careerTitle, setCareerTitle] = useState(profile?.career_title || '');
+  const [careerDescription, setCareerDescription] = useState(profile?.career_description || '');
+  const [looksDescription, setLooksDescription] = useState(profile?.looks_description || '');
+  const [savingCareer, setSavingCareer] = useState(false);
+
   useEffect(() => {
     setDiscoverable(profile?.is_discoverable ?? true);
     setShowOnline(profile?.show_online ?? true);
     setShareEvents(profile?.share_events ?? false);
     setPushOn(!!profile?.push_token);
-  }, [profile?.is_discoverable, profile?.show_online, profile?.share_events, profile?.push_token]);
+    setCareerTitle(profile?.career_title || '');
+    setCareerDescription(profile?.career_description || '');
+    setLooksDescription(profile?.looks_description || '');
+  }, [profile?.is_discoverable, profile?.show_online, profile?.share_events, profile?.push_token,
+      profile?.career_title, profile?.career_description, profile?.looks_description]);
 
   useEffect(() => {
     let alive = true;
@@ -181,6 +191,26 @@ export const SettingsScreen = ({
     try { haptics.success?.(); } catch {}
     toast?.show(next ? 'App lock enabled 🔒' : 'App lock disabled', next ? 'success' : 'info');
   }, [lockEnabled, bioLabel, toast]);
+
+  const saveCareer = useCallback(async () => {
+    if (!user) return;
+    setSavingCareer(true);
+    try {
+      const { error } = await supabase.from('profiles').update({
+        career_title: careerTitle.trim(),
+        career_description: careerDescription.trim(),
+        looks_description: looksDescription.trim(),
+      }).eq('id', user.id);
+      if (error) throw error;
+      refreshProfile?.();
+      try { haptics.success?.(); } catch {}
+      toast?.show('Career profile saved!', 'success');
+    } catch {
+      toast?.show('Could not save. Try again.', 'error');
+    } finally {
+      setSavingCareer(false);
+    }
+  }, [user, careerTitle, careerDescription, looksDescription, refreshProfile, toast]);
 
   const confirmDelete = useCallback(() => {
     const doDelete = async () => {
@@ -307,6 +337,36 @@ export const SettingsScreen = ({
           {pushBusy && <ActivityIndicator color={primary} style={{ marginTop: 8 }} />}
         </SectionCard>
 
+        {/* CAREER & LOOKS */}
+        <SectionCard icon="briefcase" title="Career & Looks" primary={primary} muted={muted} textColor={textColor}>
+          <Text style={[st.rowSub, { color: muted, marginBottom: 10 }]}>
+            Let others know your vibe and profession to get invited to exclusive Gruvs.
+          </Text>
+          <Text style={[st.subLabel, { color: muted, marginTop: 0 }]}>CAREER TITLE</Text>
+          <TextInput
+            value={careerTitle} onChangeText={setCareerTitle}
+            placeholder="e.g. Model, DJ, Event Planner…" placeholderTextColor={muted}
+            style={[st.input, { color: textColor, borderColor: `${primary}25` }]} maxLength={60}
+          />
+          <Text style={[st.subLabel, { color: muted }]}>CAREER DESCRIPTION</Text>
+          <TextInput
+            value={careerDescription} onChangeText={setCareerDescription}
+            placeholder="What do you do? Tell the vibers…" placeholderTextColor={muted}
+            style={[st.input, st.inputMultiline, { color: textColor, borderColor: `${primary}25` }]}
+            maxLength={300} multiline
+          />
+          <Text style={[st.subLabel, { color: muted }]}>LOOKS & AURA</Text>
+          <TextInput
+            value={looksDescription} onChangeText={setLooksDescription}
+            placeholder="Style, appearance, or general vibe…" placeholderTextColor={muted}
+            style={[st.input, st.inputMultiline, { color: textColor, borderColor: `${primary}25` }]}
+            maxLength={300} multiline
+          />
+          <TouchableOpacity style={[st.cta, { backgroundColor: primary }]} onPress={saveCareer} disabled={savingCareer} activeOpacity={0.85}>
+            {savingCareer ? <ActivityIndicator size="small" color="#000" /> : <Text style={st.ctaText}>Save Career Profile</Text>}
+          </TouchableOpacity>
+        </SectionCard>
+
         {/* APPEARANCE */}
         <SectionCard icon="droplet" title="Appearance" primary={primary} muted={muted} textColor={textColor}>
           <Text style={[st.subLabel, { color: muted, marginTop: 0 }]}>AURA</Text>
@@ -390,6 +450,8 @@ const st = StyleSheet.create({
   modeDesc: { fontSize: 11, marginTop: 8, lineHeight: 15 },
   distChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1 },
   distText: { fontSize: 12, fontWeight: '800' },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, marginBottom: 4 },
+  inputMultiline: { height: 80, textAlignVertical: 'top' },
   cta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, paddingVertical: 13, borderRadius: 14 },
   ctaText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 0.3 },
   themeCard: { width: 92, height: 76, borderRadius: 14, padding: 10, justifyContent: 'flex-end', overflow: 'hidden' },

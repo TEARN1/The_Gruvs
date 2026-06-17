@@ -1861,7 +1861,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [activeTab, setActiveTab] = useState('gruvs');
   const [myCoHostEvents, setMyCoHostEvents] = useState([]);
   const [activityItems, setActivityItems] = useState([]);
-  const [settingsTab, setSettingsTab] = useState('discover');
   const [eventCount, setEventCount] = useState(0);
   const [followerCount, setFollowerCount] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -2333,17 +2332,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   };
 
-  const handleSignOut = () => {
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm('Sign out of The Gruvs?')) signOut();
-      return;
-    }
-    Alert.alert('Sign Out?', 'Are you sure?', [
-      { text: 'Stay', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: signOut },
-    ]);
-  };
-
   const handleShareProfile = async () => {
     try {
       await Share.share({
@@ -2441,21 +2429,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           applyLocationPrivacy={applyLocationPrivacy}
           initialDistance={discoverRadius}
         />
-      </View>
-    );
-  }
-
-  if (subView === 'security') {
-    return (
-      <View style={[styles.container, { backgroundColor: bg }]}>
-        <View style={[styles.subHeader, { borderBottomColor: `${primary}20` }]}>
-          <TouchableOpacity onPress={() => setSubView(null)} style={styles.backBtn}>
-            <Feather name="arrow-left" size={22} color={primary} />
-          </TouchableOpacity>
-          <Text style={[styles.subTitle, { color: textColor }]}>Privacy & Security</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <SecurityPage primary={primary} muted={muted} textColor={textColor} user={user} toast={toast} />
       </View>
     );
   }
@@ -2772,29 +2745,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </GlassView>
         )}
 
-        {/* Identity Mode Switcher */}
-        {user && (
-          <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
-            <Text style={[styles.subLabelAlt, { color: muted }]}>IDENTITY MODE</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {Object.values({ public: { key: 'public', label: 'Public', icon: 'eye', color: "#10b981", desc: 'Fully visible' }, ghost: { key: 'ghost', label: 'Ghost', icon: 'eye-off', color: "#8b5cf6", desc: 'Alias + fuzzed' }, celebrity: { key: 'celebrity', label: 'Celebrity', icon: 'star', color: "#f59e0b", desc: 'Read-only' } }).map(mode => {
-                const isActive = identityMode === mode.key;
-                return (
-                  <TouchableOpacity
-                    key={mode.key}
-                    onPress={() => setIdentityMode(mode.key)}
-                    style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, borderWidth: isActive ? 2 : 1, borderColor: isActive ? mode.color : `${muted}40`, backgroundColor: isActive ? `${mode.color}20` : 'transparent' }}
-                  >
-                    <Feather name={mode.icon} size={16} color={isActive ? mode.color : muted} />
-                    <Text style={[styles.identityModeText, { color: isActive ? mode.color : muted }]}>{mode.label}</Text>
-                    <Text style={{ color: muted, fontSize: 8, marginTop: 2, opacity: 0.7 }}>{mode.desc}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
         {/* Find Me / Find Them buttons */}
         <View style={styles.findRow}>
           <TouchableOpacity
@@ -2859,10 +2809,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
           <TouchableOpacity
             style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={() => setSubView('security')}
+            onPress={() => setSubView('settings')}
           >
-            <Feather name="shield" size={16} color={primary} />
-            <Text style={[styles.findBtnText, { color: primary }]}>Privacy</Text>
+            <Feather name="settings" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Settings</Text>
           </TouchableOpacity>
         </View>
 
@@ -3175,180 +3125,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           )}
         </View>
 
-        {/* Settings Tabs */}
-        <View style={[styles.settingsTabs, { borderColor: `${primary}20` }]}>
-          {[
-            { key: 'discover', label: 'Discover', icon: 'compass' },
-            { key: 'career', label: 'Professional', icon: 'briefcase' },
-            { key: 'aura', label: 'My Aura', icon: 'droplet' },
-          ].map(t => {
-            const isActive = settingsTab === t.key;
-            return (
-              <TouchableOpacity
-                key={t.key}
-                style={[styles.settingsTab, isActive && { backgroundColor: primary }]}
-                onPress={() => setSettingsTab(t.key)}
-              >
-                <Feather name={t.icon} size={14} color={isActive ? '#000' : muted} />
-                <Text style={[styles.settingsTabText, { color: isActive ? '#000' : muted }]}>{t.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Discover Settings — pick your radius HERE, then jump straight in */}
-        {settingsTab === 'discover' && (
-          <GlassView style={styles.section}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: `${primary}18`, alignItems: 'center', justifyContent: 'center' }}>
-                <Feather name="radio" size={16} color={primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.sectionTitle, { color: primary, marginBottom: 0 }]}>Discover People</Text>
-                <Text style={{ color: muted, fontSize: 11 }}>Vibers around you, within the range you choose</Text>
-              </View>
-            </View>
-            <Text style={{ color: muted, fontSize: 10, fontWeight: '800', letterSpacing: 0.8, marginTop: 10, marginBottom: 8 }}>SEARCH RADIUS</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-              {DIST_OPTIONS.map(d => {
-                const sel = discoverRadius === d;
-                return (
-                  <TouchableOpacity
-                    key={d}
-                    onPress={() => setDiscoverRadius(d)}
-                    style={[ft.distBtn, {
-                      backgroundColor: sel ? primary : `${primary}10`,
-                      borderColor: sel ? primary : `${primary}25`,
-                    }]}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: sel }}
-                  >
-                    <Text style={[ft.distText, { color: sel ? '#000' : primary }]}>{d}km</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <TouchableOpacity
-              style={[styles.findLargeBtn, { backgroundColor: primary }]}
-              onPress={() => setSubView('findthem')}
-            >
-              <Feather name="users" size={16} color="#000" />
-              <Text style={styles.findLargeBtnText}>Find Vibers within {discoverRadius}km</Text>
-            </TouchableOpacity>
-          </GlassView>
-        )}
-
-        {/* Career & Looks Settings */}
-        {settingsTab === 'career' && (
-          <GlassView style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: primary }]}>Career & Looks</Text>
-            {profileDraft && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: `${primary}45`, backgroundColor: `${primary}12`, marginBottom: 14 }}>
-                <Feather name="rotate-ccw" size={16} color={primary} />
-                <Text style={{ color: textColor, fontSize: 12, flex: 1, fontWeight: '700' }}>Unsaved changes from before — restore them?</Text>
-                <TouchableOpacity onPress={restoreProfileDraft} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: primary }}>
-                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>Restore</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={discardProfileDraft} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Feather name="x" size={16} color={muted} />
-                </TouchableOpacity>
-              </View>
-            )}
-            <Text style={[styles.sectionSub, { color: muted, marginBottom: 12 }]}>Let others know your vibe and profession to get invited to exclusive Gruvs.</Text>
-
-            <View style={styles.editRow}>
-              <Text style={[styles.editLabel, { color: primary }]}>Career Title</Text>
-              <TextInput
-                style={[styles.editInput, { color: textColor, borderColor: `${primary}20` }]}
-                value={careerTitle}
-                onChangeText={setCareerTitle}
-                placeholder="e.g. Model, DJ, Event Planner..."
-                placeholderTextColor={muted}
-              />
-            </View>
-
-            <View style={styles.editRow}>
-              <Text style={[styles.editLabel, { color: primary }]}>Career Description</Text>
-              <TextInput
-                style={[styles.editInput, { color: textColor, borderColor: `${primary}20`, height: 80 }]}
-                value={careerDescription}
-                onChangeText={setCareerDescription}
-                placeholder="What do you do? Tell the vibers..."
-                placeholderTextColor={muted}
-                multiline
-              />
-            </View>
-
-            <View style={styles.editRow}>
-              <Text style={[styles.editLabel, { color: primary }]}>Looks & Aura</Text>
-              <TextInput
-                style={[styles.editInput, { color: textColor, borderColor: `${primary}20`, height: 80 }]}
-                value={looksDescription}
-                onChangeText={setLooksDescription}
-                placeholder="Style, appearance, or general vibe..."
-                placeholderTextColor={muted}
-                multiline
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.saveBtn, { backgroundColor: primary, marginTop: 10 }]}
-              onPress={handleSaveProfile}
-              disabled={saving}
-            >
-              {saving ? <ActivityIndicator size="small" color="#000" /> : <Text style={styles.saveBtnText}>Save Career Profile</Text>}
-            </TouchableOpacity>
-          </GlassView>
-        )}
-
-        {/* Aura / Theme Picker */}
-        {settingsTab === 'aura' && (() => {
-          const targetGender = (() => {
-            const raw = (profileGender || profile?.gender || '').toLowerCase().trim();
-            if (raw === 'male') return 'male';
-            if (raw === 'female') return 'female';
-            return 'non_binary';
-          })();
-          const targetThemes = THEMES[targetGender] || THEMES.non_binary;
-          return (
-            <GlassView style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: primary }]}>Switch Aura</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }}>
-                {targetThemes.map((t, idx) => {
-                  const isActive = currentTheme?.id === t.id;
-                  return (
-                    <TouchableOpacity
-                      key={t.id}
-                      onPress={() => changeTheme(targetGender, idx)}
-                      style={[styles.themeCard, {
-                        backgroundColor: t.background,
-                        borderColor: isActive ? '#fff' : 'transparent',
-                        borderWidth: isActive ? 2.5 : 0,
-                      }]}
-                    >
-                      <View style={[styles.themeAccent, { backgroundColor: t.primary }]} />
-                      <Text style={[styles.themeName, { color: t.text || '#fff' }]}>{t.name}</Text>
-                      {isActive && (
-                        <View style={[styles.activeCheck, { backgroundColor: t.primary }]}>
-                          <Feather name="check" size={10} color="#000" />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-              <WritingStylePicker gender={targetGender} sample={profile?.username || profile?.display_name || 'The Gruvs'} userId={user?.id} primary={primary} muted={muted} />
-              <CurrencyPicker primary={primary} muted={muted} />
-            </GlassView>
-          );
-        })()}
-
-        {/* Sign Out */}
-        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
-          <Feather name="log-out" size={16} color="#ef4444" />
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
-
+        {/* Settings live in the consolidated Settings screen (gear icon in the
+            header → SettingsScreen). The old in-page discover/career/aura tabs
+            and sign-out were removed to avoid duplicate, divergent controls. */}
       </ScrollView>
 
       {postModalVisible && (
