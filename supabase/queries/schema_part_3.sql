@@ -2331,7 +2331,7 @@ SELECT
   p.following_count,
   p.xp,
   p.badges,
-  p.verified,
+  p.is_verified AS verified,
   p.show_online,
   CASE WHEN p.show_online THEN p.last_seen ELSE NULL END AS last_seen,
   p.updated_at
