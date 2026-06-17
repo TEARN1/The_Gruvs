@@ -2686,6 +2686,11 @@ CREATE TABLE IF NOT EXISTS public.echoes (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+-- part_2 defines echoes without parent_id/likes; the app uses both (one-layer
+-- reply threads + like counts). Ensure they exist before the index below and
+-- so threading/likes work on any DB that got the simpler shape.
+ALTER TABLE public.echoes ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES public.echoes(id) ON DELETE CASCADE;
+ALTER TABLE public.echoes ADD COLUMN IF NOT EXISTS likes     INTEGER DEFAULT 0;
 CREATE INDEX IF NOT EXISTS idx_echoes_event  ON public.echoes(event_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_echoes_parent ON public.echoes(parent_id) WHERE parent_id IS NOT NULL;
 
