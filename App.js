@@ -11,6 +11,7 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-
 import { Feather } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { EntitlementProvider } from './src/context/EntitlementContext';
 import { IdentityProvider } from './src/context/IdentityContext';
 import { CurrencyProvider } from './src/context/CurrencyContext';
 import { ToastProvider, useToast } from './src/components/ToastNotification';
@@ -793,6 +794,7 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider>
+            <EntitlementProvider>
             <IdentityProvider>
               <CurrencyProvider>
               <TutorialProvider>
@@ -806,6 +808,7 @@ export default function App() {
               </TutorialProvider>
               </CurrencyProvider>
             </IdentityProvider>
+            </EntitlementProvider>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

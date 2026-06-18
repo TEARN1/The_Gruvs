@@ -19,6 +19,7 @@ import { supabase } from '../services/supabase';
 import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, VibeManager } from '../services/dataFlow';
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
+import { affiliateUrl } from '../utils/affiliate';
 import { DeviceCalendar, RichHaptics } from '../services/smartphoneFeatures';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
@@ -522,7 +523,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   };
 
   const openTickets = () => {
-    if (event?.ticket_url) SecurityService.safeOpenURL(event.ticket_url);
+    // Route ticket links through any signed affiliate program (commission on
+    // sale). No-op until a program + ref code is configured — see utils/affiliate.
+    if (event?.ticket_url) SecurityService.safeOpenURL(affiliateUrl(event.ticket_url));
   };
 
   const handleReport = () => {
