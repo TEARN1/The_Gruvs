@@ -26,6 +26,7 @@ import { LocationService } from '../services/locationService';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
 import { ServiceMarketplace } from './ServiceMarketplace';
+import { LAUNCH_MINIMAL } from '../constants/launchConfig';
 import { ScoutScreen } from './ScoutScreen';
 import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 import { WhoWasThereModal } from '../components/WhoWasThereModal';
@@ -1069,6 +1070,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         ) : (
           <>
             {/* ── GRUV SERVICES: Advanced Premium Banner ─────────────────────── */}
+            {!LAUNCH_MINIMAL && (
             <TouchableOpacity
               onPress={() => setMarketplaceVisible(true)}
               activeOpacity={0.88}
@@ -1093,6 +1095,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 <Feather name="arrow-right" size={14} color="#000" />
               </View>
             </TouchableOpacity>
+            )}
 
             {/* ── Find Vibers + Who Was There ────────────────────────────── */}
             <View style={{ flexDirection: 'row', gap: 10, marginHorizontal: 16, marginBottom: 20 }}>

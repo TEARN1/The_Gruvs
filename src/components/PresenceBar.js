@@ -111,15 +111,28 @@ export const PresenceBar = ({
 
       if (error) return;
 
-      const sorted = sortCheckins(data || [], loc);
+      // "Here now" must be honest (Truth Protocol): count only check-ins that
+      // haven't expired — expires_at is set to the event's end time — and for
+      // older rows with no expiry recorded, only those from the last ~3h. If the
+      // event itself has clearly ended, nobody is "here now". This stops the
+      // count claiming a crowd that has already gone home.
+      const now = Date.now();
+      const endMs = eventEndTime ? new Date(eventEndTime).getTime() : null;
+      const eventOver = endMs ? now > endMs + 60 * 60 * 1000 : false; // 1h grace after end
+      const liveRows = eventOver ? [] : (data || []).filter(c => {
+        if (c.expires_at) return new Date(c.expires_at).getTime() > now;
+        return (now - new Date(c.checked_in_at).getTime()) < 3 * 3600 * 1000;
+      });
+
+      const sorted = sortCheckins(liveRows, loc);
       setCheckins(sorted);
 
       if (user?.id) {
-        setAlreadyCheckedIn((data || []).some(c => c.user_id === user.id));
+        setAlreadyCheckedIn(liveRows.some(c => c.user_id === user.id));
       }
     } catch { /* keep existing checkins on transient failure */ }
     finally { setLoading(false); }
-  }, [eventId, user?.id, userLocation, sortCheckins]);
+  }, [eventId, user?.id, userLocation, sortCheckins, eventEndTime]);
 
   // ------------------------------------------------------------------
   // Fetch stars & mutual matches

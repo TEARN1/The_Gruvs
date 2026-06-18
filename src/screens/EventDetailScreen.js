@@ -54,6 +54,7 @@ import { InviteByNameModal }      from '../components/InviteByNameModal';
 import { SportManagementPanel }   from '../components/SportManagementPanel';
 import { EventGuestsModal }       from '../components/EventGuestsModal';
 import { ViberProfileModal }      from '../components/ViberProfileModal';
+import { CrossedPathsModal }      from '../components/CrossedPathsModal';
 import { PlayerProfileModal }     from '../components/PlayerProfileModal';
 import { MatchPredictionCard }    from '../components/MatchPredictionCard';
 import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
@@ -150,6 +151,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [whoGoing, setWhoGoing] = useState([]);
   const [attendeePreview, setAttendeePreview] = useState([]);
   const [reportVisible, setReportVisible] = useState(false);
+  const [crossedVisible, setCrossedVisible] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(null);
@@ -562,6 +564,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         setCheckinFx(Date.now());
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
         showToast("Touched Down! Your footprint is lit. 🔥", 'success');
+        // Reveal the people you keep crossing paths with right after touching down
+        setCrossedVisible(true);
       } else {
         showToast('Touch Down failed. Try again.', 'error');
       }
@@ -1172,13 +1176,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   opacity: checkingIn ? 0.7 : 1,
                   flex: 1,
                 }]}
-                onPress={handleCheckIn}
-                disabled={checkingIn || checkedIn}
+                onPress={checkedIn ? () => setCrossedVisible(true) : handleCheckIn}
+                disabled={checkingIn}
                 activeOpacity={0.85}
               >
-                <Feather name={checkedIn ? 'check-circle' : 'map-pin'} size={16} color="#000" />
+                <Feather name={checkedIn ? 'users' : 'map-pin'} size={16} color="#000" />
                 <Text style={styles.checkInBtnText}>
-                  {checkingIn ? 'Touching Down...' : checkedIn ? 'Touched Down ✓' : 'Touch Down'}
+                  {checkingIn ? 'Touching Down...' : checkedIn ? 'Crossed Paths' : 'Touch Down'}
                 </Text>
                 <GlitterBurst trigger={checkinFx} size={160} colors={['#10b981', '#fde047', '#ffffff', '#34d399', '#f97316']} />
               </TouchableOpacity>
@@ -1423,6 +1427,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           onClose={() => setReportVisible(false)}
           targetId={event?.id}
           targetType="event"
+        />
+
+        <CrossedPathsModal
+          visible={crossedVisible}
+          userId={user?.id}
+          onClose={() => setCrossedVisible(false)}
+          onAuthRequired={onAuthRequired}
         />
 
         {/* Chat FAB — always visible for signed-in users */}

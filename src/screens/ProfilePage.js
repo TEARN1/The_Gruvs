@@ -32,6 +32,7 @@ import { SecurityService } from '../services/securityService';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
+import { LAUNCH_MINIMAL } from '../constants/launchConfig';
 import { COMMUNITY_TAG_GROUPS, LANGUAGE_OPTIONS } from '../constants/AudienceTargeting';
 import { useToast } from '../components/ToastNotification';
 import { StreakBadge, useStreak } from '../components/StreakBadge';
@@ -2655,6 +2656,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         </View>
 
         <View style={styles.findRow}>
+          {!LAUNCH_MINIMAL && (
           <TouchableOpacity
             style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
             onPress={async () => {
@@ -2665,6 +2667,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             <Feather name="wallet" size={16} color={primary} />
             <Text style={[styles.findBtnText, { color: primary }]}>Wallet</Text>
           </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
             onPress={() => setTicketsVisible(true)}
@@ -2673,6 +2676,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             <Text style={[styles.findBtnText, { color: primary }]}>Tickets</Text>
           </TouchableOpacity>
 
+          {!LAUNCH_MINIMAL && (
           <TouchableOpacity
             style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
             onPress={() => setProviderDashVisible(true)}
@@ -2680,8 +2684,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             <Feather name="briefcase" size={16} color={primary} />
             <Text style={[styles.findBtnText, { color: primary }]}>Hub</Text>
           </TouchableOpacity>
+          )}
 
-          {(profile?.vibe_equity >= 500) && (
+          {!LAUNCH_MINIMAL && (profile?.vibe_equity >= 500) && (
             <TouchableOpacity
               style={[styles.findBtn, { backgroundColor: '#FFD70018', borderColor: '#FFD70040' }]}
               onPress={() => setSubView('council')}

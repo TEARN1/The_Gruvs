@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { BREAKPOINT } from './src/constants/DesignTokens';
+import { HIDDEN_TABS } from './src/constants/launchConfig';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -41,7 +42,8 @@ import { backStack } from './src/utils/backStack';
 installGlobalErrorHandler();
 validateEnv();
 
-const TABS = [
+// Master list — every screen the shell can mount (used for keep-alive + deep links).
+const ALL_TABS = [
   { key: 'feed', label: 'The Drop', icon: 'home' },
   { key: 'reels', label: 'Reels', icon: 'film' },
   { key: 'explore', label: 'Explore', icon: 'compass' },
@@ -50,6 +52,11 @@ const TABS = [
   { key: 'notifications', label: 'Pings', icon: 'bell' },
   { key: 'profile', label: 'Vibe Card', icon: 'user' },
 ];
+
+// Visible list — what the bottom bar, sidebar, swipe, and hotkeys navigate.
+// In minimal launch mode this drops the demoted tabs (e.g. Reels). Hidden
+// screens still mount via ALL_TABS and stay reachable through deep links.
+const TABS = ALL_TABS.filter(t => !HIDDEN_TABS.includes(t.key));
 
 const WIDE_BREAKPOINT = BREAKPOINT.wide;
 const SIDEBAR_OPEN_WIDTH = 220;
@@ -60,7 +67,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const indicatorAnim = useRef(new Animated.Value(0)).current;
-  const tabWidth = width / TABS.length; // auto-scales with 7 tabs
+  const tabWidth = width / TABS.length; // auto-scales with the visible tab count
 
   useEffect(() => {
     const index = TABS.findIndex(t => t.key === currentTab);
@@ -563,7 +570,7 @@ const MainNavigator = () => {
   // Item 36: update document.title on tab change
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    const tabLabel = TABS.find(t => t.key === currentTab)?.label || 'The Drop';
+    const tabLabel = ALL_TABS.find(t => t.key === currentTab)?.label || 'The Drop';
     document.title = `${tabLabel} — The Gruvs`;
   }, [currentTab]);
 
@@ -601,6 +608,7 @@ const MainNavigator = () => {
             onTargetHandled={() => setTargetEvent(null)}
             refreshKey={feedRefreshKey}
             onNavigateToServices={handleNavigateToServices}
+            onNavigateToReels={() => handleTabChange('reels')}
           />
         );
       case 'reels':
@@ -631,7 +639,7 @@ const MainNavigator = () => {
 
   const renderScreen = () => (
     <View style={styles.screenHost}>
-      {TABS.map(tab => {
+      {ALL_TABS.map(tab => {
         if (!visitedTabs.has(tab.key)) return null;
         const isActive = tab.key === currentTab;
         return (
@@ -666,7 +674,7 @@ const MainNavigator = () => {
         aria-atomic="true"
         style={styles.srOnly}
       >
-        <Text>{TABS.find(t => t.key === currentTab)?.label || ''}</Text>
+        <Text>{ALL_TABS.find(t => t.key === currentTab)?.label || ''}</Text>
       </View>
 
       {/* Item 40: Skip-to-content link */}

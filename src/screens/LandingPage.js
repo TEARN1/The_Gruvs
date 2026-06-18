@@ -12,6 +12,7 @@ import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { SmartImage } from '../components/SmartImage';
 import { FadeInView } from '../components/FadeInView';
 import { BrandLogo } from '../components/BrandLogo';
+import { HIDDEN_TABS } from '../constants/launchConfig';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { SearchHistoryBar, saveSearch } from '../components/SearchHistoryBar';
 import { DateFilterStrip } from '../components/DateFilterStrip';
@@ -359,7 +360,7 @@ const EventCard = React.memo(({
             delayLongPress={400}
           >
           {matchCard ? (
-            <View style={[styles.imgSection, { backgroundColor: '#0b0e0f' }, isWeb && { aspectRatio: '2/1' }]}>
+            <View style={[styles.imgSection, { backgroundColor: '#0b0e0f' }, isWeb && { minHeight: 0, aspectRatio: '2/1' }]}>
               <MatchVersus match={matchCard} height={isWeb ? 200 : 168} isWeb={isWeb} />
               {event.category && (
                 <View style={[styles.catBadge, { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` }, isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }]}>
@@ -377,7 +378,7 @@ const EventCard = React.memo(({
               </TouchableOpacity>
             </View>
           ) : (
-          <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && !event.poster_mode && { aspectRatio: '2/1' }]}>
+          <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && { minHeight: 0 }, isWeb && !event.poster_mode && { aspectRatio: '2/1' }]}>
             <MediaViewer
               eventId={event.id}
               aspectRatio={event.poster_mode ? 3 / 4 : 2}
@@ -841,7 +842,7 @@ const orderForGuest = (list) =>
     .map((x) => x.e);
 
 // ── Main LandingPage ──────────────────────────────────────────────────────────
-export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices }) => {
+export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels }) => {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
@@ -1648,6 +1649,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </GlassView>
 
         <View style={styles.headerActions}>
+          {/* Reels — opt-in entry while it's demoted from the tab bar (auto-hides if restored) */}
+          {onNavigateToReels && HIDDEN_TABS.includes('reels') && (
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={onNavigateToReels}
+              accessibilityRole="button"
+              accessibilityLabel="Reels"
+            >
+              <Feather name="film" size={18} color={primary} />
+            </TouchableOpacity>
+          )}
           {user && (
             <TouchableOpacity style={styles.iconBtn} onPress={() => setPathMapVisible(true)}>
               <Feather name="map" size={18} color={primary} />
