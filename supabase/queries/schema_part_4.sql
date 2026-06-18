@@ -1015,3 +1015,34 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   LIMIT GREATEST(1, p_limit);
 $$;
 GRANT EXECUTE ON FUNCTION public.get_crossed_paths(UUID, INTEGER) TO authenticated;
+
+-- ── 23: EVENTS.GOING SYNC ─────────────────────────────────────────────────────
+-- The feed shows social proof from events.going ("N going", avatar stacks,
+-- spots-left, buzz score), but nothing maintained it: RSVPManager.upsert never
+-- wrote it and no trigger existed, so it stayed at its default regardless of
+-- RSVPs. Maintain it from event_rsvps so the count is honest everywhere.
+-- (Guard the column add — part_1 adds events.going but runs last in fresh order.)
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS going INTEGER DEFAULT 0;
+
+CREATE OR REPLACE FUNCTION public.sync_event_going_count()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE eid UUID;
+BEGIN
+  eid := COALESCE(NEW.event_id, OLD.event_id);
+  IF eid IS NOT NULL THEN
+    UPDATE public.events SET going = (
+      SELECT COUNT(*) FROM public.event_rsvps WHERE event_id = eid AND status = 'going'
+    ) WHERE id = eid;
+  END IF;
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+DROP TRIGGER IF EXISTS sync_event_going_count_trigger ON public.event_rsvps;
+CREATE TRIGGER sync_event_going_count_trigger
+  AFTER INSERT OR UPDATE OR DELETE ON public.event_rsvps
+  FOR EACH ROW EXECUTE FUNCTION public.sync_event_going_count();
+
+-- One-time backfill so existing events show the right count immediately.
+UPDATE public.events e SET going = COALESCE((
+  SELECT COUNT(*) FROM public.event_rsvps r WHERE r.event_id = e.id AND r.status = 'going'
+), 0);

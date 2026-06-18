@@ -2836,15 +2836,20 @@ export const CapacityManager = {
   async getStatus(eventId) {
     try {
       const { data: event } = await supabase
-        .from('events').select('max_attendees, is_sold_out').eq('id', eventId).single();
+        .from('events').select('max_attendees, capacity, is_sold_out').eq('id', eventId).single();
       if (!event) return { hasLimit: false, isSoldOut: false, spotsLeft: null };
 
-      if (!event.max_attendees) return { hasLimit: false, isSoldOut: false, spotsLeft: null };
+      // Two capacity fields exist historically — treat either as the limit.
+      const limit = event.max_attendees || event.capacity;
+      if (!limit) return { hasLimit: false, isSoldOut: false, spotsLeft: null };
+      // Capacity is a RESERVATION limit, so count going-RSVPs — not live_checkins
+      // (physical arrivals). Counting check-ins reported full capacity available
+      // pre-event (0 arrivals) even when the event was already RSVP-full.
       const { count } = await supabase
-        .from('live_checkins').select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId);
-      const spotsLeft = Math.max(0, event.max_attendees - (count || 0));
-      return { hasLimit: true, isSoldOut: event.is_sold_out || spotsLeft === 0, spotsLeft, capacity: event.max_attendees };
+        .from('event_rsvps').select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId).eq('status', 'going');
+      const spotsLeft = Math.max(0, limit - (count || 0));
+      return { hasLimit: true, isSoldOut: event.is_sold_out || spotsLeft === 0, spotsLeft, capacity: limit };
     } catch { return { hasLimit: false, isSoldOut: false, spotsLeft: null }; }
   },
 };
