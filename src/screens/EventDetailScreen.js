@@ -126,7 +126,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
-  const { applyLocationPrivacy, applyProfilePrivacy } = useIdentity();
+  const { applyLocationPrivacy, applyProfilePrivacy, identityMode } = useIdentity();
   const insets = useSafeAreaInsets();
   const { show: showToast } = useToast();
 
@@ -558,7 +558,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       }
 
       const privateCoords = coords ? applyLocationPrivacy(coords.lat, coords.lon) : {};
-      const ok = await CheckInManager.touchDown(event.id, user.id, privateCoords || {});
+      // Expire the live footprint at the end of the event day (or multi-day end
+      // date) so the "here now" count stays honest even for long events, and
+      // carry identity mode so ghost check-ins stay anonymous.
+      const endBase = event?.end_date || event?.event_date;
+      const checkinExpiry = endBase ? new Date(`${endBase}T23:59:59`).toISOString() : null;
+      const ok = await CheckInManager.touchDown(event.id, user.id, privateCoords || {}, { expiresAt: checkinExpiry, identityMode });
       if (ok) {
         setCheckedIn(true);
         setCheckinFx(Date.now());

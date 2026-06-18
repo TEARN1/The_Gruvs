@@ -1577,25 +1577,36 @@ export const NotificationManager = {
 // CHECK-IN MANAGER  (Touch Down)
 // ─────────────────────────────────────────────────────────────────────────────
 export const CheckInManager = {
-  async touchDown(eventId, userId, coords = {}) {
+  async touchDown(eventId, userId, coords = {}, opts = {}) {
     if (SecurityService.isThrottled(`touchdown_${eventId}_${userId}`, 5000)) return true;
     if (!isSupabaseEnabled) {
       FeedManager.invalidate(eventId);
       return true;
     }
     try {
-      const { error } = await supabase
+      // Core columns always present; expires_at/identity_mode keep the live
+      // "here now" count honest (auto-expiry) + ghost-aware. Send them when we
+      // have them, but fall back to core-only if the DB isn't migrated yet so a
+      // Touch Down never fails on an older schema.
+      const core = {
+        user_id: userId,
+        event_id: eventId,
+        lat: coords.lat ?? null,
+        lon: coords.lon ?? null,
+        checked_in_at: new Date().toISOString(),
+      };
+      const full = { ...core };
+      if (opts.expiresAt) full.expires_at = opts.expiresAt;
+      if (opts.identityMode) full.identity_mode = opts.identityMode;
+
+      let { error } = await supabase
         .from('live_checkins')
-        .upsert(
-          {
-            user_id: userId,
-            event_id: eventId,
-            lat: coords.lat ?? null,
-            lon: coords.lon ?? null,
-            checked_in_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id,event_id' }
-        );
+        .upsert(full, { onConflict: 'user_id,event_id' });
+      if (error && /expires_at|identity_mode|column/.test(error.message || '')) {
+        ({ error } = await supabase
+          .from('live_checkins')
+          .upsert(core, { onConflict: 'user_id,event_id' }));
+      }
       if (error) throw error;
 
       // Atomic vibe score increment — fallback to read-then-write if RPC not deployed yet
