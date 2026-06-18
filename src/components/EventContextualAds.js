@@ -13,6 +13,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
+import { adSlotActive } from '../constants/adConfig';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { supabase } from '../services/supabase';
@@ -69,7 +70,7 @@ const CampaignAdTile = ({ campaign, phase, primary, textColor, muted, onNavigate
 };
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export const EventContextualAds = ({ event, onNavigate }) => {
+export const EventContextualAds = ({ event, onNavigate, slot = 'eventDetail' }) => {
   const { currentTheme }    = useTheme();
   const { user }            = useAuth();
   const { identityMode }    = useIdentity();
@@ -82,7 +83,7 @@ export const EventContextualAds = ({ event, onNavigate }) => {
   const fadeAnim                        = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (identityMode === 'celebrity') return;
+    if (identityMode === 'celebrity' || !adSlotActive(slot)) return;
     const p = getPhase(event?.date_time || event?.date);
     setPhase(p);
     fetchCampaigns(p);
@@ -109,8 +110,8 @@ export const EventContextualAds = ({ event, onNavigate }) => {
     } catch {}
   };
 
-  // Celebrity mode = no ads (checked after hooks)
-  if (identityMode === 'celebrity') return null;
+  // Celebrity mode = no ads; also respect the central ad-slot control (checked after hooks)
+  if (identityMode === 'celebrity' || !adSlotActive(slot)) return null;
 
   const phaseConfig = PHASE_CONFIG[phase];
   // LIVE-ONLY: nothing to show until a real business books a campaign for this phase.

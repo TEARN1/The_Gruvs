@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useIdentity } from '../context/IdentityContext';
 import { supabase } from '../services/supabase';
+import { adSlotActive } from '../constants/adConfig';
 
 const intentToAdType = (intent) => {
   if (!intent) return null;
@@ -22,7 +23,7 @@ const intentToAdType = (intent) => {
   return null;
 };
 
-export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateToServices }) => {
+export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateToServices, slot = 'feed' }) => {
   const { currentTheme } = useTheme();
   const { identityMode } = useIdentity();
   const primary    = currentTheme?.primary   || "#00f2ff";
@@ -60,9 +61,9 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
   }, [intentTag]);
 
   useEffect(() => {
-    if (identityMode === 'celebrity') return;
+    if (identityMode === 'celebrity' || !adSlotActive(slot)) return;
     selectAd();
-  }, [intentTag, eventId, identityMode, selectAd]);
+  }, [intentTag, eventId, identityMode, selectAd, slot]);
 
   const fadeIn = () => {
     Animated.timing(fadeAnim, {
@@ -89,7 +90,7 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
     }
   };
 
-  if (dismissed || !ad || identityMode === 'celebrity') return null;
+  if (dismissed || !ad || identityMode === 'celebrity' || !adSlotActive(slot)) return null;
 
   const adColor = ad.color || primary;
 
