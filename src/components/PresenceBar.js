@@ -14,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
-import { GeoUtils } from '../services/dataFlow';
+import { GeoUtils, BlockManager } from '../services/dataFlow';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 
@@ -111,6 +111,9 @@ export const PresenceBar = ({
 
       if (error) return;
 
+      // Block is absolute: a user you've blocked never appears in "here now".
+      const blocked = user?.id ? new Set(await BlockManager.getBlockedIds(user.id).catch(() => [])) : new Set();
+
       // "Here now" must be honest (Truth Protocol): count only check-ins that
       // haven't expired — expires_at is set to the event's end time — and for
       // older rows with no expiry recorded, only those from the last ~3h. If the
@@ -120,6 +123,7 @@ export const PresenceBar = ({
       const endMs = eventEndTime ? new Date(eventEndTime).getTime() : null;
       const eventOver = endMs ? now > endMs + 60 * 60 * 1000 : false; // 1h grace after end
       const liveRows = eventOver ? [] : (data || []).filter(c => {
+        if (blocked.has(c.user_id)) return false; // block is absolute
         if (c.expires_at) return new Date(c.expires_at).getTime() > now;
         return (now - new Date(c.checked_in_at).getTime()) < 3 * 3600 * 1000;
       });

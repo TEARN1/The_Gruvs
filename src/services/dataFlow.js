@@ -1506,6 +1506,37 @@ export const UserManager = {
       }
     } catch { }
   },
+
+  async getMutuals(userId) {
+    if (!userId) return [];
+    try {
+      const followingIds = await this.getFollowedIds(userId);
+      if (!followingIds.length) return [];
+      const { data, error } = await supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('following_id', userId)
+        .in('follower_id', followingIds);
+      if (error) throw error;
+      return (data || []).map(r => r.follower_id);
+    } catch { return []; }
+  },
+
+  async getNeighborhoodVibers(userId, city) {
+    if (!city) return [];
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, city, vibe_score, is_online, last_seen')
+        .eq('city', city)
+        .eq('is_discoverable', true)
+        .neq('id', userId)
+        .order('vibe_score', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    } catch { return []; }
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1681,6 +1712,11 @@ export const CheckInManager = {
   async getCrossedPaths(userId, { lookback = 100, limit = 50 } = {}) {
     if (!userId || !isSupabaseEnabled) return [];
 
+    // Block is absolute: never surface anyone the user has blocked. (The RPC also
+    // excludes blocks server-side in BOTH directions once deployed; this is the
+    // client-side guarantee + defence-in-depth before that SQL is run.)
+    const blocked = new Set(await BlockManager.getBlockedIds(userId).catch(() => []));
+
     // ── Server-side RPC (preferred) ───────────────────────────────────────
     try {
       const { data, error } = await supabase.rpc('get_crossed_paths', {
@@ -1701,7 +1737,7 @@ export const CheckInManager = {
           crossings:    Number(r.crossings) || 0,
           venues:       Array.isArray(r.venues) ? r.venues.filter(Boolean).slice(0, 4) : [],
           lastCrossedAt: r.last_crossed_at,
-        }));
+        })).filter(r => !blocked.has(r.id));
       }
     } catch { /* fall through to client-side aggregation */ }
 
@@ -1737,6 +1773,7 @@ export const CheckInManager = {
       const agg = new Map();
       for (const row of (others || [])) {
         if (!row.profiles) continue;
+        if (blocked.has(row.user_id)) continue; // block is absolute
         const ghost = (row.identity_mode || row.profiles.identity_mode) === 'ghost';
         if (ghost) continue;
         // Privacy opt-out: users who turned off discoverability don't surface as
@@ -3536,5 +3573,114 @@ export const PlaylistManager = {
     return () => {
       if (this._channels.has(playlistId)) { supabase.removeChannel(this._channels.get(playlistId)); this._channels.delete(playlistId); }
     };
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PULSE FEED MANAGER — event-less general community conversation
+// ─────────────────────────────────────────────────────────────────────────────
+export const PulseFeedManager = {
+  async fetchPulseFeed(page = 0, limit = 20) {
+    const { data, error } = await supabase
+      .from('echoes')
+      .select('id, body, created_at, likes, user_id, profiles:user_id(id, username, avatar_url, display_name, writing_style)')
+      .is('event_id', null)
+      .is('parent_id', null)
+      .order('created_at', { ascending: false })
+      .range(page * limit, (page + 1) * limit - 1);
+    if (error) throw error;
+    return data || [];
+  },
+
+  async postPulseEcho(userId, body) {
+    const { data, error } = await supabase
+      .from('echoes')
+      .insert({ user_id: userId, body, event_id: null })
+      .select('id, body, created_at, likes, user_id, profiles:user_id(id, username, avatar_url, display_name, writing_style)')
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async fetchReplies(parentEchoId) {
+    const { data, error } = await supabase
+      .from('echoes')
+      .select('id, body, created_at, likes, user_id, parent_id, profiles:user_id(id, username, avatar_url, display_name, writing_style)')
+      .eq('parent_id', parentEchoId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async postReply(userId, parentEchoId, body) {
+    const { data, error } = await supabase
+      .from('echoes')
+      .insert({ user_id: userId, parent_id: parentEchoId, body, event_id: null })
+      .select('id, body, created_at, likes, user_id, parent_id, profiles:user_id(id, username, avatar_url, display_name, writing_style)')
+      .single();
+    if (error) throw error;
+    return data;
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAMIFICATION ENGINE — Vibe Coins and Reputation Status System
+// ─────────────────────────────────────────────────────────────────────────────
+export const GamificationEngine = {
+  async awardCoins(userId, actionType) {
+    if (!userId) return 0;
+    const rates = { rsvp: 10, checkin: 30, gallery_post: 50, pulse_post: 20 };
+    const amount = rates[actionType] || 0;
+    if (amount === 0) return 0;
+    try {
+      const { data: p } = await supabase.from('profiles').select('vibe_coins').eq('id', userId).single();
+      const newCoins = (p?.vibe_coins || 0) + amount;
+      const newStatus = this.getReputationStatus(newCoins);
+      await supabase.from('profiles').update({ vibe_coins: newCoins, reputation_status: newStatus }).eq('id', userId);
+      return newCoins;
+    } catch { return 0; }
+  },
+
+  getReputationStatus(coins) {
+    if (coins < 100) return 'Novice Viber';
+    if (coins < 500) return 'Local Regular';
+    return 'Neighborhood Legend';
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TICKET MANAGER — local QR reservation and validation
+// ─────────────────────────────────────────────────────────────────────────────
+export const TicketManager = {
+  async reserveTicket(eventId, userId, rsvpId) {
+    const tokenStr = `VIBE-TKT-${eventId.slice(0, 4).toUpperCase()}-${userId.slice(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const { data, error } = await supabase
+      .from('ticket_tokens')
+      .insert({ rsvp_id: rsvpId, user_id: userId, event_id: eventId, token_str: tokenStr, used: false })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getMyTickets(userId) {
+    const { data, error } = await supabase
+      .from('ticket_tokens')
+      .select('*, events(id, title, date, event_date, event_time, venue_name, cover_image, cover_url)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async validateTicket(tokenStr) {
+    const { data, error } = await supabase
+      .from('ticket_tokens')
+      .update({ used: true })
+      .eq('token_str', tokenStr)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
   },
 };

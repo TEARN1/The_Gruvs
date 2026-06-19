@@ -4,12 +4,12 @@ import { SmartImage } from './SmartImage';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
-import { isOnline as checkOnline } from '../services/dataFlow';
+import { isOnline as checkOnline, BlockManager } from '../services/dataFlow';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { DirectMessageModal } from './DirectMessageModal';
-import { ViberProfileModal } from './ViberProfileModal';
+import { ViberProfileModal } from './ViberProfileModal';
 import { useBackClose } from '../hooks/useBackClose';
 
 const avatarBg = (u = '') =>
@@ -149,9 +149,13 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
       const { data, error } = await qb;
       if (error) throw error;
 
+      // Block is absolute: anyone the user blocked never shows in Who Was There.
+      const blocked = new Set(await BlockManager.getBlockedIds(user.id).catch(() => []));
+
       const seen = new Set();
       let unique = [];
       for (const row of (data || [])) {
+        if (blocked.has(row.user_id)) continue;
         if (!seen.has(row.user_id) && row.profiles) {
           seen.add(row.user_id);
           const privateProfile = applyProfilePrivacy(row.profiles, row.user_id);

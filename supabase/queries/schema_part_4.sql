@@ -1011,6 +1011,14 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   WHERE COALESCE(p.identity_mode, 'public') <> 'ghost'
     AND NOT (COALESCE(p.identity_mode, 'public') = 'celebrity'
              AND COALESCE(p.is_beacon_active, false) = false)
+    -- Block is absolute, BOTH directions: hide anyone the caller blocked AND
+    -- anyone who blocked the caller (definer sees all rows; the blocker's
+    -- identity is never returned to the client).
+    AND NOT EXISTS (
+      SELECT 1 FROM public.user_blocks b
+      WHERE (b.blocker_id = p_user_id AND b.blocked_id = cp.user_id)
+         OR (b.blocker_id = cp.user_id AND b.blocked_id = p_user_id)
+    )
   ORDER BY cp.crossings DESC, cp.last_crossed_at DESC NULLS LAST
   LIMIT GREATEST(1, p_limit);
 $$;
