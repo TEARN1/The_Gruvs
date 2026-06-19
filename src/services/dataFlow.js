@@ -686,7 +686,10 @@ export const FeedManager = {
     }
 
     const rankAndCache = async (data, count) => {
-      let events = normalizeEvents(data || []);
+      // Moderation: drop events auto-hidden by the trust-weighted report engine
+      // (patch 25). Non-breaking pre-migration — auto_hidden is undefined on an
+      // un-migrated DB, so nothing is filtered until the column + trigger exist.
+      let events = normalizeEvents((data || []).filter(e => !e.auto_hidden));
       if (!query.trim()) {
         // Stamp heat scores so applyPersonalisedBoost can re-rank with them
         events = events.map(e => ({

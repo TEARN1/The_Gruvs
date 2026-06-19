@@ -1088,3 +1088,49 @@ CREATE TRIGGER enforce_age_gate_rsvp BEFORE INSERT OR UPDATE ON public.event_rsv
 DROP TRIGGER IF EXISTS enforce_age_gate_checkin ON public.live_checkins;
 CREATE TRIGGER enforce_age_gate_checkin BEFORE INSERT OR UPDATE ON public.live_checkins
   FOR EACH ROW EXECUTE FUNCTION public.enforce_event_age_gate();
+
+-- ── 25: TRUST-WEIGHTED REPORT → AUTO-HIDE ─────────────────────────────────────
+-- Harmful content disappears pending review once enough DISTINCT reporters flag
+-- it, weighted by reporter trust (social_integrity_score: SIS 0–100 → 0–2x, so
+-- a sockpuppet army can't brigade and a few trusted users act fast). Sets an
+-- auto_hidden flag the app filters out. Reversible (a moderator clears it).
+-- DM ('message') reports are ignored here — those are private 1:1 and handled by
+-- block, not a public hide. Columns guarded so build order can't break it.
+DO $$ BEGIN
+  IF to_regclass('public.events')   IS NOT NULL THEN ALTER TABLE public.events   ADD COLUMN IF NOT EXISTS auto_hidden    BOOLEAN DEFAULT false; END IF;
+  IF to_regclass('public.reels')    IS NOT NULL THEN ALTER TABLE public.reels    ADD COLUMN IF NOT EXISTS auto_hidden    BOOLEAN DEFAULT false; END IF;
+  IF to_regclass('public.echoes')   IS NOT NULL THEN ALTER TABLE public.echoes   ADD COLUMN IF NOT EXISTS auto_hidden    BOOLEAN DEFAULT false; END IF;
+  IF to_regclass('public.profiles') IS NOT NULL THEN ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_auto_hidden BOOLEAN DEFAULT false; END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_reports_target ON public.reports(target_id, target_type);
+
+CREATE OR REPLACE FUNCTION public.apply_report_autohide()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  wsum NUMERIC;
+BEGIN
+  -- Sum trust weight across DISTINCT reporters of this target.
+  SELECT COALESCE(SUM(w), 0) INTO wsum FROM (
+    SELECT r.reporter_id,
+           GREATEST(0, LEAST(2.0, COALESCE(MAX(p.social_integrity_score), 50) / 50.0)) AS w
+    FROM public.reports r
+    LEFT JOIN public.profiles p ON p.id = r.reporter_id
+    WHERE r.target_id = NEW.target_id AND r.target_type = NEW.target_type
+    GROUP BY r.reporter_id
+  ) s;
+
+  IF wsum < 3.0 THEN RETURN NEW; END IF; -- ~3 trusted reports
+
+  IF    NEW.target_type = 'event' THEN UPDATE public.events   SET auto_hidden    = true WHERE id = NEW.target_id;
+  ELSIF NEW.target_type = 'reel'  THEN UPDATE public.reels    SET auto_hidden    = true WHERE id = NEW.target_id;
+  ELSIF NEW.target_type = 'echo'  THEN UPDATE public.echoes   SET auto_hidden    = true WHERE id = NEW.target_id;
+  ELSIF NEW.target_type = 'user'  THEN UPDATE public.profiles SET is_auto_hidden = true WHERE id = NEW.target_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS apply_report_autohide_trigger ON public.reports;
+CREATE TRIGGER apply_report_autohide_trigger
+  AFTER INSERT ON public.reports
+  FOR EACH ROW EXECUTE FUNCTION public.apply_report_autohide();
