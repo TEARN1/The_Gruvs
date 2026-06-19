@@ -1054,3 +1054,37 @@ CREATE TRIGGER sync_event_going_count_trigger
 UPDATE public.events e SET going = COALESCE((
   SELECT COUNT(*) FROM public.event_rsvps r WHERE r.event_id = e.id AND r.status = 'going'
 ), 0);
+
+-- ── 24: AGE GATE — the one legally-required hard restriction ───────────────────
+-- Block a positive RSVP (going/maybe) or a Touch Down to an age-restricted Gruv
+-- when the user's known age is under events.age_restriction. Server-side so it
+-- can't be bypassed by calling the API directly (the client also checks for UX).
+-- Fail-open on unknown DOB — don't lock adults who never set a birthday out.
+CREATE OR REPLACE FUNCTION public.enforce_event_age_gate()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  req_age INT;
+  dob     DATE;
+  yrs     INT;
+BEGIN
+  SELECT age_restriction INTO req_age FROM public.events WHERE id = NEW.event_id;
+  IF req_age IS NULL OR req_age <= 0 THEN RETURN NEW; END IF;
+  -- For RSVPs, only gate positive intents (declining is always fine).
+  IF TG_TABLE_NAME = 'event_rsvps' AND COALESCE(NEW.status, '') NOT IN ('going', 'maybe') THEN
+    RETURN NEW;
+  END IF;
+  SELECT birth_date INTO dob FROM public.profiles WHERE id = NEW.user_id;
+  IF dob IS NULL THEN RETURN NEW; END IF; -- unknown age → fail-open
+  yrs := EXTRACT(YEAR FROM age(dob))::INT;
+  IF yrs < req_age THEN
+    RAISE EXCEPTION 'AGE_RESTRICTED: this Gruv is %+ only', req_age USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS enforce_age_gate_rsvp ON public.event_rsvps;
+CREATE TRIGGER enforce_age_gate_rsvp BEFORE INSERT OR UPDATE ON public.event_rsvps
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_event_age_gate();
+DROP TRIGGER IF EXISTS enforce_age_gate_checkin ON public.live_checkins;
+CREATE TRIGGER enforce_age_gate_checkin BEFORE INSERT OR UPDATE ON public.live_checkins
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_event_age_gate();

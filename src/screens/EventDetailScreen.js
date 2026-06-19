@@ -20,6 +20,7 @@ import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityMana
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
 import { affiliateUrl } from '../utils/affiliate';
+import { checkEventAge } from '../utils/ageGate';
 import { DeviceCalendar, RichHaptics } from '../services/smartphoneFeatures';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
@@ -151,6 +152,10 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [whoGoingVisible, setWhoGoingVisible] = useState(false);
   const [whoGoing, setWhoGoing] = useState([]);
   const [attendeePreview, setAttendeePreview] = useState([]);
+  const [attendeeGroups, setAttendeeGroups] = useState({ mutuals: [], friends: [], neighborhood: [] });
+  const [ticketModalVisible, setTicketModalVisible] = useState(false);
+  const [myTicket, setMyTicket] = useState(null);
+  const [groupModalVisible, setGroupModalVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [crossedVisible, setCrossedVisible] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
@@ -327,13 +332,49 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     try {
       const { data } = await supabase
         .from('event_rsvps')
-        .select('profiles:user_id(id, username, avatar_url)')
+        .select('profiles:user_id(id, username, display_name, avatar_url, city)')
         .eq('event_id', event.id)
         .eq('status', 'going')
-        .limit(7);
-      setAttendeePreview((data || []).map(r => r.profiles).filter(Boolean));
+        .limit(100);
+      
+      const attendees = (data || []).map(r => r.profiles).filter(Boolean);
+      setAttendeePreview(attendees.slice(0, 7));
+
+      if (user) {
+        const [myProfRes, mutualIds, followingIds] = await Promise.all([
+          supabase.from('profiles').select('city').eq('id', user.id).maybeSingle(),
+          UserManager.getMutuals(user.id),
+          UserManager.getFollowedIds(user.id)
+        ]);
+
+        const myCity = myProfRes?.data?.city?.trim().toLowerCase();
+        const mutualsList = [];
+        const friendsList = [];
+        const neighborhoodList = [];
+
+        attendees.forEach(p => {
+          if (p.id === user.id) return;
+          const isMutual = mutualIds.includes(p.id);
+          const isFriend = followingIds.includes(p.id);
+          const isNeighbor = myCity && p.city?.trim().toLowerCase() === myCity;
+
+          if (isMutual) {
+            mutualsList.push(p);
+          } else if (isFriend) {
+            friendsList.push(p);
+          } else if (isNeighbor) {
+            neighborhoodList.push(p);
+          }
+        });
+
+        setAttendeeGroups({
+          mutuals: mutualsList,
+          friends: friendsList,
+          neighborhood: neighborhoodList
+        });
+      }
     } catch { }
-  }, [event?.id]);
+  }, [event?.id, user]);
 
   useEffect(() => {
     if (visible) {
@@ -381,6 +422,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   const handleRsvp = useCallback(async (status) => {
     if (!user) { onAuthRequired?.(); return; }
+    // Age gate (the only legal hard restriction): no positive RSVP to an 18+
+    // Gruv when the user is under the limit.
+    if (status === 'going' || status === 'maybe') {
+      const ageCheck = checkEventAge(profile, event);
+      if (!ageCheck.allowed) { showToast(ageCheck.reason, 'error'); return; }
+    }
     if (rsvpLoading) return;
     // Optimistic update
     const prev = rsvpStatus;
@@ -405,7 +452,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     } finally {
       setRsvpLoading(false);
     }
-  }, [user, rsvpStatus, rsvpLoading, event?.id, onAuthRequired, showToast]);
+  }, [user, profile, rsvpStatus, rsvpLoading, event, onAuthRequired, showToast]);
 
   const handleAddToCalendar = useCallback(async () => {
     if (!event) return;
@@ -535,6 +582,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   const handleCheckIn = async () => {
     if (!user) { onAuthRequired?.(); return; }
+    // Age gate: can't Touch Down at an 18+ Gruv under the limit.
+    const ageCheck = checkEventAge(profile, event);
+    if (!ageCheck.allowed) { showToast(ageCheck.reason, 'error'); return; }
     if (checkingIn || checkedIn) return;
     setCheckingIn(true);
     try {
