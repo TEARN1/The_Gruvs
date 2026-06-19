@@ -16,6 +16,7 @@ import { AnimatedCounter } from '../components/Motion';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 import { SurveyBuilderModal } from '../components/SurveyBuilderModal';
+import { AttendanceAnalyticsPanel } from '../components/AttendanceAnalyticsPanel';
 import { CampaignManager, EcosystemManager, NotificationManager } from '../services/dataFlow';
 import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -866,6 +867,8 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       case 'analytics': return (
         <ScrollView contentContainerStyle={sc.tabContent} showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
+          {/* Verified attendance — the proof-of-who-came moat (real live_checkins data) */}
+          <AttendanceAnalyticsPanel userId={user?.id} primary={primary} textColor={textColor} muted={muted} />
           <Text style={[sc.sectionTitle, { color: textColor }]}>Vibe Funnel</Text>
           <GlassView style={[sc.funnelCard, { borderColor: `${primary}15` }]}>
             {[
