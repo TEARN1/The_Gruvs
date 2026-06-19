@@ -693,10 +693,10 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           {/* Key stats */}
           <Text style={[sc.sectionTitle, { color: textColor }]}>Intel Reads · Last 30 Days</Text>
           <View style={sc.statsGrid}>
-            <StatCard label="Stacks" count={analytics?.totalRevenue || 0} prefix="R" icon="dollar-sign" color="#10b981" trend={12} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Eyes On" count={analytics?.impressions || 0} icon="eye" color={primary} trend={8} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Promo Taps" count={analytics?.clicks || 0} icon="tag" color="#8b5cf6" trend={-3} primary={primary} textColor={textColor} muted={muted} />
-            <StatCard label="Locks" count={analytics?.conversions || 0} icon="check-circle" color="#f59e0b" trend={22} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Stacks" count={analytics?.totalRevenue || 0} prefix="R" icon="dollar-sign" color="#10b981" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Eyes On" count={analytics?.impressions || 0} icon="eye" color={primary} primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Promo Taps" count={analytics?.clicks || 0} icon="tag" color="#8b5cf6" primary={primary} textColor={textColor} muted={muted} />
+            <StatCard label="Locks" count={analytics?.conversions || 0} icon="check-circle" color="#f59e0b" primary={primary} textColor={textColor} muted={muted} />
             <StatCard label="War Chest" count={analytics?.totalSpent || 0} prefix="R" icon="credit-card" color="#ef4444" primary={primary} textColor={textColor} muted={muted} />
             <StatCard label="Voucher Claims" count={analytics?.voucherClaims || 0} icon="gift" color="#06b6d4" primary={primary} textColor={textColor} muted={muted} />
           </View>
@@ -804,22 +804,22 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           {/* Targeting category overview */}
           <GlassView style={[sc.targetingOverview, { borderColor: `${primary}20` }]}>
             <Text style={[sc.toTitle, { color: textColor }]}>Advanced Crowd Engine</Text>
-            <Text style={[sc.toSub, { color: muted }]}>Reach any combination of 3 000+ Vibe signals</Text>
+            <Text style={[sc.toSub, { color: muted }]}>Reach by the signals that matter — demographics, location, behaviour and intent</Text>
             <View style={sc.targetingCats}>
               {[
-                { icon: 'user', label: 'Demographics', count: 24, examples: 'Surname, age, gender, language' },
-                { icon: 'heart', label: 'Lifestyle', count: 18, examples: 'Religion, sport, car, colour' },
-                { icon: 'activity', label: 'Behaviour', count: 31, examples: 'RSVP history, spend level, categories' },
-                { icon: 'map-pin', label: 'Geographic', count: 12, examples: 'City, neighbourhood, radius' },
-                { icon: 'briefcase', label: 'Professional', count: 15, examples: 'Industry, job type, income band' },
-                { icon: 'clock', label: 'Time-based', count: 9, examples: 'Time of day, day of week, season' },
-                { icon: 'music', label: 'Interests', count: 42, examples: 'Music genres, food, art, tech' },
-                { icon: 'trending-up', label: 'Purchase Intent', count: 28, examples: 'Searched transport, viewed outfits' },
+                { icon: 'user', label: 'Demographics', examples: 'Surname, age, gender, language' },
+                { icon: 'heart', label: 'Lifestyle', examples: 'Religion, sport, car, colour' },
+                { icon: 'activity', label: 'Behaviour', examples: 'RSVP history, spend level, categories' },
+                { icon: 'map-pin', label: 'Geographic', examples: 'City, neighbourhood, radius' },
+                { icon: 'briefcase', label: 'Professional', examples: 'Industry, job type, income band' },
+                { icon: 'clock', label: 'Time-based', examples: 'Time of day, day of week, season' },
+                { icon: 'music', label: 'Interests', examples: 'Music genres, food, art, tech' },
+                { icon: 'trending-up', label: 'Purchase Intent', examples: 'Searched transport, viewed outfits' },
               ].map(cat => (
                 <View key={cat.label} style={[sc.targetCat, { borderColor: `${primary}15` }]}>
                   <Feather name={cat.icon} size={14} color={primary} />
                   <View style={{ flex: 1, marginLeft: 8 }}>
-                    <Text style={[sc.catLabel, { color: textColor }]}>{cat.label} <Text style={{ color: primary }}>({cat.count})</Text></Text>
+                    <Text style={[sc.catLabel, { color: textColor }]}>{cat.label}</Text>
                     <Text style={[sc.catExamples, { color: muted }]}>{cat.examples}</Text>
                   </View>
                 </View>
