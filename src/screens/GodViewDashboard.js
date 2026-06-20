@@ -11,12 +11,13 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useIsAdmin } from '../hooks/useIsAdmin';
+import { getModerationQueue, moderateContent } from '../services/moderationQueue';
 import { GlassView } from '../components/GlassView';
 import { OOS } from '../services/organizationalOverseer';
 import { NeuralMesh } from '../services/neuralMesh';
 import { SaturationSimulator } from '../services/saturationSimulator';
 import { VibeEquityLedger } from '../services/vibeEquityLedger';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW } = Dimensions.get('window');
@@ -49,6 +50,20 @@ export const GodViewDashboard = ({ visible, onClose }) => {
   const [isSingular, setIsSingular] = useState(false);
   const [isSovereign, setIsSovereign] = useState(false);
   const [metrics, setMetrics] = useState({ vps: 0, liquidity: 0, security_score: 100 });
+  const [modQueue, setModQueue] = useState([]);
+  const [modLoading, setModLoading] = useState(false);
+
+  const loadModQueue = React.useCallback(async () => {
+    setModLoading(true);
+    try { setModQueue(await getModerationQueue()); } finally { setModLoading(false); }
+  }, []);
+
+  useEffect(() => { if (visible && isAdmin) loadModQueue(); }, [visible, isAdmin, loadModQueue]);
+
+  const resolveMod = async (item, action) => {
+    const ok = await moderateContent(item.type, item.id, action);
+    if (ok) setModQueue(prev => prev.filter(x => !(x.id === item.id && x.type === item.type)));
+  };
 
   const primary = "#FFD700"; // Gold for God View
   const bg = "#000";
@@ -187,6 +202,43 @@ export const GodViewDashboard = ({ visible, onClose }) => {
               <Text style={{ color: primary, fontSize: 9, fontWeight: '900' }}>RE-BALANCE ECONOMY</Text>
             </TouchableOpacity>
           </GlassView>
+        </View>
+
+        {/* Moderation review queue — action auto-hidden (trust-weighted reported) content */}
+        <View style={s.section}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={[s.sectionTitle, { color: textColor }]}>MODERATION QUEUE</Text>
+            <TouchableOpacity onPress={loadModQueue}>
+              <Feather name="refresh-cw" size={14} color={muted} />
+            </TouchableOpacity>
+          </View>
+          {modLoading ? (
+            <ActivityIndicator color={primary} style={{ marginVertical: 14 }} />
+          ) : modQueue.length === 0 ? (
+            <Text style={{ color: muted, fontSize: 11, paddingVertical: 8 }}>Nothing hidden — queue is clear. ✅</Text>
+          ) : modQueue.map(item => (
+            <GlassView key={`${item.type}-${item.id}`} style={[s.governorCard, { marginBottom: 8 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <Text style={{ color: primary, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' }}>{item.type}</Text>
+                <Text style={{ color: '#ef4444', fontSize: 9, fontWeight: '800' }}>{item.reports} report{item.reports !== 1 ? 's' : ''}</Text>
+              </View>
+              <Text style={{ color: textColor, fontSize: 12, marginBottom: 8 }} numberOfLines={2}>{item.label}</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={[s.miniActionBtn, { borderColor: '#10b981', flex: 1 }]}
+                  onPress={() => resolveMod(item, 'restore')}
+                >
+                  <Text style={{ color: '#10b981', fontSize: 9, fontWeight: '900' }}>RESTORE</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.miniActionBtn, { borderColor: '#ef4444', flex: 1 }]}
+                  onPress={() => resolveMod(item, 'remove')}
+                >
+                  <Text style={{ color: '#ef4444', fontSize: 9, fontWeight: '900' }}>REMOVE</Text>
+                </TouchableOpacity>
+              </View>
+            </GlassView>
+          ))}
         </View>
 
         {/* Intelligence Stream */}

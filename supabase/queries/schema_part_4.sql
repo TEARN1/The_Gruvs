@@ -1134,3 +1134,63 @@ DROP TRIGGER IF EXISTS apply_report_autohide_trigger ON public.reports;
 CREATE TRIGGER apply_report_autohide_trigger
   AFTER INSERT ON public.reports
   FOR EACH ROW EXECUTE FUNCTION public.apply_report_autohide();
+
+-- ── 26: MODERATOR REVIEW QUEUE (admin-only) ───────────────────────────────────
+-- The other half of report→auto-hide: a queue to ACTION hidden content. Both
+-- RPCs are admin-gated (role='admin') and SECURITY DEFINER so they bypass the
+-- owner-scoped RLS on events/reels/echoes/profiles (a moderator isn't the
+-- author). Non-admins get NOT_ADMIN.
+CREATE OR REPLACE FUNCTION public.get_moderation_queue()
+RETURNS TABLE(content_type TEXT, content_id UUID, label TEXT, reports BIGINT, last_reported TIMESTAMPTZ)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'NOT_ADMIN';
+  END IF;
+  RETURN QUERY
+    SELECT 'event'::TEXT, e.id, COALESCE(e.title, 'Gruv'),
+           (SELECT COUNT(*) FROM public.reports r WHERE r.target_type='event' AND r.target_id=e.id),
+           (SELECT MAX(r.created_at) FROM public.reports r WHERE r.target_type='event' AND r.target_id=e.id)
+    FROM public.events e WHERE e.auto_hidden = true
+    UNION ALL
+    SELECT 'reel'::TEXT, rl.id, COALESCE(LEFT(rl.caption, 60), 'Reel'),
+           (SELECT COUNT(*) FROM public.reports r WHERE r.target_type='reel' AND r.target_id=rl.id),
+           (SELECT MAX(r.created_at) FROM public.reports r WHERE r.target_type='reel' AND r.target_id=rl.id)
+    FROM public.reels rl WHERE rl.auto_hidden = true
+    UNION ALL
+    SELECT 'echo'::TEXT, ec.id, COALESCE(LEFT(ec.body, 60), 'Echo'),
+           (SELECT COUNT(*) FROM public.reports r WHERE r.target_type='echo' AND r.target_id=ec.id),
+           (SELECT MAX(r.created_at) FROM public.reports r WHERE r.target_type='echo' AND r.target_id=ec.id)
+    FROM public.echoes ec WHERE ec.auto_hidden = true
+    UNION ALL
+    SELECT 'user'::TEXT, p.id, COALESCE('@' || p.username, 'Viber'),
+           (SELECT COUNT(*) FROM public.reports r WHERE r.target_type='user' AND r.target_id=p.id),
+           (SELECT MAX(r.created_at) FROM public.reports r WHERE r.target_type='user' AND r.target_id=p.id)
+    FROM public.profiles p WHERE p.is_auto_hidden = true
+    ORDER BY 5 DESC NULLS LAST;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.moderate_content(p_type TEXT, p_id UUID, p_action TEXT)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'NOT_ADMIN';
+  END IF;
+  IF p_action = 'restore' THEN          -- false alarm: un-hide
+    IF    p_type='event' THEN UPDATE public.events   SET auto_hidden    = false WHERE id = p_id;
+    ELSIF p_type='reel'  THEN UPDATE public.reels    SET auto_hidden    = false WHERE id = p_id;
+    ELSIF p_type='echo'  THEN UPDATE public.echoes   SET auto_hidden    = false WHERE id = p_id;
+    ELSIF p_type='user'  THEN UPDATE public.profiles SET is_auto_hidden = false WHERE id = p_id;
+    END IF;
+  ELSIF p_action = 'remove' THEN        -- confirmed bad: take down for good
+    IF    p_type='event' THEN UPDATE public.events   SET is_deleted = true WHERE id = p_id;
+    ELSIF p_type='reel'  THEN UPDATE public.reels    SET is_deleted = true WHERE id = p_id;
+    ELSIF p_type='echo'  THEN DELETE FROM public.echoes WHERE id = p_id;
+    ELSIF p_type='user'  THEN UPDATE public.profiles SET is_deleted = true WHERE id = p_id;
+    END IF;
+  END IF;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.get_moderation_queue() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.moderate_content(TEXT, UUID, TEXT) TO authenticated;
