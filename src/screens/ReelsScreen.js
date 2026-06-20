@@ -331,12 +331,12 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
     try {
       if (prev.liked) {
         await supabase.from('reel_comment_likes').delete().eq('comment_id', commentId).eq('user_id', user?.id);
-        await supabase.from('reel_comments').update({ like_count: next.count }).eq('id', commentId);
       } else {
         await supabase.from('reel_comment_likes').upsert({ comment_id: commentId, user_id: user?.id }, { onConflict: 'comment_id,user_id' });
-        await supabase.from('reel_comments').update({ like_count: next.count }).eq('id', commentId);
       }
-    } catch { /* handle error */ }
+    } catch {
+      setCommentLikes(s => ({ ...s, [commentId]: prev }));
+    }
   };
 
   const sendComment = async () => {
@@ -460,7 +460,7 @@ const cs = StyleSheet.create({
 });
 
 // ── Single Reel Item ──────────────────────────────────────────────────────────
-const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onManage, onOpenEvent, onBlocked, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
+const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onManage, onOpenEvent, onBlocked, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
   const videoRef = useRef(null);
   const lastTap = useRef(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
@@ -474,6 +474,7 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const [following, setFollowing] = useState(reel._following || false);
   const [saved, setSaved] = useState(reel._saved || false);
   const [paused, setPaused] = useState(false);
@@ -663,14 +664,15 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
         {isVideo ? (
           <Video
             ref={videoRef}
-            source={{ uri: reel.media_url }}
+            source={shouldLoad ? { uri: reel.media_url } : null}
             style={mediaStyle}
             resizeMode={videoResizeMode}
             isLooping={!playerPref.autoAdvance}
             isMuted={audioMuted}
             rate={playerPref.speed || 1.0}
             shouldPlay={isActive}
-            onReadyForDisplay={() => setVideoLoaded(true)}
+            onReadyForDisplay={() => { setVideoLoaded(true); setVideoError(false); }}
+            onError={() => setVideoError(true)}
             onPlaybackStatusUpdate={s => {
               if (s.durationMillis) {
                 setDuration(s.durationMillis);
@@ -690,6 +692,17 @@ const ReelItem = memo(({ reel, isActive, screenFocused, primary, muted, textColo
           />
         ) : (
           <Image source={{ uri: reel.media_url }} style={mediaStyle} resizeMode={playerPref.aspectRatio === 'contain' ? 'contain' : 'cover'} />
+        )}
+
+        {/* Media failed to load — surface it instead of silent black */}
+        {isVideo && videoError && (
+          <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#000', paddingHorizontal: 32 }]}>
+            <Feather name="video-off" size={40} color="rgba(255,255,255,0.55)" style={{ marginBottom: 12 }} />
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15, marginBottom: 6, textAlign: 'center' }}>Couldn't play this reel</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12.5, textAlign: 'center', lineHeight: 18 }}>
+              The video couldn't be reached. Check your connection and try again.
+            </Text>
+          </View>
         )}
 
         {/* Visual Color Filter Translucent Overlay */}
@@ -1303,6 +1316,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     <ReelItem
       reel={item}
       isActive={index === activeIndex}
+      shouldLoad={Math.abs(index - activeIndex) <= 1}
       screenFocused={screenFocused}
       primary={primary}
       muted={muted}
