@@ -17,6 +17,7 @@ import { PostEventModal } from '../components/PostEventModal';
 import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
 import { supabase } from '../services/supabase';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { SmartImage } from '../components/SmartImage';
 
 const { width } = Dimensions.get('window');
 const CELL = Math.floor((width - 32) / 7);

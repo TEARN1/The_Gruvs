@@ -232,7 +232,7 @@ const sec = StyleSheet.create({
   price: { fontSize: 11, fontWeight: '900' },
 });
 
-export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEvent }) => {
+export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEvent, initialMessage = '' }) => {
   useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
@@ -254,7 +254,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       .catch(() => {});
     return () => { alive = false; };
   }, [user?.id, recipient?.id]);
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState(initialMessage || '');
   // Draft: a half-typed message survives closing the chat; cleared on send.
   const { clearDraft: clearDmDraft } = useDraft(
     user && recipient ? `draft:dm:${recipient.id}:${user.id}` : null,

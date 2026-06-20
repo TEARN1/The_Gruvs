@@ -24,6 +24,7 @@ export const EventGallery = ({ eventId }) => {
   const [gallery, setGallery] = useState([]);
   const [hostMedia, setHostMedia] = useState([]);
   const [previewCount, setPreviewCount] = useState(null);
+  const [inlineMedia, setInlineMedia] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [lightboxItem, setLightboxItem] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -36,6 +37,19 @@ export const EventGallery = ({ eventId }) => {
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const textColor = currentTheme?.text || '#fff';
 
+  const fetchInlineMedia = useCallback(async () => {
+    if (!eventId) return;
+    try {
+      const { data } = await supabase
+        .from('event_gallery')
+        .select('id, url, media_type, like_count')
+        .eq('event_id', eventId)
+        .order('like_count', { ascending: false })
+        .limit(5);
+      if (data) setInlineMedia(data);
+    } catch {}
+  }, [eventId]);
+
   useEffect(() => {
     if (!eventId) return;
     supabase
@@ -43,7 +57,8 @@ export const EventGallery = ({ eventId }) => {
       .select('id', { count: 'exact', head: true })
       .eq('event_id', eventId)
       .then(({ count }) => { if (count != null) setPreviewCount(count); });
-  }, [eventId]);
+    fetchInlineMedia();
+  }, [eventId, fetchInlineMedia]);
 
   useEffect(() => {
     if (isModalVisible) fetchGallery();
@@ -232,7 +247,15 @@ export const EventGallery = ({ eventId }) => {
         toast.show('Photo uploaded but gallery save failed. Contact your admin.', 'info');
       } else {
         toast.show('Photo added to gallery!', 'success');
+        if (user?.id) {
+          import('../services/dataFlow').then(({ GamificationEngine }) => {
+            GamificationEngine.awardCoins(user.id, 'gallery_post').then(newCoins => {
+              if (newCoins > 0) toast.show('+50 Vibe Coins awarded!', 'success');
+            }).catch(() => {});
+          }).catch(() => {});
+        }
         fetchGallery();
+        fetchInlineMedia();
       }
     } catch (e) {
       toast.show('Upload failed: ' + e.message, 'error');
@@ -252,8 +275,8 @@ export const EventGallery = ({ eventId }) => {
         style={styles.triggerRow}
         onPress={() => setIsModalVisible(true)}
       >
-        <Text style={[styles.triggerText, { color: muted }]}>
-          📸 Community Gallery
+        <Text style={[styles.triggerText, { color: muted, fontWeight: '700' }]}>
+          📸 Vibe Archive / Gallery
         </Text>
         <View style={[styles.badge, { backgroundColor: `${primary}22`, borderColor: `${primary}50` }]}>
           <Text style={[styles.badgeText, { color: primary }]}>
@@ -261,6 +284,27 @@ export const EventGallery = ({ eventId }) => {
           </Text>
         </View>
       </TouchableOpacity>
+
+      {inlineMedia.length > 0 && (
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={inlineMedia}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.inlineRow}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => setIsModalVisible(true)}>
+              <Image source={{ uri: item.url }} style={styles.inlineThumb} />
+            </TouchableOpacity>
+          )}
+          ListFooterComponent={
+            <TouchableOpacity style={[styles.inlineThumb, styles.inlineMoreBtn, { borderColor: primary }]} onPress={() => setIsModalVisible(true)}>
+              <Feather name="plus" size={16} color={primary} />
+              <Text style={{ color: primary, fontSize: 9, fontWeight: '800', marginTop: 2 }}>Add Vibe</Text>
+            </TouchableOpacity>
+          }
+        />
+      )}
 
       {/* Gallery Modal */}
       <Modal
@@ -349,6 +393,18 @@ export const EventGallery = ({ eventId }) => {
 
 const styles = StyleSheet.create({
   container: { marginVertical: 6 },
+  inlineRow: { gap: 8, paddingVertical: 8, paddingHorizontal: 2 },
+  inlineThumb: { width: 72, height: 72, borderRadius: 12, marginRight: 8 },
+  inlineMoreBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
   triggerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
