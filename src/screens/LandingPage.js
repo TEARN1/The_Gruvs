@@ -382,6 +382,7 @@ const EventCard = React.memo(({
             <MediaViewer
               eventId={event.id}
               aspectRatio={event.poster_mode ? 3 / 4 : 2}
+              fitToImage={!!event.poster_mode}
               resizeMode={event.poster_mode ? 'contain' : 'cover'}
               media={(() => {
               let m = event.media;

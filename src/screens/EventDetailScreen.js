@@ -658,7 +658,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {matchCard ? (
             <MatchVersus match={matchCard} height={HERO_H} isWeb={Platform.OS === 'web'} />
           ) : (
-            <MediaViewer media={media} containerWidth={undefined} aspectRatio={event.poster_mode ? 3 / 4 : 16 / 9} resizeMode={event.poster_mode ? 'contain' : 'cover'} eventId={event?.id} onAuthRequired={onAuthRequired} />
+            <MediaViewer media={media} containerWidth={undefined} aspectRatio={event.poster_mode ? 3 / 4 : 16 / 9} fitToImage={!!event.poster_mode} resizeMode={event.poster_mode ? 'contain' : 'cover'} eventId={event?.id} onAuthRequired={onAuthRequired} />
           )}
           {!event.poster_mode && <View style={styles.heroScrim} pointerEvents="none" />}
 

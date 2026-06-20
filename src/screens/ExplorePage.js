@@ -159,14 +159,21 @@ const HeroCard = ({ event, primary, onPress }) => {
     return () => anim.stop();
   }, []);
 
-  const getMediaUrl = (item) => {
-    if (!item) return null;
-    const url = typeof item === 'string' ? item : item.url;
+  const getMediaUrl = (e) => {
+    if (!e) return null;
+    let url = null;
+    if (e.media?.[0]) {
+      url = typeof e.media[0] === 'string' ? e.media[0] : e.media[0].url;
+    }
+    if (!url && e.media_urls?.[0]) url = e.media_urls[0];
+    if (!url && e.cover_url) url = e.cover_url;
+    if (!url && e.cover_image) url = e.cover_image;
+    if (!url && e.image_url) url = e.image_url;
     if (!url) return null;
     return url.includes('?') ? `${url}&w=1200&q=85` : `${url}?w=1200&q=85`;
   };
 
-  const thumb = getMediaUrl(event.media?.[0]);
+  const thumb = getMediaUrl(event);
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
 
   const isWeb = Platform.OS === 'web';
@@ -189,7 +196,7 @@ const HeroCard = ({ event, primary, onPress }) => {
       {...(isWeb ? { className: 'hero-card' } : {})}
     >
       <Animated.Image
-        source={{ uri: typeof thumb === 'string' ? thumb : thumb }}
+        source={thumb ? { uri: thumb } : null}
         style={[hero.img, { transform: [{ scale: pulse }] }]}
         resizeMode="cover"
       />
@@ -410,6 +417,8 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
     || (typeof event.media?.[0] === 'string' ? event.media[0] : null)
     || event.cover_url
     || (Array.isArray(event.media_urls) ? event.media_urls[0] : null)
+    || event.cover_image
+    || event.image_url
     || null;
     const isWeb = Platform.OS === 'web';
 
@@ -428,7 +437,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
           accessibilityRole="button"
           accessibilityLabel={`Poster event: ${event.title}`}
         >
-          <Image source={{ uri: thumb }} style={et.img} resizeMode="contain" />
+          <SmartImage source={thumb} style={et.img} resizeMode="cover" />
           {starts && (
             <View style={[et.startPill, { position: 'absolute', top: 10, left: 10, marginBottom: 0, backgroundColor: starts.live ? '#ef4444' : starts.soon ? `${primary}E0` : 'rgba(0,0,0,0.6)' }]}>
               {starts.live ? <View style={et.liveDot} /> : <Feather name="clock" size={9} color="#fff" />}
@@ -457,7 +466,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
         accessibilityRole="button"
         accessibilityLabel={`Event: ${event.title}, ${event.vibe_count || event.going || 0} vibing`}
       >
-        <Image source={{ uri: typeof thumb === 'string' ? thumb : thumb }} style={et.img} />
+        <SmartImage source={thumb} style={et.img} resizeMode="cover" />
         <View style={[et.overlay, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
         <View style={[et.catBadge, { backgroundColor: catColor, ...(isWeb ? { boxShadow: `0 0 10px ${catColor}80` } : {}) }]}>
           <Text style={et.catText}>{CATEGORY_CONFIG[event.category]?.icon || '🎭'}</Text>

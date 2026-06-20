@@ -60,7 +60,7 @@ const downloadImage = async (url) => {
 };
 
 // ── Single media item ────────────────────────────────────────────────────────
-const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover' }) => {
+const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover', onNaturalSize }) => {
   const [loadFailed, setLoadFailed] = useState(false);
   const mediaStyle = { width: width || '100%', height: height || '100%' };
   const source = loadFailed
@@ -86,6 +86,10 @@ const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover' }) => {
       source={source}
       style={mediaStyle}
       resizeMode={resizeMode}
+      onLoad={(e) => {
+        const w = e?.source?.width, h = e?.source?.height;
+        if (w > 0 && h > 0) onNaturalSize?.(w / h);
+      }}
       onError={() => setLoadFailed(true)}
     />
   );
@@ -112,11 +116,16 @@ const HeartBurst = ({ onComplete }) => {
 };
 
 // ── Main MediaViewer ─────────────────────────────────────────────────────────
-export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', eventId = null, onAuthRequired }) => {
+export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', fitToImage = false, eventId = null, onAuthRequired }) => {
   const { user } = useAuth();
   const [measuredWidth, setMeasuredWidth] = useState(containerWidth || SCREEN_WIDTH);
+  // fitToImage: a poster/flyer should fill the frame with no letterbox bars and
+  // no cropping — so the frame adopts the image's own aspect ratio once known.
+  const [naturalRatio, setNaturalRatio] = useState(null);
+  const effectiveAspect = fitToImage && naturalRatio ? naturalRatio : aspectRatio;
+  const effectiveResize = fitToImage ? 'cover' : resizeMode;
   const MEDIA_WIDTH = measuredWidth;
-  const MEDIA_HEIGHT = Math.round(MEDIA_WIDTH / aspectRatio);
+  const MEDIA_HEIGHT = Math.round(MEDIA_WIDTH / effectiveAspect);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [liked, toggleLike] = useLikedImages(media, user?.id, eventId);
   const [heartBursts, setHeartBursts] = useState({});
@@ -171,7 +180,14 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
 
     return (
       <View style={{ width: MEDIA_WIDTH, height: MEDIA_HEIGHT }}>
-        <MediaItem item={item} isActive={isActive} width={MEDIA_WIDTH} height={MEDIA_HEIGHT} resizeMode={resizeMode} />
+        <MediaItem
+          item={item}
+          isActive={isActive}
+          width={MEDIA_WIDTH}
+          height={MEDIA_HEIGHT}
+          resizeMode={effectiveResize}
+          onNaturalSize={fitToImage && index === 0 ? setNaturalRatio : undefined}
+        />
 
         {/* Video label */}
         {item.type === 'video' && (

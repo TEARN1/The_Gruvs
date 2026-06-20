@@ -20,6 +20,8 @@ export const SmartImage = ({
   fallbackIcon = 'image',
   fallbackColor = 'rgba(255,255,255,0.05)',
   contentFit,
+  onLoad,
+  onError,
 }) => {
   const [errored, setErrored] = useState(false);
 
@@ -58,7 +60,8 @@ export const SmartImage = ({
       placeholder={placeholder}
       transition={180}
       cachePolicy="disk"
-      onError={() => setErrored(true)}
+      onLoad={onLoad}
+      onError={(e) => { setErrored(true); onError?.(e); }}
       recyclingKey={cacheKey}
     />
   );
