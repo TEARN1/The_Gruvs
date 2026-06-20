@@ -2369,8 +2369,9 @@ export const MessageManager = {
     if (!userId) return [];
     const cacheKey = `convos:${userId}`;
     const stale = cache.getStale(cacheKey);
+    const orFilter = `sender_id.eq.${userId},recipient_id.eq.${userId}`;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .select(`
           id, sender_id, recipient_id, body, created_at, read_at,
@@ -2378,10 +2379,11 @@ export const MessageManager = {
           sender:profiles!messages_sender_id_fkey(id, username, avatar_url, is_online),
           recipient:profiles!messages_recipient_id_fkey(id, username, avatar_url, is_online)
         `)
-        .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+        .or(orFilter)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(500);
+      if (error) throw error;
 
       const rows = data || [];
       // Deduplicate — keep only latest message per conversation partner
@@ -2399,7 +2401,41 @@ export const MessageManager = {
       }
       cache.set(cacheKey, convos, 30000);
       return convos;
-    } catch { return stale || []; }
+    } catch {
+      // Resilient fallback: the rich select above throws if the FK constraints
+      // aren't named messages_*_id_fkey or if is_request/deleted_at aren't on the
+      // live table yet — which would make the WHOLE chats list vanish. Re-fetch
+      // with only guaranteed columns and join partner profiles separately.
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('id, sender_id, recipient_id, body, created_at')
+          .or(orFilter)
+          .order('created_at', { ascending: false })
+          .limit(500);
+        if (error) throw error;
+        const rows = (data || []).filter(m => !m.deleted_at); // deleted_at may be absent → kept
+        const seen = {};
+        const convos = [];
+        const partnerIds = [];
+        for (const msg of rows) {
+          const partnerId = msg.sender_id === userId ? msg.recipient_id : msg.sender_id;
+          if (!partnerId || seen[partnerId]) continue;
+          seen[partnerId] = true;
+          partnerIds.push(partnerId);
+          convos.push({ ...msg, partnerId });
+        }
+        if (partnerIds.length) {
+          const { data: profs } = await supabase
+            .from('profiles').select('id, username, avatar_url, is_online').in('id', partnerIds);
+          const byId = Object.fromEntries((profs || []).map(p => [p.id, p]));
+          for (const c of convos) c.partner = byId[c.partnerId] || null;
+        }
+        const result = convos.filter(c => c.partner);
+        cache.set(cacheKey, result, 30000);
+        return result;
+      } catch { return stale || []; }
+    }
   },
 
   // Count unread DMs for the nav badge
@@ -2594,14 +2630,29 @@ export const MessageManager = {
   async fetchThread(userA, userB, limit = 100) {
     const cacheKey = `thread:${[userA, userB].sort().join('_')}`;
     const stale = cache.getStale(cacheKey);
+    const orFilter = `and(sender_id.eq.${userA},recipient_id.eq.${userB}),and(sender_id.eq.${userB},recipient_id.eq.${userA})`;
     try {
-      const { data } = await supabase
+      // Tier 1: with the deleted_at filter.
+      let { data, error } = await supabase
         .from('messages')
         .select('*')
-        .or(`and(sender_id.eq.${userA},recipient_id.eq.${userB}),and(sender_id.eq.${userB},recipient_id.eq.${userA})`)
+        .or(orFilter)
         .is('deleted_at', null)
         .order('created_at', { ascending: true })
         .limit(limit);
+      // Tier 2: a DB without the deleted_at column throws above — retry without
+      // that filter and drop soft-deleted rows client-side, so the thread still
+      // loads instead of vanishing.
+      if (error) {
+        ({ data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .or(orFilter)
+          .order('created_at', { ascending: true })
+          .limit(limit));
+        if (error) throw error;
+        data = (data || []).filter(m => !m.deleted_at);
+      }
       const result = data || [];
       cache.set(cacheKey, result, 20000);
       return result;
