@@ -1194,3 +1194,35 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION public.get_moderation_queue() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.moderate_content(TEXT, UUID, TEXT) TO authenticated;
+
+-- ── 27: enforce auto-hide via RLS (all surfaces, server-side, bypass-proof) ────
+-- RESTRICTIVE SELECT policies AND with the existing permissive ones, so auto-
+-- hidden content becomes invisible to everyone EXCEPT its owner (so they know /
+-- can appeal) and admins — with NO client query changes needed and no way to
+-- bypass via the API. Non-hidden rows are unaffected. Guarded for column/table
+-- existence so build order can't break it (the part_4 idempotency re-run wires
+-- tables like reels that are created later).
+DO $$
+DECLARE adm TEXT := '(EXISTS (SELECT 1 FROM public.profiles a WHERE a.id = auth.uid() AND a.role = ''admin''))';
+BEGIN
+  IF to_regclass('public.events') IS NOT NULL
+     AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='events' AND column_name='auto_hidden') THEN
+    DROP POLICY IF EXISTS "events_hide_autohidden" ON public.events;
+    EXECUTE 'CREATE POLICY "events_hide_autohidden" ON public.events AS RESTRICTIVE FOR SELECT USING (COALESCE(auto_hidden,false)=false OR author_id = auth.uid() OR ' || adm || ')';
+  END IF;
+  IF to_regclass('public.reels') IS NOT NULL
+     AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='reels' AND column_name='auto_hidden') THEN
+    DROP POLICY IF EXISTS "reels_hide_autohidden" ON public.reels;
+    EXECUTE 'CREATE POLICY "reels_hide_autohidden" ON public.reels AS RESTRICTIVE FOR SELECT USING (COALESCE(auto_hidden,false)=false OR user_id = auth.uid() OR ' || adm || ')';
+  END IF;
+  IF to_regclass('public.echoes') IS NOT NULL
+     AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='echoes' AND column_name='auto_hidden') THEN
+    DROP POLICY IF EXISTS "echoes_hide_autohidden" ON public.echoes;
+    EXECUTE 'CREATE POLICY "echoes_hide_autohidden" ON public.echoes AS RESTRICTIVE FOR SELECT USING (COALESCE(auto_hidden,false)=false OR user_id = auth.uid() OR ' || adm || ')';
+  END IF;
+  IF to_regclass('public.profiles') IS NOT NULL
+     AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='is_auto_hidden') THEN
+    DROP POLICY IF EXISTS "profiles_hide_autohidden" ON public.profiles;
+    EXECUTE 'CREATE POLICY "profiles_hide_autohidden" ON public.profiles AS RESTRICTIVE FOR SELECT USING (COALESCE(is_auto_hidden,false)=false OR id = auth.uid() OR ' || adm || ')';
+  END IF;
+END $$;
