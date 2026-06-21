@@ -14,34 +14,18 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
 import { adSlotActive } from '../constants/adConfig';
+import { getEventPhaseKey, PHASE_META } from '../utils/eventPhase';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { supabase } from '../services/supabase';
 
-// ── Phase definitions (styling only) ──────────────────────────────────────────
-// No hardcoded offers: the AdEngine is LIVE — it only surfaces real campaigns
-// that actual businesses have booked against this event phase. No real campaign
-// → the section renders nothing.
-const PHASE_CONFIG = {
-  pre_event:    { label: 'BEFORE THE GRUV', icon: 'clock', color: "#8b5cf6" },
-  during_event: { label: 'IN THE GRUV',     icon: 'zap',   color: "#00f2ff" },
-  post_event:   { label: 'POST GRUV',       icon: 'star',  color: "#10b981" },
-};
-
-// ── Determine phase from event date/time ──────────────────────────────────────
-const getPhase = (eventDateStr) => {
-  if (!eventDateStr) return 'pre_event';
-  const now       = new Date();
-  const eventDate = new Date(eventDateStr);
-  const diffHours = (eventDate - now) / (1000 * 60 * 60);
-  if (diffHours > 3)   return 'pre_event';
-  if (diffHours > -6)  return 'during_event';
-  return 'post_event';
-};
+// Phase + styling come from the shared event-phase engine (src/utils/eventPhase).
+// The AdEngine is LIVE — it only surfaces real campaigns that businesses have
+// booked against this event phase; no real campaign → the section renders nothing.
 
 // ── Real Campaign Ad Tile (from Supabase) ─────────────────────────────────────
 const CampaignAdTile = ({ campaign, phase, primary, textColor, muted, onNavigate }) => {
-  const phaseColor = PHASE_CONFIG[phase]?.color || primary;
+  const phaseColor = PHASE_META[phase]?.color || primary;
   const handleCtaPress = useCallback(async () => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
     // Record click
@@ -84,7 +68,7 @@ export const EventContextualAds = ({ event, onNavigate, slot = 'eventDetail' }) 
 
   useEffect(() => {
     if (identityMode === 'celebrity' || !adSlotActive(slot)) return;
-    const p = getPhase(event?.date_time || event?.date);
+    const p = getEventPhaseKey(event);
     setPhase(p);
     fetchCampaigns(p);
   }, [event?.id]);
@@ -113,7 +97,7 @@ export const EventContextualAds = ({ event, onNavigate, slot = 'eventDetail' }) 
   // Celebrity mode = no ads; also respect the central ad-slot control (checked after hooks)
   if (identityMode === 'celebrity' || !adSlotActive(slot)) return null;
 
-  const phaseConfig = PHASE_CONFIG[phase];
+  const phaseConfig = PHASE_META[phase];
   // LIVE-ONLY: nothing to show until a real business books a campaign for this phase.
   if (!phaseConfig || campaigns.length === 0) return null;
 
