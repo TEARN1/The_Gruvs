@@ -21,6 +21,8 @@ import { useIdentity } from '../context/IdentityContext';
 import { SafeSection } from '../components/SafeSection';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
+import { filterByViewerAge } from '../utils/contentAgeRating';
+import { loadViewerAge, viewerAgeSync } from '../utils/viewerAge';
 import { SecurityService } from '../services/securityService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ShakeDetector, RichHaptics } from '../services/smartphoneFeatures';
@@ -1099,7 +1101,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       const { events: fetchedEvents, hasMore: moreAvailable } = await FeedManager.fetchPage(fetchOpts);
       // Logged-out visitors get the "happening soon + buzzing" ordering for an
       // exciting first impression; signed-in users keep their personalized feed.
-      const newEvents = user?.id ? fetchedEvents : orderForGuest(fetchedEvents);
+      const orderedEvents = user?.id ? fetchedEvents : orderForGuest(fetchedEvents);
+      // Silently hide mature listings from under-age viewers (content age-rating).
+      const newEvents = filterByViewerAge(orderedEvents, viewerAgeSync(), e => `${e.title || ''} ${e.description || ''}`);
 
       if (isRefreshing) {
         // Keep just-posted events that the fresh fetch hasn't caught up to yet,
@@ -1294,6 +1298,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       })
       .catch(() => {});
   }, [user?.id, eventIdsKey]);
+
+  // Resolve the viewer's age once so the feed can hide mature listings from minors.
+  useEffect(() => { loadViewerAge(user?.id).then(() => loadData(true)).catch(() => {}); }, [user?.id]);
 
   // Real-time: new events appear instantly + live vibe counts update
   useEffect(() => {

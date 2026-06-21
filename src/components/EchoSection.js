@@ -9,6 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import { useDraft } from '../hooks/useDraft';
 import { supabase } from '../services/supabase';
 import { log } from '../utils/log';
+import { filterByViewerAge } from '../utils/contentAgeRating';
+import { loadViewerAge, viewerAgeSync } from '../utils/viewerAge';
 import { transform } from '../utils/writingStyles';
 import { thumb } from '../utils/storageThumb';
 import { resilient } from '../utils/resilience';
@@ -159,11 +161,11 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
           .eq('event_id', eventId)
           .order(sort === 'top' ? 'likes' : 'created_at', { ascending: false })
           .limit(30);
-        setEchoes(fallback ? fallback.map(e => ({ ...e, profiles: null })) : []);
+        setEchoes(fallback ? filterByViewerAge(fallback.map(e => ({ ...e, profiles: null })), viewerAgeSync()) : []);
         log.error('EchoSection:fetch', error);
         return;
       }
-      setEchoes(data || []);
+      setEchoes(filterByViewerAge(data || [], viewerAgeSync()));
       // Hydrate which of these I already liked — otherwise hearts reset on
       // every open and "my like disappeared" reports keep coming in.
       if (user && data?.length) {
@@ -181,6 +183,8 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
       setEchoes([]);
     }
   }, [eventId, sort, user]);
+
+  useEffect(() => { loadViewerAge(user?.id).then(() => fetchEchoes()).catch(() => {}); }, [user?.id]);
 
   useEffect(() => {
     fetchEchoes();

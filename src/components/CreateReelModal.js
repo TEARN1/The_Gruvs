@@ -13,6 +13,7 @@ import { useToast } from './ToastNotification';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { uploadToStorage } from '../services/storageService';
+import { rateContent } from '../utils/contentAgeRating';
 import { useBackClose } from '../hooks/useBackClose';
 import { useDraft } from '../hooks/useDraft';
 
@@ -235,11 +236,18 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
         return data;
       };
 
+      // Auto age-rating: silently set the floor so younger users won't be served
+      // mature reels (no report, no message to the poster). Optional columns, so
+      // the final tier still posts even if min_age isn't migrated yet.
+      const rating = rateContent(caption.trim());
+      const ratingCols = { min_age: rating.minAge, ...(rating.escalate ? { auto_flagged: true } : {}) };
+
       const saved = await resilient(
         [
-          insertRow({ ...baseRow, visibility, metadata }), // full — needs both new columns
-          insertRow({ ...baseRow, metadata }),             // drop visibility
-          insertRow(baseRow),                              // core only — always present
+          insertRow({ ...baseRow, visibility, metadata, ...ratingCols }), // full
+          insertRow({ ...baseRow, metadata, ...ratingCols }),             // drop visibility
+          insertRow({ ...baseRow, ...ratingCols }),                       // drop metadata
+          insertRow(baseRow),                                             // core only — always present
         ],
         { attemptsPerTier: 2, baseMs: 400, label: 'CreateReelModal.insert', fallbackValue: null }
       );

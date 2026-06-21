@@ -24,6 +24,7 @@ import { useBackClose } from '../hooks/useBackClose';
 import { money } from '../constants/currencies';
 import { EVENT_TAGS } from '../constants/EventTags';
 import { COMMUNITY_TAG_GROUPS, GENDER_OPTIONS, LANGUAGE_OPTIONS, describeAudience, hasAudienceTargeting } from '../constants/AudienceTargeting';
+import { rateContent } from '../utils/contentAgeRating';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -406,6 +407,13 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (competitionId) payload.competition_id = competitionId;
     if (ageMin > 0) payload.age_restriction = ageMin;
     if (ageMax > 0) payload.age_max = ageMax;
+
+    // Auto age-rating from the listing text (silently raises the viewing floor;
+    // the host's own age_restriction can only push it higher). Optional column —
+    // the Tier-3 insert omits it, so the event still posts if it isn't migrated.
+    const _rating = rateContent(`${title} ${description}`, { declaredAgeRestriction: ageMin });
+    payload.min_age = _rating.minAge;
+    if (_rating.escalate) payload.auto_flagged = true;
 
     // Audience targeting — who exactly is this event for? (stored as JSONB)
     const csv = (s) => s.split(',').map(v => v.trim()).filter(Boolean);

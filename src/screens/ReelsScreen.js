@@ -31,6 +31,8 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useBackClose } from '../hooks/useBackClose';
 import { GlitterBurst } from '../components/GlitterBurst';
 import { audioState } from '../utils/audioState';
+import { filterByViewerAge } from '../utils/contentAgeRating';
+import { loadViewerAge, viewerAgeSync } from '../utils/viewerAge';
 
 const IS_WEB = Platform.OS === 'web';
 // Mobile fallback (used outside component for getItemLayout)
@@ -1200,11 +1202,13 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
     try {
       // Delegate to ReelsRepository (implements cache, retries, and offline mock fallbacks)
-      const data = await ReelsRepository.getReelsFeed({
+      const rawData = await ReelsRepository.getReelsFeed({
         tab,
         hashtag: hashtagFilter,
         userId: user?.id
       });
+      // Silently drop mature reels for under-age (or unknown-age) viewers.
+      const data = filterByViewerAge(rawData, viewerAgeSync(), r => r.caption || '');
 
       setReels(data);
       setError(null);
@@ -1229,6 +1233,8 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   }, [tab, user, hashtagFilter, initialReelId, onInitialReelHandled, toast]);
 
   useEffect(() => { loadReels(); }, [loadReels]);
+  // Resolve viewer age, then reload so age-allowed reels appear (mature ones stay hidden for minors).
+  useEffect(() => { loadViewerAge(user?.id).then(() => loadReels(true)).catch(() => {}); }, [user?.id]);
 
   // Real-time: new reels appear at the top of the feed without manual refresh
   useEffect(() => {
