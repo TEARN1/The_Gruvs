@@ -34,6 +34,7 @@ import { HackathonLeaderboard } from '../components/HackathonLeaderboard';
 
 // ── Static imports — avoids "unknown module" chunk failures on web ──
 import { EchoSection }            from '../components/EchoSection';
+import { ContinueTheNightCard }   from '../components/ContinueTheNightCard';
 import { RatingSection }          from '../components/RatingSection';
 import { EventGallery }           from '../components/EventGallery';
 import { WaitlistButton }         from '../components/WaitlistButton';
@@ -1329,6 +1330,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 muted={textMuted}
                 surface={surface}
               />
+            </SafeSection>
+          )}
+
+          <View style={styles.sectionDivider} />
+          {event?.id && (
+            <SafeSection label="Continue the Night" primary={primary}>
+              <ContinueTheNightCard event={event} checkedIn={checkedIn} onAuthRequired={onAuthRequired} />
             </SafeSection>
           )}
 
