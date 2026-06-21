@@ -911,6 +911,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
   const followedIdsRef = useRef([]); // stable ref so fetchPage can use it without re-render
   const pageRef = useRef(0);
+  // Just-posted events: a fresh feed fetch (read-replica lag / ranking) can omit
+  // an event you just created, so a refresh would clobber the optimistic prepend
+  // and the post seems to "disappear / take long". Hold them briefly and merge
+  // them back into every refresh until the network naturally returns them.
+  const recentPostsRef = useRef([]); // [{ event, ts }]
+  const RECENT_POST_TTL = 120000; // 2 min — long enough to outlast replica lag
+  const getRecentPosts = () => {
+    const cutoff = Date.now() - RECENT_POST_TTL;
+    recentPostsRef.current = recentPostsRef.current.filter(p => p.ts >= cutoff);
+    return recentPostsRef.current.map(p => p.event);
+  };
   const [followingSet, setFollowingSet] = useState(new Set()); // reactive mirror for follow buttons
   const [dateFilter, setDateFilter] = useState('any');
   const [dateRange, setDateRange] = useState(null);
@@ -1091,7 +1102,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       const newEvents = user?.id ? fetchedEvents : orderForGuest(fetchedEvents);
 
       if (isRefreshing) {
-        setEvents(newEvents);
+        // Keep just-posted events that the fresh fetch hasn't caught up to yet,
+        // so a new post never vanishes on the refresh that follows it.
+        const recent = getRecentPosts();
+        if (recent.length) {
+          const fetchedIds = new Set(newEvents.map(e => e.id));
+          const missing = recent.filter(e => !fetchedIds.has(e.id));
+          setEvents(missing.length ? [...missing, ...newEvents] : newEvents);
+        } else {
+          setEvents(newEvents);
+        }
       } else {
         setEvents(prev => {
           const existingIds = new Set(prev.map(e => e.id));
@@ -2089,7 +2109,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <PostEventModal
             visible={postModalVisible}
             onClose={() => setPostModalVisible(false)}
-            onCreated={(ev) => { FeedManager.invalidate(); setEvents(prev => [ev, ...prev]); }}
+            onCreated={(ev) => {
+              if (ev?.id) {
+                FeedManager.invalidate();
+                recentPostsRef.current = [{ event: ev, ts: Date.now() }, ...recentPostsRef.current.filter(p => p.event.id !== ev.id)];
+                setEvents(prev => (prev.some(e => e.id === ev.id) ? prev : [ev, ...prev]));
+              }
+            }}
             onPostSuccess={() => { FeedManager.invalidate(); loadData(true); }}
           />
         </SafeSection>

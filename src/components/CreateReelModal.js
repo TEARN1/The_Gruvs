@@ -18,6 +18,18 @@ import { useDraft } from '../hooks/useDraft';
 
 const SW = Dimensions.get('window').width;
 
+// Robustly decide if a picked asset is a video. expo-image-picker often returns
+// an asset with NO `type`/`mimeType` (web + some Android builds), so we also
+// trust `duration` (videos always have it, images never do) and the extension.
+// Getting this wrong renders a video through <Image> → a black frame.
+const detectVideo = (a) => {
+  if (!a) return false;
+  if (a.type === 'video' || (typeof a.type === 'string' && a.type.startsWith('video'))) return true;
+  if (a.mimeType?.startsWith('video/')) return true;
+  if (a.duration != null && a.duration > 0) return true;
+  return /\.(mp4|mov|m4v|webm|avi|mkv|3gp)(\?|$)/i.test(a.fileName || a.uri || '');
+};
+
 const SUGGESTED_TAGS = ['#nightlife', '#gruv', '#vibes', '#capetown', '#joburg', '#durban', '#party', '#music', '#djset', '#festival'];
 
 const FILTERS = [
@@ -158,7 +170,9 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     const assetDuration = picked.duration ? Math.floor(picked.duration / 1000) : 30;
     setTrimEnd(Math.min(assetDuration, 30));
 
-    setAsset(picked);
+    // Decide video-ness once, here, and carry it on the asset so the preview
+    // and the upload can never disagree (the cause of black reels).
+    setAsset({ ...picked, __isVideo: detectVideo(picked) });
     setStep('details');
   }, []);
 
@@ -188,7 +202,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     }
     setUploading(true);
     try {
-      const isVideo = asset.type === 'video' || asset.mimeType?.startsWith('video/');
+      const isVideo = asset.__isVideo ?? detectVideo(asset);
       const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
       const storagePath = `${user.id}/reel_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'reels', storagePath, { mimeType: asset.mimeType });
@@ -263,7 +277,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
   };
 
   const creatorFilterColor = getFilterColor(filter);
-  const isVideoAsset = asset?.type === 'video' || asset?.mimeType?.startsWith('video/');
+  const isVideoAsset = asset?.__isVideo ?? detectVideo(asset);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
