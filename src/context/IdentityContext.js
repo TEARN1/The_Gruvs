@@ -31,11 +31,13 @@ const MODES = {
     description: 'You appear as an alias. Location fuzzed by 500m.',
   },
   celebrity: {
+    // Internal key stays 'celebrity' (stored in profiles.identity_mode + checked
+    // app-wide) — only the user-facing label changed to the universal "Incognito".
     key: 'celebrity',
-    label: 'Celebrity',
-    icon: 'star',
+    label: 'Incognito',
+    icon: 'shield',
     color: '#f59e0b',
-    description: 'Read-only. You see everyone but stay invisible unless you Drop a Beacon.',
+    description: 'Hidden by default — you see everyone but stay invisible unless you Drop a Beacon.',
   },
 };
 

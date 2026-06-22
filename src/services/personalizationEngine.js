@@ -638,14 +638,15 @@ const CURRENT_YEAR = new Date().getFullYear();
 /**
  * routeTargetedEvent
  *
- * When a host sets explicit audience criteria (events.audience), this delivers
- * the event to *exactly* the people who match — a wedding to the clan, a
+ * When a host sets explicit audience criteria (events.audience), this surfaces
+ * the event PROMINENTLY to the people who match — a wedding to the clan, a
  * deaf-community workshop to deaf users, a recruiter's gig to job seekers, etc.
  *
- * Unlike routeRecurringEvent (soft behavioral scoring), this applies HARD
- * filters: every match_mode rule must pass. We push the matched users into the
- * same event_traffic_routes table with a high route_score so the feed,
- * calendar and notifications all light up for them.
+ * ⚠️ SAFETY — this PRIORITIZES, it does NOT hide the Gruv. The "hard match"
+ * (every match_mode rule must pass) only decides who earns a high-score ROUTE
+ * (a boost in feed/calendar/notifications) — NEVER who is allowed to SEE the
+ * event. Public Gruvs stay visible and open to everyone (welcomes, never
+ * excludes — see project safety rules). Do not turn this into a visibility filter.
  *
  * Only matches attributes the user voluntarily put on their own profile.
  *

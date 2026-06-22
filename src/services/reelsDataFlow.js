@@ -6,7 +6,8 @@
  * 3. Observer Pattern (ReelsObserverRegistry): Pub-Sub mechanism for syncing likes, comments, edits, and follows.
  * 4. State Machine Pattern (ReelPlayerStateMachine): Context-driven state engine managing playback modes and viewer settings.
  * 5. Batch Queue Buffer Pattern (ViewBatchQueue): Buffers view count updates to flush in chunks, optimizing database performance.
- * 6. Cache/Mock Fallback Pattern (OfflineMockFallback): Offline-ready mock generator supplying 30 high-fidelity test reels.
+ * 6. Resilient fetch: real data only — on failure it re-throws so the screen shows
+ *    its error/retry state. Reels are NEVER fabricated (no mock/sample content).
  */
 
 import { supabase } from './supabase';

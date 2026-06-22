@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Platform } from 'react-native';
 import { supabase } from '../services/supabase';
 import { UserManager, clearAllCache, PresenceManager } from '../services/dataFlow';
 import { SecurityService } from '../services/securityService';
