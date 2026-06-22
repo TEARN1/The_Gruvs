@@ -32,9 +32,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -49,7 +49,7 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL:            ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY:       ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: 19.1.0
           token: ${{ secrets.EXPO_TOKEN }}

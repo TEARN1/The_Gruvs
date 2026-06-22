@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -66,7 +66,7 @@ jobs:
 
       - name: Upload E2E report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: playwright-report/
@@ -101,7 +101,7 @@ jobs:
       PGDATABASE: gruvs_preflight
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install psql client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
@@ -137,10 +137,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v2
         with:
           version: 'latest'
 
@@ -164,7 +164,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Ruby (for Fastlane)
         uses: ruby/setup-ruby@v1
@@ -173,7 +173,7 @@ jobs:
           bundler-cache: true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -182,7 +182,7 @@ jobs:
         run: npm ci
 
       - name: Set up Expo Credentials & CLI
-        uses: expo/expo-github-action@v8
+        uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
