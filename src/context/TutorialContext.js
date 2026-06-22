@@ -663,6 +663,39 @@ export const TUTORIALS = [
     ],
   },
 
+  // ── Social & Connections: Crossed Paths ─────────────────────────────────────
+  {
+    id: 'crossed_paths',
+    title: 'Crossed Paths',
+    category: 'Social & Connections',
+    icon: 'shuffle',
+    color: '#8b5cf6',
+    duration: '2 min',
+    steps: [
+      {
+        icon: 'shuffle',
+        title: 'People You Keep Crossing',
+        body: "Crossed Paths shows the Vibers you keep Touching Down alongside — the people who turn up at the same Gruvs you do. Open it from the Touch Down button (or your Vibe Card) after you've checked in somewhere.",
+        tip: "It's built from real Touch Downs, not GPS tracking — you only cross someone when you've both genuinely shown up to the same Gruvs.",
+        visual: 'crossed_paths',
+      },
+      {
+        icon: 'trending-up',
+        title: 'Ranked Most to Least',
+        body: "Your crossings are ranked from the Viber you've run into the most down to the least — with how many Gruvs you've shared and the Spots where it happened. The top of the list is your real-world crowd.",
+        tip: "Cross paths with someone often? That's a natural person to add to your Crew.",
+        visual: 'crossed_ranked',
+      },
+      {
+        icon: 'shield',
+        title: 'Private & Safe',
+        body: "Crossed Paths shows how OFTEN you've crossed someone — never their exact movements or a timeline of where they've been. Ghost-mode Vibers never appear, and anyone you block is removed completely.",
+        tip: "Prefer to stay invisible? Switch to Ghost in your identity settings and you won't show up in anyone's Crossed Paths.",
+        visual: 'crossed_privacy',
+      },
+    ],
+  },
+
   // ── Journey ───────────────────────────────────────────────────────────────────
   {
     id: 'journey',

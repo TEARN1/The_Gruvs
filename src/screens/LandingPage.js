@@ -823,7 +823,16 @@ const guestExcitementScore = (e) => {
   let score = 0;
   if (when != null) {
     const days = (when - now) / 86400000;
-    if (days < -1) return -1e9;            // already past — sink it
+    // End-aware "is it over?": drop a Gruv once it has actually ENDED — use the
+    // explicit end time if the host set one, else assume a generous ~8h night —
+    // so a just-finished event clears off the live feed instead of lingering all
+    // day. (end_date/end_time aren't always fetched/migrated, so this degrades to
+    // the 8h assumption rather than depending on those columns.)
+    const endStr = e.end_date
+      ? `${e.end_date}T${e.end_time || '23:59'}`
+      : (e.end_time ? `${e.event_date}T${e.end_time}` : null);
+    const endMs = endStr ? new Date(endStr).getTime() : (when + 8 * 3600000);
+    if (!isNaN(endMs) && now > endMs + 3600000) return -1e9; // ended >1h ago — sink it
     if (days <= 0.5) score += 600;         // happening today/tonight
     else if (days <= 3) score += 450;      // this weekend / very soon
     else if (days <= 7) score += 300;      // this week

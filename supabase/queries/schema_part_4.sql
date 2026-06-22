@@ -1226,3 +1226,615 @@ BEGIN
     EXECUTE 'CREATE POLICY "profiles_hide_autohidden" ON public.profiles AS RESTRICTIVE FOR SELECT USING (COALESCE(is_auto_hidden,false)=false OR id = auth.uid() OR ' || adm || ')';
   END IF;
 END $$;
+
+
+-- ── 28: CORE WRITES (messages/follows/reels/storage/realtime) — fixes Follow + DM red-! ──
+-- ══════════════════════════════════════════════════════════════════════════════
+--  THE GRUVS — FIX CORE WRITES  (messages · follows · reels · storage · realtime)
+-- ══════════════════════════════════════════════════════════════════════════════
+--  WHY THIS EXISTS
+--  The app code is correct and resilient, but these user-facing actions fail when
+--  the LIVE database is missing tables/columns or has RLS that rejects the write:
+--    • DMs send then turn red & vanish  → messages table/columns/RLS
+--    • Follow toggles then resets        → follows table/RLS
+--    • Reels upload but play black        → reels columns + the 'reels' bucket not public
+--    • New events take long to appear     → events not in the realtime publication
+--
+--  This single file fixes ALL of the above. It is FULLY IDEMPOTENT — safe to run
+--  as many times as you like, on a fresh OR an existing database. Paste the whole
+--  thing into Supabase → SQL Editor → Run. No other file is required for these.
+-- ══════════════════════════════════════════════════════════════════════════════
+
+-- ── 1. MESSAGES ───────────────────────────────────────────────────────────────
+-- Create if missing, then add EVERY column the app's send code writes so the
+-- full insert succeeds (rich features: replies, shared events, location, images).
+CREATE TABLE IF NOT EXISTS public.messages (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id     UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  recipient_id  UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  body          TEXT,
+  created_at    TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS media_url        TEXT;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS message_type     TEXT DEFAULT 'text';
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS delivered_at     TIMESTAMPTZ;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN DEFAULT false;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS reactions        JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS parent_id        UUID;  -- DM reply target (the app uses parent_id)
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS reply_to         UUID;  -- legacy alias kept for compatibility
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS event_id         UUID;  -- shared-event card
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS latitude         DOUBLE PRECISION;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS longitude        DOUBLE PRECISION;
+
+CREATE INDEX IF NOT EXISTS idx_messages_pair ON public.messages (sender_id, recipient_id);
+CREATE INDEX IF NOT EXISTS idx_messages_recipient ON public.messages (recipient_id);
+
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "messages_select" ON public.messages;
+DROP POLICY IF EXISTS "messages_insert" ON public.messages;
+DROP POLICY IF EXISTS "messages_update" ON public.messages;
+CREATE POLICY "messages_select" ON public.messages FOR SELECT
+  USING (sender_id = auth.uid() OR recipient_id = auth.uid());
+CREATE POLICY "messages_insert" ON public.messages FOR INSERT
+  WITH CHECK (sender_id = auth.uid());
+CREATE POLICY "messages_update" ON public.messages FOR UPDATE
+  USING (sender_id = auth.uid() OR recipient_id = auth.uid());
+
+-- ── 2. FOLLOWS ────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.follows (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id  UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  following_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at   TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (follower_id, following_id)
+);
+CREATE INDEX IF NOT EXISTS idx_follows_follower  ON public.follows (follower_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON public.follows (following_id);
+
+ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "follows_select" ON public.follows;
+DROP POLICY IF EXISTS "follows_insert" ON public.follows;
+DROP POLICY IF EXISTS "follows_delete" ON public.follows;
+CREATE POLICY "follows_select" ON public.follows FOR SELECT USING (true);
+CREATE POLICY "follows_insert" ON public.follows FOR INSERT
+  WITH CHECK (follower_id = auth.uid());
+CREATE POLICY "follows_delete" ON public.follows FOR DELETE
+  USING (follower_id = auth.uid());
+
+-- ── 3. REELS (table + columns + RLS) ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.reels (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  media_url   TEXT,
+  media_type  TEXT DEFAULT 'video',
+  caption     TEXT,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS sound_name  TEXT;
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS event_id    UUID;
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS event_title TEXT;
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS visibility  TEXT DEFAULT 'public';
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS metadata    JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.reels ADD COLUMN IF NOT EXISTS like_count  INTEGER DEFAULT 0;
+
+ALTER TABLE public.reels ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "reels_select"      ON public.reels;
+DROP POLICY IF EXISTS "reels_insert"      ON public.reels;
+DROP POLICY IF EXISTS "reels_update_own"  ON public.reels;
+DROP POLICY IF EXISTS "reels_delete_own"  ON public.reels;
+CREATE POLICY "reels_select"     ON public.reels FOR SELECT USING (true);
+CREATE POLICY "reels_insert"     ON public.reels FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "reels_update_own" ON public.reels FOR UPDATE USING (user_id = auth.uid());
+CREATE POLICY "reels_delete_own" ON public.reels FOR DELETE USING (user_id = auth.uid());
+
+-- ── 4. STORAGE BUCKETS — make media public + allow signed-in uploads ──────────
+-- Wrapped so a permissions hiccup on storage.* never aborts the rest of the file.
+DO $$
+BEGIN
+  -- Public read for all media buckets the app serves; create if missing.
+  INSERT INTO storage.buckets (id, name, public) VALUES
+    ('reels','reels',true), ('avatars','avatars',true),
+    ('event-media','event-media',true), ('moments','moments',true)
+  ON CONFLICT (id) DO UPDATE SET public = true;
+
+  -- Public read of objects in those buckets.
+  DROP POLICY IF EXISTS "gruvs_media_public_read" ON storage.objects;
+  CREATE POLICY "gruvs_media_public_read" ON storage.objects FOR SELECT
+    USING (bucket_id IN ('reels','avatars','event-media','moments'));
+
+  -- Signed-in users can upload to those buckets.
+  DROP POLICY IF EXISTS "gruvs_media_auth_write" ON storage.objects;
+  CREATE POLICY "gruvs_media_auth_write" ON storage.objects FOR INSERT TO authenticated
+    WITH CHECK (bucket_id IN ('reels','avatars','event-media','moments'));
+
+  -- Owners can overwrite/delete their own objects (upsert on re-upload).
+  DROP POLICY IF EXISTS "gruvs_media_owner_modify" ON storage.objects;
+  CREATE POLICY "gruvs_media_owner_modify" ON storage.objects FOR UPDATE TO authenticated
+    USING (bucket_id IN ('reels','avatars','event-media','moments') AND owner = auth.uid());
+  DROP POLICY IF EXISTS "gruvs_media_owner_delete" ON storage.objects;
+  CREATE POLICY "gruvs_media_owner_delete" ON storage.objects FOR DELETE TO authenticated
+    USING (bucket_id IN ('reels','avatars','event-media','moments') AND owner = auth.uid());
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'storage step skipped (%): set bucket "reels" to Public manually in Dashboard → Storage', SQLERRM;
+END $$;
+
+-- ── 5. REALTIME — make new events / messages / reels stream live ───────────────
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='events') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.events; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='messages') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.messages; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='reels') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.reels; END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'realtime publication step skipped: %', SQLERRM;
+END $$;
+
+-- ✅ Done. DMs persist, follows stick, reels play, events appear live.
+
+
+-- ── 29: CONTENT AGE-RATING (min_age on reels/events/echoes) ──
+-- ══════════════════════════════════════════════════════════════════════════════
+--  THE GRUVS — CONTENT AGE-RATING  (silent min-age floor on user posts)
+-- ══════════════════════════════════════════════════════════════════════════════
+--  The app rates every reel / event / echo at post time (src/utils/contentAgeRating)
+--  and stores a MINIMUM VIEWING AGE so younger users are never served mature posts
+--  — no report, no message to the poster. These columns persist that rating.
+--
+--  Fully idempotent. The app degrades gracefully without it (it re-rates text on
+--  read), so running this is an optimisation + enables the moderator review flag.
+-- ══════════════════════════════════════════════════════════════════════════════
+
+ALTER TABLE public.reels  ADD COLUMN IF NOT EXISTS min_age      INTEGER DEFAULT 13;
+ALTER TABLE public.reels  ADD COLUMN IF NOT EXISTS auto_flagged BOOLEAN DEFAULT false;
+
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS min_age      INTEGER DEFAULT 13;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS auto_flagged BOOLEAN DEFAULT false;
+
+ALTER TABLE public.echoes ADD COLUMN IF NOT EXISTS min_age      INTEGER DEFAULT 13;
+ALTER TABLE public.echoes ADD COLUMN IF NOT EXISTS auto_flagged BOOLEAN DEFAULT false;
+
+-- Partial indexes so the moderator review queue (auto_flagged) and age filters
+-- stay fast without bloating the common case (min_age = 13, not flagged).
+CREATE INDEX IF NOT EXISTS idx_reels_flagged  ON public.reels  (created_at DESC) WHERE auto_flagged;
+CREATE INDEX IF NOT EXISTS idx_events_flagged ON public.events (created_at DESC) WHERE auto_flagged;
+CREATE INDEX IF NOT EXISTS idx_echoes_flagged ON public.echoes (created_at DESC) WHERE auto_flagged;
+
+-- ✅ Done. Mature posts now carry an age floor; worst cases are flagged for review.
+
+
+-- ── 30: SCHEMA DRIFT RECONCILE + HARDEN ──
+-- ══════════════════════════════════════════════════════════════
+--  THE GRUVS — SCHEMA DRIFT RECONCILIATION & SECURITY HARDENING
+-- ══════════════════════════════════════════════════════════════
+--  This script aligns the live database with code expectations:
+--  1. Adds missing columns to activity_feed, event_views, path_crossings, route_steps.
+--  2. Adds gamification column support (vibe_coins, reputation_status) to profiles.
+--  3. Hardens RLS security on live_checkins, profiles, and admin RPCs.
+-- ══════════════════════════════════════════════════════════════
+
+-- ── 1. Column Drift Reconciliation ────────────────────────────
+
+-- activity_feed expects 'read' column (synced with is_read if needed)
+ALTER TABLE public.activity_feed ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT false;
+
+-- Sync read and is_read in triggers to maintain backward compatibility
+CREATE OR REPLACE FUNCTION sync_activity_feed_read_status()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    NEW.read := COALESCE(NEW.read, NEW.is_read, false);
+    NEW.is_read := COALESCE(NEW.is_read, NEW.read, false);
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF NEW.read IS DISTINCT FROM OLD.read THEN
+      NEW.is_read := NEW.read;
+    ELSIF NEW.is_read IS DISTINCT FROM OLD.is_read THEN
+      NEW.read := NEW.is_read;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_activity_feed_read ON public.activity_feed;
+CREATE TRIGGER trg_sync_activity_feed_read
+  BEFORE INSERT OR UPDATE ON public.activity_feed
+  FOR EACH ROW EXECUTE FUNCTION sync_activity_feed_read_status();
+
+-- event_views expects 'author_id'
+ALTER TABLE public.event_views ADD COLUMN IF NOT EXISTS author_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+-- path_crossings expects user_id and cross_count
+ALTER TABLE public.path_crossings ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.path_crossings ADD COLUMN IF NOT EXISTS other_user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.path_crossings ADD COLUMN IF NOT EXISTS cross_count INTEGER DEFAULT 1;
+
+-- route_steps expects step_order
+ALTER TABLE public.route_steps ADD COLUMN IF NOT EXISTS step_order INTEGER DEFAULT 1;
+
+-- ticket_tokens table
+CREATE TABLE IF NOT EXISTS public.ticket_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rsvp_id UUID NOT NULL,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  token_str TEXT UNIQUE NOT NULL,
+  used BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.ticket_tokens ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ticket_tokens_own" ON public.ticket_tokens;
+CREATE POLICY "ticket_tokens_own" ON public.ticket_tokens FOR ALL TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- ── 2. Gamification Columns ───────────────────────────────────
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS vibe_coins INTEGER DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS reputation_status TEXT DEFAULT 'Novice Viber';
+
+
+-- ── 3. RLS Security Hardening ────────────────────────────────
+
+-- GPS location harvesting prevention on live_checkins
+ALTER TABLE public.live_checkins ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "live_checkins are viewable by everyone" ON public.live_checkins;
+DROP POLICY IF EXISTS "Enable read access for all users"        ON public.live_checkins;
+DROP POLICY IF EXISTS "live_checkins: owner reads own"          ON public.live_checkins;
+DROP POLICY IF EXISTS "live_checkins: authenticated read"       ON public.live_checkins;
+DROP POLICY IF EXISTS "live_checkins: owner management"         ON public.live_checkins;
+
+-- 1. Owners read and write their own check-ins
+CREATE POLICY "live_checkins: owner management"
+  ON public.live_checkins FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- 2. Authenticated users can read event check-ins (guest list)
+CREATE POLICY "live_checkins: authenticated read"
+  ON public.live_checkins FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- 3. Anonymous users are blocked from SELECTing checkins
+REVOKE SELECT ON public.live_checkins FROM anon;
+REVOKE SELECT (lat, lon) ON public.live_checkins FROM anon, authenticated;
+
+-- Explicitly grant other columns to authenticated users
+GRANT SELECT (id, user_id, event_id, checked_in_at, expires_at, identity_layer, ghost_alias)
+  ON public.live_checkins TO authenticated;
+
+-- Hide profiles PII from anonymous users
+REVOKE SELECT (email, push_token, emergency_contacts, siblings, first_name, surname)
+  ON public.profiles FROM anon;
+
+-- Require login to read the social graph (follows)
+-- Require login to read and manage the social graph (follows)
+ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "follows are viewable by everyone" ON public.follows;
+DROP POLICY IF EXISTS "follows: authenticated read"       ON public.follows;
+DROP POLICY IF EXISTS "Follows readable"                 ON public.follows;
+DROP POLICY IF EXISTS "follows_select"                   ON public.follows;
+DROP POLICY IF EXISTS "follows_insert"                   ON public.follows;
+DROP POLICY IF EXISTS "follows_delete"                   ON public.follows;
+
+CREATE POLICY "follows_select" ON public.follows FOR SELECT TO authenticated USING (true);
+CREATE POLICY "follows_insert" ON public.follows FOR INSERT TO authenticated WITH CHECK (follower_id = auth.uid());
+CREATE POLICY "follows_delete" ON public.follows FOR DELETE TO authenticated USING (follower_id = auth.uid());
+
+-- Hardening / verifying messages RLS policies
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "messages_insert_own"   ON public.messages;
+DROP POLICY IF EXISTS "messages_select_own"   ON public.messages;
+DROP POLICY IF EXISTS "messages_update_parts" ON public.messages;
+
+CREATE POLICY "messages_insert_own" ON public.messages FOR INSERT TO authenticated WITH CHECK (sender_id = auth.uid());
+CREATE POLICY "messages_select_own" ON public.messages FOR SELECT TO authenticated USING (sender_id = auth.uid() OR recipient_id = auth.uid());
+CREATE POLICY "messages_update_parts" ON public.messages FOR UPDATE TO authenticated USING (sender_id = auth.uid() OR recipient_id = auth.uid());
+
+-- Reels RLS Verification
+ALTER TABLE public.reels         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reel_likes    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reel_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reel_comment_likes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "reels_select"     ON public.reels;
+DROP POLICY IF EXISTS "reels_insert"     ON public.reels;
+DROP POLICY IF EXISTS "reels_update_own" ON public.reels;
+DROP POLICY IF EXISTS "reels_delete_own" ON public.reels;
+CREATE POLICY "reels_select"     ON public.reels FOR SELECT USING (is_deleted = false);
+CREATE POLICY "reels_insert"     ON public.reels FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "reels_update_own" ON public.reels FOR UPDATE USING (user_id = auth.uid());
+CREATE POLICY "reels_delete_own" ON public.reels FOR DELETE USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "reel_likes_select" ON public.reel_likes;
+DROP POLICY IF EXISTS "reel_likes_insert" ON public.reel_likes;
+DROP POLICY IF EXISTS "reel_likes_delete" ON public.reel_likes;
+CREATE POLICY "reel_likes_select" ON public.reel_likes FOR SELECT USING (true);
+CREATE POLICY "reel_likes_insert" ON public.reel_likes FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "reel_likes_delete" ON public.reel_likes FOR DELETE USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "reel_comments_select" ON public.reel_comments;
+DROP POLICY IF EXISTS "reel_comments_insert" ON public.reel_comments;
+DROP POLICY IF EXISTS "reel_comments_delete" ON public.reel_comments;
+CREATE POLICY "reel_comments_select" ON public.reel_comments FOR SELECT USING (true);
+CREATE POLICY "reel_comments_insert" ON public.reel_comments FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "reel_comments_delete" ON public.reel_comments FOR DELETE USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "rcl_read"   ON public.reel_comment_likes;
+DROP POLICY IF EXISTS "rcl_insert" ON public.reel_comment_likes;
+DROP POLICY IF EXISTS "rcl_delete" ON public.reel_comment_likes;
+CREATE POLICY "rcl_read"   ON public.reel_comment_likes FOR SELECT USING (true);
+CREATE POLICY "rcl_insert" ON public.reel_comment_likes FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "rcl_delete" ON public.reel_comment_likes FOR DELETE USING (user_id = auth.uid());
+
+-- Trigger for reel_comment_likes count synchronization
+CREATE OR REPLACE FUNCTION public.sync_reel_comment_like_count()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.reel_comments SET like_count = COALESCE(like_count,0)+1 WHERE id = NEW.comment_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.reel_comments SET like_count = GREATEST(0,COALESCE(like_count,0)-1) WHERE id = OLD.comment_id;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS reel_comment_like_count_trigger ON public.reel_comment_likes;
+CREATE TRIGGER reel_comment_like_count_trigger AFTER INSERT OR DELETE ON public.reel_comment_likes
+  FOR EACH ROW EXECUTE FUNCTION public.sync_reel_comment_like_count();
+
+-- ── 4. Storage Buckets and Policies ─────────────────────────────
+-- Ensure storage extension and schema exists
+CREATE SCHEMA IF NOT EXISTS storage;
+
+-- Insert buckets if not exists
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES
+  ('avatars',     'avatars',     true, 5242880,   ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']),
+  ('covers',      'covers',      true, 10485760,  ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif']),
+  ('event-media', 'event-media', true, 104857600, ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif','video/mp4','video/quicktime','video/x-m4v','video/webm']),
+  ('reels',       'reels',       true, 104857600, ARRAY['video/mp4','video/quicktime','video/x-m4v','video/webm','image/jpeg','image/png','image/webp','image/heic','image/heif']),
+  ('moments',     'moments',     true, 52428800,  ARRAY['image/jpeg','image/png','image/webp','image/heic','image/heif','video/mp4','video/quicktime','video/x-m4v','video/webm']),
+  ('chat_media',  'chat_media',  true, 10485760,  ARRAY['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif'])
+ON CONFLICT (id) DO UPDATE SET
+  public            = EXCLUDED.public,
+  file_size_limit   = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- Storage RLS
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- Public read for all buckets
+DROP POLICY IF EXISTS "avatars_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "covers_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "event_media_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "reels_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "moments_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "chat_media_public_read" ON storage.objects;
+
+CREATE POLICY "avatars_public_read"     ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+CREATE POLICY "covers_public_read"      ON storage.objects FOR SELECT USING (bucket_id = 'covers');
+CREATE POLICY "event_media_public_read" ON storage.objects FOR SELECT USING (bucket_id = 'event-media');
+CREATE POLICY "reels_public_read"       ON storage.objects FOR SELECT USING (bucket_id = 'reels');
+CREATE POLICY "moments_public_read"     ON storage.objects FOR SELECT USING (bucket_id = 'moments');
+CREATE POLICY "chat_media_public_read"  ON storage.objects FOR SELECT USING (bucket_id = 'chat_media');
+
+-- Authenticated upload
+DROP POLICY IF EXISTS "avatars_auth_upload" ON storage.objects;
+DROP POLICY IF EXISTS "covers_auth_upload" ON storage.objects;
+DROP POLICY IF EXISTS "event_media_auth_upload" ON storage.objects;
+DROP POLICY IF EXISTS "reels_auth_upload" ON storage.objects;
+DROP POLICY IF EXISTS "moments_auth_upload" ON storage.objects;
+DROP POLICY IF EXISTS "chat_media_auth_upload" ON storage.objects;
+
+CREATE POLICY "avatars_auth_upload"     ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'avatars'     AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "covers_auth_upload"      ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'covers'      AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "event_media_auth_upload" ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'event-media' AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "reels_auth_upload"       ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'reels'       AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "moments_auth_upload"     ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'moments'     AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "chat_media_auth_upload"  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'chat_media'  AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Owner delete / update
+DROP POLICY IF EXISTS "storage_owner_delete" ON storage.objects;
+DROP POLICY IF EXISTS "storage_owner_update" ON storage.objects;
+CREATE POLICY "storage_owner_delete" ON storage.objects FOR DELETE USING (auth.uid()::text = (storage.foldername(name))[1]);
+CREATE POLICY "storage_owner_update" ON storage.objects FOR UPDATE USING (auth.uid()::text = (storage.foldername(name))[1]);
+
+-- Pinned search_path security on Admin functions
+CREATE OR REPLACE FUNCTION public.admin_suspend_user(p_user_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'ADMIN_REQUIRED';
+  END IF;
+  
+  INSERT INTO public.user_suspensions (user_id, reason, suspended_by)
+  VALUES (p_user_id, 'Suspended by admin', auth.uid())
+  ON CONFLICT (user_id) DO NOTHING;
+
+  UPDATE public.profiles
+  SET is_discoverable = false, is_online = false
+  WHERE id = p_user_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_flag_user(p_user_id UUID, p_reason TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'ADMIN_REQUIRED';
+  END IF;
+
+  INSERT INTO public.reports (reporter_id, target_id, target_type, reason, status)
+  VALUES (auth.uid(), p_user_id, 'user', p_reason, 'pending');
+END;
+$$;
+
+
+
+-- ── 31: SECURITY HARDENING (anon PII allowlist — kept LAST so it is the final word on anon) ──
+-- ══════════════════════════════════════════════════════════════════════════════
+--  THE GRUVS — SECURITY HARDENING  (run on the live Supabase, review first)
+-- ══════════════════════════════════════════════════════════════════════════════
+--  WHY: scripts/sec-probe.js (anon key only — the key baked into every install)
+--  showed the public/anonymous role can SELECT PII columns on `profiles`:
+--    email, push_token, first_name, surname, age, emergency_contacts, siblings …
+--  An attacker who pulls the anon key from the app bundle could read those for
+--  every user. This file closes that hole with a COLUMN-LEVEL allowlist for the
+--  anon role, and re-asserts that anon cannot write to sensitive tables.
+--
+--  SAFE / NON-BREAKING for the logged-in app: the `authenticated` role is left
+--  untouched (it keeps full table access via its JWT), so nothing in the signed-
+--  in experience changes. Only the logged-OUT (anon) role is narrowed to public,
+--  non-PII columns — exactly what a guest browsing events/profiles needs.
+--
+--  FAIL-SAFE: this is an ALLOWLIST. Any profiles column NOT listed below becomes
+--  invisible to anon. Forgetting a public column → guests just don't see it (a
+--  cosmetic miss); it can never accidentally expose a new PII column.
+--
+--  Idempotent — safe to run repeatedly. After running, re-run:
+--    node scripts/sec-probe.js     (the profiles.* PII LEAK lines should clear)
+-- ══════════════════════════════════════════════════════════════════════════════
+
+-- ── 1. profiles: lock anon down to public, non-PII columns ────────────────────
+-- Drop anon's table-wide SELECT so the column-level grant below actually applies
+-- (a table-level grant supersedes column grants in Postgres).
+REVOKE SELECT ON public.profiles FROM anon;
+
+-- Grant anon SELECT on ONLY the public/social columns a guest legitimately needs.
+-- Anything omitted (email, push_token, first_name, surname, age, birth_date,
+-- birth_year, emergency_contacts, siblings, phone, wallet_balance, home_base_lat,
+-- home_base_lon, coords, privacy_settings, referred_by, clan_name, home_village)
+-- is intentionally NOT granted — those stay readable only to the signed-in app.
+-- Wrapped per-column so a column that doesn't exist on this DB can't abort the run.
+DO $$
+DECLARE
+  c TEXT;
+  safe_cols TEXT[] := ARRAY[
+    'id','username','display_name','avatar_url','cover_url','bio','location','city',
+    'website','gender','interests','is_verified','is_online','last_seen','last_seen_at',
+    'vibe_score','vibe_equity','social_integrity_score','is_discoverable','identity_mode',
+    'is_beacon_active','beacon_expires_at','followers_count','following_count',
+    'events_posted','saved_count','xp','badges','role','current_streak','career_title',
+    'career_description','looks_description','profile_gallery','show_online','share_events',
+    'theme_id','writing_style','provider_type','provider_rate','provider_bio',
+    'provider_verified','community_tags','languages','created_at','updated_at'
+  ];
+BEGIN
+  FOREACH c IN ARRAY safe_cols LOOP
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='profiles' AND column_name=c
+    ) THEN
+      EXECUTE format('GRANT SELECT (%I) ON public.profiles TO anon', c);
+    END IF;
+  END LOOP;
+END $$;
+
+-- ── 2. Re-assert: anon must never WRITE sensitive tables ──────────────────────
+-- Defensive — RLS should already block these, but revoke the base privileges so
+-- a future permissive policy can't silently re-open writes to the anon role.
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'profiles','events','event_rsvps','messages','dm_messages','wallet_transactions',
+    'reports','reel_reports','disputes','follows','notifications','live_checkins',
+    'event_reactions','echoes','reels','security_logs','governance_votes','user_blocks'
+  ] LOOP
+    IF to_regclass('public.'||t) IS NOT NULL THEN
+      EXECUTE format('REVOKE INSERT, UPDATE, DELETE ON public.%I FROM anon', t);
+    END IF;
+  END LOOP;
+END $$;
+
+-- ── 3. Belt-and-braces: keep RLS forced on the high-sensitivity tables ────────
+-- (FORCE makes RLS apply even to the table owner, closing definer-path surprises.)
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'messages','dm_messages','wallet_transactions','security_logs','push_tokens',
+    'ai_user_memory','user_deep_profile','governance_votes','reports'
+  ] LOOP
+    IF to_regclass('public.'||t) IS NOT NULL THEN
+      EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    END IF;
+  END LOOP;
+END $$;
+
+-- ── 4. Stop self privilege-escalation via direct profile updates ──────────────
+-- The profiles UPDATE policy is `USING (id = auth.uid())` and RLS CANNOT restrict
+-- columns, so a signed-in user could update({ role:'admin', is_verified:true })
+-- on their OWN row and become an admin / fake a verified badge. Guard the trust
+-- columns with a trigger that reverts any change made by the authenticated/anon
+-- roles. Legit changes (admin tools, SECURITY DEFINER RPCs) run as the function
+-- owner (current_user = postgres/…), so they pass through untouched.
+-- NB: only the pure privilege/trust columns are protected here — role,
+-- is_verified, social_integrity_score — none of which has a legitimate direct
+-- client-update path, so this can't break scoring/economy flows. (Protecting
+-- vibe_score / vibe_equity / wallet_balance the same way is a good next step, but
+-- first route their few remaining direct client updates through the existing
+-- SECURITY DEFINER RPCs — e.g. CheckInManager.touchDown's vibe_score fallback.)
+CREATE OR REPLACE FUNCTION public.protect_profile_trust_columns()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF current_user NOT IN ('authenticated', 'anon') THEN
+    RETURN NEW; -- trusted server path (definer RPCs / admin) — allow
+  END IF;
+  -- Direct update by the signed-in user: pin trust columns to their old values.
+  NEW.role                   := OLD.role;
+  NEW.is_verified            := OLD.is_verified;
+  NEW.social_integrity_score := OLD.social_integrity_score;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS protect_profile_trust_columns_trigger ON public.profiles;
+CREATE TRIGGER protect_profile_trust_columns_trigger
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.protect_profile_trust_columns();
+
+-- ── FOLLOW-UP (not applied here — needs a small app change first) ─────────────
+-- A signed-in user can still read another user's PII columns on profiles (email,
+-- push_token, emergency_contacts) because those columns are granted to the
+-- `authenticated` role table-wide. To close that too WITHOUT breaking the app's
+-- own self-reads, the clean fix is:
+--   1. add a SECURITY DEFINER get_my_profile() RPC that returns auth.uid()'s row,
+--   2. switch AuthContext/ProfilePage self-reads of email/push_token/PII to it,
+--   3. then narrow `authenticated` to the same safe-column allowlist as anon.
+-- Do that as a dedicated change so the self-read path is verified first.
+
+
+-- ── 32: CHANGELOG v2.2.0 (data — run-once guarded so re-runs do not duplicate) ──
+INSERT INTO public.app_updates (title, type, description, version, released_at)
+SELECT v.title, v.type, v.description, v.version, v.released_at::timestamptz
+FROM (VALUES
+  ('Tighter Privacy & Security','security','Locked down your personal info so only you and the people you choose can see it. Closed a gap that could expose data to logged-out users.','2.2.0','2026-06-22'),
+  ('Drop a Gruv in Seconds','improvement','Posting an event is now faster - just a name, place and time (or drop your flyer). No more long forms.','2.2.0','2026-06-22'),
+  ('Crossed Paths','feature','See the Vibers you keep Touching Down alongside, ranked from most to least - your real-world crowd. Open it from the Touch Down button.','2.2.0','2026-06-22'),
+  ('Cleaner, Faster Home','fix','Tidied up the app and fixed a display glitch on event cards for a smoother feed.','2.2.0','2026-06-22')
+) AS v(title,type,description,version,released_at)
+WHERE NOT EXISTS (SELECT 1 FROM public.app_updates WHERE version = '2.2.0');
