@@ -15,6 +15,7 @@ import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
+import { StagePlaybookModal } from '../components/StagePlaybookModal';
 import { SurveyBuilderModal } from '../components/SurveyBuilderModal';
 import { AttendanceAnalyticsPanel } from '../components/AttendanceAnalyticsPanel';
 import { CampaignManager, EcosystemManager, NotificationManager } from '../services/dataFlow';
@@ -399,6 +400,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCampaignBuilder, setShowCampaignBuilder] = useState(false);
+  const [showStagePlaybook, setShowStagePlaybook] = useState(false);
   const [showSurveyBuilder, setShowSurveyBuilder] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [activeCampaignFilter, setActiveCampaignFilter] = useState('All'); // New state for filtering missions/promotions
@@ -763,6 +765,19 @@ export const BusinessDashboardScreen = ({ onClose }) => {
             </TouchableOpacity>
           </View>
 
+          {/* Stage Playbook — the fast path: one offer for before / during / after */}
+          <TouchableOpacity onPress={() => setShowStagePlaybook(true)} activeOpacity={0.85}
+            style={[sc.playbookCta, { borderColor: `${primary}40`, backgroundColor: `${primary}0E` }]}>
+            <View style={[sc.playbookIcon, { backgroundColor: `${primary}1A`, borderColor: `${primary}40` }]}>
+              <Feather name="layers" size={16} color={primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[sc.playbookTitle, { color: textColor }]}>Stage Playbook</Text>
+              <Text style={[sc.playbookSub, { color: muted }]}>Set one offer for before, during & after — published in a tap.</Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={primary} />
+          </TouchableOpacity>
+
           {campaigns.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Feather name="target" size={36} color={muted} />
@@ -1093,6 +1108,19 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         bg={bg}
       />
 
+      {/* Stage Playbook — fast pre/during/post offers */}
+      <StagePlaybookModal
+        visible={showStagePlaybook}
+        onClose={() => setShowStagePlaybook(false)}
+        businessId={biz?.id}
+        onSaved={(n) => { showToast(`Published ${n} stage offer${n > 1 ? 's' : ''}.`, 'success'); loadAll(); }}
+        primary={primary}
+        textColor={textColor}
+        muted={muted}
+        bg={bg}
+        surface={surface}
+      />
+
       {/* Drip Survey Builder */}
       <SurveyBuilderModal
         visible={showSurveyBuilder}
@@ -1286,6 +1314,10 @@ const sc = StyleSheet.create({
   submitBtnText: { color: '#000', fontSize: 14, fontWeight: '900', letterSpacing: 0.5 },
   newBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   newBtnText: { color: '#000', fontSize: 11, fontWeight: '900' },
+  playbookCta: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 14 },
+  playbookIcon: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  playbookTitle: { fontSize: 14.5, fontWeight: '900' },
+  playbookSub: { fontSize: 12, fontWeight: '500', marginTop: 2, lineHeight: 16 },
   tipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 8 },
   tipNumber: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
   tipNumText: { fontSize: 11, fontWeight: '900' },
