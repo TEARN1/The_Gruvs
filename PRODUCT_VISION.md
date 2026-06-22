@@ -51,7 +51,10 @@
 ## Live (planned)
 - **Build order:** (1) **Live from inside a Gruv** — verified live proof of a real party, the signature/moat format; (2) **dance-together rooms** — the viral/social layer (framed as pre-game/after-party/linked crowds, never stay-home); (3) **creator earning** (gifts) — scale-stage only.
 - **Signature role — "Scene Streamer / Nightlife Reporter":** Vibers who broadcast the best Gruvs live, build a following, become Tastemakers, and (later) earn. The on-thesis creator economy — you earn by being the best live *window into real nightlife*, not by performing at home.
-- **Gifting economy (scale-stage):** Coins → Gifts → Diamonds → cash-out, **platform takes ~50%** (industry standard). **Sell Coins on the WEBSITE** (normal processor) to dodge Apple/Google's 30% store cut → real 50%, not ~35%. Gated behind: registered company + PSP + creator payouts + KYC. Needs streaming infra (Agora/LiveKit/Mux — not free Supabase).
+- **Gifting economy (scale-stage):** Coins → Gifts → cash-out, **platform takes ~50%** (TikTok model). **Sell Coins on the WEBSITE** to dodge the 30% store cut. **50+ Gruvs-native gifts in 3 tiers** (Sparks → Heat → Legend), rendered with **Lottie** (NOT three.js on mobile — too heavy for low-end Androids; three.js/canvas OK on web). Gifts appear over **Live**, in chat, a received-gifts shelf on the Vibe Card, and as Gruv reactions.
+  - **Cash-out is legal because a *licensed payout partner* (Stripe Connect / Paystack / PayPal Payouts) moves the money + does KYC — you never hold it** (how TikTok/Twitch/Uber pay creators without being banks). Framing: Coins = a digital good you *sell*; payouts = *revenue-share*. Needs: registered company + partner + KYC + min threshold. Reaches most countries via the partner, not literally all.
+  - 🛑 **Remittance / "send money home" / general money-transfer = HARD NO** — that's a licensed money-transmitter business (SARB/FIC + per-country licenses); unlicensed = a crime + instant app pull. Not a feature. Removed from the plan.
+  - Streaming for Live needs infra (Agora/LiveKit/Mux — not free Supabase).
 
 ## The Gruv Lifecycle — businesses at every stage (Pre / During / Post)
 Every Gruv has 3 monetizable moments; businesses sign up and plug into each, in two roles.
@@ -75,11 +78,34 @@ Every Gruv has 3 monetizable moments; businesses sign up and plug into each, in 
 - **Safety UX:** one-tap report everywhere, absolute bidirectional block, trust-weighted auto-hide + daily moderation queue.
 - **Secret act:** mystery reveal unlocked by real commitment (crowd shares to hit threshold); payoff must be genuinely real.
 
+## Trust & love
+- **Trees (love features first):** **Family tree** = invite lineage (who brought you in / who you brought); **Friendship tree** = your social web (Crew, mutuals, crossings). Belonging + identity.
+- **Vouching (light web-of-trust):** you can vouch for people; a vouch lifts their starting trust. **Consequences are PERSONAL & proportionate, NEVER collective punishment** — a scammer pays; the *direct* voucher loses a little vouch-weight; innocent relatives are never punished. Appeals exist.
+- **Celebrations & memories (real history only):** **Birthday spotlight** (opt-in; **age hidden, only day/month**; nearby + Crew see it) · anniversaries ("a year ago you Touched Down at X with @Y") · milestones (50th Touch Down, city stamps). Built from the verified footprint — never fabricated.
+
+## Business lifecycle — details
+- **Sign-up:** any Viber **toggles "Business"** (one identity, no separate account); minimal to start, enrich later; verification = a trust badge earned via real events, not required upfront.
+- **Gig-matching:** two-way (hosts post needs ↔ providers list services); **reputation = the verified Gruvs you actually worked** (unfakeable portfolio). Connect-not-transact; payment off-platform for now.
+- **Reviews:** **verified interactions only** (you can only rate a business/host/provider you genuinely engaged with) — unfakeable, unlike Google/Yelp.
+- **In-venue menu:** browse + **order-ahead / skip-the-queue**, **pay at the vendor** for now; default **"make on arrival"** (food only fired when the buyer is confirmed there) to protect vendors from no-show waste; reputation stakes for flakers; in-app pay + take-rate at scale.
+- **Disputes:** pre-PSP = reputation + a recorded **deal-record** (scope/price/date) + dispute reports (accountability, not enforcement — you can't refund money you don't hold). **Escrow** (hold + release on delivery) is the scale-stage upgrade once a PSP exists.
+
+## Global
+- **Travel = the app auto-follows you** city-to-city (radar switches to wherever you are); peek other cities before you go; home scene stays followable; Globetrotter badge + Vibe Passport stamps. Every traveller seeds a new city — free expansion, one at a time.
+
+## Compliance & data
+- **Age gate:** self-declared birthdate in-app (filters 18+ Gruvs); **real ID check happens at the venue door** (the venue's job) — **don't store IDs** (use a 3rd-party verifier only if a market legally forces it).
+- **Data:** users own it — **export + delete** on demand (POPIA/GDPR). On delete, **de-identify, don't falsify** — a Gruv that had 47 Touch Downs still did; reviews/vouches anonymized; tree lineage preserved.
+
+## Built so far (this alignment session)
+- ✅ Persistence SQL run (likes/vibes/DMs/check-ins save) · gray-card web fix · launch strip-down (`launchConfig` flag) · Crossed Paths UI + RPC · honest live "here now" count · **ad-control layer** (`adConfig`) · **event-phase engine** (`src/utils/eventPhase.js` — pre/during/post + sub-windows, unit-tested), with `EventContextualAds` pointed at it.
+
 ## The gaps to close (actionable)
 1. **Crossed Paths** — keep *deliberate* (already built correctly); do NOT build ambient GPS.
 2. **Path Map** — reshape from past-history to *forward planning*.
 3. **Collapse overlaps** — the verbs, the content types (Stories/Reels → Moments/Gallery), the two scores (`vibe_equity` → `vibe_score`).
 4. **Venues** — make first-class *places* (lazily).
+5. **Targeting fix** — `routeTargetedEvent()` currently HARD-FILTERS; change to *prioritize* (boost matches, never hide the Gruv) per the safety rule.
 
 ---
 
