@@ -307,11 +307,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       scrollAndFocus('title', titleRef);
       return;
     }
-    if (!posterMode && !description.trim()) {
-      setError('Describe the vibe — what makes this Gruv special?');
-      scrollAndFocus('description', descriptionRef);
-      return;
-    }
     if (!posterMode && !address.trim()) {
       setError('Venue / address is required so people know where to show up.');
       scrollAndFocus('address', addressRef);
@@ -611,7 +606,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
 
   const canProceedStep1 = posterMode
     ? title.trim().length > 2
-    : title.trim().length > 2 && description.trim().length > 5 && address.trim().length > 3;
+    : title.trim().length > 2 && address.trim().length > 3;
+  // Description is optional — a Gruv is droppable with just name + place + time
+  // (poster mode needs only the flyer + title). Keeps posting friction near zero.
 
   const addScheduleItem = () => {
     if (!scheduleForm.time.trim() || !scheduleForm.title.trim()) return;
