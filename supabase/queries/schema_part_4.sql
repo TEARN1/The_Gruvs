@@ -1610,50 +1610,59 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit   = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- Storage RLS
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Storage RLS — wrapped so the Supabase SQL Editor (whose role is NOT the
+-- owner of storage.objects) SKIPS this with a NOTICE instead of aborting the
+-- whole run with "42501: must be owner of table objects". If it's skipped,
+-- create the same policies via Dashboard → Storage → Policies (that UI runs
+-- as the storage admin and will succeed).
+DO $$
+BEGIN
+  ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
--- Public read for all buckets
-DROP POLICY IF EXISTS "avatars_public_read" ON storage.objects;
-DROP POLICY IF EXISTS "covers_public_read" ON storage.objects;
-DROP POLICY IF EXISTS "event_media_public_read" ON storage.objects;
-DROP POLICY IF EXISTS "reels_public_read" ON storage.objects;
-DROP POLICY IF EXISTS "moments_public_read" ON storage.objects;
-DROP POLICY IF EXISTS "chat_media_public_read" ON storage.objects;
+  -- Public read for all buckets
+  DROP POLICY IF EXISTS "avatars_public_read" ON storage.objects;
+  DROP POLICY IF EXISTS "covers_public_read" ON storage.objects;
+  DROP POLICY IF EXISTS "event_media_public_read" ON storage.objects;
+  DROP POLICY IF EXISTS "reels_public_read" ON storage.objects;
+  DROP POLICY IF EXISTS "moments_public_read" ON storage.objects;
+  DROP POLICY IF EXISTS "chat_media_public_read" ON storage.objects;
 
-CREATE POLICY "avatars_public_read"     ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
-CREATE POLICY "covers_public_read"      ON storage.objects FOR SELECT USING (bucket_id = 'covers');
-CREATE POLICY "event_media_public_read" ON storage.objects FOR SELECT USING (bucket_id = 'event-media');
-CREATE POLICY "reels_public_read"       ON storage.objects FOR SELECT USING (bucket_id = 'reels');
-CREATE POLICY "moments_public_read"     ON storage.objects FOR SELECT USING (bucket_id = 'moments');
-CREATE POLICY "chat_media_public_read"  ON storage.objects FOR SELECT USING (bucket_id = 'chat_media');
+  CREATE POLICY "avatars_public_read"     ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+  CREATE POLICY "covers_public_read"      ON storage.objects FOR SELECT USING (bucket_id = 'covers');
+  CREATE POLICY "event_media_public_read" ON storage.objects FOR SELECT USING (bucket_id = 'event-media');
+  CREATE POLICY "reels_public_read"       ON storage.objects FOR SELECT USING (bucket_id = 'reels');
+  CREATE POLICY "moments_public_read"     ON storage.objects FOR SELECT USING (bucket_id = 'moments');
+  CREATE POLICY "chat_media_public_read"  ON storage.objects FOR SELECT USING (bucket_id = 'chat_media');
 
--- Authenticated upload
-DROP POLICY IF EXISTS "avatars_auth_upload" ON storage.objects;
-DROP POLICY IF EXISTS "covers_auth_upload" ON storage.objects;
-DROP POLICY IF EXISTS "event_media_auth_upload" ON storage.objects;
-DROP POLICY IF EXISTS "reels_auth_upload" ON storage.objects;
-DROP POLICY IF EXISTS "moments_auth_upload" ON storage.objects;
-DROP POLICY IF EXISTS "chat_media_auth_upload" ON storage.objects;
+  -- Authenticated upload (path must start with the uploader's user id)
+  DROP POLICY IF EXISTS "avatars_auth_upload" ON storage.objects;
+  DROP POLICY IF EXISTS "covers_auth_upload" ON storage.objects;
+  DROP POLICY IF EXISTS "event_media_auth_upload" ON storage.objects;
+  DROP POLICY IF EXISTS "reels_auth_upload" ON storage.objects;
+  DROP POLICY IF EXISTS "moments_auth_upload" ON storage.objects;
+  DROP POLICY IF EXISTS "chat_media_auth_upload" ON storage.objects;
 
-CREATE POLICY "avatars_auth_upload"     ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'avatars'     AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
-CREATE POLICY "covers_auth_upload"      ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'covers'      AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
-CREATE POLICY "event_media_auth_upload" ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'event-media' AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
-CREATE POLICY "reels_auth_upload"       ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'reels'       AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
-CREATE POLICY "moments_auth_upload"     ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'moments'     AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
-CREATE POLICY "chat_media_auth_upload"  ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'chat_media'  AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+  CREATE POLICY "avatars_auth_upload"     ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'avatars'     AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+  CREATE POLICY "covers_auth_upload"      ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'covers'      AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+  CREATE POLICY "event_media_auth_upload" ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'event-media' AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+  CREATE POLICY "reels_auth_upload"       ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'reels'       AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+  CREATE POLICY "moments_auth_upload"     ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'moments'     AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
+  CREATE POLICY "chat_media_auth_upload"  ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'chat_media'  AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text);
 
--- Owner delete / update
-DROP POLICY IF EXISTS "storage_owner_delete" ON storage.objects;
-DROP POLICY IF EXISTS "storage_owner_update" ON storage.objects;
-CREATE POLICY "storage_owner_delete" ON storage.objects FOR DELETE USING (auth.uid()::text = (storage.foldername(name))[1]);
-CREATE POLICY "storage_owner_update" ON storage.objects FOR UPDATE USING (auth.uid()::text = (storage.foldername(name))[1]);
+  -- Owner delete / update
+  DROP POLICY IF EXISTS "storage_owner_delete" ON storage.objects;
+  DROP POLICY IF EXISTS "storage_owner_update" ON storage.objects;
+  CREATE POLICY "storage_owner_delete" ON storage.objects FOR DELETE USING (auth.uid()::text = (storage.foldername(name))[1]);
+  CREATE POLICY "storage_owner_update" ON storage.objects FOR UPDATE USING (auth.uid()::text = (storage.foldername(name))[1]);
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'storage.objects policies skipped (%): create them in Dashboard → Storage → Policies', SQLERRM;
+END $$;
 
 -- Pinned search_path security on Admin functions
 CREATE OR REPLACE FUNCTION public.admin_suspend_user(p_user_id UUID)
