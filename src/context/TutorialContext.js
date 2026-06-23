@@ -173,6 +173,39 @@ export const TUTORIALS = [
     ],
   },
 
+  // ── The Drop & Gruvs: the 3 signals (Truth Protocol) ────────────────────────
+  {
+    id: 'three_signals',
+    title: 'Reading the Vibe (3 Signals)',
+    category: 'The Drop & Gruvs',
+    icon: 'bar-chart-2',
+    color: '#00f2ff',
+    duration: '2 min',
+    steps: [
+      {
+        icon: 'zap',
+        title: 'Vibe = the Buzz',
+        body: "A Vibe is hype — people feeling a Gruv before it even happens. High Vibes mean a Gruv is catching attention, but attention isn't a real crowd. It's the first signal, not the truth.",
+        tip: 'Lots of Vibes but few Touch Downs? It’s hyped, not proven — check the live count.',
+        visual: 'three_vibe',
+      },
+      {
+        icon: 'users',
+        title: 'Locked In = the Intent',
+        body: "When someone Locks In, they're saying “I'm coming.” It's stronger than a Vibe — real intent to show up — but plans change, so it's still a promise, not a fact.",
+        tip: 'Locked In counts toward capacity on capped Gruvs.',
+        visual: 'three_locked',
+      },
+      {
+        icon: 'map-pin',
+        title: 'Here = the Truth',
+        body: "“Here” is how many Vibers have actually Touched Down — verified, on the ground, right now. It's the one signal that can't be faked. When you want to know if a Gruv is truly popping, this is the number that counts.",
+        tip: 'Buzz → Intent → Reality. Trust the green “Here” number above all.',
+        visual: 'three_here',
+      },
+    ],
+  },
+
   // ── Scout & Discover ────────────────────────────────────────────────────────
   {
     id: 'explore',
