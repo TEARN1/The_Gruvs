@@ -26,6 +26,7 @@ import { BrandLogo } from '../components/BrandLogo';
 import { supabase } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { getVibeLevel } from '../utils/vibeLevel';
+import { nextUnlocks } from '../utils/levelUnlocks';
 import { DiscoveryManager, UserManager, BehavioralEngine, ActivityFeedManager, PresenceManager, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient, resilientRead } from '../utils/resilience';
 import { LocationService } from '../services/locationService';
@@ -75,8 +76,9 @@ const WEEK_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 // ── Vibe Level Component ──────────────────────────────────────────────────────
 const VibeLevel = ({ score, primary, muted, textColor }) => {
-  // Ladder + progress from the shared, tested util (src/utils/vibeLevel).
+  // Ladder + progress + next-tier unlocks from the shared, tested utils.
   const { name, next, progress, toNext } = getVibeLevel(score);
+  const upcoming = nextUnlocks(score);
 
   return (
     <View style={lvl.wrap}>
@@ -94,7 +96,7 @@ const VibeLevel = ({ score, primary, muted, textColor }) => {
       </View>
       {next && (
         <Text style={[lvl.next, { color: muted }]}>
-          {toNext} more points to reach {next}
+          {toNext} more to {next}{upcoming.length ? ` · unlocks ${upcoming.length} new ${upcoming.length === 1 ? 'power' : 'powers'}` : ''}
         </Text>
       )}
     </View>
