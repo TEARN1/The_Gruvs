@@ -117,8 +117,14 @@ export const AuthModal = ({ visible, onClose }) => {
       return;
     }
     setError('');
+    // Send them back to a place that can complete the reset. On web that's this
+    // exact origin (AuthContext picks up the recovery token in the URL); on
+    // native we route through the production web app, which has the reset screen.
+    const redirectTo = (Platform.OS === 'web' && typeof window !== 'undefined')
+      ? window.location.origin
+      : 'https://the-gruvs-pt23.vercel.app';
     try {
-      await supabase.auth.resetPasswordForEmail(trimmedEmail);
+      await supabase.auth.resetPasswordForEmail(trimmedEmail, { redirectTo });
     } catch { /* always show the same message — no account enumeration */ }
     setSuccess(`If an account exists for ${trimmedEmail}, a reset link is on its way.`);
   };

@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { EntitlementProvider } from './src/context/EntitlementContext';
+import { ResetPasswordModal } from './src/components/ResetPasswordModal';
 import { IdentityProvider } from './src/context/IdentityContext';
 import { CurrencyProvider } from './src/context/CurrencyContext';
 import { ToastProvider, useToast } from './src/components/ToastNotification';
@@ -290,7 +291,7 @@ const sb = StyleSheet.create({
 // ── Main Navigator ─────────────────────────────────────────────────────────────
 const MainNavigator = () => {
   const { currentTheme, applyNeuralTheme } = useTheme();
-  const { user: authUser } = useAuth();
+  const { user: authUser, recoveryMode, endRecovery } = useAuth();
   const { width } = useWindowDimensions();
   const { show: showToast } = useToast();
   const unreadCount = useUnreadCount();
@@ -666,6 +667,9 @@ const MainNavigator = () => {
         backgroundColor={bg}
         translucent={false}
       />
+
+      {/* Password reset: shown over everything when the user returns via a reset link */}
+      {recoveryMode && <ResetPasswordModal visible onDone={endRecovery} />}
 
       {/* Item 37: Hidden ARIA live region announces current tab to screen readers */}
       <View

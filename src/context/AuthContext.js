@@ -14,6 +14,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser]         = useState(null);
   const [profile, setProfile]   = useState(null);
   const [loading, setLoading]   = useState(true);
+  // True while the user arrived via a password-reset link — App shows the
+  // "set a new password" screen until they finish (or cancel).
+  const [recoveryMode, setRecoveryMode] = useState(false);
   // Track last fetched userId to avoid redundant profile fetches on token refresh
   const lastFetchedUserId = useRef(null);
 
@@ -54,6 +57,8 @@ export const AuthProvider = ({ children }) => {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
       if (!mounted) return;
+      // Arrived through a reset link → show the set-new-password screen.
+      if (_event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
       const newUserId = s?.user?.id ?? null;
       const prevUserId = lastFetchedUserId.current;
       setSession(s);
@@ -77,6 +82,24 @@ export const AuthProvider = ({ children }) => {
       listener?.subscription?.unsubscribe();
     };
   }, [fetchProfile]);
+
+  // Password-reset return (web): the recovery link comes back with the tokens
+  // in the URL hash. detectSessionInUrl is false, so establish the session
+  // ourselves, flag recovery, and scrub the tokens from the address bar.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const hash = window.location.hash || '';
+    if (!hash.includes('type=recovery')) return;
+    const params = new URLSearchParams(hash.replace(/^#/, ''));
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    if (access_token && refresh_token) {
+      supabase.auth.setSession({ access_token, refresh_token })
+        .then(() => setRecoveryMode(true))
+        .catch(() => {});
+      try { window.history.replaceState(null, '', window.location.pathname + window.location.search); } catch { /* noop */ }
+    }
+  }, []);
 
   // Session monitor — verify token every 10 min and refresh if stale
   useEffect(() => {
@@ -115,10 +138,12 @@ export const AuthProvider = ({ children }) => {
     setSession(null);
   }, [user?.id]);
 
+  const endRecovery = useCallback(() => setRecoveryMode(false), []);
+
   const value = useMemo(() => ({
-    session, user, profile, loading,
+    session, user, profile, loading, recoveryMode, endRecovery,
     signOut, refreshProfile, updateProfile,
-  }), [session, user, profile, loading, signOut, refreshProfile, updateProfile]);
+  }), [session, user, profile, loading, recoveryMode, endRecovery, signOut, refreshProfile, updateProfile]);
 
   return (
     <AuthContext.Provider value={value}>
