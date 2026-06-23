@@ -62,6 +62,7 @@ import { PlayerProfileModal }     from '../components/PlayerProfileModal';
 import { MatchPredictionCard }    from '../components/MatchPredictionCard';
 import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
 import { useBackClose } from '../hooks/useBackClose';
+import { realnessScore } from '../utils/realness';
 import { money } from '../constants/currencies';
 
 const _isSportCat = (cat) => {
@@ -657,6 +658,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const spotsLeft = capacityStatus.spotsLeft ?? Math.max(0, capacity - goingCount);
   const isSoldOut = capacityStatus.isSoldOut || (capacity > 0 && goingCount >= capacity);
   const capacityPct = capacity > 0 ? Math.min(1, goingCount / capacity) : 0;
+  const realness = realnessScore({ vibes: vibeCount, going: goingCount, here: hereCount });
 
   const RSVP_OPTIONS = [
     { key: 'going', label: 'Locked In', icon: 'check-circle' },
@@ -1026,6 +1028,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               </View>
             )}
           </View>
+          {(realness.tier === 'real' || realness.tier === 'hyped') && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+              <Feather name={realness.tier === 'real' ? 'check-circle' : 'alert-triangle'} size={12} color={realness.tier === 'real' ? '#10b981' : '#f59e0b'} />
+              <Text style={{ color: realness.tier === 'real' ? '#10b981' : '#f59e0b', fontSize: 11, fontWeight: '800' }}>{realness.label}</Text>
+            </View>
+          )}
 
           {capacity > 0 && !isSoldOut && (
             <GlassView style={[styles.capacityCard, { backgroundColor: surface }]}>
