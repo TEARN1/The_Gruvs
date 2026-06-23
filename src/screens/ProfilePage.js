@@ -25,6 +25,7 @@ import { THEMES } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
+import { getVibeLevel } from '../utils/vibeLevel';
 import { DiscoveryManager, UserManager, BehavioralEngine, ActivityFeedManager, PresenceManager, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient, resilientRead } from '../utils/resilience';
 import { LocationService } from '../services/locationService';
@@ -74,35 +75,26 @@ const WEEK_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 // ── Vibe Level Component ──────────────────────────────────────────────────────
 const VibeLevel = ({ score, primary, muted, textColor }) => {
-  const levels = [
-    { name: 'Viber', min: 0, max: 100 },
-    { name: 'Elite Viber', min: 101, max: 500 },
-    { name: 'Royal Viber', min: 501, max: 2000 },
-    { name: 'Gruv Master', min: 2001, max: 10000 },
-  ];
-
-  const current = levels.find(l => score >= l.min && score <= l.max) || levels[levels.length - 1];
-  const next = levels[levels.indexOf(current) + 1];
-  const span = next ? (next.min - current.min) : 1;
-  const progress = next ? Math.min(100, ((score - current.min) / span) * 100) : 100;
+  // Ladder + progress from the shared, tested util (src/utils/vibeLevel).
+  const { name, next, progress, toNext } = getVibeLevel(score);
 
   return (
     <View style={lvl.wrap}>
       <View style={lvl.row}>
-        <Text style={[lvl.name, { color: textColor }]}>{current.name}</Text>
+        <Text style={[lvl.name, { color: textColor }]}>{name}</Text>
         <Text style={[lvl.score, { color: primary }]}>{score} pts</Text>
       </View>
       <View
         style={[lvl.track, { backgroundColor: 'rgba(255,255,255,0.08)' }]}
         accessibilityRole="progressbar"
-        accessibilityLabel={`Vibe level progress: ${score} points, ${Math.round(progress)}% to ${next ? next.name : 'max level'}`}
+        accessibilityLabel={`Vibe level progress: ${score} points, ${Math.round(progress)}% to ${next || 'max level'}`}
         {...(Platform.OS === 'web' ? { role: 'progressbar', 'aria-valuenow': Math.round(progress), 'aria-valuemin': 0, 'aria-valuemax': 100 } : {})}
       >
         <Animated.View style={[lvl.fill, { width: `${progress}%`, backgroundColor: primary }]} />
       </View>
       {next && (
         <Text style={[lvl.next, { color: muted }]}>
-          {next.max - score} more points to reach {next.name}
+          {toNext} more points to reach {next}
         </Text>
       )}
     </View>
