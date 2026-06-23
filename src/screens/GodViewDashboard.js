@@ -167,6 +167,15 @@ export const GodViewDashboard = ({ visible, onClose }) => {
       </View>
 
       <ScrollView contentContainerStyle={s.content}>
+        {/* Honesty banner — the figures below come from the local simulation
+            engines (neuralMesh / organizationalOverseer), NOT live Supabase data.
+            Truth Protocol applies to the admin view too: never read sim as real. */}
+        <View style={{ backgroundColor: '#f59e0b18', borderColor: '#f59e0b55', borderWidth: 1, borderRadius: 12, padding: 10, marginBottom: 12 }}>
+          <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '800' }}>
+            ⚠️ SIMULATED — these figures are generated locally for modelling, not live data. Don’t base real decisions on them yet.
+          </Text>
+        </View>
+
         {/* Real-time Status */}
         <View style={s.statsRow}>
           <GlassView style={s.statCard}>
