@@ -145,6 +145,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [goingCount, setGoingCount] = useState(0);
   const [vibeCount, setVibeCount] = useState(event?.vibe_count || 0);
+  const [hereCount, setHereCount] = useState(0); // live Touch Downs ("here now")
   const [hasVibed, setHasVibed] = useState(false);
   const [vibeSending, setVibeSending] = useState(false);
   const [capacityStatus, setCapacityStatus] = useState({ hasLimit: false, isSoldOut: false, spotsLeft: null });
@@ -328,6 +329,21 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     } catch { }
   };
 
+  // "Here now" = recent Touch Downs (live_checkins) — the verified-presence
+  // number. Recent-window match; degrades to 0 if the table isn't reachable.
+  const fetchHereCount = async () => {
+    if (!event?.id) return;
+    try {
+      const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+      const { count } = await supabase
+        .from('live_checkins')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', event.id)
+        .gte('checked_in_at', since);
+      setHereCount(count || 0);
+    } catch { }
+  };
+
   const fetchAttendeePreview = useCallback(async () => {
     if (!event?.id) return;
     try {
@@ -383,6 +399,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       if (event?.id) {
         fetchUserState();
         fetchGoingCount();
+        fetchHereCount();
         fetchAttendeePreview();
         setVibeCount(event?.vibe_count || 0);
         CapacityManager.getStatus(event.id).then(setCapacityStatus);
@@ -402,9 +419,10 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     unsubVibe = RealtimeManager.subscribeToVibeCount(event.id, (count) => {
       setVibeCount(count);
     });
-    // Real-time: live Touch Down (attendee) count
+    // Real-time: live Touch Down ("here now") count
     unsubCheckin = RealtimeManager.subscribeToAttendees(event.id, () => {
       fetchGoingCount();
+      fetchHereCount();
     });
     // Real-time: RSVP changes → refresh going count
     const chanKey = `rsvp_${event.id}`;
@@ -694,7 +712,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               refreshing={refreshing}
               onRefresh={async () => {
                 setRefreshing(true);
-                try { await Promise.all([fetchUserState(), fetchGoingCount()]); } catch { } finally { setRefreshing(false); }
+                try { await Promise.all([fetchUserState(), fetchGoingCount(), fetchHereCount()]); } catch { } finally { setRefreshing(false); }
               }}
               tintColor={primary}
               colors={[primary]}
@@ -995,6 +1013,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <Feather name="users" size={13} color={primary} />
               <Text style={[styles.vibeCountText, { color: primary }]}>{goingCount} Locked In</Text>
             </TouchableOpacity>
+            {hereCount > 0 && (
+              <View style={[styles.vibePill, { backgroundColor: '#10b98118', borderColor: '#10b98140' }]}>
+                <Feather name="map-pin" size={13} color="#10b981" />
+                <Text style={[styles.vibeCountText, { color: '#10b981' }]}>{hereCount} Here</Text>
+              </View>
+            )}
             {isSoldOut && (
               <View style={[styles.vibePill, { backgroundColor: '#ef444420', borderColor: '#ef444440' }]}>
                 <Feather name="alert-circle" size={13} color="#ef4444" />
