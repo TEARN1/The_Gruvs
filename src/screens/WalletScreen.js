@@ -219,10 +219,10 @@ export const WalletScreen = ({ visible, onClose }) => {
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}
       >
-        {/* Vibe-Equity Card */}
+        {/* Vibe Score Card */}
         <GlassView style={s.balanceCard}>
-          <Text style={[s.balanceLabel, { color: muted }]}>Vibe-Equity Balance</Text>
-          <Text style={[s.balanceValue, { color: textColor }]}>{(profile?.vibe_equity || 0).toFixed(1)}</Text>
+          <Text style={[s.balanceLabel, { color: muted }]}>Vibe Score Balance</Text>
+          <Text style={[s.balanceValue, { color: textColor }]}>{(profile?.vibe_score || 0).toFixed(1)}</Text>
           {isRoyal && (
             <View style={{ backgroundColor: '#FFD70020', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginTop: 10 }}>
               <Text style={{ color: "#FFD700", fontSize: 10, fontWeight: '900' }}>SOVEREIGN STATUS ACTIVE</Text>
@@ -231,9 +231,9 @@ export const WalletScreen = ({ visible, onClose }) => {
           <View style={s.walletActions}>
             <TouchableOpacity
               style={[s.walletBtn, { backgroundColor: primary }]}
-              onPress={() => toast.show('Vibe Equity staking coming soon — stay Royal', 'info')}
+              onPress={() => toast.show('Upgrade to Royal tier with Vibe Score >= 1000', 'info')}
             >
-              <Text style={s.walletBtnText}>STAKE EQUITY</Text>
+              <Text style={s.walletBtnText}>UPGRADE TIER</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[s.walletBtnOutline, { borderColor: `${primary}50` }]}

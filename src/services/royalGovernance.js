@@ -59,17 +59,17 @@ export const RoyalGovernance = {
    * Verifies equity balance before allowing the vote.
    */
   async castRoyalVote(userId, proposalId, voteType) {
-    const { data: profile } = await supabase.from('profiles').select('vibe_equity').eq('id', userId).single();
+    const { data: profile } = await supabase.from('profiles').select('vibe_score').eq('id', userId).single();
 
-    if ((profile?.vibe_equity || 0) < this.MIN_EQUITY_FOR_VOTE) {
-      throw new Error("Insufficient Vibe-Equity to enter the Royal Council.");
+    if ((profile?.vibe_score || 0) < this.MIN_EQUITY_FOR_VOTE) {
+      throw new Error("Insufficient Vibe Score to enter the Royal Council.");
     }
 
     await supabase.from('governance_votes').insert({
       user_id: userId,
       proposal_id: proposalId,
       vote: voteType,
-      weight: profile.vibe_equity
+      weight: profile.vibe_score
     });
 
     return true;

@@ -313,7 +313,7 @@ const MonthStats = ({ events, primary, muted }) => {
     <View style={ms.row}>
       {[
         { icon: 'calendar', label: 'Gruvs',   value: total  },
-        { icon: 'zap',      label: 'Vibing',  value: going  },
+        { icon: 'zap',      label: 'Locked In', value: going  },
         { icon: 'grid',     label: 'Vibes',   value: cats   },
         { icon: 'tag',      label: 'Free',    value: hasFree ? 'Yes' : 'No' },
       ].map(s => (
@@ -617,7 +617,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 8 }}>
           {[
             { key: 'all',      label: 'All Gruvs' },
-            { key: 'my_rsvps', label: '⚡ Vibing' },
+            { key: 'my_rsvps', label: '⚡ Locked In' },
             { key: 'free',     label: '🎫 Free' },
           ].map(f => (
             <TouchableOpacity

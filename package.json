@@ -17,6 +17,8 @@
     "test:unit:watch": "jest --watch",
     "test:unit:coverage": "jest --coverage",
     "preflight": "node scripts/pre-deploy-check.js",
+    "db:patch": "node scripts/apply-patch.js",
+    "db:audit": "node scripts/db-audit.js",
     "deploy": "node scripts/pre-deploy-check.js && npm run build",
     "loadtest": "k6 run load/feed-stress.js",
     "monitor": "node scripts/monitor-errors.js"
@@ -79,6 +81,7 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@testing-library/react-native": "^13.3.3",
+    "pg": "^8.11.3",
     "react-test-renderer": "^18.2.0"
   }
 }

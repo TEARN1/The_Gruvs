@@ -1202,8 +1202,22 @@ GRANT EXECUTE ON FUNCTION public.moderate_content(TEXT, UUID, TEXT) TO authentic
 -- bypass via the API. Non-hidden rows are unaffected. Guarded for column/table
 -- existence so build order can't break it (the part_4 idempotency re-run wires
 -- tables like reels that are created later).
+CREATE OR REPLACE FUNCTION public.is_admin(p_user_id UUID)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles WHERE id = p_user_id AND role = 'admin'
+  );
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.is_admin TO authenticated, anon;
+
 DO $$
-DECLARE adm TEXT := '(EXISTS (SELECT 1 FROM public.profiles a WHERE a.id = auth.uid() AND a.role = ''admin''))';
+DECLARE adm TEXT := 'public.is_admin(auth.uid())';
 BEGIN
   IF to_regclass('public.events') IS NOT NULL
      AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='events' AND column_name='auto_hidden') THEN
@@ -1338,26 +1352,27 @@ BEGIN
   -- Public read for all media buckets the app serves; create if missing.
   INSERT INTO storage.buckets (id, name, public) VALUES
     ('reels','reels',true), ('avatars','avatars',true),
-    ('event-media','event-media',true), ('moments','moments',true)
+    ('event-media','event-media',true), ('moments','moments',true),
+    ('covers','covers',true), ('chat_media','chat_media',true)
   ON CONFLICT (id) DO UPDATE SET public = true;
 
   -- Public read of objects in those buckets.
   DROP POLICY IF EXISTS "gruvs_media_public_read" ON storage.objects;
   CREATE POLICY "gruvs_media_public_read" ON storage.objects FOR SELECT
-    USING (bucket_id IN ('reels','avatars','event-media','moments'));
+    USING (bucket_id IN ('reels','avatars','event-media','moments','covers','chat_media'));
 
   -- Signed-in users can upload to those buckets.
   DROP POLICY IF EXISTS "gruvs_media_auth_write" ON storage.objects;
   CREATE POLICY "gruvs_media_auth_write" ON storage.objects FOR INSERT TO authenticated
-    WITH CHECK (bucket_id IN ('reels','avatars','event-media','moments'));
+    WITH CHECK (bucket_id IN ('reels','avatars','event-media','moments','covers','chat_media'));
 
   -- Owners can overwrite/delete their own objects (upsert on re-upload).
   DROP POLICY IF EXISTS "gruvs_media_owner_modify" ON storage.objects;
   CREATE POLICY "gruvs_media_owner_modify" ON storage.objects FOR UPDATE TO authenticated
-    USING (bucket_id IN ('reels','avatars','event-media','moments') AND owner = auth.uid());
+    USING (bucket_id IN ('reels','avatars','event-media','moments','covers','chat_media') AND owner = auth.uid());
   DROP POLICY IF EXISTS "gruvs_media_owner_delete" ON storage.objects;
   CREATE POLICY "gruvs_media_owner_delete" ON storage.objects FOR DELETE TO authenticated
-    USING (bucket_id IN ('reels','avatars','event-media','moments') AND owner = auth.uid());
+    USING (bucket_id IN ('reels','avatars','event-media','moments','covers','chat_media') AND owner = auth.uid());
 EXCEPTION WHEN OTHERS THEN
   RAISE NOTICE 'storage step skipped (%): set bucket "reels" to Public manually in Dashboard → Storage', SQLERRM;
 END $$;

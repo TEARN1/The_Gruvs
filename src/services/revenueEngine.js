@@ -26,16 +26,16 @@ export const VibeEconomyEngine = {
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('vibe_equity, social_integrity_score')
+        .select('vibe_score, social_integrity_score')
         .eq('id', userId)
         .single();
 
-      const isRoyal = (profile?.vibe_equity || 0) >= this.ROYAL_THRESHOLD;
+      const isRoyal = (profile?.vibe_score || 0) >= this.ROYAL_THRESHOLD;
 
       return {
         isRoyal,
         tier: isRoyal ? 'Sovereign' : 'Viber',
-        equity: profile?.vibe_equity || 0,
+        equity: profile?.vibe_score || 0,
         sis: profile?.social_integrity_score || 50
       };
     } catch {

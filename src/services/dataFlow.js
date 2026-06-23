@@ -1183,7 +1183,7 @@ export const VibeManager = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RSVP MANAGER  (Vibing / Maybe / Not Vibing)
+// RSVP MANAGER  (Locked In / Maybe / Not Going)
 // ─────────────────────────────────────────────────────────────────────────────
 export const RSVPManager = {
   async upsert(eventId, userId, status) {
@@ -2251,7 +2251,7 @@ async function _notifyEventAuthor(eventId, actorId, type) {
     if (!event?.author_id || event.author_id === actorId) return;
     const messages = {
       vibe: { title: 'New Vibe on your Gruv 🔥', body: `Someone Vibed "${event.title}"` },
-      rsvp: { title: 'New Vibe-In on your Gruv', body: `Someone is Vibing to "${event.title}"` },
+      rsvp: { title: 'New RSVP on your Gruv', body: `Someone locked in to "${event.title}"` },
       checkin: { title: 'Someone Touched Down 📍', body: `A Vibe just Touched Down at "${event.title}"` },
     };
     const msg = messages[type];

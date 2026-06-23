@@ -834,7 +834,7 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
   useEffect(() => {
     Promise.allSettled([
       supabase.from('governance_proposals').select('*').eq('status', 'voting_open'),
-      supabase.from('profiles').select('vibe_equity', { count: 'exact', head: true })
+      supabase.from('profiles').select('vibe_score', { count: 'exact', head: true })
     ]).then(([propSettled, supplySettled]) => {
       const propData = propSettled.status === 'fulfilled' ? propSettled.value?.data : null;
       const totalSupply = supplySettled.status === 'fulfilled' ? supplySettled.value?.count : 0;
@@ -2672,7 +2672,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </TouchableOpacity>
           )}
 
-          {!LAUNCH_MINIMAL && (profile?.vibe_equity >= 500) && (
+          {!LAUNCH_MINIMAL && (profile?.vibe_score >= 500) && (
             <TouchableOpacity
               style={[styles.findBtn, { backgroundColor: '#FFD70018', borderColor: '#FFD70040' }]}
               onPress={() => setSubView('council')}

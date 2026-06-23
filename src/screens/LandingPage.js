@@ -1869,7 +1869,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   <View style={styles.trendMetaRow}>
                     <Feather name="zap" size={10} color="rgba(255,255,255,0.8)" />
                     <Text style={styles.trendMeta}>
-                      {spot.rsvp_count || spot.going || 0} Vibing
+                      {spot.rsvp_count || spot.going || 0} Locked In
                     </Text>
                   </View>
                 </View>

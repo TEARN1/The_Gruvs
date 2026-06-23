@@ -441,7 +441,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       if (!ok) throw new Error('RSVP update failed');
       
       showToast(
-        status === 'going' ? "You're Vibing!" : status === 'maybe' ? "Maybe Vibing" : "Vibe removed",
+        status === 'going' ? "You're Locked In!" : status === 'maybe' ? "Marked Maybe" : "Removed",
         'success'
       );
     } catch (err) {
@@ -641,9 +641,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const capacityPct = capacity > 0 ? Math.min(1, goingCount / capacity) : 0;
 
   const RSVP_OPTIONS = [
-    { key: 'going', label: 'Vibe', icon: 'check-circle' },
+    { key: 'going', label: 'Locked In', icon: 'check-circle' },
     { key: 'maybe', label: 'Maybe', icon: 'help-circle' },
-    { key: 'not_going', label: 'Not Vibing', icon: 'x-circle' },
+    { key: 'not_going', label: 'Not Going', icon: 'x-circle' },
   ];
 
   return (
@@ -971,7 +971,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               </View>
               <Text style={{ color: textMuted, fontSize: 12, fontWeight: '700', flex: 1 }}>
                 {attendeePreview[0]?.username && `@${attendeePreview[0].username}`}
-                {attendeePreview.length > 1 && ` and ${goingCount - 1} others are vibing`}
+                {attendeePreview.length > 1 && ` and ${goingCount - 1} others locked in`}
               </Text>
               <Feather name="chevron-right" size={14} color={primary} />
             </TouchableOpacity>
@@ -993,7 +993,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               onPress={handleWhoGoing}
             >
               <Feather name="users" size={13} color={primary} />
-              <Text style={[styles.vibeCountText, { color: primary }]}>{goingCount} Vibing</Text>
+              <Text style={[styles.vibeCountText, { color: primary }]}>{goingCount} Locked In</Text>
             </TouchableOpacity>
             {isSoldOut && (
               <View style={[styles.vibePill, { backgroundColor: '#ef444420', borderColor: '#ef444440' }]}>
@@ -1007,7 +1007,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             <GlassView style={[styles.capacityCard, { backgroundColor: surface }]}>
               <View style={styles.capacityHeader}>
                 <Text style={[styles.capacityLabel, { color: textColor }]}>
-                  {goingCount} <Text style={{ color: textMuted }}>/ {capacity} Vibing</Text>
+                  {goingCount} <Text style={{ color: textMuted }}>/ {capacity} Locked In</Text>
                 </Text>
                 <Text style={[styles.spotsLeft, { color: spotsLeft < 10 ? "#ff6b6b" : primary }]}>
                   {spotsLeft} spot{spotsLeft !== 1 ? 's' : ''} left
@@ -1593,7 +1593,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
             <View style={[styles.whoGoingSheet, { backgroundColor: background }]}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text style={[styles.whoGoingTitle, { color: textColor }]}>Who's Vibing ({whoGoing.length})</Text>
+                <Text style={[styles.whoGoingTitle, { color: textColor }]}>Who's Locked In ({whoGoing.length})</Text>
                 <TouchableOpacity onPress={() => setWhoGoingVisible(false)}>
                   <Feather name="x" size={22} color={textColor} />
                 </TouchableOpacity>

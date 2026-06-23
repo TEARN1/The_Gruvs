@@ -25,7 +25,7 @@ export const VibeEquityLedger = {
     try {
       const weight = this.MULTIPLIERS[actionType] || 1.0;
 
-      const { count: totalSupply } = await supabase.from('profiles').select('vibe_equity', { count: 'exact', head: true });
+      const { count: totalSupply } = await supabase.from('profiles').select('vibe_score', { count: 'exact', head: true });
       const halvingInterval = projectDNA.sovereign_mint_params.halving_interval_equity;
       const phase = Math.floor((totalSupply || 0) / halvingInterval);
       const supplyCap = projectDNA.sovereign_mint_params.global_supply_cap;
@@ -37,14 +37,14 @@ export const VibeEquityLedger = {
 
       const scarcityFactor = 1 / Math.pow(2, phase);
 
-      const { data: profile } = await supabase.from('profiles').select('vibe_equity, social_integrity_score').eq('id', userId).single();
+      const { data: profile } = await supabase.from('profiles').select('vibe_score, social_integrity_score').eq('id', userId).single();
       const integrityEfficiency = (profile?.social_integrity_score || 50) / 100;
 
       const amount = weight * integrityEfficiency * scarcityFactor;
-      const newEquity = (profile?.vibe_equity || 0) + amount;
+      const newEquity = (profile?.vibe_score || 0) + amount;
 
       const { error: updateErr } = await supabase.from('profiles').update({
-        vibe_equity: parseFloat(newEquity.toFixed(8)),
+        vibe_score: parseFloat(newEquity.toFixed(8)),
         last_mint_at: new Date().toISOString()
       }).eq('id', userId);
       if (updateErr) throw updateErr;
@@ -62,11 +62,11 @@ export const VibeEquityLedger = {
    */
   async burnEquity(userId, amount) {
     try {
-      const { data: profile } = await supabase.from('profiles').select('vibe_equity').eq('id', userId).single();
-      if ((profile?.vibe_equity || 0) < amount) throw new Error("Insufficient Vibe-Equity.");
+      const { data: profile } = await supabase.from('profiles').select('vibe_score').eq('id', userId).single();
+      if ((profile?.vibe_score || 0) < amount) throw new Error("Insufficient Vibe Score.");
 
-      const newEquity = profile.vibe_equity - amount;
-      await supabase.from('profiles').update({ vibe_equity: newEquity }).eq('id', userId);
+      const newEquity = profile.vibe_score - amount;
+      await supabase.from('profiles').update({ vibe_score: newEquity }).eq('id', userId);
 
       return newEquity;
     } catch (e) {

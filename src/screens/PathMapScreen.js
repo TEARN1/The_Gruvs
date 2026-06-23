@@ -444,19 +444,28 @@ export const PathMapScreen = ({ visible, onClose }) => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      // Checkins joined with events
-      const { data: ciData } = await supabase
-        .from('live_checkins')
-        .select('id, user_id, event_id, checked_in_at, expires_at, events(id, title, lat, lon, city, venue_name)')
+      // Fetch upcoming RSVPs for the user (going or maybe)
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { data: rsvpData } = await supabase
+        .from('event_rsvps')
+        .select('id, user_id, status, event_id, events(id, title, lat, lon, city, venue_name, event_date, event_time)')
         .eq('user_id', user?.id)
-        .order('checked_in_at', { ascending: true });
+        .in('status', ['going', 'maybe'])
+        .gte('events.event_date', todayStr);
 
-      // Map lat/lon from event onto checkin for convenience
-      const enriched = (ciData || []).map(c => ({
-        ...c,
-        lat: c.lat ?? c.events?.lat,
-        lon: c.lon ?? c.events?.lon,
-      }));
+      // Enrich RSVPs to look like checkin pins on the map sorted chronologically
+      const enriched = (rsvpData || [])
+        .filter(r => r.events && r.events.lat != null && r.events.lon != null)
+        .map(r => ({
+          id: r.id,
+          user_id: r.user_id,
+          event_id: r.event_id,
+          checked_in_at: `${r.events.event_date}T${r.events.event_time || '00:00:00'}`,
+          lat: r.events.lat,
+          lon: r.events.lon,
+          events: r.events
+        }))
+        .sort((a, b) => new Date(a.checked_in_at) - new Date(b.checked_in_at));
       setCheckins(enriched);
 
       // Saved paths
@@ -475,7 +484,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
         .order('cross_count', { ascending: false });
       setCrossings(crossData || []);
     } catch {
-      showToast('Could not load footprint data.', 'error');
+      showToast('Could not load planned path data.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -572,8 +581,8 @@ export const PathMapScreen = ({ visible, onClose }) => {
           ]}
         >
           <View>
-            <Text style={[s.headerTitle, { color: textColor }]}>Digital Footprint</Text>
-            <Text style={[s.headerSub, { color: muted }]}>Your path through The Gruvs</Text>
+            <Text style={[s.headerTitle, { color: textColor }]}>Path Map</Text>
+            <Text style={[s.headerSub, { color: muted }]}>Forward planning — who is going where</Text>
           </View>
           <TouchableOpacity
             style={[s.closeBtn, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}
@@ -607,7 +616,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
           <View style={[s.legend, { borderColor: `${primary}12` }]}>
             <View style={s.legendItem}>
               <View style={[s.legendDot, { backgroundColor: primary, shadowColor: primary, shadowOpacity: 0.8, shadowRadius: 4 }]} />
-              <Text style={[s.legendLabel, { color: muted }]}>Check-in</Text>
+              <Text style={[s.legendLabel, { color: muted }]}>Planned Stop</Text>
             </View>
             <View style={s.legendItem}>
               <View style={s.legendDash}>
@@ -615,21 +624,21 @@ export const PathMapScreen = ({ visible, onClose }) => {
                   <View key={i} style={[s.legendDashSeg, { backgroundColor: primary }]} />
                 ))}
               </View>
-              <Text style={[s.legendLabel, { color: muted }]}>Path</Text>
+              <Text style={[s.legendLabel, { color: muted }]}>Optimal Route</Text>
             </View>
             <View style={s.legendItem}>
               <View style={[s.legendDot, { backgroundColor: "#FFD700", width: 14, height: 14, borderRadius: 7, shadowColor: "#FFD700", shadowOpacity: 0.9, shadowRadius: 6 }]} />
-              <Text style={[s.legendLabel, { color: muted }]}>Intersection</Text>
+              <Text style={[s.legendLabel, { color: muted }]}>Meeting Spot</Text>
             </View>
           </View>
 
           {/* Stats row */}
           <View style={s.statsRow}>
             {[
-              { label: 'Total Paths', value: stats.totalPaths, icon: 'navigation' },
-              { label: 'Cities', value: stats.citiesVisited, icon: 'map-pin' },
-              { label: 'Events', value: stats.eventsAttended, icon: 'calendar' },
-              { label: 'Intersections', value: stats.intersections, icon: 'git-commit' },
+              { label: 'Planned Journeys', value: stats.totalPaths, icon: 'navigation' },
+              { label: 'Cities (Planned)', value: stats.citiesVisited, icon: 'map-pin' },
+              { label: 'Events (Planned)', value: stats.eventsAttended, icon: 'calendar' },
+              { label: 'Planned Crossings', value: stats.intersections, icon: 'git-commit' },
             ].map(stat => (
               <View
                 key={stat.label}
