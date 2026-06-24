@@ -117,12 +117,14 @@ export const AuthModal = ({ visible, onClose }) => {
       return;
     }
     setError('');
-    // Send them back to a place that can complete the reset. On web that's this
-    // exact origin (AuthContext picks up the recovery token in the URL); on
-    // native we route through the production web app, which has the reset screen.
-    const redirectTo = (Platform.OS === 'web' && typeof window !== 'undefined')
-      ? window.location.origin
-      : 'https://the-gruvs-pt23.vercel.app';
+    // Send them back to a place that can complete the reset. On a deployed web
+    // origin that's this exact origin (AuthContext picks up the recovery token in
+    // the URL). On localhost dev or native, route to the production site so the
+    // link never lands on a dead localhost. Configure via EXPO_PUBLIC_SITE_URL.
+    const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL || 'https://the-gruvs-pt23.vercel.app';
+    const onWeb = Platform.OS === 'web' && typeof window !== 'undefined';
+    const isLocalhost = onWeb && /^https?:\/\/(localhost|127\.0\.0\.1)/.test(window.location.origin);
+    const redirectTo = onWeb && !isLocalhost ? window.location.origin : SITE_URL;
     try {
       await supabase.auth.resetPasswordForEmail(trimmedEmail, { redirectTo });
     } catch { /* always show the same message — no account enumeration */ }
