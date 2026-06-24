@@ -6,7 +6,7 @@
 
 ---
 
-## ✅ Progress — ~22 / 300 shipped (built, wired, tested where logic-bearing)
+## ✅ Progress — ~31 / 300 shipped (built, wired, tested where logic-bearing)
 
 Built by *theme* (the verified-presence spine), not in number order — so the
 loop is coherent (discover → decide → show up → spread → reckon) before it's
@@ -14,14 +14,20 @@ broad. Each below has a real shipped surface; ⚠️ = partial / foundation only
 
 - **§1 Heart:** ✅ #2 live "N here now" · ✅ #3 verified vs interested split · ✅ #14 buzz-vs-reality gap (realness score)
 - **§2 Discovery:** ✅ #17 always show *why* (Crew badge + heat pill)
-- **§3 Lineup:** ✅ #31 live heat-ranked board (LineupRail) · ✅ #33 heat is the sort
+- **§3 Lineup:** ✅ #31 live heat-ranked board (LineupRail) · ✅ #33 heat is the sort · ✅ #39 "heating up"/"filling fast" pills
+- **§4 Crew:** ✅ #41 Touch Down streak (consecutive weekends)
 - **§5 Crossed Paths:** ✅ #56 deliberate, ranked most→least · ⚠️ #60 Who-Was-There (modal exists)
 - **§7 Identity:** ✅ #85 Public/Ghost/Incognito modes · ✅ #86 Celebrity→Incognito rename
-- **§8 Gamification:** ✅ #98 tiers + Legend · ✅ #99 trust earned-only / cosmetics earn-or-buy · ✅ #100 Vibe Passport · ✅ #102 Pioneer/Globetrotter badges · ✅ #106 unlock-by-leveling · ✅ #110 "next unlock" hint · ✅ #112 collect-by-presence
-- **§13 Retention:** ⚠️ #183 "your Crew is out" (in-app digest; push pending) · ⚠️ #190 Memories "on this day" (surface; nudge pending)
+- **§8 Gamification:** ✅ #98 tiers + Legend · ✅ #99 trust earned-only / cosmetics earn-or-buy · ✅ #100 Vibe Passport · ✅ #101 streaks that high-five · ✅ #102 Pioneer/Globetrotter badges · ✅ #103 Nightlife Wrapped · ✅ #106 unlock-by-leveling · ✅ #110 "next unlock" hint · ✅ #112 collect-by-presence · ✅ #115 "you leveled the scene up"
+- **§10 Safety:** ✅ #150 visible Safety hub (Academy lesson) · ✅ #152 women's-safety legibility
+- **§13 Retention:** ✅ #184 "heating up — N here now" pill · ⚠️ #183 "your Crew is out" (in-app digest; push pending) · ⚠️ #190 Memories "on this day" (surface; nudge pending)
 - **§14 Business:** ⚠️ #211 verified foot-traffic (per-event recap — show rate vs RSVP)
 - **§16 Brand:** ✅ #232 hype the real, never fake (the whole legibility layer)
+- **§18 Accessibility:** ✅ #264 colour-blind-safe status (never colour-only) · ✅ #271 screen-reader status labels (StatusDot)
 - **§20 Growth:** ✅ #283 value-carrying invites (real signals in every share) · ✅ #297 own the Truth Protocol ("verified, not claimed")
+
+Plus a deep **creator-monetization review** (`creator_monetization_plan.md` §7)
++ `giftEconomics.js` transparent-split util (the §9 gift economy, de-risked).
 
 **Gated on you:** ~30 more become *live* once `schema_part_4.sql` runs on
 Supabase (these read verified-presence tables and currently degrade to hidden).
