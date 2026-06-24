@@ -73,6 +73,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [audLanguages, setAudLanguages] = useState([]);
   const [audClans, setAudClans] = useState('');           // comma-separated free text
   const [audSurnames, setAudSurnames] = useState('');
+  const [audCareers, setAudCareers] = useState('');       // professions, comma-separated
   const [audVillages, setAudVillages] = useState('');
   const [audRadiusKm, setAudRadiusKm] = useState(0);      // 0 = anywhere
   const [audMatchAll, setAudMatchAll] = useState(false);  // false = ANY (OR), true = ALL (AND)
@@ -154,7 +155,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     setContactPhone(''); setContactEmail('');
     setLat(null); setLon(null);
     setAgeMin(0); setAgeMax(0); setSelectedCategories([]); setMediaItems([]);
-    setAudGenders([]); setAudTags([]); setAudLanguages([]); setAudClans(''); setAudSurnames('');
+    setAudGenders([]); setAudTags([]); setAudLanguages([]); setAudClans(''); setAudSurnames(''); setAudCareers('');
     setAudVillages(''); setAudRadiusKm(0); setAudMatchAll(false); setShowTargeting(false);
     setEndHour(null); setEndMinute(null); setEndTimeSet(false); setEndTimePickerVisible(false);
     setScheduleItems([]); setScheduleFormVisible(false);
@@ -420,6 +421,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (audLanguages.length) audience.languages = audLanguages;
     if (csv(audClans).length) audience.clans = csv(audClans);
     if (csv(audSurnames).length) audience.surnames = csv(audSurnames);
+    if (csv(audCareers).length) audience.careers = csv(audCareers);
     if (csv(audVillages).length) audience.villages = csv(audVillages);
     if (audRadiusKm > 0) audience.radius_km = audRadiusKm;
     if (Object.keys(audience).length) {
@@ -599,6 +601,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (audLanguages.length) a.languages = audLanguages;
     if (csv(audClans).length) a.clans = csv(audClans);
     if (csv(audSurnames).length) a.surnames = csv(audSurnames);
+    if (csv(audCareers).length) a.careers = csv(audCareers);
     if (csv(audVillages).length) a.villages = csv(audVillages);
     if (audRadiusKm > 0) a.radius_km = audRadiusKm;
     return a;
@@ -1437,6 +1440,14 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                         placeholderTextColor={muted}
                         value={audSurnames}
                         onChangeText={setAudSurnames}
+                      />
+                      <Text style={[pm.label, { color: muted }]}>Professions — invite by career</Text>
+                      <TextInput
+                        style={[pm.input, { color: textColor, borderColor: `${primary}35`, marginBottom: 12 }]}
+                        placeholder="e.g. Model, DJ, Event Planner (comma-separated)"
+                        placeholderTextColor={muted}
+                        value={audCareers}
+                        onChangeText={setAudCareers}
                       />
                       <Text style={[pm.label, { color: muted }]}>Home village / area</Text>
                       <TextInput

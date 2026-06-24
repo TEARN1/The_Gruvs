@@ -675,6 +675,7 @@ export async function routeTargetedEvent(eventId, audience, eventGeo = {}, cap =
     langs:    lcArr(audience.languages),
     tags:     Array.isArray(audience.community_tags) ? audience.community_tags : [],
     radiusKm: audience.radius_km > 0 ? audience.radius_km : null,
+    careers:  lcArr(audience.careers), // e.g. ['model','dj','event planner']
   };
   const activeFilters = [
     f.ageMin || f.ageMax ? 'age' : null,
@@ -686,6 +687,7 @@ export async function routeTargetedEvent(eventId, audience, eventGeo = {}, cap =
     f.langs.length ? 'lang' : null,
     f.tags.length ? 'tags' : null,
     f.radiusKm ? 'radius' : null,
+    f.careers.length ? 'career' : null,
   ].filter(Boolean);
   if (!activeFilters.length) return 0; // nothing to target
 
@@ -694,7 +696,7 @@ export async function routeTargetedEvent(eventId, audience, eventGeo = {}, cap =
     // cheap. is_discoverable respects the user's own privacy switch.
     const { data: people } = await supabase
       .from('profiles')
-      .select('id, gender, birth_year, clan_name, surname, home_village, city, languages, community_tags, lat, lon, is_discoverable')
+      .select('id, gender, birth_year, clan_name, surname, home_village, city, languages, community_tags, career_title, lat, lon, is_discoverable')
       .eq('is_discoverable', true)
       .limit(20000);
 
@@ -713,6 +715,11 @@ export async function routeTargetedEvent(eventId, audience, eventGeo = {}, cap =
       if (f.cities.length)   checks.push(f.cities.includes(lc(p.city)));
       if (f.langs.length)    checks.push((p.languages || []).some((l) => f.langs.includes(lc(l))));
       if (f.tags.length)     checks.push((p.community_tags || []).some((t) => f.tags.includes(t)));
+      if (f.careers.length) {
+        const ct = lc(p.career_title);
+        // substring match — host targets "model" → matches "fashion model"
+        checks.push(!!ct && f.careers.some((c) => ct.includes(c) || c.includes(ct)));
+      }
       if (f.radiusKm) {
         const ok = eventGeo.lat && eventGeo.lon && p.lat && p.lon &&
           haversineKm(eventGeo.lat, eventGeo.lon, p.lat, p.lon) <= f.radiusKm;
@@ -748,7 +755,7 @@ function describeTargetReason(active) {
   const names = {
     age: 'your age group', gender: 'you', clan: 'your clan', surname: 'your family name',
     village: 'your home area', city: 'your city', lang: 'your language',
-    tags: 'your community', radius: 'nearby you',
+    tags: 'your community', radius: 'nearby you', career: 'your profession',
   };
   const picked = active.map((k) => names[k]).filter(Boolean);
   return picked.length ? picked.slice(0, 2).join(' & ') : 'a match';
