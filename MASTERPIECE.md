@@ -4,6 +4,30 @@
 > honestly extend verified real-world presence?* On-thesis first, never
 > attention-farming. Build order is yours — this is the menu, not the order.
 
+---
+
+## ✅ Progress — ~22 / 300 shipped (built, wired, tested where logic-bearing)
+
+Built by *theme* (the verified-presence spine), not in number order — so the
+loop is coherent (discover → decide → show up → spread → reckon) before it's
+broad. Each below has a real shipped surface; ⚠️ = partial / foundation only.
+
+- **§1 Heart:** ✅ #2 live "N here now" · ✅ #3 verified vs interested split · ✅ #14 buzz-vs-reality gap (realness score)
+- **§2 Discovery:** ✅ #17 always show *why* (Crew badge + heat pill)
+- **§3 Lineup:** ✅ #31 live heat-ranked board (LineupRail) · ✅ #33 heat is the sort
+- **§5 Crossed Paths:** ✅ #56 deliberate, ranked most→least · ⚠️ #60 Who-Was-There (modal exists)
+- **§7 Identity:** ✅ #85 Public/Ghost/Incognito modes · ✅ #86 Celebrity→Incognito rename
+- **§8 Gamification:** ✅ #98 tiers + Legend · ✅ #99 trust earned-only / cosmetics earn-or-buy · ✅ #100 Vibe Passport · ✅ #102 Pioneer/Globetrotter badges · ✅ #106 unlock-by-leveling · ✅ #110 "next unlock" hint · ✅ #112 collect-by-presence
+- **§13 Retention:** ⚠️ #183 "your Crew is out" (in-app digest; push pending) · ⚠️ #190 Memories "on this day" (surface; nudge pending)
+- **§14 Business:** ⚠️ #211 verified foot-traffic (per-event recap — show rate vs RSVP)
+- **§16 Brand:** ✅ #232 hype the real, never fake (the whole legibility layer)
+- **§20 Growth:** ✅ #283 value-carrying invites (real signals in every share) · ✅ #297 own the Truth Protocol ("verified, not claimed")
+
+**Gated on you:** ~30 more become *live* once `schema_part_4.sql` runs on
+Supabase (these read verified-presence tables and currently degrade to hidden).
+
+---
+
 ## ⚠️ Read first — the SMART way to handle "men, women, kids"
 The naive version ("show men X, women Y") is a **trap** — it's stereotyping, it's
 legally risky (discrimination), and it's reductive. The masterpiece way:
