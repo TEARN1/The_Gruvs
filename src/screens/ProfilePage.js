@@ -49,6 +49,7 @@ import { AchievementBadges } from '../components/AchievementBadges';
 import { VibePassportCard } from '../components/VibePassportCard';
 import { MemoriesCard } from '../components/MemoriesCard';
 import { StreakCard } from '../components/StreakCard';
+import { WrappedCard } from '../components/WrappedCard';
 import { UnlockMenuCard } from '../components/UnlockMenuCard';
 import { StreakBadges } from '../components/StreakBadges';
 import { ReferralCard } from '../components/ReferralCard';
@@ -2618,6 +2619,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         {user && (
           <ErrorBoundary inline label="Streak" primary={primary}>
             <StreakCard userId={user.id} />
+          </ErrorBoundary>
+        )}
+
+        {user && (
+          <ErrorBoundary inline label="Wrapped" primary={primary}>
+            <WrappedCard userId={user.id} />
           </ErrorBoundary>
         )}
 
