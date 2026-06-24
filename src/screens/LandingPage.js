@@ -38,6 +38,8 @@ import { CommunityStatsBar } from '../components/CommunityStatsBar';
 import { TonightAlert } from '../components/TonightAlert';
 import { StoriesRow } from '../components/StoriesRow';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
+import { CrewOutCard } from '../components/CrewOutCard';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
@@ -1725,6 +1727,21 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       <StoriesRow onAuthRequired={onAuthRequired} />
 
       <CommunityStatsBar />
+
+      {!!user && (
+        <ErrorBoundary inline label="Crew out now">
+          <CrewOutCard
+            userId={user.id}
+            onEventPress={async (ev) => {
+              if (!ev?.id) return;
+              const local = events.find(e => e.id === ev.id);
+              if (local) { setSelectedEvent(local); return; }
+              const { data } = await supabase.from('events').select('*').eq('id', ev.id).maybeSingle();
+              if (data) setSelectedEvent(data);
+            }}
+          />
+        </ErrorBoundary>
+      )}
 
       {!!user && (
         <FriendActivityFeed
