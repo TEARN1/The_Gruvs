@@ -1740,7 +1740,8 @@ export const CheckInManager = {
           crossings:    Number(r.crossings) || 0,
           venues:       Array.isArray(r.venues) ? r.venues.filter(Boolean).slice(0, 4) : [],
           lastCrossedAt: r.last_crossed_at,
-        })).filter(r => !blocked.has(r.id));
+          // Ghosts are uncrossable — filter client-side too, in case the RPC doesn't.
+        })).filter(r => !blocked.has(r.id) && r.identity_mode !== 'ghost');
       }
     } catch { /* fall through to client-side aggregation */ }
 
