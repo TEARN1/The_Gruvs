@@ -206,6 +206,45 @@ export const TUTORIALS = [
     ],
   },
 
+  {
+    id: 'your_safety',
+    title: 'Your Safety, Your Rules',
+    category: 'Safety & Trust',
+    icon: 'shield',
+    color: '#10b981',
+    duration: '2 min',
+    steps: [
+      {
+        icon: 'message-circle',
+        title: 'No cold messages',
+        body: "Strangers can't slide into your DMs. You can only be messaged by people you follow back — your Crew. No unsolicited messages, ever. You're never the target of someone you didn't choose.",
+        tip: 'Follow back to open a chat. Don’t, and they simply can’t reach you.',
+        visual: 'three_locked',
+      },
+      {
+        icon: 'user-x',
+        title: 'Block means gone',
+        body: "Block someone and you both vanish from each other — everywhere, both ways. They can't see you, find you, or cross paths with you, and they're never told you blocked them.",
+        tip: 'Blocking is silent and instant. No confrontation, no notification.',
+        visual: 'checkin',
+      },
+      {
+        icon: 'eye-off',
+        title: 'Be seen on your terms',
+        body: "Ghost mode lets you still count toward a crowd while staying invisible — you’re part of the night but uncrossable. And Crossed Paths is one-tap off whenever you want to disappear from it.",
+        tip: 'Visibility is a dial you control, not a default that controls you.',
+        visual: 'three_here',
+      },
+      {
+        icon: 'flag',
+        title: 'One tap to flag it',
+        body: "Anything off? Report it in one tap from any screen — reports are trust-weighted and dodgy content auto-hides fast. Every Gruv is 18+ at the door, and safe rides home go through your Crew, never strangers.",
+        tip: 'The more trusted your account, the more your report weighs.',
+        visual: 'three_vibe',
+      },
+    ],
+  },
+
   // ── Scout & Discover ────────────────────────────────────────────────────────
   {
     id: 'explore',
@@ -859,18 +898,28 @@ export const TUTORIAL_CATEGORIES = [
 const TutorialContext = createContext(null);
 
 export const TutorialProvider = ({ children }) => {
-  const [completed, setCompleted] = useState([]);
+  const [completed, setCompleted] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const isE2E = window.navigator.webdriver || window.__E2E__;
+      if (isE2E) return ['welcome'];
+    }
+    return [];
+  });
   const [activeTutorial, setActive] = useState(null);
-  const [hasLaunched, setHasLaunched] = useState(false);
+  const [hasLaunched, setHasLaunched] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const isE2E = window.navigator.webdriver || window.__E2E__;
+      if (isE2E) return true;
+    }
+    return false;
+  });
 
   useEffect(() => {
     (async () => {
       try {
-        const isE2E = typeof window !== 'undefined' && window.navigator.webdriver;
-        if (isE2E) {
-          setCompleted(['welcome']);
-          setHasLaunched(true);
-          return;
+        if (typeof window !== 'undefined') {
+          const isE2E = window.navigator.webdriver || window.__E2E__;
+          if (isE2E) return;
         }
         if (!AsyncStorage) return;
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
