@@ -16,6 +16,7 @@ import { AnimatedCounter } from '../components/Motion';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 import { StagePlaybookModal } from '../components/StagePlaybookModal';
+import { GiftBoostModal } from '../components/GiftBoostModal';
 import { SurveyBuilderModal } from '../components/SurveyBuilderModal';
 import { AttendanceAnalyticsPanel } from '../components/AttendanceAnalyticsPanel';
 import { CampaignManager, EcosystemManager, NotificationManager } from '../services/dataFlow';
@@ -401,6 +402,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [showCampaignBuilder, setShowCampaignBuilder] = useState(false);
   const [showStagePlaybook, setShowStagePlaybook] = useState(false);
+  const [showGiftBoost, setShowGiftBoost] = useState(false);
   const [showSurveyBuilder, setShowSurveyBuilder] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [activeCampaignFilter, setActiveCampaignFilter] = useState('All'); // New state for filtering missions/promotions
@@ -778,6 +780,19 @@ export const BusinessDashboardScreen = ({ onClose }) => {
             <Feather name="chevron-right" size={18} color={primary} />
           </TouchableOpacity>
 
+          {/* Gift Boost — redeem a tiered gift to unlock wider promo reach */}
+          <TouchableOpacity onPress={() => setShowGiftBoost(true)} activeOpacity={0.85}
+            style={[sc.playbookCta, { borderColor: `${primary}40`, backgroundColor: `${primary}0E` }]}>
+            <View style={[sc.playbookIcon, { backgroundColor: `${primary}1A`, borderColor: `${primary}40` }]}>
+              <Feather name="gift" size={16} color={primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[sc.playbookTitle, { color: textColor }]}>Boost reach with a gift</Text>
+              <Text style={[sc.playbookSub, { color: muted }]}>Redeem a gift to unlock wider reach — priced by how far you want to go.</Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={primary} />
+          </TouchableOpacity>
+
           {campaigns.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Feather name="target" size={36} color={muted} />
@@ -1120,6 +1135,9 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         bg={bg}
         surface={surface}
       />
+
+      {/* Gift Boost — redeem tiered gifts for advertising reach */}
+      <GiftBoostModal visible={showGiftBoost} onClose={() => setShowGiftBoost(false)} />
 
       {/* Drip Survey Builder */}
       <SurveyBuilderModal

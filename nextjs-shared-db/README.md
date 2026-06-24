@@ -12,9 +12,12 @@ In your Supabase dashboard → SQL Editor, run:
 Create `.env.local` in your Next.js project root:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://feevvddvrjmfbhffccbf.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlZXZ2ZGR2cmptZmJoZmZjY2JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2OTEwNTAsImV4cCI6MjA4ODI2NzA1MH0.CvZRz05orvSEeaawwponcjpZypX3CePBny6zsgmc4bU
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
+
+> Copy both values from Supabase → Project Settings → API. Don't paste real keys
+> into committed files — keep them in `.env.local` (which is gitignored).
 
 ## 3. Install Supabase in your Next.js project
 
