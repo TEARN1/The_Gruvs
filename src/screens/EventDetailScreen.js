@@ -63,6 +63,7 @@ import { MatchPredictionCard }    from '../components/MatchPredictionCard';
 import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
 import { useBackClose } from '../hooks/useBackClose';
 import { realnessScore } from '../utils/realness';
+import { buildShareText } from '../utils/shareText';
 import { money } from '../constants/currencies';
 
 const _isSportCat = (cat) => {
@@ -532,9 +533,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   const handleShare = async () => {
     try {
-      const eventUrl = `https://thegruvs.app?event=${event?.id}`;
-      const freeTag = (!event?.price || event?.price === 0 || event?.price === 'FREE') ? '\n🆓 FREE entry' : (event?.price ? `\n🎟 ${money(event.price)}` : '');
-      const shareText = `🎉 ${event?.title || 'Check out this Gruv'}\n📅 ${formatDate(event?.event_date)}${event?.venue_name ? `\n📍 ${event.venue_name}` : ''}${freeTag}\n\nDownload The Gruvs 👉 ${eventUrl}`;
+      // carry the LIVE Truth-Protocol signals (here now / locked in) into the share
+      const shareText = buildShareText({ ...event, here_count: hereCount, going: goingCount });
       await Share.share({ message: shareText, title: event?.title });
     } catch { }
   };
