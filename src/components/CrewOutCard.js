@@ -11,6 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from './GlassView';
+import { StatusDot } from './StatusDot';
 import { summarizeCrewOut } from '../utils/crewOut';
 
 const WINDOW_MS = 6 * 60 * 60 * 1000;
@@ -69,7 +70,7 @@ export function CrewOutCard({ userId, onEventPress }) {
   return (
     <GlassView style={[s.wrap, { borderColor: 'rgba(16,185,129,0.3)' }]}>
       <View style={s.header}>
-        <View style={s.liveDot} />
+        <StatusDot status="live" size={8} />
         <Text style={[s.title, { color: textColor }]}>{headline}</Text>
       </View>
 
@@ -98,7 +99,6 @@ export function CrewOutCard({ userId, onEventPress }) {
 const s = StyleSheet.create({
   wrap: { marginHorizontal: 16, marginBottom: 14, borderRadius: 20, padding: 16, borderWidth: 1 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' },
   title: { fontSize: 14, fontWeight: '900', flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 9 },
   avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.08)' },

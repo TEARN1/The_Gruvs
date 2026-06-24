@@ -9,6 +9,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from './GlassView';
+import { StatusDot } from './StatusDot';
 import { rankByHeat } from '../utils/heatScore';
 
 const MEDAL = ['#FFD700', '#C0C0C0', '#CD7F32']; // gold / silver / bronze
@@ -46,7 +47,7 @@ export function LineupRail({ events = [], onEventPress, limit = 5 }) {
               {e.title || 'Untitled Gruv'}
             </Text>
             <View style={s.signalWrap}>
-              {here > 0 && <View style={[s.dot, { backgroundColor: '#10b981' }]} />}
+              {here > 0 && <StatusDot status="live" size={6} />}
               <Text style={[s.signal, { color: here > 0 ? '#10b981' : muted }]} numberOfLines={1}>
                 {signal}
               </Text>
@@ -67,6 +68,5 @@ const s = StyleSheet.create({
   rank: { fontSize: 15, fontWeight: '900', width: 18, textAlign: 'center' },
   name: { fontSize: 13, fontWeight: '700', flex: 1 },
   signalWrap: { flexDirection: 'row', alignItems: 'center', gap: 5, maxWidth: 96 },
-  dot: { width: 6, height: 6, borderRadius: 3 },
   signal: { fontSize: 11, fontWeight: '800' },
 });
