@@ -239,7 +239,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     setLoading(true);
     try {
       const [profileRes, eventsRes, followersRes, followingRes, isFollowingRes, mutualRes] = await Promise.allSettled([
-        supabase.from('profiles').select('id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, career_title, looks_description, interests, location, show_online').eq('id', uid).single(),
+        supabase.from('profiles').select('id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, career_title, looks_description, interests, location, show_online, share_events').eq('id', uid).single(),
         supabase.from('events').select('id,title,media,media_urls,event_date,venue_name,category,category_color,vibe_count').eq('author_id', uid).order('created_at', { ascending: false }).limit(10),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', uid),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', uid),
@@ -273,7 +273,11 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       setBirthdayToday(false);
       supabase.from('profiles').select('birth_date').eq('id', uid).maybeSingle()
         .then(({ data }) => setBirthdayToday(isBirthdayToday(data?.birth_date)), () => {});
-      if (eventsRes.status === 'fulfilled') setEvents(eventsRes.value.data || []);
+      // Honour an explicit "Share events" opt-out — hide events from others when
+      // they've turned it off (null/untouched still shows, to avoid a mass regression).
+      const prof = profileRes.status === 'fulfilled' ? profileRes.value.data : propUser;
+      const eventsHidden = !isOwnProfile && prof?.share_events === false;
+      if (eventsRes.status === 'fulfilled') setEvents(eventsHidden ? [] : (eventsRes.value.data || []));
       if (followersRes.status === 'fulfilled') setFollowerCount(followersRes.value.count || 0);
       if (followingRes.status === 'fulfilled') setFollowingCount(followingRes.value.count || 0);
       const following = isFollowingRes.status === 'fulfilled' && !!isFollowingRes.value.data;
