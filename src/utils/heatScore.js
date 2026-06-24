@@ -26,6 +26,22 @@ export function heatScore(event, now = Date.now()) {
   return here * 10 + Math.log1p(Math.max(0, buzz)) * 8 + imminence;
 }
 
+/**
+ * A short, honest heat label for a single card. Leads with VERIFIED presence
+ * ("N here now", live) — the only unfakeable signal — and only falls back to
+ * intent language ("Filling fast") for strong RSVP counts. Never overclaims;
+ * returns null when there's no real signal, so the pill is never a dead zero.
+ */
+export function heatLabel(event) {
+  if (!event) return null;
+  const here = Number(event.here_count ?? event.touchdown_count ?? 0);
+  if (here > 0) return { text: `${here} here now`, live: true };
+  const going = Number(event.going) || 0;
+  if (going >= 20) return { text: 'Filling fast', live: false };
+  if (going >= 8)  return { text: 'Catching on', live: false };
+  return null;
+}
+
 /** Rank a list of Gruvs by heat (hottest first); drops finished events. */
 export function rankByHeat(events = [], now = Date.now()) {
   return (Array.isArray(events) ? events : [])

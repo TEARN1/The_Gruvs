@@ -22,6 +22,7 @@ import { SafeSection } from '../components/SafeSection';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { buildShareText } from '../utils/shareText';
+import { heatLabel } from '../utils/heatScore';
 import { filterByViewerAge } from '../utils/contentAgeRating';
 import { loadViewerAge, viewerAgeSync } from '../utils/viewerAge';
 import { SecurityService } from '../services/securityService';
@@ -291,6 +292,7 @@ const EventCard = React.memo(({
     return days > 0 ? `${days}d ${hrs}h` : `${hrs}h away`;
   };
   const countdown = getCountdown(event.event_date);
+  const heat = heatLabel(event); // honest: verified presence first, null when no real signal
   const isWeb = Platform.OS === 'web';
   const cardDate = event.event_date
     ? new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -507,6 +509,23 @@ const EventCard = React.memo(({
                 <Feather name="users" size={11} color={primary} />
                 <Text style={[styles.crewBadgeText, { color: primary }]}>
                   {crewCount} {crewCount === 1 ? 'person' : 'people'} you follow {crewCount === 1 ? 'is' : 'are'} going
+                </Text>
+              </View>
+            )}
+
+            {/* Heat pill — verified presence leads (live green), else honest intent */}
+            {heat && (
+              <View style={[
+                styles.crewBadge,
+                heat.live
+                  ? { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.4)' }
+                  : { backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.35)' },
+              ]}>
+                {heat.live
+                  ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' }} />
+                  : <Feather name="trending-up" size={11} color="#f59e0b" />}
+                <Text style={[styles.crewBadgeText, { color: heat.live ? '#10b981' : '#f59e0b' }]}>
+                  {heat.live ? `🔥 ${heat.text}` : heat.text}
                 </Text>
               </View>
             )}

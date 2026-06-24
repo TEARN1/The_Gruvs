@@ -1,4 +1,4 @@
-import { heatScore, rankByHeat } from '../src/utils/heatScore';
+import { heatScore, rankByHeat, heatLabel } from '../src/utils/heatScore';
 
 const NOW = Date.parse('2026-06-23T20:00:00Z');
 const ev = (over) => ({ event_date: '2026-06-23', event_time: '22:00', ...over });
@@ -34,5 +34,21 @@ describe('heatScore — Lineup heat', () => {
     expect(heatScore(null)).toBe(0);
     expect(rankByHeat(null, NOW)).toEqual([]);
     expect(rankByHeat([null, {}], NOW).length).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('heatLabel — honest single-card pill', () => {
+  it('leads with verified presence and flags it live', () => {
+    expect(heatLabel({ here_count: 7, going: 100 })).toEqual({ text: '7 here now', live: true });
+  });
+
+  it('falls back to intent language (never presence) when no one is verified-there', () => {
+    expect(heatLabel({ going: 30 })).toEqual({ text: 'Filling fast', live: false });
+    expect(heatLabel({ going: 10 })).toEqual({ text: 'Catching on', live: false });
+  });
+
+  it('returns null when there is no real signal — never a dead zero', () => {
+    expect(heatLabel({ going: 0, here_count: 0 })).toBeNull();
+    expect(heatLabel(null)).toBeNull();
   });
 });
