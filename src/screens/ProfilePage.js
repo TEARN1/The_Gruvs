@@ -46,6 +46,7 @@ import { BiometricAuth, RichHaptics } from '../services/smartphoneFeatures';
 import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
 import { AchievementBadges } from '../components/AchievementBadges';
+import { VibePassportCard } from '../components/VibePassportCard';
 import { StreakBadges } from '../components/StreakBadges';
 import { ReferralCard } from '../components/ReferralCard';
 import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
@@ -2570,6 +2571,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
             <AchievementBadges userId={user.id} primary={primary} muted={muted} textColor={textColor} />
           </View>
+        )}
+
+        {user && (
+          <ErrorBoundary inline label="Vibe Passport" primary={primary}>
+            <VibePassportCard userId={user.id} />
+          </ErrorBoundary>
         )}
 
         {user && (
