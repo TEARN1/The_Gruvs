@@ -18,6 +18,7 @@ import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
 import { supabase } from '../services/supabase';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SmartImage } from '../components/SmartImage';
+import { LineupRail } from '../components/LineupRail';
 
 const { width } = Dimensions.get('window');
 const CELL = Math.floor((width - 32) / 7);
@@ -736,6 +737,13 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
               />
             </GlassView>
           </FadeInView>
+        )}
+
+        {/* The Lineup — honest heat leaderboard (verified presence > buzz > soon) */}
+        {!loading && upcomingEvents.length > 1 && (
+          <ErrorBoundary inline label="The Lineup">
+            <LineupRail events={upcomingEvents} onEventPress={onNavigateToEvent} />
+          </ErrorBoundary>
         )}
 
         {/* Month stats */}
