@@ -48,6 +48,7 @@ import { uploadToStorage } from '../services/storageService';
 import { AchievementBadges } from '../components/AchievementBadges';
 import { VibePassportCard } from '../components/VibePassportCard';
 import { MemoriesCard } from '../components/MemoriesCard';
+import { StreakCard } from '../components/StreakCard';
 import { UnlockMenuCard } from '../components/UnlockMenuCard';
 import { StreakBadges } from '../components/StreakBadges';
 import { ReferralCard } from '../components/ReferralCard';
@@ -63,6 +64,7 @@ import { LeaderboardScreen }       from './LeaderboardScreen';
 import { PathMapScreen }           from './PathMapScreen';
 import { BusinessDashboardScreen } from './BusinessDashboardScreen';
 import { WalletScreen }            from './WalletScreen';
+import { MonetizationService }     from '../services/monetizationService';
 import { ProviderDashboardScreen } from './ProviderDashboardScreen';
 import { TutorialCenter }          from '../components/TutorialCenter';
 import { WhoWasThereModal }        from '../components/WhoWasThereModal';
@@ -310,6 +312,11 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
       // home_village / community_tags / languages — targeting self-tags, also fetched separately.
       supabase.from('profiles').select('home_village, community_tags, languages').eq('id', user.id).maybeSingle()
         .then(({ data: t }) => { if (t) { setHomeVillage(t.home_village || ''); setCommunityTags(t.community_tags || []); setLanguages(t.languages || []); } }, () => {});
+      
+      // Fetch monetization balances
+      MonetizationService.getCoinBalance(user.id).then(setCoins).catch(() => {});
+      MonetizationService.getDiamondBalance(user.id).then(setDiamonds).catch(() => {});
+
       if (data) {
         setBio(data.bio || '');
         setLocation(data.location || '');
@@ -1694,6 +1701,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [whoWasThereVisible, setWhoWasThereVisible] = useState(false);
   const [crossedPathsVisible, setCrossedPathsVisible] = useState(false);
   const [walletVisible, setWalletVisible] = useState(false);
+  const [coins, setCoins] = useState(0);
+  const [diamonds, setDiamonds] = useState(0);
   const [ticketsVisible, setTicketsVisible] = useState(false);
   const [providerDashVisible, setProviderDashVisible] = useState(false);
   const [vibeCoachData, setVibeCoachData]   = useState(null);
@@ -2525,6 +2534,37 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <VibeLevel score={vibeScore} primary={primary} muted={muted} textColor={textColor} />
         </View>
 
+        {/* Gifting Wallet card */}
+        {user && (
+          <View style={{ paddingHorizontal: 16, marginTop: 12, marginBottom: 12 }}>
+            <GlassView style={{ padding: 16, borderRadius: 20, borderWidth: 1, borderColor: `${primary}20`, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-around' }}>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ color: muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Coins</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                    <Feather name="database" size={14} color={primary} style={{ marginRight: 4 }} />
+                    <Text style={{ color: textColor, fontSize: 16, fontWeight: '900' }}>{coins}</Text>
+                  </View>
+                </View>
+                <View style={{ width: 1, backgroundColor: `${primary}20`, height: 28 }} />
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ color: muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Diamonds</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                    <MaterialCommunityIcons name="diamond-stone" size={14} color="#ff00a0" style={{ marginRight: 4 }} />
+                    <Text style={{ color: textColor, fontSize: 16, fontWeight: '900' }}>{diamonds.toFixed(1)}</Text>
+                  </View>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={{ backgroundColor: primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginLeft: 12 }}
+                onPress={() => setWalletVisible(true)}
+              >
+                <Text style={{ color: '#000', fontWeight: '900', fontSize: 11 }}>MANAGE</Text>
+              </TouchableOpacity>
+            </GlassView>
+          </View>
+        )}
+
         {/* XP Level bar */}
         {user && (() => {
           const xp = profile?.xp || 0;
@@ -2573,6 +2613,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
             <AchievementBadges userId={user.id} primary={primary} muted={muted} textColor={textColor} />
           </View>
+        )}
+
+        {user && (
+          <ErrorBoundary inline label="Streak" primary={primary}>
+            <StreakCard userId={user.id} />
+          </ErrorBoundary>
         )}
 
         {user && (
@@ -3106,7 +3152,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         <SafeSection label="Wallet" primary={primary}>
           <WalletScreen
             visible={walletVisible}
-            onClose={() => setWalletVisible(false)}
+            onClose={() => {
+              setWalletVisible(false);
+              refreshProfile();
+            }}
           />
         </SafeSection>
       )}
