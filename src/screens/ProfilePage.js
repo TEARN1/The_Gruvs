@@ -48,6 +48,7 @@ import { uploadToStorage } from '../services/storageService';
 import { AchievementBadges } from '../components/AchievementBadges';
 import { VibePassportCard } from '../components/VibePassportCard';
 import { MemoriesCard } from '../components/MemoriesCard';
+import { UnlockMenuCard } from '../components/UnlockMenuCard';
 import { StreakBadges } from '../components/StreakBadges';
 import { ReferralCard } from '../components/ReferralCard';
 import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
@@ -2583,6 +2584,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         {user && (
           <ErrorBoundary inline label="Vibe Passport" primary={primary}>
             <VibePassportCard userId={user.id} />
+          </ErrorBoundary>
+        )}
+
+        {user && (
+          <ErrorBoundary inline label="Your Powers" primary={primary}>
+            <UnlockMenuCard score={profile?.vibe_score || 0} />
           </ErrorBoundary>
         )}
 
