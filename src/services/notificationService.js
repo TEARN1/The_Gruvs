@@ -40,9 +40,47 @@ export const NotificationService = {
     }
   },
 
+  // ── Web push (browser Notification API) ───────────────────────────────────────
+  // Native push needs Expo tokens; the web needs the browser's own Notification
+  // permission. This makes the toggle actually work on web and delivers real
+  // browser notifications while the app is open (background-tab included). Full
+  // closed-tab push needs a service worker + VAPID — see registerWebPush notes.
+  async registerWebPush() {
+    try {
+      if (typeof window === 'undefined' || typeof Notification === 'undefined') return null;
+      let perm = Notification.permission;
+      if (perm === 'default') perm = await Notification.requestPermission();
+      if (perm !== 'granted') return null;
+      try { window.localStorage.setItem('gruvs_web_push', '1'); } catch {}
+      return 'web-push-on';
+    } catch { return null; }
+  },
+
+  isWebPushEnabled() {
+    try {
+      return Platform.OS === 'web'
+        && typeof Notification !== 'undefined'
+        && Notification.permission === 'granted'
+        && window.localStorage.getItem('gruvs_web_push') === '1';
+    } catch { return false; }
+  },
+
+  disableWebPush() {
+    try { window.localStorage.removeItem('gruvs_web_push'); } catch {}
+  },
+
+  showBrowserNotification(title, body, data = {}) {
+    try {
+      if (!this.isWebPushEnabled()) return;
+      const n = new Notification(title || 'The Gruvs', { body: body || '', icon: '/logo.png', tag: data?.type || 'gruvs', data });
+      n.onclick = () => { try { window.focus(); } catch {} try { n.close(); } catch {} };
+    } catch {}
+  },
+
   // Registers device for push and stores token in profiles table
   async registerForPush(userId) {
-    if (!userId || Platform.OS === 'web') return null;
+    if (!userId) return null;
+    if (Platform.OS === 'web') return this.registerWebPush();
     try {
       const { status: existing } = await Notifications.getPermissionsAsync();
       let finalStatus = existing;

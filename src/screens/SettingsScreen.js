@@ -106,7 +106,7 @@ export const SettingsScreen = ({
   const [discoverable, setDiscoverable] = useState(profile?.is_discoverable ?? true);
   const [showOnline, setShowOnline] = useState(profile?.show_online ?? true);
   const [shareEvents, setShareEvents] = useState(profile?.share_events ?? false);
-  const [pushOn, setPushOn] = useState(!!profile?.push_token);
+  const [pushOn, setPushOn] = useState(!!profile?.push_token || NotificationService.isWebPushEnabled());
   const [pushBusy, setPushBusy] = useState(false);
 
   // App lock
@@ -165,10 +165,15 @@ export const SettingsScreen = ({
     try {
       if (next) {
         const token = await NotificationService.registerForPush(user.id);
-        if (!token) { setPushOn(false); toast?.show('Enable notifications in your device settings.', 'info'); }
-        else toast?.show('Notifications on 🔔', 'success');
+        if (!token) {
+          setPushOn(false);
+          toast?.show(Platform.OS === 'web'
+            ? 'Allow notifications in your browser to turn these on.'
+            : 'Enable notifications in your device settings.', 'info');
+        } else toast?.show('Notifications on 🔔', 'success');
       } else {
-        await supabase.from('profiles').update({ push_token: null }).eq('id', user.id);
+        if (Platform.OS === 'web') NotificationService.disableWebPush();
+        else await supabase.from('profiles').update({ push_token: null }).eq('id', user.id);
         toast?.show('Notifications off', 'info');
       }
       refreshProfile?.();

@@ -46,8 +46,10 @@ export const useNotifications = ({ onNavigate } = {}) => {
           filter: `recipient_id=eq.${user.id}`,
         },
         (payload) => {
-          const { title, body } = payload.new;
+          const { title, body, data } = payload.new;
           showToast(body || title || 'New notification');
+          // On web, also surface a real browser notification (if enabled).
+          NotificationService.showBrowserNotification(title, body, data);
         }
       )
       .subscribe();
