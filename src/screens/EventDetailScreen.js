@@ -64,6 +64,7 @@ import { TournamentGovernancePanel } from '../components/TournamentGovernancePan
 import { useBackClose } from '../hooks/useBackClose';
 import { realnessScore } from '../utils/realness';
 import { buildShareText } from '../utils/shareText';
+import { EventRecapCard } from '../components/EventRecapCard';
 import { money } from '../constants/currencies';
 
 const _isSportCat = (cat) => {
@@ -967,6 +968,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 capacity={event?.max_attendees || event?.capacity || 0}
                 onAddMoment={user ? () => setMomentCaptureOpen(true) : null}
               />
+            </SafeSection>
+          )}
+
+          {/* Post-event recap — hype vs reality, the number organizers can't spin */}
+          {countdown?.over && (
+            <SafeSection label="Recap" primary={primary}>
+              <EventRecapCard eventId={event?.id} rsvpd={goingCount} vibes={vibeCount} />
             </SafeSection>
           )}
 
