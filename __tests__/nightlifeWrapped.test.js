@@ -1,4 +1,4 @@
-import { buildWrapped } from '../src/utils/nightlifeWrapped';
+import { buildWrapped, buildWrappedShareText } from '../src/utils/nightlifeWrapped';
 
 const NOW = Date.parse('2026-12-31T12:00:00Z');
 const td = (date, venue, city, scene) => ({ checked_in_at: date, venue, city, scene });
@@ -47,5 +47,27 @@ describe('buildWrapped — verified year in review', () => {
   it('respects an explicit year and is null-safe', () => {
     expect(buildWrapped(data, NOW, { year: 2025 }).total).toBe(1);
     expect(buildWrapped(null, NOW).total).toBe(0);
+  });
+});
+
+describe('buildWrappedShareText — the viral artifact', () => {
+  it('flexes real verified stats', () => {
+    const msg = buildWrappedShareText(buildWrapped(
+      [td('2026-02-14', 'Taboo', 'Joburg', 'amapiano'), td('2026-06-10', 'Era', 'Cape Town', 'house')], NOW));
+    expect(msg).toMatch(/My 2026 Nightlife Wrapped/);
+    expect(msg).toMatch(/2 verified nights out/);
+    expect(msg).toMatch(/2 venues · 2 cities/);
+    expect(msg).toMatch(/Home base:/);
+    expect(msg).toContain('thegruvs.app');
+  });
+
+  it('gives a newcomer a starter line, never an empty flex', () => {
+    const msg = buildWrappedShareText(buildWrapped([], NOW));
+    expect(msg).toMatch(/Starting my 2026/);
+    expect(msg).toContain('thegruvs.app');
+  });
+
+  it('is null-safe', () => {
+    expect(buildWrappedShareText(null)).toContain('thegruvs.app');
   });
 });

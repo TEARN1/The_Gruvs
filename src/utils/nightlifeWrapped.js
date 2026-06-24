@@ -47,3 +47,24 @@ export function buildWrapped(touchDowns = [], now = Date.now(), opts = {}) {
       : `${total} verified night${total === 1 ? '' : 's'} out in ${year}`,
   };
 }
+
+/**
+ * A flex-worthy share string for a Wrapped — real verified stats, not posts.
+ * The viral artifact: recaps real-world living, not consumption.
+ */
+export function buildWrappedShareText(wrapped, opts = {}) {
+  const w = wrapped || {};
+  const url = opts.url || 'https://thegruvs.app';
+  if (!w.total) return `Starting my ${w.year || ''} on The Gruvs — real nights, verified.\n${url}`.trim();
+
+  const lines = [`🌃 My ${w.year} Nightlife Wrapped`, `🔥 ${w.total} verified night${w.total === 1 ? '' : 's'} out`];
+  const places = [];
+  if (w.venueCount) places.push(`${w.venueCount} venue${w.venueCount === 1 ? '' : 's'}`);
+  if (w.cityCount)  places.push(`${w.cityCount} cit${w.cityCount === 1 ? 'y' : 'ies'}`);
+  if (places.length) lines.push(`📍 ${places.join(' · ')}`);
+  if (w.topVenue) lines.push(`🏠 Home base: ${w.topVenue.name}`);
+  if (w.topScene) lines.push(`🎶 Scene: ${w.topScene.name}`);
+  lines.push('— real nights, verified on The Gruvs');
+  lines.push(url);
+  return lines.join('\n');
+}

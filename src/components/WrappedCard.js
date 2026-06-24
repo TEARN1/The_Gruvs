@@ -5,12 +5,12 @@
  * or if reads are RLS-gated.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from './GlassView';
-import { buildWrapped } from '../utils/nightlifeWrapped';
+import { buildWrapped, buildWrappedShareText } from '../utils/nightlifeWrapped';
 
 export function WrappedCard({ userId }) {
   const { currentTheme } = useTheme();
@@ -56,6 +56,15 @@ export function WrappedCard({ userId }) {
       <View style={s.header}>
         <Feather name="award" size={15} color={primary} />
         <Text style={[s.title, { color: textColor }]}>{w.year} Wrapped</Text>
+        <TouchableOpacity
+          style={[s.shareBtn, { borderColor: `${primary}40` }]}
+          accessibilityRole="button"
+          accessibilityLabel="Share your Wrapped"
+          onPress={() => { Share.share({ message: buildWrappedShareText(w) }).catch(() => {}); }}
+        >
+          <Feather name="share-2" size={13} color={primary} />
+          <Text style={[s.shareText, { color: primary }]}>Share</Text>
+        </TouchableOpacity>
       </View>
       <Text style={[s.headline, { color: primary }]}>{w.headline}</Text>
 
@@ -91,7 +100,9 @@ function Line({ label, value, muted, textColor }) {
 const s = StyleSheet.create({
   wrap: { marginHorizontal: 16, marginBottom: 14, borderRadius: 20, padding: 16, borderWidth: 1 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 14, fontWeight: '900' },
+  title: { fontSize: 14, fontWeight: '900', flex: 1 },
+  shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5 },
+  shareText: { fontSize: 12, fontWeight: '800' },
   headline: { fontSize: 15, fontWeight: '800', marginTop: 8 },
   stats: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 14 },
   stat: { alignItems: 'center', flex: 1 },
