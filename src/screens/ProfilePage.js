@@ -50,6 +50,7 @@ import { VibePassportCard } from '../components/VibePassportCard';
 import { MemoriesCard } from '../components/MemoriesCard';
 import { StreakCard } from '../components/StreakCard';
 import { WrappedCard } from '../components/WrappedCard';
+import { SceneLevelUpCard } from '../components/SceneLevelUpCard';
 import { UnlockMenuCard } from '../components/UnlockMenuCard';
 import { StreakBadges } from '../components/StreakBadges';
 import { ReferralCard } from '../components/ReferralCard';
@@ -2625,6 +2626,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         {user && (
           <ErrorBoundary inline label="Wrapped" primary={primary}>
             <WrappedCard userId={user.id} />
+          </ErrorBoundary>
+        )}
+
+        {user && (
+          <ErrorBoundary inline label="Scene" primary={primary}>
+            <SceneLevelUpCard userId={user.id} />
           </ErrorBoundary>
         )}
 
