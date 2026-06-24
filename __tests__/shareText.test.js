@@ -1,4 +1,4 @@
-import { buildShareText } from '../src/utils/shareText';
+import { buildShareText, eventShareUrl } from '../src/utils/shareText';
 
 describe('buildShareText — Truth Protocol in every share', () => {
   it('always leads with the title', () => {
@@ -23,10 +23,16 @@ describe('buildShareText — Truth Protocol in every share', () => {
     expect(buildShareText({ title: 'X', price: 'R150' })).not.toContain('FREE entry');
   });
 
-  it('embeds the event deep link, and falls back to the bare URL without an id', () => {
-    expect(buildShareText({ title: 'X', id: 'abc' })).toContain('thegruvs.app?event=abc');
-    expect(buildShareText({ title: 'X' })).toMatch(/thegruvs\.app$/);
-    expect(buildShareText({ title: 'X' })).not.toContain('?event=');
+  it('points the link at the og-meta function for rich previews when configured', () => {
+    const fns = 'https://x.supabase.co/functions/v1';
+    expect(eventShareUrl('abc', { functionsUrl: fns })).toBe(`${fns}/og-meta/event/abc`);
+    expect(buildShareText({ title: 'X', id: 'abc' }, { functionsUrl: fns }))
+      .toContain('/og-meta/event/abc');
+  });
+
+  it('falls back to the app deep link when no functions URL is set', () => {
+    expect(eventShareUrl('abc', { functionsUrl: '' })).toBe('https://thegruvs.app?event=abc');
+    expect(eventShareUrl(null, { functionsUrl: '' })).toBe('https://thegruvs.app');
   });
 
   it('is robust to an empty/garbage event', () => {

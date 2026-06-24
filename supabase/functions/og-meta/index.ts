@@ -152,7 +152,7 @@ function escapeHtml(str: string): string {
 async function handleEvent(id: string): Promise<OGProps & { redirect: string }> {
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, description, venue_name, city, cover_url, start_date, category, is_full, vibe_count')
+    .select('id, title, description, venue_name, city, cover_url, cover_image, event_date, event_time, category, price, capacity, going, vibe_count')
     .eq('id', id)
     .single();
 
@@ -167,19 +167,24 @@ async function handleEvent(id: string): Promise<OGProps & { redirect: string }> 
     };
   }
 
-  const date = event.start_date
-    ? new Date(event.start_date).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  const date = event.event_date
+    ? new Date(`${event.event_date}T00:00:00`).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })
+        + (event.event_time ? ` · ${event.event_time}` : '')
     : '';
 
+  // The deal — free entry or the price, the thing people look for in a preview.
+  const free = event.price == null || event.price === 0 || event.price === 'FREE';
+  const deal = free ? '🆓 Free entry' : `🎟 ${event.price}`;
+
   const where = [event.venue_name, event.city].filter(Boolean).join(' · ');
-  const vibes = event.vibe_count ? `${event.vibe_count} vibing` : '';
-  const status = event.is_full ? '🔴 Sold out' : '🟢 Tickets available';
-  const parts = [date, where, vibes, status].filter(Boolean);
+  const vibes = event.vibe_count ? `🔥 ${event.vibe_count} vibing` : '';
+  const soldOut = event.capacity > 0 && (event.going || 0) >= event.capacity;
+  const parts = [date, where, deal, soldOut ? '🔴 Sold out' : vibes].filter(Boolean);
 
   return {
     title: event.title,
     description: parts.join(' · ') || 'An event on The Gruvs',
-    image: event.cover_url || DEFAULT_OG_IMAGE,
+    image: event.cover_url || event.cover_image || DEFAULT_OG_IMAGE,
     imageAlt: event.title,
     url: `${APP_URL}/share/event/${id}`,
     redirect: `${APP_URL}/?event=${id}`,

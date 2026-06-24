@@ -2,8 +2,20 @@
 // Build the share/invite message for a Gruv. The Truth Protocol travels with
 // every share: REAL signals only, verified presence first (the unfakeable one),
 // then intent, then price — never organizer spin. Pure.
+//
+// The link points at the og-meta edge function so crawlers (WhatsApp, iMessage,
+// etc.) unfurl a RICH preview — the event's cover image, title, date, venue and
+// price — instead of a bare URL. Real users are redirected on to the app.
 
 const APP_URL = 'https://thegruvs.app';
+
+// Build the share URL. Prefer the og-meta function (rich preview); fall back to
+// the app deep link if no functions URL is configured.
+export function eventShareUrl(id, opts = {}) {
+  if (id == null) return APP_URL;
+  const fns = (opts.functionsUrl ?? process.env.EXPO_PUBLIC_FUNCTIONS_URL ?? '').replace(/\/$/, '');
+  return fns ? `${fns}/og-meta/event/${id}` : `${APP_URL}?event=${id}`;
+}
 
 export function buildShareText(event = {}, opts = {}) {
   const e = event || {};
@@ -32,8 +44,7 @@ export function buildShareText(event = {}, opts = {}) {
   if (going > 0) proof.push(`✅ ${going} locked in`);
   if (proof.length) lines.push(proof.join('  ·  '));
 
-  const url = e.id != null ? `${APP_URL}?event=${e.id}` : APP_URL;
-  lines.push(`\nDownload The Gruvs 👉 ${url}`);
+  lines.push(`\nTap to see who's going 👉 ${eventShareUrl(e.id, opts)}`);
 
   return lines.join('\n');
 }
