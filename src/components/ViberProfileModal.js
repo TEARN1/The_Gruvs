@@ -187,6 +187,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [platformStats, setPlatformStats] = useState({ vibers: 0, gruvs: 0 });
   const slideAnim = useRef(new Animated.Value(300)).current;
   const presenceUnsubRef = useRef(null);
+  const showOnlineRef = useRef(true); // honour the viewed user's "show online status" privacy toggle
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
@@ -214,7 +215,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       if (targetId) loadProfile(targetId);
       // Subscribe to real-time online status
       if (targetId) {
-        presenceUnsubRef.current = PresenceManager.subscribeToUser(targetId, (online) => setIsOnline(online));
+        presenceUnsubRef.current = PresenceManager.subscribeToUser(targetId, (online) => setIsOnline(showOnlineRef.current && online));
       }
     } else {
       slideAnim.setValue(300);
@@ -238,7 +239,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     setLoading(true);
     try {
       const [profileRes, eventsRes, followersRes, followingRes, isFollowingRes, mutualRes] = await Promise.allSettled([
-        supabase.from('profiles').select('id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, career_title, looks_description, interests, location').eq('id', uid).single(),
+        supabase.from('profiles').select('id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, career_title, looks_description, interests, location, show_online').eq('id', uid).single(),
         supabase.from('events').select('id,title,media,media_urls,event_date,venue_name,category,category_color,vibe_count').eq('author_id', uid).order('created_at', { ascending: false }).limit(10),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', uid),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', uid),
@@ -260,11 +261,13 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
       if (profileRes.status === 'fulfilled' && profileRes.value.data) {
         const p = profileRes.value.data;
+        showOnlineRef.current = p.show_online !== false; // respect their privacy choice
         setProfile(p);
-        setIsOnline(checkOnline(p));
+        setIsOnline(showOnlineRef.current && checkOnline(p));
       } else if (propUser) {
+        showOnlineRef.current = propUser.show_online !== false;
         setProfile(propUser);
-        setIsOnline(checkOnline(propUser));
+        setIsOnline(showOnlineRef.current && checkOnline(propUser));
       }
       // Birthday — fetched separately so an un-migrated DB (no birth_date) can't break the load.
       setBirthdayToday(false);
@@ -523,8 +526,9 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                     <Text style={[s.locationText, { color: muted }]}>{profile.location}</Text>
                   </View>
                 ) : null}
-                {/* Last seen — only shown on other people's profiles */}
-                {!isOwnProfile && (
+                {/* Last seen — only shown on other people's profiles, and only if
+                    they haven't hidden their online status */}
+                {!isOwnProfile && profile.show_online !== false && (
                   <View style={s.locationRow}>
                     <Feather name="clock" size={11} color={muted} />
                     <Text style={[s.locationText, { color: muted }]}>
