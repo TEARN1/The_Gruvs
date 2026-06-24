@@ -47,6 +47,7 @@ import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
 import { AchievementBadges } from '../components/AchievementBadges';
 import { VibePassportCard } from '../components/VibePassportCard';
+import { MemoriesCard } from '../components/MemoriesCard';
 import { StreakBadges } from '../components/StreakBadges';
 import { ReferralCard } from '../components/ReferralCard';
 import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
@@ -2571,6 +2572,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
             <AchievementBadges userId={user.id} primary={primary} muted={muted} textColor={textColor} />
           </View>
+        )}
+
+        {user && (
+          <ErrorBoundary inline label="On this day" primary={primary}>
+            <MemoriesCard userId={user.id} />
+          </ErrorBoundary>
         )}
 
         {user && (
