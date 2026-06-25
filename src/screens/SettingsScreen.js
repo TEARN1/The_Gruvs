@@ -28,6 +28,7 @@ import { WritingStylePicker } from '../components/WritingStylePicker';
 import { CurrencyPicker } from '../components/CurrencyPicker';
 import { Biometric } from '../services/biometric';
 import { NotificationService } from '../services/notificationService';
+import { PanicMode } from '../services/panicMode';
 import { supabase } from '../services/supabase';
 import { haptics } from '../utils/haptics';
 import { THEMES } from '../constants/Themes';
@@ -185,6 +186,26 @@ export const SettingsScreen = ({
     }
   }, [user, pushOn, refreshProfile, toast]);
 
+  const handlePanic = useCallback(() => {
+    if (!user) return;
+    Alert.alert(
+      'Disappear now?',
+      "You'll instantly go invisible: switched to Ghost, hidden from discovery, and removed from every live 'here now' list. You can turn yourself back on any time.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Disappear', style: 'destructive', onPress: async () => {
+            const { ok } = await PanicMode.disappear(user.id);
+            try { setIdentityMode?.('ghost'); } catch {}
+            setDiscoverable(false);
+            refreshProfile?.();
+            toast?.show(ok ? 'You\'re invisible now 🫥' : 'Went invisible (some steps may retry).', ok ? 'success' : 'info');
+          },
+        },
+      ],
+    );
+  }, [user, setIdentityMode, refreshProfile, toast]);
+
   const toggleLock = useCallback(async () => {
     const next = !lockEnabled;
     if (next) {
@@ -288,6 +309,19 @@ export const SettingsScreen = ({
           <ToggleRow label="Share events" sub="Show your event activity on your profile"
             value={shareEvents} onValueChange={(v) => writeField('share_events', v, setShareEvents, shareEvents)}
             primary={primary} muted={muted} textColor={textColor} />
+
+          {/* Panic — disappear from all presence instantly (#136) */}
+          <TouchableOpacity
+            onPress={handlePanic}
+            accessibilityLabel="Disappear now — go invisible across the app"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(239,68,68,0.4)', backgroundColor: 'rgba(239,68,68,0.08)' }}
+          >
+            <Feather name="eye-off" size={16} color="#ef4444" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 14 }}>Disappear now</Text>
+              <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>Instantly go invisible everywhere — Ghost + cleared presence</Text>
+            </View>
+          </TouchableOpacity>
 
           {/* Identity mode */}
           <Text style={[st.subLabel, { color: muted }]}>IDENTITY MODE</Text>
