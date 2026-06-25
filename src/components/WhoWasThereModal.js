@@ -134,7 +134,8 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
           event_id,
           checked_in_at,
           profiles:user_id (id, username, avatar_url, bio, vibe_score, is_online, last_seen, is_verified,
-            gender, hair_style, body_type, skin_tone, outfit_vibe, age_range, display_name)
+            gender, hair_style, body_type, skin_tone, outfit_vibe, age_range, display_name,
+            identity_mode, is_beacon_active)
         `)
         .gte('checked_in_at', since)
         .lte('checked_in_at', until)
@@ -156,6 +157,11 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
       let unique = [];
       for (const row of (data || [])) {
         if (blocked.has(row.user_id)) continue;
+        // Ghosts chose anonymity and Incognito is hidden unless they Drop a Beacon —
+        // neither is investigable in Who Was There.
+        const mode = row.profiles?.identity_mode;
+        if (mode === 'ghost') continue;
+        if (mode === 'celebrity' && !row.profiles?.is_beacon_active) continue;
         if (!seen.has(row.user_id) && row.profiles) {
           seen.add(row.user_id);
           const privateProfile = applyProfilePrivacy(row.profiles, row.user_id);

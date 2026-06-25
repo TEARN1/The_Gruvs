@@ -124,6 +124,10 @@ export const PresenceBar = ({
       const eventOver = endMs ? now > endMs + 60 * 60 * 1000 : false; // 1h grace after end
       const liveRows = eventOver ? [] : (data || []).filter(c => {
         if (blocked.has(c.user_id)) return false; // block is absolute
+        // Incognito is hidden from live presence unless they Drop a Beacon.
+        // (Ghosts stay — they show anonymously as 👻.)
+        const mode = c.profiles?.identity_mode || c.identity_mode;
+        if (mode === 'celebrity' && !c.profiles?.is_beacon_active) return false;
         if (c.expires_at) return new Date(c.expires_at).getTime() > now;
         return (now - new Date(c.checked_in_at).getTime()) < 3 * 3600 * 1000;
       });
