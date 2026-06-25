@@ -256,7 +256,7 @@ export const SecurityService = {
   // ── Deep-link / URL scheme guard ────────────────────────────────────────
 
   /** Whitelist of allowed deep-link hosts. Opens only these from external links. */
-  ALLOWED_HOSTS: ['thegruvs.app', 'open.spotify.com', 'www.youtube.com', 'youtube.com', 'supabase.co'],
+  ALLOWED_HOSTS: ['thegruvs.com', 'www.thegruvs.com', 'thegruvs.app', 'open.spotify.com', 'www.youtube.com', 'youtube.com', 'supabase.co', 'wa.me', 'maps.google.com'],
 
   isTrustedExternalUrl(url) {
     try {

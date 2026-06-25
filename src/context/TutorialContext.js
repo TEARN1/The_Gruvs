@@ -393,7 +393,7 @@ export const TUTORIALS = [
         icon: 'layout',
         title: 'Store Builder',
         body: 'Build a professional storefront without touching code. Stack blocks:\n\n• Hero banner and tagline\n• Services and Pass pricing cards\n• Photo gallery and videos\n• Countdown timer to your next Gruv\n• Testimonials and FAQs\n• Social links and contact form',
-        tip: 'Published stores go live at thegruvs.app/store/your-slug',
+        tip: 'Published stores go live at thegruvs.com/store/your-slug',
         visual: 'store',
       },
       {

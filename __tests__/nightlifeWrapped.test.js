@@ -58,16 +58,16 @@ describe('buildWrappedShareText — the viral artifact', () => {
     expect(msg).toMatch(/2 verified nights out/);
     expect(msg).toMatch(/2 venues · 2 cities/);
     expect(msg).toMatch(/Home base:/);
-    expect(msg).toContain('thegruvs.app');
+    expect(msg).toContain('thegruvs.com');
   });
 
   it('gives a newcomer a starter line, never an empty flex', () => {
     const msg = buildWrappedShareText(buildWrapped([], NOW));
     expect(msg).toMatch(/Starting my 2026/);
-    expect(msg).toContain('thegruvs.app');
+    expect(msg).toContain('thegruvs.com');
   });
 
   it('is null-safe', () => {
-    expect(buildWrappedShareText(null)).toContain('thegruvs.app');
+    expect(buildWrappedShareText(null)).toContain('thegruvs.com');
   });
 });

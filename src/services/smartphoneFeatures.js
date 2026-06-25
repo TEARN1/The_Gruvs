@@ -11,6 +11,7 @@
  */
 
 import { Platform } from 'react-native';
+import { APP_WEB_URL } from '../constants/appUrl';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Calendar from 'expo-calendar';
 import * as MediaLibrary from 'expo-media-library';
@@ -125,12 +126,12 @@ export const DeviceCalendar = {
 
       const eventId = await Calendar.createEventAsync(calId, {
         title: event.title || 'Gruv',
-        notes: event.description || `View on The Gruvs: https://thegruvs.app/event/${event.id}`,
+        notes: event.description || `View on The Gruvs: ${APP_WEB_URL}/event/${event.id}`,
         location: event.venue_name || event.address || event.city || '',
         startDate: start,
         endDate: end,
         alarms: [{ relativeOffset: -60 }, { relativeOffset: -1440 }], // 1h + 24h before
-        url: `https://thegruvs.app/event/${event.id}`,
+        url: `${APP_WEB_URL}/event/${event.id}`,
       });
 
       return { success: true, eventId };

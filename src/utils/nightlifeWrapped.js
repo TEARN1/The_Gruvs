@@ -4,6 +4,8 @@
 //
 // Each touch-down: { checked_in_at, venue, city, scene }.
 
+import { APP_WEB_URL } from '../constants/appUrl';
+
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 function topOf(counts) {
@@ -54,7 +56,7 @@ export function buildWrapped(touchDowns = [], now = Date.now(), opts = {}) {
  */
 export function buildWrappedShareText(wrapped, opts = {}) {
   const w = wrapped || {};
-  const url = opts.url || 'https://thegruvs.app';
+  const url = opts.url || APP_WEB_URL;
   if (!w.total) return `Starting my ${w.year || ''} on The Gruvs — real nights, verified.\n${url}`.trim();
 
   const lines = [`🌃 My ${w.year} Nightlife Wrapped`, `🔥 ${w.total} verified night${w.total === 1 ? '' : 's'} out`];

@@ -13,7 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { GlassView } from '../components/GlassView';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useBackClose } from '../hooks/useBackClose';
 
 
@@ -563,7 +563,7 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
       // Only mark live after server confirms — never set UI state speculatively
       if (ok === null) { Alert.alert('Error', 'Could not publish store. Please try again.'); return; }
       setStoreEnabled(true);
-      Alert.alert('Published! 🎉', `Your store is live at thegruvs.app/store/${storeSlug}`);
+      Alert.alert('Published! 🎉', `Your store is live at thegruvs.com/store/${storeSlug}`);
     } finally {
       setSaving(false);
     }

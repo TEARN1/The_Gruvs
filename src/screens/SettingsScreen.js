@@ -34,8 +34,8 @@ import { haptics } from '../utils/haptics';
 import { THEMES } from '../constants/Themes';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
-const PRIVACY_URL = 'https://thegruvs.app/privacy';
-const TERMS_URL = 'https://thegruvs.app/terms';
+const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
+const TERMS_URL = 'https://thegruvs.com/terms.html';
 
 let APP_VERSION = '1.1.0';
 try { APP_VERSION = require('../../app.json')?.expo?.version || APP_VERSION; } catch { /* keep fallback */ }
