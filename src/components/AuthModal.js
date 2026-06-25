@@ -8,6 +8,7 @@ import {
 
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
+import { APP_WEB_URL } from '../constants/appUrl';
 import { resilient } from '../utils/resilience';
 import { SecurityService } from '../services/securityService';
 import { useToast } from './ToastNotification';
@@ -121,7 +122,7 @@ export const AuthModal = ({ visible, onClose }) => {
     // origin that's this exact origin (AuthContext picks up the recovery token in
     // the URL). On localhost dev or native, route to the production site so the
     // link never lands on a dead localhost. Configure via EXPO_PUBLIC_SITE_URL.
-    const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL || 'https://the-gruvs-pt23.vercel.app';
+    const SITE_URL = APP_WEB_URL;
     const onWeb = Platform.OS === 'web' && typeof window !== 'undefined';
     const isLocalhost = onWeb && /^https?:\/\/(localhost|127\.0\.0\.1)/.test(window.location.origin);
     const redirectTo = onWeb && !isLocalhost ? window.location.origin : SITE_URL;

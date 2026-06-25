@@ -13,11 +13,12 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Video, ResizeMode } from 'expo-av';
+import { Video, ResizeMode, Audio } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
+import { APP_WEB_URL } from '../constants/appUrl';
 import { resilient } from '../utils/resilience';
 import { haptics } from '../utils/haptics';
 import { ViberProfileModal } from '../components/ViberProfileModal';
@@ -589,12 +590,16 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
     if (!user) return;
     const newFollowing = !following;
     setFollowing(newFollowing);
+    // RPC-first (reliable, RLS-proof); each tier inspects `error` and throws so a
+    // failed write fails over / rolls back instead of looking like success.
     const followRes = await resilient(
       newFollowing ? [
-        () => supabase.from('follows').upsert({ follower_id: user?.id, following_id: reel.user_id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
-        () => supabase.from('follows').insert({ follower_id: user?.id, following_id: reel.user_id }),
+        async () => { const { error } = await supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: reel.user_id }); if (error) throw error; return true; },
+        async () => { const { error } = await supabase.from('follows').upsert({ follower_id: user.id, following_id: reel.user_id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }); if (error) throw error; return true; },
+        async () => { const { error } = await supabase.from('follows').insert({ follower_id: user.id, following_id: reel.user_id }); if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error; return true; },
       ] : [
-        () => supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', reel.user_id),
+        async () => { const { error } = await supabase.rpc('unfollow_user', { p_follower_id: user.id, p_following_id: reel.user_id }); if (error) throw error; return true; },
+        async () => { const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', reel.user_id); if (error) throw error; return true; },
       ],
       { attemptsPerTier: 2, baseMs: 300, label: 'ReelItem.handleFollow', fallbackValue: null }
     );
@@ -602,7 +607,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
   };
 
   const handleShare = async () => {
-    const url = `https://the-gruvs-pt23.vercel.app/?reel=${reel.id}`;
+    const url = `${APP_WEB_URL}/?reel=${reel.id}`;
     try {
       await Share.share({ message: `Check out @${reel.profiles?.username}'s reel on The Gruvs! ${url}`, url });
     } catch (err) {
@@ -1103,6 +1108,19 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const isWide = IS_WEB && winW > 800;
 
   const [reels, setReels] = useState([]);
+  
+  // Set audio mode for mobile (iOS/Android) so that silent/mute switch doesn't block audio
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        staysActiveInBackground: false,
+        playThroughEarpieceAndroid: false,
+      }).catch(() => {});
+    }
+  }, []);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);

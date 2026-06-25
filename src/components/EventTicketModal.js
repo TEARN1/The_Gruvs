@@ -7,9 +7,10 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { APP_WEB_URL } from '../constants/appUrl';
 
 // On web, we use our enhanced SVG-based QRCode that's actually scannable
-import QRCode from 'react-native-qrcode-svg';
+import QRCode from 'react-native-qrcode-svg';
 import { useBackClose } from '../hooks/useBackClose';
 
 
@@ -46,7 +47,7 @@ const TicketCard = ({ rsvp, event, primary, textColor, muted, username }) => {
 
   const shareTicket = async () => {
     try {
-      const webUrl = `https://thegruvs.vercel.app/event/${rsvp.event_id}`;
+      const webUrl = `${APP_WEB_URL}/event/${rsvp.event_id}`;
       await Share.share({
         title: `My ticket to ${event?.title || 'the Gruv'}`,
         message: Platform.OS === 'android'

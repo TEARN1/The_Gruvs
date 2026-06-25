@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MonetizationService } from '../services/monetizationService';
+import { APP_WEB_URL } from '../constants/appUrl';
 import { GlassView } from './GlassView';
 import { useToast } from './ToastNotification';
 
@@ -93,7 +94,7 @@ export const GiftingModal = ({ visible, hostId, eventId, hostName, onClose, onGi
   const handleTopUp = () => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
     // Bypass App Store cuts by opening the web payment portal
-    const checkoutUrl = `https://the-gruvs-pt23.vercel.app/buy-coins?uid=${user?.id || ''}`;
+    const checkoutUrl = `${APP_WEB_URL}/buy-coins?uid=${user?.id || ''}`;
     Linking.openURL(checkoutUrl).catch(() => {
       toast?.show('Could not open payment portal.', 'error');
     });
