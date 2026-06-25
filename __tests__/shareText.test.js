@@ -23,16 +23,14 @@ describe('buildShareText — Truth Protocol in every share', () => {
     expect(buildShareText({ title: 'X', price: 'R150' })).not.toContain('FREE entry');
   });
 
-  it('points the link at the og-meta function for rich previews when configured', () => {
-    const fns = 'https://x.supabase.co/functions/v1';
-    expect(eventShareUrl('abc', { functionsUrl: fns })).toBe(`${fns}/og-meta/event/abc`);
-    expect(buildShareText({ title: 'X', id: 'abc' }, { functionsUrl: fns }))
-      .toContain('/og-meta/event/abc');
+  it('defaults to the working app link (never a dead og-meta link)', () => {
+    expect(eventShareUrl('abc')).toBe('https://thegruvs.com/?event=abc');
+    expect(eventShareUrl(null)).toBe('https://thegruvs.com');
   });
 
-  it('falls back to the app deep link when no functions URL is set', () => {
-    expect(eventShareUrl('abc', { functionsUrl: '' })).toBe('https://thegruvs.app?event=abc');
-    expect(eventShareUrl(null, { functionsUrl: '' })).toBe('https://thegruvs.app');
+  it('uses og-meta only when explicitly opted in (after it is deployed)', () => {
+    const og = 'https://x.supabase.co/functions/v1';
+    expect(eventShareUrl('abc', { ogMetaBase: og })).toBe(`${og}/og-meta/event/abc`);
   });
 
   it('is robust to an empty/garbage event', () => {

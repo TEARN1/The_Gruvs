@@ -3,18 +3,16 @@
 // every share: REAL signals only, verified presence first (the unfakeable one),
 // then intent, then price — never organizer spin. Pure.
 //
-// The link points at the og-meta edge function so crawlers (WhatsApp, iMessage,
-// etc.) unfurl a RICH preview — the event's cover image, title, date, venue and
-// price — instead of a bare URL. Real users are redirected on to the app.
+// The link points at the live app by default (always works). For RICH previews
+// (event cover image in WhatsApp/iMessage) pass opts.ogMetaBase — but only once
+// the og-meta edge function is DEPLOYED, otherwise that endpoint 404s. We never
+// auto-route to og-meta, to avoid shipping dead share links.
+import { APP_WEB_URL } from '../constants/appUrl';
 
-const APP_URL = 'https://thegruvs.app';
-
-// Build the share URL. Prefer the og-meta function (rich preview); fall back to
-// the app deep link if no functions URL is configured.
 export function eventShareUrl(id, opts = {}) {
-  if (id == null) return APP_URL;
-  const fns = (opts.functionsUrl ?? process.env.EXPO_PUBLIC_FUNCTIONS_URL ?? '').replace(/\/$/, '');
-  return fns ? `${fns}/og-meta/event/${id}` : `${APP_URL}?event=${id}`;
+  if (id == null) return APP_WEB_URL;
+  const og = (opts.ogMetaBase ?? '').replace(/\/$/, '');
+  return og ? `${og}/og-meta/event/${id}` : `${APP_WEB_URL}/?event=${id}`;
 }
 
 export function buildShareText(event = {}, opts = {}) {
