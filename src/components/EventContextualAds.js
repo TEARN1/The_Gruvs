@@ -17,6 +17,7 @@ import { adSlotActive } from '../constants/adConfig';
 import { getEventPhaseKey, PHASE_META } from '../utils/eventPhase';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
+import { campaignMatchesViewer } from '../utils/campaignMatch';
 import { supabase } from '../services/supabase';
 
 // Phase + styling come from the shared event-phase engine (src/utils/eventPhase).
@@ -82,12 +83,30 @@ export const EventContextualAds = ({ event, onNavigate, slot = 'eventDetail' }) 
         .eq('status', 'active')
         .contains('targeting->event_phases', [p])
         .order('created_at', { ascending: false })
-        .limit(3);
-      if (data?.length > 0) {
-        setCampaigns(data);
+        .limit(20);
+
+      // Apply the audience targeting the business set (delivery already filtered
+      // by phase) — only viewers who match see the ad, and only they get billed
+      // an impression. Without this the targeting is decorative.
+      let viewer = {};
+      if (user?.id) {
+        try {
+          const { data: vp } = await supabase
+            .from('profiles')
+            .select('city, gender, interests, birth_year, age')
+            .eq('id', user.id).maybeSingle();
+          viewer = vp || {};
+        } catch { /* unknown viewer → only known-mismatches get filtered */ }
+      }
+      const matched = (data || [])
+        .filter(c => campaignMatchesViewer(c.targeting, viewer, event))
+        .slice(0, 3);
+
+      if (matched.length > 0) {
+        setCampaigns(matched);
         Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-        // Record impressions
-        await Promise.all(data.map(c =>
+        // Record impressions — only for ads actually shown to a matching viewer
+        await Promise.all(matched.map(c =>
           supabase.from('campaign_analytics').insert({ campaign_id: c.id, business_id: c.business_id, event_type: 'impression', metadata: { phase: p, event_id: event.id } }).then(() => {}).catch(() => {})
         ));
       }
