@@ -23,8 +23,8 @@
       "bundleIdentifier": "com.thegruvs.app",
       "buildNumber": "1",
       "associatedDomains": [
-        "applinks:thegruvs.vercel.app",
-        "applinks:thegruvs.app"
+        "applinks:thegruvs.com",
+        "applinks:www.thegruvs.com"
       ],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "The Gruvs uses your location to show nearby events and vibers.",
@@ -70,10 +70,19 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "thegruvs.vercel.app" },
-            { "scheme": "https", "host": "thegruvs.app" }
+            {
+              "scheme": "https",
+              "host": "thegruvs.com"
+            },
+            {
+              "scheme": "https",
+              "host": "www.thegruvs.com"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -121,9 +130,9 @@
       "expo-secure-store"
     ],
     "extra": {
-      "privacyPolicyUrl": "https://thegruvs.app/privacy",
+      "privacyPolicyUrl": "https://thegruvs.com/privacy.html",
       "eas": {
-        "projectId": "5e0fd37e-d314-4074-96c9-3c6d8f474bc8"
+        "projectId": "3a2292ca-e3ad-4741-85ce-5b9b859b1fb6"
       }
     },
     "owner": "tearn"
