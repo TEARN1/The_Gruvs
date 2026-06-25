@@ -31,6 +31,7 @@ import { DiscoveryManager, UserManager, BehavioralEngine, ActivityFeedManager, P
 import { resilient, resilientRead } from '../utils/resilience';
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
+import { buildSosMessage, whatsappLink, smsLink } from '../utils/sosMessage';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
@@ -684,6 +685,28 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         {emergencyContacts.map((c, i) => (
           <View key={i} style={[fm.contactRow, { borderColor: `${primary}20` }]}>
             <Text style={{ color: textColor, flex: 1 }}>{c.name} — {c.phone} ({c.relationship})</Text>
+            <TouchableOpacity
+              accessibilityLabel={`Send an SOS to ${c.name}`}
+              style={{ paddingHorizontal: 8 }}
+              onPress={async () => {
+                let coords = {};
+                try {
+                  coords = await new Promise((res) => {
+                    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        (p) => res({ lat: p.coords.latitude, lon: p.coords.longitude }),
+                        () => res({}), { timeout: 4000, maximumAge: 60000 },
+                      );
+                    } else res({});
+                  });
+                } catch { coords = {}; }
+                const msg = buildSosMessage({ fromName: profile?.username || profile?.display_name, lat: coords.lat, lon: coords.lon });
+                const link = whatsappLink(c.phone, msg) || smsLink(c.phone, msg);
+                if (link) SecurityService.safeOpenURL(link);
+              }}
+            >
+              <Feather name="alert-octagon" size={16} color="#ef4444" />
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => setEmergencyContacts(prev => prev.filter((_, idx) => idx !== i))}>
               <Feather name="x" size={16} color={muted} />
             </TouchableOpacity>
