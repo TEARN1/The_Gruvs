@@ -1761,7 +1761,7 @@ export const CheckInManager = {
       // 2. Everyone else who touched down at those same events
       const { data: others } = await supabase
         .from('live_checkins')
-        .select('user_id, event_id, checked_in_at, identity_mode, profiles(id, username, display_name, avatar_url, vibe_score, is_online, last_seen, is_verified, identity_mode, is_discoverable)')
+        .select('user_id, event_id, checked_in_at, identity_mode, profiles(id, username, display_name, avatar_url, vibe_score, is_online, last_seen, is_verified, identity_mode, is_discoverable, is_beacon_active)')
         .in('event_id', myEventIds)
         .neq('user_id', userId)
         .limit(3000);
@@ -1778,8 +1778,10 @@ export const CheckInManager = {
       for (const row of (others || [])) {
         if (!row.profiles) continue;
         if (blocked.has(row.user_id)) continue; // block is absolute
-        const ghost = (row.identity_mode || row.profiles.identity_mode) === 'ghost';
-        if (ghost) continue;
+        const mode = row.identity_mode || row.profiles.identity_mode;
+        if (mode === 'ghost') continue; // ghosts are uncrossable
+        // Incognito (internal key 'celebrity') is hidden unless they Drop a Beacon.
+        if (mode === 'celebrity' && !row.profiles.is_beacon_active) continue;
         // Privacy opt-out: users who turned off discoverability don't surface as
         // a crossed path either (consistent with Find Them). Only excludes an
         // explicit false so un-migrated/null profiles still appear.
