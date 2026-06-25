@@ -1327,22 +1327,22 @@ export const UserManager = {
     // the follow silently never saves.
     const res = await resilient(
       [
-        // Tier 1: upsert with conflict ignore (no-op if already following)
+        // Tier 1: SECURITY DEFINER RPC — reliable, RLS-proof primary path
+        async () => {
+          const { error } = await supabase.rpc('follow_user', { p_follower_id: followerId, p_following_id: followingId });
+          if (error) throw error;
+          return true;
+        },
+        // Tier 2: upsert with conflict ignore (no-op if already following)
         async () => {
           const { error } = await supabase.from('follows').upsert({ follower_id: followerId, following_id: followingId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
           if (error) throw error;
           return true;
         },
-        // Tier 2: plain insert (if upsert syntax unsupported); ignore duplicate rows
+        // Tier 3: plain insert (if upsert syntax unsupported); ignore duplicate rows
         async () => {
           const { error } = await supabase.from('follows').insert({ follower_id: followerId, following_id: followingId });
           if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error;
-          return true;
-        },
-        // Tier 3: RPC follow
-        async () => {
-          const { error } = await supabase.rpc('follow_user', { p_follower: followerId, p_following: followingId });
-          if (error) throw error;
           return true;
         },
       ],
@@ -1361,15 +1361,15 @@ export const UserManager = {
     if (!isSupabaseEnabled) return true;
     const res = await resilient(
       [
-        // Tier 1: delete row
+        // Tier 1: SECURITY DEFINER RPC — reliable, RLS-proof primary path
         async () => {
-          const { error } = await supabase.from('follows').delete().eq('follower_id', followerId).eq('following_id', followingId);
+          const { error } = await supabase.rpc('unfollow_user', { p_follower_id: followerId, p_following_id: followingId });
           if (error) throw error;
           return true;
         },
-        // Tier 3: RPC unfollow
+        // Tier 2: direct delete
         async () => {
-          const { error } = await supabase.rpc('unfollow_user', { p_follower: followerId, p_following: followingId });
+          const { error } = await supabase.from('follows').delete().eq('follower_id', followerId).eq('following_id', followingId);
           if (error) throw error;
           return true;
         },
@@ -1633,15 +1633,21 @@ export const CheckInManager = {
       if (opts.expiresAt) full.expires_at = opts.expiresAt;
       if (opts.identityMode) full.identity_mode = opts.identityMode;
 
-      let { error } = await supabase
-        .from('live_checkins')
-        .upsert(full, { onConflict: 'user_id,event_id' });
-      if (error && /expires_at|identity_mode|column/.test(error.message || '')) {
-        ({ error } = await supabase
-          .from('live_checkins')
-          .upsert(core, { onConflict: 'user_id,event_id' }));
+      // Idempotent + constraint-independent. Some live DBs lack the optional
+      // columns (identity_mode) and/or the UNIQUE(user_id,event_id) the old upsert
+      // relied on — both made Touch Down silently fail. So: if already here,
+      // succeed; otherwise plain INSERT, falling back to core columns when the
+      // optional ones aren't migrated, and treating a duplicate race as success.
+      const { data: existing } = await supabase
+        .from('live_checkins').select('id').eq('user_id', userId).eq('event_id', eventId).maybeSingle();
+      if (!existing) {
+        let { error } = await supabase.from('live_checkins').insert(full);
+        if (error && /expires_at|identity_mode|column|schema cache/i.test(error.message || '')) {
+          ({ error } = await supabase.from('live_checkins').insert(core));
+        }
+        if (error && /duplicate|unique|conflict/i.test(error.message || '')) error = null; // raced — already here
+        if (error) { console.warn('[touchDown] insert failed:', error.message); throw error; }
       }
-      if (error) throw error;
 
       // Atomic vibe score increment — fallback to read-then-write if RPC not deployed yet
       try {
