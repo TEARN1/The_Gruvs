@@ -1,7 +1,18 @@
 import { backStack } from '../src/utils/backStack';
 
-// Drain any residue so tests are order-independent.
-afterEach(() => { while (backStack.pop()) { /* clear */ } });
+let dateSpy;
+beforeEach(() => {
+  let currentTime = 1000000;
+  dateSpy = jest.spyOn(Date, 'now').mockImplementation(() => {
+    currentTime += 305;
+    return currentTime;
+  });
+});
+
+afterEach(() => {
+  dateSpy.mockRestore();
+  while (backStack.pop()) { /* clear */ }
+});
 
 describe('backStack', () => {
   it('pop() returns false when empty', () => {
