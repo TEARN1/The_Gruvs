@@ -79,11 +79,14 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
     setFollowed(prev => new Set(prev).add(id));
     setFollowFx({ id, t: Date.now() }); // sparkle on follow
     try {
-      const { error } = await supabase.from('follows')
-        .upsert({ follower_id: user.id, following_id: id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true });
+      // RPC is the reliable, RLS-proof primary path; fall back to a direct upsert.
+      let { error } = await supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: id });
       if (error) {
-        await supabase.from('follows').insert({ follower_id: user.id, following_id: id });
+        ({ error } = await supabase.from('follows')
+          .upsert({ follower_id: user.id, following_id: id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }));
       }
+      // resolved (not thrown) errors must be surfaced so the optimistic add reverts
+      if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error;
     } catch {
       setFollowed(prev => { const n = new Set(prev); n.delete(id); return n; });
     }

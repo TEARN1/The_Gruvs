@@ -1261,7 +1261,7 @@ CREATE POLICY "paths_public" ON public.paths FOR SELECT USING (identity_layer = 
 DROP POLICY IF EXISTS "path_stars_own"     ON public.path_stars;
 CREATE POLICY "path_stars_own"     ON public.path_stars    FOR ALL USING (user_id = auth.uid());
 DROP POLICY IF EXISTS "path_crossings_own" ON public.path_crossings;
-CREATE POLICY "path_crossings_own" ON public.path_crossings FOR SELECT USING (true);
+CREATE POLICY "path_crossings_own" ON public.path_crossings FOR SELECT USING (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "service_nodes_select" ON public.service_nodes;
 DROP POLICY IF EXISTS "service_nodes_manage" ON public.service_nodes;
@@ -1710,12 +1710,12 @@ DROP POLICY IF EXISTS "chat_select_event_member" ON public.event_chat_messages;
 DROP POLICY IF EXISTS "chat_insert_own"          ON public.event_chat_messages;
 DROP POLICY IF EXISTS "chat_update_moderator"    ON public.event_chat_messages;
 CREATE POLICY "chat_select_event_member" ON public.event_chat_messages FOR SELECT
-  USING (deleted = false);
+  USING (deleted = false AND EXISTS (SELECT 1 FROM public.events e WHERE e.id = event_id AND e.is_published = true));
 CREATE POLICY "chat_insert_own"          ON public.event_chat_messages FOR INSERT
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (user_id = auth.uid() AND length(trim(message)) BETWEEN 1 AND 500);
 CREATE POLICY "chat_update_moderator"    ON public.event_chat_messages FOR UPDATE
   USING (user_id = auth.uid()
-    OR EXISTS (SELECT 1 FROM public.event_roles r WHERE r.event_id = event_chat_messages.event_id AND r.user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM public.event_roles r WHERE r.event_id = event_chat_messages.event_id AND r.user_id = auth.uid() AND r.role IN ('co_host','moderator'))
     OR EXISTS (SELECT 1 FROM public.events e WHERE e.id = event_chat_messages.event_id AND e.author_id = auth.uid()));
 
 DROP POLICY IF EXISTS "polls_select_public" ON public.event_polls;
@@ -2970,7 +2970,7 @@ DROP POLICY IF EXISTS "events_select"     ON public.events;
 DROP POLICY IF EXISTS "events_insert"     ON public.events;
 DROP POLICY IF EXISTS "events_update_own" ON public.events;
 DROP POLICY IF EXISTS "events_delete_own" ON public.events;
-CREATE POLICY "events_select"     ON public.events FOR SELECT USING (is_published = true OR author_id = auth.uid());
+CREATE POLICY "events_select"     ON public.events FOR SELECT USING (deleted_at IS NULL AND (is_published = true OR author_id = auth.uid()));
 CREATE POLICY "events_insert"     ON public.events FOR INSERT WITH CHECK (author_id = auth.uid());
 CREATE POLICY "events_update_own" ON public.events FOR UPDATE USING (author_id = auth.uid());
 CREATE POLICY "events_delete_own" ON public.events FOR DELETE USING (author_id = auth.uid());

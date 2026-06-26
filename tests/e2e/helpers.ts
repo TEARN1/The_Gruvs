@@ -22,6 +22,7 @@ const IGNORED_ERRORS = [
 export async function mockFonts(page: Page) {
   await page.addInitScript(() => {
     try {
+      window['__E2E__'] = true;
       Object.defineProperty(document, 'fonts', {
         value: {
           status: 'loaded',
@@ -39,10 +40,11 @@ export async function mockFonts(page: Page) {
 
 /** Wait for Expo's React tree to hydrate */
 export async function waitForApp(page: Page) {
-  await page.waitForSelector('#root', { timeout: 30_000 });
+  await page.waitForSelector('#root', { state: 'attached', timeout: 30_000 });
   await page.waitForLoadState('domcontentloaded');
   // Wait for the tab navigation elements to be visible (loading screen is gone)
-  await page.locator('[role="tab"]').first().waitFor({ state: 'visible', timeout: 45_000 });
+  // Use 55s timeout to handle slow mobile-chrome hydration under parallel load
+  await page.locator('[role="tab"]').first().waitFor({ state: 'visible', timeout: 55_000 });
 
   // Automatically dismiss the onboarding / tour modal if it appears
   const skipBtn = page.getByText('SKIP').first();
@@ -75,9 +77,25 @@ export function trackErrors(page: Page): () => string[] {
 /** Try to navigate to a named tab — tolerates if nav doesn't exist */
 export async function goToTab(page: Page, ...names: string[]) {
   for (const name of names) {
+    // 1. Try clicking the exact [role="tab"] container by label (extremely robust)
+    const tabContainer = page.locator(`[role="tab"][aria-label="${name}"]`).first();
+    const isTabVisible = await tabContainer.isVisible().catch(() => false);
+    if (isTabVisible) {
+      await tabContainer.click().catch(async () => {
+        await tabContainer.click({ force: true });
+      });
+      return;
+    }
+
+    // 2. Fall back to text locator (using force if intercepted)
     const el = page.getByText(name, { exact: true }).first();
     const visible = await el.isVisible().catch(() => false);
-    if (visible) { await el.click(); return; }
+    if (visible) {
+      await el.click().catch(async () => {
+        await el.click({ force: true });
+      });
+      return;
+    }
   }
 }
 

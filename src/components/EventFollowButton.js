@@ -51,14 +51,24 @@ export const EventFollowButton = ({ eventId, isSport = false, teamId = null, sty
     if (!user || !isSupabaseEnabled) return;
     try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
 
-    if (following) {
-      setFollowing(false);
-      await supabase.from(table).delete().eq('event_id', eventId).eq('user_id', user?.id);
-    } else {
-      setFollowing(true);
+    const next = !following;
+    setFollowing(next); // optimistic
+
+    // A Supabase write resolves (not rejects) on RLS/constraint errors — we MUST
+    // inspect `error` and revert, otherwise the button sticks on the new state
+    // while nothing actually saved (and reverts anyway on the next reload).
+    let error;
+    if (next) {
       const row = { event_id: eventId, user_id: user?.id, ...prefs };
       if (isSport && teamId) row.team_id = teamId;
-      await supabase.from(table).upsert(row, { onConflict: 'event_id,user_id' });
+      ({ error } = await supabase.from(table).upsert(row, { onConflict: 'event_id,user_id' }));
+    } else {
+      ({ error } = await supabase.from(table).delete().eq('event_id', eventId).eq('user_id', user?.id));
+    }
+
+    if (error) {
+      console.error('[EventFollowButton] toggle failed', error);
+      setFollowing(!next); // revert — the write didn't persist
     }
   };
 

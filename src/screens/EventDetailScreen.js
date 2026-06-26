@@ -24,6 +24,7 @@ import { checkEventAge } from '../utils/ageGate';
 import { DeviceCalendar, RichHaptics } from '../services/smartphoneFeatures';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
+import { GiftingModal } from '../components/GiftingModal';
 import { useEventRole } from '../hooks/useEventRole';
 import { SafeSection } from '../components/SafeSection';
 import { NowPlayingBar } from '../components/NowPlayingBar';
@@ -182,6 +183,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [organizerProfileOpen, setOrganizerProfileOpen] = useState(false);
   const [openGuestPlayer, setOpenGuestPlayer] = useState(null);
   const [govOpen, setGovOpen] = useState(false);
+  const [giftingOpen, setGiftingOpen] = useState(false);
   const scrollRef = useRef(null);
 
   const { isOrganiser, isCoHost, canPost, canModerate } = useEventRole(
@@ -792,6 +794,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 accessibilityLabel={`Message ${organizer.username || 'organizer'}`}
               >
                 <Feather name="message-circle" size={16} color={primary} />
+              </TouchableOpacity>
+            )}
+
+            {user && organizer?.id && user.id !== organizer.id && (
+              <TouchableOpacity
+                style={[styles.messageOrganizerBtn, { borderColor: `${primary}50`, backgroundColor: `${primary}12`, marginLeft: 8 }]}
+                onPress={() => setGiftingOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`Gift ${organizer.username || 'organizer'}`}
+              >
+                <Feather name="gift" size={16} color={primary} />
               </TouchableOpacity>
             )}
           </View>
@@ -1672,6 +1685,18 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           recipient={organizer}
           onClose={() => setDmOpen(false)}
         />)}
+      {giftingOpen && (
+        <GiftingModal
+          visible={giftingOpen}
+          hostId={organizer?.id}
+          eventId={event?.id}
+          hostName={organizer?.username}
+          onClose={() => setGiftingOpen(false)}
+          onGiftSent={(gift) => {
+            console.log('Gift sent successfully:', gift);
+          }}
+        />
+      )}
     </Modal>
   );
 };

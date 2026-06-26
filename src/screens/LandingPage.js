@@ -1429,20 +1429,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       return n;
     });
     try {
+      // Each tier MUST inspect `error` and throw — a Supabase write resolves (not
+      // rejects) on RLS/constraint errors, so without this a failed follow looks
+      // like success and silently never saves (button reverts on reload).
       const ok = wasFollowing
         ? await resilient(
             [
-              () => supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profileId),
-              () => supabase.from('follows').update({ unfollowed_at: new Date().toISOString() }).eq('follower_id', user.id).eq('following_id', profileId),
-              () => supabase.rpc('unfollow_user', { p_follower_id: user?.id, p_following_id: profileId }),
+              async () => { const { error } = await supabase.rpc('unfollow_user', { p_follower_id: user.id, p_following_id: profileId }); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profileId); if (error) throw error; return true; },
             ],
             { attemptsPerTier: 2, baseMs: 300, label: `LandingPage.unfollow:${profileId}`, fallbackValue: null }
           )
         : await resilient(
             [
-              () => supabase.from('follows').upsert({ follower_id: user?.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
-              () => supabase.from('follows').insert({ follower_id: user?.id, following_id: profileId }),
-              () => supabase.rpc('follow_user', { p_follower_id: user?.id, p_following_id: profileId }),
+              async () => { const { error } = await supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: profileId }); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.from('follows').upsert({ follower_id: user.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.from('follows').insert({ follower_id: user.id, following_id: profileId }); if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error; return true; },
             ],
             { attemptsPerTier: 2, baseMs: 300, label: `LandingPage.follow:${profileId}`, fallbackValue: null }
           );

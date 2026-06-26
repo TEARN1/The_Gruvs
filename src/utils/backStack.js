@@ -14,7 +14,7 @@ let stack = [];
 export const backStack = {
   /** Register a close handler; returns an unregister fn (call on unmount/hide). */
   push(closeFn) {
-    const entry = { closeFn };
+    const entry = { closeFn, openedAt: Date.now() };
     stack.push(entry);
     return () => {
       const i = stack.indexOf(entry);
@@ -24,8 +24,14 @@ export const backStack = {
 
   /** Close the topmost registered layer. Returns true if one was handled. */
   pop() {
-    const entry = stack.pop();
+    const entry = stack[stack.length - 1];
     if (!entry) return false;
+    // Ignore a back-pop that lands within 300ms of opening. No human presses back
+    // that fast — on web a spurious history/popstate event can fire right as a
+    // sheet mounts, which was slamming the reels comment box shut on open. We
+    // consume the event (so it doesn't bubble) but keep the layer open.
+    if (Date.now() - entry.openedAt < 300) return true;
+    stack.pop();
     try { entry.closeFn(); } catch { /* a broken close handler must not wedge back */ }
     return true;
   },

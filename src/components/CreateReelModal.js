@@ -23,12 +23,24 @@ const SW = Dimensions.get('window').width;
 // an asset with NO `type`/`mimeType` (web + some Android builds), so we also
 // trust `duration` (videos always have it, images never do) and the extension.
 // Getting this wrong renders a video through <Image> → a black frame.
-const detectVideo = (a) => {
+const detectVideoAsync = async (a) => {
   if (!a) return false;
   if (a.type === 'video' || (typeof a.type === 'string' && a.type.startsWith('video'))) return true;
   if (a.mimeType?.startsWith('video/')) return true;
   if (a.duration != null && a.duration > 0) return true;
-  return /\.(mp4|mov|m4v|webm|avi|mkv|3gp)(\?|$)/i.test(a.fileName || a.uri || '');
+  if (/\.(mp4|mov|m4v|webm|avi|mkv|3gp)(\?|$)/i.test(a.fileName || a.uri || '')) return true;
+
+  // Web fallback: Check if the blob type itself starts with video/
+  if (Platform.OS === 'web' && a.uri?.startsWith('blob:')) {
+    try {
+      const response = await fetch(a.uri);
+      const blob = await response.blob();
+      if (blob && blob.type?.startsWith('video/')) return true;
+    } catch (e) {
+      console.warn('detectVideoAsync blob check failed:', e);
+    }
+  }
+  return false;
 };
 
 const SUGGESTED_TAGS = ['#nightlife', '#gruv', '#vibes', '#capetown', '#joburg', '#durban', '#party', '#music', '#djset', '#festival'];
@@ -173,7 +185,8 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
 
     // Decide video-ness once, here, and carry it on the asset so the preview
     // and the upload can never disagree (the cause of black reels).
-    setAsset({ ...picked, __isVideo: detectVideo(picked) });
+    const isVideo = await detectVideoAsync(picked);
+    setAsset({ ...picked, __isVideo: isVideo });
     setStep('details');
   }, []);
 
@@ -203,7 +216,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     }
     setUploading(true);
     try {
-      const isVideo = asset.__isVideo ?? detectVideo(asset);
+      const isVideo = asset.__isVideo ?? (await detectVideoAsync(asset));
       const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
       const storagePath = `${user.id}/reel_${Date.now()}.${ext}`;
       const publicUrl = await uploadToStorage(asset.uri, 'reels', storagePath, { mimeType: asset.mimeType });
@@ -285,7 +298,12 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
   };
 
   const creatorFilterColor = getFilterColor(filter);
-  const isVideoAsset = asset?.__isVideo ?? detectVideo(asset);
+  // Sync video check for render (detectVideoAsync is async and can't be used here).
+  const isVideoAsset = asset?.__isVideo ?? (
+    asset?.type === 'video' ||
+    /video/i.test(asset?.type || asset?.mimeType || '') ||
+    /\.(mp4|mov|m4v|webm|avi|mkv)(\?|$)/i.test(asset?.uri || asset?.fileName || asset?.name || '')
+  );
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose} statusBarTranslucent>

@@ -14,7 +14,7 @@ import { useToast } from './ToastNotification';
 import { SecurityService } from '../services/securityService';
 
 // QRCode resolves to our web shim on web (via metro resolveRequest) — works everywhere
-import QRCode from 'react-native-qrcode-svg';
+import QRCode from 'react-native-qrcode-svg';
 import { useBackClose } from '../hooks/useBackClose';
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -76,7 +76,7 @@ export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
         setConfirmed(true);
         onRsvped?.(event.id, selected);
         // Best-effort: sync going count from DB
-        supabase.from('event_rsvps').select('id', { count: 'exact', head: true })
+        supabase.from('event_rsvps').select('event_id', { count: 'exact', head: true })
           .eq('event_id', event.id).eq('status', 'going')
           .then(({ count }) => {
             if (count !== null) supabase.from('events').update({ going: count }).eq('id', event.id).then(() => {});

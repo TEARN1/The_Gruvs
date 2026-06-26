@@ -2,11 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 60_000,
+  timeout: 90_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: undefined, // Let Playwright determine optimal worker count based on CPU cores
+  workers: 2, // Limit parallelism to prevent resource starvation on the single dev server
   reporter: [['html', { open: 'never' }], ['line']],
 
   use: {

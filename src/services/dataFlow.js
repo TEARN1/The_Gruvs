@@ -504,7 +504,7 @@ export const ScoreEngine = {
       const [posts, vibes, rsvps, checkins, follows, bookings] = await Promise.all([
         supabase.from('events').select('id', { count: 'estimated', head: true }).eq('author_id', userId),
         supabase.from('event_vibes').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
-        supabase.from('event_rsvps').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
+        supabase.from('event_rsvps').select('event_id', { count: 'estimated', head: true }).eq('user_id', userId),
         supabase.from('live_checkins').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
         supabase.from('follows').select('id', { count: 'estimated', head: true }).eq('following_id', userId),
         supabase.from('service_bookings').select('id', { count: 'estimated', head: true }).eq('provider_id', userId).eq('status', 'completed'),
@@ -1929,9 +1929,9 @@ export const AnalyticsManager = {
     try {
       const [vibes, going, maybe, notGoing, checkins, echoes] = await Promise.all([
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
-        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'going'),
-        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'maybe'),
-        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'not_going'),
+        supabase.from('event_rsvps').select('event_id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'going'),
+        supabase.from('event_rsvps').select('event_id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'maybe'),
+        supabase.from('event_rsvps').select('event_id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'not_going'),
         supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
       ]);
@@ -2946,7 +2946,7 @@ export const CapacityManager = {
       // (physical arrivals). Counting check-ins reported full capacity available
       // pre-event (0 arrivals) even when the event was already RSVP-full.
       const { count } = await supabase
-        .from('event_rsvps').select('id', { count: 'exact', head: true })
+        .from('event_rsvps').select('event_id', { count: 'exact', head: true })
         .eq('event_id', eventId).eq('status', 'going');
       const spotsLeft = Math.max(0, limit - (count || 0));
       return { hasLimit: true, isSoldOut: event.is_sold_out || spotsLeft === 0, spotsLeft, capacity: limit };
@@ -3284,13 +3284,13 @@ export const BehavioralEngine = {
         rsvpTs, checkinTs, vibeTs,
         peerSample,
       ] = await Promise.all([
-        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
+        supabase.from('event_rsvps').select('event_id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
         supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('checked_in_at', since7d),
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since7d),
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', userId).gte('created_at', since7d),
 
-        supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
+        supabase.from('event_rsvps').select('event_id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
         supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
         supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('checked_in_at', since14d).lt('checked_in_at', since7d),
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since14d).lt('created_at', since7d),
@@ -3729,7 +3729,7 @@ export const TicketManager = {
   async getMyTickets(userId) {
     const { data, error } = await supabase
       .from('ticket_tokens')
-      .select('*, events(id, title, date, event_date, event_time, venue_name, cover_image, cover_url)')
+      .select('*, events(id, title, event_date, event_time, venue_name, cover_image, cover_url)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     if (error) throw error;

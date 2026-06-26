@@ -2035,7 +2035,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           async () => {
             const { data: d, error } = await supabase
               .from('events')
-              .select('id, title, date, cover_url, status')
+              .select('id, title, event_date, cover_url')
               .eq('author_id', user.id)
               .order('created_at', { ascending: false })
               .limit(20);
@@ -2131,7 +2131,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         // Events where the current user is a co_host in event_roles
         const { data: d } = await supabase
           .from('event_roles')
-          .select('events(id, title, date, cover_url, status, category, author_id, profiles:author_id(username))')
+          .select('events(id, title, event_date, cover_url, category, author_id, profiles:author_id(username))')
           .eq('user_id', user?.id)
           .eq('role', 'co_host')
           .order('created_at', { ascending: false })

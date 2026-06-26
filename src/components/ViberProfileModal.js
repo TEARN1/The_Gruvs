@@ -21,6 +21,7 @@ import { PlayerProfileModal } from './PlayerProfileModal';
 import { TalentEngine } from '../services/talentEngine';
 import { EditEventModal } from './EditEventModal';
 import { UserManager, PresenceManager, AuraService, isOnline as checkOnline } from '../services/dataFlow';
+import { ReelsObservers } from '../services/reelsDataFlow';
 import { useToast } from './ToastNotification';
 import { ReportModal } from './ReportModal';
 import { useBackClose } from '../hooks/useBackClose';
@@ -235,6 +236,21 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     };
   }, [visible, targetId]);
 
+  useEffect(() => {
+    if (!visible || !targetId) return;
+    const unsub = ReelsObservers.subscribe('user_follow_changed', ({ userId, isFollowing: newFollowing }) => {
+      if (userId === targetId) {
+        setIsFollowing(curr => {
+          if (curr !== newFollowing) {
+            setFollowerCount(c => newFollowing ? c + 1 : Math.max(0, c - 1));
+          }
+          return newFollowing;
+        });
+      }
+    });
+    return unsub;
+  }, [visible, targetId]);
+
   const loadProfile = useCallback(async (uid) => {
     setLoading(true);
     try {
@@ -338,10 +354,12 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       if (wasFollowing) {
         await UserManager.unfollow(currentUser.id, targetId);
         setIsMutual(false);
+        ReelsObservers.notify('user_follow_changed', { userId: targetId, isFollowing: false });
       } else {
         await UserManager.follow(currentUser.id, targetId);
         const theyFollow = await UserManager.isFollowing(targetId, currentUser.id);
         setIsMutual(theyFollow);
+        ReelsObservers.notify('user_follow_changed', { userId: targetId, isFollowing: true });
       }
     } catch (e) {
       // Rollback optimistic update

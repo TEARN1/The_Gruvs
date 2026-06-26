@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { waitForApp, goToTab } from './helpers';
+import { waitForApp, goToTab, mockFonts } from './helpers';
 
 test.describe('Calendar Page', () => {
   test.beforeEach(async ({ page }) => {
+    await mockFonts(page);
     await page.goto('/');
     await waitForApp(page);
     await goToTab(page, 'Lineup', 'Calendar');

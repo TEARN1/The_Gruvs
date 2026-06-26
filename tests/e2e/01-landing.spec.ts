@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { waitForApp, trackErrors } from './helpers';
+import { waitForApp, trackErrors, mockFonts } from './helpers';
 
 test.describe('Landing Page', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockFonts(page);
+  });
   test('loads without unexpected JS errors', async ({ page }) => {
     const getErrors = trackErrors(page);
     await page.goto('/');

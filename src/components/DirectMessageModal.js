@@ -291,7 +291,14 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     if (!user || !recipient) return;
     const msgs = await MessageManager.fetchThread(user.id, recipient.id);
     const filtered = msgs.filter(m => !m.deleted_at);
-    setMessages(filtered.length > MAX_MESSAGES ? filtered.slice(filtered.length - MAX_MESSAGES) : filtered);
+    const next = filtered.length > MAX_MESSAGES ? filtered.slice(filtered.length - MAX_MESSAGES) : filtered;
+    // Merge instead of blindly replacing: never drop a just-sent message that
+    // hasn't surfaced in this fetch yet (otherwise a refetch can wipe it).
+    setMessages(prev => {
+      const ids = new Set(next.map(m => m.id));
+      const inFlight = prev.filter(m => (m._optimistic || m._failed) && !ids.has(m.id));
+      return inFlight.length ? [...next, ...inFlight] : next;
+    });
 
     // Determine request status from DB fields
     const myMsg = msgs.find(m => m.sender_id === user.id);
@@ -445,7 +452,11 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       unsubTyping();
       clearTimeout(typingTimeout.current);
     };
-  }, [visible, user, recipient, fetchMessages]);
+    // Depend on the stable IDs, not the object identities. Passing `recipient`/
+    // `fetchMessages` (new references on every parent render) made this effect
+    // re-run constantly — tearing down realtime and re-showing the loading
+    // skeleton, which made messages flicker and "disappear".
+  }, [visible, user?.id, recipient?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Scroll to bottom on new messages
   useEffect(() => {

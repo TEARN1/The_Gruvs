@@ -618,9 +618,8 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
                                 setFollowedIds(prev => { const n = new Set(prev); n.delete(v.id); return n; });
                                 const ok = await resilient(
                                   [
-                                    () => supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', v.id),
-                                    () => supabase.from('follows').update({ unfollowed_at: new Date().toISOString() }).eq('follower_id', user.id).eq('following_id', v.id),
-                                    () => supabase.rpc('unfollow_user', { p_follower_id: user?.id, p_following_id: v.id }),
+                                    async () => { const { error } = await supabase.rpc('unfollow_user', { p_follower_id: user.id, p_following_id: v.id }); if (error) throw error; return true; },
+                                    async () => { const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', v.id); if (error) throw error; return true; },
                                   ],
                                   { attemptsPerTier: 2, baseMs: 300, label: `DiscoverPeople.unfollow:${v.id}`, fallbackValue: null }
                                 );
@@ -629,9 +628,9 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
                                 setFollowedIds(prev => new Set([...prev, v.id]));
                                 const ok = await resilient(
                                   [
-                                    () => supabase.from('follows').upsert({ follower_id: user?.id, following_id: v.id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
-                                    () => supabase.from('follows').insert({ follower_id: user?.id, following_id: v.id }),
-                                    () => supabase.rpc('follow_user', { p_follower_id: user?.id, p_following_id: v.id }),
+                                    async () => { const { error } = await supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: v.id }); if (error) throw error; return true; },
+                                    async () => { const { error } = await supabase.from('follows').upsert({ follower_id: user.id, following_id: v.id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }); if (error) throw error; return true; },
+                                    async () => { const { error } = await supabase.from('follows').insert({ follower_id: user.id, following_id: v.id }); if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error; return true; },
                                   ],
                                   { attemptsPerTier: 2, baseMs: 300, label: `DiscoverPeople.follow:${v.id}`, fallbackValue: null }
                                 );

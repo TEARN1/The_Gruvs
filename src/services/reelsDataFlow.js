@@ -112,11 +112,27 @@ export const ReelsRepository = {
     };
 
     let followedIds = [];
-    if (tab === 'following' && userId) {
+    let likedReelIds = [];
+    let savedReelIds = [];
+    if (userId) {
       try {
-        const { data } = await supabase.from('follows').select('following_id').eq('follower_id', userId).limit(200);
-        followedIds = (data || []).map(r => r.following_id);
-      } catch { followedIds = []; }
+        const [followRes, likesRes, savesRes] = await Promise.allSettled([
+          supabase.from('follows').select('following_id').eq('follower_id', userId).limit(1000),
+          supabase.from('reel_likes').select('reel_id').eq('user_id', userId).limit(1000),
+          supabase.from('saved_reels').select('reel_id').eq('user_id', userId).limit(1000),
+        ]);
+        if (followRes.status === 'fulfilled' && followRes.value.data) {
+          followedIds = followRes.value.data.map(r => r.following_id);
+        }
+        if (likesRes.status === 'fulfilled' && likesRes.value.data) {
+          likedReelIds = likesRes.value.data.map(r => r.reel_id);
+        }
+        if (savesRes.status === 'fulfilled' && savesRes.value.data) {
+          savedReelIds = savesRes.value.data.map(r => r.reel_id);
+        }
+      } catch (err) {
+        console.warn('Interactions fetch failed:', err);
+      }
     }
 
     try {
@@ -173,6 +189,9 @@ export const ReelsRepository = {
         }
         return {
           ...item,
+          _liked: likedReelIds.includes(item.id),
+          _following: followedIds.includes(item.user_id),
+          _saved: savedReelIds.includes(item.id),
           metadata: {
             filter: 'none',
             stickers: [],

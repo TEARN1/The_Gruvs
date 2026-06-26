@@ -2,24 +2,24 @@
  * Profile Page — tests tabs including new "Following" tab.
  */
 import { test, expect } from '@playwright/test';
-import { waitForApp } from './helpers';
+import { waitForApp, mockFonts } from './helpers';
 
 test.describe('Profile Page', () => {
   test.beforeEach(async ({ page }) => {
+    await mockFonts(page);
     await page.goto('/');
     await waitForApp(page);
     // Navigate to profile tab (Vibe Card)
-    const profileTab = page
-      .getByRole('button', { name: /vibe card|profile|me/i })
-      .or(page.getByText(/vibe card/i))
-      .first();
-    await profileTab.click().catch(() => {});
+    const profileTab = page.locator('[role="tab"][aria-label="Vibe Card"]').first();
+    await profileTab.click();
   });
 
   test('profile page renders', async ({ page }) => {
-    // Should show either a profile or a sign-in prompt
+    // Should show either a profile or a sign-in prompt within the active content area
     const profileContent = page
+      .locator('#main-content')
       .getByText(/my gruvs|following|saved|sign in|log in/i)
+      .filter({ visible: true })
       .first();
     await expect(profileContent).toBeVisible({ timeout: 10_000 });
   });

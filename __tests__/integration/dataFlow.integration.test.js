@@ -128,10 +128,24 @@ describe('DataFlow Integration Test', () => {
 
   describe('Social Follow Flow', () => {
     it('inserts follow row and logs notification', async () => {
+      supabase.rpc.mockImplementation((fn) => {
+        if (fn === 'follow_user') {
+          return Promise.resolve({ error: { message: 'RPC not available in test fallback' } });
+        }
+        return Promise.resolve({ data: null, error: null });
+      });
+
       __setResult('follows', 'single', { data: { id: 'follow-1' }, error: null });
+
+      console.log('test supabase.rpc is mock?', jest.isMockFunction(supabase.rpc));
+      console.log('test supabase.rpc:', supabase.rpc);
 
       const result = await UserManager.follow('follower-1', 'following-1');
       expect(result).toBe(true);
+
+      console.log('RPC mock calls:', JSON.stringify(supabase.rpc.mock.calls, null, 2));
+      console.log('RPC mock results:', supabase.rpc.mock.results);
+      console.log('Captured calls:', JSON.stringify(__mock.captured, null, 2));
 
       // Verify follow row
       expect(__mock.captured.follows.upsert).toEqual(

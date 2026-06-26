@@ -28,6 +28,7 @@ import {
   ReelsPreferences, ReelsObservers, ReelsRepository, ReelsAnalytics,
   PLAYBACK_SPEEDS, ASPECT_RATIOS, VISUAL_FILTERS
 } from '../services/reelsDataFlow';
+import { UserManager } from '../services/dataFlow';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useBackClose } from '../hooks/useBackClose';
 import { GlitterBurst } from '../components/GlitterBurst';
@@ -469,6 +470,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
   const heartAnim = useRef(new Animated.Value(0)).current;
   const heartScale = useRef(new Animated.Value(0)).current;
   const progressBarRef = useRef(null);
+  const toast = useToast();
 
   const [liked, setLiked] = useState(reel._liked || false);
   const [likeCount, setLikeCount] = useState(reel.like_count || 0);
@@ -489,6 +491,11 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
     setLiked(reel._liked || false);
     setLikeCount(reel.like_count || 0);
   }, [reel._liked, reel.like_count]);
+
+  // Real-time synchronization of follow state if updated elsewhere
+  useEffect(() => {
+    setFollowing(reel._following || false);
+  }, [reel._following]);
 
   // Sync mute state globally across reels
   useEffect(() => {
@@ -590,20 +597,20 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
     if (!user) return;
     const newFollowing = !following;
     setFollowing(newFollowing);
-    // RPC-first (reliable, RLS-proof); each tier inspects `error` and throws so a
-    // failed write fails over / rolls back instead of looking like success.
-    const followRes = await resilient(
-      newFollowing ? [
-        async () => { const { error } = await supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: reel.user_id }); if (error) throw error; return true; },
-        async () => { const { error } = await supabase.from('follows').upsert({ follower_id: user.id, following_id: reel.user_id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }); if (error) throw error; return true; },
-        async () => { const { error } = await supabase.from('follows').insert({ follower_id: user.id, following_id: reel.user_id }); if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error; return true; },
-      ] : [
-        async () => { const { error } = await supabase.rpc('unfollow_user', { p_follower_id: user.id, p_following_id: reel.user_id }); if (error) throw error; return true; },
-        async () => { const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', reel.user_id); if (error) throw error; return true; },
-      ],
-      { attemptsPerTier: 2, baseMs: 300, label: 'ReelItem.handleFollow', fallbackValue: null }
-    );
-    if (!followRes) setFollowing(!newFollowing); // rollback if it failed
+    try {
+      if (newFollowing) {
+        await UserManager.follow(user.id, reel.user_id);
+      } else {
+        await UserManager.unfollow(user.id, reel.user_id);
+      }
+      ReelsObservers.notify('user_follow_changed', { userId: reel.user_id, isFollowing: newFollowing });
+    } catch (e) {
+      setFollowing(!newFollowing); // rollback if it failed
+      const msg = e?.message?.includes('row-level security')
+        ? 'Follow could not save — database not configured yet.'
+        : 'Could not save follow — ' + (e?.message || 'check your connection.');
+      toast?.show(msg, 'error');
+    }
   };
 
   const handleShare = async () => {
@@ -1150,9 +1157,18 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     const unsubLoad = ReelsObservers.subscribe('preferences_loaded', (state) => {
       setPlayerPref({ ...state });
     });
+    const unsubFollow = ReelsObservers.subscribe('user_follow_changed', ({ userId, isFollowing }) => {
+      setReels(prev => prev.map(r => {
+        if (r.user_id === userId) {
+          return { ...r, _following: isFollowing };
+        }
+        return r;
+      }));
+    });
     return () => {
       unsub();
       unsubLoad();
+      unsubFollow();
     };
   }, []);
 
