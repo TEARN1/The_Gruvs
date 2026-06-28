@@ -181,7 +181,7 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
             onPress={() => { onClose(); onSelectEvent && onSelectEvent(spot); }}
             activeOpacity={0.75}
             accessibilityRole="button"
-            accessibilityLabel={`Trending #${i + 1}: ${spot.description || spot.title || 'Trending Gruv'}, ${spot.rsvp_count || spot.going || 0} vibing`}
+            accessibilityLabel={`Trending: ${spot.description || spot.title || 'Trending Gruv'}, ${spot.rsvp_count || spot.going || 0} vibing`}
           >
             <Image
               source={typeof spot.image === 'string' ? { uri: spot.image } : (spot.image || require('../../assets/events/pixel.png'))}

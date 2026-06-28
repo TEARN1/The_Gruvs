@@ -1742,8 +1742,8 @@ const src = StyleSheet.create({
 const TrendTile = ({ spot, rank, primary, onPress }) => (
   <TouchableOpacity onPress={onPress} style={[tt.wrap, { backgroundColor: rank < 3 ? `${primary}10` : 'rgba(255,255,255,0.04)' }]} activeOpacity={0.85}>
     {spot.image ? <Image source={{ uri: spot.image }} style={tt.img} /> : <View style={[tt.img, { backgroundColor: "#111a1c" }]} />}
-    <View style={[tt.rankBadge, { backgroundColor: rank < 3 ? primary : 'rgba(255,255,255,0.15)' }]}>
-      <Text style={[tt.rankText, { color: rank < 3 ? '#000' : '#fff' }]}>#{rank + 1}</Text>
+    <View style={[tt.rankBadge, { backgroundColor: rank < 3 ? primary : 'rgba(255,255,255,0.15)', width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }]}>
+      <Feather name="trending-up" size={10} color={rank < 3 ? '#000' : '#fff'} />
     </View>
     <View style={tt.info}>
       <Text style={tt.name} numberOfLines={2}>{spot.description || spot.title}</Text>
