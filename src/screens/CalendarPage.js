@@ -474,13 +474,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
     setLoading(true);
     try {
       const fromDB = await CalendarManager.fetchMonthEvents(y, m);
-      const now = new Date();
-      const active = (fromDB || []).filter(ev => {
-        if (!ev.event_date) return true;
-        const evDate = new Date(ev.event_date);
-        return evDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      });
-      setMonthEvents(active);
+      setMonthEvents(fromDB || []);
     } catch {
       // keep current month view on transient failure
     } finally {
