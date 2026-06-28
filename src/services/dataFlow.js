@@ -691,10 +691,10 @@ export const FeedManager = {
       // un-migrated DB, so nothing is filtered until the column + trigger exist.
       let events = normalizeEvents((data || []).filter(e => !e.auto_hidden));
       if (!query.trim()) {
-        // Stamp heat scores so applyPersonalisedBoost can re-rank with them
+        // Stamp heat scores so applyPersonalisedBoost can re-rank with them; add random jitter to shuffle drops
         events = events.map(e => ({
           ...e,
-          _heatScore: ScoreEngine.eventScore(e, { userInterests, followedIds: resolvedFollowedIds, userLat, userLon, aiRecommendedIds }),
+          _heatScore: ScoreEngine.eventScore(e, { userInterests, followedIds: resolvedFollowedIds, userLat, userLon, aiRecommendedIds }) + (Math.random() - 0.5) * 80,
         }));
         events.sort((a, b) => b._heatScore - a._heatScore);
       }

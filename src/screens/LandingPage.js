@@ -190,7 +190,7 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
             <View style={{ flex: 1 }}>
               <View style={tm.rankRow}>
                 <View style={[tm.rankBadge, { backgroundColor: i < 3 ? `${primary}25` : 'rgba(255,255,255,0.06)' }]}>
-                  <Text style={[tm.rankNum, { color: i < 3 ? primary : muted }]}>#{i + 1}</Text>
+                  <Feather name="trending-up" size={10} color={i < 3 ? primary : muted} />
                 </View>
                 <Text style={[tm.spotName, { color: textColor }]} numberOfLines={1}>
                   {spot.description || spot.title || 'Trending Gruv'}
@@ -349,7 +349,7 @@ const EventCard = React.memo(({
           {event._isTrending && (
             <View style={[styles.trendingBanner, { backgroundColor: primary }]}>
               <Text style={styles.trendingBannerText}>
-                🔥 #{event._trendingRank} TRENDING NOW
+                🔥 TRENDING NOW
               </Text>
             </View>
           )}
@@ -890,7 +890,7 @@ const guestExcitementScore = (e) => {
   const buzz = (e.vibe_count || 0) + (e.going || 0) + (e.reaction_count || 0) * 2;
   score += Math.log10(1 + buzz) * 60;
   if (e.cover_url || e.media_urls?.length || e.media?.length) score += 25; // has a poster
-  return score;
+  return score + (Math.random() - 0.5) * 80; // add random jitter to shuffle drops for guests
 };
 const orderForGuest = (list) =>
   [...(list || [])]
@@ -1922,8 +1922,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 />
                 <View style={[styles.trendOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
                 {/* Rank badge */}
-                <View style={[styles.trendRank, { backgroundColor: i < 3 ? `${primary}cc` : 'rgba(0,0,0,0.55)' }]}>
-                  <Text style={[styles.trendRankText, { color: i < 3 ? '#000' : '#fff' }]}>#{i + 1}</Text>
+                <View style={[styles.trendRank, { backgroundColor: i < 3 ? `${primary}cc` : 'rgba(0,0,0,0.55)', width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }]}>
+                  <Feather name="trending-up" size={12} color={i < 3 ? '#000' : '#fff'} />
                 </View>
                 <View style={styles.trendBody}>
                   <Text style={styles.trendName} numberOfLines={2}>
