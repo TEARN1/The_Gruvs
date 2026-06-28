@@ -38,18 +38,18 @@ const { width } = Dimensions.get('window');
 
 // ── Sport type quick-filter chips ────────────────────────────────────────────
 const SPORT_FILTERS = [
-  { key: 'soccer',      label: 'Soccer',      icon: '⚽' },
-  { key: 'rugby',       label: 'Rugby',        icon: '🏉' },
-  { key: 'basketball',  label: 'Basketball',   icon: '🏀' },
-  { key: 'cricket',     label: 'Cricket',      icon: '🏏' },
-  { key: 'athletics',   label: 'Athletics',    icon: '🏃' },
-  { key: 'tennis',      label: 'Tennis',       icon: '🎾' },
-  { key: 'boxing',      label: 'Boxing',       icon: '🥊' },
-  { key: 'esports',     label: 'Esports',      icon: '🎮' },
-  { key: 'golf',        label: 'Golf',         icon: '⛳' },
-  { key: 'swimming',    label: 'Swimming',     icon: '🏊' },
-  { key: 'volleyball',  label: 'Volleyball',   icon: '🏐' },
-  { key: 'cycling',     label: 'Cycling',      icon: '🚴' },
+  { key: 'soccer',      label: 'Soccer',      icon: 'activity' },
+  { key: 'rugby',       label: 'Rugby',        icon: 'award' },
+  { key: 'basketball',  label: 'Basketball',   icon: 'target' },
+  { key: 'cricket',     label: 'Cricket',      icon: 'star' },
+  { key: 'athletics',   label: 'Athletics',    icon: 'wind' },
+  { key: 'tennis',      label: 'Tennis',       icon: 'circle' },
+  { key: 'boxing',      label: 'Boxing',       icon: 'shield' },
+  { key: 'esports',     label: 'Esports',      icon: 'play' },
+  { key: 'golf',        label: 'Golf',         icon: 'flag' },
+  { key: 'swimming',    label: 'Swimming',     icon: 'droplet' },
+  { key: 'volleyball',  label: 'Volleyball',   icon: 'circle' },
+  { key: 'cycling',     label: 'Cycling',      icon: 'navigation' },
 ];
 
 const SportFilterRow = ({ activeSport, onSelect, primary }) => (
@@ -73,7 +73,7 @@ const SportFilterRow = ({ activeSport, onSelect, primary }) => (
           onPress={() => onSelect(active ? null : s.key)}
           accessibilityLabel={s.label}
         >
-          <Text style={sf.icon}>{s.icon}</Text>
+          <Feather name={s.icon} size={12} color={active ? '#000' : primary} />
           <Text style={[sf.label, { color: active ? '#000' : primary }]}>{s.label}</Text>
         </TouchableOpacity>
       );
@@ -165,8 +165,10 @@ const HeroCard = ({ event, primary, onPress }) => {
     if (e.media?.[0]) {
       url = typeof e.media[0] === 'string' ? e.media[0] : e.media[0].url;
     }
+    // TODO(v6): remove media_urls fallback after migration
     if (!url && e.media_urls?.[0]) url = e.media_urls[0];
     if (!url && e.cover_url) url = e.cover_url;
+    // TODO(v6): remove cover_image/image_url fallbacks after migration
     if (!url && e.cover_image) url = e.cover_image;
     if (!url && e.image_url) url = e.image_url;
     if (!url) return null;
@@ -322,7 +324,7 @@ const CategoryGrid = ({ onSelect, primary, textColor, muted, categoryCounts }) =
             accessibilityLabel={`${cfg.label} category${count > 0 ? ', ' + count + ' events' : ''}`}
             {...(Platform.OS === 'web' ? { className: 'category-cell' } : {})}
           >
-            <Text style={{ fontSize: 22 }}>{cfg.icon}</Text>
+            <Feather name={cfg.icon} size={22} color={cfg.color} />
             <Text style={[cg.label, { color: textColor }]}>{cfg.label}</Text>
             {count > 0 && <Text style={[cg.count, { color: cfg.color }]}>{count}</Text>}
           </TouchableOpacity>
@@ -413,6 +415,7 @@ const startsInLabel = (event) => {
 const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false }) => {
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
   const starts = startsInLabel(event);
+  // TODO(v6): remove media_urls/cover_image/image_url fallbacks after migration
   const thumb = event.media?.[0]?.url
     || (typeof event.media?.[0] === 'string' ? event.media[0] : null)
     || event.cover_url
@@ -469,7 +472,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
         <SmartImage source={thumb} style={et.img} resizeMode="cover" />
         <View style={[et.overlay, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
         <View style={[et.catBadge, { backgroundColor: catColor, ...(isWeb ? { boxShadow: `0 0 10px ${catColor}80` } : {}) }]}>
-          <Text style={et.catText}>{CATEGORY_CONFIG[event.category]?.icon || '🎭'}</Text>
+          <Feather name={CATEGORY_CONFIG[event.category]?.icon || 'tag'} size={12} color="#fff" />
         </View>
         {isHot && <HotBadge compact style={et.hotBadge} />}
       <View style={et.info}>
@@ -665,9 +668,9 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             .limit(20),
           // 4. Events with cover photos (recent events)
           supabase.from('events')
-            .select('id, cover_url, image_url, media_urls, title, category, created_at')
+            .select('id, cover_url, media, title, category, created_at')
             .not('cover_url', 'is', null)
-            .neq('is_deleted', true)
+            .is('deleted_at', null)
             .order('created_at', { ascending: false })
             .limit(30),
         ]);
@@ -732,7 +735,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         const { data: reelCaps } = await supabase
           .from('reels')
           .select('caption')
-          .neq('is_deleted', true)
+          .is('deleted_at', null)
           .gte('created_at', cutoff)
           .limit(200);
         const tagCounts = {};
@@ -886,11 +889,11 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     const today = new Date().toISOString().split('T')[0];
     supabase
       .from('events')
-      .select('id, title, category, event_date, event_time, venue_name, city, cover_url, image_url, media_urls, poster_mode, vibe_count, price, lat, lon, profiles!author_id(username, avatar_url)')
+      .select('id, title, category, event_date, event_time, venue_name, city, cover_url, media, poster_mode, vibe_count, price, lat, lon, profiles!author_id(username, avatar_url)')
       .in('category', catList)
       .gte('event_date', today)
-      .neq('is_deleted', true)
-      .neq('is_cancelled', true)
+      .is('deleted_at', null)
+      .neq('status', 'cancelled')
       .order('vibe_count', { ascending: false })
       .limit(40)
       .then(({ data, error }) => {

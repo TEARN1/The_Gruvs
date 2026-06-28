@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, startTransition } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  FlatList, Image, ActivityIndicator, RefreshControl,
+  SectionList, Image, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { GlassView } from './GlassView';
@@ -162,6 +162,33 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
     ? activities
     : activities.filter(a => a.type === activeFilter);
 
+  const getSections = () => {
+    const today = [];
+    const yesterday = [];
+    const older = [];
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfYesterday = startOfToday - 86400000;
+
+    filtered.forEach(item => {
+      const itemTime = new Date(item.created_at).getTime();
+      if (itemTime >= startOfToday) {
+        today.push(item);
+      } else if (itemTime >= startOfYesterday) {
+        yesterday.push(item);
+      } else {
+        older.push(item);
+      }
+    });
+
+    const sections = [];
+    if (today.length > 0) sections.push({ title: 'Today', data: today });
+    if (yesterday.length > 0) sections.push({ title: 'Yesterday', data: yesterday });
+    if (older.length > 0) sections.push({ title: 'Older', data: older });
+    return sections;
+  };
+
   const renderActivityItem = useCallback(({ item }) => {
     const meta = TYPE_META[item.type] || TYPE_META.vibe;
     const initials = item.actor?.[0]?.toUpperCase() || 'G';
@@ -242,8 +269,8 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
           {loading ? (
             <ActivityIndicator color={primary} size="large" style={{ marginTop: 40 }} />
           ) : (
-            <FlatList
-              data={filtered}
+            <SectionList
+              sections={getSections()}
               keyExtractor={item => item.id}
               showsVerticalScrollIndicator={false}
               style={{ flex: 1 }}
@@ -255,6 +282,13 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
                 />
               }
               renderItem={renderActivityItem}
+              renderSectionHeader={({ section: { title } }) => (
+                <View style={{ backgroundColor: bg, paddingVertical: 8, paddingHorizontal: 4 }}>
+                  <Text style={{ color: primary, fontWeight: '900', fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                    {title}
+                  </Text>
+                </View>
+              )}
               ListEmptyComponent={
                 <View style={ac.empty}>
                   <Feather name={user ? 'bell' : 'lock'} size={40} color={muted} />

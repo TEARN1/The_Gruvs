@@ -650,8 +650,8 @@ export const FeedManager = {
       let q = supabase
         .from('events')
         .select(select, { count })
-        .neq('is_deleted', true)
-        .neq('is_cancelled', true)
+        .is('deleted_at', null)
+        .neq('status', 'cancelled')
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
       if (category !== 'all') {
         const subCats = CAT_KEY_TO_SUBCATS[category];
@@ -739,7 +739,7 @@ export const FeedManager = {
       },
       // ── Tier 2 (Secondary): no profile join — lighter query ───────────────
       async () => {
-        let q = buildBaseQuery('id, title, description, media, media_urls, cover_url, vibe_count, going, event_date, event_time, venue_name, category, author_id, lat, lon, price, created_at, is_verified, contact_phone, contact_email, age_restriction, age_max, tags, ticket_url, capacity, is_cancelled, is_deleted, rsvp_tiers');
+        let q = buildBaseQuery('id, title, description, media, cover_url, vibe_count, rsvp_count, event_date, event_time, venue_name, category, author_id, lat, lon, price, created_at, is_verified, contact_phone, contact_email, age_min, age_max, tags, ticket_url, capacity, status, deleted_at, rsvp_tiers');
         if (mode === 'following' && resolvedFollowedIds.length > 0) q = q.in('author_id', resolvedFollowedIds);
         const { data, error, count } = await q;
         if (error) throw error;
@@ -773,7 +773,7 @@ export const FeedManager = {
       async () => {
         const { data, error } = await supabase.from('events')
           .select('*, profiles(id, username, avatar_url, is_verified, vibe_score)')
-          .gte('event_date', today).neq('is_deleted', true).neq('is_cancelled', true)
+          .gte('event_date', today).is('deleted_at', null).neq('status', 'cancelled')
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
         const best = pick(normalizeEvents(data));
@@ -784,7 +784,7 @@ export const FeedManager = {
       async () => {
         const { data, error } = await supabase.from('events')
           .select('id, title, description, media, vibe_count, going, event_date, event_time, venue_name, category, author_id, created_at')
-          .gte('event_date', today).neq('is_deleted', true).neq('is_cancelled', true)
+          .gte('event_date', today).is('deleted_at', null).neq('status', 'cancelled')
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
         return pick(normalizeEvents(data));
@@ -809,7 +809,7 @@ export const FeedManager = {
             supabase.from('events')
               .select('*, profiles(id, username, avatar_url)')
               .or(`title.ilike.%${s}%,description.ilike.%${s}%,category.ilike.%${s}%,venue_name.ilike.%${s}%,city.ilike.%${s}%`)
-              .neq('is_deleted', true).neq('is_cancelled', true)
+              .is('deleted_at', null).neq('status', 'cancelled')
               .order('vibe_count', { ascending: false }).limit(20),
             supabase.from('profiles')
               .select('id, username, display_name, avatar_url, bio, location, vibe_score')
@@ -829,7 +829,7 @@ export const FeedManager = {
           const { data, error } = await supabase.from('events')
             .select('id, title, media, vibe_count, event_date, venue_name, category')
             .or(`title.ilike.%${s}%,venue_name.ilike.%${s}%`)
-            .neq('is_deleted', true).neq('is_cancelled', true)
+            .is('deleted_at', null).neq('status', 'cancelled')
             .order('vibe_count', { ascending: false }).limit(15);
           if (error) throw error;
           return { events: normalizeEvents(data || []), users: [] };
@@ -891,8 +891,8 @@ export const FeedManager = {
       let q = supabase
           .from('events')
           .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)', { count: 'estimated' })
-          .neq('is_deleted', true)
-          .neq('is_cancelled', true)
+          .is('deleted_at', null)
+          .neq('status', 'cancelled')
           .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
       if (category !== 'all') {
         const subCats = CAT_KEY_TO_SUBCATS[category];
@@ -947,8 +947,8 @@ export const TrendingManager = {
       const { data: events } = await supabase
         .from('events')
         .select('id, title, description, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at')
-        .neq('is_cancelled', true)
-        .neq('is_deleted', true)
+        .neq('status', 'cancelled')
+        .is('deleted_at', null)
         .gte('event_date', new Date().toISOString().split('T')[0])
         .order('vibe_count', { ascending: false })
         .limit(limit * 4); // oversample so we can re-rank
@@ -1009,7 +1009,7 @@ export const TrendingManager = {
       const { data: evs } = await supabase.from('events')
         .select('*, profiles(username, avatar_url)')
         .in('id', ids)
-        .neq('is_deleted', true).neq('is_cancelled', true);
+        .is('deleted_at', null).neq('status', 'cancelled');
       const enriched = normalizeEvents(evs || [])
         .map(e => {
           const m = momById.get(e.id) || 0;
@@ -1039,7 +1039,7 @@ export const TrendingManager = {
         const { data, error } = await supabase.from('events')
           .select('*, profiles(username, avatar_url)')
           .gte('event_date', today).lte('event_date', tomorrow)
-          .neq('is_deleted', true).neq('is_cancelled', true)
+          .is('deleted_at', null).neq('status', 'cancelled')
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
         const events = rank(normalizeEvents(data));
@@ -1051,7 +1051,7 @@ export const TrendingManager = {
         const { data, error } = await supabase.from('events')
           .select('id, title, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at')
           .gte('event_date', today).lte('event_date', tomorrow)
-          .neq('is_deleted', true).neq('is_cancelled', true)
+          .is('deleted_at', null).neq('status', 'cancelled')
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
         return rank(normalizeEvents(data));
@@ -1080,8 +1080,8 @@ export const TrendingManager = {
         .select('id, title, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at, profiles(username, avatar_url)')
         .gte('event_date', today)
         .lte('event_date', weekEnd)
-        .neq('is_deleted', true)
-        .neq('is_cancelled', true)
+        .is('deleted_at', null)
+        .neq('status', 'cancelled')
         .order('vibe_count', { ascending: false })
         .limit(20);
       const result = data || [];
@@ -2053,8 +2053,8 @@ export const CalendarManager = {
         .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media, price')
         .gte('event_date', from)
         .lte('event_date', to)
-        .neq('is_deleted', true)
-        .neq('is_cancelled', true)
+        .is('deleted_at', null)
+        .neq('status', 'cancelled')
         .order('event_date', { ascending: true })
         .limit(60);
       const result = normalizeEvents(data || []);
@@ -2073,8 +2073,8 @@ export const CalendarManager = {
         .from('events')
         .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media, price')
         .gte('event_date', today)
-        .neq('is_deleted', true)
-        .neq('is_cancelled', true)
+        .is('deleted_at', null)
+        .neq('status', 'cancelled')
         .order('event_date', { ascending: true })
         .limit(limit);
       const result = normalizeEvents(data || []);
@@ -3040,8 +3040,8 @@ export const FollowingFeedManager = {
         .select('*, profiles(id, username, avatar_url, is_verified, vibe_score)')
         .in('author_id', followedIds)
         .gte('event_date', new Date().toISOString().split('T')[0])
-        .neq('is_deleted', true)
-        .neq('is_cancelled', true)
+        .is('deleted_at', null)
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 

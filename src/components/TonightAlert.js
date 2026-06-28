@@ -166,9 +166,10 @@ export const TonightAlert = ({ events = [], onViewEvent }) => {
                 activeOpacity={0.8}
                 style={[styles.miniCard, { backgroundColor: background }]}
               >
-                {event.cover_image || event.image_url ? (
+                {/* TODO(v6): remove cover_image/image_url fallbacks after migration */}
+                {event.cover_url || event.cover_image || event.image_url ? (
                   <Image
-                    source={{ uri: event.cover_image || event.image_url }}
+                    source={{ uri: event.cover_url || event.cover_image || event.image_url }}
                     style={styles.miniImage}
                     resizeMode="cover"
                   />

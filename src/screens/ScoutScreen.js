@@ -114,6 +114,7 @@ const MiniVibeCard = ({ event, primary, onView, onClose }) => {
     }).start();
   }, [event?.id]);
 
+  // TODO(v6): remove media_urls/image_url fallbacks after migration
   const thumb = event?.media_urls?.[0] || event?.image_url;
   const date = event?.event_date
     ? new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -270,6 +271,7 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
           </View>
         )}
         {events.map(event => {
+          // TODO(v6): remove media_urls/image_url fallbacks after migration
           const thumb = event.media_urls?.[0] || event.image_url;
           const date = event.event_date
             ? new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -383,10 +385,10 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
           if (coords) return DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50);
           const { data, error } = await supabase
             .from('events')
-            .select('id, title, category, lat, lon, venue_name, event_date, media_urls, image_url, vibe_count, price, max_attendees, profiles(username, avatar_url)')
+            .select('id, title, category, lat, lon, venue_name, event_date, cover_url, media, vibe_count, price, capacity, profiles(username, avatar_url)')
             .gte('event_date', today)
-            .neq('is_deleted', true)
-            .neq('is_cancelled', true)
+            .is('deleted_at', null)
+            .neq('status', 'cancelled')
             .order('event_date', { ascending: true })
             .limit(80);
           if (error) throw error;

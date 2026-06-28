@@ -31,7 +31,7 @@ const checkBadges = async (userId) => {
     const [eventsRes, profileRes, followsRes, rsvpsRes, echoesRes, savedRes, referralRes, vibesRes, checkinsRes] =
       await Promise.allSettled([
         supabase.from('events').select('id, vibe_count', { count: 'exact' }).eq('author_id', userId),
-        supabase.from('profiles').select('vibe_score, username, bio, avatar_url, location, referral_count').eq('id', userId).single(),
+        supabase.from('profiles').select('vibe_score, username, bio, avatar_url, city, referral_count').eq('id', userId).single(),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', userId),
         supabase.from('event_rsvps').select('event_id, events(event_date, event_time, city)').eq('user_id', userId),
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
@@ -62,7 +62,7 @@ const checkBadges = async (userId) => {
     if (checkinCount >= 5) earned.add('vibe_scout');
 
     // Verified: has avatar, bio, location, username all set
-    if (profile?.username && profile?.bio && profile?.avatar_url && profile?.location) {
+    if (profile?.username && profile?.bio && profile?.avatar_url && profile?.city) {
       earned.add('verified_citizen');
     }
 

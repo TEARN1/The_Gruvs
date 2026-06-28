@@ -68,6 +68,21 @@ CREATE TABLE public.profiles (
   -- referral lineage (family tree)
   referral_code          TEXT UNIQUE,
   referred_by            UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  referral_count         INTEGER     DEFAULT 0,
+  -- denormalized counters (kept in sync by triggers)
+  followers_count        INTEGER     DEFAULT 0,
+  following_count        INTEGER     DEFAULT 0,
+  events_posted          INTEGER     DEFAULT 0,
+  -- gamification
+  xp                     INTEGER     DEFAULT 0,
+  badges                 TEXT[],
+  profile_gallery        TEXT[],
+  -- privacy
+  show_online            BOOLEAN     DEFAULT true,
+  share_events           BOOLEAN     DEFAULT true,
+  -- economy
+  wallet_balance         NUMERIC(10,2) DEFAULT 0,
+  role                   TEXT,
   -- system
   push_token             TEXT,
   created_at             TIMESTAMPTZ DEFAULT now(),
@@ -130,8 +145,16 @@ CREATE TABLE public.events (
   vibe_count    INTEGER DEFAULT 0,
   support_score INTEGER DEFAULT 0,     -- gifting support (separate from vibe heat)
   rsvp_count    INTEGER DEFAULT 0,
+  going         INTEGER DEFAULT 0,     -- legacy alias for rsvp_count (app still reads this)
   comment_count INTEGER DEFAULT 0,
   view_count    INTEGER DEFAULT 0,
+  -- verification & contact
+  is_verified   BOOLEAN DEFAULT false,
+  contact_phone TEXT,
+  contact_email TEXT,
+  -- display
+  poster_mode   TEXT,
+  category_color TEXT,
   -- system
   slug          TEXT UNIQUE,
   created_at    TIMESTAMPTZ DEFAULT now(),
@@ -182,6 +205,14 @@ CREATE TABLE public.event_checkins (
 CREATE TABLE public.event_vibes (
   event_id   UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
   user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (event_id, user_id)
+);
+
+CREATE TABLE public.event_crowd_votes (
+  event_id   UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  vote       INTEGER NOT NULL CHECK (vote BETWEEN 1 AND 5),
   created_at TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY (event_id, user_id)
 );
@@ -345,6 +376,13 @@ CREATE POLICY vibes_write_own ON public.event_vibes FOR ALL
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid()
     AND user_id <> (SELECT author_id FROM public.events e WHERE e.id = event_id)); -- no self-vibe
+
+ALTER TABLE public.event_crowd_votes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS crowd_votes_select ON public.event_crowd_votes;
+CREATE POLICY crowd_votes_select ON public.event_crowd_votes FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS crowd_votes_write_own ON public.event_crowd_votes;
+CREATE POLICY crowd_votes_write_own ON public.event_crowd_votes FOR ALL
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- ── reels + interactions ──
 ALTER TABLE public.reels ENABLE ROW LEVEL SECURITY;

@@ -7,7 +7,7 @@ jest.mock('../src/services/supabase', () => {
   let result = { data: [], error: null };
   const makeQB = () => {
     const qb = {};
-    ['select', 'neq', 'limit', 'order', 'in', 'ilike', 'eq'].forEach((m) => { qb[m] = () => qb; });
+    ['select', 'neq', 'limit', 'order', 'in', 'ilike', 'eq', 'is'].forEach((m) => { qb[m] = () => qb; });
     qb.then = (resolve) => resolve(result); // awaitable
     return qb;
   };

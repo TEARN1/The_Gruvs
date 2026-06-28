@@ -241,7 +241,7 @@ export const SettingsScreen = ({
   const confirmDelete = useCallback(() => {
     const doDelete = async () => {
       try {
-        const { error } = await supabase.from('profiles').update({ is_deleted: true }).eq('id', user.id);
+        const { error } = await supabase.from('profiles').update({ deleted_at: new Date().toISOString() }).eq('id', user.id);
         if (error) throw error;
         toast?.show('Account deletion requested.', 'success');
         onSignOut?.();

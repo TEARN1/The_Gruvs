@@ -106,8 +106,50 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
   // Aura lighting settings
   const [vibeColor, setVibeColor] = useState("#00f2ff");
   const [vibeIntensity, setVibeIntensity] = useState(70);
+  const [countdown, setCountdown] = useState(0);
 
   const videoRef = useRef(null);
+
+  const launchCamera = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: true,
+        quality: 0.85,
+        videoMaxDuration: 60,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const picked = result.assets[0];
+      const isVideo = await detectVideoAsync(picked);
+      setAsset({ ...picked, __isVideo: isVideo });
+      setStep('details');
+    } catch (e) {
+      toast.show('Failed to record video.', 'error');
+    }
+  };
+
+  const recordVideo = useCallback(async () => {
+    if (Platform.OS !== 'web') {
+      const { status: camStatus } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status: micStatus } = await ImagePicker.requestMicrophonePermissionsAsync();
+      if (camStatus !== 'granted' || micStatus !== 'granted') {
+        toast.show('Camera and microphone permissions are required to record.', 'error');
+        return;
+      }
+    }
+
+    setCountdown(3);
+    const interval = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) {
+          clearInterval(interval);
+          launchCamera();
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+  }, []);
 
   // Load the events this user can tag a reel to (their own + ones they RSVP'd).
   useEffect(() => {
@@ -347,8 +389,14 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
               <View style={s.pickArea}>
                 <TouchableOpacity style={[s.pickBox, { borderColor: `${primary}40`, backgroundColor: `${primary}08` }]} onPress={pickMedia}>
                   <Feather name="film" size={40} color={primary} />
-                  <Text style={[s.pickLabel, { color: textColor }]}>Choose Video or Photo</Text>
+                  <Text style={[s.pickLabel, { color: textColor }]}>Choose from Gallery</Text>
                   <Text style={[s.pickSub, { color: muted }]}>Up to 60 seconds · MP4, MOV, JPG</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[s.pickBox, { borderColor: `${primary}40`, backgroundColor: `${primary}08`, marginTop: 12 }]} onPress={recordVideo}>
+                  <Feather name="video" size={40} color={primary} />
+                  <Text style={[s.pickLabel, { color: textColor }]}>Record a Video</Text>
+                  <Text style={[s.pickSub, { color: muted }]}>3s countdown · Camera & Mic required</Text>
                 </TouchableOpacity>
 
                 <View style={s.tipRow}>
@@ -632,6 +680,13 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+
+      {countdown > 0 && (
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.9)', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }]}>
+          <Text style={{ fontSize: 90, fontWeight: '900', color: primary }}>{countdown}</Text>
+          <Text style={{ fontSize: 16, color: '#fff', marginTop: 16, fontWeight: '700', letterSpacing: 1 }}>RECORDING STARTING...</Text>
+        </View>
+      )}
     </Modal>
   );
 };

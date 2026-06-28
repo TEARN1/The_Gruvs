@@ -16,6 +16,7 @@ import { ResetPasswordModal } from './src/components/ResetPasswordModal';
 import { IdentityProvider } from './src/context/IdentityContext';
 import { CurrencyProvider } from './src/context/CurrencyContext';
 import { ToastProvider, useToast } from './src/components/ToastNotification';
+import { OfflineBanner } from './src/components/OfflineBanner';
 import { LandingPage } from './src/screens/LandingPage';
 // Hooks from these modules are used at shell level — keep eager
 import { NotificationsScreen, useUnreadCount } from './src/screens/NotificationsScreen';
@@ -662,6 +663,7 @@ const MainNavigator = () => {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
+      <OfflineBanner />
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={bg}

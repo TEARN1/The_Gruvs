@@ -265,6 +265,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         media = urls.map(u => ({ type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image', url: u }));
       } else if (event?.cover_url) {
         media = [{ type: 'image', url: event.cover_url }];
+      // TODO(v6): remove image_url/cover_image fallbacks after migration
       } else if (event?.image_url) {
         media = [{ type: 'image', url: event.image_url }];
       } else if (event?.cover_image) {

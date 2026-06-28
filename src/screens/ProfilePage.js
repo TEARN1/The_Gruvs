@@ -1111,6 +1111,7 @@ const ProfileTabSkeleton = ({ primary }) => {
 // ── Mini event card for profile tabs ─────────────────────────────────────────
 const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPress }) => {
   // media_urls is a string[] saved by PostEventModal; media is the legacy object[] format
+  // TODO(v6): remove media_urls/cover_image/image_url fallbacks after migration
   const imgUrl = ev.cover_url ||
     ev.media_urls?.[0] ||
     (Array.isArray(ev.media) ? ev.media.find(m => m?.type === 'image')?.url : null) ||
@@ -1505,7 +1506,7 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDelete
 
   useEffect(() => {
     if (!userId) return;
-    supabase.from('reels').select('id, media_url, media_type').eq('user_id', userId).eq('is_deleted', false).order('created_at', { ascending: false }).limit(30)
+    supabase.from('reels').select('id, media_url, media_type').eq('user_id', userId).is('deleted_at', null).order('created_at', { ascending: false }).limit(30)
       .then(({ data }) => { if (data) setUserReels(data); });
   }, [userId]);
 
@@ -1558,7 +1559,7 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDelete
     setDeleting(item.id);
     try {
       if (item.source === 'reel') {
-        await supabase.from('reels').update({ is_deleted: true }).eq('id', item.id).eq('user_id', userId);
+        await supabase.from('reels').update({ deleted_at: new Date().toISOString() }).eq('id', item.id).eq('user_id', userId);
         setUserReels(prev => prev.filter(r => r.id !== item.id));
       } else if (item.source === 'gallery') {
         await onDeleteGallery?.(item.url);
@@ -1754,6 +1755,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [pendingInvites, setPendingInvites] = useState(0);
   const { identityMode, modeConfig, setIdentityMode, applyLocationPrivacy } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs');
+  const [showAllMyEvents, setShowAllMyEvents] = useState(false);
   const [myCoHostEvents, setMyCoHostEvents] = useState([]);
   const [activityItems, setActivityItems] = useState([]);
   const [eventCount, setEventCount] = useState(0);
@@ -2045,9 +2047,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           async () => {
             const { data: d, error } = await supabase
               .from('events')
-              .select('id, title, event_date, event_time, venue_name, category, media, media_urls, cover_url, cover_image, vibe_count, going, is_cancelled, is_deleted, created_at')
+              .select('id, title, event_date, event_time, venue_name, category, media, cover_url, vibe_count, rsvp_count, status, deleted_at, created_at')
               .eq('author_id', user.id)
-              .neq('is_deleted', true)
+              .is('deleted_at', null)
               .order('created_at', { ascending: false })
               .limit(30);
             if (error) throw error;
@@ -2959,7 +2961,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   </TouchableOpacity>
                 ) : (
                   <View style={{ gap: 10 }}>
-                    {myEvents.map((ev) => (
+                    {(showAllMyEvents ? myEvents : myEvents.slice(0, 3)).map((ev) => (
                       <View key={ev.id}>
                         <MiniEventCard ev={ev} primary={primary} textColor={textColor} muted={muted} badge={ev.category || 'Gruv'} badgeIcon={null} onPress={() => onNavigateToEvent?.(ev)} />
                         <View style={{ flexDirection: 'row', gap: 8, marginTop: 6, paddingHorizontal: 4 }}>
@@ -2980,6 +2982,17 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                         </View>
                       </View>
                     ))}
+                    {myEvents.length > 3 && (
+                      <TouchableOpacity
+                        onPress={() => setShowAllMyEvents(prev => !prev)}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginTop: 4 }}
+                      >
+                        <Text style={{ color: primary, fontSize: 13, fontWeight: '800' }}>
+                          {showAllMyEvents ? 'See Less' : `See More (${myEvents.length - 3} more)`}
+                        </Text>
+                        <Feather name={showAllMyEvents ? 'chevron-up' : 'chevron-down'} size={14} color={primary} />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )
               )}

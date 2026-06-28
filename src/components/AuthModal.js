@@ -4,6 +4,7 @@ import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, Animated, KeyboardAvoidingView,
   Platform, ScrollView, ActivityIndicator, Dimensions,
+  Keyboard, TouchableWithoutFeedback,
 } from 'react-native';
 
 import { useTheme } from '../context/ThemeContext';
@@ -13,6 +14,7 @@ import { resilient } from '../utils/resilience';
 import { SecurityService } from '../services/securityService';
 import { useToast } from './ToastNotification';
 import { useBackClose } from '../hooks/useBackClose';
+import { GlitterBurst } from './GlitterBurst';
 
 const SCREEN_W = Dimensions.get('window').width;
 const HM = SCREEN_W < 375 ? 12 : 25;
@@ -49,6 +51,7 @@ export const AuthModal = ({ visible, onClose }) => {
   const [birthYear, setBirthYear] = useState('');
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [wantsEmail, setWantsEmail] = useState(true);
+  const [signupSuccessFx, setSignupSuccessFx] = useState(0);
   const [confirmLater, setConfirmLater] = useState(true); // true = continue without confirming
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -238,9 +241,10 @@ export const AuthModal = ({ visible, onClose }) => {
     }
 
     const hasSession = !!data.session;
-    handleClose();
+    setSignupSuccessFx(Date.now());
 
     setTimeout(() => {
+      handleClose();
       if (hasSession) {
         // Supabase doesn't require confirmation — user is in immediately
         toast?.show(
@@ -256,7 +260,7 @@ export const AuthModal = ({ visible, onClose }) => {
           'info'
         );
       }
-    }, 300);
+    }, 1200);
   };
 
   const reset = () => {
@@ -270,14 +274,17 @@ export const AuthModal = ({ visible, onClose }) => {
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.overlay}
-      >
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={[styles.card, { backgroundColor: bg, borderColor: `${primary}33` }]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.overlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ width: '100%', alignItems: 'center' }}
+          >
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+              <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={[styles.card, { backgroundColor: bg, borderColor: `${primary}33` }]}>
 
-            <View style={[styles.glowBar, { backgroundColor: primary }]} />
+                  <View style={[styles.glowBar, { backgroundColor: primary }]} />
 
             <View style={styles.headerRow}>
               <Text style={[styles.title, { color: primary }]}>
@@ -317,7 +324,16 @@ export const AuthModal = ({ visible, onClose }) => {
             {/* ── SIGN-UP STEP 1: username only (email/password follow below) ── */}
             {mode === 'signup' && signupStep === 1 && (
               <>
-                <Text style={[styles.label, { color: textColor }]}>Username *</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: HM, marginBottom: 8 }}>
+                  <Text style={[styles.label, { color: textColor, marginHorizontal: 0, marginBottom: 0 }]}>Username *</Text>
+                  {username.length > 0 && (
+                    <Feather
+                      name={/^[a-zA-Z0-9_.]{3,24}$/.test(username.trim().replace(/^@/, '')) ? "check-circle" : "alert-triangle"}
+                      size={14}
+                      color={/^[a-zA-Z0-9_.]{3,24}$/.test(username.trim().replace(/^@/, '')) ? "#10b981" : "#ef4444"}
+                    />
+                  )}
+                </View>
                 <Text style={[styles.sublabel, { color: muted }]}>This is your @handle — how friends find and tag you</Text>
                 <TextInput
                   style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
@@ -406,7 +422,16 @@ export const AuthModal = ({ visible, onClose }) => {
             {/* ── EMAIL + PASSWORD (sign-in, and signup step 1) ── */}
             {(mode === 'signin' || signupStep === 1) && (
             <>
-            <Text style={[styles.label, { color: textColor }]}>Email</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: HM, marginBottom: 8 }}>
+              <Text style={[styles.label, { color: textColor, marginHorizontal: 0, marginBottom: 0 }]}>Email</Text>
+              {email.length > 0 && (
+                <Feather
+                  name={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "check-circle" : "alert-triangle"}
+                  size={14}
+                  color={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "#10b981" : "#ef4444"}
+                />
+              )}
+            </View>
             <TextInput
               style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
               placeholder="your@email.com"
@@ -420,7 +445,31 @@ export const AuthModal = ({ visible, onClose }) => {
               textContentType="emailAddress"
             />
 
-            <Text style={[styles.label, { color: textColor }]}>Password</Text>
+            {/* Quick Email Suggestions */}
+            {email.length > 0 && !email.includes('@') && (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginHorizontal: HM, marginBottom: 16 }}>
+                {['@gmail.com', '@yahoo.com', '@outlook.com', '@icloud.com'].map(domain => (
+                  <TouchableOpacity
+                    key={domain}
+                    onPress={() => setEmail(email.trim() + domain)}
+                    style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
+                  >
+                    <Text style={{ color: primary, fontSize: 11, fontWeight: '700' }}>{domain}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: HM, marginBottom: 8 }}>
+              <Text style={[styles.label, { color: textColor, marginHorizontal: 0, marginBottom: 0 }]}>Password</Text>
+              {password.length > 0 && (
+                <Feather
+                  name={password.length >= 6 ? "check-circle" : "alert-triangle"}
+                  size={14}
+                  color={password.length >= 6 ? "#10b981" : "#ef4444"}
+                />
+              )}
+            </View>
             <View style={[styles.passwordWrap, { borderColor: `${primary}40` }]}>
               <TextInput
                 style={[styles.passwordInput, { color: textColor }]}
@@ -533,10 +582,16 @@ export const AuthModal = ({ visible, onClose }) => {
                   : "Already have an account? Sign in →"}
               </Text>
             </TouchableOpacity>
+
+            {/* Signup Success Confetti Burst */}
+            <GlitterBurst trigger={signupSuccessFx} size={220} colors={[primary, '#fde047', '#ffffff', '#10b981', '#fca5a5']} />
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+        </TouchableWithoutFeedback>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  </View>
+</TouchableWithoutFeedback>
+</Modal>
   );
 };
 

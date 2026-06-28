@@ -44,12 +44,12 @@ export const ContinueTheNightCard = ({ event, checkedIn = false, onAuthRequired 
         const today = new Date().toISOString().slice(0, 10);
         const { data } = await supabase
           .from('events')
-          .select('id, title, description, category, event_date, event_time, end_date, end_time, date_time, lat, lon, vibe_count, going, cover_url, media, media_urls, city, min_age, age_restriction')
+          .select('id, title, description, category, event_date, event_time, end_date, end_time, date_time, lat, lon, vibe_count, going, cover_url, media, media_urls, city, min_age, age_min')
           .eq('city', event.city)
           .gte('event_date', today)
           .neq('id', event.id)
-          .neq('is_cancelled', true)
-          .neq('is_deleted', true)
+          .neq('status', 'cancelled')
+          .is('deleted_at', null)
           .limit(40);
         if (!alive) return;
 

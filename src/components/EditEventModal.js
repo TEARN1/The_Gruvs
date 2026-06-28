@@ -78,6 +78,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
       setContactPhone(event.contact_phone || '');
       setContactEmail(event.contact_email || '');
       setTiers(Array.isArray(event.rsvp_tiers) ? event.rsvp_tiers : []);
+      // TODO(v6): remove image_url/cover_image fallbacks after migration
       const existing = event.cover_url || event.image_url || event.cover_image || (Array.isArray(event.media) && event.media[0]?.url) || null;
       setCoverUrl(existing);
       setCoverUri(null);
@@ -237,7 +238,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
     }
   };
 
-  // ── Cancel event: set is_cancelled = true, notify all interactors ───────────
+  // ── Cancel event: set status = 'cancelled', notify all interactors ───────────
   const handleCancel = () => {
     const msg = `Cancel "${event?.title}"? All Vibers who liked or RSVP'd will be notified.`;
     if (Platform.OS === 'web') {
@@ -256,7 +257,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
     try {
       const ok = await resilient(
         [
-          () => supabase.from('events').update({ is_cancelled: true }).eq('id', event.id).eq('author_id', user?.id),
+          () => supabase.from('events').update({ status: 'cancelled' }).eq('id', event.id).eq('author_id', user?.id),
           () => supabase.from('events').update({ status: 'cancelled' }).eq('id', event.id).eq('author_id', user?.id),
           () => supabase.rpc('cancel_event', { p_event_id: event.id, p_caller_id: user?.id }),
         ],
@@ -327,7 +328,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
         [
           // IDOR guard: always pin author_id so RLS + extra check prevents deleting others' events
           () => supabase.from('events').delete().eq('id', event.id).eq('author_id', user?.id),
-          () => supabase.from('events').update({ status: 'deleted', is_deleted: true }).eq('id', event.id).eq('author_id', user?.id),
+          () => supabase.from('events').update({ status: 'deleted', deleted_at: new Date().toISOString() }).eq('id', event.id).eq('author_id', user?.id),
           () => supabase.rpc('delete_event', { p_event_id: event.id }),
         ],
         { attemptsPerTier: 3, baseMs: 400, label: `EditEventModal.delete:${event.id}`, fallbackValue: null }

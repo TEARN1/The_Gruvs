@@ -46,7 +46,7 @@ export const LocationService = {
     try {
       await supabase
         .from('profiles')
-        .update({ coords: `SRID=4326;POINT(${lon} ${lat})` })
+        .update({ lat, lon })
         .eq('id', userId);
     } catch {}
   },

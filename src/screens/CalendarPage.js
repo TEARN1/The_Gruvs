@@ -177,13 +177,13 @@ const MonthGrid = ({ year, month, selectedDate, onSelect, primary, textColor, mu
       {/* Day header */}
       <View style={{ flexDirection: 'row', marginBottom: 6 }}>
         {DAY_SHORT.map((d, i) => (
-          <Text key={i} style={[mg.dayName, { color: muted, width: CELL }]}>{d}</Text>
+          <Text key={i} style={[mg.dayName, { color: muted, width: '14.285%' }]}>{d}</Text>
         ))}
       </View>
       {/* Grid */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
         {Array.from({ length: firstDow }).map((_, i) => (
-          <View key={`e${i}`} style={{ width: CELL, height: CELL }} />
+          <View key={`e${i}`} style={{ width: '14.285%', height: 44 }} />
         ))}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
@@ -195,18 +195,19 @@ const MonthGrid = ({ year, month, selectedDate, onSelect, primary, textColor, mu
           return (
             <TouchableOpacity
               key={day}
-              style={[
-                mg.cell,
-                { width: CELL, height: CELL },
-                isSel && { backgroundColor: primary, borderRadius: CELL / 2 },
-                !isSel && isToday && { borderWidth: 1.5, borderColor: primary, borderRadius: CELL / 2 },
-              ]}
+              style={[mg.cell, { width: '14.285%', height: 44 }]}
               onPress={() => onSelect(d)}
             >
-              <Text style={[mg.num, { color: isSel ? '#000' : isToday ? primary : textColor }]}>
-                {day}
-              </Text>
-              {hasDot && <View style={[mg.dot, { backgroundColor: isSel ? '#000' : primary }]} />}
+              <View style={[
+                mg.innerCircle,
+                isSel && { backgroundColor: primary },
+                !isSel && isToday && { borderWidth: 1.5, borderColor: primary },
+              ]}>
+                <Text style={[mg.num, { color: isSel ? '#000' : isToday ? primary : textColor }]}>
+                  {day}
+                </Text>
+                {hasDot && <View style={[mg.dot, { backgroundColor: isSel ? '#000' : primary }]} />}
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -218,23 +219,28 @@ const MonthGrid = ({ year, month, selectedDate, onSelect, primary, textColor, mu
 const mg = StyleSheet.create({
   dayName: { textAlign: 'center', fontSize: 10, fontWeight: '800' },
   cell: { alignItems: 'center', justifyContent: 'center' },
+  innerCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   num: { fontSize: 13, fontWeight: '700' },
-  dot: { width: 4, height: 4, borderRadius: 2, marginTop: 2 },
+  dot: { width: 4, height: 4, borderRadius: 2, position: 'absolute', bottom: 3 },
 });
 
 // ── Event card for calendar ────────────────────────────────────────────────────
 const CalEventCard = ({ ev, primary, textColor, muted, onPress, index, showDate }) => {
   const catColor = ev.category_color || getCategoryColor(ev.category) || primary;
   const thumb = ev.media?.[0]?.url || ev.media?.[0] || null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPast = ev.event_date && new Date(ev.event_date).getTime() < today.getTime();
+
   return (
     <FadeInView delay={index * 60} direction="up">
       <TouchableOpacity
-        style={[ec.wrap, { borderColor: `${catColor}30`, backgroundColor: `${catColor}08` }]}
+        style={[ec.wrap, { borderColor: `${catColor}30`, backgroundColor: `${catColor}08`, opacity: isPast ? 0.55 : 1 }]}
         onPress={onPress}
         activeOpacity={0.85}
       >
         {/* Colour accent */}
-        <View style={[ec.accent, { backgroundColor: catColor }]} />
+        <View style={[ec.accent, { backgroundColor: isPast ? '#9ca3af' : catColor }]} />
 
         {/* Thumbnail */}
         {thumb ? (
@@ -269,13 +275,20 @@ const CalEventCard = ({ ev, primary, textColor, muted, onPress, index, showDate 
             ) : null}
           </View>
           <View style={ec.footer}>
-            {ev.category ? (
-              <View style={[ec.catBadge, { backgroundColor: `${catColor}20` }]}>
-                <Text style={[ec.catText, { color: catColor }]}>
-                  {(CATEGORY_CONFIG[ev.category]?.label || ev.category).toUpperCase()}
-                </Text>
-              </View>
-            ) : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {ev.category ? (
+                <View style={[ec.catBadge, { backgroundColor: `${catColor}20` }]}>
+                  <Text style={[ec.catText, { color: catColor }]}>
+                    {(CATEGORY_CONFIG[ev.category]?.label || ev.category).toUpperCase()}
+                  </Text>
+                </View>
+              ) : null}
+              {isPast ? (
+                <View style={[ec.catBadge, { backgroundColor: '#4b556350', marginLeft: 6 }]}>
+                  <Text style={[ec.catText, { color: '#9ca3af' }]}>PASSED</Text>
+                </View>
+              ) : null}
+            </View>
             <View style={ec.statsRow}>
               <Feather name="zap" size={11} color={primary} />
               <Text style={[ec.statsText, { color: primary }]}>{ev.vibe_count || ev.going || 0}</Text>

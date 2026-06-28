@@ -368,12 +368,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       address: address.trim() || (posterMode ? 'See poster' : ''),
       lat,
       lon,
-      is_published: true,
-      is_cancelled: false,
+      status: 'published',
     };
     if (posterMode) payload.poster_mode = true;
     // coords: only set if PostGIS available — computed from lat/lon
-    if (lat && lon) payload.coords = `SRID=4326;POINT(${lon} ${lat})`;
     if (city.trim()) payload.city = city.trim();
     if (powerBackup) payload.power_backup = powerBackup;
     if (eventTags.length > 0) payload.tags = eventTags;
@@ -527,7 +525,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
             price_min: payload.price_min,
             price_max: payload.price_max,
             category: payload.category,   // MUST keep — drives all feed filters
-            is_published: true,
+            status: 'published',
           };
           const { data, error } = await supabase.from('events').insert(minPayload).select().single();
           if (error) throw error;
@@ -1646,7 +1644,16 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       <CalendarPicker
         visible={calendarVisible}
         onClose={() => setCalendarVisible(false)}
-        onConfirm={(date) => { setPickedDate(date); setCalendarVisible(false); }}
+        onConfirm={(date) => {
+          setPickedDate(date);
+          setCalendarVisible(false);
+          if (endDate && date > endDate) {
+            setError('Start date cannot be after end date.');
+            setEndDate(null);
+          } else {
+            setError('');
+          }
+        }}
         value={pickedDate}
         primary={primary} bg={bg} textColor={textColor} muted={muted}
       />
@@ -1654,7 +1661,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       <CalendarPicker
         visible={endCalendarVisible}
         onClose={() => setEndCalendarVisible(false)}
-        onConfirm={(date) => { setEndDate(date); setEndCalendarVisible(false); }}
+        onConfirm={(date) => {
+          if (pickedDate && date < pickedDate) {
+            setError('End date cannot be before start date.');
+          } else {
+            setEndDate(date);
+            setError('');
+          }
+          setEndCalendarVisible(false);
+        }}
         value={endDate}
         primary={primary} bg={bg} textColor={textColor} muted={muted}
       />

@@ -13,7 +13,6 @@ import { SmartImage } from '../components/SmartImage';
 import { FadeInView } from '../components/FadeInView';
 import { BrandLogo } from '../components/BrandLogo';
 import { HIDDEN_TABS } from '../constants/launchConfig';
-import { OfflineBanner } from '../components/OfflineBanner';
 import { SearchHistoryBar, saveSearch } from '../components/SearchHistoryBar';
 import { DateFilterStrip } from '../components/DateFilterStrip';
 import { HashtagStrip } from '../components/HashtagStrip';
@@ -65,6 +64,7 @@ import { EditEventModal }       from '../components/EditEventModal';
 import { RSVPConfirmModal }     from '../components/RSVPConfirmModal';
 import { ReportModal }          from '../components/ReportModal';
 import { EventMapView }         from '../components/EventMapView';
+import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './PathMapScreen';
 import { EventDetailScreen }    from './EventDetailScreen';
 
@@ -281,8 +281,17 @@ const EventCard = React.memo(({
   const title = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
   const matchCard = parseMatchCard(event.match_card);
   const [saveFx, setSaveFx] = useState(0);
+  const [isFlashing, setIsFlashing] = useState(false);
   const prevSavedRef = useRef(isSaved);
-  useEffect(() => { if (isSaved && !prevSavedRef.current) setSaveFx(Date.now()); prevSavedRef.current = isSaved; }, [isSaved]);
+  useEffect(() => {
+    if (isSaved && !prevSavedRef.current) {
+      setSaveFx(Date.now());
+      setIsFlashing(true);
+      const timer = setTimeout(() => setIsFlashing(false), 800);
+      return () => clearTimeout(timer);
+    }
+    prevSavedRef.current = isSaved;
+  }, [isSaved]);
   const goingPct = event.capacity ? Math.min(100, Math.round(((event.going || 0) / event.capacity) * 100)) : 0;
 
   const getCountdown = (dateStr) => {
@@ -301,6 +310,9 @@ const EventCard = React.memo(({
     : '';
 
   const showAd = index > 0 && index % 5 === 4;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPast = event.event_date && new Date(event.event_date).getTime() < today.getTime();
 
   return (
     <React.Fragment>
@@ -310,17 +322,18 @@ const EventCard = React.memo(({
           style={[
             styles.eventCard,
             {
-              backgroundColor: flashColor ? `${flashColor}12` : surface,
-              borderColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
-              borderTopColor: flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
-              borderTopWidth: flashColor ? 2 : 1,
+              backgroundColor: isFlashing ? `${primary}22` : flashColor ? `${flashColor}12` : surface,
+              borderColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
+              borderTopColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
+              borderTopWidth: isFlashing || flashColor ? 2 : 1,
+              opacity: isPast ? 0.55 : 1,
             },
-            (isHighlighted || flashColor) && {
+            (isHighlighted || flashColor || isFlashing) && {
               borderWidth: 2,
-              ...(isWeb ? { boxShadow: `0 0 25px ${(flashColor || primary)}80` } : { shadowColor: flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
+              ...(isWeb ? { boxShadow: `0 0 25px ${(isFlashing ? primary : flashColor || primary)}80` } : { shadowColor: isFlashing ? primary : flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
             },
-            isWeb && !flashColor && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
-            isWeb && flashColor && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
+            isWeb && !flashColor && !isFlashing && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
+            isWeb && (flashColor || isFlashing) && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
             isWeb && { cursor: 'pointer' },
           ]}
           accessibilityRole="button"
@@ -351,6 +364,16 @@ const EventCard = React.memo(({
                  event.recurrence_type === 'annually' ? 'ANNUAL EVENT' :
                  event.recurrence_type === 'custom'   ? 'EVENT SERIES' : 'RECURRING'}
                 {event.next_occurrence ? ` · NEXT ${new Date(event.next_occurrence).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' }).toUpperCase()}` : ''}
+              </Text>
+            </View>
+          )}
+
+          {/* Past event banner */}
+          {isPast && (
+            <View style={[styles.trendingBanner, { backgroundColor: "#4b5563" }]}>
+              <Feather name="calendar" size={10} color="#fff" style={{ marginRight: 4 }} />
+              <Text style={styles.trendingBannerText}>
+                PASSED / COMPLETED EVENT
               </Text>
             </View>
           )}
@@ -397,6 +420,7 @@ const EventCard = React.memo(({
                 m = event.media_urls.map(u => ({ url: u, type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image' }));
               }
               if (!m?.length && event.cover_url) m = [{ url: event.cover_url, type: 'image' }];
+              // TODO(v6): remove cover_image/image_url fallbacks after migration
               if (!m?.length && event.cover_image) m = [{ url: event.cover_image, type: 'image' }];
               if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
               return m?.length ? m : null;
@@ -941,6 +965,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [editEvent, setEditEvent] = useState(null);
   const [rsvpEvent, setRsvpEvent] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
+  const [rouletteVisible, setRouletteVisible] = useState(false);
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
   const followedIdsRef = useRef([]); // stable ref so fetchPage can use it without re-render
   const pageRef = useRef(0);
@@ -1069,7 +1094,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           .from('events')
           .select('*, profiles!author_id(username, avatar_url, vibe_score, is_verified)')
           .in('id', ids)
-          .eq('is_cancelled', false);
+          .neq('status', 'cancelled');
         if (fullEvents?.length) {
           const ranked = ids
             .map((id, i) => {
@@ -1087,7 +1112,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       const { data: topEvents } = await supabase
         .from('events')
         .select('*, profiles!author_id(username, avatar_url, vibe_score, is_verified)')
-        .eq('is_cancelled', false)
+        .neq('status', 'cancelled')
         .order('vibe_count', { ascending: false })
         .limit(5);
       if (topEvents?.length) {
@@ -1343,7 +1368,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         { event: 'INSERT', schema: 'public', table: 'events' },
         async (payload) => {
           const newEvt = payload.new;
-          if (!newEvt?.id || newEvt.is_cancelled || newEvt.is_deleted) return;
+          if (!newEvt?.id || newEvt.status === 'cancelled' || newEvt.deleted_at != null) return;
           try {
             const { data } = await supabase
               .from('events')
@@ -1718,6 +1743,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             </TouchableOpacity>
           )}
           <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => setRouletteVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Vibe Roulette"
+          >
+            <Feather name="compass" size={18} color={primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.postIconBtn, { backgroundColor: `${primary}15`, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
           >
@@ -1851,7 +1884,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 borderWidth: 1,
               }]}
             >
-              <Text style={{ fontSize: 12 }}>{cfg.icon}</Text>
+              <Feather name={cfg.icon} size={12} color={isActive ? '#000' : cfg.color} />
               <Text style={[styles.pillText, { color: isActive ? '#000' : textColor }]}>{cfg.label}</Text>
             </TouchableOpacity>
           );
@@ -2207,6 +2240,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         muted={muted}
         onSelectEvent={handleTrendingPress}
       />
+      {rouletteVisible && (
+        <VibeRouletteModal
+          visible={rouletteVisible}
+          onClose={() => setRouletteVisible(false)}
+          events={events}
+          onSelectEvent={setSelectedEvent}
+          primary={primary}
+        />
+      )}
       {!!editEvent && (
         <SafeSection label="Edit Event" primary={primary}>
           <EditEventModal
@@ -2314,7 +2356,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           })()}
         </View>
       </Modal>
-      <OfflineBanner />
       {pathMapVisible && (
         <SafeSection label="Path Map" primary={primary}>
           <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />

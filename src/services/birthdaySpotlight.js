@@ -138,8 +138,8 @@ export async function myBirthdayLeadUp(userId, { radiusKm = 60, limit = 12 } = {
     const { data: events } = await supabase
       .from('events')
       .select('id, title, category, city, lat, lon, event_date, event_time, cover_url, price_min, going')
-      .eq('is_published', true)
-      .eq('is_cancelled', false)
+      .eq('status', 'published')
+      .neq('status', 'cancelled')
       .gte('event_date', fromStr)
       .lte('event_date', toStr)
       .limit(200);

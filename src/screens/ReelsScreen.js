@@ -141,7 +141,7 @@ const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, 
       try {
         await resilient(
           [
-            () => supabase.from('reels').update({ is_deleted: true }).eq('id', reel.id).eq('user_id', user?.id),
+            () => supabase.from('reels').update({ deleted_at: new Date().toISOString() }).eq('id', reel.id).eq('user_id', user?.id),
             () => supabase.from('reels').delete().eq('id', reel.id).eq('user_id', user?.id),
           ],
           { attemptsPerTier: 3, baseMs: 400, label: 'ReelManageSheet.delete', fallbackValue: null }
@@ -503,6 +503,35 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
     return unsub;
   }, []);
 
+  const [showVolumeIndicator, setShowVolumeIndicator] = useState(false);
+  const volumeAnim = useRef(new Animated.Value(0)).current;
+  const isFirstMutedMount = useRef(true);
+  useEffect(() => {
+    if (isFirstMutedMount.current) {
+      isFirstMutedMount.current = false;
+      return;
+    }
+    setShowVolumeIndicator(true);
+    volumeAnim.setValue(1);
+    Animated.sequence([
+      Animated.delay(600),
+      Animated.timing(volumeAnim, { toValue: 0, duration: 400, useNativeDriver: true })
+    ]).start(() => {
+      setShowVolumeIndicator(false);
+    });
+  }, [audioMuted]);
+
+  const touchX = useRef(0);
+  const handleTouchStart = (e) => {
+    touchX.current = e.nativeEvent.pageX;
+  };
+  const handleTouchEnd = (e) => {
+    const diff = touchX.current - e.nativeEvent.pageX;
+    if (diff > 80) { // Swipe left by more than 80px
+      if (onProfile) onProfile(reel.profiles);
+    }
+  };
+
   useEffect(() => {
     if (isActive && screenFocused && !paused) {
       videoRef.current?.playAsync().catch(() => {});
@@ -673,7 +702,11 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
 
   return (
     <TouchableWithoutFeedback onPress={handleTap}>
-      <View style={[ri.container, { width: reelW ?? SW, height: reelH ?? SH }]}>
+      <View
+        style={[ri.container, { width: reelW ?? SW, height: reelH ?? SH }]}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Media */}
         {isVideo ? (
           <Video
@@ -775,6 +808,26 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
         {showPauseIcon && (
           <Animated.View style={[ri.pauseOverlay, { opacity: pauseIconAnim }]}>
             <Feather name={paused ? 'pause' : 'play'} size={52} color="rgba(255,255,255,0.9)" />
+          </Animated.View>
+        )}
+
+        {/* Volume status indicator */}
+        {showVolumeIndicator && (
+          <Animated.View style={{
+            position: 'absolute',
+            alignSelf: 'center',
+            top: '50%',
+            marginTop: -30,
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            backgroundColor: 'rgba(0,0,0,0.65)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: volumeAnim,
+            zIndex: 10,
+          }}>
+            <Feather name={audioMuted ? 'volume-x' : 'volume-2'} size={28} color="#fff" />
           </Animated.View>
         )}
 

@@ -142,7 +142,7 @@ export const ReelsRepository = {
           async () => {
             let qb = supabase.from('reels')
               .select('id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, metadata, visibility, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
-              .neq('is_deleted', true).limit(30);
+              .is('deleted_at', null).limit(30);
             if (tab === 'following' && followedIds.length) qb = qb.in('user_id', followedIds);
             if (hashtag) qb = qb.ilike('caption', `%${hashtag}%`);
             qb = applyOrder(qb);
@@ -157,7 +157,7 @@ export const ReelsRepository = {
           async () => {
             let qb = supabase.from('reels')
               .select('id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
-              .neq('is_deleted', true).limit(30);
+              .is('deleted_at', null).limit(30);
             if (tab === 'following' && followedIds.length) qb = qb.in('user_id', followedIds);
             if (hashtag) qb = qb.ilike('caption', `%${hashtag}%`);
             qb = applyOrder(qb);
@@ -169,7 +169,7 @@ export const ReelsRepository = {
           async () => {
             const { data, error } = await supabase.from('reels')
               .select('id, caption, media_url, media_type, like_count, user_id, created_at')
-              .neq('is_deleted', true).order('created_at', { ascending: false }).limit(15);
+              .is('deleted_at', null).order('created_at', { ascending: false }).limit(15);
             if (error) throw error;
             return data || [];
           }

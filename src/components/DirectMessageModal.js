@@ -51,15 +51,7 @@ const fmtDate = (ts) => {
   return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
 };
 
-// ── Read receipt ticks ─────────────────────────────────────────────────────────
-const Ticks = ({ msg, userId, primary }) => {
-  if (msg.sender_id !== userId) return null;
-  if (msg._failed) return <Text style={{ fontSize: 11, color: "#ef4444", marginLeft: 4 }}>!</Text>;
-  if (msg._optimistic) return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>○</Text>;
-  if (msg.read_at) return <Text style={{ fontSize: 11, color: primary, marginLeft: 4 }}>✓✓</Text>;
-  if (msg.delivered_at) return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginLeft: 4 }}>✓✓</Text>;
-  return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>✓</Text>;
-};
+// Removed Ticks component as time text itself is now colored directly based on status.
 
 // ── Animated typing dots ───────────────────────────────────────────────────────
 const MAX_MESSAGES = 200;
@@ -178,7 +170,7 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
   useEffect(() => {
     if (_sharedEventCache[evId]) { setEv(_sharedEventCache[evId]); setLoading(false); return undefined; }
     let alive = true;
-    supabase.from('events').select('id, title, cover_url, cover_image, media, media_urls, event_date, event_time, venue_name, city, category, price').eq('id', evId).maybeSingle()
+    supabase.from('events').select('id, title, cover_url, media, event_date, event_time, venue_name, city, category, price').eq('id', evId).maybeSingle()
       .then(({ data }) => { if (!alive) return; if (data) { _sharedEventCache[evId] = data; setEv(data); } setLoading(false); })
       .catch(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
@@ -186,8 +178,10 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
 
   let thumb = null;
   if (ev) {
+    // TODO(v6): remove cover_image fallback after migration
     thumb = ev.cover_url || ev.cover_image || null;
     if (!thumb) { let m = ev.media; if (typeof m === 'string') { try { m = JSON.parse(m); } catch { m = null; } } if (Array.isArray(m) && m[0]) thumb = typeof m[0] === 'string' ? m[0] : m[0]?.url; }
+    // TODO(v6): remove media_urls fallback after migration
     if (!thumb && Array.isArray(ev.media_urls) && ev.media_urls[0]) thumb = ev.media_urls[0];
   }
   const free = !ev?.price || ev.price === 0 || ev.price === 'FREE';
@@ -274,6 +268,47 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [replyingTo, setReplyingTo] = useState(null);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [crossPathCount, setCrossPathCount] = useState(0);
+
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [selectedMsgIds, setSelectedMsgIds] = useState(new Set());
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [sharingLoading, setSharingLoading] = useState(false);
+
+  const fetchConversations = async () => {
+    if (!user) return;
+    try {
+      const data = await MessageManager.getConversations(user.id);
+      setConversations(data.filter(c => c.partner?.id !== recipient?.id));
+    } catch (e) {
+      console.warn("Failed to fetch conversations for sharing:", e);
+    }
+  };
+
+  const handleShareToConvo = async (targetPartner) => {
+    if (selectedMsgIds.size === 0) return;
+    setSharingLoading(true);
+    try {
+      const selectedMsgs = messages.filter(m => selectedMsgIds.has(m.id));
+      const formattedLines = selectedMsgs.map(m => {
+        const senderName = m.sender_id === user.id ? 'You' : `@${recipient.username}`;
+        return `> **${senderName}**: ${m.body || '[Media/Shared Event]'}`;
+      }).join('\n');
+
+      const shareText = `🔒 Shared messages from chat with @${recipient.username}:\n${formattedLines}`;
+
+      await MessageManager.send(user.id, targetPartner.id, shareText);
+      toast?.show(`Shared selected messages to @${targetPartner.username}!`, 'success');
+      
+      setIsMultiSelectMode(false);
+      setSelectedMsgIds(new Set());
+      setShowShareModal(false);
+    } catch (e) {
+      toast?.show('Failed to share messages: ' + (e?.message || 'Unknown error'), 'error');
+    } finally {
+      setSharingLoading(false);
+    }
+  };
 
   const flatRef = useRef(null);
   const channelRef = useRef(null);
@@ -711,87 +746,187 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     return (
       <>
         {showDate && <DateSep label={fmtDate(item.created_at)} muted={muted} />}
-        <TouchableOpacity
-          onLongPress={() => {
-            setSelectedMsgId(isSelected ? null : item.id);
-            if (isMine) {
-              setReactionMsgId(null);
-            } else {
-              setReactionMsgId(item.id);
-              setShowReactions(true);
-            }
-            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
-          }}
-          activeOpacity={0.85}
-          style={[dm.bubble, isMine ? dm.bubbleMine : dm.bubbleTheirs]}
-        >
-          <View style={[
-            dm.bubbleInner,
-            isMine
-              ? { backgroundColor: primary, borderBottomRightRadius: 4 }
-              : { backgroundColor: bg, borderBottomLeftRadius: 4 },
-          ]}>
-            {item.parent_id && (
-              <View style={[dm.replyQuote, { backgroundColor: isMine ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)' }]}>
-                <Text style={{ color: isMine ? 'rgba(0,0,0,0.6)' : primary, fontSize: 10, fontWeight: '900' }}>REPLYING TO</Text>
-                <Text style={{ color: isMine ? '#000' : muted, fontSize: 12 }} numberOfLines={1}>
-                  {messages.find(m => m.id === item.parent_id)?.body || 'Original message...'}
-                </Text>
-              </View>
-            )}
-            {item.message_type === 'image' && item.media_url && (
-              <SmartImage source={item.media_url} style={dm.bubbleImage} resizeMode="cover" />
-            )}
-            {item.event_id && renderEventShare(item.event_id)}
-            {item.message_type === 'location' && item.latitude && item.longitude ? (
-              <TouchableOpacity
-                onPress={() => {
-                  const url = Platform.select({
-                    ios: `http://maps.apple.com/?ll=${item.latitude},${item.longitude}`,
-                    android: `geo:${item.latitude},${item.longitude}?q=${item.latitude},${item.longitude}`,
-                  });
-                  if (url) Linking.openURL(url);
-                }}
-                style={dm.locationBubble}
-              >
-                <Feather name="map-pin" size={16} color={isMine ? '#000' : primary} />
-                <Text style={[dm.bodyText, { color: isMine ? '#000' : primary, marginLeft: 5 }]}>Shared Location</Text>
-                <Text style={[dm.timeText, { color: isMine ? 'rgba(0,0,0,0.5)' : muted, marginLeft: 10 }]}>Tap to view</Text>
-              </TouchableOpacity>
-            ) : item.body ? (
-              <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{transform(item.body, msgStyles[item.sender_id])}</Text>
-            ) : null}
-            {item.reaction && (
-              <View style={dm.reactionBubble}>
-                <Text style={{ fontSize: 14 }}>{item.reaction}</Text>
-              </View>
-            )}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4, gap: 2 }}>
-              <Text style={[dm.timeText, { color: isMine ? 'rgba(0,0,0,0.5)' : muted }]}>{fmtTime(item.created_at)}</Text>
-              <Ticks msg={item} userId={user?.id} primary={primary} />
-            </View>
-          </View>
-
-          {/* Failed message retry */}
-          {item._failed && isMine && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 6 }}>
+          {isMultiSelectMode && (
             <TouchableOpacity
-              style={[dm.deleteBtn, { backgroundColor: '#ef444420' }]}
               onPress={() => {
-                setMessages(prev => prev.filter(m => m.id !== item.id));
-                setBody(item.body || '');
+                setSelectedMsgIds(prev => {
+                  const next = new Set(prev);
+                  if (next.has(item.id)) next.delete(item.id);
+                  else next.add(item.id);
+                  return next;
+                });
               }}
+              style={{ padding: 12, paddingRight: 4, alignSelf: 'center' }}
             >
-              <Feather name="refresh-cw" size={14} color="#ef4444" />
+              <Feather
+                name={selectedMsgIds.has(item.id) ? "check-square" : "square"}
+                size={18}
+                color={selectedMsgIds.has(item.id) ? primary : muted}
+              />
             </TouchableOpacity>
           )}
+          <View style={{ flex: 1 }}>
+            <TouchableOpacity
+              onLongPress={() => {
+                if (isMultiSelectMode) return;
+                setSelectedMsgId(isSelected ? null : item.id);
+                if (!isMine) {
+                  setReactionMsgId(item.id);
+                  setShowReactions(true);
+                }
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
+              }}
+              onPress={() => {
+                if (isMultiSelectMode) {
+                  setSelectedMsgIds(prev => {
+                    const next = new Set(prev);
+                    if (next.has(item.id)) next.delete(item.id);
+                    else next.add(item.id);
+                    return next;
+                  });
+                } else if (isSelected) {
+                  setSelectedMsgId(null);
+                }
+              }}
+              activeOpacity={0.85}
+              style={[isMine ? dm.bubbleMine : dm.bubbleTheirs]}
+            >
+              <View style={[
+                dm.bubbleInner,
+                {
+                  borderBottomRightRadius: isMine ? 4 : 18,
+                  borderBottomLeftRadius: isMine ? 18 : 4,
+                  backgroundColor: isMine ? primary : bg,
+                },
+              ]}>
+                {item.parent_id && (() => {
+                  const p1 = messages.find(m => m.id === item.parent_id);
+                  if (!p1) return null;
+                  const p2 = p1.parent_id ? messages.find(m => m.id === p1.parent_id) : null;
+                  const p3 = p2?.parent_id ? messages.find(m => m.id === p2.parent_id) : null;
+                  return (
+                    <View style={[dm.replyQuote, { backgroundColor: isMine ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.03)', borderLeftWidth: 3, borderLeftColor: isMine ? 'rgba(0,0,0,0.3)' : primary, marginBottom: 8 }]}>
+                      {p3 && (
+                        <View style={{ borderLeftWidth: 2, borderLeftColor: isMine ? 'rgba(0,0,0,0.2)' : primary, paddingLeft: 6, marginBottom: 4, opacity: 0.4 }}>
+                          <Text style={{ color: isMine ? 'rgba(0,0,0,0.6)' : muted, fontSize: 9, fontWeight: '800' }}>LEVEL 1</Text>
+                          <Text style={{ color: isMine ? 'rgba(0,0,0,0.7)' : muted, fontSize: 10 }} numberOfLines={1}>{p3.body || '[Media/Shared Event]'}</Text>
+                        </View>
+                      )}
+                      {p2 && (
+                        <View style={{ borderLeftWidth: 2, borderLeftColor: isMine ? 'rgba(0,0,0,0.2)' : primary, paddingLeft: 6, marginBottom: 4, opacity: 0.7 }}>
+                          <Text style={{ color: isMine ? 'rgba(0,0,0,0.6)' : muted, fontSize: 9, fontWeight: '800' }}>LEVEL 2</Text>
+                          <Text style={{ color: isMine ? 'rgba(0,0,0,0.7)' : muted, fontSize: 11 }} numberOfLines={1}>{p2.body || '[Media/Shared Event]'}</Text>
+                        </View>
+                      )}
+                      <View style={{ borderLeftWidth: 2, borderLeftColor: isMine ? 'rgba(0,0,0,0.2)' : primary, paddingLeft: 6 }}>
+                        <Text style={{ color: isMine ? 'rgba(0,0,0,0.6)' : primary, fontSize: 9, fontWeight: '900' }}>REPLYING TO</Text>
+                        <Text style={{ color: isMine ? '#000' : textColor, fontSize: 12, fontWeight: '500' }} numberOfLines={1}>
+                          {p1.body || '[Media/Shared Event]'}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })()}
 
-          {/* Long-press actions for own messages */}
-          {isSelected && isMine && !item._failed && (
-            <TouchableOpacity style={[dm.deleteBtn, { backgroundColor: '#ef444420' }]} onPress={() => handleDelete(item.id)}>
-              <Feather name="trash-2" size={14} color="#ef4444" />
+                {item.message_type === 'image' && item.media_url && (
+                  <SmartImage source={item.media_url} style={dm.bubbleImage} resizeMode="cover" />
+                )}
+                {item.event_id && renderEventShare(item.event_id)}
+                {item.message_type === 'location' && item.latitude && item.longitude ? (
+                  <TouchableOpacity
+                    onPress={() => {
+                      const url = Platform.select({
+                        ios: `http://maps.apple.com/?ll=${item.latitude},${item.longitude}`,
+                        android: `geo:${item.latitude},${item.longitude}?q=${item.latitude},${item.longitude}`,
+                      });
+                      if (url) Linking.openURL(url);
+                    }}
+                    style={dm.locationBubble}
+                  >
+                    <Feather name="map-pin" size={16} color={isMine ? '#000' : primary} />
+                    <Text style={[dm.bodyText, { color: isMine ? '#000' : primary, marginLeft: 5 }]}>Shared Location</Text>
+                    <Text style={[dm.timeText, { color: isMine ? 'rgba(0,0,0,0.5)' : muted, marginLeft: 10 }]}>Tap to view</Text>
+                  </TouchableOpacity>
+                ) : item.body ? (
+                  <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{transform(item.body, msgStyles[item.sender_id])}</Text>
+                ) : null}
+                {item.reaction && (
+                  <View style={dm.reactionBubble}>
+                    <Text style={{ fontSize: 14 }}>{item.reaction}</Text>
+                  </View>
+                )}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4, gap: 2 }}>
+                  <Text
+                    style={[
+                      dm.timeText,
+                      {
+                        color: !isMine
+                          ? muted
+                          : item.read_at
+                            ? "#10b981" // green for read
+                            : item.delivered_at
+                              ? "#ff9800" // orange for delivered
+                              : "#ef4444" // red for sent
+                      }
+                    ]}
+                  >
+                    {fmtTime(item.created_at)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Failed message retry */}
+              {item._failed && isMine && (
+                <TouchableOpacity
+                  style={[dm.deleteBtn, { backgroundColor: '#ef444420' }]}
+                  onPress={() => {
+                    setMessages(prev => prev.filter(m => m.id !== item.id));
+                    setBody(item.body || '');
+                  }}
+                >
+                  <Feather name="refresh-cw" size={14} color="#ef4444" />
+                </TouchableOpacity>
+              )}
+
+              {/* Long-press actions menu inline */}
+              {isSelected && !item._failed && (
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4, alignSelf: isMine ? 'flex-end' : 'flex-start' }}>
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)' }}
+                    onPress={() => {
+                      setReplyingTo(item);
+                      setSelectedMsgId(null);
+                    }}
+                  >
+                    <Feather name="corner-up-left" size={12} color={isMine ? 'rgba(0,0,0,0.6)' : primary} />
+                    <Text style={{ color: isMine ? '#000' : primary, fontSize: 11, fontWeight: '800' }}>Reply</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)' }}
+                    onPress={() => {
+                      setIsMultiSelectMode(true);
+                      setSelectedMsgIds(new Set([item.id]));
+                      setSelectedMsgId(null);
+                    }}
+                  >
+                    <Feather name="check-square" size={12} color={isMine ? 'rgba(0,0,0,0.6)' : primary} />
+                    <Text style={{ color: isMine ? '#000' : primary, fontSize: 11, fontWeight: '800' }}>Select</Text>
+                  </TouchableOpacity>
+                  {isMine && (
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(239,68,68,0.1)' }}
+                      onPress={() => handleDelete(item.id)}
+                    >
+                      <Feather name="trash-2" size={12} color="#ef4444" />
+                      <Text style={{ color: "#ef4444", fontSize: 11, fontWeight: '800' }}>Delete</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </TouchableOpacity>
-          )}
-        </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Reaction picker */}
         {showReactions && reactionMsgId === item.id && (
@@ -805,7 +940,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         )}
       </>
     );
-  }, [user?.id, messages, selectedMsgId, reactionMsgId, showReactions, primary, bg, muted, textColor,
+  }, [user?.id, messages, selectedMsgId, reactionMsgId, showReactions, primary, bg, muted, textColor, isMultiSelectMode, selectedMsgIds,
       handleDelete, handleReact, setSelectedMsgId, setReactionMsgId, setShowReactions, setMessages, setBody]);
 
   // Determine if the current user is the recipient of the *first* message in the thread
@@ -918,74 +1053,109 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           </View>
         )}
 
-        {/* Reply Preview */}
-        {replyingTo && (
-          <View style={[dm.replyPreview, { backgroundColor: bg, borderTopColor: `${primary}18` }]}>
-            <View style={[dm.replyBar, { backgroundColor: primary }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: primary, fontSize: 11, fontWeight: '900' }}>Replying to @{replyingTo.sender_id === user?.id ? 'yourself' : recipient.username}</Text>
-              <Text style={{ color: muted, fontSize: 12 }} numberOfLines={1}>{replyingTo.body}</Text>
-            </View>
-            <TouchableOpacity onPress={() => setReplyingTo(null)}><Feather name="x" size={16} color={muted} /></TouchableOpacity>
-          </View>
-        )}
-
-        {/* Attachment Menu */}
-        {showAttachmentMenu && (
-          <View style={[dm.attachMenu, { backgroundColor: bg, borderTopColor: `${primary}18` }]}>
-            {[
-              { label: 'Camera', icon: 'camera', onPress: handleImageUpload },
-              { label: 'Location', icon: 'map-pin', onPress: handleShareLocation },
-              { label: 'Share Gruv', icon: 'zap', onPress: () => handleShareEvent(null) },
-              { label: 'Vibe Card', icon: 'user', onPress: handleShareVibeCard },
-            ].map(item => (
-              <TouchableOpacity key={item.label} onPress={item.onPress} style={dm.attachMenuItem}>
-                <View style={[dm.attachMenuIcon, { backgroundColor: `${primary}15` }]}><Feather name={item.icon} size={18} color={primary} /></View>
-                <Text style={[dm.attachMenuLabel, { color: textColor }]}>{item.label}</Text>
+        {isMultiSelectMode ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderTopWidth: 1, borderTopColor: `${primary}18`, backgroundColor: bg, paddingBottom: insets.bottom || 14 }}>
+            <Text style={{ color: textColor, fontWeight: '700', fontSize: 13 }}>
+              {selectedMsgIds.size} message(s) selected
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsMultiSelectMode(false);
+                  setSelectedMsgIds(new Set());
+                }}
+                style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: `${primary}25` }}
+              >
+                <Text style={{ color: textColor, fontWeight: '700', fontSize: 12 }}>Cancel</Text>
               </TouchableOpacity>
-            ))}
+              <TouchableOpacity
+                disabled={selectedMsgIds.size === 0 || sharingLoading}
+                onPress={() => {
+                  fetchConversations();
+                  setShowShareModal(true);
+                }}
+                style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, backgroundColor: primary, opacity: selectedMsgIds.size === 0 || sharingLoading ? 0.5 : 1 }}
+              >
+                {sharingLoading ? (
+                  <ActivityIndicator size="small" color="#000" />
+                ) : (
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>Share to...</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
+        ) : (
+          <>
+            {/* Reply Preview */}
+            {replyingTo && (
+              <View style={[dm.replyPreview, { backgroundColor: bg, borderTopColor: `${primary}18` }]}>
+                <View style={[dm.replyBar, { backgroundColor: primary }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: primary, fontSize: 11, fontWeight: '900' }}>Replying to @{replyingTo.sender_id === user?.id ? 'yourself' : recipient.username}</Text>
+                  <Text style={{ color: muted, fontSize: 12 }} numberOfLines={1}>{replyingTo.body}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setReplyingTo(null)}><Feather name="x" size={16} color={muted} /></TouchableOpacity>
+              </View>
+            )}
 
-        <View style={[dm.inputRow, { borderTopColor: `${primary}18`, paddingBottom: insets.bottom || 12 }]}>
-          <TouchableOpacity
-            style={[dm.attachBtn, { backgroundColor: `${primary}15` }]}
-            onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
-            disabled={inputLocked || requestStatus === 'incoming_request' || mediaLoading}
-          >
-            {mediaLoading
-              ? <ActivityIndicator size="small" color={primary} />
-              : <Feather name={showAttachmentMenu ? "x" : "plus"} size={18} color={primary} />
-            }
-          </TouchableOpacity>
-          <TextInput
-            style={[dm.input, { color: textColor, backgroundColor: `${bg}cc`, borderWidth: 1, borderColor: `${primary}18`, opacity: inputLocked ? 0.5 : 1 }]}
-            placeholder={
-              inputLocked
-                ? 'Waiting for them to accept...'
-                : requestStatus === 'incoming_request'
-                  ? 'Accept to reply...'
-                  : 'Message...'
-            }
-            placeholderTextColor={muted}
-            value={body}
-            onChangeText={handleTextChange}
-            multiline
-            maxLength={2000}
-            editable={!inputLocked && requestStatus !== 'incoming_request'}
-            returnKeyType="default"
-          />
-          <TouchableOpacity
-            style={[dm.sendBtn, { backgroundColor: body.trim() && !inputLocked ? primary : `${primary}30` }]}
-            onPress={handleSend}
-            disabled={!body.trim() || inputLocked || sending}
-          >
-            {sending
-              ? <ActivityIndicator size="small" color="#000" />
-              : <Feather name="send" size={18} color={body.trim() && !inputLocked ? '#000' : muted} />
-            }
-          </TouchableOpacity>
-        </View>
+            {/* Attachment Menu */}
+            {showAttachmentMenu && (
+              <View style={[dm.attachMenu, { backgroundColor: bg, borderTopColor: `${primary}18` }]}>
+                {[
+                  { label: 'Camera', icon: 'camera', onPress: handleImageUpload },
+                  { label: 'Location', icon: 'map-pin', onPress: handleShareLocation },
+                  { label: 'Share Gruv', icon: 'zap', onPress: () => handleShareEvent(null) },
+                  { label: 'Vibe Card', icon: 'user', onPress: handleShareVibeCard },
+                ].map(item => (
+                  <TouchableOpacity key={item.label} onPress={item.onPress} style={dm.attachMenuItem}>
+                    <View style={[dm.attachMenuIcon, { backgroundColor: `${primary}15` }]}><Feather name={item.icon} size={18} color={primary} /></View>
+                    <Text style={[dm.attachMenuLabel, { color: textColor }]}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            <View style={[dm.inputRow, { borderTopColor: `${primary}18`, paddingBottom: insets.bottom || 12 }]}>
+              <TouchableOpacity
+                style={[dm.attachBtn, { backgroundColor: `${primary}15` }]}
+                onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                disabled={inputLocked || requestStatus === 'incoming_request' || mediaLoading}
+              >
+                {mediaLoading
+                  ? <ActivityIndicator size="small" color={primary} />
+                  : <Feather name={showAttachmentMenu ? "x" : "plus"} size={18} color={primary} />
+                }
+              </TouchableOpacity>
+              <TextInput
+                style={[dm.input, { color: textColor, backgroundColor: `${bg}cc`, borderWidth: 1, borderColor: `${primary}18`, opacity: inputLocked ? 0.5 : 1 }]}
+                placeholder={
+                  inputLocked
+                    ? 'Waiting for them to accept...'
+                    : requestStatus === 'incoming_request'
+                      ? 'Accept to reply...'
+                      : 'Message...'
+                }
+                placeholderTextColor={muted}
+                value={body}
+                onChangeText={handleTextChange}
+                multiline
+                maxLength={2000}
+                editable={!inputLocked && requestStatus !== 'incoming_request'}
+                returnKeyType="default"
+              />
+              <TouchableOpacity
+                style={[dm.sendBtn, { backgroundColor: body.trim() && !inputLocked ? primary : `${primary}30` }]}
+                onPress={handleSend}
+                disabled={!body.trim() || inputLocked || sending}
+              >
+                {sending
+                  ? <ActivityIndicator size="small" color="#000" />
+                  : <Feather name="send" size={18} color={body.trim() && !inputLocked ? '#000' : muted} />
+                }
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </KeyboardAvoidingView>
       <React.Suspense fallback={null}>
         <ViberProfileModal
@@ -996,6 +1166,39 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           onNavigateToEvent={onNavigateToEvent}
         />
       </React.Suspense>
+
+      {/* Share Contacts Modal */}
+      <Modal visible={showShareModal} transparent animationType="slide" onRequestClose={() => setShowShareModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, minHeight: 320, borderTopWidth: 1, borderTopColor: `${primary}25`, paddingBottom: insets.bottom || 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ color: textColor, fontSize: 16, fontWeight: '900' }}>Forward selected messages to...</Text>
+              <TouchableOpacity onPress={() => setShowShareModal(false)}>
+                <Feather name="x" size={20} color={textColor} />
+              </TouchableOpacity>
+            </View>
+            {conversations.length === 0 ? (
+              <Text style={{ color: muted, textAlign: 'center', marginTop: 40 }}>No other active conversations found.</Text>
+            ) : (
+              <FlatList
+                data={conversations}
+                keyExtractor={item => String(item.id)}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    onPress={() => handleShareToConvo(item.partner)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}
+                  >
+                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${primary}15`, alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="user" size={16} color={primary} />
+                    </View>
+                    <Text style={{ color: textColor, fontWeight: '800' }}>@{item.partner?.username}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };

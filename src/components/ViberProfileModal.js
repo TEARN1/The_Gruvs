@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, ActivityIndicator, Animated,
+  ScrollView, ActivityIndicator, Animated, Share,
 } from 'react-native';
 import { SmartImage } from './SmartImage';
 import { AvatarViewerModal } from './AvatarViewerModal';
@@ -174,6 +174,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('events');
+  const [showAllEvents, setShowAllEvents] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [playerId, setPlayerId] = useState(null);
@@ -374,6 +375,18 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     }
   };
 
+  const handleShare = async () => {
+    if (!profile) return;
+    try {
+      await Share.share({
+        message: `Check out @${profile.username || 'viber'}'s profile on The Gruvs!`,
+        title: `@${profile.username}'s Profile`,
+      });
+    } catch (e) {
+      console.warn('Share error:', e);
+    }
+  };
+
   const loadFollowersList = useCallback(async () => {
     if (!targetId) return;
     try {
@@ -413,6 +426,13 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         >
           {/* Drag handle */}
           <View style={[s.handle, { backgroundColor: `${primary}30` }]} />
+
+          {/* Share */}
+          {profile && (
+            <TouchableOpacity style={[s.closeBtn, { right: 54 }]} onPress={handleShare}>
+              <Feather name="share-2" size={18} color={muted} />
+            </TouchableOpacity>
+          )}
 
           {/* Close */}
           <TouchableOpacity style={s.closeBtn} onPress={onClose}>
@@ -618,34 +638,47 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                       <Text style={[s.emptyText, { color: muted }]}>No events posted yet</Text>
                     </View>
                   ) : (
-                    events.map(ev => (
-                      <View key={ev.id} style={{ position: 'relative' }}>
-                        <ProfileEventCard
-                          ev={ev}
-                          primary={ev.is_cancelled ? "#ef4444" : primary}
-                          textColor={ev.is_cancelled ? 'rgba(255,255,255,0.4)' : textColor}
-                          muted={muted}
-                          onPress={() => { if (!ev.is_cancelled) { onClose(); onNavigateToEvent?.(ev); } }}
-                        />
-                        {/* Cancelled strikethrough overlay */}
-                        {ev.is_cancelled && (
-                          <View style={s.cancelledOverlay} pointerEvents="none">
-                            <View style={s.cancelledLine} />
-                            <Text style={s.cancelledLabel}>CANCELLED</Text>
-                          </View>
-                        )}
-                        {/* Edit button — only on own profile */}
-                        {isOwnProfile && !ev.is_cancelled && (
-                          <TouchableOpacity
-                            style={[s.editEventBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-                            onPress={() => setEditingEvent(ev)}
-                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                          >
-                            <Feather name="edit-2" size={12} color={primary} />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    ))
+                    <>
+                      {(showAllEvents ? events : events.slice(0, 3)).map(ev => (
+                        <View key={ev.id} style={{ position: 'relative' }}>
+                          <ProfileEventCard
+                            ev={ev}
+                            primary={ev.status === 'cancelled' ? "#ef4444" : primary}
+                            textColor={ev.status === 'cancelled' ? 'rgba(255,255,255,0.4)' : textColor}
+                            muted={muted}
+                            onPress={() => { if (ev.status !== 'cancelled') { onClose(); onNavigateToEvent?.(ev); } }}
+                          />
+                          {/* Cancelled strikethrough overlay */}
+                          {ev.status === 'cancelled' && (
+                            <View style={s.cancelledOverlay} pointerEvents="none">
+                              <View style={s.cancelledLine} />
+                              <Text style={s.cancelledLabel}>CANCELLED</Text>
+                            </View>
+                          )}
+                          {/* Edit button — only on own profile */}
+                          {isOwnProfile && ev.status !== 'cancelled' && (
+                            <TouchableOpacity
+                              style={[s.editEventBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+                              onPress={() => setEditingEvent(ev)}
+                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            >
+                              <Feather name="edit-2" size={12} color={primary} />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      ))}
+                      {events.length > 3 && (
+                        <TouchableOpacity
+                          onPress={() => setShowAllEvents(prev => !prev)}
+                          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 }}
+                        >
+                          <Text style={{ color: primary, fontSize: 13, fontWeight: '800' }}>
+                            {showAllEvents ? 'See Less' : `See More (${events.length - 3} more)`}
+                          </Text>
+                          <Feather name={showAllEvents ? 'chevron-up' : 'chevron-down'} size={14} color={primary} />
+                        </TouchableOpacity>
+                      )}
+                    </>
                   )
                 )}
 

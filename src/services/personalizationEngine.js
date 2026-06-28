@@ -810,7 +810,7 @@ export async function generatePersonalCalendar(userId, timeframe = 'week') {
         .limit(100),
       supabase.from('events')
         .select('*, profiles!author_id(username, avatar_url)')
-        .eq('is_cancelled', false)
+        .neq('status', 'cancelled')
         .lte('event_date', toStr)
         .limit(200),
       supabase.from('event_rsvps')
