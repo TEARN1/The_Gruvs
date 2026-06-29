@@ -54,7 +54,7 @@ import { ReactPicker } from '../components/ReactPicker';
 import { GlitterBurst } from '../components/GlitterBurst';
 import { SuggestedFollows } from '../components/SuggestedFollows';
 import { GoOutNudge } from '../components/GoOutNudge';
-
+import birthdaySpotlight from '../services/birthdaySpotlight';
 // ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
 import { PostEventModal }       from '../components/PostEventModal';
 import { ViberProfileModal }    from '../components/ViberProfileModal';
@@ -946,6 +946,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const flatListRef = useRef(null);
 
   const [events, setEvents] = useState([]);
+  const [birthdaysToday, setBirthdaysToday] = useState([]);
+  const [birthdayLeadUp, setBirthdayLeadUp] = useState(null);
   const [trending, setTrending] = useState([]);
   const [trendingEvents, setTrendingEvents] = useState([]); // full event objects for top trending
   const [refreshing, setRefreshing] = useState(false);
@@ -1396,6 +1398,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // Resolve the viewer's age once so the feed can hide mature listings from minors.
   useEffect(() => { loadViewerAge(user?.id).then(() => loadData(true)).catch(() => {}); }, [user?.id]);
 
+  // Load birthday spotlight data
+  useEffect(() => {
+    if (!user?.id) return;
+    birthdaySpotlight.peopleWithBirthdayToday({ radiusKm: 100, limit: 10 })
+      .then(setBirthdaysToday)
+      .catch(() => {});
+    birthdaySpotlight.myBirthdayLeadUp(user.id)
+      .then(setBirthdayLeadUp)
+      .catch(() => {});
+  }, [user?.id]);
+
   // Real-time: new events appear instantly + live vibe counts update
   useEffect(() => {
     if (!isSupabaseEnabled) return;
@@ -1729,6 +1742,86 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     setSelectedViber(profile);
     setViberModalVisible(true);
   }, []);
+
+  const renderBirthdaySpotlight = () => {
+    if (mode !== 'drop') return null;
+    const items = [];
+    if (birthdayLeadUp) {
+      const isToday = birthdayLeadUp.isToday;
+      items.push(
+        <GlassView key="my-bday" style={{ marginHorizontal: 16, marginBottom: 12, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: `${primary}30` }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <Feather name="gift" size={18} color={primary} />
+            <Text style={{ color: textColor, fontWeight: '950', fontSize: 11, letterSpacing: 1 }}>
+              {isToday ? "HAPPY BIRTHDAY TO YOU! 🎂" : `YOUR BIRTHDAY IS IN ${birthdayLeadUp.daysUntil} DAYS! 🎈`}
+            </Text>
+          </View>
+          <Text style={{ color: muted, fontSize: 12, lineHeight: 18, marginBottom: 10 }}>
+            {isToday 
+              ? "Wishing you an epic day filled with good music and great vibes! Here are some hot spots to celebrate tonight:" 
+              : "Plan the ultimate celebration! Check out these handpicked celebration-friendly events near you:"}
+          </Text>
+          {birthdayLeadUp.suggestions && birthdayLeadUp.suggestions.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+              {birthdayLeadUp.suggestions.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  onPress={() => setSelectedEvent(item)}
+                  style={{ width: 140, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 8 }}
+                >
+                  {item.cover_url ? (
+                    <Image source={{ uri: item.cover_url }} style={{ width: '100%', height: 70, borderRadius: 8, marginBottom: 6 }} />
+                  ) : (
+                    <View style={{ width: '100%', height: 70, borderRadius: 8, backgroundColor: `${primary}15`, alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}><Feather name="image" size={16} color={primary} /></View>
+                  )}
+                  <Text style={{ color: textColor, fontSize: 11, fontWeight: '800' }} numberOfLines={1}>{item.title}</Text>
+                  <Text style={{ color: primary, fontSize: 10, fontWeight: '700', marginTop: 2 }}>{String(item.category || '').toUpperCase()}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <Text style={{ color: muted, fontSize: 11, fontStyle: 'italic' }}>No upcoming events matching your scene in your area.</Text>
+          )}
+        </GlassView>
+      );
+    }
+    if (birthdaysToday && birthdaysToday.length > 0) {
+      items.push(
+        <GlassView key="locals-bday" style={{ marginHorizontal: 16, marginBottom: 12, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+          <Text style={{ color: textColor, fontWeight: '950', fontSize: 11, letterSpacing: 1, marginBottom: 10 }}>
+            🎂 CELEBRATING TODAY
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, alignItems: 'center' }}>
+            {birthdaysToday.map((p) => {
+              const colors = ["#0891b2", "#0d9488", "#7c3aed", "#dc2626", "#d97706", "#059669"];
+              const bg = colors[(p.username?.charCodeAt(0) || 0) % colors.length];
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  onPress={() => openViberProfile(p)}
+                  style={{ alignItems: 'center', gap: 6 }}
+                >
+                  {p.avatar_url ? (
+                    <Image source={{ uri: p.avatar_url }} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: primary }} />
+                  ) : (
+                    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: primary }}>
+                      <Text style={{ color: '#fff', fontSize: 14, fontWeight: '900' }}>
+                        {p.username?.slice(0, 2).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={{ color: textColor, fontSize: 10, fontWeight: '800' }} numberOfLines={1}>
+                    @{p.username}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </GlassView>
+      );
+    }
+    return items;
+  };
 
   // ── HEADER ──────────────────────────────────────────────────────────────────
   const renderHeader = () => (
@@ -2142,6 +2235,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <>
             {renderHeader()}
             {renderTrending()}
+            {renderBirthdaySpotlight()}
             {mode === 'drop' && (
               <GoOutNudge
                 events={events}
