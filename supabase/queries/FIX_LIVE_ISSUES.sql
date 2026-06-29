@@ -67,4 +67,53 @@ DROP POLICY IF EXISTS event_stamps_read ON public.event_stamps;
 CREATE POLICY event_stamps_read ON public.event_stamps FOR SELECT TO authenticated USING (true);
 -- (stamps are minted server-side / by a future trigger; no client INSERT policy on purpose)
 
+-- 6) CHECK-IN (Touch Down) — probing the live DB showed live_checkins is missing
+--    the identity_mode column (so ghost/incognito check-ins can't carry their mode),
+--    and the write relied on a UNIQUE(user_id,event_id) that may be absent + an
+--    INSERT policy that may be missing. Add all three, safely + idempotently.
+ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS identity_mode TEXT DEFAULT 'public';
+ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS expires_at    TIMESTAMPTZ;
+ALTER TABLE public.live_checkins ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ DEFAULT now();
+
+-- one row per user per event — add the unique constraint only if none exists on
+-- (user_id, event_id), de-duping any existing rows first so it can be created.
+DO $$
+DECLARE has_uniq boolean;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM pg_constraint c
+    WHERE c.conrelid = 'public.live_checkins'::regclass AND c.contype = 'u'
+      AND (SELECT array_agg(a.attname::text ORDER BY a.attname)
+             FROM unnest(c.conkey) k
+             JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k)
+          = ARRAY['event_id','user_id']
+  ) INTO has_uniq;
+  IF NOT has_uniq THEN
+    DELETE FROM public.live_checkins a USING public.live_checkins b
+      WHERE a.ctid < b.ctid AND a.user_id = b.user_id AND a.event_id = b.event_id;
+    ALTER TABLE public.live_checkins
+      ADD CONSTRAINT live_checkins_user_event_uniq UNIQUE (user_id, event_id);
+  END IF;
+END $$;
+
+-- ensure an authenticated user can write their OWN check-in (RLS INSERT/UPDATE).
+ALTER TABLE public.live_checkins ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS live_checkins_select     ON public.live_checkins;
+CREATE POLICY live_checkins_select     ON public.live_checkins FOR SELECT USING (true);
+DROP POLICY IF EXISTS live_checkins_insert     ON public.live_checkins;
+CREATE POLICY live_checkins_insert     ON public.live_checkins FOR INSERT WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS live_checkins_update_own ON public.live_checkins;
+CREATE POLICY live_checkins_update_own ON public.live_checkins FOR UPDATE USING (user_id = auth.uid());
+
+-- 7) DIAGNOSTIC (read-only — changes nothing). DMs INSERT returns 400 from a
+--    hidden rule. Run these two and share the output so we can pinpoint it:
+--    any CHECK constraint or trigger on messages that rejects the insert.
+SELECT conname, pg_get_constraintdef(oid) AS check_definition
+FROM pg_constraint
+WHERE conrelid = 'public.messages'::regclass AND contype = 'c';
+
+SELECT tgname AS trigger_name, pg_get_triggerdef(oid) AS trigger_definition
+FROM pg_trigger
+WHERE tgrelid = 'public.messages'::regclass AND NOT tgisinternal;
+
 -- ✅ Done.
