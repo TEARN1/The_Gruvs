@@ -266,7 +266,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     try {
       const [profileRes, eventsRes, followersRes, followingRes, isFollowingRes, mutualRes] = await Promise.allSettled([
         supabase.from('profiles').select('id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, career_title, looks_description, interests, location, show_online, share_events').eq('id', uid).single(),
-        supabase.from('events').select('id,title,media,media_urls,event_date,venue_name,category,category_color,vibe_count').eq('author_id', uid).order('created_at', { ascending: false }).limit(10),
+        supabase.from('events').select('id,title,media,media_urls,event_date,venue_name,category,category_color,vibe_count,status,deleted_at').eq('author_id', uid).is('deleted_at', null).neq('status', 'cancelled').order('created_at', { ascending: false }).limit(30),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', uid),
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', uid),
         currentUser ? supabase.from('follows').select('id').eq('follower_id', currentUser.id).eq('following_id', uid).maybeSingle() : Promise.resolve({ data: null }),

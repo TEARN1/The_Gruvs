@@ -1379,6 +1379,32 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                       ))}
                     </View>
                   </View>
+
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 8, marginBottom: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }}>OR TYPE CUSTOM MIN AGE</Text>
+                      <TextInput
+                        style={[pm.input, { color: textColor, borderColor: `${primary}35`, fontSize: 12, height: 38, paddingVertical: 6 }]}
+                        placeholder="e.g. 18"
+                        placeholderTextColor={muted}
+                        value={ageMin > 0 ? String(ageMin) : ''}
+                        onChangeText={(t) => setAgeMin(parseInt(t.replace(/[^0-9]/g, '')) || 0)}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }}>OR TYPE CUSTOM MAX AGE</Text>
+                      <TextInput
+                        style={[pm.input, { color: textColor, borderColor: `${primary}35`, fontSize: 12, height: 38, paddingVertical: 6 }]}
+                        placeholder="e.g. 45"
+                        placeholderTextColor={muted}
+                        value={ageMax > 0 ? String(ageMax) : ''}
+                        onChangeText={(t) => setAgeMax(parseInt(t.replace(/[^0-9]/g, '')) || 0)}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  </View>
+
                   {ageMin > 0 && (
                     <Text style={{ color: primary, fontSize: 11, fontWeight: '800', marginTop: 4, marginBottom: 12 }}>
                       Allowed: {ageMin}{ageMax > 0 ? `–${ageMax === 99 ? '99+' : ageMax}` : '+'}
@@ -1550,10 +1576,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     </View>
                   </View>
 
-                  <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>OTHER PACKAGES (Optional)</Text>
+                  <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>TICKET PHASES, FOOD PACKAGES & CUSTOM TIERS (Optional)</Text>
                   <TextInput
                     style={[pm.input, { color: textColor, borderColor: `${primary}35`, fontSize: 13, height: 40, paddingVertical: 8, marginBottom: 18 }]}
-                    placeholder="e.g. Table bookings / packages / early birds..."
+                    placeholder="e.g. Standard (Phase 1): R300, Phase 2: R350, Late Bookings: R400, Food Package: R150..."
                     placeholderTextColor={muted}
                     value={otherTickets}
                     onChangeText={setOtherTickets}

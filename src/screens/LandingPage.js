@@ -399,6 +399,12 @@ const EventCard = React.memo(({
                   <Text style={[styles.catBadgeText, { color: catColor }]}>{(CATEGORY_CONFIG[event.category]?.label || event.category).toUpperCase()}</Text>
                 </View>
               )}
+              {countdown && (
+                <View style={[styles.countdownOverlay, { backgroundColor: 'rgba(10,20,24,0.85)', borderColor: `${primary}55` }, isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }]}>
+                  <Feather name="clock" size={10} color={primary} />
+                  <Text style={[styles.countdownOverlayText, { color: '#fff' }]}>{countdown.toUpperCase()}</Text>
+                </View>
+              )}
               <TouchableOpacity
                 style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
                 onPress={(e) => { e.stopPropagation?.(); onBookmark(id); }}
@@ -425,6 +431,23 @@ const EventCard = React.memo(({
               // TODO(v6): remove cover_image/image_url fallbacks after migration
               if (!m?.length && event.cover_image) m = [{ url: event.cover_image, type: 'image' }];
               if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
+
+              // Auto countdown media selection
+              if (m?.length > 1 && event.event_date) {
+                const diff = new Date(event.event_date).getTime() - Date.now();
+                const daysLeft = diff <= 0 ? 0 : Math.floor(diff / 86400000);
+                let matchIdx = -1;
+                if (daysLeft === 0) {
+                  matchIdx = m.findIndex(item => item.url && /countdown_0|today|countdown_today/i.test(item.url));
+                } else if (daysLeft > 0 && daysLeft <= 10) {
+                  const pattern = new RegExp(`countdown_${daysLeft}|_${daysLeft}day|_${daysLeft}_day|${daysLeft}_days_left`, 'i');
+                  matchIdx = m.findIndex(item => item.url && pattern.test(item.url));
+                }
+                if (matchIdx > -1) {
+                  const matched = m[matchIdx];
+                  m = [matched, ...m.filter((_, idx) => idx !== matchIdx)];
+                }
+              }
               return m?.length ? m : null;
             })()} />
             {/* Double-tap heart burst overlay */}
@@ -456,6 +479,18 @@ const EventCard = React.memo(({
               ]}>
                 <Text style={[styles.catBadgeText, { color: catColor }]}>
                   {(CATEGORY_CONFIG[event.category]?.label || event.category).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            {countdown && (
+              <View style={[
+                styles.countdownOverlay,
+                { backgroundColor: 'rgba(10,20,24,0.85)', borderColor: `${primary}55` },
+                isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
+              ]}>
+                <Feather name="clock" size={10} color={primary} />
+                <Text style={[styles.countdownOverlayText, { color: '#fff' }]}>
+                  {countdown.toUpperCase()}
                 </Text>
               </View>
             )}
@@ -2603,6 +2638,16 @@ const styles = StyleSheet.create({
   priceText: { fontSize: 11, fontWeight: '900' },
   feedFollowBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: "#00f2ff", backgroundColor: 'rgba(0,242,255,0.1)', marginRight: 6 },
   feedFollowText: { fontSize: 11, fontWeight: '700', color: "#00f2ff" },
+
+  countdownOverlay: {
+    position: 'absolute', bottom: 12, left: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 8, borderWidth: 1,
+  },
+  countdownOverlayText: {
+    fontSize: 9, fontWeight: '900', letterSpacing: 0.5,
+  },
 
   eventTitle: { fontSize: 22, fontWeight: '900', marginBottom: 8, letterSpacing: -0.3 },
   eventDesc: { fontSize: 14, lineHeight: 22, marginBottom: 14, opacity: 0.85 },

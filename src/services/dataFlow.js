@@ -20,6 +20,7 @@ import { NotificationService } from './notificationService';
 export const normalizeEvent = (event) => {
   if (!event) return event;
   const parsed = { ...event };
+  if (parsed.age_min !== undefined) parsed.age_restriction = parsed.age_min;
   if (parsed.media && typeof parsed.media === 'string') {
     try { parsed.media = JSON.parse(parsed.media); } catch { parsed.media = null; }
   }

@@ -2046,8 +2046,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               .from('events')
               .select('*, profiles(username, avatar_url)')
               .or(`author_id.eq.${user.id},user_id.eq.${user.id}`)
+              .is('deleted_at', null)
+              .neq('status', 'cancelled')
               .order('created_at', { ascending: false })
-              .limit(20);
+              .limit(40);
             if (error) throw error;
             return d;
           },
@@ -2056,8 +2058,10 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               .from('events')
               .select('id, title, event_date, cover_url')
               .eq('author_id', user.id)
+              .is('deleted_at', null)
+              .neq('status', 'cancelled')
               .order('created_at', { ascending: false })
-              .limit(20);
+              .limit(40);
             if (error) throw error;
             return d;
           },
