@@ -1862,6 +1862,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [myEvents, setMyEvents] = useState([]);
   const [mySavedEvents, setMySavedEvents] = useState([]);
   const [myVibedEvents, setMyVibedEvents] = useState([]);
+  const [passportStamps, setPassportStamps] = useState([]);
   const [tabLoading, setTabLoading] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [imageViewerUri, setImageViewerUri] = useState(null);
@@ -2151,7 +2152,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         );
         setMyVibedEvents(data || []);
       } else if (tab === 'cohost') {
-        // Events where the current user is a co_host in event_roles
         const { data: d } = await supabase
           .from('event_roles')
           .select('events(id, title, event_date, cover_url, category, author_id, profiles:author_id(username))')
@@ -2163,6 +2163,14 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       } else if (tab === 'activity') {
         const items = await ActivityFeedManager.fetch(user.id, { limit: 40 });
         setActivityItems(items || []);
+      } else if (tab === 'passport') {
+        const { data: d, error } = await supabase
+          .from('event_stamps')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setPassportStamps(d || []);
       }
     } catch (err) {
       console.warn('ProfilePage.loadTab err:', err);
@@ -2946,6 +2954,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             { key: 'gruvs',     label: 'My Gruvs', icon: 'calendar' },
             { key: 'saved',     label: 'Saved',    icon: 'bookmark' },
             { key: 'vibed',     label: 'Vibed',    icon: 'zap' },
+            { key: 'passport',  label: 'Passport', icon: 'award' },
             { key: 'following', label: 'Following', icon: 'bell' },
             { key: 'cohost',    label: 'Co-Host',  icon: 'users' },
             { key: 'activity',  label: 'Activity', icon: 'activity' },
@@ -3160,6 +3169,50 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   </View>
                   <GalleryTab userId={user?.id} primary={primary} muted={muted} myEvents={myEvents} profileGallery={profileGallery} onDeleteGallery={deleteGalleryUrl} isOwner />
                 </View>
+              )}
+              {activeTab === 'passport' && (
+                passportStamps.length === 0 ? (
+                  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 10 }}>
+                    <Feather name="award" size={48} color={`${primary}30`} />
+                    <Text style={{ color: muted, fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
+                      Your Vibe Passport is empty!{'\n'}Attend events and scan your ticket at the door{'\n'}to collect physical stamp stickers here.
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingHorizontal: 4 }}>
+                    {passportStamps.map((stamp) => (
+                      <View
+                        key={stamp.id}
+                        style={{
+                          width: 80,
+                          height: 80,
+                          borderRadius: 40,
+                          borderWidth: 2,
+                          borderStyle: 'dashed',
+                          borderColor: stamp.stamp_color || primary,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: `${stamp.stamp_color || primary}08`,
+                          position: 'relative',
+                          shadowColor: stamp.stamp_color || primary,
+                          shadowOpacity: 0.1,
+                          shadowRadius: 4,
+                          elevation: 2,
+                        }}
+                      >
+                        <Feather name={stamp.stamp_icon || 'award'} size={24} color={stamp.stamp_color || primary} />
+                        <Text style={{ color: '#fff', fontSize: 8, fontWeight: '950', marginTop: 4, textAlign: 'center', paddingHorizontal: 4 }} numberOfLines={1}>
+                          {stamp.title.toUpperCase()}
+                        </Text>
+                        {stamp.venue_name ? (
+                          <Text style={{ color: muted, fontSize: 6.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
+                            {stamp.venue_name}
+                          </Text>
+                        ) : null}
+                      </View>
+                    ))}
+                  </View>
+                )
               )}
             </>
           )}

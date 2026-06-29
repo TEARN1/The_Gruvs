@@ -174,6 +174,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
   const [profile, setProfile] = useState(null);
   const [events, setEvents] = useState([]);
+  const [stamps, setStamps] = useState([]);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -297,8 +298,11 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       }
       // Birthday — fetched separately so an un-migrated DB (no birth_date) can't break the load.
       setBirthdayToday(false);
+      setStamps([]);
       supabase.from('profiles').select('birth_date').eq('id', uid).maybeSingle()
         .then(({ data }) => setBirthdayToday(isBirthdayToday(data?.birth_date)), () => {});
+      supabase.from('event_stamps').select('*').eq('user_id', uid).order('created_at', { ascending: false })
+        .then(({ data }) => setStamps(data || []), () => {});
       // Honour an explicit "Share events" opt-out — hide events from others when
       // they've turned it off (null/untouched still shows, to avoid a mass regression).
       const prof = profileRes.status === 'fulfilled' ? profileRes.value.data : propUser;
@@ -626,14 +630,14 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
               {/* Tab: Events */}
               <View style={s.tabRow}>
-                {['events', 'about'].map(tab => (
+                {['events', 'passport', 'about'].map(tab => (
                   <TouchableOpacity
                     key={tab}
                     style={[s.tab, activeTab === tab && { borderBottomColor: primary, borderBottomWidth: 2 }]}
                     onPress={() => setActiveTab(tab)}
                   >
                     <Text style={[s.tabText, { color: activeTab === tab ? primary : muted }]}>
-                      {tab === 'events' ? `Events (${events.length})` : 'About'}
+                      {tab === 'events' ? `Events (${events.length})` : tab === 'passport' ? `Passport (${stamps.length})` : 'About'}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -688,6 +692,50 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                         </TouchableOpacity>
                       )}
                     </>
+                  )
+                )}
+
+                {activeTab === 'passport' && (
+                  stamps.length === 0 ? (
+                    <View style={s.emptySection}>
+                      <Feather name="award" size={32} color={muted} style={{ opacity: 0.5 }} />
+                      <Text style={[s.emptyText, { color: muted, textAlign: 'center' }]}>
+                        Passport is empty!{'\n'}This Viber has not collected any stamps yet.
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingVertical: 10 }}>
+                      {stamps.map(stamp => (
+                        <View
+                          key={stamp.id}
+                          style={{
+                            width: 72,
+                            height: 72,
+                            borderRadius: 36,
+                            borderWidth: 2,
+                            borderStyle: 'dashed',
+                            borderColor: stamp.stamp_color || primary,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: `${stamp.stamp_color || primary}08`,
+                            shadowColor: stamp.stamp_color || primary,
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            elevation: 2,
+                          }}
+                        >
+                          <Feather name={stamp.stamp_icon || 'award'} size={20} color={stamp.stamp_color || primary} />
+                          <Text style={{ color: '#fff', fontSize: 7.5, fontWeight: '950', marginTop: 3, textAlign: 'center', paddingHorizontal: 3 }} numberOfLines={1}>
+                            {stamp.title.toUpperCase()}
+                          </Text>
+                          {stamp.venue_name ? (
+                            <Text style={{ color: muted, fontSize: 6, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
+                              {stamp.venue_name}
+                            </Text>
+                          ) : null}
+                        </View>
+                      ))}
+                    </View>
                   )
                 )}
 
