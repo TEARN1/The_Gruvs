@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, Dimensions, Easing,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
+import { GlitterBurst } from './GlitterBurst';
 
 const BADGE_DEFS = [
   { id: 'first_gruv',       emoji: '🎉', name: 'First Gruv',       description: 'Created your first event' },
@@ -28,7 +29,7 @@ const BADGE_DEFS = [
 const checkBadges = async (userId) => {
   const earned = new Set();
   try {
-    const [eventsRes, profileRes, followsRes, rsvpsRes, echoesRes, savedRes, referralRes, vibesRes, checkinsRes] =
+    const [eventsRes, profileRes, followsRes, rsvpsRes, echoesRes, savedRes, referralRes, checkinsRes] =
       await Promise.allSettled([
         supabase.from('events').select('id, vibe_count', { count: 'exact' }).eq('author_id', userId),
         supabase.from('profiles').select('vibe_score, username, bio, avatar_url, city, referral_count').eq('id', userId).single(),
@@ -37,8 +38,7 @@ const checkBadges = async (userId) => {
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('profiles').select('referral_count').eq('id', userId).single(),
-        supabase.from('event_vibes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('live_checkins').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('event_checkins').select('event_id', { count: 'exact', head: true }).eq('user_id', userId),
       ]);
 
     const eventCount  = eventsRes.status  === 'fulfilled' ? (eventsRes.value.count   || 0) : 0;
@@ -61,18 +61,15 @@ const checkBadges = async (userId) => {
     if (refCount >= 3)     earned.add('connector');
     if (checkinCount >= 5) earned.add('vibe_scout');
 
-    // Verified: has avatar, bio, location, username all set
     if (profile?.username && profile?.bio && profile?.avatar_url && profile?.city) {
       earned.add('verified_citizen');
     }
 
-    // Popular host: any event with 50+ vibes
     if (eventsRes.status === 'fulfilled') {
       const events = eventsRes.value.data || [];
       if (events.some(e => (e.vibe_count || 0) >= 50)) earned.add('popular_host');
     }
 
-    // RSVP-based badges
     if (rsvpsRes.status === 'fulfilled') {
       const rsvps = rsvpsRes.value.data || [];
       if (rsvps.length >= 10) earned.add('rsvp_king');
@@ -89,8 +86,7 @@ const checkBadges = async (userId) => {
       if (nightCount >= 5) earned.add('night_owl');
       if (cities.size >= 3) earned.add('explorer');
     }
-  } catch (e) {
-  }
+  } catch (e) {}
   return earned;
 };
 
@@ -107,6 +103,10 @@ export const AchievementBadges = ({ userId }) => {
   const { currentTheme } = useTheme();
   const [earned, setEarned] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [unlockedBadge, setUnlockedBadge] = useState(null);
+  const [confettiActive, setConfettiActive] = useState(false);
+
+  const toastY = useRef(new Animated.Value(-100)).current;
 
   const primary   = currentTheme?.primary    || "#00f2ff";
   const textColor = currentTheme?.text       || "#ffffff";
@@ -117,9 +117,34 @@ export const AchievementBadges = ({ userId }) => {
     if (!userId) { setLoading(false); return; }
     setLoading(true);
     try {
+      // 1. Fetch current stored badges to check for fresh unlocks
+      const { data: p } = await supabase.from('profiles').select('badges').eq('id', userId).single();
+      const prevBadges = new Set(p?.badges || []);
+
+      // 2. Scan earned badges
       const earnedSet = await checkBadges(userId);
       setEarned(earnedSet);
       await saveEarnedBadges(userId, Array.from(earnedSet));
+
+      // 3. Find newly unlocked badge
+      const newlyEarned = Array.from(earnedSet).filter(b => !prevBadges.has(b));
+      if (newlyEarned.length > 0) {
+        const badgeDef = BADGE_DEFS.find(b => b.id === newlyEarned[0]);
+        if (badgeDef) {
+          setUnlockedBadge(badgeDef);
+          setConfettiActive(true);
+
+          // Slide down toast notification
+          Animated.sequence([
+            Animated.timing(toastY, { toValue: 20, duration: 450, easing: Easing.out(Easing.back(1.2)), useNativeDriver: true }),
+            Animated.delay(4000),
+            Animated.timing(toastY, { toValue: -120, duration: 400, useNativeDriver: true })
+          ]).start(() => {
+            setUnlockedBadge(null);
+            setConfettiActive(false);
+          });
+        }
+      }
     } catch { }
     finally { setLoading(false); }
   }, [userId]);
@@ -150,7 +175,7 @@ export const AchievementBadges = ({ userId }) => {
               style={[
                 ab.badge,
                 {
-                  backgroundColor: isEarned ? `${primary}18` : `${surface}99`,
+                  backgroundColor: isEarned ? `${primary}12` : `${surface}99`,
                   borderColor: isEarned ? primary : 'rgba(255,255,255,0.1)',
                 },
               ]}
@@ -161,7 +186,7 @@ export const AchievementBadges = ({ userId }) => {
                 </Text>
                 {!isEarned && (
                   <View style={ab.lockOverlay}>
-                    <Feather name="lock" size={11} color="rgba(255,255,255,0.4)" />
+                    <Feather name="lock" size={10} color="rgba(255,255,255,0.4)" />
                   </View>
                 )}
               </View>
@@ -184,12 +209,25 @@ export const AchievementBadges = ({ userId }) => {
           );
         })}
       </ScrollView>
+
+      {/* Floating Badge Unlock Slide Toast */}
+      {unlockedBadge && (
+        <Animated.View style={[ab.toast, { backgroundColor: surface, borderColor: primary, transform: [{ translateY: toastY }] }]}>
+          <Text style={{ fontSize: 24 }}>{unlockedBadge.emoji}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: primary, fontSize: 10, fontWeight: '950', letterSpacing: 1 }}>NEW ACHIEVEMENT UNLOCKED!</Text>
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', marginTop: 1 }}>{unlockedBadge.name}</Text>
+            <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>{unlockedBadge.description}</Text>
+          </View>
+          {confettiActive && <GlitterBurst />}
+        </Animated.View>
+      )}
     </View>
   );
 };
 
 const ab = StyleSheet.create({
-  container: { marginVertical: 8 },
+  container: { marginVertical: 8, position: 'relative' },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '900',
@@ -220,4 +258,22 @@ const ab = StyleSheet.create({
   badgeName: { fontSize: 11, fontWeight: '800', textAlign: 'center' },
   badgeDesc: { fontSize: 10, textAlign: 'center', lineHeight: 14 },
   loadWrap: { paddingVertical: 20, alignItems: 'center' },
+  
+  toast: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    right: 20,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    zIndex: 999,
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
 });
