@@ -11,6 +11,7 @@ import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from './GlassView';
 import { buildWrapped, buildWrappedShareText } from '../utils/nightlifeWrapped';
+import { NightlifeWrappedModal } from './NightlifeWrappedModal';
 
 export function WrappedCard({ userId }) {
   const { currentTheme } = useTheme();
@@ -51,40 +52,57 @@ export function WrappedCard({ userId }) {
     { n: w.cityCount, label: 'cities' },
   ];
 
+  const [modalVisible, setModalVisible] = useState(false);
+
   return (
-    <GlassView style={[s.wrap, { borderColor: `${primary}22` }]}>
-      <View style={s.header}>
-        <Feather name="award" size={15} color={primary} />
-        <Text style={[s.title, { color: textColor }]}>{w.year} Wrapped</Text>
-        <TouchableOpacity
-          style={[s.shareBtn, { borderColor: `${primary}40` }]}
-          accessibilityRole="button"
-          accessibilityLabel="Share your Wrapped"
-          onPress={() => { Share.share({ message: buildWrappedShareText(w) }).catch(() => {}); }}
-        >
-          <Feather name="share-2" size={13} color={primary} />
-          <Text style={[s.shareText, { color: primary }]}>Share</Text>
-        </TouchableOpacity>
-      </View>
-      <Text style={[s.headline, { color: primary }]}>{w.headline}</Text>
-
-      <View style={s.stats}>
-        {stats.map((st) => (
-          <View key={st.label} style={s.stat}>
-            <Text style={[s.statN, { color: textColor }]}>{st.n}</Text>
-            <Text style={[s.statLabel, { color: muted }]}>{st.label}</Text>
+    <>
+      <TouchableOpacity activeOpacity={0.85} onPress={() => setModalVisible(true)}>
+        <GlassView style={[s.wrap, { borderColor: `${primary}22` }]}>
+          <View style={s.header}>
+            <Feather name="award" size={15} color={primary} />
+            <Text style={[s.title, { color: textColor }]}>{w.year} Wrapped</Text>
+            <TouchableOpacity
+              style={[s.shareBtn, { borderColor: `${primary}40` }]}
+              accessibilityRole="button"
+              accessibilityLabel="Share your Wrapped"
+              onPress={() => { Share.share({ message: buildWrappedShareText(w) }).catch(() => {}); }}
+            >
+              <Feather name="share-2" size={13} color={primary} />
+              <Text style={[s.shareText, { color: primary }]}>Share</Text>
+            </TouchableOpacity>
           </View>
-        ))}
-      </View>
+          <Text style={[s.headline, { color: primary }]}>{w.headline}</Text>
 
-      <View style={s.lines}>
-        {w.topVenue && <Line muted={muted} textColor={textColor} label="Home base" value={`${w.topVenue.name} ·${w.topVenue.count}×`} />}
-        {w.topScene && <Line muted={muted} textColor={textColor} label="Your scene" value={w.topScene.name} />}
-        {w.busiestMonth && w.busiestMonth.count > 0 && (
-          <Line muted={muted} textColor={textColor} label="Biggest month" value={`${w.busiestMonth.name} ·${w.busiestMonth.count}`} />
-        )}
-      </View>
-    </GlassView>
+          <View style={s.stats}>
+            {stats.map((st) => (
+              <View key={st.label} style={s.stat}>
+                <Text style={[s.statN, { color: textColor }]}>{st.n}</Text>
+                <Text style={[s.statLabel, { color: muted }]}>{st.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={s.lines}>
+            {w.topVenue && <Line muted={muted} textColor={textColor} label="Home base" value={`${w.topVenue.name} ·${w.topVenue.count}×`} />}
+            {w.topScene && <Line muted={muted} textColor={textColor} label="Your scene" value={w.topScene.name} />}
+            {w.busiestMonth && w.busiestMonth.count > 0 && (
+              <Line muted={muted} textColor={textColor} label="Biggest month" value={`${w.busiestMonth.name} ·${w.busiestMonth.count}`} />
+            )}
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 10 }}>
+            <Feather name="play" size={11} color={primary} />
+            <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Tap to view story recap</Text>
+          </View>
+        </GlassView>
+      </TouchableOpacity>
+
+      <NightlifeWrappedModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        wrappedData={w}
+        primary={primary}
+      />
+    </>
   );
 }
 
