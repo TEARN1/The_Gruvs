@@ -455,7 +455,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
                   onPress={() => setSelectedInterests(prev => prev.filter(k => k !== key))}
                   style={[fm.pill, { backgroundColor: `${color}18`, borderColor: `${color}40` }]}
                 >
-                  <Text style={{ fontSize: 12 }}>{meta?.icon || '✦'}</Text>
+                  <MaterialCommunityIcons name={meta?.icon || 'tag'} size={12} color={color} />
                   <Text style={[fm.pillText, { color }]}>{label}</Text>
                   <Feather name="x" size={10} color={color} />
                 </TouchableOpacity>

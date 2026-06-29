@@ -1228,7 +1228,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 </ScrollView>
               ) : filteredEvents.length === 0 && activeCat ? (
                 <View style={{ paddingHorizontal: 20, paddingVertical: 18, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 28 }}>{CATEGORY_CONFIG[activeCat]?.icon || '🔍'}</Text>
+                  <Feather name={CATEGORY_CONFIG[activeCat]?.icon || 'search'} size={28} color={muted} />
                   <Text style={{ color: muted, fontSize: 13, marginTop: 8, textAlign: 'center' }}>
                     No {CATEGORY_CONFIG[activeCat]?.label || activeCat} events right now.
                   </Text>

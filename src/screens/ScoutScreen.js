@@ -6,7 +6,7 @@ import {
   ScrollView, Image, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
@@ -41,13 +41,13 @@ const MIDRAND = {
   longitudeDelta: 0.12,
 };
 
-const CATEGORY_EMOJI = {
-  music: '🎵', nightlife: '🌙', sport: '⚡', art: '🎨', food: '🍽️',
-  culture: '🏛️', wellness: '🧘', tech: '💻', fashion: '👗', comedy: '😂',
-  outdoor: '🌿', film: '🎬', esports: '🎮', festival: '🎪', party: '🎉',
-  networking: '🤝', business: '💼', gaming: '🕹️', dance: '💃',
+const CATEGORY_ICON = {
+  music: 'music', nightlife: 'weather-night', sport: 'trophy', art: 'palette', food: 'silverware-fork-knife',
+  culture: 'bank', wellness: 'meditation', tech: 'laptop', fashion: 'hanger', comedy: 'emoticon-lol',
+  outdoor: 'leaf', film: 'movie-open', esports: 'gamepad-variant', festival: 'tent', party: 'party-popper',
+  networking: 'handshake', business: 'briefcase', gaming: 'gamepad', dance: 'dance-ballroom',
 };
-const getEmoji = (cat) => CATEGORY_EMOJI[cat?.toLowerCase()] ?? '📍';
+const getIcon = (cat) => CATEGORY_ICON[cat?.toLowerCase()] ?? 'map-marker';
 
 const CATEGORIES = ['All', 'Music', 'Nightlife', 'Esports', 'Art', 'Tech', 'Sport', 'Food'];
 const RADIUS_KM = [1, 5, 10, 25, 50];
@@ -93,7 +93,7 @@ const MarkerPin = React.memo(({ event, primary, isPlanned, isAutoPlanned }) => {
     <View style={{ alignItems: 'center' }}>
       <View style={[mkS.ring, { borderColor: color + '55' }]}>
         <View style={[mkS.circle, { backgroundColor: color + '22', borderColor: color }]}>
-          <Text style={mkS.emoji}>{getEmoji(event.category)}</Text>
+          <MaterialCommunityIcons name={getIcon(event.category)} size={18} color={color} />
         </View>
       </View>
       <View style={[mkS.stem, { backgroundColor: color }]} />
@@ -131,7 +131,7 @@ const MiniVibeCard = ({ event, primary, onView, onClose, isPlanned, onTogglePlan
         {thumb
           ? <Image source={{ uri: thumb }} style={cvS.thumb} />
           : <View style={[cvS.thumb, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={{ fontSize: 30 }}>{getEmoji(event?.category)}</Text>
+              <MaterialCommunityIcons name={getIcon(event?.category)} size={30} color={primary} />
             </View>
         }
         <View style={cvS.info}>
@@ -237,10 +237,11 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
         return (
           <TouchableOpacity
             key={cat}
-            style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, backgroundColor: active ? primary : 'transparent', borderColor: active ? primary : `${primary}30` }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, backgroundColor: active ? primary : 'transparent', borderColor: active ? primary : `${primary}30` }}
             onPress={() => setActiveCategory(cat)}
           >
-            <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#000' : primary }}>{cat !== 'All' ? `${getEmoji(cat)} ` : ''}{cat}</Text>
+            {cat !== 'All' && <MaterialCommunityIcons name={getIcon(cat)} size={13} color={active ? '#000' : primary} />}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#000' : primary }}>{cat}</Text>
           </TouchableOpacity>
         );
       })}
@@ -304,7 +305,7 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
               {thumb
                 ? <Image source={{ uri: thumb }} style={{ width: 80, height: 80 }} />
                 : <View style={{ width: 80, height: 80, backgroundColor: `${primary}18`, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 28 }}>{getEmoji(event.category)}</Text>
+                    <MaterialCommunityIcons name={getIcon(event.category)} size={28} color={primary} />
                   </View>
               }
               <View style={{ flex: 1, padding: 12, justifyContent: 'center', gap: 4 }}>
@@ -782,7 +783,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
                 onPress={() => setActiveCategory(cat)}
                 activeOpacity={0.8}
               >
-                {cat !== 'All' && <Text style={{ fontSize: 11 }}>{getEmoji(cat)}</Text>}
+                {cat !== 'All' && <MaterialCommunityIcons name={getIcon(cat)} size={12} color={active ? '#000' : 'rgba(255,255,255,0.9)'} />}
                 <Text style={[s.catChipText, { color: active ? '#000' : 'rgba(255,255,255,0.9)' }]}>{cat}</Text>
               </TouchableOpacity>
             );

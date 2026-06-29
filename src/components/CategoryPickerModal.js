@@ -3,7 +3,7 @@ import {
   Modal, View, Text, StyleSheet, TouchableOpacity, TextInput,
   FlatList, ScrollView, Platform,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { ALL_CATEGORIES, CATEGORY_GROUPS, searchCategories } from '../constants/AllCategories';
 import { useBackClose } from '../hooks/useBackClose';
@@ -21,7 +21,8 @@ const CategoryCell = React.memo(({ item, isSelected, color, textColor, onPress }
       },
     ]}
   >
-    <Text style={cp.cellIcon}>{item.icon}</Text>
+    <MaterialCommunityIcons name={item.icon || 'tag'} size={22} color={isSelected ? color : textColor} />
+
     <Text style={[cp.cellLabel, { color: isSelected ? color : textColor }]} numberOfLines={2}>
       {item.label}
     </Text>
@@ -188,7 +189,7 @@ export const CategoryPickerModal = ({
             renderItem={renderCategoryItem}
             ListEmptyComponent={
               <View style={cp.empty}>
-                <Text style={{ fontSize: 32 }}>🔍</Text>
+                <Feather name="search" size={32} color={muted} />
                 <Text style={[cp.emptyText, { color: muted }]}>No categories match "{query}"</Text>
                 <Text style={[cp.emptySub, { color: muted }]}>Add it as a custom category below!</Text>
               </View>

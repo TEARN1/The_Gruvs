@@ -6,7 +6,7 @@ import {
   TouchableOpacity, ScrollView, ActivityIndicator,
   KeyboardAvoidingView, Platform, Image, Dimensions,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -764,7 +764,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
               onPress={() => setSelectedCategories(prev => prev.filter(k => k !== key))}
               style={[pm.chip, { backgroundColor: `${color}20`, borderColor: `${color}50` }]}
             >
-              <Text style={{ fontSize: 13 }}>{meta?.icon || '✦'}</Text>
+              <MaterialCommunityIcons name={meta?.icon || 'tag'} size={13} color={color} />
               <Text style={[pm.chipText, { color }]}>{label}</Text>
               <Feather name="x" size={11} color={color} />
             </TouchableOpacity>
@@ -1618,10 +1618,13 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                       </Text>
                     )}
                     {selectedCategories.length > 0 && (
-                      <Text style={[pm.summaryLine, { color: muted }]}>
-                        🏷️ {selectedCategories.slice(0, 5).map(k => ALL_CATEGORIES_MAP[k]?.label || k).join(', ')}
-                        {selectedCategories.length > 5 ? ` +${selectedCategories.length - 5} more` : ''}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <MaterialCommunityIcons name="tag-multiple" size={12} color={muted} />
+                        <Text style={[pm.summaryLine, { color: muted }]}>
+                          {selectedCategories.slice(0, 5).map(k => ALL_CATEGORIES_MAP[k]?.label || k).join(', ')}
+                          {selectedCategories.length > 5 ? ` +${selectedCategories.length - 5} more` : ''}
+                        </Text>
+                      </View>
                     )}
                     {mediaItems.length > 0 && (
                       <View style={{ marginTop: 6 }}>

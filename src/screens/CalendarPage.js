@@ -31,10 +31,10 @@ const DAY_FULL  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 // a networking platform for ALL events (music, nightlife, comedy, art, tech,
 // food, fashion, faith, sport, …), not a sports app. Sport is just one chip.
 const CATEGORY_FILTERS = [
-  { key: null, label: '✦ All' },
+  { key: null, label: 'All', icon: 'grid' },
   ...Object.keys(CATEGORY_CONFIG)
     .filter((k) => k !== 'all')
-    .map((k) => ({ key: k, label: `${CATEGORY_CONFIG[k].icon} ${CATEGORY_CONFIG[k].label}` })),
+    .map((k) => ({ key: k, label: CATEGORY_CONFIG[k].label, icon: CATEGORY_CONFIG[k].icon })),
 ];
 const eventInCategory = (ev, key) =>
   !key || ev.category === key || (Array.isArray(ev.categories) && ev.categories.includes(key));
@@ -648,9 +648,10 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
             return (
               <TouchableOpacity
                 key={String(f.key)}
-                style={[calS.filterPill, { backgroundColor: active ? accent : `${accent}12`, borderColor: active ? accent : `${accent}30` }]}
+                style={[calS.filterPill, { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: active ? accent : `${accent}12`, borderColor: active ? accent : `${accent}30` }]}
                 onPress={() => setCategoryFilter(f.key)}
               >
+                {f.icon && <Feather name={f.icon} size={11} color={active ? '#000' : accent} />}
                 <Text style={[calS.filterText, { color: active ? '#000' : accent }]} numberOfLines={1}>{f.label}</Text>
               </TouchableOpacity>
             );
