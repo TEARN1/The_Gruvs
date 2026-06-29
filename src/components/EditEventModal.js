@@ -1,3 +1,4 @@
+import { FeedManager } from '../services/dataFlow';
 import React, { useState, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -226,6 +227,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
         { attemptsPerTier: 3, baseMs: 400, label: `EditEventModal.save:${event.id}`, fallbackValue: null }
       );
       if (ok !== null) {
+        FeedManager.invalidate(event.id);
         toast.show('Event updated!', 'success');
         onUpdated?.({ ...event, ...payload });
         onSaved?.();
@@ -267,6 +269,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
         toast.show('Could not cancel event', 'error');
         return;
       }
+      FeedManager.invalidate(event.id);
 
       // Notify everyone who vibed or RSVP'd — best effort
       try {
@@ -334,6 +337,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
         { attemptsPerTier: 3, baseMs: 400, label: `EditEventModal.delete:${event.id}`, fallbackValue: null }
       );
       if (ok !== null) {
+        FeedManager.invalidate(event.id);
         toast.show('Event deleted', 'info');
         onDeleted?.(event.id);
         onSaved?.();

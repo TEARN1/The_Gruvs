@@ -1117,9 +1117,11 @@ const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPres
     (Array.isArray(ev.media) ? ev.media.find(m => m?.type === 'image')?.url : null) ||
     ev.cover_image || ev.image_url || null;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const isPast = ev.event_date && new Date(ev.event_date).getTime() < today.getTime();
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  const isPast = ev.event_date && ev.event_date.split('T')[0] < todayStr;
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[mec.wrap, { borderColor: `${primary}20`, opacity: isPast ? 0.55 : 1 }]}>

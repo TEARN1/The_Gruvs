@@ -1,3 +1,4 @@
+import { FeedManager } from '../services/dataFlow';
 import React, { useState, useRef, useCallback } from 'react';
 import { useDraft } from '../hooks/useDraft';
 import {
@@ -554,6 +555,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
           }
         }).catch(() => {});
       }
+      FeedManager.invalidate(result !== true && result?.id ? result.id : null);
       clearDraft();
       reset();
       if (result !== true && result?.id) onCreated?.(result);

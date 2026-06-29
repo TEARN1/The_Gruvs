@@ -228,9 +228,11 @@ const mg = StyleSheet.create({
 const CalEventCard = ({ ev, primary, textColor, muted, onPress, index, showDate }) => {
   const catColor = ev.category_color || getCategoryColor(ev.category) || primary;
   const thumb = ev.media?.[0]?.url || ev.media?.[0] || null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const isPast = ev.event_date && new Date(ev.event_date).getTime() < today.getTime();
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  const isPast = ev.event_date && ev.event_date.split('T')[0] < todayStr;
 
   return (
     <FadeInView delay={index * 60} direction="up">

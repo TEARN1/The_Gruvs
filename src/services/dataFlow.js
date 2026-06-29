@@ -621,13 +621,16 @@ export const FeedManager = {
   async fetchPage({
     page = 0, category = 'all', query = '', mode = 'drop',
     userInterests = [], followedIds = [], userLat, userLon, userId = null,
-    dateRange = null,
+    dateRange = null, refresh = false,
   } = {}) {
     const dateKey = dateRange ? `${dateRange.from}_${dateRange.to}` : 'any';
     const cacheKey = `feed:${mode}:${category}:${query}:${page}:${userId || 'anon'}:${dateKey}`;
+    if (refresh) {
+      cache.invalidate('feed:');
+    }
     const stale = cache.getStale(cacheKey);
     const fresh = cache.get(cacheKey);
-    if (fresh) return fresh;
+    if (fresh && !refresh) return fresh;
     if (stale) {
       this._revalidatePage({ page, category, query, mode, userInterests, followedIds, userLat, userLon, userId, dateRange }, cacheKey);
       return stale;

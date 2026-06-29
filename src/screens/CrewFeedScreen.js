@@ -93,9 +93,11 @@ const CrewEventCard = ({ ev, primary, textColor, muted, onPress }) => {
     ? new Date(ev.event_date).toLocaleDateString('en-ZA', { weekday: 'short', month: 'short', day: 'numeric' })
     : null;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const isPast = ev.event_date && new Date(ev.event_date).getTime() < today.getTime();
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  const isPast = ev.event_date && ev.event_date.split('T')[0] < todayStr;
 
   return (
     <TouchableOpacity

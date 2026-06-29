@@ -310,9 +310,11 @@ const EventCard = React.memo(({
     : '';
 
   const showAd = index > 0 && index % 5 === 4;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const isPast = event.event_date && new Date(event.event_date).getTime() < today.getTime();
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  const isPast = event.event_date && event.event_date.split('T')[0] < todayStr;
 
   return (
     <React.Fragment>
@@ -1151,6 +1153,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       userId: user?.id || null,
       followedIds: followedIdsRef.current,
       dateRange,
+      refresh: isRefreshing,
     };
 
     try {

@@ -186,9 +186,11 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
   }
   const free = !ev?.price || ev.price === 0 || ev.price === 'FREE';
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const isPast = ev?.event_date && new Date(ev.event_date).getTime() < today.getTime();
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  const isPast = ev?.event_date && ev.event_date.split('T')[0] < todayStr;
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={[sec.card, { borderColor: `${primary}33`, backgroundColor: `${primary}0d`, opacity: isPast ? 0.55 : 1 }]}>
