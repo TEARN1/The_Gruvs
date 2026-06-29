@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Animated, Image,
+  ActivityIndicator, Animated, Image, Dimensions, Easing,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { GlassView } from './GlassView';
@@ -16,8 +16,11 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
   const [rolling, setRolling] = useState(false);
   const [rolledEvent, setRolledEvent] = useState(null);
   const [confettiActive, setConfettiActive] = useState(false);
+
+  const rotateAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const rollTextAnim = useRef(new Animated.Value(0)).current;
+  const resultFadeAnim = useRef(new Animated.Value(0)).current;
+  const timersRef = useRef([]);
 
   const bg = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text || '#fff';
@@ -28,7 +31,14 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
       setRolledEvent(null);
       setConfettiActive(false);
       setRolling(false);
+      rotateAnim.setValue(0);
+      resultFadeAnim.setValue(0);
     }
+    return () => {
+      // Clean up timeouts on close
+      timersRef.current.forEach(t => clearTimeout(t));
+      timersRef.current = [];
+    };
   }, [visible]);
 
   const handleRoll = () => {
@@ -36,6 +46,8 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
     setRolling(true);
     setRolledEvent(null);
     setConfettiActive(false);
+    rotateAnim.setValue(0);
+    resultFadeAnim.setValue(0);
 
     // Filter events by selected category
     const candidates = events.filter(e => {
@@ -46,45 +58,105 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
     if (candidates.length === 0) {
       setTimeout(() => {
         setRolling(false);
-        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); } catch {}
-      }, 800);
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); } catch {}
+      }, 500);
       return;
     }
 
-    // Start pulsating animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.15, duration: 150, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1.0, duration: 150, useNativeDriver: true }),
-      ]),
-      { iterations: 6 }
-    ).start();
+    // Pick winning event
+    const finalEvent = candidates[Math.floor(Math.random() * candidates.length)];
+    const winningCat = finalEvent.category || 'all';
 
-    // Cycle through titles visually
-    let counter = 0;
-    const interval = setInterval(() => {
-      try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
-      const tempEvent = candidates[Math.floor(Math.random() * candidates.length)];
-      setRolledEvent(tempEvent);
-      counter++;
-      if (counter > 12) {
-        clearInterval(interval);
-        // Pick final event
-        const finalEvent = candidates[Math.floor(Math.random() * candidates.length)];
-        setRolledEvent(finalEvent);
-        setRolling(false);
-        setConfettiActive(true);
-        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-      }
-    }, 120);
+    // Find slice index
+    let sliceIdx = cats.indexOf(winningCat);
+    if (sliceIdx === -1) sliceIdx = 0; // fallback to surprise index
+
+    // Rotation math: land winning slice at the top (0 deg/12 o'clock pointer)
+    // Target angle = 360 - (sliceIdx * 45) + (full spins * 360)
+    const targetAngle = (4 * 360) + (360 - (sliceIdx * 45));
+
+    // Clear any leftover timers
+    timersRef.current.forEach(t => clearTimeout(t));
+    timersRef.current = [];
+
+    // Trigger haptic clicks slowing down quadratically matching the quad easing deceleration curve
+    let currentDelay = 0;
+    for (let i = 1; i <= 28; i++) {
+      const step = 35 + Math.pow(i, 2.1) * 0.45;
+      currentDelay += step;
+      if (currentDelay >= 3800) break;
+
+      const t = setTimeout(() => {
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+      }, currentDelay);
+      timersRef.current.push(t);
+    }
+
+    // Spin animation
+    Animated.parallel([
+      Animated.timing(rotateAnim, {
+        toValue: targetAngle,
+        duration: 3800,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.1, duration: 150, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.0, duration: 150, useNativeDriver: true }),
+      ])
+    ]).start(() => {
+      setRolledEvent(finalEvent);
+      setConfettiActive(true);
+      setRolling(false);
+      try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+
+      // Fade in the winning result card
+      Animated.timing(resultFadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   const cats = ['all', 'music', 'nightlife', 'sport', 'art', 'food', 'culture', 'wellness'];
 
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 360],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const renderWheelSegments = () => {
+    return cats.map((c, idx) => {
+      const angle = idx * 45;
+      const config = CATEGORY_CONFIG[c];
+      const color = config?.color || primary;
+      return (
+        <View
+          key={c}
+          style={[
+            s.segment,
+            {
+              transform: [
+                { rotate: `${angle}deg` },
+                { translateY: -64 }
+              ]
+            }
+          ]}
+        >
+          <Feather name={config?.icon || 'shuffle'} size={14} color={color} />
+          <Text style={[s.segmentText, { color }]} numberOfLines={1}>
+            {c === 'all' ? 'SURPRISE' : (config?.label || c).toUpperCase()}
+          </Text>
+        </View>
+      );
+    });
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={s.overlay}>
-        <GlassView style={[s.container, { backgroundColor: `${bg}FA` }]}>
+        <GlassView style={[s.container, { backgroundColor: `${bg}F2` }]}>
           {/* Header */}
           <View style={s.header}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -97,10 +169,10 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
           </View>
 
           <Text style={[s.desc, { color: muted }]}>
-            No plans tonight? Pick a preference and let roulette find your next destination.
+            No plans tonight? Pick a category preference and spin the wheel to discover your next destination.
           </Text>
 
-          {/* Category Chips */}
+          {/* Category Preference Chips */}
           <View style={s.catRow}>
             {cats.map(c => {
               const active = selectedCat === c;
@@ -113,7 +185,7 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
                   style={[
                     s.catPill,
                     active && { backgroundColor: color, borderColor: color },
-                    !active && { borderColor: `${color}40`, backgroundColor: `${color}05` }
+                    !active && { borderColor: `${color}30`, backgroundColor: `${color}05` }
                   ]}
                 >
                   <Text style={[s.catText, { color: active ? '#000' : color }]}>
@@ -124,26 +196,36 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
             })}
           </View>
 
-          {/* Spinner Box */}
-          <View style={[s.spinnerBox, { borderColor: `${primary}30`, backgroundColor: `${bg}80` }]}>
-            {rolledEvent ? (
-              <View style={s.resultWrap}>
-                {rolledEvent.media?.[0]?.url && (
-                  <Image source={{ uri: rolledEvent.media[0].url }} style={s.resultImg} />
-                )}
-                <Text style={[s.resultTitle, { color: textColor }]} numberOfLines={2}>
-                  {rolledEvent.title}
-                </Text>
-                <View style={s.resultMeta}>
-                  <Feather name="map-pin" size={12} color={primary} />
-                  <Text style={{ color: muted, fontSize: 12 }}>{rolledEvent.venue_name || 'Nearby'}</Text>
+          {/* Gamified Wheel Spin Box */}
+          <View style={[s.spinnerBox, { borderColor: `${primary}20`, backgroundColor: `${bg}50` }]}>
+            <View style={s.wheelContainer}>
+              <Animated.View style={[s.wheel, { borderColor: `${primary}35`, transform: [{ rotate: spin }] }]}>
+                {renderWheelSegments()}
+              </Animated.View>
+              {/* Pointer Needle */}
+              <View style={s.pointerContainer}>
+                <Feather name="triangle" size={14} color={primary} style={{ transform: [{ rotate: '180deg' }] }} />
+              </View>
+            </View>
+
+            {/* Fading Result overlay */}
+            {rolledEvent && !rolling && (
+              <Animated.View style={[s.resultOverlay, { backgroundColor: bg, opacity: resultFadeAnim }]}>
+                <View style={s.resultWrap}>
+                  {rolledEvent.cover_url || rolledEvent.media_urls?.[0] ? (
+                    <Image source={{ uri: rolledEvent.cover_url || rolledEvent.media_urls[0] }} style={s.resultImg} />
+                  ) : (
+                    <View style={[s.resultImg, { backgroundColor: `${primary}15`, alignItems: 'center', justifyContent: 'center' }]}><Feather name="image" size={16} color={primary} /></View>
+                  )}
+                  <Text style={[s.resultTitle, { color: textColor }]} numberOfLines={1}>
+                    {rolledEvent.title}
+                  </Text>
+                  <View style={s.resultMeta}>
+                    <Feather name="map-pin" size={11} color={primary} />
+                    <Text style={{ color: muted, fontSize: 11 }} numberOfLines={1}>{rolledEvent.venue_name || 'Nearby'}</Text>
+                  </View>
                 </View>
-              </View>
-            ) : (
-              <View style={s.emptySpinner}>
-                <Feather name="shuffle" size={32} color={`${primary}60`} style={s.spinIcon} />
-                <Text style={{ color: muted, fontSize: 13 }}>Roll the roulette to start</Text>
-              </View>
+              </Animated.View>
             )}
 
             {confettiActive && <GlitterBurst />}
@@ -161,7 +243,7 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
                   <ActivityIndicator color="#000" />
                 ) : (
                   <>
-                    <Feather name="play" size={16} color="#000" />
+                    <Feather name="play" size={15} color="#000" />
                     <Text style={s.rollBtnText}>Spin the Wheel</Text>
                   </>
                 )}
@@ -196,13 +278,20 @@ const s = StyleSheet.create({
   catRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: 6 },
   catPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
   catText: { fontSize: 11, fontWeight: '800' },
-  spinnerBox: { height: 180, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' },
-  emptySpinner: { alignItems: 'center', gap: 8 },
-  spinIcon: { marginBottom: 4 },
-  resultWrap: { alignItems: 'center', padding: 16, gap: 6 },
-  resultImg: { width: 44, height: 44, borderRadius: 22, marginBottom: 4 },
-  resultTitle: { fontSize: 15, fontWeight: '900', textAlign: 'center', paddingHorizontal: 20 },
+  
+  spinnerBox: { height: 180, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' },
+  wheelContainer: { position: 'relative', width: 170, height: 170, alignItems: 'center', justifyContent: 'center' },
+  wheel: { width: 154, height: 154, borderRadius: 77, borderWidth: 2, position: 'relative', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)' },
+  segment: { position: 'absolute', alignItems: 'center', justifyContent: 'center', width: 70, height: 26 },
+  segmentText: { fontSize: 6.5, fontWeight: '950', marginTop: 1, letterSpacing: 0.3 },
+  pointerContainer: { position: 'absolute', top: -4, alignSelf: 'center', zIndex: 10 },
+
+  resultOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', zIndex: 20 },
+  resultWrap: { alignItems: 'center', padding: 16, gap: 4 },
+  resultImg: { width: 48, height: 48, borderRadius: 24, marginBottom: 4 },
+  resultTitle: { fontSize: 14, fontWeight: '900', textAlign: 'center', paddingHorizontal: 20 },
   resultMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+
   actions: { alignItems: 'center', gap: 10, width: '100%', marginTop: 6 },
   rollBtn: { height: 48, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%' },
   rollBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 0.5 },
