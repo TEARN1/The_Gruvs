@@ -70,6 +70,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
+  // Only the DB webhook (which holds the service_role key) may trigger pushes.
+  // Without this, anyone reaching the URL could push arbitrary notifications to
+  // any user. Deploy with `--no-verify-jwt` so this header check is the gate.
+  const authHeader = req.headers.get('Authorization');
+  if (!SERVICE_KEY || authHeader !== `Bearer ${SERVICE_KEY}`) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   let payload: WebhookPayload;
   try {
     payload = await req.json();

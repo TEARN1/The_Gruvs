@@ -726,7 +726,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                         >
                           <Feather name={stamp.stamp_icon || 'award'} size={20} color={stamp.stamp_color || primary} />
                           <Text style={{ color: '#fff', fontSize: 7.5, fontWeight: '950', marginTop: 3, textAlign: 'center', paddingHorizontal: 3 }} numberOfLines={1}>
-                            {stamp.title.toUpperCase()}
+                            {(stamp.title || '').toUpperCase()}
                           </Text>
                           {stamp.venue_name ? (
                             <Text style={{ color: muted, fontSize: 6, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>

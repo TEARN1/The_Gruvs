@@ -154,6 +154,8 @@ async function handleEvent(id: string): Promise<OGProps & { redirect: string }> 
     .from('events')
     .select('id, title, description, venue_name, city, cover_url, cover_image, event_date, event_time, category, price, capacity, going, vibe_count')
     .eq('id', id)
+    .eq('is_published', true)   // never leak drafts/unpublished in share previews
+    .is('deleted_at', null)     // service_role bypasses RLS, so filter explicitly
     .single();
 
   if (!event) {
@@ -236,8 +238,9 @@ async function handleProfile(username: string): Promise<OGProps & { redirect: st
 async function handleReel(id: string): Promise<OGProps & { redirect: string }> {
   const { data: reel } = await supabase
     .from('reels')
-    .select('id, caption, video_url, thumbnail_url, like_count, view_count, profiles(username, display_name)')
+    .select('id, caption, media_url, thumbnail_url, like_count, view_count, profiles(username, display_name)')
     .eq('id', id)
+    .eq('is_deleted', false)    // don't leak deleted reels in share previews
     .single();
 
   if (!reel) {
@@ -263,8 +266,8 @@ async function handleReel(id: string): Promise<OGProps & { redirect: string }> {
     url: `${APP_URL}/share/reel/${id}`,
     redirect: `${APP_URL}/?reel=${id}`,
     type: 'video.other',
-    videoUrl: reel.video_url || undefined,
-    twitterCard: reel.video_url ? 'player' : 'summary_large_image',
+    videoUrl: reel.media_url || undefined,
+    twitterCard: reel.media_url ? 'player' : 'summary_large_image',
   };
 }
 

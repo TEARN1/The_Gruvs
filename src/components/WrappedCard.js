@@ -20,6 +20,7 @@ export function WrappedCard({ userId }) {
   const muted     = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
 
   const [w, setW] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -51,8 +52,6 @@ export function WrappedCard({ userId }) {
     { n: w.venueCount, label: 'venues' },
     { n: w.cityCount, label: 'cities' },
   ];
-
-  const [modalVisible, setModalVisible] = useState(false);
 
   return (
     <>

@@ -45,4 +45,26 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS birth_year    INTEGER; -- a
 -- NOTE: the app inconsistently uses birth_date / birthday / birth_year for date-of-birth.
 -- All three are added so nothing errors; consolidating to a single column is a future cleanup.
 
+-- 5) NEW FEATURES added since (profile age field + Vibe Passport stamps).
+--    profiles.age: ProfilePage reads (load) AND writes (save) it -> both 400 without it.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS age INTEGER;
+
+--    event_stamps: Vibe Passport reads it (ViberProfileModal). Table never existed,
+--    so the read 404s (currently swallowed -> empty passport). Create it so it works.
+CREATE TABLE IF NOT EXISTS public.event_stamps (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  event_id    UUID REFERENCES public.events(id) ON DELETE SET NULL,
+  title       TEXT NOT NULL,
+  venue_name  TEXT,
+  stamp_icon  TEXT DEFAULT 'award',
+  stamp_color TEXT,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_event_stamps_user ON public.event_stamps(user_id);
+ALTER TABLE public.event_stamps ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS event_stamps_read ON public.event_stamps;
+CREATE POLICY event_stamps_read ON public.event_stamps FOR SELECT TO authenticated USING (true);
+-- (stamps are minted server-side / by a future trigger; no client INSERT policy on purpose)
+
 -- ✅ Done.
