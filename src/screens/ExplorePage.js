@@ -1708,25 +1708,33 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 };
 
 // ── Search result row ─────────────────────────────────────────────────────────
-const SearchResultCard = ({ ev, primary, textColor, muted, catColor, onPress }) => (
-  <TouchableOpacity style={[src.wrap, { borderColor: `${catColor}25` }]} onPress={onPress} activeOpacity={0.8}>
-    <Image
-      source={ev.media?.[0]?.url || (typeof ev.media?.[0] === 'string' ? ev.media[0] : null) ? { uri: ev.media?.[0]?.url || ev.media?.[0] } : {}}
-      style={src.thumb}
-    />
-    <View style={{ flex: 1 }}>
-      <Text style={[src.title, { color: textColor }]} numberOfLines={2}>{ev.title}</Text>
-      <View style={src.meta}>
-        {ev.event_date ? <Text style={[src.metaText, { color: muted }]}>{new Date(ev.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}</Text> : null}
-        {ev.venue_name ? <Text style={[src.metaText, { color: muted }]}>· {ev.venue_name}</Text> : null}
+const SearchResultCard = ({ ev, primary, textColor, muted, catColor, onPress }) => {
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  const isPast = ev.event_date && ev.event_date.split('T')[0] < todayStr;
+
+  return (
+    <TouchableOpacity style={[src.wrap, { borderColor: `${catColor}25`, opacity: isPast ? 0.55 : 1 }]} onPress={onPress} activeOpacity={0.8}>
+      <Image
+        source={ev.media?.[0]?.url || (typeof ev.media?.[0] === 'string' ? ev.media[0] : null) ? { uri: ev.media?.[0]?.url || ev.media?.[0] } : {}}
+        style={src.thumb}
+      />
+      <View style={{ flex: 1 }}>
+        <Text style={[src.title, { color: textColor }]} numberOfLines={2}>{ev.title}</Text>
+        <View style={src.meta}>
+          {ev.event_date ? <Text style={[src.metaText, { color: muted }]}>{new Date(ev.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}{isPast ? ' · PASSED' : ''}</Text> : null}
+          {ev.venue_name ? <Text style={[src.metaText, { color: muted }]}>· {ev.venue_name}</Text> : null}
+        </View>
       </View>
-    </View>
-    <View style={[src.badge, { backgroundColor: `${catColor}20` }]}>
-      <Feather name="zap" size={11} color={catColor} />
-      <Text style={[src.badgeText, { color: catColor }]}>{ev.vibe_count || ev.going || 0}</Text>
-    </View>
-  </TouchableOpacity>
-);
+      <View style={[src.badge, { backgroundColor: `${catColor}20` }]}>
+        <Feather name="zap" size={11} color={catColor} />
+        <Text style={[src.badgeText, { color: catColor }]}>{ev.vibe_count || ev.going || 0}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const src = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 16, padding: 12, marginBottom: 10 },
