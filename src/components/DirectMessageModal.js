@@ -186,8 +186,12 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
   }
   const free = !ev?.price || ev.price === 0 || ev.price === 'FREE';
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPast = ev?.event_date && new Date(ev.event_date).getTime() < today.getTime();
+
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={[sec.card, { borderColor: `${primary}33`, backgroundColor: `${primary}0d` }]}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={[sec.card, { borderColor: `${primary}33`, backgroundColor: `${primary}0d`, opacity: isPast ? 0.55 : 1 }]}>
       <View style={sec.thumbWrap}>
         {thumb
           ? <SmartImage source={thumb} style={sec.thumb} resizeMode="cover" />
@@ -198,7 +202,7 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
         <Text style={[sec.title, { color: textColor }]} numberOfLines={2}>{loading ? 'Loading Gruv…' : (ev?.title || 'Shared Gruv')}</Text>
         {ev ? (
           <>
-            <View style={sec.metaRow}><Feather name="calendar" size={11} color={muted} /><Text style={[sec.meta, { color: muted }]} numberOfLines={1}>{_shareDate(ev.event_date)}{ev.event_time ? ` · ${ev.event_time}` : ''}</Text></View>
+            <View style={sec.metaRow}><Feather name="calendar" size={11} color={muted} /><Text style={[sec.meta, { color: muted }]} numberOfLines={1}>{_shareDate(ev.event_date)}{ev.event_time ? ` · ${ev.event_time}` : ''}{isPast ? ' · PASSED' : ''}</Text></View>
             {(ev.venue_name || ev.city) ? <View style={sec.metaRow}><Feather name="map-pin" size={11} color={muted} /><Text style={[sec.meta, { color: muted }]} numberOfLines={1}>{ev.venue_name || ev.city}</Text></View> : null}
           </>
         ) : null}

@@ -1116,8 +1116,13 @@ const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPres
     ev.media_urls?.[0] ||
     (Array.isArray(ev.media) ? ev.media.find(m => m?.type === 'image')?.url : null) ||
     ev.cover_image || ev.image_url || null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPast = ev.event_date && new Date(ev.event_date).getTime() < today.getTime();
+
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[mec.wrap, { borderColor: `${primary}20` }]}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[mec.wrap, { borderColor: `${primary}20`, opacity: isPast ? 0.55 : 1 }]}>
       {imgUrl
         ? <SmartImage source={imgUrl} style={mec.img} resizeMode="cover" />
         : <View style={[mec.img, { backgroundColor: `${primary}12`, alignItems: 'center', justifyContent: 'center' }]}><Feather name="image" size={18} color={`${primary}40`} /></View>
@@ -1127,9 +1132,16 @@ const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPres
         <Text style={[mec.meta, { color: muted }]}>
           {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' }) : ev.venue_name || ''}
         </Text>
-        <View style={[mec.badge, { backgroundColor: `${primary}15` }]}>
-          {badgeIcon && <Feather name={badgeIcon} size={9} color={primary} />}
-          <Text style={[mec.badgeText, { color: primary }]}>{badge}</Text>
+        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+          <View style={[mec.badge, { backgroundColor: `${primary}15` }]}>
+            {badgeIcon && <Feather name={badgeIcon} size={9} color={primary} />}
+            <Text style={[mec.badgeText, { color: primary }]}>{badge}</Text>
+          </View>
+          {isPast && (
+            <View style={[mec.badge, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+              <Text style={[mec.badgeText, { color: muted }]}>PASSED</Text>
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -1756,6 +1768,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { identityMode, modeConfig, setIdentityMode, applyLocationPrivacy } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs');
   const [showAllMyEvents, setShowAllMyEvents] = useState(false);
+  const [showAllSavedEvents, setShowAllSavedEvents] = useState(false);
+  const [showAllVibedEvents, setShowAllVibedEvents] = useState(false);
+  const [showAllCoHostEvents, setShowAllCoHostEvents] = useState(false);
   const [myCoHostEvents, setMyCoHostEvents] = useState([]);
   const [activityItems, setActivityItems] = useState([]);
   const [eventCount, setEventCount] = useState(0);
@@ -3004,7 +3019,18 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   </TouchableOpacity>
                 ) : (
                   <View style={{ gap: 10 }}>
-                    {mySavedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge="Saved" badgeIcon="bookmark" onPress={() => onNavigateToEvent?.(ev)} />)}
+                    {(showAllSavedEvents ? mySavedEvents : mySavedEvents.slice(0, 3)).map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge="Saved" badgeIcon="bookmark" onPress={() => onNavigateToEvent?.(ev)} />)}
+                    {mySavedEvents.length > 3 && (
+                      <TouchableOpacity
+                        onPress={() => setShowAllSavedEvents(prev => !prev)}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginTop: 4 }}
+                      >
+                        <Text style={{ color: primary, fontSize: 13, fontWeight: '800' }}>
+                          {showAllSavedEvents ? 'See Less' : `See More (${mySavedEvents.length - 3} more)`}
+                        </Text>
+                        <Feather name={showAllSavedEvents ? 'chevron-up' : 'chevron-down'} size={14} color={primary} />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )
               )}
@@ -3016,7 +3042,18 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   </TouchableOpacity>
                 ) : (
                   <View style={{ gap: 10 }}>
-                    {myVibedEvents.map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={`${ev.vibe_count || 0} vibes`} badgeIcon="zap" onPress={() => onNavigateToEvent?.(ev)} />)}
+                    {(showAllVibedEvents ? myVibedEvents : myVibedEvents.slice(0, 3)).map((ev) => <MiniEventCard key={ev.id} ev={ev} primary={primary} textColor={textColor} muted={muted} badge={`${ev.vibe_count || 0} vibes`} badgeIcon="zap" onPress={() => onNavigateToEvent?.(ev)} />)}
+                    {myVibedEvents.length > 3 && (
+                      <TouchableOpacity
+                        onPress={() => setShowAllVibedEvents(prev => !prev)}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginTop: 4 }}
+                      >
+                        <Text style={{ color: primary, fontSize: 13, fontWeight: '800' }}>
+                          {showAllVibedEvents ? 'See Less' : `See More (${myVibedEvents.length - 3} more)`}
+                        </Text>
+                        <Feather name={showAllVibedEvents ? 'chevron-up' : 'chevron-down'} size={14} color={primary} />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )
               )}
@@ -3028,7 +3065,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   </View>
                 ) : (
                   <View style={{ gap: 10 }}>
-                    {myCoHostEvents.map(ev => (
+                    {(showAllCoHostEvents ? myCoHostEvents : myCoHostEvents.slice(0, 3)).map(ev => (
                       <View key={ev.id}>
                         <MiniEventCard ev={ev} primary={primary} textColor={textColor} muted={muted} badge="Co-Host" badgeIcon="users" onPress={() => onNavigateToEvent?.(ev)} />
                         {ev.profiles?.username && (
@@ -3038,6 +3075,17 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                         )}
                       </View>
                     ))}
+                    {myCoHostEvents.length > 3 && (
+                      <TouchableOpacity
+                        onPress={() => setShowAllCoHostEvents(prev => !prev)}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginTop: 4 }}
+                      >
+                        <Text style={{ color: primary, fontSize: 13, fontWeight: '800' }}>
+                          {showAllCoHostEvents ? 'See Less' : `See More (${myCoHostEvents.length - 3} more)`}
+                        </Text>
+                        <Feather name={showAllCoHostEvents ? 'chevron-up' : 'chevron-down'} size={14} color={primary} />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )
               )}

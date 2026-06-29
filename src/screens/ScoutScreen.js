@@ -17,7 +17,7 @@ import { DiscoveryManager, UserManager, CAT_KEY_TO_SUBCATS } from '../services/d
 import { resilientRead } from '../utils/resilience';
 import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { EventMapView } from '../components/EventMapView';
+import { EventMapView } from '../components/EventMapView';
 import { money } from '../constants/currencies';
 
 // react-native-maps is native-only — lazy require prevents web crash
@@ -83,8 +83,12 @@ const haversine = (lat1, lon1, lat2, lon2) => {
 };
 
 // ─── MarkerPin ────────────────────────────────────────────────────────────────
-const MarkerPin = React.memo(({ event, primary, isCrewEvent }) => {
-  const color = isCrewEvent ? "#00f2ff" : (event.vibe_count > 50 ? "#ff6b35" : primary);
+const MarkerPin = React.memo(({ event, primary, isPlanned, isAutoPlanned }) => {
+  const color = isPlanned
+    ? "#10b981" // user planned (green)
+    : (isAutoPlanned
+        ? "#ff9f1c" // auto planned (orange)
+        : primary); // regular
   return (
     <View style={{ alignItems: 'center' }}>
       <View style={[mkS.ring, { borderColor: color + '55' }]}>
@@ -105,7 +109,7 @@ const mkS = StyleSheet.create({
 });
 
 // ─── MiniVibeCard ─────────────────────────────────────────────────────────────
-const MiniVibeCard = ({ event, primary, onView, onClose }) => {
+const MiniVibeCard = ({ event, primary, onView, onClose, isPlanned, onTogglePlan }) => {
   const slideAnim = useRef(new Animated.Value(220)).current;
 
   useEffect(() => {
@@ -156,11 +160,19 @@ const MiniVibeCard = ({ event, primary, onView, onClose }) => {
               </View>
             )}
             <TouchableOpacity
+              style={[cvS.planBtn, { backgroundColor: isPlanned ? '#10b981' : 'rgba(255,255,255,0.08)', borderColor: isPlanned ? '#10b981' : `${primary}35` }]}
+              onPress={onTogglePlan}
+              activeOpacity={0.85}
+            >
+              <Feather name={isPlanned ? "check" : "plus"} size={10} color={isPlanned ? '#000' : primary} />
+              <Text style={[cvS.planBtnText, { color: isPlanned ? '#000' : '#fff' }]}>{isPlanned ? 'Planned' : 'Plan'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={[cvS.viewBtn, { backgroundColor: primary }]}
               onPress={onView}
               activeOpacity={0.85}
             >
-              <Text style={cvS.viewBtnText}>View Gruv</Text>
+              <Text style={cvS.viewBtnText}>View</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -198,6 +210,8 @@ const cvS = StyleSheet.create({
   vibeText: { color: "#ff6b35", fontSize: 11, fontWeight: '800' },
   viewBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 12, marginLeft: 'auto' },
   viewBtnText: { color: '#000', fontSize: 12, fontWeight: '900' },
+  planBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, borderWidth: 1, marginLeft: 6 },
+  planBtnText: { fontSize: 11, fontWeight: '900' },
   closeBtn: { position: 'absolute', top: 10, right: 10, padding: 2 },
 });
 
@@ -344,6 +358,37 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
   const [userCoords, setUserCoords] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [crewToggle, setCrewToggle] = useState(false);
+  const { profile } = useAuth();
+  const [plannedIds, setPlannedIds] = useState(new Set());
+
+  useEffect(() => {
+    AsyncStorage.getItem(`@user_plan:${user?.id || 'anon'}`).then(val => {
+      if (val) setPlannedIds(new Set(JSON.parse(val)));
+    }).catch(() => {});
+  }, [user]);
+
+  const togglePlan = useCallback(async (eventId) => {
+    const next = new Set(plannedIds);
+    if (next.has(eventId)) {
+      next.delete(eventId);
+      showToast('Removed event from your scout plan', 'info');
+    } else {
+      next.add(eventId);
+      showToast('Added event to your scout plan!', 'success');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+    setPlannedIds(next);
+    try {
+      await AsyncStorage.setItem(`@user_plan:${user?.id || 'anon'}`, JSON.stringify(Array.from(next)));
+    } catch {}
+  }, [plannedIds, user]);
+
+  const userInterests = useMemo(() => profile?.interests || [], [profile]);
+  const isAutoPlanned = useCallback((ev) => {
+    if (userInterests.includes(ev.category)) return true;
+    if (ev.vibe_count > 40) return true;
+    return false;
+  }, [userInterests]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [radiusKm, setRadiusKm] = useState(50); // start city-wide → never empty on arrival; user narrows to find events near them
   const [crewEventIds, setCrewEventIds] = useState(new Set());
@@ -649,12 +694,29 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
               <MarkerPin
                 event={event}
                 primary={primary}
-                isCrewEvent={crewEventIds.has(event.id)}
+                isPlanned={plannedIds.has(event.id)}
+                isAutoPlanned={isAutoPlanned(event)}
               />
             </RNMarker>
           );
         })}
       </RNMapView>
+
+      {/* Legend Overlay */}
+      <View style={s.legend} pointerEvents="none">
+        <View style={s.legendItem}>
+          <View style={[s.legendDot, { backgroundColor: '#10b981' }]} />
+          <Text style={s.legendText}>Planned (User)</Text>
+        </View>
+        <View style={s.legendItem}>
+          <View style={[s.legendDot, { backgroundColor: '#ff9f1c' }]} />
+          <Text style={s.legendText}>Auto Planned (Vibes)</Text>
+        </View>
+        <View style={s.legendItem}>
+          <View style={[s.legendDot, { backgroundColor: primary }]} />
+          <Text style={s.legendText}>Other Events</Text>
+        </View>
+      </View>
 
       {/* Top overlay: header + filters */}
       <View style={[s.topOverlay, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
@@ -770,6 +832,8 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
         <MiniVibeCard
           event={selectedEvent}
           primary={primary}
+          isPlanned={plannedIds.has(selectedEvent.id)}
+          onTogglePlan={() => togglePlan(selectedEvent.id)}
           onView={() => {
             onNavigateToEvent?.(selectedEvent);
             setSelectedEvent(null);
@@ -809,6 +873,10 @@ const s = StyleSheet.create({
     elevation: 10,
   },
   catScrollWrap: { maxHeight: 40 },
+  legend: { position: 'absolute', bottom: 130, left: 16, backgroundColor: 'rgba(13,17,18,0.88)', padding: 10, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', gap: 6 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '700' },
   catScroll: { gap: 8, paddingRight: 4 },
   catChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,

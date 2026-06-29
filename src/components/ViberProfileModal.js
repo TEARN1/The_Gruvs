@@ -55,8 +55,13 @@ const ProfileEventCard = ({ ev, primary, textColor, muted, onPress }) => {
     ev.media?.find(m => m?.type === 'image')?.url ||
     (typeof ev.media?.[0] === 'string' ? ev.media[0] : null);
   const catColor = ev.category_color || primary;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPast = ev.event_date && new Date(ev.event_date).getTime() < today.getTime();
+
   return (
-    <TouchableOpacity style={[pec.wrap, { borderColor: `${catColor}25` }]} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={[pec.wrap, { borderColor: `${catColor}25`, opacity: isPast ? 0.55 : 1 }]} onPress={onPress} activeOpacity={0.85}>
       {imgUrl
         ? <SmartImage source={imgUrl} style={pec.img} resizeMode="cover" />
         : <View style={[pec.img, { backgroundColor: `${catColor}15`, alignItems: 'center', justifyContent: 'center' }]}><Feather name="image" size={16} color={`${catColor}60`} /></View>
@@ -70,6 +75,7 @@ const ProfileEventCard = ({ ev, primary, textColor, muted, onPress }) => {
             </Text>
           ) : null}
           {ev.venue_name ? <Text style={[pec.meta, { color: muted }]}>· {ev.venue_name}</Text> : null}
+          {isPast ? <Text style={[pec.meta, { color: muted, fontWeight: '800' }]}> · PASSED</Text> : null}
         </View>
       </View>
       <View style={[pec.vibeBadge, { backgroundColor: `${primary}15` }]}>
@@ -175,6 +181,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [followLoading, setFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('events');
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [showAllGallery, setShowAllGallery] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [playerId, setPlayerId] = useState(null);
@@ -703,10 +710,21 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                     {profile.profile_gallery?.length > 0 && (
                       <View style={{ marginTop: 10 }}>
                         <Text style={[s.sectionLabel, { color: muted }]}>GALLERY</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                          {profile.profile_gallery.map((url, i) => (
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, alignItems: 'center' }}>
+                          {(showAllGallery ? profile.profile_gallery : profile.profile_gallery.slice(0, 3)).map((url, i) => (
                             <SmartImage key={i} source={thumb.thumbnail(url)} style={{ width: 140, height: 180, borderRadius: 14, borderWidth: 1, borderColor: `${primary}20` }} resizeMode="cover" />
                           ))}
+                          {profile.profile_gallery.length > 3 && (
+                            <TouchableOpacity
+                              onPress={() => setShowAllGallery(prev => !prev)}
+                              style={{ width: 140, height: 180, borderRadius: 14, borderWidth: 1, borderColor: `${primary}35`, borderStyle: 'dashed', backgroundColor: `${primary}08`, alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                            >
+                              <Feather name={showAllGallery ? "chevron-left" : "chevron-right"} size={20} color={primary} />
+                              <Text style={{ color: primary, fontSize: 11, fontWeight: '800', textAlign: 'center' }}>
+                                {showAllGallery ? 'See Less' : `See More\n(${profile.profile_gallery.length - 3} more)`}
+                              </Text>
+                            </TouchableOpacity>
+                          )}
                         </ScrollView>
                       </View>
                     )}

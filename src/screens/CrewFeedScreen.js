@@ -93,14 +93,18 @@ const CrewEventCard = ({ ev, primary, textColor, muted, onPress }) => {
     ? new Date(ev.event_date).toLocaleDateString('en-ZA', { weekday: 'short', month: 'short', day: 'numeric' })
     : null;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPast = ev.event_date && new Date(ev.event_date).getTime() < today.getTime();
+
   return (
     <TouchableOpacity
-      style={[ec.wrap, { borderColor: `${primary}20` }]}
+      style={[ec.wrap, { borderColor: `${primary}20`, opacity: isPast ? 0.55 : 1 }]}
       onPress={onPress}
       activeOpacity={0.8}
       accessibilityRole="button"
       accessibilityLabel={`${ev.title}${dateStr ? `, ${dateStr}` : ''}${ev.venue_name ? `, at ${ev.venue_name}` : ''}`}
-      {...(Platform.OS === 'web' ? { className: 'event-card', style: [ec.wrap, { borderColor: `${primary}20`, cursor: 'pointer' }] } : {})}
+      {...(Platform.OS === 'web' ? { className: 'event-card', style: [ec.wrap, { borderColor: `${primary}20`, opacity: isPast ? 0.55 : 1, cursor: 'pointer' }] } : {})}
     >
       {imgUri
         ? <Image source={{ uri: imgUri }} style={ec.img} />
@@ -110,7 +114,7 @@ const CrewEventCard = ({ ev, primary, textColor, muted, onPress }) => {
       }
       <View style={{ flex: 1 }}>
         <Text style={[ec.title, { color: textColor }]} numberOfLines={2}>{ev.title}</Text>
-        {dateStr ? <Text style={[ec.meta, { color: muted }]}>{dateStr}{ev.venue_name ? ` · ${ev.venue_name}` : ''}</Text> : null}
+        {dateStr ? <Text style={[ec.meta, { color: muted }]}>{dateStr}{ev.venue_name ? ` · ${ev.venue_name}` : ''}{isPast ? ' · PASSED' : ''}</Text> : null}
         {ev.going > 0 && (
           <View style={ec.badge}>
             <Feather name="zap" size={10} color={primary} />
