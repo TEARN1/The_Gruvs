@@ -347,8 +347,12 @@ const MainNavigator = () => {
     const order = TABS.map(t => t.key);
     return PanResponder.create({
       onMoveShouldSetPanResponder: (_e, g) => {
+        // Web: navigate by clicking tabs. Trackpad/scroll drift falsely triggers
+        // this swipe and yanks the user to the next section — so disable it on web.
+        if (Platform.OS === 'web') return false;
         if (currentTabRef.current === 'reels') return false;
-        return Math.abs(g.dx) > 22 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8;
+        // Require a clearly deliberate, mostly-horizontal swipe (stricter than before).
+        return Math.abs(g.dx) > 36 && Math.abs(g.dx) > Math.abs(g.dy) * 2.2;
       },
       onPanResponderRelease: (_e, g) => {
         if (Math.abs(g.dx) < Math.abs(g.dy)) return;

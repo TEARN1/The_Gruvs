@@ -2,28 +2,28 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, Dimensions, Easing,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { GlitterBurst } from './GlitterBurst';
 
 const BADGE_DEFS = [
-  { id: 'first_gruv',       emoji: '🎉', name: 'First Gruv',       description: 'Created your first event' },
-  { id: '100_vibes',        emoji: '⚡', name: '100 Vibes',        description: 'Reached 100 vibe score' },
-  { id: '500_vibes',        emoji: '🔥', name: 'Vibe Force',       description: 'Reached 500 vibe score' },
-  { id: '1000_vibes',       emoji: '👑', name: 'Royal Viber',      description: 'Reached 1,000 vibe score' },
-  { id: 'social_butterfly', emoji: '🦋', name: 'Social Butterfly', description: 'Following 50+ people' },
-  { id: 'night_owl',        emoji: '🦉', name: 'Night Owl',        description: '5+ RSVPs to late-night events (after 10pm)' },
-  { id: 'explorer',         emoji: '🗺️', name: 'Explorer',         description: 'RSVPd to events in 3+ different cities' },
-  { id: 'echo_chamber',     emoji: '🔊', name: 'Echo Chamber',     description: 'Posted 20+ echoes' },
-  { id: 'gruv_master',      emoji: '🏆', name: 'Gruv Master',      description: 'Posted 5+ events' },
-  { id: 'popular_host',     emoji: '🌟', name: 'Popular Host',     description: 'An event you posted got 50+ vibes' },
-  { id: 'connector',        emoji: '🤝', name: 'Connector',        description: 'Referred 3+ friends who joined' },
-  { id: 'verified_citizen', emoji: '✅', name: 'Verified',         description: 'Profile fully completed' },
-  { id: 'early_adopter',    emoji: '🚀', name: 'Early Adopter',    description: 'One of the first 500 Vibers' },
-  { id: 'super_saver',      emoji: '🔖', name: 'Super Saver',      description: 'Saved 20+ events' },
-  { id: 'rsvp_king',        emoji: '📬', name: 'RSVP King',        description: 'RSVPd to 10+ events' },
-  { id: 'vibe_scout',       emoji: '🧭', name: 'Vibe Scout',       description: 'Checked in 5+ times at local venues' },
+  { id: 'first_gruv',       icon: 'party-popper',    name: 'First Gruv',       description: 'Created your first event' },
+  { id: '100_vibes',        icon: 'lightning-bolt',  name: '100 Vibes',        description: 'Reached 100 vibe score' },
+  { id: '500_vibes',        icon: 'fire',            name: 'Vibe Force',       description: 'Reached 500 vibe score' },
+  { id: '1000_vibes',       icon: 'crown',           name: 'Royal Viber',      description: 'Reached 1,000 vibe score' },
+  { id: 'social_butterfly', icon: 'butterfly',       name: 'Social Butterfly', description: 'Following 50+ people' },
+  { id: 'night_owl',        icon: 'owl',             name: 'Night Owl',        description: '5+ RSVPs to late-night events (after 10pm)' },
+  { id: 'explorer',         icon: 'map-search',      name: 'Explorer',         description: 'RSVPd to events in 3+ different cities' },
+  { id: 'echo_chamber',     icon: 'volume-high',     name: 'Echo Chamber',     description: 'Posted 20+ echoes' },
+  { id: 'gruv_master',      icon: 'trophy',          name: 'Gruv Master',      description: 'Posted 5+ events' },
+  { id: 'popular_host',     icon: 'star',            name: 'Popular Host',     description: 'An event you posted got 50+ vibes' },
+  { id: 'connector',        icon: 'handshake',       name: 'Connector',        description: 'Referred 3+ friends who joined' },
+  { id: 'verified_citizen', icon: 'check-decagram',  name: 'Verified',         description: 'Profile fully completed' },
+  { id: 'early_adopter',    icon: 'rocket-launch',   name: 'Early Adopter',    description: 'One of the first 500 Vibers' },
+  { id: 'super_saver',      icon: 'bookmark',        name: 'Super Saver',      description: 'Saved 20+ events' },
+  { id: 'rsvp_king',        icon: 'mailbox',         name: 'RSVP King',        description: 'RSVPd to 10+ events' },
+  { id: 'vibe_scout',       icon: 'compass',         name: 'Vibe Scout',       description: 'Checked in 5+ times at local venues' },
 ];
 
 const checkBadges = async (userId) => {
@@ -181,9 +181,7 @@ export const AchievementBadges = ({ userId }) => {
               ]}
             >
               <View style={ab.emojiWrap}>
-                <Text style={[ab.emoji, !isEarned && ab.emojiGrey]}>
-                  {badge.emoji}
-                </Text>
+                <MaterialCommunityIcons name={badge.icon} size={28} color={isEarned ? primary : 'rgba(255,255,255,0.25)'} />
                 {!isEarned && (
                   <View style={ab.lockOverlay}>
                     <Feather name="lock" size={10} color="rgba(255,255,255,0.4)" />
@@ -213,7 +211,7 @@ export const AchievementBadges = ({ userId }) => {
       {/* Floating Badge Unlock Slide Toast */}
       {unlockedBadge && (
         <Animated.View style={[ab.toast, { backgroundColor: surface, borderColor: primary, transform: [{ translateY: toastY }] }]}>
-          <Text style={{ fontSize: 24 }}>{unlockedBadge.emoji}</Text>
+          <MaterialCommunityIcons name={unlockedBadge.icon} size={24} color={primary} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: primary, fontSize: 10, fontWeight: '950', letterSpacing: 1 }}>NEW ACHIEVEMENT UNLOCKED!</Text>
             <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', marginTop: 1 }}>{unlockedBadge.name}</Text>

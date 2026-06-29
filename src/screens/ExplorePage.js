@@ -578,6 +578,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [tutorialVisible,     setTutorialVisible]     = useState(false);
   const [appUpdates,          setAppUpdates]          = useState([]);
   const [showAllUpdates,      setShowAllUpdates]      = useState(false);
+  const [showAllPhotos,       setShowAllPhotos]       = useState(false);
   const [whoWasThereVisible,  setWhoWasThereVisible]  = useState(false);
   const [routes, setRoutes] = useState([]);
   const [trendingHashtags, setTrendingHashtags] = useState([]);
@@ -1444,7 +1445,10 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   // Deterministic varied heights for the masonry rhythm.
                   const heights = [200, 150, 240, 175, 215, 160];
                   const cols = [[], []];
-                  galleryPhotos.forEach((photo, i) => {
+                  // Pinterest-style teaser: show a few tiles, reveal the rest on "See more".
+                  const PREVIEW = 8;
+                  const shown = showAllPhotos ? galleryPhotos : galleryPhotos.slice(0, PREVIEW);
+                  shown.forEach((photo, i) => {
                     cols[i % 2].push({ photo, i, h: heights[i % heights.length] });
                   });
                   const renderTile = ({ photo, i, h }) => (
@@ -1472,10 +1476,24 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     </TouchableOpacity>
                   );
                   return (
-                    <View style={{ flexDirection: 'row', paddingHorizontal: SIDE, gap: GAP }}>
-                      <View style={{ flex: 1 }}>{cols[0].map(renderTile)}</View>
-                      <View style={{ flex: 1 }}>{cols[1].map(renderTile)}</View>
-                    </View>
+                    <>
+                      <View style={{ flexDirection: 'row', paddingHorizontal: SIDE, gap: GAP }}>
+                        <View style={{ flex: 1 }}>{cols[0].map(renderTile)}</View>
+                        <View style={{ flex: 1 }}>{cols[1].map(renderTile)}</View>
+                      </View>
+                      {galleryPhotos.length > PREVIEW && (
+                        <TouchableOpacity
+                          onPress={() => setShowAllPhotos(v => !v)}
+                          activeOpacity={0.85}
+                          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 2, marginHorizontal: SIDE, paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}08` }}
+                        >
+                          <Text style={{ color: primary, fontSize: 13, fontWeight: '800' }}>
+                            {showAllPhotos ? 'Show less' : `See more (${galleryPhotos.length - PREVIEW})`}
+                          </Text>
+                          <Feather name={showAllPhotos ? 'chevron-up' : 'chevron-down'} size={15} color={primary} />
+                        </TouchableOpacity>
+                      )}
+                    </>
                   );
                 })()
               )}

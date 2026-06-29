@@ -50,9 +50,11 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
     resultFadeAnim.setValue(0);
 
     // Filter events by selected category
-    const candidates = events.filter(e => {
+    const candidates = (events || []).filter(e => {
       if (selectedCat === 'all') return true;
-      return e.category === selectedCat || (Array.isArray(e.categories) && e.categories.includes(selectedCat));
+      const cat = (e.category || '').toLowerCase();
+      const cats2 = Array.isArray(e.categories) ? e.categories.map(x => (x || '').toLowerCase()) : [];
+      return cat === selectedCat || cats2.includes(selectedCat);
     });
 
     if (candidates.length === 0) {
@@ -68,7 +70,7 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
     const winningCat = finalEvent.category || 'all';
 
     // Find slice index
-    let sliceIdx = cats.indexOf(winningCat);
+    let sliceIdx = cats.indexOf((winningCat || '').toLowerCase());
     if (sliceIdx === -1) sliceIdx = 0; // fallback to surprise index
 
     // Rotation math: land winning slice at the top (0 deg/12 o'clock pointer)
@@ -271,7 +273,7 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
 
 const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
-  container: { width: Dimensions.get('window').width - 36, padding: 22, borderRadius: 24, gap: 16 },
+  container: { width: '92%', maxWidth: 420, padding: 22, borderRadius: 24, gap: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 16, fontWeight: '900', letterSpacing: 1.5, textTransform: 'uppercase' },
   desc: { fontSize: 12, lineHeight: 18 },

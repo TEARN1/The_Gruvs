@@ -937,6 +937,19 @@ const orderForGuest = (list) =>
     .map((x) => x.e);
 
 // ── Main LandingPage ──────────────────────────────────────────────────────────
+// Deterministic shuffle: same `seed` → same order (stable within a visit), but a
+// new seed each time the feed mounts/refreshes → users see a different line-up every time.
+function seededShuffle(arr, seed) {
+  const a = [...arr];
+  let s = (seed >>> 0) || 1;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    const j = s % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels }) => {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
@@ -946,6 +959,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const flatListRef = useRef(null);
 
   const [events, setEvents] = useState([]);
+  // New seed each mount/refresh so the feed line-up varies every visit.
+  const [feedSeed, setFeedSeed] = useState(() => Date.now());
   const [birthdaysToday, setBirthdaysToday] = useState([]);
   const [birthdayLeadUp, setBirthdayLeadUp] = useState(null);
   const [trending, setTrending] = useState([]);
@@ -1263,6 +1278,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
+    setFeedSeed(Date.now()); // reshuffle the line-up on every pull-to-refresh
     loadData(true);
   }, [loadData]);
 
@@ -1300,9 +1316,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const filter = (e) => matchesCat(e) && matchesDate(e);
 
     const filteredTrending = trendingEvents.filter(filter);
-    const filteredRegular  = events.filter(e => !trendingIds.has(e.id) && filter(e));
-    return [...filteredTrending, ...filteredRegular];
-  }, [trendingEvents, events, trendingIds, selectedCat, dateRange]);
+    // Shuffle the regular events so the line-up isn't identical every visit (seeded per mount).
+    const filteredRegular  = seededShuffle(events.filter(e => !trendingIds.has(e.id) && filter(e)), feedSeed);
+    // Final dedupe: never show the same event twice across trending + regular + paged loads.
+    const seen = new Set();
+    return [...filteredTrending, ...filteredRegular].filter(e => {
+      if (!e?.id || seen.has(e.id)) return false;
+      seen.add(e.id);
+      return true;
+    });
+  }, [trendingEvents, events, trendingIds, selectedCat, dateRange, feedSeed]);
 
   // Debounce search — avoids a network hit on every keystroke
   useEffect(() => {

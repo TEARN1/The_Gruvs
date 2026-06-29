@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, Animated, KeyboardAvoidingView,
@@ -20,18 +20,18 @@ const SCREEN_W = Dimensions.get('window').width;
 const HM = SCREEN_W < 375 ? 12 : 25;
 
 const QUICK_INTERESTS = [
-  { label: 'Music', icon: '🎵' },
-  { label: 'Art', icon: '🎨' },
-  { label: 'Sports', icon: '⚽' },
-  { label: 'Tech', icon: '💻' },
-  { label: 'Food', icon: '🍽️' },
-  { label: 'Fashion', icon: '👗' },
-  { label: 'Dance', icon: '💃' },
-  { label: 'Film', icon: '🎬' },
-  { label: 'Gaming', icon: '🎮' },
-  { label: 'Travel', icon: '✈️' },
-  { label: 'Fitness', icon: '💪' },
-  { label: 'Nature', icon: '🌿' },
+  { label: 'Music', icon: 'music' },
+  { label: 'Art', icon: 'palette' },
+  { label: 'Sports', icon: 'soccer' },
+  { label: 'Tech', icon: 'laptop' },
+  { label: 'Food', icon: 'silverware-fork-knife' },
+  { label: 'Fashion', icon: 'hanger' },
+  { label: 'Dance', icon: 'dance-ballroom' },
+  { label: 'Film', icon: 'movie-open' },
+  { label: 'Gaming', icon: 'gamepad-variant' },
+  { label: 'Travel', icon: 'airplane' },
+  { label: 'Fitness', icon: 'arm-flex' },
+  { label: 'Nature', icon: 'leaf' },
 ];
 
 const GENDERS = ['Man', 'Woman', 'Non-binary', 'Prefer not to say'];
@@ -410,7 +410,7 @@ export const AuthModal = ({ visible, onClose }) => {
                         onPress={() => toggleInterest(label)}
                         style={[styles.interestPill, { borderColor: sel ? primary : `${primary}25`, backgroundColor: sel ? `${primary}20` : `${primary}06` }]}
                       >
-                        <Text style={{ fontSize: 14 }}>{icon}</Text>
+                        <MaterialCommunityIcons name={icon} size={15} color={sel ? primary : muted} />
                         <Text style={[styles.interestText, { color: sel ? primary : muted }]}>{label}</Text>
                       </TouchableOpacity>
                     );
