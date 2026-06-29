@@ -59,6 +59,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [powerBackup, setPowerBackup] = useState(null);
   const [secretAct, setSecretAct] = useState('');
   const [revealThreshold, setRevealThreshold] = useState('');
+  const [showSecretHelpText, setShowSecretHelpText] = useState(false);
   const [eventTags, setEventTags] = useState([]);
   const [vipPrice, setVipPrice] = useState('');
   const [vvipPrice, setVvipPrice] = useState('');
@@ -918,7 +919,36 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     })}
                   </View>
 
-                  <Text style={[pm.label, { color: muted }]}>Secret headliner (optional)</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[pm.label, { color: muted, marginBottom: 0 }]}>Secret headliner (optional)</Text>
+                    <TouchableOpacity onPress={() => setShowSecretHelpText(prev => !prev)} style={{ padding: 4 }} activeOpacity={0.7}>
+                      <Feather name="help-circle" size={14} color={primary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {showSecretHelpText && (
+                    <View style={{
+                      backgroundColor: 'rgba(255,255,255,0.03)',
+                      borderColor: `${primary}35`,
+                      borderWidth: 1,
+                      borderRadius: 12,
+                      padding: 12,
+                      marginTop: 4,
+                      marginBottom: 10,
+                      gap: 6,
+                    }}>
+                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>💡 Secret Headliner Examples:</Text>
+                      <Text style={{ color: muted, fontSize: 11, lineHeight: 16 }}>
+                        Keep surprise features hidden on the event page until your RSVPs reach a target threshold!
+                      </Text>
+                      <View style={{ gap: 4, marginTop: 4 }}>
+                        <Text style={{ color: primary, fontSize: 11 }}>• "Surprise Guest DJ Set" (unlocked at 50 RSVPs)</Text>
+                        <Text style={{ color: primary, fontSize: 11 }}>• "Secret Venue Address Details" (unlocked at 75 RSVPs)</Text>
+                        <Text style={{ color: primary, fontSize: 11 }}>• "Free Cocktail Voucher Code" (unlocked at 30 RSVPs)</Text>
+                      </View>
+                    </View>
+                  )}
+
                   <TextInput
                     style={[pm.input, { color: textColor, borderColor: `${primary}35` }]}
                     placeholder="Hidden act — unlocks when RSVPs hit a target"
