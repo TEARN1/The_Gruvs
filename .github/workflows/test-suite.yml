@@ -7,10 +7,37 @@ on:
     branches: [ main, master, dev ]
 
 jobs:
-  test:
-    name: Run Unit, Integration & E2E Tests
+  # ── Unit / integration + memory check (fast, no browser) ────────────────────
+  unit:
+    name: Unit, Integration & Memory
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Jest Unit & Integration Tests
+        run: npm run test:unit
+
+      - name: Run Node Memory Leak Check
+        run: node --expose-gc scripts/memory-leak-check.js
+
+  # ── E2E, one job per browser project so each runner gets the whole machine ──
+  e2e:
+    name: E2E (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, mobile-chrome]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
@@ -30,17 +57,11 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co' }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder' }}
 
-      - name: Run Jest Unit & Integration Tests
-        run: npm run test:unit
-
-      - name: Run Node Memory Leak Check
-        run: node --expose-gc scripts/memory-leak-check.js
-
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright E2E Tests
-        run: npx playwright test
+      - name: Run Playwright E2E Tests (${{ matrix.project }})
+        run: npx playwright test --project=${{ matrix.project }}
         env:
           CI: true
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co' }}
@@ -50,6 +71,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.project }}
           path: playwright-report/
           retention-days: 14
