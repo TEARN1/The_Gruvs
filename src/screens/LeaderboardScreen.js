@@ -5,7 +5,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { SmartImage } from '../components/SmartImage';
+import { SmartImage } from '../components/SmartImage';
+import { ViberProfileModal } from '../components/ViberProfileModal';
 import { useBackClose } from '../hooks/useBackClose';
 
 const TABS = ['Weekly', 'Monthly', 'All-Time'];
@@ -66,6 +67,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
   const { user } = useAuth();
   const [tab, setTab] = useState('All-Time');
   const [profiles, setProfiles] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const realtimeChanRef = useRef(null);
@@ -171,7 +173,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
           const tier = getTier(p.vibe_score || 0);
           const isMe = p.id === user?.id;
           return (
-            <View key={p.id} style={[lb.podiumItem, rank === 1 && lb.podiumCenter]}>
+            <TouchableOpacity key={p.id} activeOpacity={0.8} onPress={() => setSelectedUser(p)} style={[lb.podiumItem, rank === 1 && lb.podiumCenter]}>
               {rank === 1 ? (
                 <Animated.View style={{ alignItems: 'center', transform: [{ translateY: floatAnim }] }}>
                   <Text style={lb.crownEmoji}>👑</Text>
@@ -212,7 +214,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
               <View style={[lb.tierChip, { backgroundColor: `${tier.color}22`, borderColor: tier.color }]}>
                 <Text style={[lb.tierChipText, { color: tier.color }]}>{tier.icon} {tier.label}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>
@@ -226,7 +228,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
     if (rank <= 3) return null;
 
     return (
-      <View style={[
+      <TouchableOpacity activeOpacity={0.8} onPress={() => setSelectedUser(item)} style={[
         lb.row,
         { borderBottomColor: `${primary}12` },
         isMe && { borderWidth: 1, borderColor: primary, borderRadius: 12, marginHorizontal: 4, marginBottom: 4 },
@@ -255,7 +257,7 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
             <Text style={[lb.tierChipText, { color: tier.color }]}>{tier.icon} {tier.label}</Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }, [user?.id, primary, textColor, muted, surface]);
 
@@ -320,6 +322,14 @@ export const LeaderboardScreen = ({ visible, onClose }) => {
           )}
         </SafeAreaView>
       </View>
+
+      {/* Tap any ranked user to open their profile */}
+      <ViberProfileModal
+        visible={!!selectedUser}
+        user={selectedUser}
+        userId={selectedUser?.id}
+        onClose={() => setSelectedUser(null)}
+      />
     </Modal>
 
     </ErrorBoundary>
