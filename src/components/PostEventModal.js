@@ -175,28 +175,43 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const geocodeTimer = useRef(null);
   const [geocoding, setGeocoding] = useState(false);
 
-  const geocodeAddress = useCallback(async (addressText) => {
-    if (!addressText || addressText.trim().length < 6) return;
-    setGeocoding(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      const query = city.trim() ? `${addressText.trim()}, ${city.trim()}` : addressText.trim();
-      if (status === 'granted') {
+  // Forward-geocode an address string -> { lat, lon } | null.
+  // IMPORTANT: Location.geocodeAsync does NOT exist on web, so web must use
+  // Nominatim. (The old code only hit Nominatim when permission was denied, so
+  // on web — where permission is usually granted — it threw and saved no coords,
+  // which is why most web-posted events had null lat/lon.)
+  const resolveCoords = useCallback(async (addressText) => {
+    if (!addressText || addressText.trim().length < 4) return null;
+    const query = city.trim() ? `${addressText.trim()}, ${city.trim()}` : addressText.trim();
+    // Native: try the on-device geocoder first (no GPS permission needed for a
+    // forward address lookup, but some platforms gate it — fall through on error).
+    if (Platform.OS !== 'web') {
+      try {
         const results = await Location.geocodeAsync(query);
-        if (results?.length) {
-          setLat(results[0].latitude);
-          setLon(results[0].longitude);
-        }
-      } else {
-        // Web fallback: Nominatim open geocoding
-        const encoded = encodeURIComponent(query);
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`);
-        const json = await res.json();
-        if (json?.length) { setLat(parseFloat(json[0].lat)); setLon(parseFloat(json[0].lon)); }
+        if (results?.length) return { lat: results[0].latitude, lon: results[0].longitude };
+      } catch { /* fall through to Nominatim */ }
+    }
+    // Web + native fallback: Nominatim open geocoding.
+    try {
+      const encoded = encodeURIComponent(query);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      const json = await res.json();
+      if (json?.length) {
+        const la = parseFloat(json[0].lat), lo = parseFloat(json[0].lon);
+        if (Number.isFinite(la) && Number.isFinite(lo)) return { lat: la, lon: lo };
       }
-    } catch { /* geocoding is best-effort — user can always pin manually */ }
-    finally { setGeocoding(false); }
+    } catch { /* best-effort */ }
+    return null;
   }, [city]);
+
+  const geocodeAddress = useCallback(async (addressText) => {
+    setGeocoding(true);
+    const c = await resolveCoords(addressText);
+    if (c) { setLat(c.lat); setLon(c.lon); }
+    setGeocoding(false);
+  }, [resolveCoords]);
 
   // Debounced geocode: fires 1.5s after user stops typing
   const handleAddressChange = useCallback((v) => {
@@ -361,6 +376,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     const catGroup = rawCat && ALL_CATEGORIES_MAP[rawCat]?.group;
     const primaryCat = (catGroup && GROUP_TO_CAT[catGroup]) || rawCat;
 
+    // Safety net: if the debounced geocode hasn't resolved yet (or the user typed
+    // fast and hit Post), resolve coordinates synchronously now so the event isn't
+    // saved without a location (which would hide it from Scout + "near you").
+    let finalLat = lat, finalLon = lon;
+    if ((finalLat == null || finalLon == null) && (address.trim() || city.trim())) {
+      const c = await resolveCoords(address.trim() || city.trim());
+      if (c) { finalLat = c.lat; finalLon = c.lon; setLat(c.lat); setLon(c.lon); }
+    }
+
     const payload = {
       author_id: user?.id,
       title: title.trim(),
@@ -368,8 +392,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       // columns are still satisfied while the poster carries the real details.
       description: description.trim() || (posterMode ? 'See poster for details.' : ''),
       address: address.trim() || (posterMode ? 'See poster' : ''),
-      lat,
-      lon,
+      lat: finalLat,
+      lon: finalLon,
       status: 'published',
     };
     if (posterMode) payload.poster_mode = true;
@@ -552,7 +576,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
           }
           // Explicit audience targeting — deliver straight to matching people.
           if (payload.audience && Object.keys(payload.audience).length) {
-            routeTargetedEvent(result.id, payload.audience, { lat, lon }).catch(() => {});
+            routeTargetedEvent(result.id, payload.audience, { lat: finalLat, lon: finalLon }).catch(() => {});
           }
         }).catch(() => {});
       }

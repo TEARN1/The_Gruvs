@@ -24,6 +24,25 @@ const BADGE_DEFS = [
   { id: 'super_saver',      icon: 'bookmark',        name: 'Super Saver',      description: 'Saved 20+ events' },
   { id: 'rsvp_king',        icon: 'mailbox',         name: 'RSVP King',        description: 'RSVPd to 10+ events' },
   { id: 'vibe_scout',       icon: 'compass',         name: 'Vibe Scout',       description: 'Checked in 5+ times at local venues' },
+  // ── Progression tiers + extra milestones ──────────────────────────────────
+  { id: 'event_machine',    icon: 'rocket',                       name: 'Event Machine',  description: 'Posted 10+ events' },
+  { id: 'impresario',       icon: 'crown-outline',                name: 'Impresario',     description: 'Posted 25+ events' },
+  { id: 'headliner',        icon: 'star-circle',                  name: 'Headliner',      description: 'An event you posted hit 100+ vibes' },
+  { id: 'vibe_legend',      icon: 'shield-star',                  name: 'Vibe Legend',    description: 'Reached 2,500 vibe score' },
+  { id: 'vibe_deity',       icon: 'flare',                        name: 'Vibe Deity',     description: 'Reached 5,000 vibe score' },
+  { id: 'networker',        icon: 'account-multiple',             name: 'Networker',      description: 'Following 10+ people' },
+  { id: 'influencer',       icon: 'account-star',                 name: 'Influencer',     description: 'Following 100+ people' },
+  { id: 'first_voice',      icon: 'comment-text',                 name: 'First Voice',    description: 'Posted your first echo' },
+  { id: 'town_crier',       icon: 'bullhorn',                     name: 'Town Crier',     description: 'Posted 100+ echoes' },
+  { id: 'collector',        icon: 'bookmark-multiple',            name: 'Collector',      description: 'Saved 5+ events' },
+  { id: 'recruiter',        icon: 'account-plus',                 name: 'Recruiter',      description: 'Referred a friend who joined' },
+  { id: 'kingmaker',        icon: 'account-supervisor-circle',    name: 'Kingmaker',      description: 'Referred 10+ friends who joined' },
+  { id: 'touched_down',     icon: 'map-marker-check',             name: 'Touched Down',   description: 'Logged your first check-in' },
+  { id: 'local_legend',     icon: 'medal',                        name: 'Local Legend',   description: 'Checked in 25+ times' },
+  { id: 'committed',        icon: 'calendar-check',               name: 'Committed',      description: 'RSVPd to your first event' },
+  { id: 'always_out',       icon: 'calendar-star',                name: 'Always Out',     description: 'RSVPd to 25+ events' },
+  { id: 'globetrotter',     icon: 'earth',                        name: 'Globetrotter',   description: 'RSVPd to events in 5+ cities' },
+  { id: 'early_bird',       icon: 'weather-sunset-up',            name: 'Early Bird',     description: '5+ RSVPs to daytime events (before noon)' },
 ];
 
 const checkBadges = async (userId) => {
@@ -52,14 +71,27 @@ const checkBadges = async (userId) => {
 
     if (eventCount >= 1)  earned.add('first_gruv');
     if (eventCount >= 5)  earned.add('gruv_master');
+    if (eventCount >= 10) earned.add('event_machine');
+    if (eventCount >= 25) earned.add('impresario');
     if (vibeScore >= 100)  earned.add('100_vibes');
     if (vibeScore >= 500)  earned.add('500_vibes');
     if (vibeScore >= 1000) earned.add('1000_vibes');
+    if (vibeScore >= 2500) earned.add('vibe_legend');
+    if (vibeScore >= 5000) earned.add('vibe_deity');
+    if (followCount >= 10) earned.add('networker');
     if (followCount >= 50) earned.add('social_butterfly');
+    if (followCount >= 100) earned.add('influencer');
+    if (echoCount >= 1)    earned.add('first_voice');
     if (echoCount >= 20)   earned.add('echo_chamber');
+    if (echoCount >= 100)  earned.add('town_crier');
+    if (savedCount >= 5)   earned.add('collector');
     if (savedCount >= 20)  earned.add('super_saver');
+    if (refCount >= 1)     earned.add('recruiter');
     if (refCount >= 3)     earned.add('connector');
-    if (checkinCount >= 5) earned.add('vibe_scout');
+    if (refCount >= 10)    earned.add('kingmaker');
+    if (checkinCount >= 1)  earned.add('touched_down');
+    if (checkinCount >= 5)  earned.add('vibe_scout');
+    if (checkinCount >= 25) earned.add('local_legend');
 
     if (profile?.username && profile?.bio && profile?.avatar_url && profile?.city) {
       earned.add('verified_citizen');
@@ -67,24 +99,30 @@ const checkBadges = async (userId) => {
 
     if (eventsRes.status === 'fulfilled') {
       const events = eventsRes.value.data || [];
-      if (events.some(e => (e.vibe_count || 0) >= 50)) earned.add('popular_host');
+      if (events.some(e => (e.vibe_count || 0) >= 50))  earned.add('popular_host');
+      if (events.some(e => (e.vibe_count || 0) >= 100)) earned.add('headliner');
     }
 
     if (rsvpsRes.status === 'fulfilled') {
       const rsvps = rsvpsRes.value.data || [];
+      if (rsvps.length >= 1)  earned.add('committed');
       if (rsvps.length >= 10) earned.add('rsvp_king');
-      let nightCount = 0;
+      if (rsvps.length >= 25) earned.add('always_out');
+      let nightCount = 0, morningCount = 0;
       const cities = new Set();
       rsvps.forEach(r => {
         const ev = Array.isArray(r.events) ? r.events[0] : r.events;
         if (ev?.event_time) {
           const hour = parseInt(ev.event_time.split(':')[0], 10);
           if (!isNaN(hour) && (hour >= 22 || hour < 4)) nightCount++;
+          if (!isNaN(hour) && hour < 12) morningCount++;
         }
         if (ev?.city) cities.add(ev.city.trim().toLowerCase());
       });
       if (nightCount >= 5) earned.add('night_owl');
+      if (morningCount >= 5) earned.add('early_bird');
       if (cities.size >= 3) earned.add('explorer');
+      if (cities.size >= 5) earned.add('globetrotter');
     }
   } catch (e) {}
   return earned;
