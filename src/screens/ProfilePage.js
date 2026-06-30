@@ -3562,6 +3562,21 @@ const AVATAR_SIZE = 86;
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
+  // Tutorials card (these were referenced but never defined → unstyled "CSS missing")
+  vibeCoachBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 16, marginTop: 4, marginBottom: 12,
+    padding: 14, borderRadius: 16, borderWidth: 1,
+    borderColor: 'rgba(139,92,246,0.30)', backgroundColor: 'rgba(139,92,246,0.08)',
+  },
+  vibeCoachIconWrap: {
+    width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(139,92,246,0.15)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.30)',
+  },
+  badgeAlert: {
+    paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: '#ef4444',
+  },
+
   // Sub-view header
   subHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
   backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
