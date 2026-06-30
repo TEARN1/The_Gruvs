@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform, Animated,
-  ScrollView, Image, ActivityIndicator, Dimensions,
+  ScrollView, Image, ActivityIndicator, Dimensions, TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -49,8 +49,62 @@ const CATEGORY_ICON = {
 };
 const getIcon = (cat) => CATEGORY_ICON[cat?.toLowerCase()] ?? 'map-marker';
 
-const CATEGORIES = ['All', 'Music', 'Nightlife', 'Esports', 'Art', 'Tech', 'Sport', 'Food'];
-const RADIUS_KM = [1, 5, 10, 25, 50];
+const CATEGORIES = [
+  'All', 'Music', 'Nightlife', 'Party', 'Festival', 'Comedy', 'Art', 'Tech',
+  'Esports', 'Gaming', 'Sport', 'Food', 'Wellness', 'Fashion', 'Film', 'Dance',
+  'Business', 'Culture',
+];
+// City-wide = no distance cap (sentinel). Presets are real radii in km.
+const CITYWIDE = 100000;
+const RADIUS_KM = [1, 5, 10, 25, 50, 100, CITYWIDE];
+const radiusLabel = (km) => (km >= CITYWIDE ? 'City-wide' : `${km} km`);
+
+// Lets the user type any custom radius (km) — appears at the end of the preset row.
+const CustomRadiusChip = ({ radiusKm, setRadiusKm, primary, variant }) => {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState('');
+  const isCustom = radiusKm < CITYWIDE && !RADIUS_KM.includes(radiusKm);
+  const apply = () => {
+    const n = Math.max(1, Math.min(500, Math.round(Number(val) || 0)));
+    if (n > 0) setRadiusKm(n);
+    setEditing(false);
+    setVal('');
+  };
+  const base = variant === 'web'
+    ? { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 14, borderWidth: 1 }
+    : { ...sRadiusChipBase };
+  if (editing) {
+    return (
+      <View style={[base, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: `${primary}22`, borderColor: primary }]}>
+        <TextInput
+          value={val}
+          onChangeText={setVal}
+          onSubmitEditing={apply}
+          onBlur={apply}
+          autoFocus
+          keyboardType="number-pad"
+          placeholder="km"
+          placeholderTextColor="rgba(255,255,255,0.4)"
+          maxLength={3}
+          style={{ minWidth: 30, fontSize: 11, fontWeight: '700', color: primary, padding: 0 }}
+        />
+        <TouchableOpacity onPress={apply}><Feather name="check" size={12} color={primary} /></TouchableOpacity>
+      </View>
+    );
+  }
+  return (
+    <TouchableOpacity
+      style={[base, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: isCustom ? `${primary}22` : 'transparent', borderColor: isCustom ? primary : `${primary}22` }]}
+      onPress={() => { setVal(isCustom ? String(radiusKm) : ''); setEditing(true); }}
+    >
+      <Feather name="sliders" size={11} color={isCustom ? primary : 'rgba(255,255,255,0.5)'} />
+      <Text style={{ fontSize: 11, fontWeight: '700', color: isCustom ? primary : 'rgba(255,255,255,0.5)' }}>
+        {isCustom ? `${radiusKm} km` : 'Custom'}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+const sRadiusChipBase = { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1 };
 
 const CACHE_KEY = 'scout_events_v1';
 
@@ -217,7 +271,7 @@ const cvS = StyleSheet.create({
 
 // ─── Web list fallback ────────────────────────────────────────────────────────
 const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCategory, loading, onNavigateToEvent, radiusKm, setRadiusKm, userCoords }) => {
-  const cityWide = !radiusKm || radiusKm >= 50;
+  const cityWide = !radiusKm || radiusKm >= CITYWIDE;
   const subtitle = loading
     ? 'Finding events around you…'
     : events.length === 0
@@ -258,10 +312,11 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
               style={{ paddingHorizontal: 11, paddingVertical: 5, borderRadius: 14, borderWidth: 1, backgroundColor: active ? `${primary}22` : 'transparent', borderColor: active ? primary : `${primary}22` }}
               onPress={() => setRadiusKm(km)}
             >
-              <Text style={{ fontSize: 11, fontWeight: '700', color: active ? primary : 'rgba(255,255,255,0.5)' }}>{km === 50 ? 'City-wide' : `${km} km`}</Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: active ? primary : 'rgba(255,255,255,0.5)' }}>{radiusLabel(km)}</Text>
             </TouchableOpacity>
           );
         })}
+        <CustomRadiusChip radiusKm={radiusKm} setRadiusKm={setRadiusKm} primary={primary} variant="web" />
       </ScrollView>
     )}
 
@@ -271,7 +326,7 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
       <ScrollView contentContainerStyle={{ padding: 14, gap: 10, paddingBottom: 40 }}>
         {events.length === 0 && (
           <View style={{ alignItems: 'center', paddingTop: 50, gap: 10 }}>
-            <Text style={{ fontSize: 46 }}>🗺️</Text>
+            <MaterialCommunityIcons name="map-search" size={46} color="rgba(255,255,255,0.3)" />
             <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>{cityWide ? 'No events coming up' : 'Nothing within range'}</Text>
             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', paddingHorizontal: 44, lineHeight: 19 }}>
               {cityWide
@@ -279,7 +334,7 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
                 : `No events within ${radiusKm} km of you. Widen the range to see what’s on.`}
             </Text>
             {!cityWide && setRadiusKm && (
-              <TouchableOpacity onPress={() => setRadiusKm(50)} style={{ marginTop: 4, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: primary }}>
+              <TouchableOpacity onPress={() => setRadiusKm(CITYWIDE)} style={{ marginTop: 4, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: primary }}>
                 <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Show city-wide</Text>
               </TouchableOpacity>
             )}
@@ -391,7 +446,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
     return false;
   }, [userInterests]);
   const [activeCategory, setActiveCategory] = useState('All');
-  const [radiusKm, setRadiusKm] = useState(50); // start city-wide → never empty on arrival; user narrows to find events near them
+  const [radiusKm, setRadiusKm] = useState(CITYWIDE); // start city-wide → never empty on arrival; user narrows to find events near them
   const [crewEventIds, setCrewEventIds] = useState(new Set());
   const [mapModalVisible, setMapModalVisible] = useState(false);
 
@@ -585,7 +640,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
       });
     }
 
-    if (userCoords && radiusKm < 50) {
+    if (userCoords && radiusKm < CITYWIDE) {
       evts = evts.filter(e => {
         const lat = Number(e.lat);
         const lon = Number(e.lon);
@@ -672,7 +727,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
         onPress={() => setSelectedEvent(null)}
       >
         {/* Scan radius ring */}
-        {userCoords && (
+        {userCoords && radiusKm < CITYWIDE && (
           <RNCircle
             center={{ latitude: userCoords.lat, longitude: userCoords.lon }}
             radius={radiusKm * 1000}
@@ -725,7 +780,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
           <View pointerEvents="none">
             <Text style={[s.title, { color: primary }]}>THE SCOUT</Text>
             <Text style={s.subtitle}>
-              {filteredEvents.length} event{filteredEvents.length === 1 ? '' : 's'} {radiusKm >= 50 ? 'nearby' : `within ${radiusKm} km`}
+              {filteredEvents.length} event{filteredEvents.length === 1 ? '' : 's'} {radiusKm >= CITYWIDE ? 'nearby' : `within ${radiusKm} km`}
             </Text>
           </View>
           <View style={s.actions}>
@@ -812,11 +867,12 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
                 activeOpacity={0.8}
               >
                 <Text style={[s.radiusText, { color: active ? primary : 'rgba(255,255,255,0.55)' }]}>
-                  {km === 50 ? 'City-wide' : `${km} km`}
+                  {radiusLabel(km)}
                 </Text>
               </TouchableOpacity>
             );
           })}
+          <CustomRadiusChip radiusKm={radiusKm} setRadiusKm={setRadiusKm} primary={primary} variant="native" />
         </ScrollView>
       </View>
 

@@ -655,7 +655,8 @@ export const FeedManager = {
         .from('events')
         .select(select, { count })
         .is('deleted_at', null)
-        .neq('status', 'cancelled')
+        // null-safe: a row with status IS NULL must still show (NULL <> 'cancelled' is NULL in SQL)
+        .or('status.is.null,status.neq.cancelled')
         .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
       if (category !== 'all') {
         const subCats = CAT_KEY_TO_SUBCATS[category];

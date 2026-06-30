@@ -108,4 +108,39 @@ export const money = (amount, opts) => {
   return formatPrice(value, _active, opts);
 };
 
+/**
+ * Render any stored price value as a clean label.
+ * Handles: null/0/'FREE' → "FREE"; plain numbers → money(n);
+ * tiered pricing stored as an object or JSON string
+ * (e.g. {"general":"490","vip":"4025"}) → "From R490".
+ */
+export const priceLabel = (price, opts) => {
+  if (price === null || price === undefined || price === '' || price === 0 || price === '0') return 'FREE';
+  if (typeof price === 'string' && price.trim().toUpperCase() === 'FREE') return 'FREE';
+
+  // numeric (or numeric-looking string)
+  const asNum = Number(price);
+  if (Number.isFinite(asNum) && typeof price !== 'object') {
+    return asNum === 0 ? 'FREE' : money(asNum, opts);
+  }
+
+  // tiered pricing — object or JSON string
+  let obj = price;
+  if (typeof price === 'string') {
+    const t = price.trim();
+    if (t[0] === '{' || t[0] === '[') { try { obj = JSON.parse(t); } catch { return String(price); } }
+    else return String(price);
+  }
+  if (obj && typeof obj === 'object') {
+    const nums = Object.values(obj)
+      .map(v => Number(String(v).replace(/[^0-9.]/g, '')))
+      .filter(n => Number.isFinite(n) && n > 0);
+    if (nums.length === 0) return 'FREE';
+    const min = Math.min(...nums);
+    const max = Math.max(...nums);
+    return min === max ? money(min, opts) : `From ${money(min, opts)}`;
+  }
+  return String(price);
+};
+
 export default CURRENCIES;

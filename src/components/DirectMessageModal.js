@@ -25,7 +25,7 @@ import { useToast } from '../components/ToastNotification';
 import { LocationService } from '../services/locationService';
 import { uploadToStorage } from '../services/storageService';
 import { useBackClose } from '../hooks/useBackClose';
-import { money } from '../constants/currencies';
+import { money, priceLabel } from '../constants/currencies';
 
 // Dynamic wrapper to break static circular import cycle
 const ViberProfileModal = (props) => {
@@ -184,7 +184,8 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
     // TODO(v6): remove media_urls fallback after migration
     if (!thumb && Array.isArray(ev.media_urls) && ev.media_urls[0]) thumb = ev.media_urls[0];
   }
-  const free = !ev?.price || ev.price === 0 || ev.price === 'FREE';
+  const priceStr = priceLabel(ev?.price);
+  const free = priceStr === 'FREE';
 
   const todayStr = (() => {
     const d = new Date();
@@ -210,7 +211,7 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
         ) : null}
         <View style={sec.footer}>
           <View style={[sec.cta, { backgroundColor: primary }]}><Text style={sec.ctaText}>View Gruv</Text><Feather name="arrow-right" size={11} color="#000" /></View>
-          {ev ? <Text style={[sec.price, { color: free ? '#10b981' : primary }]}>{free ? 'FREE' : money(ev.price)}</Text> : null}
+          {ev ? <Text style={[sec.price, { color: free ? '#10b981' : primary }]}>{priceStr}</Text> : null}
         </View>
       </View>
     </TouchableOpacity>
@@ -1226,6 +1227,10 @@ const dm = StyleSheet.create({
   reactionBubble: { position: 'absolute', bottom: -10, right: 6, backgroundColor: "#1a2225", borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2 },
   deleteBtn: { marginTop: 4, padding: 8, borderRadius: 10, alignSelf: 'flex-end' },
   reactionPickerWrap: {},
+  attachMenu: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-around', flexWrap: 'wrap', paddingHorizontal: 12, paddingTop: 14, paddingBottom: 8, borderTopWidth: 1 },
+  attachMenuItem: { alignItems: 'center', justifyContent: 'flex-start', gap: 7, width: 72, paddingVertical: 4 },
+  attachMenuIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  attachMenuLabel: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1 },
   attachBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   input: { flex: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 120 },
