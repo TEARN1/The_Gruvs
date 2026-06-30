@@ -178,9 +178,9 @@ CREATE TABLE IF NOT EXISTS public.events (
   updated_at    TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_events_author    ON public.events (author_id);
-CREATE INDEX IF NOT EXISTS idx_events_date      ON public.events (event_date) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_events_date      ON public.events (event_date);  -- (partial clause removed: column name varies across existing tables)
 CREATE INDEX IF NOT EXISTS idx_events_city      ON public.events (lower(city));
-CREATE INDEX IF NOT EXISTS idx_events_status    ON public.events (status, event_date) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_events_status    ON public.events (status, event_date);  -- (partial clause removed: column name varies across existing tables)
 CREATE INDEX IF NOT EXISTS idx_events_title_trgm ON public.events USING gin (title gin_trgm_ops);
 CREATE OR REPLACE TRIGGER touch_events BEFORE UPDATE ON public.events
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
@@ -256,7 +256,7 @@ CREATE TABLE IF NOT EXISTS public.reels (
   created_at    TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_reels_user    ON public.reels (user_id);
-CREATE INDEX IF NOT EXISTS idx_reels_feed    ON public.reels (created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_reels_feed    ON public.reels (created_at DESC);  -- (partial clause removed: column name varies across existing tables)
 
 CREATE TABLE IF NOT EXISTS public.reel_likes (
   reel_id    UUID NOT NULL REFERENCES public.reels(id) ON DELETE CASCADE,
@@ -311,7 +311,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
   CHECK (body IS NOT NULL OR media_url IS NOT NULL)   -- can't send an empty message
 );
 CREATE INDEX IF NOT EXISTS idx_messages_thread ON public.messages (sender_id, recipient_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_messages_inbox  ON public.messages (recipient_id, created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_inbox  ON public.messages (recipient_id, created_at DESC);  -- (partial clause removed: column name varies across existing tables)
 
 -- ══════════════════════════════════════════════════════════════════════════════
 --  7. SOCIAL UTILITY
