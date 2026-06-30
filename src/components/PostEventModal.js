@@ -63,6 +63,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [eventTags, setEventTags] = useState([]);
   const [vipPrice, setVipPrice] = useState('');
   const [vvipPrice, setVvipPrice] = useState('');
+  // Flexible named tiers — phases (Early Bird/Phase 1/2) and rows/zones
+  // (Golden Circle, Standing, Seated...). Each: { name, price }.
+  const [extraTiers, setExtraTiers] = useState([]);
   const [otherTickets, setOtherTickets] = useState('');
   const [eventType, setEventType] = useState('');
   const [lat, setLat] = useState(null);
@@ -500,19 +503,24 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     const parsedEntry = entryPrice.trim() ? parseFloat(entryPrice) : null;
     const parsedVip = vipPrice.trim() ? parseFloat(vipPrice) : null;
     const parsedVvip = vvipPrice.trim() ? parseFloat(vvipPrice) : null;
+    // Named phase/row tiers
+    const cleanExtra = extraTiers
+      .map(t => ({ name: (t.name || '').trim(), price: (t.price || '').trim() }))
+      .filter(t => t.name && t.price);
 
-    const pricesList = [parsedEntry, parsedVip, parsedVvip].filter(p => p !== null && !isNaN(p));
+    const pricesList = [parsedEntry, parsedVip, parsedVvip, ...cleanExtra.map(t => parseFloat(t.price))]
+      .filter(p => p !== null && !isNaN(p));
     if (pricesList.length > 0) {
       minP = Math.min(...pricesList);
       maxP = Math.max(...pricesList);
     }
 
-    if (entryPrice.trim() || vipPrice.trim() || vvipPrice.trim() || otherTickets.trim()) {
+    if (entryPrice.trim() || vipPrice.trim() || vvipPrice.trim() || cleanExtra.length) {
       const tiersObj = {};
       if (entryPrice.trim()) tiersObj.general = entryPrice.trim();
       if (vipPrice.trim()) tiersObj.vip = vipPrice.trim();
       if (vvipPrice.trim()) tiersObj.vvip = vvipPrice.trim();
-      if (otherTickets.trim()) tiersObj.other = otherTickets.trim();
+      cleanExtra.forEach(t => { tiersObj[t.name] = t.price; });
       computedPrice = JSON.stringify(tiersObj);
     }
 
@@ -1600,14 +1608,48 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     </View>
                   </View>
 
-                  <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>TICKET PHASES, FOOD PACKAGES & CUSTOM TIERS (Optional)</Text>
-                  <TextInput
-                    style={[pm.input, { color: textColor, borderColor: `${primary}35`, fontSize: 13, height: 40, paddingVertical: 8, marginBottom: 18 }]}
-                    placeholder="e.g. Standard (Phase 1): R300, Phase 2: R350, Late Bookings: R400, Food Package: R150..."
-                    placeholderTextColor={muted}
-                    value={otherTickets}
-                    onChangeText={setOtherTickets}
-                  />
+                  <Text style={[{ color: muted, fontSize: 10, fontWeight: '800', marginBottom: 5 }]}>PHASES, ROWS / ZONES & CUSTOM TIERS (Optional)</Text>
+                  {/* Preset chips — add a named tier in one tap */}
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    {['Early Bird', 'Phase 1', 'Phase 2', 'Phase 3', 'Golden Circle', 'Standing', 'Seated', 'Table', 'Row A', 'Group'].map(preset => (
+                      <TouchableOpacity
+                        key={preset}
+                        onPress={() => setExtraTiers(prev => prev.some(t => t.name === preset) ? prev : [...prev, { name: preset, price: '' }])}
+                        style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}0C` }}
+                      >
+                        <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>+ {preset}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  {extraTiers.map((t, i) => (
+                    <View key={i} style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                      <TextInput
+                        style={[pm.input, { flex: 1.4, color: textColor, borderColor: `${primary}35`, fontSize: 13, height: 40, paddingVertical: 8 }]}
+                        placeholder="Tier name (e.g. Phase 2 / Golden Circle)"
+                        placeholderTextColor={muted}
+                        value={t.name}
+                        onChangeText={v => setExtraTiers(prev => prev.map((x, j) => j === i ? { ...x, name: v } : x))}
+                      />
+                      <TextInput
+                        style={[pm.input, { flex: 1, color: textColor, borderColor: `${primary}35`, fontSize: 13, height: 40, paddingVertical: 8 }]}
+                        placeholder="Price (R)"
+                        placeholderTextColor={muted}
+                        value={t.price}
+                        onChangeText={v => setExtraTiers(prev => prev.map((x, j) => j === i ? { ...x, price: v.replace(/[^0-9.]/g, '') } : x))}
+                        keyboardType="numeric"
+                      />
+                      <TouchableOpacity onPress={() => setExtraTiers(prev => prev.filter((_, j) => j !== i))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Feather name="x-circle" size={20} color={muted} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <TouchableOpacity
+                    onPress={() => setExtraTiers(prev => [...prev, { name: '', price: '' }])}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginBottom: 18, paddingVertical: 6 }}
+                  >
+                    <Feather name="plus-circle" size={16} color={primary} />
+                    <Text style={{ color: primary, fontSize: 12, fontWeight: '800' }}>Add ticket tier</Text>
+                  </TouchableOpacity>
 
                   {/* Summary card */}
                   <GlassView style={[pm.summary, { borderColor: `${primary}20` }]}>
