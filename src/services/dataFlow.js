@@ -607,7 +607,9 @@ export const ScoreEngine = {
 // FEED MANAGER
 // ─────────────────────────────────────────────────────────────────────────────
 export const FeedManager = {
-  PAGE_SIZE: 15,
+  // Larger first page so the whole (currently small) catalogue lands in one fetch
+  // — the drop feed never depends on flaky web infinite-scroll to show everything.
+  PAGE_SIZE: 30,
 
   // Preload the next page in background so scroll feels instant
   prefetchPage(opts = {}) {

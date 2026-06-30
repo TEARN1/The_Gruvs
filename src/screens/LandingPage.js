@@ -1211,7 +1211,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       // exciting first impression; signed-in users keep their personalized feed.
       const orderedEvents = user?.id ? fetchedEvents : orderForGuest(fetchedEvents);
       // Silently hide mature listings from under-age viewers (content age-rating).
-      const newEvents = filterByViewerAge(orderedEvents, viewerAgeSync(), e => `${e.title || ''} ${e.description || ''}`);
+      // Exception: you ALWAYS see your own events — a missing DOB must never hide
+      // the host's own listings from their feed.
+      const _vAge = viewerAgeSync();
+      const _allowed = new Set(
+        filterByViewerAge(orderedEvents, _vAge, e => `${e.title || ''} ${e.description || ''}`).map(e => e.id)
+      );
+      const newEvents = orderedEvents.filter(e => _allowed.has(e.id) || (user?.id && e.author_id === user.id));
 
       if (isRefreshing) {
         // Keep just-posted events that the fresh fetch hasn't caught up to yet,
