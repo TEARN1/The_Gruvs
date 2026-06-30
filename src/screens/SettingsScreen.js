@@ -29,6 +29,7 @@ import { CurrencyPicker } from '../components/CurrencyPicker';
 import { Biometric } from '../services/biometric';
 import { NotificationService } from '../services/notificationService';
 import { PanicMode } from '../services/panicMode';
+import { SafetyHubModal } from '../components/SafetyHubModal';
 import { supabase } from '../services/supabase';
 import { haptics } from '../utils/haptics';
 import { THEMES } from '../constants/Themes';
@@ -111,6 +112,7 @@ export const SettingsScreen = ({
   const [pushBusy, setPushBusy] = useState(false);
 
   // App lock
+  const [safetyHubOpen, setSafetyHubOpen] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioLabel, setBioLabel] = useState('Biometrics');
   const [lockEnabled, setLockEnabled] = useState(false);
@@ -300,6 +302,21 @@ export const SettingsScreen = ({
 
         {/* PRIVACY & DISCOVERY */}
         <SectionCard icon="shield" title="Privacy & Discovery" primary={primary} muted={muted} textColor={textColor}>
+          {/* Safety Center — one place that makes every protection legible (#150) */}
+          <TouchableOpacity
+            onPress={() => setSafetyHubOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open the Safety Center"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}0d`, marginBottom: 12 }}
+          >
+            <Feather name="shield" size={16} color={primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: textColor, fontWeight: '800', fontSize: 14 }}>Safety Center</Text>
+              <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>How you're protected + Disappear now</Text>
+            </View>
+            <Feather name="chevron-right" size={16} color={muted} />
+          </TouchableOpacity>
+
           <ToggleRow label="Discoverable" sub="Let others find you nearby"
             value={discoverable} onValueChange={(v) => writeField('is_discoverable', v, setDiscoverable, discoverable)}
             primary={primary} muted={muted} textColor={textColor} />
