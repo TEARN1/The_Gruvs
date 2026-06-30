@@ -742,6 +742,13 @@ export const MatchManager = {
     // Keep the event's match cover score in step with the live fixture
     await this.syncEventMatchCard(data?.event_id);
 
+    // Auto-update the league table on every score change — no manual "Recalc"
+    // needed. Best-effort: silently ignored until recompute_league_table is
+    // deployed (supabase/queries/FIX_COMPETITION_ENGINE.sql).
+    if (data?.event_id) {
+      try { await supabase.rpc('recompute_league_table', { p_event_id: data.event_id }); } catch { /* RPC not live yet */ }
+    }
+
     // Check for auto-end conditions
     const match = await this.getMatch(matchId);
     if (match) {
