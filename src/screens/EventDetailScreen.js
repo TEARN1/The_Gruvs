@@ -64,6 +64,7 @@ import { MatchPredictionCard }    from '../components/MatchPredictionCard';
 import { TournamentGovernancePanel } from '../components/TournamentGovernancePanel';
 import { useBackClose } from '../hooks/useBackClose';
 import { realnessScore } from '../utils/realness';
+import { CheckinSync } from '../services/checkinSync';
 import { buildShareText } from '../utils/shareText';
 import { EventRecapCard } from '../components/EventRecapCard';
 import { money } from '../constants/currencies';
@@ -648,11 +649,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         showToast("Touched Down! Your footprint is lit. 🔥", 'success');
         // Reveal the people you keep crossing paths with right after touching down
         setCrossedVisible(true);
+      } else if (await CheckinSync.queueIfOffline(event.id, user.id, privateCoords)) {
+        setCheckedIn(true);
+        showToast("You're offline — we'll log your Touch Down the moment you're back. 📍", 'info');
       } else {
         showToast('Touch Down failed. Try again.', 'error');
       }
     } catch {
-      showToast('Touch Down failed. Try again.', 'error');
+      if (await CheckinSync.queueIfOffline(event.id, user.id, {})) {
+        setCheckedIn(true);
+        showToast("You're offline — we'll log your Touch Down the moment you're back. 📍", 'info');
+      } else {
+        showToast('Touch Down failed. Try again.', 'error');
+      }
     } finally {
       setCheckingIn(false);
     }

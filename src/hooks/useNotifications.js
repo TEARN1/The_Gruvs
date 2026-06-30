@@ -4,6 +4,7 @@ import { NotificationService } from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { MessageManager } from '../services/dataFlow';
+import { CheckinSync } from '../services/checkinSync';
 import { supabase } from '../services/supabase';
 
 export const useNotifications = ({ onNavigate } = {}) => {
@@ -29,6 +30,8 @@ export const useNotifications = ({ onNavigate } = {}) => {
     NotificationService.registerForPush(user.id).then(setExpoPushToken);
     // Send event-day notifications once per session, after push is registered
     NotificationService.sendEventDayNotifications(user.id);
+    // Replay any Touch Downs that were queued while offline (#248).
+    CheckinSync.drain().catch(() => {});
     return NotificationService.watchTokenRefresh(user.id);
   }, [user?.id]);
 
