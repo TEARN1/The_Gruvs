@@ -32,6 +32,7 @@ import { recordEventView, flushEventViews } from '../services/personalizationEng
 import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
+import { priceLabel } from '../constants/currencies';
 import { FONT } from '../constants/DesignTokens';
 import { CommunityStatsBar } from '../components/CommunityStatsBar';
 import { TonightAlert } from '../components/TonightAlert';
@@ -328,7 +329,7 @@ const EventCard = React.memo(({
               borderColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
               borderTopColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
               borderTopWidth: isFlashing || flashColor ? 2 : 1,
-              opacity: isPast ? 0.55 : 1,
+              opacity: isPast ? 0.9 : 1,
             },
             (isHighlighted || flashColor || isFlashing) && {
               borderWidth: 2,
@@ -346,15 +347,6 @@ const EventCard = React.memo(({
             onKeyPress: (e) => e.nativeEvent?.key === 'Enter' && onSelectEvent(event),
           } : {})}
         >
-
-          {/* Trending crown banner */}
-          {event._isTrending && (
-            <View style={[styles.trendingBanner, { backgroundColor: primary }]}>
-              <Text style={styles.trendingBannerText}>
-                🔥 TRENDING NOW
-              </Text>
-            </View>
-          )}
 
           {/* Recurring series banner */}
           {event.is_recurring && !event._isTrending && (
@@ -392,7 +384,7 @@ const EventCard = React.memo(({
             delayLongPress={400}
           >
           {matchCard ? (
-            <View style={[styles.imgSection, { backgroundColor: '#0b0e0f' }, isWeb && { minHeight: 0, aspectRatio: '2/1' }]}>
+            <View style={[styles.imgSection, { backgroundColor: '#0b0e0f' }, isWeb && { minHeight: 0, aspectRatio: '2/1' }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
               <MatchVersus match={matchCard} height={isWeb ? 200 : 168} isWeb={isWeb} />
               {event.category && (
                 <View style={[styles.catBadge, { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` }, isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }]}>
@@ -416,7 +408,7 @@ const EventCard = React.memo(({
               </TouchableOpacity>
             </View>
           ) : (
-          <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && { minHeight: 0 }, isWeb && !event.poster_mode && { aspectRatio: '2/1' }]}>
+          <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && { minHeight: 0 }, isWeb && !event.poster_mode && { aspectRatio: '2/1' }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
             <MediaViewer
               eventId={event.id}
               aspectRatio={event.poster_mode ? 3 / 4 : 2}
@@ -554,16 +546,20 @@ const EventCard = React.memo(({
                   </Text>
                 </TouchableOpacity>
               )}
-              <View style={[styles.priceBadge, {
-                backgroundColor: (!event.price || event.price === 'FREE' || event.price === 0) ? 'rgba(16,185,129,0.15)' : `${catColor}22`,
-                borderColor: (!event.price || event.price === 'FREE' || event.price === 0) ? "#10b981" : catColor,
-              }]}>
-                <Text style={[styles.priceText, {
-                  color: (!event.price || event.price === 'FREE' || event.price === 0) ? "#10b981" : catColor,
-                }]}>
-                  {(!event.price || event.price === 0) ? 'FREE' : event.price}
-                </Text>
-              </View>
+              {(() => {
+                const pl = priceLabel(event.price);
+                const isFree = pl === 'FREE';
+                return (
+                  <View style={[styles.priceBadge, {
+                    backgroundColor: isFree ? 'rgba(16,185,129,0.15)' : `${catColor}22`,
+                    borderColor: isFree ? "#10b981" : catColor,
+                  }]}>
+                    <Text style={[styles.priceText, { color: isFree ? "#10b981" : catColor }]}>
+                      {pl}
+                    </Text>
+                  </View>
+                );
+              })()}
             </View>
 
             {/* Crew signal badge */}
@@ -2025,6 +2021,21 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingBottom: 8 }}
         {...(Platform.OS === 'web' ? { className: 'sticky-filter-bar' } : {})}
       >
+        {/* Web has no pull-to-refresh gesture — give it an explicit button. */}
+        {Platform.OS === 'web' && (
+          <TouchableOpacity
+            onPress={handleRefresh}
+            disabled={refreshing}
+            accessibilityLabel="Refresh feed"
+            accessibilityRole="button"
+            style={[styles.pill, { backgroundColor: `${primary}18`, borderColor: `${primary}40`, borderWidth: 1 }]}
+          >
+            {refreshing
+              ? <ActivityIndicator size="small" color={primary} />
+              : <Feather name="refresh-cw" size={13} color={primary} />}
+            <Text style={[styles.pillText, { color: primary }]}>Refresh</Text>
+          </TouchableOpacity>
+        )}
         {CATEGORY_KEYS.map(key => {
           const cfg = CATEGORY_CONFIG[key];
           const isActive = selectedCat === key;
