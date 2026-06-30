@@ -1853,6 +1853,13 @@ CREATE TRIGGER protect_profile_trust_columns_trigger
 
 
 -- ── 32: CHANGELOG v2.2.0 (data — run-once guarded so re-runs do not duplicate) ──
+-- Defensive: older DBs created app_updates with only (version, notes, is_forced).
+-- Add the columns the app + the insert below need, so this never errors.
+ALTER TABLE public.app_updates ADD COLUMN IF NOT EXISTS title       TEXT;
+ALTER TABLE public.app_updates ADD COLUMN IF NOT EXISTS type        TEXT;
+ALTER TABLE public.app_updates ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.app_updates ADD COLUMN IF NOT EXISTS released_at TIMESTAMPTZ DEFAULT now();
+
 INSERT INTO public.app_updates (title, type, description, version, released_at)
 SELECT v.title, v.type, v.description, v.version, v.released_at::timestamptz
 FROM (VALUES

@@ -863,11 +863,15 @@ CREATE TABLE IF NOT EXISTS public.governance_votes (
   UNIQUE(proposal_id, user_id)
 );
 CREATE TABLE IF NOT EXISTS public.app_updates (
-  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  version    TEXT        NOT NULL,
-  notes      TEXT,
-  is_forced  BOOLEAN     DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now()
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  version     TEXT        NOT NULL,
+  title       TEXT,
+  type        TEXT,
+  description TEXT,
+  notes       TEXT,
+  is_forced   BOOLEAN     DEFAULT false,
+  released_at TIMESTAMPTZ DEFAULT now(),
+  created_at  TIMESTAMPTZ DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS public.global_economy_params (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
