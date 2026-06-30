@@ -138,6 +138,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (typeof d.vipPrice === 'string') setVipPrice(d.vipPrice);
     if (typeof d.vvipPrice === 'string') setVvipPrice(d.vvipPrice);
     if (typeof d.otherTickets === 'string') setOtherTickets(d.otherTickets);
+    if (Array.isArray(d.extraTiers)) setExtraTiers(d.extraTiers.filter(t => t && typeof t === 'object'));
     if (typeof d.eventType === 'string') setEventType(d.eventType);
     if (typeof d.ageMin === 'number') setAgeMin(d.ageMin);
     if (typeof d.ageMax === 'number') setAgeMax(d.ageMax);
@@ -148,7 +149,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   };
   const { clearDraft } = useDraft(
     user ? `draft:event:${user.id}` : null,
-    () => ({ title, description, address, city, ticketUrl, contactPhone, contactEmail, entryPrice, vipPrice, vvipPrice, otherTickets, eventType, ageMin, ageMax, selectedCategories, scheduleItems, competitionId, endDate: endDate ? endDate.toISOString() : null }),
+    () => ({ title, description, address, city, ticketUrl, contactPhone, contactEmail, entryPrice, vipPrice, vvipPrice, otherTickets, extraTiers, eventType, ageMin, ageMax, selectedCategories, scheduleItems, competitionId, endDate: endDate ? endDate.toISOString() : null }),
     restoreDraft,
     { enabled: visible && !!user },
   );
@@ -156,7 +157,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const reset = () => {
     setTitle(''); setPosterMode(false); setDescription(''); setAddress(''); setCity('');
     setPickedDate(null); setEndDate(null); setPickedHour(20); setPickedMinute(0); setTimeSet(false);
-    setTicketUrl(''); setEntryPrice(''); setVipPrice(''); setVvipPrice(''); setOtherTickets(''); setEventType('');
+    setTicketUrl(''); setEntryPrice(''); setVipPrice(''); setVvipPrice(''); setOtherTickets(''); setExtraTiers([]); setEventType('');
     setContactPhone(''); setContactEmail('');
     setLat(null); setLon(null);
     setAgeMin(0); setAgeMax(0); setSelectedCategories([]); setMediaItems([]);
