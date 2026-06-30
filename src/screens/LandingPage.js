@@ -33,6 +33,7 @@ import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
 import { priceLabel } from '../constants/currencies';
+import { ReelsObservers } from '../services/reelsDataFlow';
 import { FONT } from '../constants/DesignTokens';
 import { CommunityStatsBar } from '../components/CommunityStatsBar';
 import { TonightAlert } from '../components/TonightAlert';
@@ -1394,6 +1395,24 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       .catch(() => {});
   }, [user?.id]);
 
+  // Keep the feed's follow buttons in sync with follows made anywhere else in the
+  // app (profile modals, reels, discover) — otherwise a follow can look like it
+  // "disappeared" when you return to the feed.
+  useEffect(() => {
+    const unsub = ReelsObservers.subscribe('user_follow_changed', ({ userId, isFollowing }) => {
+      if (!userId) return;
+      setFollowingSet(prev => {
+        const n = new Set(prev);
+        isFollowing ? n.add(userId) : n.delete(userId);
+        return n;
+      });
+      const cur = new Set(followedIdsRef.current);
+      isFollowing ? cur.add(userId) : cur.delete(userId);
+      followedIdsRef.current = [...cur];
+    });
+    return unsub;
+  }, []);
+
   // Crew signal — who among followed users has RSVP'd. Runs only when event IDs change.
   const eventIdsKey = useMemo(() => events.map(e => e.id).join(','), [events]);
   useEffect(() => {
@@ -1549,6 +1568,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           wasFollowing ? n.add(profileId) : n.delete(profileId);
           return n;
         });
+      } else {
+        // Persisted — keep the ref + other surfaces in sync.
+        const cur = new Set(followedIdsRef.current);
+        wasFollowing ? cur.delete(profileId) : cur.add(profileId);
+        followedIdsRef.current = [...cur];
+        ReelsObservers.notify('user_follow_changed', { userId: profileId, isFollowing: !wasFollowing });
       }
     } catch {
       setFollowingSet(prev => {
