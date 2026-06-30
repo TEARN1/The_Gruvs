@@ -15,6 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { GlassView } from '../components/GlassView';
 import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { WeekendPlannerCard } from '../components/WeekendPlannerCard';
 import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -611,6 +612,11 @@ export const PathMapScreen = ({ visible, onClose }) => {
             primary={primary} // Pass primary color
             onIntersectionPress={(pt) => setSelectedIntersection(pt)} // Set selected intersection
           />
+
+          {/* Weekend / holiday planner — suggests a Gruv for the next 5 weekends */}
+          <ErrorBoundary inline label="Planner" primary={primary}>
+            <WeekendPlannerCard />
+          </ErrorBoundary>
 
           {/* Legend */}
           <View style={[s.legend, { borderColor: `${primary}12` }]}>
