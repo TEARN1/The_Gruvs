@@ -2164,6 +2164,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     <View style={styles.sectionRow}>
       <Text style={[styles.sectionTitle, { color: textColor }]}>
         {mode === 'drop' ? 'Recent Gruvs' : 'All Gruvs'}
+        {feedData.length > 0 ? <Text style={{ color: muted, fontWeight: '700' }}>  ·  {feedData.length}{hasMore ? '+' : ''}</Text> : null}
       </Text>
       <TouchableOpacity onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}>
         <Text style={[styles.seeAll, { color: primary }]}>Drop a Gruv</Text>
