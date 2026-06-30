@@ -30,6 +30,7 @@ import { Biometric } from '../services/biometric';
 import { NotificationService } from '../services/notificationService';
 import { PanicMode } from '../services/panicMode';
 import { SafetyHubModal } from '../components/SafetyHubModal';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { supabase } from '../services/supabase';
 import { haptics } from '../utils/haptics';
 import { THEMES } from '../constants/Themes';
@@ -278,6 +279,7 @@ export const SettingsScreen = ({
   const themeList = THEMES[gKey] || THEMES.non_binary || [];
 
   return (
+    <ErrorBoundary label="Settings" primary={primary}>
     <View style={[st.root, { backgroundColor: background }]}>
       {/* Header */}
       <View style={[st.header, { borderBottomColor: `${primary}18` }]}>
@@ -483,6 +485,7 @@ export const SettingsScreen = ({
 
       <SafetyHubModal visible={safetyHubOpen} onClose={() => setSafetyHubOpen(false)} />
     </View>
+    </ErrorBoundary>
   );
 };
 
