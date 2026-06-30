@@ -337,6 +337,22 @@ CREATE TABLE IF NOT EXISTS public.saved_events (
 );
 
 -- ══════════════════════════════════════════════════════════════════════════════
+--  RECONCILE CANONICAL COLUMNS on any pre-existing (divergent) tables, so the
+--  policies below don't 42703. e.g. a live `reels` table created earlier has
+--  `is_deleted` but not `deleted_at`; the v6 policies reference `deleted_at`.
+--  These are additive + idempotent (nullable columns, no data loss).
+--  ⚠️ NOTE: on a table that already tracks deletion via a DIFFERENT column
+--  (reels.is_deleted), the new deleted_at stays NULL, so a `deleted_at IS NULL`
+--  policy will treat already-deleted rows as visible. This is why v6 belongs on a
+--  FRESH branch — these ALTERs only stop the error; they don't migrate the data.
+-- ══════════════════════════════════════════════════════════════════════════════
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS status     TEXT DEFAULT 'published';
+ALTER TABLE public.reels  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.reels  ADD COLUMN IF NOT EXISTS visibility TEXT DEFAULT 'public';
+ALTER TABLE public.echoes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+-- ══════════════════════════════════════════════════════════════════════════════
 --  RLS POLICIES  (all idempotent: ENABLE + DROP IF EXISTS + CREATE)
 -- ══════════════════════════════════════════════════════════════════════════════
 
