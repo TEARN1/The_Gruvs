@@ -360,6 +360,16 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   const [surname, setSurname] = useState(profile?.surname || '');
   const [clanName, setClanName] = useState(profile?.clan_name || '');
   const [birthDate, setBirthDate] = useState(profile?.birth_date || ''); // YYYY-MM-DD
+  // Derive day/month/year from birthDate for the split inputs, and recompose on edit.
+  const _bparts = (birthDate || '').split('-');
+  const birthY = _bparts[0] || '', birthM = _bparts[1] || '', birthD = _bparts[2] || '';
+  const setBirthPart = (which, raw) => {
+    const val = (raw || '').replace(/[^0-9]/g, '');
+    const y = which === 'y' ? val : (birthDate.split('-')[0] || '');
+    const m = which === 'm' ? val : (birthDate.split('-')[1] || '');
+    const d = which === 'd' ? val : (birthDate.split('-')[2] || '');
+    setBirthDate([y, m, d].join('-')); // raw while typing; normalized at save time
+  };
   const [homeVillage, setHomeVillage] = useState(profile?.home_village || '');
   const [communityTags, setCommunityTags] = useState(profile?.community_tags || []);
   const [languages, setLanguages] = useState(profile?.languages || []);
@@ -383,7 +393,15 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         first_name: firstName.trim() || null,
         surname: surname.trim() || null,
         clan_name: clanName.trim() || null,
-        birth_date: /^\d{4}-\d{2}-\d{2}$/.test(birthDate) ? birthDate : null,
+        birth_date: (() => {
+          const [yy, mm, dd] = (birthDate || '').split('-');
+          if (!yy || !mm || !dd) return null;
+          const iso = `${yy.padStart(4, '0')}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+          // Validate it's a real date before saving.
+          const dt = new Date(`${iso}T00:00:00`);
+          const ok = !isNaN(dt.getTime()) && Number(mm) >= 1 && Number(mm) <= 12 && Number(dd) >= 1 && Number(dd) <= 31 && yy.length === 4;
+          return ok ? iso : null;
+        })(),
         home_village: homeVillage.trim() || null,
         community_tags: communityTags,
         languages,
@@ -565,17 +583,28 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         <Text style={{ color: muted, fontSize: 11, marginBottom: 10, lineHeight: 15 }}>
           Lets you invite people who share your name, surname or clan.
         </Text>
-        <TextInput
-          style={[fm.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 4 }]}
-          placeholder="Birthday — YYYY-MM-DD (e.g. 1998-07-21)"
-          placeholderTextColor={muted}
-          value={birthDate}
-          onChangeText={v => setBirthDate(v.replace(/[^0-9-]/g, '').slice(0, 10))}
-          keyboardType="numbers-and-punctuation"
-          maxLength={10}
-        />
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+          <TextInput
+            style={[fm.input, { flex: 1, color: textColor, borderColor: `${primary}30` }]}
+            placeholder="DD" placeholderTextColor={muted}
+            value={birthD} onChangeText={v => setBirthPart('d', v)}
+            keyboardType="numeric" maxLength={2}
+          />
+          <TextInput
+            style={[fm.input, { flex: 1, color: textColor, borderColor: `${primary}30` }]}
+            placeholder="MM" placeholderTextColor={muted}
+            value={birthM} onChangeText={v => setBirthPart('m', v)}
+            keyboardType="numeric" maxLength={2}
+          />
+          <TextInput
+            style={[fm.input, { flex: 1.4, color: textColor, borderColor: `${primary}30` }]}
+            placeholder="YYYY" placeholderTextColor={muted}
+            value={birthY} onChangeText={v => setBirthPart('y', v)}
+            keyboardType="numeric" maxLength={4}
+          />
+        </View>
         <Text style={{ color: muted, fontSize: 11, marginBottom: 10, lineHeight: 15 }}>
-          We’ll celebrate your birthday with you 🎉
+          We’ll celebrate your birthday with you — your year stays private.
         </Text>
         <TextInput
           style={[fm.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 4 }]}
