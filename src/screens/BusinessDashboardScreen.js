@@ -187,6 +187,64 @@ const getMarketingTips = (businessType = '') => {
   return generalTips;
 };
 
+// ── 40 reasons a business wins on The Gruvs (grouped) ───────────────────────
+const BUSINESS_BENEFITS = [
+  { group: 'Visibility & Discovery', items: [
+    'An always-on storefront inside a discovery app — not a dead directory listing.',
+    'You appear in nearby feeds to people actively looking to go out and spend.',
+    'Show up on the Scout map to anyone within your radius, in real time.',
+    'Verified-attendance signals beat paid hype — your reach is real, not bought.',
+    'Geo-targeted promos hit only the city/suburb you choose.',
+    'Interest-targeted Missions reach the right crowd, not everyone.',
+    'Age-gated targeting keeps your promos compliant automatically.',
+    'Past-event galleries act as social proof that sells the next one.',
+    'Trending & heat surface you exactly when the buzz is real.',
+    'Crew signals pull in the friends of people already going.',
+  ]},
+  { group: 'Sales & Bookings', items: [
+    'Tiered pricing (general/VIP/VVIP) renders cleanly on every card.',
+    'Ticket links and RSVPs capture intent at the moment of interest.',
+    'Your Storefront menu/services convert browsers into buyers.',
+    'Promos can push one specific event with a live countdown.',
+    'The "find-gigs" role gets you booked by event organizers.',
+    'The Network tab connects you to suppliers and collaborators.',
+    'Repeat exposure to RSVPers before, during and after the event.',
+    'Off-platform payment handoff — the platform takes no cut of your sale.',
+    'Booking and lead routing comes straight to you.',
+    'Marketplace access unlocks at higher tiers.',
+  ]},
+  { group: 'Audience & Insight', items: [
+    'The Crowd shows you exactly who you reached.',
+    'Reads gives impressions, clicks and CTR per Mission.',
+    'Stacks tracks your revenue and booking signals over time.',
+    'See your biggest months, venues and cities at a glance.',
+    'Audience demographics help you plan the next event.',
+    'A/B different promos and compare conversion.',
+    'Spot your superfans — repeat RSVPs and check-ins.',
+    'Attendance analytics show who actually showed vs who RSVPd.',
+  ]},
+  { group: 'Trust & Brand', items: [
+    'A verified badge builds instant buyer confidence.',
+    'Truth-protocol reviews give you an honest reputation you can stand on.',
+    'Consistent posting compounds your follower reach.',
+    'Behind-the-scenes content humanises your brand.',
+    'Club awards and trophies add real prestige.',
+    'A complete profile and referral lineage signal legitimacy.',
+  ]},
+  { group: 'Cost & Growth', items: [
+    'Free to start on the Starter tier — no upfront spend.',
+    'No platform cut on your sales — you stay the merchant of record.',
+    'Referral and QR invite tools grow your following for you.',
+    'Cross-promote with other businesses through Network.',
+    'Tiers scale only when you are ready (Pro/Royal/Enterprise).',
+    'One profile works across web and native, anywhere in the world.',
+  ]},
+];
+
+// Strip a leading emoji/symbol so tip text renders clean next to its number.
+const stripLeadEmoji = (s = '') =>
+  s.replace(/^[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\s]+/u, '');
+
 const BUSINESS_TYPES = [
   // Nightlife & Entertainment
   'Event Organiser', 'Music Venue', 'Night Club', 'Tavern', 'Shisanyama', 'Bar & Lounge',
@@ -392,6 +450,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const surface = currentTheme?.surface || 'rgba(255,255,255,0.05)';
 
   const [activeTab, setActiveTab] = useState('overview');
+  const [playbookView, setPlaybookView] = useState('tips'); // 'tips' | 'benefits'
   const [biz, setBiz] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [partners, setPartners] = useState([]);
@@ -1037,6 +1096,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       // ── PLAYBOOK ────────────────────────────────────────────────────────────
       case 'playbook': {
         const tips = getMarketingTips(biz?.business_type);
+        const showTips = playbookView === 'tips';
         return (
           <ScrollView contentContainerStyle={sc.tabContent} showsVerticalScrollIndicator={false}>
             <GlassView style={[sc.bizCard, { borderColor: `${primary}25`, marginBottom: 8 }]}>
@@ -1044,20 +1104,53 @@ export const BusinessDashboardScreen = ({ onClose }) => {
                 <Feather name="book-open" size={24} color={primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[sc.bizName, { color: textColor }]}>Marketing Playbook</Text>
+                <Text style={[sc.bizName, { color: textColor }]}>Business Playbook</Text>
                 <Text style={[sc.bizType, { color: muted }]}>
-                  20 ways to grow {biz?.business_type ? `your ${biz.business_type}` : 'your business'} on The Gruvs
+                  {showTips
+                    ? `${tips.length} ways to grow ${biz?.business_type ? `your ${biz.business_type}` : 'your business'}`
+                    : 'Why The Gruvs works for your business'}
                 </Text>
               </View>
             </GlassView>
-            {tips.map((tip, i) => (
-              <GlassView key={i} style={[sc.tipRow, { borderColor: `${primary}18` }]}>
-                <View style={[sc.tipNumber, { backgroundColor: `${primary}18` }]}>
-                  <Text style={[sc.tipNumText, { color: primary }]}>{i + 1}</Text>
+
+            {/* How-to / Benefits toggle */}
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+              {[{ k: 'tips', label: 'How to use' }, { k: 'benefits', label: 'Benefits' }].map(t => {
+                const on = playbookView === t.k;
+                return (
+                  <TouchableOpacity key={t.k} onPress={() => setPlaybookView(t.k)}
+                    style={{ flex: 1, paddingVertical: 9, borderRadius: 12, borderWidth: 1, alignItems: 'center',
+                      backgroundColor: on ? primary : `${primary}10`, borderColor: on ? primary : `${primary}25` }}>
+                    <Text style={{ color: on ? '#000' : primary, fontWeight: '900', fontSize: 12 }}>{t.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {showTips ? (
+              tips.map((tip, i) => (
+                <GlassView key={i} style={[sc.tipRow, { borderColor: `${primary}18` }]}>
+                  <View style={[sc.tipNumber, { backgroundColor: `${primary}18` }]}>
+                    <Text style={[sc.tipNumText, { color: primary }]}>{i + 1}</Text>
+                  </View>
+                  <Text style={[sc.tipText, { color: textColor }]}>{stripLeadEmoji(tip)}</Text>
+                </GlassView>
+              ))
+            ) : (
+              BUSINESS_BENEFITS.map((section, gi) => (
+                <View key={gi} style={{ marginBottom: 6 }}>
+                  <Text style={{ color: primary, fontWeight: '900', fontSize: 12, letterSpacing: 0.5, marginTop: 10, marginBottom: 8, textTransform: 'uppercase' }}>
+                    {section.group}
+                  </Text>
+                  {section.items.map((b, bi) => (
+                    <GlassView key={bi} style={[sc.tipRow, { borderColor: `${primary}18` }]}>
+                      <Feather name="check-circle" size={16} color="#10b981" style={{ marginTop: 1 }} />
+                      <Text style={[sc.tipText, { color: textColor }]}>{b}</Text>
+                    </GlassView>
+                  ))}
                 </View>
-                <Text style={[sc.tipText, { color: textColor }]}>{tip}</Text>
-              </GlassView>
-            ))}
+              ))
+            )}
             <View style={{ height: 40 }} />
           </ScrollView>
         );
