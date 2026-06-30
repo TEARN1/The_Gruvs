@@ -49,6 +49,8 @@ export const AuthModal = ({ visible, onClose }) => {
   const [city, setCity] = useState('');
   const [gender, setGender] = useState('');
   const [birthYear, setBirthYear] = useState('');
+  const [birthDay, setBirthDay] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [wantsEmail, setWantsEmail] = useState(true);
   const [signupSuccessFx, setSignupSuccessFx] = useState(0);
@@ -187,10 +189,35 @@ export const AuthModal = ({ visible, onClose }) => {
       return;
     }
     const year = parseInt(birthYear, 10);
+    const day = parseInt(birthDay, 10);
+    const month = parseInt(birthMonth, 10);
     const currentYear = new Date().getFullYear(); // evaluated at call-time, not parse-time
-    if (birthYear && (isNaN(year) || year < 1920 || year > currentYear - 13)) {
-      setError('Please enter a valid birth year (you must be 13 or older).');
-      return;
+    // Birthday is optional, but if ANY part is given we require a full, valid date.
+    const anyBirth = birthYear || birthDay || birthMonth;
+    let birthDateStr = null;
+    if (anyBirth) {
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        setError('Please enter your full birthday (day, month and year).');
+        return;
+      }
+      if (year < 1920 || year > currentYear - 13 || month < 1 || month > 12 || day < 1 || day > 31) {
+        setError('Please enter a valid birthday (you must be 13 or older).');
+        return;
+      }
+      const d = new Date(year, month - 1, day);
+      if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
+        setError('That birthday isn’t a real date — please check it.');
+        return;
+      }
+      // Exact age check (handles the month/day, not just the year).
+      let age = currentYear - year;
+      const today = new Date();
+      if (today.getMonth() < month - 1 || (today.getMonth() === month - 1 && today.getDate() < day)) age -= 1;
+      if (age < 13) {
+        setError('You must be 13 or older to use The Gruvs.');
+        return;
+      }
+      birthDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
     setLoading(true);
     setError('');
@@ -222,7 +249,8 @@ export const AuthModal = ({ visible, onClose }) => {
         display_name: displayName.trim() || username.trim(),
         city: city.trim() || null,
         gender: gender || null,
-        birth_year: year || null,
+        birth_year: (anyBirth && !isNaN(year)) ? year : null,
+        birth_date: birthDateStr,
         interests: selectedInterests,
         vibe_score: 0,
         is_discoverable: true,
@@ -374,17 +402,37 @@ export const AuthModal = ({ visible, onClose }) => {
                   onChangeText={setCity}
                 />
 
-                <Text style={[styles.label, { color: textColor }]}>Birth Year</Text>
-                <Text style={[styles.sublabel, { color: muted }]}>So we can celebrate your birthday with you 🎉</Text>
-                <TextInput
-                  style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
-                  placeholder="e.g. 1998"
-                  placeholderTextColor={muted}
-                  value={birthYear}
-                  onChangeText={setBirthYear}
-                  keyboardType="numeric"
-                  maxLength={4}
-                />
+                <Text style={[styles.label, { color: textColor }]}>Birthday</Text>
+                <Text style={[styles.sublabel, { color: muted }]}>So we can celebrate it with you — your year stays private.</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, borderColor: `${primary}40`, color: textColor }]}
+                    placeholder="DD"
+                    placeholderTextColor={muted}
+                    value={birthDay}
+                    onChangeText={(v) => setBirthDay(v.replace(/[^0-9]/g, ''))}
+                    keyboardType="numeric"
+                    maxLength={2}
+                  />
+                  <TextInput
+                    style={[styles.input, { flex: 1, borderColor: `${primary}40`, color: textColor }]}
+                    placeholder="MM"
+                    placeholderTextColor={muted}
+                    value={birthMonth}
+                    onChangeText={(v) => setBirthMonth(v.replace(/[^0-9]/g, ''))}
+                    keyboardType="numeric"
+                    maxLength={2}
+                  />
+                  <TextInput
+                    style={[styles.input, { flex: 1.4, borderColor: `${primary}40`, color: textColor }]}
+                    placeholder="YYYY"
+                    placeholderTextColor={muted}
+                    value={birthYear}
+                    onChangeText={(v) => setBirthYear(v.replace(/[^0-9]/g, ''))}
+                    keyboardType="numeric"
+                    maxLength={4}
+                  />
+                </View>
 
                 <Text style={[styles.label, { color: textColor }]}>Gender</Text>
                 <View style={styles.genderRow}>
