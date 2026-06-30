@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
@@ -18,7 +19,7 @@ export const StreakBadge = ({ streak = 0 }) => {
 
   return (
     <View style={[sb.badge, { backgroundColor: `${color}22`, borderColor: color }]}>
-      <Text style={sb.flame}>🔥</Text>
+      <MaterialCommunityIcons name="fire" size={15} color={color} style={{ marginRight: 4 }} />
       <Text style={[sb.count, { color }]}>{streak}</Text>
       <Text style={[sb.label, { color }]}>
         {streak === 1 ? 'day' : 'days'}

@@ -543,6 +543,23 @@ const MainNavigator = () => {
           .then(m => m.maybeSendMissedDigest(authUser))
           .catch(() => {});
       }, 4000);
+
+      // Keep the user findable in "Find Them": refresh their saved location on
+      // launch, but ONLY if location permission is already granted (this never
+      // shows a prompt). get_safe_nearby_vibers still gates on is_discoverable,
+      // so a ghost/private user storing coords is never surfaced to others.
+      setTimeout(async () => {
+        try {
+          const Location = await import('expo-location');
+          const { status } = await Location.getForegroundPermissionsAsync();
+          if (status !== 'granted') return;
+          const { LocationService } = await import('./src/services/locationService');
+          const coords = await LocationService.requestAndGet();
+          if (coords?.lat != null && coords?.lon != null) {
+            LocationService.saveToProfile(authUser.id, coords.lat, coords.lon);
+          }
+        } catch { /* best-effort presence refresh */ }
+      }, 6000);
     }
 
     SecurityService.validateSession().then(isValid => {
