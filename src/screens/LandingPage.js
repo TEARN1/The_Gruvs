@@ -409,11 +409,14 @@ const EventCard = React.memo(({
               </TouchableOpacity>
             </View>
           ) : (
-          <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && { minHeight: 0 }, isWeb && !event.poster_mode && { aspectRatio: '2/1' }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
+          <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && { minHeight: 0 }, isWeb && !event.poster_mode && { aspectRatio: '2/1' }, isWeb && event.poster_mode && { aspectRatio: '3/2', maxHeight: 320 }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
             <MediaViewer
               eventId={event.id}
-              aspectRatio={event.poster_mode ? 3 / 4 : 2}
-              fitToImage={!!event.poster_mode}
+              // On web, cap posters to a compact landscape box (full poster shown,
+              // letterboxed) so the feed scrolls many events instead of one screen-
+              // filling poster at a time. Native keeps the natural tall poster.
+              aspectRatio={event.poster_mode ? (isWeb ? 3 / 2 : 3 / 4) : 2}
+              fitToImage={!!event.poster_mode && !isWeb}
               resizeMode={event.poster_mode ? 'contain' : 'cover'}
               media={(() => {
               let m = event.media;
