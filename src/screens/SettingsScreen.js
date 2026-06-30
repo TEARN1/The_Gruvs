@@ -480,6 +480,8 @@ export const SettingsScreen = ({
           <LinkRow icon="trash-2" label="Delete account" onPress={confirmDelete} danger primary={primary} muted={muted} textColor={textColor} />
         </SectionCard>
       </ScrollView>
+
+      <SafetyHubModal visible={safetyHubOpen} onClose={() => setSafetyHubOpen(false)} />
     </View>
   );
 };
