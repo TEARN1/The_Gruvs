@@ -55,6 +55,7 @@ import { SceneLevelUpCard } from '../components/SceneLevelUpCard';
 import { UnlockMenuCard } from '../components/UnlockMenuCard';
 import { StreakBadges } from '../components/StreakBadges';
 import { ReferralCard } from '../components/ReferralCard';
+import { CollapsibleSection } from '../components/CollapsibleSection';
 import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
 import { ClubScreen } from './ClubScreen';
 
@@ -2659,58 +2660,49 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
         {user && <ReferralCard userId={user.id} />}
 
+        {/* ── PROGRESS — streaks, achievements, levels (open by default) ── */}
         {user && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-            <StreakBadges userId={user.id} primary={primary} textColor={textColor} muted={muted} surface={surface} />
-          </View>
+          <CollapsibleSection title="Progress" icon="trending-up" defaultOpen primary={primary}>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+              <StreakBadges userId={user.id} primary={primary} textColor={textColor} muted={muted} surface={surface} />
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+              <AchievementBadges userId={user.id} primary={primary} muted={muted} textColor={textColor} />
+            </View>
+            <ErrorBoundary inline label="Streak" primary={primary}>
+              <StreakCard userId={user.id} />
+            </ErrorBoundary>
+            <ErrorBoundary inline label="Scene" primary={primary}>
+              <SceneLevelUpCard userId={user.id} />
+            </ErrorBoundary>
+          </CollapsibleSection>
         )}
 
+        {/* ── YOUR RECAP — wrapped, memories, passport (collapsed by default) ── */}
         {user && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-            <AchievementBadges userId={user.id} primary={primary} muted={muted} textColor={textColor} />
-          </View>
+          <CollapsibleSection title="Your Recap" icon="film" defaultOpen={false} primary={primary}>
+            <ErrorBoundary inline label="Wrapped" primary={primary}>
+              <WrappedCard userId={user.id} />
+            </ErrorBoundary>
+            <ErrorBoundary inline label="On this day" primary={primary}>
+              <MemoriesCard userId={user.id} />
+            </ErrorBoundary>
+            <ErrorBoundary inline label="Vibe Passport" primary={primary}>
+              <VibePassportCard userId={user.id} />
+            </ErrorBoundary>
+          </CollapsibleSection>
         )}
 
+        {/* ── POWERS & STANDING (collapsed by default) ── */}
         {user && (
-          <ErrorBoundary inline label="Streak" primary={primary}>
-            <StreakCard userId={user.id} />
-          </ErrorBoundary>
-        )}
-
-        {user && (
-          <ErrorBoundary inline label="Wrapped" primary={primary}>
-            <WrappedCard userId={user.id} />
-          </ErrorBoundary>
-        )}
-
-        {user && (
-          <ErrorBoundary inline label="Scene" primary={primary}>
-            <SceneLevelUpCard userId={user.id} />
-          </ErrorBoundary>
-        )}
-
-        {user && (
-          <ErrorBoundary inline label="On this day" primary={primary}>
-            <MemoriesCard userId={user.id} />
-          </ErrorBoundary>
-        )}
-
-        {user && (
-          <ErrorBoundary inline label="Vibe Passport" primary={primary}>
-            <VibePassportCard userId={user.id} />
-          </ErrorBoundary>
-        )}
-
-        {user && (
-          <ErrorBoundary inline label="Your Powers" primary={primary}>
-            <UnlockMenuCard score={profile?.vibe_score || 0} />
-          </ErrorBoundary>
-        )}
-
-        {user && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-            <SocialIntegrityBadge score={user.social_integrity_score ?? 50} size="large" primary={primary} muted={muted} textColor={textColor} bg={bg} />
-          </View>
+          <CollapsibleSection title="Powers & Standing" icon="shield" defaultOpen={false} primary={primary}>
+            <ErrorBoundary inline label="Your Powers" primary={primary}>
+              <UnlockMenuCard score={profile?.vibe_score || 0} />
+            </ErrorBoundary>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 12, paddingTop: 8 }}>
+              <SocialIntegrityBadge score={user.social_integrity_score ?? 50} size="large" primary={primary} muted={muted} textColor={textColor} bg={bg} />
+            </View>
+          </CollapsibleSection>
         )}
 
         {/* Path Map button */}
