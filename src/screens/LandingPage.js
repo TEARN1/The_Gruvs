@@ -2032,7 +2032,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {/* Feed mode toggle — All / Following */}
       {user && (
         <View style={{ flexDirection: 'row', marginHorizontal: 14, marginBottom: 8, gap: 8 }}>
-          {[{ key: 'all', label: 'For You', icon: 'home' }, { key: 'following', label: 'Following', icon: 'users' }].map(tab => {
+          {[{ key: 'all', label: 'For You', icon: 'home' }, { key: 'following', label: 'Following', icon: 'users' }, { key: 'mine', label: 'Mine', icon: 'user' }].map(tab => {
             const active = feedMode === tab.key;
             return (
               <TouchableOpacity

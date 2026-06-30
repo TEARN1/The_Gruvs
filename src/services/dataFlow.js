@@ -679,6 +679,10 @@ export const FeedManager = {
       if (mode === 'following') {
         const ids = resolvedFollowedIds && resolvedFollowedIds.length ? resolvedFollowedIds : ['00000000-0000-0000-0000-000000000000'];
         q = q.in('author_id', ids);
+      } else if (mode === 'mine') {
+        // "Mine" — every event YOU posted, all of them (past + upcoming), so an
+        // organiser always has a complete, reliable view of their own Gruvs.
+        q = q.eq('author_id', userId || '00000000-0000-0000-0000-000000000000');
       }
       return q;
     };
@@ -693,6 +697,15 @@ export const FeedManager = {
     }
 
     const rankAndCache = async (data, count) => {
+      // "Mine" is a management view, not discovery — show ALL your events in plain
+      // reverse-chronological order (no heat re-rank, no per-host diversity cap).
+      if (mode === 'mine') {
+        const mineEvents = normalizeEvents((data || []).filter(e => !e.auto_hidden))
+          .sort((a, b) => String(b.event_date || '').localeCompare(String(a.event_date || '')));
+        const r = { events: mineEvents, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
+        cache.set(cacheKey, r);
+        return r;
+      }
       // Moderation: drop events auto-hidden by the trust-weighted report engine
       // (patch 25). Non-breaking pre-migration — auto_hidden is undefined on an
       // un-migrated DB, so nothing is filtered until the column + trigger exist.
