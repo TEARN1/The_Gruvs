@@ -1,9 +1,10 @@
 name: Production Deploy Pipeline
 
 on:
-  push:
-    branches:
-      - main
+  # Manual-only: this pipeline runs a native EAS build which needs the EXPO_TOKEN
+  # secret. Without it, every push to main failed at "Validating authenticated
+  # account". Re-enable `push: branches: [main]` once EXPO_TOKEN is set.
+  workflow_dispatch:
 
 jobs:
   ci-gate:

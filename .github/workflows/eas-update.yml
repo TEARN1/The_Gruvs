@@ -9,8 +9,9 @@
 name: EAS Update (OTA)
 
 on:
-  push:
-    branches: [main]
+  # Manual-only: OTA updates need the EXPO_TOKEN secret. Re-enable
+  # `push: branches: [main]` once EXPO_TOKEN is set in repo secrets.
+  workflow_dispatch:
 
 jobs:
   # ── Gate: Metro bundle must build cleanly ────────────────────────────────

@@ -10,21 +10,12 @@
 name: EAS Preview Build
 
 on:
-  push:
-    branches:
-      - main
-      - "feature/**"
-      - "fix/**"
-      - "release/**"
-    paths:
-      - "app.json"
-      - "app.config.js"
-      - "eas.json"
-      - "package.json"
-      - "package-lock.json"
-      - "android/**"
-      - "ios/**"
-      - "plugins/**"
+  # Manual-only: EAS preview builds need the EXPO_TOKEN secret. Re-enable the
+  # push/paths triggers below once EXPO_TOKEN is set in repo secrets.
+  workflow_dispatch:
+  # push:
+  #   branches: [main, "feature/**", "fix/**", "release/**"]
+  #   paths: ["app.json", "app.config.js", "eas.json", "package.json", "package-lock.json", "android/**", "ios/**", "plugins/**"]
 
 jobs:
   build:
