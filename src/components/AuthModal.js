@@ -309,7 +309,6 @@ export const AuthModal = ({ visible, onClose }) => {
             style={{ width: '100%', alignItems: 'center' }}
           >
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-              <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <View style={[styles.card, { backgroundColor: bg, borderColor: `${primary}33` }]}>
 
                   <View style={[styles.glowBar, { backgroundColor: primary }]} />
@@ -634,7 +633,6 @@ export const AuthModal = ({ visible, onClose }) => {
             {/* Signup Success Confetti Burst */}
             <GlitterBurst trigger={signupSuccessFx} size={220} colors={[primary, '#fde047', '#ffffff', '#10b981', '#fca5a5']} />
           </View>
-        </TouchableWithoutFeedback>
       </ScrollView>
     </KeyboardAvoidingView>
   </View>
