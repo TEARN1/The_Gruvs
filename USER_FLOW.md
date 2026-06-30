@@ -99,3 +99,29 @@ A user's relationship to an event escalates through 4 verbs:
 - `FIX_LIVE_ISSUES.sql` → check-in, DMs, reels, profile fields
 - `FIX_COMPETITION_ENGINE.sql` → standings, careers, votes, predictions
 - Long-tail RPCs (polls, crew, surveys, moderation, gifting) → schema_part_2→3→4→1
+
+---
+
+## ✨ Improved journeys (upgrade roadmap)
+Refinements that remove friction / add delight. ✅ shipped · ◻️ queued.
+
+1. **Entry/Auth** — land on the magic moment (a popping event near you, no empty
+   state) → browse free → ◻️ **signup only when you act** (contextual wall) →
+   30-sec Step 1 (or magic-link) → ◻️ Step 2 = visual chips, skippable → feed
+   already personalised. *Kills the #1 signup drop-off.*
+2. **Event lifecycle** — ◻️ one **escalating primary CTA** (Save→Vibe→Locked In) →
+   ◻️ **proximity Touch-Down nudge** ("You're near Taboo — Touch Down?") → ◻️
+   optimistic/offline-queued check-in → ✅ recap (show-rate) → ◻️ morning-after
+   recap push → ◻️ waitlist "spot opened".
+3. **Social** — ◻️ "Rally the Crew" one-tap invite + group Touch Down → ◻️
+   Crossed Paths auto-suggests Crew at 3+ → 48h match rooms → ✅ "your crew is
+   out" digest → ✅ **Pings quiet-hours + priority** (no 4am vanity pings).
+4. **Competition** — ◻️ lineups pre-kickoff → ✅ score → **standings auto-recompute**
+   → ◻️ goal/result pings → ◻️ **claim-your-card** → ◻️ bracket view. (RPCs ⛳)
+5. **Business** — ✅ targeting applied at delivery → ◻️ verified-foot-traffic
+   analytics hook → ◻️ phase-triggered offers → ◻️ verified-only reviews.
+6. **Identity** — ✅ Passport/Wrapped/Streak/Scene-level-up · ✅ shareable Wrapped →
+   ◻️ holographic card → ✅ "next unlock" progress.
+7. **Safety** — ✅ **Safety Center** (legible protections + Disappear now) · ✅
+   mutual DMs / block / Ghost / Incognito (enforced) · ✅ SOS · ✅ panic →
+   ◻️ "share my trip with Crew" → ◻️ women-only event option for hosts.

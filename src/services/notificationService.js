@@ -6,6 +6,7 @@
 import { supabase } from './supabase';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { shouldInterrupt } from '../utils/notificationPolicy';
 
 export const NotificationService = {
 
@@ -72,6 +73,9 @@ export const NotificationService = {
   showBrowserNotification(title, body, data = {}) {
     try {
       if (!this.isWebPushEnabled()) return;
+      // Signal over noise: hush non-urgent pings during quiet hours / vanity types.
+      // (The in-app bell still receives everything; this only gates the interruption.)
+      if (!shouldInterrupt(data?.type)) return;
       const n = new Notification(title || 'The Gruvs', { body: body || '', icon: '/logo.png', tag: data?.type || 'gruvs', data });
       n.onclick = () => { try { window.focus(); } catch {} try { n.close(); } catch {} };
     } catch {}
