@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -40,6 +40,7 @@ import { TonightAlert } from '../components/TonightAlert';
 import { StoriesRow } from '../components/StoriesRow';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { CrewOutCard } from '../components/CrewOutCard';
+import { CheckInNudge } from '../components/CheckInNudge';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
@@ -739,7 +740,7 @@ const EventCard = React.memo(({
                 accessibilityLabel="React to this event"
               >
                 {userReaction
-                  ? <Text style={{ fontSize: 19 }}>{REACTION_LIST.find(r => r.key === userReaction)?.emoji || '😊'}</Text>
+                  ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
                   : <Feather name="smile" size={19} color={muted} />
                 }
                 <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
@@ -1948,6 +1949,21 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       <CommunityStatsBar />
 
       {!!user && (
+        <ErrorBoundary inline label="Check in">
+          <CheckInNudge
+            userId={user.id}
+            onCheckIn={async (ev) => {
+              if (!ev?.id) return;
+              const local = events.find(e => e.id === ev.id);
+              if (local) { setSelectedEvent(local); return; }
+              const { data } = await supabase.from('events').select('*').eq('id', ev.id).maybeSingle();
+              if (data) setSelectedEvent(data);
+            }}
+          />
+        </ErrorBoundary>
+      )}
+
+      {!!user && (
         <ErrorBoundary inline label="Crew out now">
           <CrewOutCard
             userId={user.id}
@@ -2696,7 +2712,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                         accessibilityLabel={r.label || r.key}
                         style={[styles.reactRingItem, active && { backgroundColor: `${primary}25` }]}
                       >
-                        <Text style={{ fontSize: 26 }}>{r.emoji}</Text>
+                        <MaterialCommunityIcons name={r.icon || 'star'} size={24} color={active ? primary : textColor} />
                       </TouchableOpacity>
                     );
                   })}
