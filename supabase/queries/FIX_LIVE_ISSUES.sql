@@ -105,9 +105,36 @@ CREATE POLICY live_checkins_insert     ON public.live_checkins FOR INSERT WITH C
 DROP POLICY IF EXISTS live_checkins_update_own ON public.live_checkins;
 CREATE POLICY live_checkins_update_own ON public.live_checkins FOR UPDATE USING (user_id = auth.uid());
 
--- 7) DIAGNOSTIC (read-only — changes nothing). DMs INSERT returns 400 from a
---    hidden rule. Run these two and share the output so we can pinpoint it:
---    any CHECK constraint or trigger on messages that rejects the insert.
+-- 7) DIRECT MESSAGES (the 400 on send): MessageManager.send writes message_type,
+--    is_request, request_accepted, media_url, parent_id, event_id, latitude,
+--    longitude — if the live `messages` table is missing ANY of these, the INSERT
+--    400s. Add them all (additive, idempotent) + ensure participant RLS.
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS body             TEXT;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS message_type     TEXT DEFAULT 'text';
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS media_url        TEXT;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS parent_id        UUID;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS event_id         UUID;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS latitude         DOUBLE PRECISION;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS longitude        DOUBLE PRECISION;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS is_request       BOOLEAN DEFAULT false;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS request_accepted BOOLEAN DEFAULT false;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS read_at          TIMESTAMPTZ;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS deleted_at       TIMESTAMPTZ;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS created_at       TIMESTAMPTZ DEFAULT now();
+
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS messages_select_parts ON public.messages;
+CREATE POLICY messages_select_parts ON public.messages FOR SELECT
+  USING (sender_id = auth.uid() OR recipient_id = auth.uid());
+DROP POLICY IF EXISTS messages_insert_own ON public.messages;
+CREATE POLICY messages_insert_own ON public.messages FOR INSERT WITH CHECK (sender_id = auth.uid());
+DROP POLICY IF EXISTS messages_update_parts ON public.messages;
+CREATE POLICY messages_update_parts ON public.messages FOR UPDATE
+  USING (sender_id = auth.uid() OR recipient_id = auth.uid());
+
+-- 8) DIAGNOSTIC (read-only — changes nothing). If DMs STILL 400 after the column
+--    adds above, the cause is a CHECK constraint or trigger — run these two and
+--    share the output so we can pinpoint the exact rule rejecting the insert.
 SELECT conname, pg_get_constraintdef(oid) AS check_definition
 FROM pg_constraint
 WHERE conrelid = 'public.messages'::regclass AND contype = 'c';
