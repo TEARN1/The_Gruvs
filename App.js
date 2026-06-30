@@ -536,6 +536,15 @@ const MainNavigator = () => {
 
     checkStatus();
 
+    // Weekly "you missed out" digest — at most once a week, never blocks startup.
+    if (authUser) {
+      setTimeout(() => {
+        import('./src/services/missedEventsDigest')
+          .then(m => m.maybeSendMissedDigest(authUser))
+          .catch(() => {});
+      }, 4000);
+    }
+
     SecurityService.validateSession().then(isValid => {
       if (!isValid) {
         supabase.auth.signOut().catch(() => {});

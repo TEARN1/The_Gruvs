@@ -141,7 +141,7 @@ const ReelManageSheet = ({ visible, reel, onClose, onDeleted, onCaptionUpdated, 
       try {
         await resilient(
           [
-            () => supabase.from('reels').update({ deleted_at: new Date().toISOString() }).eq('id', reel.id).eq('user_id', user?.id),
+            () => supabase.from('reels').update({ is_deleted: true }).eq('id', reel.id).eq('user_id', user?.id),
             () => supabase.from('reels').delete().eq('id', reel.id).eq('user_id', user?.id),
           ],
           { attemptsPerTier: 3, baseMs: 400, label: 'ReelManageSheet.delete', fallbackValue: null }

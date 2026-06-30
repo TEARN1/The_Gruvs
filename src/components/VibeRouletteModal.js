@@ -74,8 +74,7 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
     if (sliceIdx === -1) sliceIdx = 0; // fallback to surprise index
 
     // Rotation math: land winning slice at the top (0 deg/12 o'clock pointer)
-    // Target angle = 360 - (sliceIdx * 45) + (full spins * 360)
-    const targetAngle = (4 * 360) + (360 - (sliceIdx * 45));
+    const targetAngle = (4 * 360) + (360 - (sliceIdx * SLICE_DEG));
 
     // Clear any leftover timers
     timersRef.current.forEach(t => clearTimeout(t));
@@ -121,7 +120,9 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
     });
   };
 
-  const cats = ['all', 'music', 'nightlife', 'sport', 'art', 'food', 'culture', 'wellness'];
+  // Up to 10 slices on the wheel (Surprise + 9 categories).
+  const cats = ['all', 'music', 'nightlife', 'sport', 'art', 'food', 'culture', 'wellness', 'tech', 'comedy'].slice(0, 10);
+  const SLICE_DEG = 360 / cats.length;
 
   const spin = rotateAnim.interpolate({
     inputRange: [0, 360],
@@ -130,7 +131,7 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
 
   const renderWheelSegments = () => {
     return cats.map((c, idx) => {
-      const angle = idx * 45;
+      const angle = idx * SLICE_DEG;
       const config = CATEGORY_CONFIG[c];
       const color = config?.color || primary;
       return (

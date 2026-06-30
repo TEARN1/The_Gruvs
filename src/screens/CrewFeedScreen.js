@@ -15,6 +15,7 @@ import { supabase } from '../services/supabase';
 import { RADIUS } from '../constants/DesignTokens';
 import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 import { StoriesRow } from '../components/StoriesRow';
+import { CrewHub } from '../components/CrewHub';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 // ── Relative time helper ───────────────────────────────────────────────────────
@@ -350,6 +351,9 @@ export const CrewFeedScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
         {/* Crew Stories */}
         {user && <StoriesRow onAuthRequired={onAuthRequired} />}
+
+        {/* Named crews — create, invites, members */}
+        {user && <CrewHub onAuthRequired={onAuthRequired} />}
 
         <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
           {/* Auth gate */}

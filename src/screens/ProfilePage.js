@@ -1520,7 +1520,7 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDelete
 
   useEffect(() => {
     if (!userId) return;
-    supabase.from('reels').select('id, media_url, media_type').eq('user_id', userId).is('deleted_at', null).order('created_at', { ascending: false }).limit(30)
+    supabase.from('reels').select('id, media_url, media_type').eq('user_id', userId).eq('is_deleted', false).order('created_at', { ascending: false }).limit(30)
       .then(({ data }) => { if (data) setUserReels(data); });
   }, [userId]);
 
@@ -1573,7 +1573,7 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDelete
     setDeleting(item.id);
     try {
       if (item.source === 'reel') {
-        await supabase.from('reels').update({ deleted_at: new Date().toISOString() }).eq('id', item.id).eq('user_id', userId);
+        await supabase.from('reels').update({ is_deleted: true }).eq('id', item.id).eq('user_id', userId);
         setUserReels(prev => prev.filter(r => r.id !== item.id));
       } else if (item.source === 'gallery') {
         await onDeleteGallery?.(item.url);

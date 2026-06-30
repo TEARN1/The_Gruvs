@@ -19,6 +19,8 @@ import { SmartImage } from '../components/SmartImage';
 
 const TYPE_META = {
   vibe:             { icon: 'zap',            color: "#f97316" },
+  missed_digest:    { icon: 'compass',        color: "#8b5cf6" },
+  crew_invite:      { icon: 'users',          color: "#7c3aed" },
   rsvp:             { icon: 'check-circle',   color: "#10b981" },
   echo:             { icon: 'message-circle', color: "#8b5cf6" },
   follow:           { icon: 'user-plus',      color: "#06b6d4" },
