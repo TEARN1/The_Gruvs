@@ -36,6 +36,11 @@ for (const vp of VIEWPORTS) {
     });
 
     test('landing page screenshot baseline', async ({ page }) => {
+      // Visual baselines are committed per-OS (…-win32.png). CI runs on Linux,
+      // where those baselines don't exist, so Playwright would "first-run write"
+      // and fail every time. Skip on CI until Linux baselines are committed;
+      // this stays a useful local visual-regression check.
+      test.skip(!!process.env.CI, 'platform-specific screenshot baselines not committed for CI (Linux)');
       await mockFonts(page);
       await page.goto('/');
       await waitForApp(page);
