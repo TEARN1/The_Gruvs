@@ -2365,15 +2365,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           ) : !loading && feedData.length === 0 ? (
             <View style={styles.emptyWrap}>
               <View style={[styles.emptyIconCircle, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}>
-                <Feather name={feedMode === 'following' ? 'users' : 'compass'} size={48} color={primary} />
+                <Feather name={feedMode === 'following' ? 'users' : feedMode === 'mine' ? 'calendar' : 'compass'} size={48} color={primary} />
                 <View style={[styles.emptyIconGlow, { backgroundColor: primary }]} />
               </View>
               <Text style={[styles.emptyTitle, { color: textColor }]}>
-                {feedMode === 'following' ? 'Your Crew is Quiet' : 'The Kingdom is Quiet'}
+                {feedMode === 'following' ? 'Your Crew is Quiet' : feedMode === 'mine' ? 'No Gruvs Yet' : 'The Kingdom is Quiet'}
               </Text>
               <Text style={[styles.emptyText, { color: muted }]}>
                 {feedMode === 'following'
                   ? "You aren't following anyone who has posted recently, or they haven't dropped any Gruvs yet."
+                  : feedMode === 'mine'
+                  ? "You haven't posted any Gruvs yet. Drop your first and every event you create shows up right here."
                   : "No gruvs found in this sector. Be the one to start the vibe!"}
               </Text>
               {feedMode === 'following' ? (
@@ -2389,7 +2391,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
                 >
                   <Feather name="plus" size={16} color={primary} />
-                  <Text style={[styles.emptyBtnText, { color: primary }]}>Drop the first Gruv</Text>
+                  <Text style={[styles.emptyBtnText, { color: primary }]}>{feedMode === 'mine' ? 'Post your first Gruv' : 'Drop the first Gruv'}</Text>
                 </TouchableOpacity>
               )}
             </View>
