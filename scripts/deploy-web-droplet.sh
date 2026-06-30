@@ -10,15 +10,25 @@ set -euo pipefail
 
 HOST="${GRUVS_DROPLET:-root@144.126.236.75}"
 DEST="/var/www/thegruvs"
+STAGE="/var/www/thegruvs_stage"   # extract here, then atomically swap
 
 echo "==> Building web export locally (npm run build -> dist/)..."
 npm run build
 
-echo "==> Shipping dist/ to ${HOST}:${DEST} ..."
-( cd dist && tar czf - . ) | ssh "$HOST" \
-  "rm -rf ${DEST} && mkdir -p ${DEST} && tar xzf - -C ${DEST} && chown -R www-data:www-data ${DEST}"
+# ATOMIC deploy: extract into a staging dir, then swap with two instant renames.
+# The old approach (rm -rf DEST then tar into it) left DEST empty for the few
+# seconds of extraction → nginx served 403 to anyone loading the site then.
+# Renames are near-instant, so the swap window is milliseconds = ~zero downtime.
+echo "==> Shipping dist/ to ${HOST} (staged + atomic swap) ..."
+( cd dist && tar czf - . ) | ssh "$HOST" "
+  set -e
+  rm -rf ${STAGE} && mkdir -p ${STAGE} &&
+  tar xzf - -C ${STAGE} &&
+  chown -R www-data:www-data ${STAGE} &&
+  rm -rf ${DEST}_old &&
+  if [ -d ${DEST} ]; then mv ${DEST} ${DEST}_old; fi &&
+  mv ${STAGE} ${DEST} &&
+  nginx -t && systemctl reload nginx
+"
 
-echo "==> Reloading nginx..."
-ssh "$HOST" "nginx -t && systemctl reload nginx"
-
-echo "==> Done. Live at http://144.126.236.75"
+echo "==> Done. Live at https://thegruvs.com"

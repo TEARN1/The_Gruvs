@@ -84,14 +84,24 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "${HOST:-144.126.236.75}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Ship dist → droplet + reload nginx
+      - name: Ship dist → droplet (staged + atomic swap) + reload nginx
         if: steps.guard.outputs.skip != 'true'
         env:
           HOST: ${{ secrets.DROPLET_HOST }}
         run: |
           TARGET="root@${HOST:-144.126.236.75}"
-          ( cd dist && tar czf - . ) | ssh -i ~/.ssh/id_ed25519 "$TARGET" \
-            "rm -rf /var/www/thegruvs && mkdir -p /var/www/thegruvs && tar xzf - -C /var/www/thegruvs && chown -R www-data:www-data /var/www/thegruvs && nginx -t && systemctl reload nginx"
+          # Atomic: extract to a stage dir, then swap with instant renames so the
+          # live dir is never empty mid-deploy (avoids the nginx 403 flash).
+          ( cd dist && tar czf - . ) | ssh -i ~/.ssh/id_ed25519 "$TARGET" "
+            set -e
+            rm -rf /var/www/thegruvs_stage && mkdir -p /var/www/thegruvs_stage &&
+            tar xzf - -C /var/www/thegruvs_stage &&
+            chown -R www-data:www-data /var/www/thegruvs_stage &&
+            rm -rf /var/www/thegruvs_old &&
+            if [ -d /var/www/thegruvs ]; then mv /var/www/thegruvs /var/www/thegruvs_old; fi &&
+            mv /var/www/thegruvs_stage /var/www/thegruvs &&
+            nginx -t && systemctl reload nginx
+          "
 
       - name: Summary
         if: always()
