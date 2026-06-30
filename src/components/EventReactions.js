@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Platform, Easing } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
@@ -71,7 +72,7 @@ const ReactionPill = ({ reaction, count, active, onPress, primary, muted, index 
             : { shadowColor: primary, shadowOpacity: 0.8, shadowRadius: 10, elevation: 6 }),
         ]}
       >
-        <Text style={r.emoji}>{reaction.emoji}</Text>
+        <MaterialCommunityIcons name={reaction.icon || 'star'} size={18} color={active ? primary : muted} />
         {count > 0 && (
           <Text style={[r.count, { color: active ? primary : muted }]}>
             {count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}

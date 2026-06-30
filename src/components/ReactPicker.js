@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Easing, Platform,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { REACTION_LIST } from '../constants/CategoryConfig';
 import { ReactionFX, themeForReaction } from './ReactionFX';
@@ -86,7 +87,7 @@ const ReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle 
             : { shadowColor: accent, shadowOpacity: 0.9, shadowRadius: 12, elevation: 8 }),
         ]}
       >
-        <Text style={styles.emoji}>{reaction.emoji}</Text>
+        <MaterialCommunityIcons name={reaction.icon || 'star'} size={20} color={isActive ? accent : '#fff'} />
         {/* Picked reactions become a glowing pill showing their count. */}
         {isActive && (
           <Text style={[styles.count, { color: accent }]}>{count != null ? count : 1}</Text>
