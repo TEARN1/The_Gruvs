@@ -748,7 +748,7 @@ export const FeedManager = {
     return resilientRead(
       // ── Tier 1 (Primary): full select with all profile joins ──────────────
       async () => {
-        let q = buildBaseQuery('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)');
+        let q = buildBaseQuery('*, profiles!author_id(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)');
         if (mode === 'following') {
           if (resolvedFollowedIds.length === 0) return { events: [], total: 0, page, hasMore: false };
           q = q.in('author_id', resolvedFollowedIds);
@@ -792,7 +792,7 @@ export const FeedManager = {
       // Tier 1: full join with profile data
       async () => {
         const { data, error } = await supabase.from('events')
-          .select('*, profiles(id, username, avatar_url, is_verified, vibe_score)')
+          .select('*, profiles!author_id(id, username, avatar_url, is_verified, vibe_score)')
           .gte('event_date', today).is('deleted_at', null).neq('status', 'cancelled')
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
@@ -827,7 +827,7 @@ export const FeedManager = {
         async () => {
           const [evRes, userRes, ftsRes] = await Promise.allSettled([
             supabase.from('events')
-              .select('*, profiles(id, username, avatar_url)')
+              .select('*, profiles!author_id(id, username, avatar_url)')
               .or(`title.ilike.%${s}%,description.ilike.%${s}%,category.ilike.%${s}%,venue_name.ilike.%${s}%,city.ilike.%${s}%`)
               .is('deleted_at', null).neq('status', 'cancelled')
               .order('vibe_count', { ascending: false }).limit(20),
@@ -882,7 +882,7 @@ export const FeedManager = {
       // Tier 1: full event + profile join
       async () => {
         const { data, error } = await supabase.from('events')
-          .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)')
+          .select('*, profiles!author_id(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)')
           .eq('id', eventId).single();
         if (error) throw error;
         const normalized = normalizeEvent(data);
@@ -910,7 +910,7 @@ export const FeedManager = {
       const { page, category, query, mode, userInterests, followedIds, userLat, userLon, userId } = opts;
       let q = supabase
           .from('events')
-          .select('*, profiles(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)', { count: 'estimated' })
+          .select('*, profiles!author_id(id, username, avatar_url, is_verified, is_online, last_seen, vibe_score)', { count: 'estimated' })
           .is('deleted_at', null)
           .neq('status', 'cancelled')
           .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
@@ -1027,7 +1027,7 @@ export const TrendingManager = {
       const ids = order.map(r => r.event_id);
       const momById = new Map(order.map(r => [r.event_id, Number(r.momentum) || 0]));
       const { data: evs } = await supabase.from('events')
-        .select('*, profiles(username, avatar_url)')
+        .select('*, profiles!author_id(username, avatar_url)')
         .in('id', ids)
         .is('deleted_at', null).neq('status', 'cancelled');
       const enriched = normalizeEvents(evs || [])
@@ -1057,7 +1057,7 @@ export const TrendingManager = {
       // Tier 1: with profile join
       async () => {
         const { data, error } = await supabase.from('events')
-          .select('*, profiles(username, avatar_url)')
+          .select('*, profiles!author_id(username, avatar_url)')
           .gte('event_date', today).lte('event_date', tomorrow)
           .is('deleted_at', null).neq('status', 'cancelled')
           .order('vibe_count', { ascending: false }).limit(20);
@@ -3057,7 +3057,7 @@ export const FollowingFeedManager = {
 
       const { data } = await supabase
         .from('events')
-        .select('*, profiles(id, username, avatar_url, is_verified, vibe_score)')
+        .select('*, profiles!author_id(id, username, avatar_url, is_verified, vibe_score)')
         .in('author_id', followedIds)
         .gte('event_date', new Date().toISOString().split('T')[0])
         .is('deleted_at', null)
