@@ -305,11 +305,18 @@ export const AuthModal = ({ visible, onClose }) => {
           events and prevents the keyboard from appearing. Keyboard.dismiss is a
           no-op on web anyway. */}
       <View style={styles.overlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ width: '100%', alignItems: 'center' }}
-          >
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          {/* On web, KeyboardAvoidingView is native-only and can swallow the tap
+              that focuses an input (so the on-screen keyboard never opens on
+              mobile browsers). Use a plain View on web; the browser handles
+              keyboard avoidance itself. */}
+          {(() => {
+            const Wrap = Platform.OS === 'web' ? View : KeyboardAvoidingView;
+            const wrapProps = Platform.OS === 'web'
+              ? { style: { width: '100%', alignItems: 'center' } }
+              : { behavior: Platform.OS === 'ios' ? 'padding' : 'height', style: { width: '100%', alignItems: 'center' } };
+            return (
+          <Wrap {...wrapProps}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="always">
                 <View style={[styles.card, { backgroundColor: bg, borderColor: `${primary}33` }]}>
 
                   <View style={[styles.glowBar, { backgroundColor: primary }]} />
@@ -635,7 +642,9 @@ export const AuthModal = ({ visible, onClose }) => {
             <GlitterBurst trigger={signupSuccessFx} size={220} colors={[primary, '#fde047', '#ffffff', '#10b981', '#fca5a5']} />
           </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+          </Wrap>
+            );
+          })()}
   </View>
 </Modal>
   );
