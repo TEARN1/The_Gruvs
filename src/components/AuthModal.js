@@ -4,7 +4,6 @@ import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, Animated, KeyboardAvoidingView,
   Platform, ScrollView, ActivityIndicator, Dimensions,
-  Keyboard, TouchableWithoutFeedback,
 } from 'react-native';
 
 import { useTheme } from '../context/ThemeContext';
@@ -302,8 +301,10 @@ export const AuthModal = ({ visible, onClose }) => {
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.overlay}>
+      {/* TouchableWithoutFeedback is skipped on web — it intercepts TextInput focus
+          events and prevents the keyboard from appearing. Keyboard.dismiss is a
+          no-op on web anyway. */}
+      <View style={styles.overlay}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%', alignItems: 'center' }}
@@ -636,7 +637,6 @@ export const AuthModal = ({ visible, onClose }) => {
       </ScrollView>
     </KeyboardAvoidingView>
   </View>
-</TouchableWithoutFeedback>
 </Modal>
   );
 };
