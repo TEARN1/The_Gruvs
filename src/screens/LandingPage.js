@@ -1343,7 +1343,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // Seed the feed instantly from cache before the network call completes
   useEffect(() => {
-    const FEED_CACHE_KEY = `@gruvs_feed_cache_v1`;
+    const FEED_CACHE_KEY = `@gruvs_feed_cache_v2`;
     AsyncStorage.getItem(FEED_CACHE_KEY)
       .then(raw => {
         if (!raw) return;
@@ -1365,7 +1365,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // Persist feed to cache after every successful load
   useEffect(() => {
     if (events.length > 0 && !loading) {
-      AsyncStorage.setItem('@gruvs_feed_cache_v1',
+      AsyncStorage.setItem('@gruvs_feed_cache_v2',
         JSON.stringify({ data: events.slice(0, 20), ts: Date.now() })
       ).catch(() => {});
     }
@@ -2164,6 +2164,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     <View style={styles.sectionRow}>
       <Text style={[styles.sectionTitle, { color: textColor }]}>
         {mode === 'drop' ? 'Recent Gruvs' : 'All Gruvs'}
+        {feedData.length > 0 ? <Text style={{ color: muted, fontWeight: '700' }}>  ·  {feedData.length}{hasMore ? '+' : ''}</Text> : null}
       </Text>
       <TouchableOpacity onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}>
         <Text style={[styles.seeAll, { color: primary }]}>Drop a Gruv</Text>
