@@ -386,7 +386,7 @@ const EventCard = React.memo(({
             delayLongPress={400}
           >
           {matchCard ? (
-            <View style={[styles.imgSection, { backgroundColor: '#0b0e0f' }, isWeb && { minHeight: 0, aspectRatio: '2/1' }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
+            <View style={[styles.imgSection, { backgroundColor: '#0b0e0f' }, isWeb && { minHeight: 0, aspectRatio: '4/3' }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
               <MatchVersus match={matchCard} height={isWeb ? 200 : 168} isWeb={isWeb} />
               {event.category && (
                 <View style={[styles.catBadge, { backgroundColor: `${catColor}22`, borderColor: `${catColor}55` }, isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }]}>
@@ -410,7 +410,7 @@ const EventCard = React.memo(({
               </TouchableOpacity>
             </View>
           ) : (
-          <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && { minHeight: 0 }, isWeb && !event.poster_mode && { aspectRatio: '2/1' }, isWeb && event.poster_mode && { aspectRatio: '3/2', maxHeight: 320 }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
+          <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && { minHeight: 0 }, isWeb && !event.poster_mode && { aspectRatio: '4/3' }, isWeb && event.poster_mode && { aspectRatio: '3/4' }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
             <MediaViewer
               eventId={event.id}
               // On web, cap posters to a compact landscape box (full poster shown,
@@ -2164,7 +2164,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     <View style={styles.sectionRow}>
       <Text style={[styles.sectionTitle, { color: textColor }]}>
         {mode === 'drop' ? 'Recent Gruvs' : 'All Gruvs'}
-        {feedData.length > 0 ? <Text style={{ color: muted, fontWeight: '700' }}>  ·  {feedData.length}{hasMore ? '+' : ''}</Text> : null}
       </Text>
       <TouchableOpacity onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}>
         <Text style={[styles.seeAll, { color: primary }]}>Drop a Gruv</Text>
@@ -2800,7 +2799,7 @@ const styles = StyleSheet.create({
   eventCard: { flex: 1, marginHorizontal: SCREEN_W < 375 ? 10 : 16, marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
   schedulePreview: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
   schedulePreviewText: { fontSize: 12, fontWeight: '700', flex: 1, flexShrink: 1, minWidth: 0 },
-  imgSection: { position: 'relative', minHeight: Math.round((SCREEN_W - 32) / 2) },
+  imgSection: { position: 'relative', minHeight: Math.round((SCREEN_W - 32) * 3 / 4) },
   catBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
   catBadgeText: { fontSize: 9, ...FONT.badge, letterSpacing: 0.8 }, // item 60: 0.8 improves 9px legibility
   bookmarkBtn: { position: 'absolute', bottom: 12, right: 12, padding: 8, borderRadius: 20 },
