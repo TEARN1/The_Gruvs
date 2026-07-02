@@ -49,8 +49,11 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
     rotateAnim.setValue(0);
     resultFadeAnim.setValue(0);
 
-    // Filter events by selected category
+    // Only UPCOMING events — the roulette plans your next outing, never a passed one.
+    const todayStr = new Date().toISOString().split('T')[0];
     const candidates = (events || []).filter(e => {
+      // Drop anything already in the past (keep events with no date, just in case).
+      if (e.event_date && String(e.event_date).slice(0, 10) < todayStr) return false;
       if (selectedCat === 'all') return true;
       const cat = (e.category || '').toLowerCase();
       const cats2 = Array.isArray(e.categories) ? e.categories.map(x => (x || '').toLowerCase()) : [];
