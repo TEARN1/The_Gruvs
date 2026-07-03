@@ -259,9 +259,18 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     setUploading(true);
     try {
       const isVideo = asset.__isVideo ?? (await detectVideoAsync(asset));
-      const ext = (asset.fileName?.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
+      // Keep the file extension consistent with the REAL media type — a video
+      // stored as .jpg gets the wrong content-type and renders as a black frame.
+      const IMG_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'];
+      const VID_EXTS = ['mp4', 'mov', 'm4v', 'webm', 'avi', 'mkv', '3gp'];
+      let ext = (asset.fileName?.split('.').pop() || '').toLowerCase();
+      if (isVideo && (!ext || IMG_EXTS.includes(ext))) ext = 'mp4';
+      if (!isVideo && (!ext || VID_EXTS.includes(ext))) ext = 'jpg';
       const storagePath = `${user.id}/reel_${Date.now()}.${ext}`;
-      const publicUrl = await uploadToStorage(asset.uri, 'reels', storagePath, { mimeType: asset.mimeType });
+      // Force a correct mime so storage serves the right content-type even when
+      // the picker gives us none (common on web/Android).
+      const mimeType = asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg');
+      const publicUrl = await uploadToStorage(asset.uri, 'reels', storagePath, { mimeType });
 
       // Core columns exist on every reels schema version; visibility + metadata
       // are newer and may not be migrated yet, so we insert in progressively
