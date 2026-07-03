@@ -668,27 +668,24 @@ export const FeedManager = {
       }
       if (dateRange?.from) q = q.gte('event_date', dateRange.from);
       if (dateRange?.to)   q = q.lte('event_date', dateRange.to);
-      if (query.trim()) {
-        const s = sanitizeSearch(query); // strip PostgREST .or() filter metacharacters
+      // "Upcoming" filters + ordering must come BEFORE the default created_at order
+      // so PostgREST treats event_date as the primary sort column (first order wins).
+      if (mode === 'upcoming') {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        if (!dateRange?.from) q = q.gte('event_date', todayStr);
+        q = q.order('event_date', { ascending: true });
+      } else if (query.trim()) {
+        const s = sanitizeSearch(query);
         q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%,venue_name.ilike.%${s}%`).order('vibe_count', { ascending: false });
       } else {
         q = q.order('created_at', { ascending: false });
       }
-      // Following tab: actually restrict to events authored by people you follow.
-      // (Previously 'following' only re-ranked, so the feed looked unfiltered.)
+      // Following / mine author filters
       if (mode === 'following') {
         const ids = resolvedFollowedIds && resolvedFollowedIds.length ? resolvedFollowedIds : ['00000000-0000-0000-0000-000000000000'];
         q = q.in('author_id', ids);
       } else if (mode === 'mine') {
-        // "Mine" — every event YOU posted, all of them (past + upcoming), so an
-        // organiser always has a complete, reliable view of their own Gruvs.
         q = q.eq('author_id', userId || '00000000-0000-0000-0000-000000000000');
-      } else if (mode === 'upcoming') {
-        // "Upcoming" — every non-deleted future event, nearest-first. No heat
-        // ranking, no personalisation. The honest full catalogue.
-        const todayStr = new Date().toISOString().slice(0, 10);
-        if (!dateRange?.from) q = q.gte('event_date', todayStr);
-        q = q.order('event_date', { ascending: true }).order('created_at', { ascending: false });
       }
       return q;
     };
