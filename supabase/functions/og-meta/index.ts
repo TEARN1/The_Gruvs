@@ -278,9 +278,13 @@ Deno.serve(async (req: Request) => {
   const url  = new URL(req.url);
   // Path: /functions/v1/og-meta/event/<id>  etc.
   const parts = url.pathname.split('/').filter(Boolean);
-  // parts: ['functions', 'v1', 'og-meta', '<type>', '<slug>']
-  const type = parts[3];  // 'event' | 'profile' | 'reel'
-  const slug = parts[4];  // id or username
+  // Path shape varies by gateway: the Supabase edge runtime strips
+  // '/functions/v1' and passes '/og-meta/<type>/<slug>'. Anchor on the
+  // 'og-meta' segment so routing works in every environment.
+  const anchor = parts.indexOf('og-meta');
+  const base = anchor >= 0 ? anchor + 1 : (parts[0] === 'functions' ? 3 : 0);
+  const type = parts[base];      // 'event' | 'profile' | 'reel'
+  const slug = parts[base + 1];  // id or username
 
   const ua = req.headers.get('user-agent') || '';
 
