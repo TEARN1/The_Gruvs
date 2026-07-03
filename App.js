@@ -17,6 +17,7 @@ import { IdentityProvider } from './src/context/IdentityContext';
 import { CurrencyProvider } from './src/context/CurrencyContext';
 import { ToastProvider, useToast } from './src/components/ToastNotification';
 import { OfflineBanner } from './src/components/OfflineBanner';
+import { useWebAppUpdate, reloadForUpdate } from './src/hooks/useWebAppUpdate';
 import { LandingPage } from './src/screens/LandingPage';
 // Hooks from these modules are used at shell level — keep eager
 import { NotificationsScreen, useUnreadCount } from './src/screens/NotificationsScreen';
@@ -295,6 +296,7 @@ const MainNavigator = () => {
   const { user: authUser, recoveryMode, endRecovery } = useAuth();
   const { width } = useWindowDimensions();
   const { show: showToast } = useToast();
+  const updateReady = useWebAppUpdate(); // web: a newer build was deployed
   const unreadCount = useUnreadCount();
   const unreadDMCount = useUnreadDMCount(
     () => { if (currentTab !== 'chats') showToast('💬 New message in Linked Up', 'info'); }
@@ -694,6 +696,24 @@ const MainNavigator = () => {
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <OfflineBanner />
+      {updateReady && (
+        <TouchableOpacity
+          onPress={reloadForUpdate}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="A new version is available. Tap to refresh."
+          style={{
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+            paddingVertical: 8, paddingHorizontal: 14, backgroundColor: primary,
+            ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
+          }}
+        >
+          <Feather name="download" size={13} color="#000" />
+          <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>
+            New version available — tap to refresh
+          </Text>
+        </TouchableOpacity>
+      )}
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={bg}
