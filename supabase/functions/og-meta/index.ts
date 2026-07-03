@@ -197,7 +197,7 @@ async function handleEvent(id: string): Promise<OGProps & { redirect: string }> 
 async function handleProfile(username: string): Promise<OGProps & { redirect: string }> {
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, username, display_name, bio, avatar_url, follower_count, vibe_count, is_verified, is_royal')
+    .select('id, username, display_name, bio, avatar_url, followers_count, vibe_score, is_verified')
     .eq('username', username)
     .single();
 
@@ -213,12 +213,13 @@ async function handleProfile(username: string): Promise<OGProps & { redirect: st
   }
 
   const displayName = profile.display_name || profile.username;
+  const isRoyal = (profile.vibe_score || 0) >= 10000; // Royal tier threshold
   const badges = [
-    profile.is_royal    ? '👑 Royal'    : '',
+    isRoyal             ? '👑 Royal'    : '',
     profile.is_verified ? '✔ Verified' : '',
   ].filter(Boolean).join(' · ');
-  const followers = profile.follower_count ? `${profile.follower_count} followers` : '';
-  const vibes     = profile.vibe_count     ? `${profile.vibe_count} vibes`          : '';
+  const followers = profile.followers_count ? `${profile.followers_count} followers` : '';
+  const vibes     = profile.vibe_score      ? `${profile.vibe_score} vibes`           : '';
   const stats     = [followers, vibes, badges].filter(Boolean).join(' · ');
 
   return {
