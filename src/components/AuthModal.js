@@ -310,13 +310,21 @@ export const AuthModal = ({ visible, onClose }) => {
               mobile browsers). Use a plain View on web; the browser handles
               keyboard avoidance itself. */}
           {(() => {
-            const Wrap = Platform.OS === 'web' ? View : KeyboardAvoidingView;
-            const wrapProps = Platform.OS === 'web'
+            const isWeb = Platform.OS === 'web';
+            const Wrap = isWeb ? View : KeyboardAvoidingView;
+            const wrapProps = isWeb
               ? { style: { width: '100%', alignItems: 'center' } }
               : { behavior: Platform.OS === 'ios' ? 'padding' : 'height', style: { width: '100%', alignItems: 'center' } };
+            // On web, RN's ScrollView adds touch/responder handlers that can eat the
+            // tap that focuses an input on mobile browsers -> keyboard never opens.
+            // Use a plain scrollable View on web; the browser scrolls natively.
+            const Scroller = isWeb ? View : ScrollView;
+            const scrollerProps = isWeb
+              ? { style: [styles.scrollContent, { width: '100%', maxHeight: '100%', overflowY: 'auto' }] }
+              : { showsVerticalScrollIndicator: false, contentContainerStyle: styles.scrollContent, keyboardShouldPersistTaps: 'always' };
             return (
           <Wrap {...wrapProps}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="always">
+            <Scroller {...scrollerProps}>
                 <View style={[styles.card, { backgroundColor: bg, borderColor: `${primary}33` }]}>
 
                   <View style={[styles.glowBar, { backgroundColor: primary }]} />
@@ -641,7 +649,7 @@ export const AuthModal = ({ visible, onClose }) => {
             {/* Signup Success Confetti Burst */}
             <GlitterBurst trigger={signupSuccessFx} size={220} colors={[primary, '#fde047', '#ffffff', '#10b981', '#fca5a5']} />
           </View>
-      </ScrollView>
+      </Scroller>
           </Wrap>
             );
           })()}
