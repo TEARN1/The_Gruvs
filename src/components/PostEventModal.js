@@ -9,6 +9,7 @@ import {
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import * as Location from 'expo-location';
+import { LocationService } from '../services/locationService';
 import * as ImagePicker from 'expo-image-picker';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
@@ -387,6 +388,16 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if ((finalLat == null || finalLon == null) && (address.trim() || city.trim())) {
       const c = await resolveCoords(address.trim() || city.trim());
       if (c) { finalLat = c.lat; finalLon = c.lon; setLat(c.lat); setLon(c.lon); }
+    }
+    // Last resort (poster-mode / blank or unresolvable address): use the host's
+    // current location so the event still appears on Scout + "near you". Try the
+    // cached fix first (no prompt); only ask for GPS if nothing is cached yet.
+    if (finalLat == null || finalLon == null) {
+      let coords = LocationService.getCached?.();
+      if (!coords?.lat) { try { coords = await LocationService.requestAndGet(); } catch { /* denied/offline */ } }
+      if (coords?.lat != null && coords?.lon != null) {
+        finalLat = coords.lat; finalLon = coords.lon; setLat(coords.lat); setLon(coords.lon);
+      }
     }
 
     const payload = {
