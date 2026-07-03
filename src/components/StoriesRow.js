@@ -67,10 +67,11 @@ const sb = StyleSheet.create({
 });
 
 // ── Story viewer modal ────────────────────────────────────────────────────────
-const StoryViewerModal = ({ visible, stories, startIndex, onClose, primary }) => {
+const StoryViewerModal = ({ visible, stories, startIndex, onClose, primary, currentUserId, onReshare }) => {
   useBackClose(visible, onClose);
   const [currentIndex, setCurrentIndex] = useState(startIndex || 0);
   const [storyIndex, setStoryIndex] = useState(0);
+  const [resharing, setResharing] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
   const timerRef = useRef(null);
   const videoRef = useRef(null);
@@ -78,6 +79,14 @@ const StoryViewerModal = ({ visible, stories, startIndex, onClose, primary }) =>
   const currentUser = stories[currentIndex];
   const userStories = currentUser?.stories || [];
   const currentStory = userStories[storyIndex];
+  const isOwnStory = currentUser?.userId === currentUserId;
+
+  const handleReshare = useCallback(async () => {
+    if (!currentStory || resharing) return;
+    setResharing(true);
+    try { await onReshare?.(currentStory, currentUser?.username); }
+    finally { setResharing(false); }
+  }, [currentStory, currentUser, resharing, onReshare]);
 
   const goNext = useCallback(() => {
     if (storyIndex < userStories.length - 1) {
@@ -144,7 +153,14 @@ const StoryViewerModal = ({ visible, stories, startIndex, onClose, primary }) =>
           }
           <Text style={sv.headerName}>@{currentUser.username}</Text>
           <Text style={sv.headerTime}>{fmtAge(currentStory.created_at)}</Text>
-          <TouchableOpacity onPress={onClose} style={{ marginLeft: 'auto', padding: 8 }}>
+          {!isOwnStory && currentUserId ? (
+            <TouchableOpacity onPress={handleReshare} disabled={resharing} style={[sv.reshareBtn, { borderColor: primary }]} activeOpacity={0.8}>
+              {resharing
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <><Feather name="repeat" size={14} color="#fff" /><Text style={sv.reshareTxt}>Reshare</Text></>}
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity onPress={onClose} style={{ marginLeft: 8, padding: 8 }}>
             <Feather name="x" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -206,6 +222,8 @@ const sv = StyleSheet.create({
   headerAvatar: { width: 34, height: 34, borderRadius: 17, marginRight: 8 },
   headerName: { color: '#fff', fontWeight: '800', fontSize: 14 },
   headerTime: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginLeft: 8 },
+  reshareBtn: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1.5, backgroundColor: 'rgba(255,255,255,0.08)' },
+  reshareTxt: { color: '#fff', fontWeight: '800', fontSize: 12 },
   caption: { position: 'absolute', bottom: 60, left: 0, right: 0, paddingHorizontal: 20, paddingVertical: 12, backgroundColor: 'rgba(0,0,0,0.5)' },
   captionText: { color: '#fff', fontSize: 15, fontWeight: '600', textAlign: 'center' },
   tapRow: { ...StyleSheet.absoluteFillObject, flexDirection: 'row', top: 120 },
@@ -331,6 +349,36 @@ export const StoriesRow = ({ onAuthRequired }) => {
     }
   };
 
+  const reshareStory = async (story, fromUsername) => {
+    if (!user) { onAuthRequired?.(); return; }
+    try {
+      // Repost the original media to your own story with clear attribution —
+      // the source stays credited (Truth Protocol: never launder someone's content).
+      const via = fromUsername ? `↻ via @${fromUsername}` : '↻ Reshared';
+      const caption = story.caption ? `${via} · ${story.caption}` : via;
+      const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+      const storyPayload = {
+        user_id: user?.id,
+        media_url: story.media_url,
+        media_type: story.media_type,
+        caption,
+        expires_at: expiresAt,
+      };
+      await resilient(
+        [
+          () => supabase.from('stories').insert(storyPayload),
+          () => supabase.from('stories').upsert(storyPayload),
+          () => supabase.rpc('create_story', { p_user_id: user?.id, p_url: story.media_url, p_type: story.media_type, p_expires_at: expiresAt }),
+        ],
+        { attemptsPerTier: 2, baseMs: 400, label: 'StoriesRow.reshare', fallbackValue: null }
+      );
+      await loadStories();
+      showToast('Reshared to your story for 24 hours', 'success');
+    } catch {
+      showToast('Could not reshare — try again', 'error');
+    }
+  };
+
   return (
     <>
       <ScrollView
@@ -353,7 +401,7 @@ export const StoriesRow = ({ onAuthRequired }) => {
               story={g}
               seen={allSeen}
               primary={primary}
-    i            onPress={() => openViewer(i)}
+              onPress={() => openViewer(i)}
             />
           );
         })}
@@ -365,6 +413,8 @@ export const StoriesRow = ({ onAuthRequired }) => {
         startIndex={viewerStart}
         onClose={() => setViewerOpen(false)}
         primary={primary}
+        currentUserId={user?.id}
+        onReshare={reshareStory}
       />
     </>
   );
