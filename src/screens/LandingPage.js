@@ -1041,7 +1041,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [activeHashtag, setActiveHashtag] = useState(null);
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [feedMode, setFeedMode] = useState('all'); // 'all' | 'following'
+  const [feedMode, setFeedMode] = useState('upcoming'); // 'upcoming' | 'all' | 'following' | 'mine'
   const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
   const fetchedCheckinIds = useRef(new Set());
 
@@ -2029,10 +2029,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       {/* Vibe Oracle (AI Prediction) — DISABLED */}
 
-      {/* Feed mode toggle — All / Following */}
-      {user && (
-        <View style={{ flexDirection: 'row', marginHorizontal: 14, marginBottom: 8, gap: 8 }}>
-          {[{ key: 'all', label: 'For You', icon: 'home' }, { key: 'following', label: 'Following', icon: 'users' }, { key: 'mine', label: 'Mine', icon: 'user' }].map(tab => {
+      {/* Feed mode toggle — All / Upcoming / Following / Mine */}
+      <View style={{ flexDirection: 'row', marginHorizontal: 14, marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
+          {[
+            { key: 'upcoming', label: 'Upcoming', icon: 'calendar' },
+            { key: 'all', label: 'For You', icon: 'home' },
+            ...(user ? [{ key: 'following', label: 'Following', icon: 'users' }, { key: 'mine', label: 'Mine', icon: 'user' }] : []),
+          ].map(tab => {
             const active = feedMode === tab.key;
             return (
               <TouchableOpacity
@@ -2058,7 +2061,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             );
           })}
         </View>
-      )}
 
       {/* Who to follow — suggested people, attractive cards */}
       {user && <SuggestedFollows />}
@@ -2366,25 +2368,27 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           ) : !loading && feedData.length === 0 ? (
             <View style={styles.emptyWrap}>
               <View style={[styles.emptyIconCircle, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}>
-                <Feather name={feedMode === 'following' ? 'users' : feedMode === 'mine' ? 'calendar' : 'compass'} size={48} color={primary} />
+                <Feather name={feedMode === 'following' ? 'users' : feedMode === 'mine' ? 'calendar' : feedMode === 'upcoming' ? 'calendar' : 'compass'} size={48} color={primary} />
                 <View style={[styles.emptyIconGlow, { backgroundColor: primary }]} />
               </View>
               <Text style={[styles.emptyTitle, { color: textColor }]}>
-                {feedMode === 'following' ? 'Your Crew is Quiet' : feedMode === 'mine' ? 'No Gruvs Yet' : 'The Kingdom is Quiet'}
+                {feedMode === 'following' ? 'Your Crew is Quiet' : feedMode === 'mine' ? 'No Gruvs Yet' : feedMode === 'upcoming' ? 'Nothing Upcoming Yet' : 'The Kingdom is Quiet'}
               </Text>
               <Text style={[styles.emptyText, { color: muted }]}>
                 {feedMode === 'following'
                   ? "You aren't following anyone who has posted recently, or they haven't dropped any Gruvs yet."
                   : feedMode === 'mine'
                   ? "You haven't posted any Gruvs yet. Drop your first and every event you create shows up right here."
+                  : feedMode === 'upcoming'
+                  ? "No upcoming events found. Be the first to drop a Gruv!"
                   : "No gruvs found in this sector. Be the one to start the vibe!"}
               </Text>
               {feedMode === 'following' ? (
                 <TouchableOpacity
                   style={[styles.emptyBtn, { backgroundColor: primary }]}
-                  onPress={() => setFeedMode('all')}
+                  onPress={() => setFeedMode('upcoming')}
                 >
-                  <Text style={[styles.emptyBtnText, { color: '#000' }]}>Explore All Gruvs</Text>
+                  <Text style={[styles.emptyBtnText, { color: '#000' }]}>See All Upcoming</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity

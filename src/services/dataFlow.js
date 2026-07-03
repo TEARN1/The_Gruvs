@@ -683,6 +683,12 @@ export const FeedManager = {
         // "Mine" — every event YOU posted, all of them (past + upcoming), so an
         // organiser always has a complete, reliable view of their own Gruvs.
         q = q.eq('author_id', userId || '00000000-0000-0000-0000-000000000000');
+      } else if (mode === 'upcoming') {
+        // "Upcoming" — every non-deleted future event, nearest-first. No heat
+        // ranking, no personalisation. The honest full catalogue.
+        const todayStr = new Date().toISOString().slice(0, 10);
+        if (!dateRange?.from) q = q.gte('event_date', todayStr);
+        q = q.order('event_date', { ascending: true }).order('created_at', { ascending: false });
       }
       return q;
     };
@@ -697,12 +703,18 @@ export const FeedManager = {
     }
 
     const rankAndCache = async (data, count) => {
-      // "Mine" is a management view, not discovery — show ALL your events in plain
-      // reverse-chronological order (no heat re-rank, no per-host diversity cap).
+      // "Mine" / "Upcoming" are plain sorted lists — no heat re-rank.
       if (mode === 'mine') {
         const mineEvents = normalizeEvents((data || []).filter(e => !e.auto_hidden))
           .sort((a, b) => String(b.event_date || '').localeCompare(String(a.event_date || '')));
         const r = { events: mineEvents, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
+        cache.set(cacheKey, r);
+        return r;
+      }
+      if (mode === 'upcoming') {
+        const upcomingEvents = normalizeEvents((data || []).filter(e => !e.auto_hidden))
+          .sort((a, b) => String(a.event_date || '').localeCompare(String(b.event_date || '')));
+        const r = { events: upcomingEvents, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
         cache.set(cacheKey, r);
         return r;
       }
