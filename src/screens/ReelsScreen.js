@@ -1457,18 +1457,72 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   }
 
   if (!reels.length) {
+    const isTag = !!hashtagFilter;
+    const perks = [
+      { icon: 'zap', text: 'Post in seconds — record now or upload a clip' },
+      { icon: 'users', text: 'Land in everyone’s For You feed' },
+      { icon: 'calendar', text: 'Tag an event to drive RSVPs to it' },
+    ];
     return (
       <View style={[rs.screen, { backgroundColor: '#000' }]}>
         <ReelTabSwitcher {...tabSwitcherProps} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
-          <Feather name="film" size={44} color={primary} style={{ marginBottom: 14, opacity: 0.9 }} />
-          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17, marginBottom: 8 }}>No reels yet</Text>
-          <Text style={{ color: muted, fontSize: 13, textAlign: 'center', marginBottom: 20, lineHeight: 19 }}>
-            {hashtagFilter ? `Nothing tagged ${hashtagFilter} yet.` : 'Be the first to drop a reel and set the vibe.'}
+          {/* Glowing film badge */}
+          <View style={{
+            width: 92, height: 92, borderRadius: 46, marginBottom: 18,
+            alignItems: 'center', justifyContent: 'center',
+            backgroundColor: `${primary}14`, borderWidth: 1.5, borderColor: `${primary}40`,
+            ...(IS_WEB ? { boxShadow: `0 0 32px ${primary}55` } : { shadowColor: primary, shadowOpacity: 0.6, shadowRadius: 20, elevation: 10 }),
+          }}>
+            <Feather name="film" size={40} color={primary} />
+          </View>
+
+          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 20, marginBottom: 8, textAlign: 'center' }}>
+            {isTag ? `No #${String(hashtagFilter).replace(/^#/, '')} reels yet` : 'Your stage is empty'}
           </Text>
-          <TouchableOpacity onPress={() => setCreateVisible(true)} style={[rs.retryBtn, { borderColor: primary, backgroundColor: `${primary}14` }]} activeOpacity={0.85}>
-            <Text style={{ color: primary, fontWeight: '900' }}>Create a Reel</Text>
+          <Text style={{ color: muted, fontSize: 13.5, textAlign: 'center', marginBottom: isTag ? 22 : 20, lineHeight: 20, maxWidth: 320 }}>
+            {isTag
+              ? 'Be the first to tag a reel with this — set the tone for it.'
+              : 'Reels are 15‑second vibes from the night — the fastest way to show what an event actually felt like.'}
+          </Text>
+
+          {!isTag && (
+            <View style={{ alignSelf: 'stretch', maxWidth: 340, alignItems: 'center', gap: 10, marginBottom: 24 }}>
+              {perks.map(p => (
+                <View key={p.icon} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start' }}>
+                  <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: `${primary}18`, alignItems: 'center', justifyContent: 'center' }}>
+                    <Feather name={p.icon} size={13} color={primary} />
+                  </View>
+                  <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>{p.text}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Big primary CTA */}
+          <TouchableOpacity
+            onPress={() => setCreateVisible(true)}
+            activeOpacity={0.88}
+            accessibilityRole="button"
+            accessibilityLabel="Create your first reel"
+            style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+              backgroundColor: primary, paddingVertical: 15, paddingHorizontal: 30, borderRadius: 30,
+              alignSelf: 'stretch', maxWidth: 320,
+              ...(IS_WEB ? { boxShadow: `0 8px 24px ${primary}55`, cursor: 'pointer' } : { shadowColor: primary, shadowOpacity: 0.5, shadowRadius: 14, elevation: 8 }),
+            }}
+          >
+            <Feather name="plus-circle" size={18} color="#000" />
+            <Text style={{ color: '#000', fontWeight: '900', fontSize: 15 }}>
+              {isTag ? 'Create a Reel' : 'Create your first reel'}
+            </Text>
           </TouchableOpacity>
+
+          {!isTag && (
+            <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 14 }}>
+              Takes 30 seconds · you can delete it anytime
+            </Text>
+          )}
         </View>
       </View>
     );
