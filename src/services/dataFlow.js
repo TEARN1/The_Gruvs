@@ -650,6 +650,12 @@ export const FeedManager = {
     // AI recommendations cache query removed
     const aiRecommendedIds = new Set();
 
+    // "Mine" and "Upcoming" are meant to be COMPLETE lists (the host's own events /
+    // the full upcoming catalogue), not an infinite-scroll discovery feed. Web
+    // onEndReached is flaky, so a small page there means "not all my events show".
+    // Pull a big single page for those modes so everything appears at once.
+    const pageSize = (mode === 'mine' || mode === 'upcoming') ? 200 : this.PAGE_SIZE;
+
     // ── Tier helpers ──────────────────────────────────────────────────────────
     const buildBaseQuery = (select, opts = {}) => {
       const { count = 'estimated' } = opts;
@@ -659,7 +665,7 @@ export const FeedManager = {
         .is('deleted_at', null)
         // null-safe: a row with status IS NULL must still show (NULL <> 'cancelled' is NULL in SQL)
         .or('status.is.null,status.neq.cancelled')
-        .range(page * this.PAGE_SIZE, (page + 1) * this.PAGE_SIZE - 1);
+        .range(page * pageSize, (page + 1) * pageSize - 1);
       if (category !== 'all') {
         const subCats = CAT_KEY_TO_SUBCATS[category];
         const catList = subCats && subCats.size > 0 ? [...subCats] : [category];
@@ -704,14 +710,14 @@ export const FeedManager = {
       if (mode === 'mine') {
         const mineEvents = normalizeEvents((data || []).filter(e => !e.auto_hidden))
           .sort((a, b) => String(b.event_date || '').localeCompare(String(a.event_date || '')));
-        const r = { events: mineEvents, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
+        const r = { events: mineEvents, total: count || 0, page, hasMore: data?.length === pageSize };
         cache.set(cacheKey, r);
         return r;
       }
       if (mode === 'upcoming') {
         const upcomingEvents = normalizeEvents((data || []).filter(e => !e.auto_hidden))
           .sort((a, b) => String(a.event_date || '').localeCompare(String(b.event_date || '')));
-        const r = { events: upcomingEvents, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
+        const r = { events: upcomingEvents, total: count || 0, page, hasMore: data?.length === pageSize };
         cache.set(cacheKey, r);
         return r;
       }
