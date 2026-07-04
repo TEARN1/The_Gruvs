@@ -39,6 +39,18 @@ const isTransient = (err) => {
          msg.includes('econnreset') || msg.includes('socket');
 };
 
+// PostgREST schema-cache misses — a missing function (PGRST202), table (PGRST205)
+// or column (PGRST204). Permanent for THIS tier (retrying never helps), but the
+// NEXT fallback tier still should run — so these are deliberately NOT "fatal"
+// (fatal skips the whole cascade). This is what makes an RPC-then-table fallback
+// switch to the table path instantly instead of burning ~900ms of dead retries.
+export const isSchemaMiss = (err) => {
+  const code = err?.code;
+  if (typeof code === 'string' && /^PGRST2\d\d$/i.test(code)) return true;
+  const msg = (err?.message || '').toLowerCase();
+  return msg.includes('schema cache') || msg.includes('could not find the function');
+};
+
 // ─── Core resilience primitive ─────────────────────────────────────────────────
 
 /**
@@ -64,6 +76,10 @@ export async function attemptWithBackoff(fn, maxAttempts = 3, baseMs = 300, labe
       }
     } catch (err) {
       if (isFatal(err)) throw err; // bail immediately on 4xx / permission
+      // Missing RPC/table/column: this tier can never succeed, so stop retrying
+      // and let resilient() fall through to the next tier (it isn't "fatal", so
+      // the cascade continues instead of aborting).
+      if (isSchemaMiss(err)) throw err;
       lastErr = err;
     }
     if (i < maxAttempts - 1) {

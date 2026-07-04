@@ -19,6 +19,7 @@ import { StagePlaybookModal } from '../components/StagePlaybookModal';
 import { GiftBoostModal } from '../components/GiftBoostModal';
 import { SurveyBuilderModal } from '../components/SurveyBuilderModal';
 import { AttendanceAnalyticsPanel } from '../components/AttendanceAnalyticsPanel';
+import { SuperfansPanel } from '../components/SuperfansPanel';
 import { CampaignManager, EcosystemManager, NotificationManager } from '../services/dataFlow';
 import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -958,6 +959,8 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
           {/* Verified attendance — the proof-of-who-came moat (real live_checkins data) */}
           <AttendanceAnalyticsPanel userId={user?.id} primary={primary} textColor={textColor} muted={muted} />
+          {/* Your Superfans — who keeps coming back, worth treating special */}
+          <SuperfansPanel userId={user?.id} primary={primary} textColor={textColor} muted={muted} />
           <Text style={[sc.sectionTitle, { color: textColor }]}>Vibe Funnel</Text>
           <GlassView style={[sc.funnelCard, { borderColor: `${primary}15` }]}>
             {[
