@@ -11,6 +11,7 @@
  * host's events + check-ins and rolls them up.
  */
 import { supabase } from './supabase';
+import { fidelityScore, loyaltyTier } from '../utils/fanFidelity';
 
 // A check-in is anonymous (and must NOT surface a fan) when its identity_mode is
 // ghost / anonymous / incognito. Unknown/absent identity_mode = public (default).
@@ -67,10 +68,11 @@ export function rankSuperfans({ events = [], checkins = [], profiles = {}, perio
 
   const byUser = new Map();
   for (const c of ci) {
-    if (!byUser.has(c.user_id)) byUser.set(c.user_id, { userId: c.user_id, checkins: 0, events: new Set(), last: 0 });
+    if (!byUser.has(c.user_id)) byUser.set(c.user_id, { userId: c.user_id, checkins: 0, events: new Set(), last: 0, times: [] });
     const u = byUser.get(c.user_id);
     u.checkins += 1;
     u.events.add(c.event_id);
+    u.times.push(c.checked_in_at);
     const t = new Date(c.checked_in_at).getTime();
     if (!isNaN(t) && t > u.last) u.last = t;
   }
@@ -80,6 +82,9 @@ export function rankSuperfans({ events = [], checkins = [], profiles = {}, perio
     const tier = fanTier(distinctEvents);
     const meta = TIER_META[tier];
     const p = profiles[u.userId] || {};
+    // Fidelity: decay-weighted loyalty (see utils/fanFidelity) — presence only
+    // for now; more signal types can be fed in later without changing the shape.
+    const fidelity = fidelityScore(u.times.map(at => ({ type: 'touchdown', at })), { now });
     return {
       userId: u.userId,
       username: p.username || null,
@@ -88,6 +93,8 @@ export function rankSuperfans({ events = [], checkins = [], profiles = {}, perio
       events: distinctEvents,
       lastCheckin: u.last || null,
       sharePct: hostEventsInWindow > 0 ? Math.min(100, Math.round((distinctEvents / hostEventsInWindow) * 100)) : 0,
+      fidelity,
+      loyalty: loyaltyTier(fidelity),
       tier,
       tierLabel: meta.label,
       tierEmoji: meta.emoji,
@@ -97,7 +104,10 @@ export function rankSuperfans({ events = [], checkins = [], profiles = {}, perio
     };
   });
 
+  // Fidelity is the primary rank — decay-weighted, burst-proof loyalty. Ties
+  // fall back to breadth (distinct events), volume, then recency.
   fans.sort((a, b) =>
+    b.fidelity - a.fidelity ||
     b.events - a.events ||
     b.checkins - a.checkins ||
     (b.lastCheckin || 0) - (a.lastCheckin || 0)

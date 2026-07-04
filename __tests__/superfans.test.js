@@ -83,6 +83,20 @@ describe('rankSuperfans', () => {
     const r = rankSuperfans({});
     expect(r).toEqual({ period: 'all', totalFans: 0, superfans: 0, trueFans: 0, fans: [] });
   });
+
+  it('carries a decay-weighted fidelity score + loyalty tier per fan', () => {
+    const checkins = [
+      ci('e1', 'u1', '2026-07-01T20:00:00Z'), ci('e2', 'u1', '2026-07-02T20:00:00Z'),
+      ci('e1', 'u2', '2026-07-01T20:00:00Z'),
+    ];
+    const now = new Date('2026-07-04T12:00:00Z').getTime();
+    const r = rankSuperfans({ events, checkins, profiles, now });
+    const u1 = r.fans.find(f => f.userId === 'u1');
+    const u2 = r.fans.find(f => f.userId === 'u2');
+    expect(u1.fidelity).toBeGreaterThan(u2.fidelity); // more presence = more fidelity
+    expect(u1.loyalty.key).toBeTruthy();
+    expect(r.fans[0].userId).toBe('u1'); // fidelity leads the ranking
+  });
 });
 
 describe('periodStart', () => {

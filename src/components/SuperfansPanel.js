@@ -43,6 +43,11 @@ const FanRow = ({ fan, rank, textColor, muted, primary }) => {
           {fan.events} event{fan.events !== 1 ? 's' : ''} · {fan.checkins} Touch Down{fan.checkins !== 1 ? 's' : ''}
           {fan.sharePct > 0 ? ` · ${fan.sharePct}% of your Gruvs` : ''}
         </Text>
+        {fan.loyalty && fan.fidelity > 0 && (
+          <Text style={[sf.meta, { color, marginTop: 2 }]} numberOfLines={1}>
+            {fan.loyalty.emoji} {fan.loyalty.label} · fidelity {fan.fidelity}
+          </Text>
+        )}
         {fan.dueForReward && (
           <View style={[sf.suggest, { backgroundColor: `${color}12` }]}>
             <Feather name="gift" size={11} color={color} />
