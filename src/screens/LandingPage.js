@@ -597,10 +597,13 @@ const EventCard = React.memo(({
               </View>
             )}
 
-            {/* Two-column row: title+desc LEFT, meta chips RIGHT */}
+            {/* Two-column row: title+desc LEFT, SHORT chips right (date/time/
+                countdown only). The venue moved to its own full-width row below —
+                long addresses in the narrow column used to overflow and paint
+                OVER the title (web flexbox min-width:auto), making cards unreadable. */}
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
               <TouchableOpacity
-                style={{ flex: 1 }}
+                style={{ flex: 1, minWidth: 0 }}
                 activeOpacity={0.8}
                 onPress={() => onSelectEvent(event)}
                 accessibilityHint="Double-tap to open event details"
@@ -611,8 +614,8 @@ const EventCard = React.memo(({
                   : <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>}
               </TouchableOpacity>
 
-              {/* Right column: date / time / venue / countdown chips */}
-              <View style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0, maxWidth: 110 }}>
+              {/* Right column: short, fixed-size chips only — never overlaps */}
+              <View style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
                 {event.event_date ? (
                   <View style={[styles.metaChip, { borderColor: `${primary}22` }]}>
                     <Feather name="calendar" size={10} color={primary} />
@@ -627,26 +630,29 @@ const EventCard = React.memo(({
                     <Text style={[styles.metaChipText, { color: muted }]}>{event.event_time}</Text>
                   </View>
                 ) : null}
-                {(event.venue_name || event.address) ? (
-                  <TouchableOpacity
-                    style={[styles.metaChip, { borderColor: `${primary}30` }]}
-                    onPress={() => SecurityService.safeOpenURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
-                  >
-                    <Feather name="map-pin" size={10} color={primary} />
-                    <Text style={[styles.metaChipText, { color: primary }]} numberOfLines={1}>
-                      {event.venue_name || event.address}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
                 {countdown ? (
                   <View style={[styles.metaChip, { borderColor: `${primary}35`, backgroundColor: `${primary}10` }]}>
                     <Feather name="clock" size={10} color={primary} />
                     <Text style={[styles.metaChipText, { color: primary, fontWeight: '800' }]}>{countdown}</Text>
                   </View>
                 ) : null}
-
               </View>
             </View>
+
+            {/* Venue / address — full-width row, truncates cleanly, taps to Maps */}
+            {(event.venue_name || event.address) ? (
+              <TouchableOpacity
+                style={[styles.venueRow, { borderColor: `${primary}22`, backgroundColor: `${primary}08` }]}
+                onPress={() => SecurityService.safeOpenURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${event.venue_name || event.address} in Maps`}
+              >
+                <Feather name="map-pin" size={11} color={primary} />
+                <Text style={[styles.venueRowText, { color: primary }]} numberOfLines={1}>
+                  {event.venue_name || event.address}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
 
             {/* Item 62: RSVP progress bar with progressbar role */}
             {event.capacity > 0 ? (
@@ -2954,8 +2960,11 @@ const styles = StyleSheet.create({
 
   countdown: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginBottom: 10 },
   countdownText: { fontSize: 11, fontWeight: '800' },
-  metaChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
+  metaChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
   metaChipText: { fontSize: 10, fontWeight: '700', flexShrink: 1 },
+  // Venue gets a full-width row of its own (long addresses used to overlap the title)
+  venueRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, marginBottom: 12, overflow: 'hidden' },
+  venueRowText: { fontSize: 11.5, fontWeight: '700', flex: 1, minWidth: 0 },
 
   rsvpWrap: { marginBottom: 10 },
   rsvpTrack: { height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 5 },
