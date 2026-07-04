@@ -13,11 +13,14 @@ const reducedMotion = () =>
   IS_WEB && typeof window !== 'undefined' &&
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-// Curated "signature" reactions — the distinctive, out-of-this-world ones,
-// not the full 30-emoji grid. Keys all exist in REACTION_LIST so counts/displays
-// elsewhere keep mapping correctly.
-// The full signature set — all 50 reactions (REACTION_LIST is already curated).
-const SIGNATURE_LIST = REACTION_LIST;
+// Curated "signature" reactions — a tight, readable set (the full 70-item grid
+// overwhelmed the card and half the icons read as noise). Keys all exist in
+// REACTION_LIST so counts/displays elsewhere keep mapping correctly, and this
+// matches EventReactions' signature set so a reaction reads the same app-wide.
+const SIGNATURE_KEYS = ['fire', 'heart', 'hype', 'gem', 'star', 'laugh', 'magic', 'crown'];
+const SIGNATURE_LIST = SIGNATURE_KEYS
+  .map(k => REACTION_LIST.find(x => x.key === k))
+  .filter(Boolean);
 
 // ── A single floating, glowing reaction orb ──────────────────────────────────
 const ReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle = true }) => {
@@ -87,7 +90,7 @@ const ReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle 
             : { shadowColor: accent, shadowOpacity: 0.9, shadowRadius: 12, elevation: 8 }),
         ]}
       >
-        <MaterialCommunityIcons name={reaction.icon || 'star'} size={20} color={isActive ? accent : '#fff'} />
+        <MaterialCommunityIcons name={reaction.icon || 'star'} size={18} color={isActive ? accent : 'rgba(255,255,255,0.55)'} />
         {/* Picked reactions become a glowing pill showing their count. */}
         {isActive && (
           <Text style={[styles.count, { color: accent }]}>{count != null ? count : 1}</Text>
