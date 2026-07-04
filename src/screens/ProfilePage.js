@@ -2039,7 +2039,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
     const loadCounts = async () => {
       const [evRes, followRes, saveRes] = await Promise.allSettled([
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', user.id),
-        supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', user.id),
+        supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', user.id),
         supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', user?.id),
       ]);
       if (evRes.status === 'fulfilled') setEventCount(evRes.value.count || 0);

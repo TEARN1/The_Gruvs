@@ -577,14 +577,25 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
     return <Text key={i} style={{ color: 'rgba(255,255,255,0.92)' }}>{word}</Text>;
   });
 
+  // Tap semantics (Instagram-style):
+  //  • single tap  → toggle pause, but only AFTER the double-tap window closes
+  //    (the old code paused on the FIRST tap of a double-tap, so liking also
+  //    paused/played the video)
+  //  • double tap  → LIKE only — never unlike, never pause. Re-double-tapping
+  //    just re-bursts the heart. The heart button stays the explicit toggle.
+  const tapTimer = useRef(null);
+  useEffect(() => () => clearTimeout(tapTimer.current), []);
   const handleTap = () => {
     const now = Date.now();
-    if (now - lastTap.current < 300) {
-      triggerLike();
-    } else {
-      togglePause();
-    }
+    const sinceLast = now - lastTap.current;
     lastTap.current = now;
+    if (sinceLast < 300) {
+      if (tapTimer.current) { clearTimeout(tapTimer.current); tapTimer.current = null; }
+      doubleTapLike();
+    } else {
+      if (tapTimer.current) clearTimeout(tapTimer.current);
+      tapTimer.current = setTimeout(() => { tapTimer.current = null; togglePause(); }, 300);
+    }
   };
 
   const handleReport = () => {
@@ -598,12 +609,9 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
   };
 
   const [likeFx, setLikeFx] = useState(0);
-  const triggerLike = async () => {
-    if (!user) return;
-    const newLiked = !liked;
-    if (newLiked) { haptics.light(); setLikeFx(Date.now()); }
-    setLiked(newLiked);
-    setLikeCount(c => newLiked ? c + 1 : Math.max(0, c - 1));
+  const likeBusy = useRef(false); // single-flight: rapid taps can't fire overlapping writes (double counting)
+
+  const burstHeart = () => {
     heartAnim.setValue(1);
     heartScale.setValue(0);
     Animated.parallel([
@@ -613,12 +621,31 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
         Animated.timing(heartAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
       ]),
     ]).start();
+  };
+
+  // Double-tap: like ONLY. Already liked → just re-burst the heart, no toggle.
+  const doubleTapLike = () => {
+    if (!user) return;
+    burstHeart();
+    if (!liked) triggerLike();
+  };
+
+  const triggerLike = async () => {
+    if (!user || likeBusy.current) return;
+    likeBusy.current = true;
+    const newLiked = !liked;
+    if (newLiked) { haptics.light(); setLikeFx(Date.now()); }
+    setLiked(newLiked);
+    setLikeCount(c => newLiked ? c + 1 : Math.max(0, c - 1));
+    if (newLiked) burstHeart();
 
     try {
       await ReelsRepository.toggleLike({ reelId: reel.id, userId: user?.id, isLiked: newLiked });
     } catch {
       setLiked(!newLiked);
       setLikeCount(c => newLiked ? Math.max(0, c - 1) : c + 1);
+    } finally {
+      likeBusy.current = false;
     }
   };
 
@@ -1162,10 +1189,6 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const surface   = currentTheme?.surface    || "#1a1f21";
 
   const { width: winW, height: winH } = useWindowDimensions();
-  // Responsive reel dimensions — recalculate on resize
-  const REEL_W = IS_WEB ? Math.min(winW, 420) : winW;
-  const REEL_H = IS_WEB ? Math.min(winH, 880) : winH;
-  const isWide = IS_WEB && winW > 800;
 
   const [reels, setReels] = useState([]);
   
@@ -1201,6 +1224,17 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
   const flatRef = useRef(null);
   const [screenFocused, setScreenFocused] = useState(true);
+
+  // Responsive reel dimensions — but FROZEN while any overlay (comments/profile/
+  // DM/create/manage/settings) is open. Opening comments pops the keyboard, the
+  // viewport height shrinks, REEL_H changed, the whole FlatList re-laid-out and
+  // the video restarted. Dimensions only track the window when nothing overlays.
+  const anyOverlayOpen = commentsVisible || profileVisible || dmVisible || createVisible || manageVisible || settingsVisible;
+  const frozenDims = useRef({ w: winW, h: winH });
+  if (!anyOverlayOpen) frozenDims.current = { w: winW, h: winH };
+  const REEL_W = IS_WEB ? Math.min(frozenDims.current.w, 420) : frozenDims.current.w;
+  const REEL_H = IS_WEB ? Math.min(frozenDims.current.h, 880) : frozenDims.current.h;
+  const isWide = IS_WEB && frozenDims.current.w > 800;
 
   // Subscribe to Reels Preferences State Machine changes
   useEffect(() => {

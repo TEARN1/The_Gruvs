@@ -507,7 +507,7 @@ export const ScoreEngine = {
         supabase.from('event_vibes').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
         supabase.from('event_rsvps').select('event_id', { count: 'estimated', head: true }).eq('user_id', userId),
         supabase.from('live_checkins').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
-        supabase.from('follows').select('id', { count: 'estimated', head: true }).eq('following_id', userId),
+        supabase.from('follows').select('follower_id', { count: 'estimated', head: true }).eq('following_id', userId),
         supabase.from('service_bookings').select('id', { count: 'estimated', head: true }).eq('provider_id', userId).eq('status', 'completed'),
       ]);
 
@@ -1450,7 +1450,7 @@ export const UserManager = {
     try {
       const { count } = await supabase
         .from('follows')
-        .select('id', { count: 'estimated', head: true })
+        .select('follower_id', { count: 'estimated', head: true })
         .eq('following_id', userId);
       return count || 0;
     } catch { return 0; }
@@ -1940,7 +1940,7 @@ export const AnalyticsManager = {
         supabase.from('saved_events').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
         supabase.from('event_vibes').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
         supabase.from('live_checkins').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
-        supabase.from('follows').select('id', { count: 'estimated', head: true }).eq('following_id', userId),
+        supabase.from('follows').select('follower_id', { count: 'estimated', head: true }).eq('following_id', userId),
       ]);
       const result = {
         gruvCount: posts.count || 0,

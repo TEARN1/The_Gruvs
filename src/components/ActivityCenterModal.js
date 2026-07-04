@@ -7,7 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../services/supabase';
+import { supabase } from '../services/supabase';
 import { useBackClose } from '../hooks/useBackClose';
 
 const TYPE_META = {
@@ -66,7 +66,8 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
       // All queries fire in parallel — partial failures don't block other results
       const queries = [
         supabase.from('follows')
-          .select('id, follower_id, created_at, profiles!follows_follower_id_fkey(username, avatar_url)')
+          // no id column on follows (composite PK) — selecting it 400s the query
+          .select('follower_id, created_at, profiles!follows_follower_id_fkey(username, avatar_url)')
           .eq('following_id', user.id)
           .order('created_at', { ascending: false })
           .limit(20),
@@ -101,7 +102,7 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
       const results = [];
 
       (followsRes || []).forEach(f => results.push({
-        id: `follow_${f.id}`, type: 'follow',
+        id: `follow_${f.follower_id}`, type: 'follow',
         actor: f.profiles?.username || 'Someone',
         actor_avatar: f.profiles?.avatar_url || null,
         content: 'started following you',

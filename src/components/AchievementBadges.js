@@ -52,7 +52,7 @@ const checkBadges = async (userId) => {
       await Promise.allSettled([
         supabase.from('events').select('id, vibe_count', { count: 'exact' }).eq('author_id', userId),
         supabase.from('profiles').select('vibe_score, username, bio, avatar_url, city, referral_count').eq('id', userId).single(),
-        supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', userId),
+        supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('follower_id', userId),
         supabase.from('event_rsvps').select('event_id, events(event_date, event_time, city)').eq('user_id', userId),
         supabase.from('echoes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', userId),

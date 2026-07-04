@@ -38,6 +38,7 @@ import { FONT } from '../constants/DesignTokens';
 import { CommunityStatsBar } from '../components/CommunityStatsBar';
 import { TonightAlert } from '../components/TonightAlert';
 import { StoriesRow } from '../components/StoriesRow';
+import { MasonryFeed } from '../components/MasonryFeed';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { CrewOutCard } from '../components/CrewOutCard';
 import { CheckInNudge } from '../components/CheckInNudge';
@@ -974,7 +975,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [prediction, setPrediction] = useState(null);
   const [loadingPrediction, setLoadingPrediction] = useState(false);
-  const [layoutType, setLayoutType] = useState('list');
+  const [layoutType, setLayoutType] = useState('list'); // 'list' | 'grid' (Pinterest masonry)
+  // Restore the user's last-chosen feed layout
+  useEffect(() => {
+    AsyncStorage.getItem('@gruvs_feed_layout')
+      .then(v => { if (v === 'grid' || v === 'list') setLayoutType(v); })
+      .catch(() => {});
+  }, []);
   const searchTimer = useRef(null);
   const [routeEvents, setRouteEvents] = useState([]);
   const [routeModalVisible, setRouteModalVisible] = useState(false);
@@ -2073,6 +2080,25 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               </TouchableOpacity>
             );
           })}
+          {/* List ⇄ Masonry (Pinterest) layout toggle */}
+          <TouchableOpacity
+            onPress={() => {
+              const next = layoutType === 'grid' ? 'list' : 'grid';
+              setLayoutType(next);
+              AsyncStorage.setItem('@gruvs_feed_layout', next).catch(() => {});
+              safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={layoutType === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+            style={{
+              marginLeft: 'auto', width: 34, height: 30, borderRadius: 15,
+              alignItems: 'center', justifyContent: 'center',
+              backgroundColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.06)',
+              borderWidth: 1, borderColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.10)',
+            }}
+          >
+            <Feather name={layoutType === 'grid' ? 'list' : 'grid'} size={14} color={layoutType === 'grid' ? '#000' : textColor} />
+          </TouchableOpacity>
         </View>
 
       {/* Who to follow — suggested people, attractive cards */}
@@ -2247,6 +2273,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // ── EVENT CARD ────────────────────────────────────────────────────────────────
   const renderCard = useCallback(({ item: event, index }) => {
     const id = event.id;
+    // Masonry mode: one virtual item renders the whole Pinterest grid.
+    if (id === '__masonry__') {
+      return (
+        <MasonryFeed
+          events={feedData}
+          onSelectEvent={(ev) => setSelectedEvent(ev)}
+          primary={primary}
+          textColor={textColor}
+        />
+      );
+    }
     return (
       <EventCard
         event={event}
@@ -2297,7 +2334,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       onAuthRequired, onNavigateToServices, handleVibe, handleBookmark, handleReact, handleShare,
       handleToggleRoute, toggleSection, fetchReactors, fetchEventCheckins, openViberProfile,
       handleFollowFromFeed, handleImageTap, handleImageLongPress, onCardPressIn, onCardPressOut,
-      getCardScale, heartAnimRef]);
+      getCardScale, heartAnimRef, feedData]);
 
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
@@ -2307,10 +2344,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       <FlatList
         ref={flatListRef}
-        data={feedData}
+        // Masonry (Pinterest) mode renders the whole staggered grid as ONE virtual
+        // item — headers, pull-to-refresh and load-more all keep working.
+        data={layoutType === 'grid' ? [{ id: '__masonry__' }] : feedData}
         key={layoutType}
-        numColumns={layoutType === 'grid' ? 2 : 1}
-        columnWrapperStyle={layoutType === 'grid' ? { gap: 0 } : undefined}
         keyExtractor={item => String(item.id)}
         extraData={cardExtraData}
         showsVerticalScrollIndicator={false}
