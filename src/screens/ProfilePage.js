@@ -67,6 +67,7 @@ import { EditEventModal }          from '../components/EditEventModal';
 import { LeaderboardScreen }       from './LeaderboardScreen';
 import { PathMapScreen }           from './PathMapScreen';
 import { BusinessDashboardScreen } from './BusinessDashboardScreen';
+import { FollowListModal } from '../components/FollowListModal';
 import { WalletScreen }            from './WalletScreen';
 import { MonetizationService }     from '../services/monetizationService';
 import { ProviderDashboardScreen } from './ProviderDashboardScreen';
@@ -1807,6 +1808,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [activityItems, setActivityItems] = useState([]);
   const [eventCount, setEventCount] = useState(0);
   const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [followList, setFollowList] = useState(null); // null | 'followers' | 'following'
   const [saving, setSaving] = useState(false);
 
   // New Profile Extension Fields
@@ -2037,13 +2040,15 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   useEffect(() => {
     if (!user) return;
     const loadCounts = async () => {
-      const [evRes, followRes, saveRes] = await Promise.allSettled([
+      const [evRes, followRes, followingRes, saveRes] = await Promise.allSettled([
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('author_id', user.id),
         supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', user.id),
+        supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('follower_id', user.id),
         supabase.from('saved_events').select('id', { count: 'exact', head: true }).eq('user_id', user?.id),
       ]);
       if (evRes.status === 'fulfilled') setEventCount(evRes.value.count || 0);
       if (followRes.status === 'fulfilled') setFollowerCount(followRes.value.count || 0);
+      if (followingRes.status === 'fulfilled') setFollowingCount(followingRes.value.count || 0);
       if (saveRes.status === 'fulfilled') setSavedCount(saveRes.value.count || 0);
     };
     loadCounts();
@@ -2597,19 +2602,28 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </Text>
         </View>
 
-        {/* Stats Row */}
+        {/* Stats Row — Crew/Following are tappable → see exactly who */}
         <View style={[styles.statsBar, { borderColor: `${primary}18` }]}>
           {[
             { label: 'Gruvs', value: eventCount },
-            { label: 'Crew', value: followerCount },
-            { label: 'Saved', value: savedCount },
+            { label: 'Crew', value: followerCount, onPress: () => setFollowList('followers') },
+            { label: 'Following', value: followingCount, onPress: () => setFollowList('following') },
             { label: 'Vibed', value: vibeScore },
           ].map((s, i, arr) => (
             <React.Fragment key={s.label}>
-              <View style={styles.statItem}>
+              <TouchableOpacity
+                style={styles.statItem}
+                onPress={s.onPress}
+                disabled={!s.onPress}
+                activeOpacity={0.7}
+                accessibilityRole={s.onPress ? 'button' : undefined}
+                accessibilityLabel={s.onPress ? `See ${s.label.toLowerCase()} list` : undefined}
+              >
                 <Text style={[styles.statVal, { color: primary }]}>{s.value}</Text>
-                <Text style={[styles.statLab, { color: muted }]}>{s.label}</Text>
-              </View>
+                <Text style={[styles.statLab, { color: muted }]}>
+                  {s.label}{s.onPress ? ' ›' : ''}
+                </Text>
+              </TouchableOpacity>
               {i < arr.length - 1 && <View style={[styles.statDiv, { backgroundColor: `${primary}20` }]} />}
             </React.Fragment>
           ))}
@@ -3307,6 +3321,13 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </View>
         </SafeSection>
       )}
+      {/* Followers / Following lists (tap Crew / Following in the stats row) */}
+      <FollowListModal
+        visible={!!followList}
+        mode={followList || 'followers'}
+        userId={user?.id}
+        onClose={() => setFollowList(null)}
+      />
       {whoWasThereVisible && (
         <SafeSection label="Who Was There" primary={primary}>
           <WhoWasThereModal

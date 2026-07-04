@@ -102,17 +102,40 @@ export async function suggestWeekendPlans(userId, coords, { weeks = 5, radiusKm 
   };
 
   const used = new Set();
+
+  // Roadmap fallback: when a weekend itself is empty, offer the closest event
+  // AROUND it (±3 days) instead of a dead end — clearly labeled with its real
+  // date so the suggestion stays honest.
+  const pickNear = (date, maxDriftDays = 3) => {
+    const target = new Date(`${date}T00:00:00`).getTime();
+    const scored = events
+      .filter(e => e.author_id !== userId && !rsvpd.has(e.id) && !used.has(e.id))
+      .map(e => {
+        const t = new Date(`${e.event_date}T00:00:00`).getTime();
+        return { e, drift: Math.abs(t - target) / DAY_MS };
+      })
+      .filter(s => Number.isFinite(s.drift) && s.drift > 0 && s.drift <= maxDriftDays);
+    if (!scored.length) return null;
+    scored.sort((a, b) => a.drift - b.drift || (b.e.vibe_count || 0) - (a.e.vibe_count || 0));
+    return scored[0].e;
+  };
+
   const out = [];
   for (const slot of slots) {
     if (out.length >= max) break;
     const ev = pickFor(slot.date);
     if (ev && !used.has(ev.id)) { used.add(ev.id); out.push({ ...slot, event: ev }); }
-    else if (!ev) out.push({ ...slot, event: null });
+    else if (!ev) {
+      const near = pickNear(slot.date);
+      if (near) used.add(near.id);
+      out.push({ ...slot, event: null, nearby: near || null });
+    }
   }
-  // Prefer slots that actually have an event; keep a couple of empty ones as nudges.
-  const withEvent = out.filter(s => s.event);
-  const empty = out.filter(s => !s.event).slice(0, 2);
-  return [...withEvent, ...empty].sort((a, b) => a.date.localeCompare(b.date)).slice(0, max);
+  // Prefer slots that actually have a plan (exact or roadmap); keep a couple of
+  // truly-empty ones as host nudges.
+  const withPlan = out.filter(s => s.event || s.nearby);
+  const empty = out.filter(s => !s.event && !s.nearby).slice(0, 2);
+  return [...withPlan, ...empty].sort((a, b) => a.date.localeCompare(b.date)).slice(0, max);
 }
 
 export default { getPlanSlots, suggestWeekendPlans };

@@ -100,6 +100,26 @@ export const WeekendPlannerCard = ({ onEventPress }) => {
                     : <Text style={s.planBtnText}>Plan it</Text>}
                 </TouchableOpacity>
               </>
+            ) : slot.nearby ? (
+              /* Roadmap: nothing ON the weekend itself — offer the closest Gruv
+                 around it, labeled with its REAL date (honest suggestion). */
+              <>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.8} onPress={() => onEventPress?.(slot.nearby)}>
+                  <Text style={[s.evTitle, { color: text }]} numberOfLines={1}>{slot.nearby.title}</Text>
+                  <Text style={[s.evMeta, { color: primary }]} numberOfLines={1}>
+                    Around that weekend · {fmtDate(slot.nearby.event_date)}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => planIt(slot.nearby)}
+                  disabled={planning === slot.nearby.id}
+                  style={[s.planBtn, { backgroundColor: `${primary}25`, borderWidth: 1, borderColor: primary }]}
+                >
+                  {planning === slot.nearby.id
+                    ? <ActivityIndicator size="small" color={primary} />
+                    : <Text style={[s.planBtnText, { color: primary }]}>Plan it</Text>}
+                </TouchableOpacity>
+              </>
             ) : (
               <View style={{ flex: 1 }}>
                 <Text style={[s.evMeta, { color: muted }]}>Nothing on yet — be the one to post a Gruv.</Text>

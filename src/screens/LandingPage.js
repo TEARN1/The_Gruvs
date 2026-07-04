@@ -39,6 +39,7 @@ import { CommunityStatsBar } from '../components/CommunityStatsBar';
 import { TonightAlert } from '../components/TonightAlert';
 import { StoriesRow } from '../components/StoriesRow';
 import { MasonryFeed } from '../components/MasonryFeed';
+import { ReelsRail } from '../components/ReelsRail';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { CrewOutCard } from '../components/CrewOutCard';
 import { CheckInNudge } from '../components/CheckInNudge';
@@ -1084,6 +1085,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [quickActionTarget, setQuickActionTarget] = useState(null); // long-press quick sheet
   const [reactionRing, setReactionRing] = useState(null); // { event, x, y } — under-finger reactions
   const [showScrollTop, setShowScrollTop] = useState(false);
+  // Web pull-to-refresh: RefreshControl is a no-op on react-native-web, so we
+  // detect the pull gesture ourselves — track scrollTop, and a downward drag
+  // that starts at the very top becomes a refresh when released past 80px.
+  const scrollYRef = useRef(0);
+  const pullStartYRef = useRef(null);
+  const [pullDist, setPullDist] = useState(0);
 
   // Handle native Android hardware back button inside LandingPage
   useEffect(() => {
@@ -2353,25 +2360,62 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         showsVerticalScrollIndicator={false}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
+        // Web pull-to-refresh gesture (mobile browsers) — see pullDist state.
+        onTouchStart={Platform.OS === 'web' ? (e) => {
+          pullStartYRef.current = scrollYRef.current <= 2 ? e.nativeEvent.pageY : null;
+        } : undefined}
+        onTouchMove={Platform.OS === 'web' ? (e) => {
+          if (pullStartYRef.current == null) return;
+          const d = e.nativeEvent.pageY - pullStartYRef.current;
+          setPullDist(d > 0 && scrollYRef.current <= 2 ? Math.min(d, 140) : 0);
+        } : undefined}
+        onTouchEnd={Platform.OS === 'web' ? () => {
+          if (pullDist > 80) handleRefresh();
+          pullStartYRef.current = null;
+          setPullDist(0);
+        } : undefined}
         scrollEventThrottle={16}
         onScroll={(e) => {
-          const should = e.nativeEvent.contentOffset.y > 600;
+          const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+          scrollYRef.current = contentOffset.y;
+          const should = contentOffset.y > 600;
           // Only setState when the threshold is actually crossed — otherwise this
           // fires (and re-renders the screen) on every scroll frame.
           setShowScrollTop(prev => (prev === should ? prev : should));
+          // WEB: VirtualizedList's own onEndReached is unreliable (confirmed dead
+          // in prod — the feed capped at initialNumToRender). Drive load-more from
+          // the raw scroll geometry instead, which DOES fire.
+          if (Platform.OS === 'web' && contentSize?.height > 0) {
+            if (contentOffset.y + layoutMeasurement.height > contentSize.height - 900) {
+              handleLoadMore();
+            }
+          }
         }}
         onScrollToIndexFailed={() => { }}
         onViewableItemsChanged={onViewableChangedRef.current}
         viewabilityConfig={viewabilityConfigRef.current}
         removeClippedSubviews={Platform.OS !== 'web'}
-        maxToRenderPerBatch={5}
-        windowSize={10}
-        initialNumToRender={5}
+        // WEB: virtualization is broken in prod (renders only the first batch no
+        // matter how far you scroll — "I only see 5 events"). Browsers handle a
+        // few hundred cards fine, so render everything and let the DOM scroll.
+        disableVirtualization={Platform.OS === 'web'}
+        maxToRenderPerBatch={Platform.OS === 'web' ? 100 : 5}
+        windowSize={Platform.OS === 'web' ? 1001 : 10}
+        initialNumToRender={Platform.OS === 'web' ? 200 : 5}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>
             {renderHeader()}
             {renderTrending()}
+            {/* Reels on The Drop — video discovery starts in the feed */}
+            {mode === 'drop' && onNavigateToReels && (
+              <ReelsRail
+                onOpenReel={(reelId) => onNavigateToReels(reelId)}
+                primary={primary}
+                textColor={textColor}
+                muted={muted}
+              />
+            )}
             {renderBirthdaySpotlight()}
             {mode === 'drop' && (
               <GoOutNudge
@@ -2673,6 +2717,20 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             }}
           />
         </SafeSection>
+      )}
+
+      {/* ── Web pull-to-refresh indicator ────────────────────────────────── */}
+      {Platform.OS === 'web' && (pullDist > 0 || refreshing) && (
+        <View style={{
+          position: 'absolute', top: 10, alignSelf: 'center', zIndex: 60,
+          width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center',
+          backgroundColor: surface, borderWidth: 1.5,
+          borderColor: refreshing || pullDist > 80 ? primary : `${primary}35`,
+        }}>
+          {refreshing
+            ? <ActivityIndicator size="small" color={primary} />
+            : <Feather name="arrow-down" size={17} color={pullDist > 80 ? primary : muted} />}
+        </View>
       )}
 
       {/* ── Scroll-to-top button ─────────────────────────────────────────── */}

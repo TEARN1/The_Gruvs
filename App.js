@@ -643,7 +643,10 @@ const MainNavigator = () => {
             onTargetHandled={() => setTargetEvent(null)}
             refreshKey={feedRefreshKey}
             onNavigateToServices={handleNavigateToServices}
-            onNavigateToReels={() => handleTabChange('reels')}
+            onNavigateToReels={(reelId) => {
+              if (reelId) setTargetReel(reelId);
+              handleTabChange('reels');
+            }}
           />
         );
       case 'reels':
