@@ -1486,6 +1486,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
           {activeTab === 'manage' && event?.id && (isOrganiser || isCoHost) && (
             <SafeSection label="Event Management" primary={primary}>
+              {/* Know your real fans — per-poster engagement (likes/reactions/
+                  Touch Downs/reach) + who engages most. Host-only. */}
+              <PosterInsightsPanel
+                eventId={event.id}
+                eventTitle={event.title}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+              />
               {_isSportCat(event.category)
                 ? <SportManagementPanel
                     event={event}

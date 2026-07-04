@@ -116,7 +116,7 @@ const HeartBurst = ({ onComplete }) => {
 };
 
 // ── Main MediaViewer ─────────────────────────────────────────────────────────
-export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', fitToImage = false, eventId = null, onAuthRequired }) => {
+export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', fitToImage = false, maxHeightRatio = null, eventId = null, onAuthRequired }) => {
   const { user } = useAuth();
   const [measuredWidth, setMeasuredWidth] = useState(containerWidth || SCREEN_WIDTH);
   // fitToImage: a poster/flyer should fill the frame with no letterbox bars and
@@ -125,7 +125,10 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
   const effectiveAspect = fitToImage && naturalRatio ? naturalRatio : aspectRatio;
   const effectiveResize = fitToImage ? 'cover' : resizeMode;
   const MEDIA_WIDTH = measuredWidth;
-  const MEDIA_HEIGHT = Math.round(MEDIA_WIDTH / effectiveAspect);
+  // Height hugs the image's own ratio, but a very tall portrait is capped at
+  // `maxHeightRatio × width` so one poster can't swallow the whole screen.
+  let MEDIA_HEIGHT = Math.round(MEDIA_WIDTH / effectiveAspect);
+  if (maxHeightRatio) MEDIA_HEIGHT = Math.min(MEDIA_HEIGHT, Math.round(MEDIA_WIDTH * maxHeightRatio));
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [liked, toggleLike] = useLikedImages(media, user?.id, eventId);
   const [heartBursts, setHeartBursts] = useState({});

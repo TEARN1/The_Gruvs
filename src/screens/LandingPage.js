@@ -410,15 +410,16 @@ const EventCard = React.memo(({
               </TouchableOpacity>
             </View>
           ) : (
-          <View style={[styles.imgSection, { backgroundColor: event.poster_mode ? '#000' : `${catColor}18` }, isWeb && { minHeight: 0 }, isWeb && !event.poster_mode && { aspectRatio: '4/3' }, isWeb && event.poster_mode && { aspectRatio: '3/4' }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
+          <View style={[styles.imgSection, { backgroundColor: '#000' }, isWeb && { minHeight: 0 }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
             <MediaViewer
               eventId={event.id}
-              // On web, cap posters to a compact landscape box (full poster shown,
-              // letterboxed) so the feed scrolls many events instead of one screen-
-              // filling poster at a time. Native keeps the natural tall poster.
-              aspectRatio={event.poster_mode ? (isWeb ? 3 / 2 : 3 / 4) : 2}
-              fitToImage={!!event.poster_mode && !isWeb}
-              resizeMode={event.poster_mode ? 'contain' : 'cover'}
+              // Show the WHOLE image — flyer OR photo. The frame adopts the image's
+              // own aspect ratio (fitToImage) so nothing is cropped and there are no
+              // letterbox bars. A very tall portrait is capped at 1.5× width so a
+              // single poster can't swallow the whole screen.
+              aspectRatio={event.poster_mode ? 3 / 4 : 4 / 3}
+              fitToImage
+              maxHeightRatio={1.5}
               media={(() => {
               let m = event.media;
               if (!m?.length && event.media_urls?.length) {
@@ -457,14 +458,14 @@ const EventCard = React.memo(({
                 <Text style={{ fontSize: 72 }}>❤️</Text>
               </Animated.View>
             )}
-            {/* Item 48: vignette gradient — skipped for posters so the art shows clean */}
-            {!event.poster_mode && (
+            {/* Subtle bottom-edge vignette — only enough to keep the corner controls
+                legible over bright flyers. Kept high (62%+) so it never dims the
+                image's own printed details. Skipped for posters entirely. */}
+            {!event.poster_mode && isWeb && (
               <View style={{
                 ...StyleSheet.absoluteFillObject,
-                ...(isWeb
-                  ? { backgroundImage: 'linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.65) 100%)' }
-                  : { backgroundColor: 'rgba(0,0,0,0.15)' }
-                ),
+                backgroundImage: 'linear-gradient(to bottom, transparent 62%, rgba(0,0,0,0.5) 100%)',
+                pointerEvents: 'none',
               }} />
             )}
             {/* Item 52: glassmorphic category badge */}
@@ -1322,6 +1323,18 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
     const filter = (e) => matchesCat(e) && matchesDate(e);
 
+    // Upcoming / Mine are honest ordered lists (nearest-date / newest first) — do
+    // NOT prepend heat-ranked "trending" cards, which would jump events out of
+    // order and make the list look incomplete. Keep the exact server order.
+    if (feedMode === 'upcoming' || feedMode === 'mine') {
+      const seen = new Set();
+      return events.filter(e => {
+        if (!e?.id || seen.has(e.id) || !filter(e)) return false;
+        seen.add(e.id);
+        return true;
+      });
+    }
+
     const filteredTrending = trendingEvents.filter(filter);
     // Shuffle the regular events so the line-up isn't identical every visit (seeded per mount).
     const filteredRegular  = seededShuffle(events.filter(e => !trendingIds.has(e.id) && filter(e)), feedSeed);
@@ -1332,7 +1345,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       seen.add(e.id);
       return true;
     });
-  }, [trendingEvents, events, trendingIds, selectedCat, dateRange, feedSeed]);
+  }, [trendingEvents, events, trendingIds, selectedCat, dateRange, feedSeed, feedMode]);
 
   // Debounce search — avoids a network hit on every keystroke
   useEffect(() => {
@@ -2804,10 +2817,13 @@ const styles = StyleSheet.create({
   eventCard: { flex: 1, marginHorizontal: SCREEN_W < 375 ? 10 : 16, marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
   schedulePreview: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
   schedulePreviewText: { fontSize: 12, fontWeight: '700', flex: 1, flexShrink: 1, minWidth: 0 },
-  imgSection: { position: 'relative', minHeight: Math.round((SCREEN_W - 32) * 3 / 4) },
+  // Loading floor only — fitToImage drives the real height so the frame hugs the
+  // image (no crop, no gap). Kept small so short/wide images don't leave a void.
+  imgSection: { position: 'relative', minHeight: 180 },
   catBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
   catBadgeText: { fontSize: 9, ...FONT.badge, letterSpacing: 0.8 }, // item 60: 0.8 improves 9px legibility
-  bookmarkBtn: { position: 'absolute', bottom: 12, right: 12, padding: 8, borderRadius: 20 },
+  // Top-right so it never stacks on MediaViewer's like/download controls (bottom-right).
+  bookmarkBtn: { position: 'absolute', top: 12, right: 12, padding: 8, borderRadius: 20 },
   cardBody: { padding: 14 },
 
   userRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
