@@ -54,6 +54,7 @@ import { EventMomentsSection }    from '../components/EventMomentsSection';
 import { OrganizerDashboard }     from '../components/OrganizerDashboard';
 import { LiveEventBanner }        from '../components/LiveEventBanner';
 import { EventManagementPanel }   from '../components/EventManagementPanel';
+import { PosterInsightsPanel }     from '../components/PosterInsightsPanel';
 import { InviteByNameModal }      from '../components/InviteByNameModal';
 import { SportManagementPanel }   from '../components/SportManagementPanel';
 import { EventGuestsModal }       from '../components/EventGuestsModal';
