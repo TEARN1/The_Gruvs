@@ -162,11 +162,14 @@ request got played 🎧").
 6. Handling money before Stage 4 (broker recognition, not transactions).
 
 ## 6. Immediate next actions
-1. ⬜ Error logging (client_errors + logError) — never fly blind again.
-2. ⬜ EAS native build → internal track (needs EXPO_TOKEN).
-3. ⬜ host_rewards table + "Reward My Top Fans" flow.
-4. ⬜ Blueprint engine v1: 3–4 event-type templates + scale formulas (pure, tested).
-5. ✅ Song requests: live + DJ dedication/mark-played flow (Before-phase lock-in).
+1. ✅ Error logging (client_errors + logError) — live, wired into ErrorBoundary /
+   check-in / feed. Read each session via Supabase MCP: `SELECT label, count(*)
+   FROM client_errors GROUP BY label ORDER BY 2 DESC`.
+2. ⬜ EAS native build → internal track (needs EXPO_TOKEN). ← **THE critical path**
+3. ⬜ **BD: book host #1's next event** (see BD_PLAYBOOK.md ⟨YOU⟩ items).
+4. ⬜ host_rewards table + "Reward My Top Fans" flow.
+5. ⬜ Blueprint engine v1: 3–4 event-type templates + scale formulas (pure, tested).
+6. ✅ Song requests: live + DJ dedication/mark-played flow (Before-phase lock-in).
 
 *Related docs: [ROADMAP.md](ROADMAP.md) (event-depth engine detail),
 [FAN_RECIPROCITY.md](FAN_RECIPROCITY.md) (fidelity/reciprocity detail),
