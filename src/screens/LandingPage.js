@@ -40,6 +40,7 @@ import { TonightAlert } from '../components/TonightAlert';
 import { StoriesRow } from '../components/StoriesRow';
 import { MasonryFeed } from '../components/MasonryFeed';
 import { ReelsRail } from '../components/ReelsRail';
+import { logError } from '../utils/logError';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { CrewOutCard } from '../components/CrewOutCard';
 import { CheckInNudge } from '../components/CheckInNudge';
@@ -1295,6 +1296,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         FeedManager.prefetchPage({ ...fetchOpts, page: currentPage + 1 });
       }
     } catch (err) {
+      logError('Feed.load', err, { mode: feedMode, page: currentPage });
       toast.show('Failed to load gruvs. Check your connection.', 'error');
     } finally {
       setLoading(false);

@@ -8,6 +8,7 @@
 import { supabase, isSupabaseEnabled } from './supabase';
 import { resilient, resilientRead } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
+import { logError } from '../utils/logError';
 import { log } from '../utils/log';
 import { ALL_CATEGORIES } from '../constants/AllCategories';
 import { LocationService } from './locationService';
@@ -1681,7 +1682,7 @@ export const CheckInManager = {
           ({ error } = await supabase.from('live_checkins').insert(core));
         }
         if (error && /duplicate|unique|conflict/i.test(error.message || '')) error = null; // raced — already here
-        if (error) { console.warn('[touchDown] insert failed:', error.message); throw error; }
+        if (error) { console.warn('[touchDown] insert failed:', error.message); logError('CheckIn.touchDown', error, { code: error.code }); throw error; }
       }
 
       // Atomic vibe score increment — fallback to read-then-write if RPC not deployed yet
@@ -1709,6 +1710,7 @@ export const CheckInManager = {
 
       return true;
     } catch (e) {
+      logError('CheckIn.touchDown', e, { code: e?.code });
       return false;
     }
   },

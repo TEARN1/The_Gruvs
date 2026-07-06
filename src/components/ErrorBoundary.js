@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { SecurityService } from '../services/securityService';
+import { logError } from '../utils/logError';
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -22,6 +23,8 @@ export class ErrorBoundary extends React.Component {
       label: this.props.label || 'unknown',
       message: error?.message || String(error)
     });
+    // Surface UI crashes to our own telemetry (readable via Supabase MCP).
+    logError(`UI:${this.props.label || 'unknown'}`, error);
     // Ship the full stack to Firebase Crashlytics in production builds. Guarded
     // require: if the native module isn't installed (Expo Go / web / dev) this is
     // a silent no-op, so the boundary still works everywhere.

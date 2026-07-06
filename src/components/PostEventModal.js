@@ -97,6 +97,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [recurrenceEndCalendarVisible, setRecurrenceEndCalendarVisible] = useState(false);
   const [customDates, setCustomDates] = useState([]); // Date[] for custom
   const [customDateCalendarVisible, setCustomDateCalendarVisible] = useState(false);
+  // ── Tour: one identity, N stops each with its OWN date/time/venue/coords ──
+  // (recurrence reuses one venue; a tour does not — different city every stop).
+  const [isTour, setIsTour] = useState(false);
+  const [tourName, setTourName] = useState('');
+  // each stop: { id, city, venue, date: Date|null, hour, minute, timeSet, ticketUrl }
+  const [tourStops, setTourStops] = useState([]);
+  const [stopCalIdx, setStopCalIdx] = useState(null);   // which stop's calendar is open
+  const [stopTimeIdx, setStopTimeIdx] = useState(null); // which stop's time picker is open
+  const [tourProgress, setTourProgress] = useState(''); // "Geocoding stop 3/10…"
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [mediaItems, setMediaItems] = useState([]); // { uri, type, name, mimeType }
   const [scheduleItems, setScheduleItems] = useState([]); // { id, time, title, performer, notes }
@@ -169,6 +178,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     setScheduleForm({ time: '', title: '', performer: '', notes: '', day: 1 });
     setIsRecurring(false); setRecurrenceType('weekly'); setRecurrenceInterval(1);
     setRecurrenceDays([]); setRecurrenceEndDate(null); setCustomDates([]);
+    setIsTour(false); setTourName(''); setTourStops([]); setStopCalIdx(null); setStopTimeIdx(null); setTourProgress('');
     setStep(1);
     setLoading(false); setUploadingMedia(false); setError('');
     setCalendarVisible(false); setTimePickerVisible(false);
@@ -330,15 +340,24 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       scrollAndFocus('title', titleRef);
       return;
     }
-    if (!posterMode && !address.trim()) {
-      setError('Venue / address is required so people know where to show up.');
-      scrollAndFocus('address', addressRef);
-      return;
-    }
-    if (!pickedDate) {
-      setError('Pick a date so people can plan ahead.');
-      scrollAndFocus('date', dateRef);
-      return;
+    if (isTour) {
+      // A tour is driven by its stops, not the single venue/date fields.
+      const goodStops = tourStops.filter(s => s.venue?.trim() && s.date instanceof Date && !isNaN(s.date.getTime()));
+      if (goodStops.length < 2) {
+        setError('A tour needs at least 2 stops — each with a venue and a date.');
+        return;
+      }
+    } else {
+      if (!posterMode && !address.trim()) {
+        setError('Venue / address is required so people know where to show up.');
+        scrollAndFocus('address', addressRef);
+        return;
+      }
+      if (!pickedDate) {
+        setError('Pick a date so people can plan ahead.');
+        scrollAndFocus('date', dateRef);
+        return;
+      }
     }
     if (posterMode && mediaItems.length === 0) {
       setError('Upload your poster — in poster mode it carries all the details.');
@@ -541,36 +560,42 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (maxP !== null) payload.price_max = maxP;
 
     let insertError = null;
-    const result = await resilient(
+    // Insert one event row with the same 3-tier resilience whether it's a single
+    // event or one stop of a tour. `p` is a fully built payload.
+    const insertOneEvent = (p) => resilient(
       [
         async () => {
-          const { data, error } = await supabase.from('events').insert(payload).select().single();
+          const { data, error } = await supabase.from('events').insert(p).select().single();
           if (error) throw error;
           return data || true;
         },
         async () => {
           // Tier 2: strip columns that may not be migrated yet (coords/schedule/
           // categories/end_date/power_backup), keeping everything else.
-          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, power_backup: _pb, secret_act: _sa, secret_reveal_threshold: _srt, tags: _tags, poster_mode: _pm, audience: _aud, ...safePayload } = payload;
+          const { coords: _c, schedule: _s, categories: _cats, end_date: _ed, power_backup: _pb, secret_act: _sa, secret_reveal_threshold: _srt, tags: _tags, poster_mode: _pm, audience: _aud, ...safePayload } = p;
           const { data, error } = await supabase.from('events').insert(safePayload).select().single();
           if (error) throw error;
           return data || true;
         },
         async () => {
-          // Tier 3: minimum required fields — always keep category so feed filters work
+          // Tier 3: minimum required fields — always keep category so feed filters
+          // work, and series_id/tour_stop_index so a tour stays threaded.
           const minPayload = {
-            title: payload.title,
-            description: payload.description,
-            author_id: payload.author_id,
-            address: payload.address,
-            event_date: payload.event_date,
-            city: payload.city,
-            lat: payload.lat,
-            lon: payload.lon,
-            price: payload.price,
-            price_min: payload.price_min,
-            price_max: payload.price_max,
-            category: payload.category,   // MUST keep — drives all feed filters
+            title: p.title,
+            description: p.description,
+            author_id: p.author_id,
+            address: p.address,
+            event_date: p.event_date,
+            event_time: p.event_time,
+            city: p.city,
+            lat: p.lat,
+            lon: p.lon,
+            price: p.price,
+            price_min: p.price_min,
+            price_max: p.price_max,
+            category: p.category,   // MUST keep — drives all feed filters
+            series_id: p.series_id,
+            tour_stop_index: p.tour_stop_index,
             status: 'published',
           };
           const { data, error } = await supabase.from('events').insert(minPayload).select().single();
@@ -584,6 +609,89 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         onExhausted: async () => { insertError = new Error('All save attempts failed'); return null; },
       }
     );
+
+    // ── TOUR PATH ── one identity, many stops, each its own date/venue/coords ──
+    if (isTour) {
+      const fmtDate = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      const uuidv4 = () => (globalThis.crypto?.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }));
+      // Per-stop geocode — uses THE STOP's own city (resolveCoords binds the shared one).
+      const geocodeStop = async (venue, stopCity) => {
+        const q = [venue, stopCity].filter(Boolean).join(', ');
+        if (q.trim().length < 4) return null;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, { headers: { 'Accept': 'application/json' } });
+          const json = await res.json();
+          if (json?.length) { const la = parseFloat(json[0].lat), lo = parseFloat(json[0].lon); if (Number.isFinite(la) && Number.isFinite(lo)) return { lat: la, lon: lo }; }
+        } catch { /* best-effort */ }
+        return null;
+      };
+
+      const stops = tourStops
+        .filter(s => s.venue?.trim() && s.date instanceof Date && !isNaN(s.date.getTime()))
+        .sort((a, b) => a.date - b.date);
+
+      // Shared identity for every stop — strip the single-event location/date fields.
+      const { event_date: _ed2, event_time: _et2, end_date: _end2, address: _ad2, city: _ci2, lat: _la2, lon: _lo2, ...sharedBase } = payload;
+
+      // Create the parent tour record (host = creator_id). Fall back to a client
+      // uuid if the parent insert is blocked, so stops still thread by series_id.
+      let seriesId = null;
+      try {
+        const cities = new Set(stops.map(s => (s.city || '').trim().toLowerCase()).filter(Boolean));
+        const { data: seriesRow } = await supabase.from('event_series').insert({
+          creator_id: user.id,
+          name: (tourName.trim() || title.trim()),
+          description: description.trim() || null,
+          cover_url: mediaUrls[0]?.url || null,
+          category: payload.category || null,
+          stop_count: stops.length,
+          city_count: cities.size,
+          starts_on: fmtDate(stops[0].date),
+          ends_on: fmtDate(stops[stops.length - 1].date),
+        }).select('id').single();
+        if (seriesRow?.id) seriesId = seriesRow.id;
+      } catch { /* fall through to client uuid */ }
+      if (!seriesId) seriesId = uuidv4();
+
+      const created = [];
+      for (let i = 0; i < stops.length; i++) {
+        const s = stops[i];
+        setTourProgress(`Saving stop ${i + 1}/${stops.length}…`);
+        const coords = await geocodeStop(s.venue.trim(), (s.city || '').trim());
+        const stopPayload = { ...sharedBase, series_id: seriesId, tour_stop_index: i + 1, address: s.venue.trim(), event_date: fmtDate(s.date) };
+        if (s.city?.trim()) stopPayload.city = s.city.trim();
+        if (coords) { stopPayload.lat = coords.lat; stopPayload.lon = coords.lon; }
+        if (s.timeSet) stopPayload.event_time = `${String(s.hour).padStart(2, '0')}:${String(s.minute).padStart(2, '0')}`;
+        else delete stopPayload.event_time;
+        if (s.ticketUrl?.trim()) stopPayload.ticket_url = s.ticketUrl.trim();
+        const row = await insertOneEvent(stopPayload);
+        if (row && row !== true && row.id) created.push(row);
+        if (i < stops.length - 1) await new Promise(r => setTimeout(r, 1100)); // Nominatim: ~1 req/s
+      }
+      setTourProgress('');
+
+      if (created.length > 0) {
+        VibeEquityLedger.mintEquity(user.id, 'EVENT_HOSTING').catch(() => {});
+        if (payload.audience && Object.keys(payload.audience).length) {
+          import('../services/personalizationEngine').then(({ routeTargetedEvent }) => {
+            created.forEach(ev => routeTargetedEvent(ev.id, payload.audience, { lat: ev.lat, lon: ev.lon }).catch(() => {}));
+          }).catch(() => {});
+        }
+        FeedManager.invalidate(null);
+        clearDraft();
+        reset();
+        onCreated?.(created[0]);
+        onPostSuccess?.();
+        onClose();
+      } else {
+        setTourProgress('');
+        setError('Could not save the tour — please try again.');
+        setLoading(false);
+      }
+      return;
+    }
+
+    const result = await insertOneEvent(payload);
 
     if (result !== null) {
       VibeEquityLedger.mintEquity(user.id, 'EVENT_HOSTING').catch(() => {});
@@ -1094,7 +1202,129 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     )}
                   </View>
 
+                  {/* ── Tour toggle ────────────────────────────────────────── */}
+                  {/* A tour ≠ recurrence: every stop has its OWN date/time/venue. */}
+                  <TouchableOpacity
+                    onPress={() => setIsTour(v => {
+                      const next = !v;
+                      if (next) {
+                        setIsRecurring(false); // mutually exclusive
+                        if (tourStops.length === 0) {
+                          // Seed stop 1 from whatever the host already typed above,
+                          // then an empty stop 2 so it's a valid tour skeleton.
+                          setTourStops([
+                            { id: Date.now(), city: city.trim(), venue: address.trim(), date: pickedDate || null, hour: pickedHour, minute: pickedMinute, timeSet, ticketUrl: '' },
+                            { id: Date.now() + 1, city: '', venue: '', date: null, hour: 20, minute: 0, timeSet: false, ticketUrl: '' },
+                          ]);
+                        }
+                      }
+                      return next;
+                    })}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: isTour ? 8 : 12, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: isTour ? primary : `${primary}30`, backgroundColor: isTour ? `${primary}12` : `${primary}06` }}
+                  >
+                    <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: isTour ? primary : `${primary}50`, alignItems: 'center', justifyContent: 'center', backgroundColor: isTour ? primary : 'transparent' }}>
+                      {isTour && <Feather name="check" size={12} color="#000" />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: isTour ? primary : textColor, fontWeight: '800', fontSize: 13 }}>Make this a Tour</Text>
+                      <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>Multiple cities — each stop its own date, time & venue</Text>
+                    </View>
+                    <Feather name="map" size={16} color={isTour ? primary : muted} />
+                  </TouchableOpacity>
+
+                  {isTour && (
+                    <View style={{ marginBottom: 16, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: `${primary}25`, backgroundColor: `${primary}06` }}>
+                      <Text style={[pm.label, { color: muted, marginBottom: 8 }]}>Tour name (optional)</Text>
+                      <TextInput
+                        style={[pm.input, { color: textColor, borderColor: `${primary}35`, marginBottom: 14 }]}
+                        placeholder={title.trim() ? `Defaults to "${title.trim()}"` : 'e.g. Summer Sessions Tour'}
+                        placeholderTextColor={muted}
+                        value={tourName}
+                        onChangeText={setTourName}
+                      />
+
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <Text style={[pm.label, { color: muted, marginBottom: 0 }]}>Stops</Text>
+                        <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>
+                          {(() => {
+                            const good = tourStops.filter(s => s.venue?.trim() && s.date);
+                            const cities = new Set(good.map(s => (s.city || '').trim().toLowerCase()).filter(Boolean)).size;
+                            return good.length >= 2 ? `${good.length} stops${cities ? ` · ${cities} cit${cities === 1 ? 'y' : 'ies'}` : ''}` : `${good.length}/2 min`;
+                          })()}
+                        </Text>
+                      </View>
+
+                      {tourStops.map((s, i) => (
+                        <View key={s.id} style={{ marginBottom: 12, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: `${primary}20`, backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <Text style={{ color: primary, fontWeight: '900', fontSize: 12 }}>Stop {i + 1}</Text>
+                            {tourStops.length > 1 && (
+                              <TouchableOpacity onPress={() => setTourStops(prev => prev.filter((_, j) => j !== i))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                <Feather name="x-circle" size={18} color={muted} />
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                          <TextInput
+                            style={[pm.input, { color: textColor, borderColor: `${primary}35`, fontSize: 13, height: 42, paddingVertical: 9, marginBottom: 8 }]}
+                            placeholder="Venue / address *"
+                            placeholderTextColor={muted}
+                            value={s.venue}
+                            onChangeText={v => setTourStops(prev => prev.map((x, j) => j === i ? { ...x, venue: v } : x))}
+                          />
+                          <TextInput
+                            style={[pm.input, { color: textColor, borderColor: `${primary}35`, fontSize: 13, height: 42, paddingVertical: 9, marginBottom: 8 }]}
+                            placeholder="City (e.g. Cape Town)"
+                            placeholderTextColor={muted}
+                            value={s.city}
+                            onChangeText={v => setTourStops(prev => prev.map((x, j) => j === i ? { ...x, city: v } : x))}
+                          />
+                          <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <TouchableOpacity
+                              style={[pm.pickerBtn, { borderColor: s.date ? primary : `${primary}35`, backgroundColor: s.date ? `${primary}12` : 'rgba(255,255,255,0.05)', flex: 1.4 }]}
+                              onPress={() => setStopCalIdx(i)}
+                            >
+                              <Feather name="calendar" size={14} color={s.date ? primary : muted} />
+                              <Text style={[pm.pickerBtnText, { color: s.date ? primary : muted }]} numberOfLines={1}>
+                                {s.date ? s.date.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date *'}
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[pm.pickerBtn, { borderColor: s.timeSet ? primary : `${primary}35`, backgroundColor: s.timeSet ? `${primary}12` : 'rgba(255,255,255,0.05)', flex: 1 }]}
+                              onPress={() => setStopTimeIdx(i)}
+                            >
+                              <Feather name="clock" size={14} color={s.timeSet ? primary : muted} />
+                              <Text style={[pm.pickerBtnText, { color: s.timeSet ? primary : muted }]}>
+                                {s.timeSet ? `${String(s.hour).padStart(2, '0')}:${String(s.minute).padStart(2, '0')}` : 'Time'}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                          <TextInput
+                            style={[pm.input, { color: textColor, borderColor: `${primary}25`, fontSize: 12, height: 40, paddingVertical: 8, marginTop: 8, marginBottom: 0 }]}
+                            placeholder="This stop's ticket link (optional)"
+                            placeholderTextColor={muted}
+                            value={s.ticketUrl}
+                            onChangeText={v => setTourStops(prev => prev.map((x, j) => j === i ? { ...x, ticketUrl: v } : x))}
+                            autoCapitalize="none"
+                          />
+                        </View>
+                      ))}
+
+                      <TouchableOpacity
+                        onPress={() => setTourStops(prev => [...prev, { id: Date.now() + prev.length, city: '', venue: '', date: null, hour: 20, minute: 0, timeSet: false, ticketUrl: '' }])}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 6 }}
+                      >
+                        <Feather name="plus-circle" size={16} color={primary} />
+                        <Text style={{ color: primary, fontSize: 12, fontWeight: '800' }}>Add stop</Text>
+                      </TouchableOpacity>
+
+                      <Text style={{ color: muted, fontSize: 10, marginTop: 10, lineHeight: 14 }}>
+                        Each stop becomes its own event on Scout at its own coordinates & date — all threaded as one tour. Coordinates are found from each venue/city on save.
+                      </Text>
+                    </View>
+                  )}
+
                   {/* ── Recurrence toggle ──────────────────────────────────── */}
+                  {!isTour && (
                   <TouchableOpacity
                     onPress={() => setIsRecurring(v => !v)}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: isRecurring ? primary : `${primary}30`, backgroundColor: isRecurring ? `${primary}12` : `${primary}06` }}
@@ -1108,6 +1338,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     </View>
                     <Feather name="repeat" size={16} color={isRecurring ? primary : muted} />
                   </TouchableOpacity>
+                  )}
 
                   {isRecurring && (
                     <View style={{ marginBottom: 16, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: `${primary}25`, backgroundColor: `${primary}06` }}>
@@ -1756,8 +1987,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                       disabled={loading}
                     >
                       {loading
-                        ? <ActivityIndicator color="#000" />
-                        : <Text style={pm.postBtnText}>ANNOUNCE EVENT 👑</Text>
+                        ? (tourProgress
+                            ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><ActivityIndicator color="#000" /><Text style={pm.postBtnText}>{tourProgress}</Text></View>
+                            : <ActivityIndicator color="#000" />)
+                        : <Text style={pm.postBtnText}>{isTour ? 'ANNOUNCE TOUR 👑' : 'ANNOUNCE EVENT 👑'}</Text>
                       }
                     </TouchableOpacity>
                   </View>
@@ -1829,6 +2062,26 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         onConfirm={(h, m) => { setEndHour(h); setEndMinute(m); setEndTimeSet(true); setEndTimePickerVisible(false); }}
         initialHour={endHour ?? pickedHour}
         initialMinute={endMinute ?? 0}
+        primary={primary} bg={bg} textColor={textColor} muted={muted}
+      />
+
+      {/* Tour per-stop date picker */}
+      <CalendarPicker
+        visible={stopCalIdx !== null}
+        onClose={() => setStopCalIdx(null)}
+        onConfirm={(date) => { setTourStops(prev => prev.map((x, j) => j === stopCalIdx ? { ...x, date } : x)); setStopCalIdx(null); }}
+        value={stopCalIdx !== null ? tourStops[stopCalIdx]?.date : null}
+        minDate={new Date()}
+        primary={primary} bg={bg} textColor={textColor} muted={muted}
+      />
+
+      {/* Tour per-stop time picker */}
+      <TimePicker
+        visible={stopTimeIdx !== null}
+        onClose={() => setStopTimeIdx(null)}
+        onConfirm={(h, m) => { setTourStops(prev => prev.map((x, j) => j === stopTimeIdx ? { ...x, hour: h, minute: m, timeSet: true } : x)); setStopTimeIdx(null); }}
+        initialHour={stopTimeIdx !== null ? (tourStops[stopTimeIdx]?.hour ?? 20) : 20}
+        initialMinute={stopTimeIdx !== null ? (tourStops[stopTimeIdx]?.minute ?? 0) : 0}
         primary={primary} bg={bg} textColor={textColor} muted={muted}
       />
 
