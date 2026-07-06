@@ -2269,31 +2269,36 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     Animated.spring(getCardScale(id), { toValue: 1, useNativeDriver: true, tension: 500, friction: 20 }).start();
   }, [getCardScale]);
 
-  // Double-tap: fires vibe + heart burst; single-tap: opens detail
+  // Double-tap: a "like" gesture — additive only (Instagram-style). Single-tap
+  // opens detail. Double-tap NEVER un-likes and never nags on your own event
+  // (that used to fire "You can't vibe your own event", which reads as an error).
+  const playHeartBurst = useCallback((id) => {
+    if (!heartAnimRef.current[id]) {
+      heartAnimRef.current[id] = { scale: new Animated.Value(0), opacity: new Animated.Value(0) };
+    }
+    const { scale, opacity } = heartAnimRef.current[id];
+    scale.setValue(0); opacity.setValue(1);
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1.5, useNativeDriver: true, tension: 200, friction: 8 }),
+      Animated.sequence([Animated.delay(450), Animated.timing(opacity, { toValue: 0, duration: 350, useNativeDriver: true })]),
+    ]).start(() => { scale.setValue(0); });
+  }, []);
+
   const handleImageTap = useCallback((eventItem) => {
     const id = eventItem.id;
     const now = Date.now();
     const last = lastTapRef.current[id] || 0;
     if (now - last < 350 && last !== 0) {
       lastTapRef.current[id] = 0;
-      if (!myVibes.has(id)) {
-        handleVibe(id);
-        // Heart burst animation
-        if (!heartAnimRef.current[id]) {
-          heartAnimRef.current[id] = { scale: new Animated.Value(0), opacity: new Animated.Value(0) };
-        }
-        const { scale, opacity } = heartAnimRef.current[id];
-        scale.setValue(0); opacity.setValue(1);
-        Animated.parallel([
-          Animated.spring(scale, { toValue: 1.5, useNativeDriver: true, tension: 200, friction: 8 }),
-          Animated.sequence([Animated.delay(450), Animated.timing(opacity, { toValue: 0, duration: 350, useNativeDriver: true })]),
-        ]).start(() => { scale.setValue(0); });
-      }
+      const isOwn = !!user?.id && eventItem.author_id === user.id;
+      if (isOwn) return;                 // can't like your own event — silent no-op
+      if (!myVibes.has(id)) handleVibe(id); // only ever adds a vibe, never removes
+      playHeartBurst(id);                // flash the heart for the gesture either way
     } else {
       lastTapRef.current[id] = now;
       setTimeout(() => { if (lastTapRef.current[id] === now) { recordEventView(id, 0, true); setSelectedEvent(eventItem); } }, 210);
     }
-  }, [myVibes, handleVibe]);
+  }, [myVibes, handleVibe, user, playHeartBurst]);
 
   const handleImageLongPress = useCallback((eventItem, touch) => {
     safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
