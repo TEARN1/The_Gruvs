@@ -28,6 +28,7 @@ import { WritingStylePicker } from '../components/WritingStylePicker';
 import { CurrencyPicker } from '../components/CurrencyPicker';
 import { Biometric } from '../services/biometric';
 import { NotificationService } from '../services/notificationService';
+import { SoundFX } from '../services/soundFX';
 import { PanicMode } from '../services/panicMode';
 import { SafetyHubModal } from '../components/SafetyHubModal';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -111,6 +112,13 @@ export const SettingsScreen = ({
   const [shareEvents, setShareEvents] = useState(profile?.share_events ?? false);
   const [pushOn, setPushOn] = useState(!!profile?.push_token || NotificationService.isWebPushEnabled());
   const [pushBusy, setPushBusy] = useState(false);
+  const [soundOn, setSoundOn] = useState(SoundFX.isEnabled());
+  useEffect(() => { SoundFX.init().then(() => setSoundOn(SoundFX.isEnabled())); }, []);
+  const toggleSound = useCallback((next) => {
+    setSoundOn(next);
+    SoundFX.setEnabled(next); // plays a confirmation chime when turned on
+    toast?.show(next ? 'Sound effects on 🔊' : 'Sound effects off', next ? 'success' : 'info');
+  }, [toast]);
 
   // App lock
   const [safetyHubOpen, setSafetyHubOpen] = useState(false);
@@ -393,6 +401,9 @@ export const SettingsScreen = ({
             value={pushOn} onValueChange={togglePush} disabled={pushBusy}
             primary={primary} muted={muted} textColor={textColor} />
           {pushBusy && <ActivityIndicator color={primary} style={{ marginTop: 8 }} />}
+          <ToggleRow label="Sound effects" sub="Signature Gruvs sounds for messages, pings & Touch Downs"
+            value={soundOn} onValueChange={toggleSound}
+            primary={primary} muted={muted} textColor={textColor} />
         </SectionCard>
 
         {/* CAREER & LOOKS */}

@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
+import { SoundFX } from '../services/soundFX';
 import { resilientRead } from '../utils/resilience';
 import { MessageManager, BlockManager, isOnline as checkOnline } from '../services/dataFlow';
 import * as ImagePicker from 'expo-image-picker';
@@ -454,6 +455,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         setRequestStatus('accepted');
         supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', payload.new.id).catch(() => {});
         try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
+        SoundFX.play('messageReceived');
       })
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'messages',
@@ -573,8 +575,10 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       // Swap the optimistic placeholder with the DB-confirmed row
       setMessages(prev => prev.map(m => m.id === msgId ? { ...newMsg, _optimistic: false } : m));
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
+      SoundFX.play('messageSent');
     } catch (e) {
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, _failed: true, _optimistic: false } : m));
+      SoundFX.play('error');
       showToast(e?.message?.includes('row-level security')
         ? 'Message blocked — run the SQL patch in Supabase to enable messaging.'
         : 'Message failed: ' + (e?.message || 'Unknown error'), 'error');

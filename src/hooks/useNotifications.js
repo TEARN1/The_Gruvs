@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { MessageManager } from '../services/dataFlow';
 import { CheckinSync } from '../services/checkinSync';
+import { SoundFX } from '../services/soundFX';
 import { supabase } from '../services/supabase';
 
 export const useNotifications = ({ onNavigate } = {}) => {
@@ -27,6 +28,7 @@ export const useNotifications = ({ onNavigate } = {}) => {
 
   useEffect(() => {
     if (!user?.id) return;
+    SoundFX.init(); // load the user's mute preference before any sound fires
     NotificationService.registerForPush(user.id).then(setExpoPushToken);
     // Send event-day notifications once per session, after push is registered
     NotificationService.sendEventDayNotifications(user.id);
@@ -49,7 +51,9 @@ export const useNotifications = ({ onNavigate } = {}) => {
           filter: `recipient_id=eq.${user.id}`,
         },
         (payload) => {
-          const { title, body, data } = payload.new;
+          const { title, body, data, type } = payload.new;
+          // Distinct sound per kind — a follow chimes, a like pops, else a ping.
+          SoundFX.play(type === 'follow' ? 'follow' : /like|reaction|vibe/i.test(type || '') ? 'reaction' : 'notification');
           showToast(body || title || 'New notification');
           // On web, also surface a real browser notification (if enabled).
           NotificationService.showBrowserNotification(title, body, data);

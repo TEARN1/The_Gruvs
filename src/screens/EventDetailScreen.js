@@ -66,6 +66,7 @@ import { TournamentGovernancePanel } from '../components/TournamentGovernancePan
 import { useBackClose } from '../hooks/useBackClose';
 import { realnessScore } from '../utils/realness';
 import { CheckinSync } from '../services/checkinSync';
+import { SoundFX } from '../services/soundFX';
 import { buildShareText } from '../utils/shareText';
 import { EventRecapCard } from '../components/EventRecapCard';
 import { money } from '../constants/currencies';
@@ -647,6 +648,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         setCheckedIn(true);
         setCheckinFx(Date.now());
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
+        SoundFX.play('touchDown'); // the hero sound — the signature moment
         showToast("Touched Down! Your footprint is lit. 🔥", 'success');
         // Reveal the people you keep crossing paths with right after touching down
         setCrossedVisible(true);
