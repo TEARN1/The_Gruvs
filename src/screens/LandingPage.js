@@ -29,6 +29,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ShakeDetector, RichHaptics } from '../services/smartphoneFeatures';
 import { FeedManager, TrendingManager, VibeManager, BookmarkManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
 import { recordEventView, flushEventViews } from '../services/personalizationEngine';
+import { collapseTourStops } from '../services/tours';
 import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
@@ -480,6 +481,19 @@ const EventCard = React.memo(({
               ]}>
                 <Text style={[styles.catBadgeText, { color: catColor }]}>
                   {(CATEGORY_CONFIG[event.category]?.label || event.category).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            {/* Tour badge — this card represents a whole tour (its next stop) */}
+            {event._isTourCard && event._tourStopCount > 1 && (
+              <View style={[
+                styles.tourBadge,
+                { backgroundColor: 'rgba(10,20,24,0.85)', borderColor: `${primary}66` },
+                isWeb && { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
+              ]}>
+                <Feather name="map" size={10} color={primary} />
+                <Text style={[styles.tourBadgeText, { color: '#fff' }]}>
+                  TOUR · {event._tourStopCount} STOPS{event._tourCityCount > 1 ? ` · ${event._tourCityCount} CITIES` : ''}
                 </Text>
               </View>
             )}
@@ -1350,11 +1364,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     // order and make the list look incomplete. Keep the exact server order.
     if (feedMode === 'upcoming' || feedMode === 'mine') {
       const seen = new Set();
-      return events.filter(e => {
+      const list = events.filter(e => {
         if (!e?.id || seen.has(e.id) || !filter(e)) return false;
         seen.add(e.id);
         return true;
       });
+      // Collapse a multi-stop tour to one card in discovery ('upcoming'); keep
+      // every stop in 'mine' so a host can see and manage all of them.
+      return feedMode === 'mine' ? list : collapseTourStops(list);
     }
 
     const filteredTrending = trendingEvents.filter(filter);
@@ -1362,11 +1379,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const filteredRegular  = seededShuffle(events.filter(e => !trendingIds.has(e.id) && filter(e)), feedSeed);
     // Final dedupe: never show the same event twice across trending + regular + paged loads.
     const seen = new Set();
-    return [...filteredTrending, ...filteredRegular].filter(e => {
+    const deduped = [...filteredTrending, ...filteredRegular].filter(e => {
       if (!e?.id || seen.has(e.id)) return false;
       seen.add(e.id);
       return true;
     });
+    // One card per tour — a multi-stop tour must not flood the drop with N stops.
+    return collapseTourStops(deduped);
   }, [trendingEvents, events, trendingIds, selectedCat, dateRange, feedSeed, feedMode]);
 
   // Debounce search — avoids a network hit on every keystroke
@@ -2925,6 +2944,8 @@ const styles = StyleSheet.create({
   imgSection: { position: 'relative', minHeight: 180 },
   catBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
   catBadgeText: { fontSize: 9, ...FONT.badge, letterSpacing: 0.8 }, // item 60: 0.8 improves 9px legibility
+  tourBadge: { position: 'absolute', top: 40, left: 12, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
+  tourBadgeText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
   // Top-right so it never stacks on MediaViewer's like/download controls (bottom-right).
   bookmarkBtn: { position: 'absolute', top: 12, right: 12, padding: 8, borderRadius: 20 },
   cardBody: { padding: 14 },
