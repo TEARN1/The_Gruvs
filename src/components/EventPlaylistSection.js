@@ -168,8 +168,9 @@ const ts = StyleSheet.create({
 });
 
 // ── Track row in playlist ─────────────────────────────────────────────────────
-const TrackRow = memo(({ track, rank, voted, onVote, onRemove, canRemove, primary, textColor, muted, surface }) => {
+const TrackRow = memo(({ track, rank, voted, onVote, onRemove, canRemove, canModerate, onMarkPlayed, primary, textColor, muted, surface }) => {
   const voteAnim = useRef(new Animated.Value(1)).current;
+  const played = track.status === 'played';
 
   const handleVote = () => {
     Animated.sequence([
@@ -180,10 +181,10 @@ const TrackRow = memo(({ track, rank, voted, onVote, onRemove, canRemove, primar
   };
 
   return (
-    <View style={[tr.row, { backgroundColor: rank <= 3 ? `${primary}08` : 'transparent', borderColor: rank === 1 ? `${primary}30` : `${primary}10` }]}>
-      {/* Rank */}
-      <Text style={[tr.rank, { color: rank <= 3 ? primary : muted }]}>
-        {rank === 1 ? '🔥' : rank === 2 ? '2' : rank === 3 ? '3' : rank}
+    <View style={[tr.row, { backgroundColor: rank <= 3 && !played ? `${primary}08` : 'transparent', borderColor: rank === 1 && !played ? `${primary}30` : `${primary}10` }, played && { opacity: 0.55 }]}>
+      {/* Rank / played check */}
+      <Text style={[tr.rank, { color: played ? '#10b981' : rank <= 3 ? primary : muted }]}>
+        {played ? '✓' : rank === 1 ? '🔥' : rank === 2 ? '2' : rank === 3 ? '3' : rank}
       </Text>
 
       {/* Thumbnail */}
@@ -197,9 +198,27 @@ const TrackRow = memo(({ track, rank, voted, onVote, onRemove, canRemove, primar
       {/* Info */}
       <View style={{ flex: 1 }}>
         <Text style={[tr.title, { color: textColor }]} numberOfLines={1}>{track.title}</Text>
-        <Text style={[tr.artist, { color: muted }]} numberOfLines={1}>{track.artist}</Text>
+        <Text style={[tr.artist, { color: muted }]} numberOfLines={1}>
+          {track.artist}
+          {track.profiles?.username ? `  ·  req. @${track.profiles.username}` : ''}
+        </Text>
+        {track.dedication ? (
+          <Text style={[tr.dedication, { color: primary }]} numberOfLines={2}>💬 “{track.dedication}”</Text>
+        ) : null}
         {track.duration_ms && <Text style={[tr.duration, { color: muted }]}>{fmtDuration(track.duration_ms)}</Text>}
       </View>
+
+      {/* DJ/host: mark played (tap again to undo) */}
+      {canModerate && (
+        <TouchableOpacity
+          onPress={() => onMarkPlayed(track.id, played ? 'requested' : 'played')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel={played ? 'Mark as not played' : 'Mark as played'}
+          style={[tr.playedBtn, { borderColor: played ? '#10b981' : `${muted}40`, backgroundColor: played ? 'rgba(16,185,129,0.15)' : 'transparent' }]}
+        >
+          <Feather name={played ? 'check-circle' : 'play-circle'} size={14} color={played ? '#10b981' : muted} />
+        </TouchableOpacity>
+      )}
 
       {/* Platform open */}
       <TouchableOpacity
@@ -241,6 +260,8 @@ const tr = StyleSheet.create({
   platformIcon: { width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   voteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5 },
   voteCount: { fontSize: 12, fontWeight: '900' },
+  dedication: { fontSize: 11, fontStyle: 'italic', marginTop: 2, lineHeight: 15 },
+  playedBtn: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });
 
 // ── Main EventPlaylistSection ─────────────────────────────────────────────────
@@ -286,15 +307,32 @@ export const EventPlaylistSection = ({ eventId, canModerate = false }) => {
     return () => unsub();
   }, [playlist?.id, load]);
 
-  const handleAddTrack = async (track) => {
+  // Two-step request: pick the track, then (optionally) say something to the DJ.
+  const [pendingTrack, setPendingTrack] = useState(null);
+  const [dedication, setDedication] = useState('');
+
+  const handleAddTrack = async (track, note = null) => {
     if (!playlist || !user) return;
     setAdding(true);
     try {
-      await PlaylistManager.addTrack(playlist.id, user.id, track);
+      await PlaylistManager.addTrack(playlist.id, user.id, track, note);
       load();
     } catch (e) {
       Alert.alert('Could not add track', e.message);
     } finally { setAdding(false); }
+  };
+
+  const submitRequest = () => {
+    const t = pendingTrack;
+    setPendingTrack(null);
+    const note = dedication;
+    setDedication('');
+    if (t) handleAddTrack(t, note);
+  };
+
+  const handleMarkPlayed = async (trackRowId, status) => {
+    setTracks(prev => prev.map(t => t.id === trackRowId ? { ...t, status } : t));
+    try { await PlaylistManager.setTrackStatus(trackRowId, status); } catch { load(); }
   };
 
   const handleVote = async (trackRowId, alreadyVoted) => {
@@ -322,7 +360,10 @@ export const EventPlaylistSection = ({ eventId, canModerate = false }) => {
     try { await PlaylistManager.removeTrack(trackRowId); } catch { load(); }
   };
 
-  const sortedTracks = [...tracks].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+  // Voted requests rise; played requests sink to the bottom of the list.
+  const sortedTracks = [...tracks].sort((a, b) =>
+    (a.status === 'played') - (b.status === 'played') || (b.votes || 0) - (a.votes || 0));
+  const playedCount = tracks.filter(t => t.status === 'played').length;
 
   if (loading) return <ActivityIndicator color={primary} style={{ marginVertical: 20 }} />;
 
@@ -331,9 +372,10 @@ export const EventPlaylistSection = ({ eventId, canModerate = false }) => {
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: textColor, fontSize: 17, fontWeight: '900' }}>Vibe Playlist</Text>
+          <Text style={{ color: textColor, fontSize: 17, fontWeight: '900' }}>Song Requests 🎧</Text>
           <Text style={{ color: muted, fontSize: 12 }}>
-            {tracks.length} track{tracks.length !== 1 ? 's' : ''} · vote to move tracks up
+            Request songs for the DJ before the night — vote what gets played.
+            {playedCount > 0 ? `  ·  ${playedCount} played ✓` : ''}
           </Text>
         </View>
         {user && (
@@ -346,7 +388,7 @@ export const EventPlaylistSection = ({ eventId, canModerate = false }) => {
               ? <ActivityIndicator size="small" color={primary} />
               : <Feather name="plus" size={14} color={primary} />
             }
-            <Text style={{ color: primary, fontSize: 12, fontWeight: '900' }}>Add Track</Text>
+            <Text style={{ color: primary, fontSize: 12, fontWeight: '900' }}>Request a Song</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -355,7 +397,7 @@ export const EventPlaylistSection = ({ eventId, canModerate = false }) => {
         <View style={{ alignItems: 'center', paddingVertical: 24 }}>
           <Text style={{ fontSize: 28, marginBottom: 8 }}>🎵</Text>
           <Text style={{ color: muted, fontSize: 13, textAlign: 'center' }}>
-            No tracks yet. Add the first song to set the vibe!
+            No requests yet. Request the first song and shape the night before it starts!
           </Text>
         </View>
       ) : (
@@ -368,6 +410,8 @@ export const EventPlaylistSection = ({ eventId, canModerate = false }) => {
             onVote={handleVote}
             onRemove={handleRemove}
             canRemove={canModerate || track.added_by === user?.id}
+            canModerate={canModerate}
+            onMarkPlayed={handleMarkPlayed}
             primary={primary}
             textColor={textColor}
             muted={muted}
@@ -376,10 +420,37 @@ export const EventPlaylistSection = ({ eventId, canModerate = false }) => {
         ))
       )}
 
+      {/* Dedication step — optional note to the DJ before the request lands */}
+      <Modal visible={!!pendingTrack} transparent animationType="fade" onRequestClose={submitRequest}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: bg, borderRadius: 20, borderWidth: 1, borderColor: `${primary}30`, padding: 18 }}>
+            <Text style={{ color: textColor, fontSize: 15, fontWeight: '900', marginBottom: 4 }}>
+              🎧 {pendingTrack?.title}
+            </Text>
+            <Text style={{ color: muted, fontSize: 12, marginBottom: 12 }}>{pendingTrack?.artist}</Text>
+            <TextInput
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: `${primary}30`, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, color: textColor, fontSize: 13, marginBottom: 14 }}
+              placeholder="Say something to the DJ (optional) — e.g. “it’s my birthday!”"
+              placeholderTextColor={muted}
+              value={dedication}
+              onChangeText={setDedication}
+              maxLength={120}
+              multiline
+            />
+            <TouchableOpacity
+              onPress={submitRequest}
+              style={{ backgroundColor: primary, borderRadius: 14, paddingVertical: 12, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>SEND REQUEST</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <TrackSearchModal
         visible={searchVisible}
         onClose={() => setSearchVisible(false)}
-        onSelect={handleAddTrack}
+        onSelect={(track) => setPendingTrack(track)}
         primary={primary}
         bg={bg}
         textColor={textColor}

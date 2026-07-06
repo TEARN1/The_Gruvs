@@ -3617,7 +3617,7 @@ export const PlaylistManager = {
   async fetchTracks(playlistId) {
     const { data, error } = await supabase
       .from('event_playlist_tracks')
-      .select('id, track_id, platform, title, artist, thumbnail, duration_ms, votes, added_by, created_at, profiles:added_by(username, avatar_url)')
+      .select('id, track_id, platform, title, artist, thumbnail, duration_ms, votes, added_by, created_at, dedication, status, profiles:added_by(username, avatar_url)')
       .eq('playlist_id', playlistId)
       .order('votes', { ascending: false })
       .order('created_at', { ascending: true });
@@ -3625,14 +3625,23 @@ export const PlaylistManager = {
     return data || [];
   },
 
-  async addTrack(playlistId, userId, track) {
+  async addTrack(playlistId, userId, track, dedication = null) {
     const { data, error } = await supabase
       .from('event_playlist_tracks')
-      .insert({ playlist_id: playlistId, added_by: userId, track_id: track.id, platform: track.platform, title: track.title, artist: track.artist, thumbnail: track.thumbnail || null, duration_ms: track.duration_ms || null, votes: 0 })
-      .select('id, track_id, platform, title, artist, thumbnail, duration_ms, votes, added_by, created_at')
+      .insert({ playlist_id: playlistId, added_by: userId, track_id: track.id, platform: track.platform, title: track.title, artist: track.artist, thumbnail: track.thumbnail || null, duration_ms: track.duration_ms || null, votes: 0, dedication: dedication?.trim() || null })
+      .select('id, track_id, platform, title, artist, thumbnail, duration_ms, votes, added_by, created_at, dedication, status')
       .single();
     if (error) throw error;
     return data;
+  },
+
+  // DJ/host works the request list: 'requested' → 'played' (and back if mis-tapped).
+  async setTrackStatus(trackRowId, status) {
+    const { error } = await supabase
+      .from('event_playlist_tracks')
+      .update({ status })
+      .eq('id', trackRowId);
+    if (error) throw error;
   },
 
   async removeTrack(trackRowId, userId) {
