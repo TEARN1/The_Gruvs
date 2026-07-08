@@ -9,6 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import { useDraft } from '../hooks/useDraft';
 import { supabase } from '../services/supabase';
 import { log } from '../utils/log';
+import { logError } from '../utils/logError';
+import { useToast } from './ToastNotification';
 import { filterByViewerAge } from '../utils/contentAgeRating';
 import { loadViewerAge, viewerAgeSync } from '../utils/viewerAge';
 import { transform } from '../utils/writingStyles';
@@ -125,6 +127,7 @@ const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, 
 export const EchoSection = ({ eventId, onAuthRequired }) => {
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
+  const { show: showToast } = useToast();
   const [echoes, setEchoes] = useState(null); // null = loading, [] = empty, [...] = loaded
   const [text, setText] = useState('');
   const [sort, setSort] = useState('top');
@@ -163,6 +166,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
           .limit(30);
         setEchoes(fallback ? filterByViewerAge(fallback.map(e => ({ ...e, profiles: null })), viewerAgeSync()) : []);
         log.error('EchoSection:fetch', error);
+        logError('Echo.fetch', error, { code: error.code });
         return;
       }
       setEchoes(filterByViewerAge(data || [], viewerAgeSync()));
@@ -218,11 +222,15 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
       });
       if (error) {
         setEchoes(prev => (prev ?? []).filter(e => e.id !== tempId));
+        logError('Echo.post', error, { code: error.code });
+        showToast(error.message ? `Couldn't post: ${error.message}` : "Couldn't post your comment — try again.", 'error');
       } else {
         fetchEchoes();
       }
-    } catch {
+    } catch (e) {
       setEchoes(prev => (prev ?? []).filter(e => e.id !== tempId));
+      logError('Echo.post', e, { code: e?.code });
+      showToast(e?.message ? `Couldn't post: ${e.message}` : "Couldn't post your comment — try again.", 'error');
     } finally {
       setPosting(false);
     }

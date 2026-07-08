@@ -17,6 +17,7 @@ import { Video, ResizeMode, Audio } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
+import { logError } from '../utils/logError';
 import { supabase } from '../services/supabase';
 import { APP_WEB_URL } from '../constants/appUrl';
 import { resilient } from '../utils/resilience';
@@ -292,6 +293,7 @@ const ms = StyleSheet.create({
 // ── Comment sheet ─────────────────────────────────────────────────────────────
 const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, surface, user }) => {
   useBackClose(visible, onClose);
+  const toast = useToast();
   const [comments, setComments] = useState([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
@@ -323,7 +325,7 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
           setCommentLikes(state);
         }
       })
-      .catch(() => {})
+      .catch((e) => logError('ReelComment.fetch', e, { code: e?.code }))
       .finally(() => { setLoading(false); });
   }, [visible, reel?.id]);
 
@@ -376,8 +378,16 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
         const { data } = await supabase
           .from('profiles').select('id, username, avatar_url').eq('id', user.id).single();
         setComments(prev => [{ id: Date.now(), body: text, created_at: new Date().toISOString(), profiles: data }, ...prev]);
+      } else {
+        logError('ReelComment.send', new Error('all tiers failed'), { reelId: reel?.id });
+        toast?.show?.("Couldn't post your comment — try again.", 'error');
+        setBody(text); // give the text back so it isn't lost
       }
-    } catch { /* comment send failed silently */ }
+    } catch (e) {
+      logError('ReelComment.send', e, { code: e?.code });
+      toast?.show?.(e?.message ? `Couldn't post: ${e.message}` : "Couldn't post your comment — try again.", 'error');
+      setBody(text);
+    }
     finally { setSending(false); }
   };
 
