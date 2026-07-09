@@ -863,7 +863,7 @@ const EventCard = React.memo(({
 
           {/* Collapsible sections — each in its own SafeSection */}
           {openSection === 'react' && (
-            <ReactPicker visible onReact={key => onReact(id, key)} userReaction={userReaction} />
+            <ReactPicker visible idle={false} onReact={key => onReact(id, key)} userReaction={userReaction} />
           )}
           {openSection === 'echo' && (
             <EchoSection eventId={id} onAuthRequired={onAuthRequired} />

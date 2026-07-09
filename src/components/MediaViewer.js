@@ -252,20 +252,27 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
 
   return (
     <View style={[s.container, { height: MEDIA_HEIGHT }]} onLayout={onLayout}>
-      <FlatList
-        ref={flatListRef}
-        data={media}
-        renderItem={renderItem}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        keyExtractor={(_, i) => i.toString()}
-        getItemLayout={(_, i) => ({ length: MEDIA_WIDTH, offset: MEDIA_WIDTH * i, index: i })}
-        initialScrollIndex={initialIndex}
-        style={{ flex: 1 }}
-      />
+      {/* Perf: the overwhelming majority of events have a SINGLE image. A
+          horizontal paging FlatList per card (× a whole feed) is a big cost for
+          nothing, so single-media renders the item directly — no nested list. */}
+      {media.length === 1 ? (
+        renderItem({ item: media[0], index: 0 })
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={media}
+          renderItem={renderItem}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          keyExtractor={(_, i) => i.toString()}
+          getItemLayout={(_, i) => ({ length: MEDIA_WIDTH, offset: MEDIA_WIDTH * i, index: i })}
+          initialScrollIndex={initialIndex}
+          style={{ flex: 1 }}
+        />
+      )}
 
       {/* Arrow nav on web / multi images */}
       {media.length > 1 && Platform.OS === 'web' && (

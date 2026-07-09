@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useFonts } from 'expo-font';
+import { useFonts, loadAsync as _loadFontAsync } from 'expo-font';
+const Font = { loadAsync: _loadFontAsync };
 import {
   View, StyleSheet, TouchableOpacity, Text,
   StatusBar, Animated, Platform, useWindowDimensions, BackHandler, ActivityIndicator, Linking, PanResponder,
@@ -822,19 +823,25 @@ const MainNavigator = () => {
 export default function App() {
   // Kick off font load in background. Never block rendering — if the load
   // stalls, the app would be permanently blank. Icons self-load in componentDidMount.
+  // First paint blocks ONLY on Feather (~56KB) — 96% of the app's icons. The
+  // heavy MaterialCommunityIcons face (~1.15MB) loads in the BACKGROUND so a
+  // slow connection no longer stares at a multi-second spinner; the handful of
+  // MCI glyphs simply pop in a moment later.
   const [fontsLoaded] = useFonts({
     Feather: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
     feather: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
-    MaterialCommunityIcons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
-    'material-community': require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
   });
+  useEffect(() => {
+    Font.loadAsync({
+      MaterialCommunityIcons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
+      'material-community': require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
+    }).catch(() => {});
+  }, []);
 
   const [forceLoaded, setForceLoaded] = useState(false);
   useEffect(() => {
     if (Platform.OS === 'web') {
-      const t = setTimeout(() => {
-        setForceLoaded(true);
-      }, 3000);
+      const t = setTimeout(() => setForceLoaded(true), 1200); // shorter safety net
       return () => clearTimeout(t);
     }
   }, []);
