@@ -41,6 +41,7 @@ import { TonightAlert } from '../components/TonightAlert';
 import { StoriesRow } from '../components/StoriesRow';
 import { MasonryFeed } from '../components/MasonryFeed';
 import { ReelsRail } from '../components/ReelsRail';
+import { LazyCard } from '../components/LazyCard';
 import { logError } from '../utils/logError';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { CrewOutCard } from '../components/CrewOutCard';
@@ -2324,6 +2325,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       );
     }
     return (
+      <LazyCard eager={index < 3}>
       <EventCard
         event={event}
         index={index}
@@ -2367,6 +2369,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         onToggleRoute={handleToggleRoute}
         onToggleSection={toggleSection}
       />
+      </LazyCard>
     );
   }, [myVibes, vibeCounts, reactions, savedEvents, openSection, reactionFlash, routeEvents, crewRsvpMap,
       followingSet, highlightedId, eventCheckins, user, primary, surface, textColor, muted, mode,
