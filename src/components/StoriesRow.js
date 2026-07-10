@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { uploadToStorage } from '../services/storageService';
 import { resilient } from '../utils/resilience';
+import { thumb, storageThumb } from '../utils/storageThumb';
 import { useToast } from './ToastNotification';
 
 import { useBackClose } from '../hooks/useBackClose';
@@ -25,7 +26,7 @@ const StoryBubble = ({ story, seen, primary, onPress }) => {
     <TouchableOpacity style={sb.wrap} onPress={onPress} activeOpacity={0.8}>
       <View style={[sb.ring, { borderColor: ringColor }]}>
         {story.avatar_url
-          ? <Image source={{ uri: story.avatar_url }} style={sb.avatar} />
+          ? <Image source={{ uri: thumb.avatar(story.avatar_url) }} style={sb.avatar} />
           : <View style={[sb.avatar, { backgroundColor: "#1a2a2c", alignItems: 'center', justifyContent: 'center' }]}>
               <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>
                 {(story.username || '?')[0].toUpperCase()}
@@ -146,7 +147,7 @@ const StoryViewerModal = ({ visible, stories, startIndex, onClose, primary, curr
         {/* Header */}
         <View style={sv.header}>
           {currentUser.avatar_url
-            ? <Image source={{ uri: currentUser.avatar_url }} style={sv.headerAvatar} />
+            ? <Image source={{ uri: thumb.avatar(currentUser.avatar_url) }} style={sv.headerAvatar} />
             : <View style={[sv.headerAvatar, { backgroundColor: '#333', alignItems: 'center', justifyContent: 'center' }]}>
                 <Text style={{ color: '#fff', fontWeight: '900' }}>{(currentUser.username || '?')[0].toUpperCase()}</Text>
               </View>
@@ -181,7 +182,7 @@ const StoryViewerModal = ({ visible, stories, startIndex, onClose, primary, curr
                 }
               }}
             />
-          : <Image source={{ uri: currentStory.media_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          : <Image source={{ uri: storageThumb(currentStory.media_url, 900, null, 68) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         }
 
         {/* Caption */}

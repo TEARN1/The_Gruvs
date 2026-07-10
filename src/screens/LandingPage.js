@@ -2211,7 +2211,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 activeOpacity={0.85}
               >
                 <Image
-                  source={spot.image ? { uri: spot.image } : { uri: '' }}
+                  source={spot.image ? { uri: thumb.thumbnail(spot.image) } : { uri: '' }}
                   style={styles.trendImg}
                 />
                 <View style={[styles.trendOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />

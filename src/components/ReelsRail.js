@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
+import { storageThumb } from '../utils/storageThumb';
 
 const TILE_W = 118, TILE_H = 176;
 
@@ -60,7 +61,7 @@ export const ReelsRail = ({ onOpenReel, primary, textColor, muted }) => {
               accessibilityLabel={`Watch reel by ${reel.profiles?.username || 'a viber'}`}
             >
               {thumb
-                ? <Image source={{ uri: thumb }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                ? <Image source={{ uri: storageThumb(thumb, 240, 360, 60) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                 : <View style={[StyleSheet.absoluteFill, { backgroundColor: `${primary}10` }]} />}
               {/* play affordance */}
               <View style={rr.playWrap}>

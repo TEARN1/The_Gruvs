@@ -11,6 +11,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { thumb } from '../utils/storageThumb';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
@@ -115,7 +116,7 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
               <View key={p.id} style={[sf.card, { backgroundColor: surface, borderColor: `${primary}22` }]}>
                 <TouchableOpacity activeOpacity={0.85} onPress={() => { try { haptics.light?.(); } catch {} setOpenId(p.id); }} style={{ alignItems: 'center' }}>
                   {p.avatar_url
-                    ? <Image source={{ uri: p.avatar_url }} style={[sf.avatar, { borderColor: `${primary}40` }]} />
+                    ? <Image source={{ uri: thumb.avatarLg(p.avatar_url) }} style={[sf.avatar, { borderColor: `${primary}40` }]} />
                     : <View style={[sf.avatar, { backgroundColor: avatarBg(name), alignItems: 'center', justifyContent: 'center', borderColor: `${primary}40` }]}>
                         <Text style={{ color: '#fff', fontWeight: '900', fontSize: 26 }}>{name[0].toUpperCase()}</Text>
                       </View>}
