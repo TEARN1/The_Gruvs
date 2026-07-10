@@ -451,6 +451,9 @@ const EventCard = React.memo(({
                   m = [matched, ...m.filter((_, idx) => idx !== matchIdx)];
                 }
               }
+              // Serve feed images downscaled (weserv) — full-res photos here were
+              // the #1 cause of slow feed load. Videos are left untouched.
+              if (m?.length) m = m.map(x => (x && x.type !== 'video' && x.url) ? { ...x, url: thumb.feed(x.url) } : x);
               return m?.length ? m : null;
             })()} />
             {/* Double-tap heart burst overlay */}

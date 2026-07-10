@@ -9,6 +9,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { Feather } from '@expo/vector-icons';
 import { SmartImage } from './SmartImage';
 import { packMasonry, eventImageUrl } from '../utils/masonry';
+import { thumb } from '../utils/storageThumb';
 import { CATEGORY_CONFIG } from '../constants/CategoryConfig';
 import { priceLabel } from '../constants/currencies';
 
@@ -21,7 +22,7 @@ const fmtDate = (d) => {
 };
 
 const MasonryCard = ({ event, aspect, onPress, primary, textColor }) => {
-  const url = eventImageUrl(event);
+  const url = thumb.thumbnail(eventImageUrl(event)); // downscaled — masonry tiles are small
   const catColor = CATEGORY_CONFIG[event.category]?.color || primary;
   const date = fmtDate(event.event_date);
   const pl = priceLabel(event.price);

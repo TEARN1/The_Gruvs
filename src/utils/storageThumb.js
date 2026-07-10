@@ -9,28 +9,33 @@
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 
-export function storageThumb(url, width, height, quality = 75) {
-  if (!url) return url;
-  // Must be a public Supabase Storage object URL.
+/**
+ * Return a RESIZED image URL. Supabase's own transform endpoint is Pro-only
+ * (returns 403 on our free tier), so a full-res photo was being served
+ * everywhere `thumb.*` is used — often 300KB–1MB each. Instead we route through
+ * weserv.nl: a free, keyless, Cloudflare-backed image resizer/CDN that
+ * downscales + re-encodes to WebP on the fly (e.g. 361KB → 66KB at w=800).
+ * Non-Supabase and already-proxied URLs pass through unchanged.
+ */
+export function storageThumb(url, width, height, quality = 70) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.includes('images.weserv.nl')) return url; // already resized
   if (!url.includes('/storage/v1/object/public/')) return url;
-  // In the app, EXPO_PUBLIC_SUPABASE_URL is set → restrict to our own project.
-  // In tests (no inlined env) → accept any *.supabase.* host. App behaviour is
-  // unchanged because real builds always have SUPABASE_URL.
   const ours = SUPABASE_URL
     ? url.startsWith(SUPABASE_URL)
     : /\.supabase\.(co|in|net)\//.test(url);
   if (!ours) return url;
 
+  const src = url.split('?')[0].replace(/^https?:\/\//, ''); // weserv wants scheme-less
   const params = new URLSearchParams();
-  if (width)   params.set('width',   String(width));
-  if (height)  params.set('height',  String(height));
-  params.set('resize',  'cover');
-  params.set('quality', String(quality));
-
-  // Strip any existing query (e.g. transform params from a previous call) so we
-  // never produce a double-query like `url?a=1?b=2` or duplicate params.
-  const base = url.split('?')[0];
-  return `${base}?${params.toString()}`;
+  params.set('url', src);
+  if (width)  params.set('w', String(width));
+  if (height) params.set('h', String(height));
+  params.set('fit', 'cover');
+  params.set('q', String(quality));
+  params.set('output', 'webp');
+  params.set('we', '1'); // without-enlargement: never upscale a small source
+  return `https://images.weserv.nl/?${params.toString()}`;
 }
 
 /** Convenience presets */
@@ -40,6 +45,7 @@ export const thumb = {
   cover:     (url) => storageThumb(url, 800, 420),
   coverSm:   (url) => storageThumb(url, 400, 210),
   thumbnail: (url) => storageThumb(url, 300, 200),
+  feed:      (url) => storageThumb(url, 900, null, 62), // full-bleed feed image
 };
 
 /**
@@ -47,5 +53,5 @@ export const thumb = {
  * Pass isMetered=true when expo-network reports a cellular connection.
  */
 export function adaptiveThumb(url, width, height, isMetered = false) {
-  return storageThumb(url, width, height, isMetered ? 45 : 75);
+  return storageThumb(url, width, height, isMetered ? 45 : 70);
 }

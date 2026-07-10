@@ -1,13 +1,9 @@
 /**
- * storageThumb — Supabase Storage image transform URL builder.
- * Guards against: passing non-Supabase URLs through unchanged,
- * correct query param construction, quality/dimension presets.
+ * storageThumb — resized-image URL builder (routes our Supabase Storage objects
+ * through the free weserv.nl resizer, since Supabase transforms are Pro-only).
+ * Guards: non-Supabase URLs pass through, correct weserv params, no double-proxy.
  */
-
-// storageThumb detects Supabase storage URLs by their *.supabase.* host + path
-// (env-independent), so the test needs no EXPO_PUBLIC_* setup.
 const SUPABASE_URL = 'https://abc123.supabase.co';
-
 const { storageThumb, adaptiveThumb, thumb } = require('../src/utils/storageThumb');
 
 const STORAGE_URL = `${SUPABASE_URL}/storage/v1/object/public/media/photo.jpg`;
@@ -25,70 +21,49 @@ describe('storageThumb', () => {
     expect(storageThumb(PRAVATAR_URL, 80, 80)).toBe(PRAVATAR_URL);
   });
 
-  it('appends transform params to Supabase storage URLs', () => {
+  it('routes Supabase storage URLs through weserv with resize params', () => {
     const result = storageThumb(STORAGE_URL, 400, 300);
-    expect(result).toContain('width=400');
-    expect(result).toContain('height=300');
-    expect(result).toContain('resize=cover');
-    expect(result).toContain('quality=75');
+    expect(result).toContain('images.weserv.nl');
+    expect(result).toContain('w=400');
+    expect(result).toContain('h=300');
+    expect(result).toContain('output=webp');
+    expect(result).toContain('q=70');
+    // scheme-less source, no double https
+    expect(result).toContain('url=abc123.supabase.co');
+    expect(result).not.toContain('url=https');
   });
 
   it('uses custom quality when provided', () => {
-    const result = storageThumb(STORAGE_URL, 200, 200, 50);
-    expect(result).toContain('quality=50');
+    expect(storageThumb(STORAGE_URL, 200, 200, 50)).toContain('q=50');
   });
 
   it('omits width/height when not provided', () => {
     const result = storageThumb(STORAGE_URL, null, null);
-    expect(result).not.toContain('width=');
-    expect(result).not.toContain('height=');
-    expect(result).toContain('resize=cover');
+    expect(result).not.toContain('w=');
+    expect(result).not.toContain('h=');
+    expect(result).toContain('images.weserv.nl');
   });
 
-  it('does not double-transform already-transformed URLs', () => {
+  it('does not double-proxy an already-resized URL', () => {
     const once = storageThumb(STORAGE_URL, 80, 80);
-    // The second call receives a URL with '?' already in it — passes through because
-    // storageThumb checks for /storage/v1/object/public/ which is still present
     const twice = storageThumb(once, 80, 80);
-    // Should not have duplicate params
-    expect((twice.match(/width=/g) || []).length).toBe(1);
+    expect(twice).toBe(once); // weserv URL passes straight through
   });
 });
 
 describe('thumb presets', () => {
-  it('avatar produces 80×80', () => {
-    const r = thumb.avatar(STORAGE_URL);
-    expect(r).toContain('width=80');
-    expect(r).toContain('height=80');
-  });
-
-  it('avatarLg produces 200×200', () => {
-    const r = thumb.avatarLg(STORAGE_URL);
-    expect(r).toContain('width=200');
-    expect(r).toContain('height=200');
-  });
-
-  it('cover produces 800×420', () => {
-    const r = thumb.cover(STORAGE_URL);
-    expect(r).toContain('width=800');
-    expect(r).toContain('height=420');
-  });
-
-  it('thumbnail produces 300×200', () => {
-    const r = thumb.thumbnail(STORAGE_URL);
-    expect(r).toContain('width=300');
-    expect(r).toContain('height=200');
+  it('avatar targets 80px', () => expect(thumb.avatar(STORAGE_URL)).toContain('w=80'));
+  it('avatarLg targets 200px', () => expect(thumb.avatarLg(STORAGE_URL)).toContain('w=200'));
+  it('cover targets 800px', () => expect(thumb.cover(STORAGE_URL)).toContain('w=800'));
+  it('thumbnail targets 300px', () => expect(thumb.thumbnail(STORAGE_URL)).toContain('w=300'));
+  it('feed targets 900px at lower quality', () => {
+    const r = thumb.feed(STORAGE_URL);
+    expect(r).toContain('w=900');
+    expect(r).toContain('q=62');
   });
 });
 
 describe('adaptiveThumb', () => {
-  it('uses quality 75 on WiFi', () => {
-    const r = adaptiveThumb(STORAGE_URL, 400, 300, false);
-    expect(r).toContain('quality=75');
-  });
-
-  it('uses quality 45 on metered/cellular connection', () => {
-    const r = adaptiveThumb(STORAGE_URL, 400, 300, true);
-    expect(r).toContain('quality=45');
-  });
+  it('uses quality 70 on WiFi', () => expect(adaptiveThumb(STORAGE_URL, 400, 300, false)).toContain('q=70'));
+  it('uses quality 45 on metered/cellular connection', () => expect(adaptiveThumb(STORAGE_URL, 400, 300, true)).toContain('q=45'));
 });
