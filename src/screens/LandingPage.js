@@ -999,10 +999,38 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [loading, setLoading] = useState(true);
   const [selectedCat, setSelectedCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  // ── Community Safety Alert (from The Resident) ────────────────────────────
+  const [communityAlert, setCommunityAlert] = useState(null);
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [prediction, setPrediction] = useState(null);
   const [loadingPrediction, setLoadingPrediction] = useState(false);
   const [layoutType, setLayoutType] = useState('list'); // 'list' | 'grid' (Pinterest masonry)
+  // ── Real-time Resident community safety alerts ────────────────────────────
+  useEffect(() => {
+    const suburb = profile?.suburb || profile?.location;
+    // Fetch any active critical/panic alert
+    const loadAlert = async () => {
+      try {
+        const query = supabase
+          .from('res_alerts')
+          .select('id, title, description, severity, suburb, created_at')
+          .in('severity', ['critical', 'panic'])
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (suburb) query.ilike('suburb', `%${suburb}%`);
+        const { data } = await query;
+        if (data && data.length > 0) setCommunityAlert(data[0]);
+        else setCommunityAlert(null);
+      } catch {}
+    };
+    loadAlert();
+    const ch = supabase.channel('res_alerts_feed')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'res_alerts' }, loadAlert)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [profile?.suburb, profile?.location]);
+
   // Restore the user's last-chosen feed layout
   useEffect(() => {
     AsyncStorage.getItem('@gruvs_feed_layout')
@@ -2387,6 +2415,35 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     <View style={[styles.root, { backgroundColor: bg }]}>
       <LiquidBackground intensity={0.9} />
       <AuraEffect />
+
+      {/* ── Community Safety Alert Banner (from The Resident) ────────────── */}
+      {!!communityAlert && (
+        <View style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999,
+          backgroundColor: communityAlert.severity === 'panic' ? '#ef444488' : '#f59e0b88',
+          borderBottomWidth: 1,
+          borderBottomColor: communityAlert.severity === 'panic' ? '#ef4444' : '#f59e0b',
+          paddingHorizontal: 14, paddingVertical: 10,
+          flexDirection: 'row', alignItems: 'center', gap: 10,
+        }}>
+          <Text style={{ fontSize: 20 }}>
+            {communityAlert.severity === 'panic' ? '🚨' : '⚠️'}
+          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }} numberOfLines={1}>
+              {communityAlert.title}
+            </Text>
+            {!!communityAlert.description && (
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10 }} numberOfLines={1}>
+                {communityAlert.description}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity onPress={() => setCommunityAlert(null)} style={{ padding: 4 }}>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 14 }}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FlatList
         ref={flatListRef}

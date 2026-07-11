@@ -46,6 +46,7 @@ import { LiveEventUpdates }       from '../components/LiveEventUpdates';
 import { EventWeather }           from '../components/EventWeather';
 import { VIPTierSelector }        from '../components/VIPTierSelector';
 import { CarpoolBoard }           from '../components/CarpoolBoard';
+import { ResidentLiftsSection }   from '../components/ResidentLiftsSection';
 import { EventContextualAds }     from '../components/EventContextualAds';
 import { EventScheduleSection }   from '../components/EventScheduleSection';
 import { EventChatRoom }          from '../components/EventChatRoom';
@@ -1400,6 +1401,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 textColor={textColor}
                 muted={textMuted}
                 surface={surface}
+              />
+              <ResidentLiftsSection
+                eventId={event.id}
+                primary={primary}
+                surface={surface}
+                textColor={textColor}
+                muted={textMuted}
               />
             </SafeSection>
           )}
