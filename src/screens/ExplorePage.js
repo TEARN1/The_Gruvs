@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FadeInView } from '../components/FadeInView';
 import { HotBadge } from '../components/HotBadge';
 import { isBirthdayToday } from '../utils/birthday';
+import { thumb } from '../utils/storageThumb';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { TalentLeaderboardModal } from '../components/TalentLeaderboardModal';
@@ -357,7 +358,7 @@ const NearbyVibers = ({ vibers, primary, textColor, onPress }) => {
             <View style={[nv.ring, { borderColor: `${primary}30` }]}>
               <View style={{ width: 54, height: 54, borderRadius: 27, overflow: 'hidden' }}>
                 {v.avatar_url
-                  ? <Image source={{ uri: v.avatar_url }} style={nv.avatar} />
+                  ? <Image source={{ uri: thumb.avatar(v.avatar_url) }} style={nv.avatar} />
                   : <View style={[nv.avatar, { backgroundColor: AVATAR_BG_COLORS[(v.username?.charCodeAt(0)||0)%3], alignItems:'center', justifyContent:'center' }]}>
                       <Text style={{ color:'#fff', fontWeight:'900', fontSize:14 }}>{(v.username||'V')[0].toUpperCase()}</Text>
                     </View>
@@ -1046,7 +1047,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                       <FadeInView key={u.id} delay={i * 30} direction="up">
                         <View style={[src.wrap, { borderColor: `${primary}25` }]}>
                           {u.avatar_url
-                            ? <Image source={{ uri: u.avatar_url }} style={[src.thumb, { borderRadius: 30 }]} />
+                            ? <Image source={{ uri: thumb.avatar(u.avatar_url) }} style={[src.thumb, { borderRadius: 30 }]} />
                             : <View style={[src.thumb, { borderRadius: 30, backgroundColor: AVATAR_BG_COLORS[(u.username?.charCodeAt(0)||0)%3], alignItems:'center', justifyContent:'center' }]}>
                                 <Text style={{ color:'#fff', fontWeight:'900', fontSize:12 }}>{(u.username||'V')[0].toUpperCase()}</Text>
                               </View>
@@ -1315,7 +1316,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     >
                       <View style={{ position: 'relative', marginBottom: 10 }}>
                         {m.avatar_url ? (
-                          <Image source={{ uri: m.avatar_url }} style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: primary }} />
+                          <Image source={{ uri: thumb.avatarLg(m.avatar_url) }} style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: primary }} />
                         ) : (
                           <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: primary }}>
                             <Text style={{ color: primary, fontWeight: '900', fontSize: 20 }}>{(m.username || 'V')[0].toUpperCase()}</Text>
@@ -1408,7 +1409,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     >
                       <View style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: '#f59e0b', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: `${primary}10` }}>
                         {b.avatar_url
-                          ? <SmartImage source={{ uri: b.avatar_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                          ? <SmartImage source={{ uri: thumb.avatarLg(b.avatar_url) }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                           : <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>{(b.username || '?').slice(0, 1).toUpperCase()}</Text>}
                       </View>
                       <Text style={{ position: 'absolute', top: -2, right: 6, fontSize: 18 }}>🎂</Text>
@@ -1458,7 +1459,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                       style={{ width: colW, height: h, borderRadius: 18, overflow: 'hidden', backgroundColor: `${primary}10`, marginBottom: GAP }}
                       onPress={() => { setSelectedPhotoIndex(i); setPhotoViewerVisible(true); }}
                     >
-                      <SmartImage source={{ uri: photo.media_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                      <SmartImage source={{ uri: thumb.thumbnail(photo.media_url) }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 78, backgroundColor: 'rgba(0,0,0,0.32)' }} />
                       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 42, backgroundColor: 'rgba(0,0,0,0.5)' }} />
                       {photo.events?.category ? (
@@ -1736,7 +1737,7 @@ const SearchResultCard = ({ ev, primary, textColor, muted, catColor, onPress }) 
   return (
     <TouchableOpacity style={[src.wrap, { borderColor: `${catColor}25`, opacity: isPast ? 0.55 : 1 }]} onPress={onPress} activeOpacity={0.8}>
       <Image
-        source={ev.media?.[0]?.url || (typeof ev.media?.[0] === 'string' ? ev.media[0] : null) ? { uri: ev.media?.[0]?.url || ev.media?.[0] } : {}}
+        source={ev.media?.[0]?.url || (typeof ev.media?.[0] === 'string' ? ev.media[0] : null) ? { uri: thumb.thumbnail(ev.media?.[0]?.url || ev.media?.[0]) } : {}}
         style={src.thumb}
       />
       <View style={{ flex: 1 }}>
@@ -1767,7 +1768,7 @@ const src = StyleSheet.create({
 // ── Trend tile ────────────────────────────────────────────────────────────────
 const TrendTile = ({ spot, rank, primary, onPress }) => (
   <TouchableOpacity onPress={onPress} style={[tt.wrap, { backgroundColor: rank < 3 ? `${primary}10` : 'rgba(255,255,255,0.04)' }]} activeOpacity={0.85}>
-    {spot.image ? <Image source={{ uri: spot.image }} style={tt.img} /> : <View style={[tt.img, { backgroundColor: "#111a1c" }]} />}
+    {spot.image ? <Image source={{ uri: thumb.thumbnail(spot.image) }} style={tt.img} /> : <View style={[tt.img, { backgroundColor: "#111a1c" }]} />}
     <View style={[tt.rankBadge, { backgroundColor: rank < 3 ? primary : 'rgba(255,255,255,0.15)', width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }]}>
       <Feather name="trending-up" size={10} color={rank < 3 ? '#000' : '#fff'} />
     </View>

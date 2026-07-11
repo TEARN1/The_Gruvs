@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
+import { thumb } from '../utils/storageThumb';
 import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { WeatherService } from '../services/weatherService';
 import { GlitterBurst } from '../components/GlitterBurst';
@@ -276,6 +277,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       }
     }
   } catch { media = []; }
+  // Serve the hero image downscaled (weserv) — full-res covers were heavy. Videos untouched.
+  if (media.length) media = media.map(x => (x && x.type !== 'video' && x.url) ? { ...x, url: thumb.cover(x.url) } : x);
   const matchCard = parseMatchCard(event?.match_card);
 
   // Countdown clock — ticks every second while event is in the future
@@ -760,7 +763,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               accessibilityLabel={`View ${organizer.username || 'organizer'}'s profile`}
             >
               {organizer.avatar_url
-                ? <Image source={{ uri: organizer.avatar_url }} style={styles.avatar} />
+                ? <Image source={{ uri: thumb.avatarLg(organizer.avatar_url) }} style={styles.avatar} />
                 : <View style={[styles.avatar, { backgroundColor: ["#0891b2", "#7c3aed", "#059669", "#dc2626"][(organizer.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
                   <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>{(organizer.username || 'V')[0].toUpperCase()}</Text>
                 </View>
@@ -1015,7 +1018,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 {attendeePreview.slice(0, 6).map((p, i) => (
                   <View key={p.id || i} style={{ marginLeft: i === 0 ? 0 : -10, zIndex: 10 - i, borderRadius: 18, borderWidth: 2, borderColor: background }}>
                     {p.avatar_url
-                      ? <Image source={{ uri: p.avatar_url }} style={{ width: 32, height: 32, borderRadius: 16 }} />
+                      ? <Image source={{ uri: thumb.avatar(p.avatar_url) }} style={{ width: 32, height: 32, borderRadius: 16 }} />
                       : <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: ["#0891b2","#7c3aed","#059669","#d97706","#db2777","#dc2626"][i % 6], alignItems: 'center', justifyContent: 'center' }}>
                           <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>{(p.username || '?')[0].toUpperCase()}</Text>
                         </View>
@@ -1678,7 +1681,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 : whoGoing.map(p => (
                   <View key={p.id} style={[styles.whoGoingRow, { borderBottomColor: `${primary}15` }]}>
                     {p.avatar_url
-                      ? <Image source={{ uri: p.avatar_url }} style={styles.whoGoingAvatar} />
+                      ? <Image source={{ uri: thumb.avatar(p.avatar_url) }} style={styles.whoGoingAvatar} />
                       : <View style={[styles.whoGoingAvatar, { backgroundColor: ["#0891b2", "#7c3aed", "#059669", "#dc2626"][(p.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
                         <Text style={{ color: '#fff', fontWeight: '900' }}>{(p.username || 'V')[0].toUpperCase()}</Text>
                       </View>
