@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, ActivityIndicator, Animated, Share,
+  ScrollView, ActivityIndicator, Animated, Share, Alert, Platform,
 } from 'react-native';
 import { SmartImage } from './SmartImage';
 import { AvatarViewerModal } from './AvatarViewerModal';
@@ -360,6 +360,31 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     } catch {}
   };
 
+  const handleBlock = () => {
+    if (!currentUser || !targetId) return;
+    const doBlock = async () => {
+      try {
+        await supabase.from('user_blocks').upsert(
+          { blocker_id: currentUser.id, blocked_id: targetId },
+          { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
+        );
+        toast?.show(`@${profile?.username || 'user'} blocked — you won't see their content`, 'info');
+        onClose?.();
+      } catch {
+        toast?.show('Could not block. Try again.', 'error');
+      }
+    };
+    const msg = `Block @${profile?.username || 'this user'}? You won't see each other's content and they can't message you.`;
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(msg)) doBlock();
+    } else {
+      Alert.alert('Block user', msg, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Block', style: 'destructive', onPress: doBlock },
+      ]);
+    }
+  };
+
   const handleFollow = async () => {
     if (!currentUser) return;
     setFollowLoading(true);
@@ -542,6 +567,13 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                       onPress={() => setReportOpen(true)}
                     >
                       <Feather name="flag" size={14} color="#ef4444" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[s.msgBtn, { borderColor: '#ef444460' }]}
+                      onPress={handleBlock}
+                    >
+                      <Feather name="slash" size={14} color="#ef4444" />
                     </TouchableOpacity>
                   </View>
                 )}

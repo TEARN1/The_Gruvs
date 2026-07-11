@@ -252,20 +252,27 @@ export const SettingsScreen = ({
   const confirmDelete = useCallback(() => {
     const doDelete = async () => {
       try {
-        const { error } = await supabase.from('profiles').update({ deleted_at: new Date().toISOString() }).eq('id', user.id);
-        if (error) throw error;
-        toast?.show('Account deletion requested.', 'success');
+        // Permanent deletion: JWT-verified edge function purges the user's data,
+        // wipes their storage, and removes the login. Not reversible.
+        const { data, error } = await supabase.functions.invoke('delete-account');
+        if (error || !data?.deleted) throw error || new Error('Deletion failed');
+        toast?.show('Your account and data have been permanently deleted.', 'success');
         onSignOut?.();
       } catch {
-        toast?.show('Could not process request.', 'error');
+        // Fail safe: if the function is unreachable, mark for deletion + sign
+        // out so the account still stops being usable and gets purged server-side.
+        try { await supabase.from('profiles').update({ deletion_requested_at: new Date().toISOString(), deleted_at: new Date().toISOString(), is_discoverable: false }).eq('id', user.id); } catch {}
+        toast?.show('Deletion requested — your account has been deactivated and will be erased.', 'info');
+        onSignOut?.();
       }
     };
+    const msg = 'Permanently delete your account? This erases your profile, posts, reels, messages and media. This cannot be undone.';
     if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm('Delete your account? This hides your profile and signs you out.')) doDelete();
+      if (typeof window !== 'undefined' && window.confirm(msg)) doDelete();
     } else {
-      Alert.alert('Delete account', 'This hides your profile and signs you out. Continue?', [
+      Alert.alert('Delete account permanently', msg, [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: doDelete },
+        { text: 'Delete forever', style: 'destructive', onPress: doDelete },
       ]);
     }
   }, [user, toast, onSignOut]);

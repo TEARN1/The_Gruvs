@@ -32,7 +32,6 @@
         "NSCameraUsageDescription": "The Gruvs needs camera access to scan tickets and post event photos.",
         "NSPhotoLibraryUsageDescription": "The Gruvs needs photo library access to upload event media.",
         "NSMicrophoneUsageDescription": "The Gruvs uses the microphone for video recording.",
-        "NSUserTrackingUsageDescription": "We use this to show you relevant events near you.",
         "UIApplicationShortcutItems": [
           {
             "UIApplicationShortcutItemType": "com.thegruvs.app.search",
@@ -64,9 +63,7 @@
         "android.permission.VIBRATE",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "intentFilters": [
         {
