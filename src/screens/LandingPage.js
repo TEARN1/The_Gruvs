@@ -42,6 +42,7 @@ import { StoriesRow } from '../components/StoriesRow';
 import { MasonryFeed } from '../components/MasonryFeed';
 import { ReelsRail } from '../components/ReelsRail';
 import { LazyCard } from '../components/LazyCard';
+import { feature } from '../constants/launchConfig';
 import { logError } from '../utils/logError';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { CrewOutCard } from '../components/CrewOutCard';
@@ -2446,7 +2447,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             {renderHeader()}
             {renderTrending()}
             {/* Reels on The Drop — video discovery starts in the feed */}
-            {mode === 'drop' && onNavigateToReels && (
+            {mode === 'drop' && onNavigateToReels && feature('reelsRail') && (
               <ReelsRail
                 onOpenReel={(reelId) => onNavigateToReels(reelId)}
                 primary={primary}

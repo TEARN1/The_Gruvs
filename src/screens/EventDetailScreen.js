@@ -9,6 +9,7 @@ import { useIdentity } from '../context/IdentityContext';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
 import { thumb } from '../utils/storageThumb';
+import { feature } from '../constants/launchConfig';
 import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { WeatherService } from '../services/weatherService';
 import { GlitterBurst } from '../components/GlitterBurst';
@@ -653,8 +654,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
         SoundFX.play('touchDown'); // the hero sound — the signature moment
         showToast("Touched Down! Your footprint is lit. 🔥", 'success');
-        // Reveal the people you keep crossing paths with right after touching down
-        setCrossedVisible(true);
+        // Reveal who you keep crossing paths with — but only where there's enough
+        // density for it to be magic (parked at launch; see launchConfig).
+        if (feature('crossedPaths')) setCrossedVisible(true);
       } else if (await CheckinSync.queueIfOffline(event.id, user.id, privateCoords)) {
         setCheckedIn(true);
         showToast("You're offline — we'll log your Touch Down the moment you're back. 📍", 'info');
@@ -1304,7 +1306,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   opacity: checkingIn ? 0.7 : 1,
                   flex: 1,
                 }]}
-                onPress={checkedIn ? () => setCrossedVisible(true) : handleCheckIn}
+                onPress={checkedIn ? () => { if (feature('crossedPaths')) setCrossedVisible(true); } : handleCheckIn}
                 disabled={checkingIn}
                 activeOpacity={0.85}
               >

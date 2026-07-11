@@ -35,7 +35,7 @@ import { buildSosMessage, whatsappLink, smsLink } from '../utils/sosMessage';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
-import { LAUNCH_MINIMAL } from '../constants/launchConfig';
+import { LAUNCH_MINIMAL, feature } from '../constants/launchConfig';
 import { COMMUNITY_TAG_GROUPS, LANGUAGE_OPTIONS } from '../constants/AudienceTargeting';
 import { useToast } from '../components/ToastNotification';
 import { StreakBadge, useStreak } from '../components/StreakBadge';
@@ -2432,6 +2432,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', letterSpacing: 2 }}>MY ROYALTY</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            {feature('business') && (
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
               onPress={() => setBizDashVisible(true)}
@@ -2439,6 +2440,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Feather name="briefcase" size={14} color={primary} />
               <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Business</Text>
             </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
               onPress={() => setClubsModalVisible(true)}
@@ -2635,7 +2637,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         </View>
 
         {/* Gifting Wallet card */}
-        {user && (
+        {user && feature('gifting') && (
           <View style={{ paddingHorizontal: 16, marginTop: 12, marginBottom: 12 }}>
             <GlassView style={{ padding: 16, borderRadius: 20, borderWidth: 1, borderColor: `${primary}20`, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-around' }}>
@@ -2749,7 +2751,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
         )}
 
         {/* Path Map button */}
-        {user && (
+        {user && feature('pathMap') && (
           <TouchableOpacity
             onPress={() => setPathMapVisible(true)}
             style={{ marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 12, backgroundColor: `${primary}18`, borderWidth: 1, borderColor: `${primary}30` }}
