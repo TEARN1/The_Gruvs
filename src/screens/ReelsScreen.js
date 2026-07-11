@@ -1359,7 +1359,8 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       const rawData = await ReelsRepository.getReelsFeed({
         tab,
         hashtag: hashtagFilter,
-        userId: user?.id
+        userId: user?.id,
+        force: isRefresh, // pull-to-refresh bypasses the launch-prewarm cache
       });
       // Silently drop mature reels for under-age (or unknown-age) viewers.
       const data = filterByViewerAge(rawData, viewerAgeSync(), r => r.caption || '');

@@ -18,6 +18,7 @@ import { IdentityProvider } from './src/context/IdentityContext';
 import { CurrencyProvider } from './src/context/CurrencyContext';
 import { ToastProvider, useToast } from './src/components/ToastNotification';
 import { OfflineBanner } from './src/components/OfflineBanner';
+import { InstallAppBanner } from './src/components/InstallAppBanner';
 import { useWebAppUpdate, reloadForUpdate } from './src/hooks/useWebAppUpdate';
 import { LandingPage } from './src/screens/LandingPage';
 // Hooks from these modules are used at shell level — keep eager
@@ -41,6 +42,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { SecurityService } from './src/services/securityService';
 import { VibeEconomyEngine } from './src/services/revenueEngine';
 import { supabase } from './src/services/supabase';
+import { prewarmSections } from './src/services/prewarm';
 import { backStack } from './src/utils/backStack';
 
 // Install before any component mounts so all boot errors are captured
@@ -316,6 +318,12 @@ const MainNavigator = () => {
   const backPressCount = useRef(0);
   const backPressTimer = useRef(null);
   const lastHapticRef = useRef(0);
+
+  // Warm the caches for the other sections on launch so the first time the user
+  // reaches Reels / Explore (or refreshes the feed) it's already loaded.
+  useEffect(() => {
+    prewarmSections({ userId: authUser?.id || null });
+  }, [authUser?.id]);
 
   const handleTabChange = useCallback((tab) => {
     if (Platform.OS !== 'web') {
@@ -718,6 +726,7 @@ const MainNavigator = () => {
           </Text>
         </TouchableOpacity>
       )}
+      <InstallAppBanner primary={primary} />
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={bg}

@@ -156,10 +156,23 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (Array.isArray(d.scheduleItems)) setScheduleItems(d.scheduleItems);
     if (d.competitionId) setCompetitionId(d.competitionId);
     if (d.endDate) { const ed = new Date(d.endDate); if (!isNaN(ed.getTime())) setEndDate(ed); }
+    // Media (photos/videos), date/time, tags & power — previously NOT drafted,
+    // so an interrupted host lost them. Local picker URIs are valid for the
+    // session; a dead URI just renders a broken thumbnail (never crashes).
+    if (Array.isArray(d.mediaItems)) setMediaItems(d.mediaItems.filter(m => m && m.uri));
+    if (d.pickedDate) { const pd = new Date(d.pickedDate); if (!isNaN(pd.getTime())) setPickedDate(pd); }
+    if (typeof d.pickedHour === 'number') setPickedHour(d.pickedHour);
+    if (typeof d.pickedMinute === 'number') setPickedMinute(d.pickedMinute);
+    if (typeof d.timeSet === 'boolean') setTimeSet(d.timeSet);
+    if (Array.isArray(d.eventTags)) setEventTags(d.eventTags);
+    if (typeof d.powerBackup === 'string') setPowerBackup(d.powerBackup);
+    if (typeof d.secretAct === 'string') setSecretAct(d.secretAct);
+    if (typeof d.revealThreshold === 'string') setRevealThreshold(d.revealThreshold);
   };
   const { clearDraft } = useDraft(
     user ? `draft:event:${user.id}` : null,
-    () => ({ title, description, address, city, ticketUrl, contactPhone, contactEmail, entryPrice, vipPrice, vvipPrice, otherTickets, extraTiers, eventType, ageMin, ageMax, selectedCategories, scheduleItems, competitionId, endDate: endDate ? endDate.toISOString() : null }),
+    () => ({ title, description, address, city, ticketUrl, contactPhone, contactEmail, entryPrice, vipPrice, vvipPrice, otherTickets, extraTiers, eventType, ageMin, ageMax, selectedCategories, scheduleItems, competitionId, endDate: endDate ? endDate.toISOString() : null,
+      mediaItems, pickedDate: pickedDate ? pickedDate.toISOString() : null, pickedHour, pickedMinute, timeSet, eventTags, powerBackup, secretAct, revealThreshold }),
     restoreDraft,
     { enabled: visible && !!user },
   );
