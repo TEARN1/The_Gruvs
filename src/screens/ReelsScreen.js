@@ -1139,6 +1139,18 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
                 <Text style={{ color: textColor, fontSize: 13, fontWeight: '700' }}>Immersive Clean Screen Mode</Text>
                 <Feather name={preferences.cleanView ? 'check-square' : 'square'} size={18} color={primary} />
               </TouchableOpacity>
+
+              {/* Background play — audio keeps going when you leave the app */}
+              <TouchableOpacity
+                style={as.toggleRow}
+                onPress={() => onUpdate('backgroundPlay', !preferences.backgroundPlay)}
+              >
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={{ color: textColor, fontSize: 13, fontWeight: '700' }}>Background Play</Text>
+                  <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>Keep listening when the app is minimized or the screen is locked</Text>
+                </View>
+                <Feather name={preferences.backgroundPlay ? 'check-square' : 'square'} size={18} color={primary} />
+              </TouchableOpacity>
             </View>
 
             {/* Caption Size */}
@@ -1202,18 +1214,8 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
   const [reels, setReels] = useState([]);
   
-  // Set audio mode for mobile (iOS/Android) so that silent/mute switch doesn't block audio
-  useEffect(() => {
-    if (Platform.OS !== 'web') {
-      Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        staysActiveInBackground: false,
-        playThroughEarpieceAndroid: false,
-      }).catch(() => {});
-    }
-  }, []);
+  // (Audio mode effect lives below, once playerPref is declared — it needs the
+  // Background Play preference.)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -1231,6 +1233,24 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   const [manageVisible, setManageVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [playerPref, setPlayerPref] = useState(ReelsPreferences.getPreferences());
+
+  // Audio mode for mobile: silent/mute switch shouldn't block audio. When
+  // Background Play is on, keep audio alive while the app is minimized / screen
+  // is locked (YouTube-style). Re-applied whenever the preference changes.
+  // Requires the native UIBackgroundModes:audio (iOS) / FOREGROUND_SERVICE
+  // (Android) config in app.json to take effect on a device build.
+  const bgPlay = !!playerPref.backgroundPlay;
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        staysActiveInBackground: bgPlay,
+        playThroughEarpieceAndroid: false,
+      }).catch(() => {});
+    }
+  }, [bgPlay]);
 
   const flatRef = useRef(null);
   const [screenFocused, setScreenFocused] = useState(true);
@@ -1285,8 +1305,11 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     return () => sub.remove();
   }, []);
   useEffect(() => {
-    setScreenFocused(appActive && tabActive);
-  }, [appActive, tabActive]);
+    // With Background Play on, a minimized/locked app (appActive === false) keeps
+    // the active reel's audio going — only leaving the Reels tab pauses it. Off,
+    // it pauses the moment the app backgrounds (original behavior).
+    setScreenFocused(tabActive && (appActive || bgPlay));
+  }, [appActive, tabActive, bgPlay]);
 
   // Handle native Android hardware back button inside ReelsScreen
   useEffect(() => {

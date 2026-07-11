@@ -70,6 +70,7 @@ class PlayerStateMachine {
       cleanView: false,
       masterVolume: 1.0,
       audioPreset: 'balanced', // 'balanced' | 'vocals' | 'bass'
+      backgroundPlay: false, // keep audio playing when app is minimized / screen locked (YouTube-style)
     };
     this.loadState();
   }

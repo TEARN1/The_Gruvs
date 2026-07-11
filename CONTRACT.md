@@ -47,7 +47,9 @@ emergency_contacts, lat/lon, birth_*`.
   is delivered automatically by the `push-notify` edge function (DB webhook on
   INSERT) — clients never call push APIs directly.
   Resident-owned `type` values are prefixed: `res_room_request`,
-  `res_request_approved`, `res_lift_join`, `res_dispatch`, `res_token_claim`.
+  `res_request_approved`, `res_lift_join`, `res_dispatch`, `res_token_claim`,
+  `res_alert_panic`, `res_alert_response`, `res_market_reply`, `res_groupbuy_pledge`,
+  `res_lostfound`, `res_care_missed`, `res_status`.
 - **Storage**: reuse existing buckets; upload paths MUST start with
   `${user.id}/` (RLS enforces it). Resident sub-folders:
   `${user.id}/res/listing_*`, `${user.id}/res/tool_*`, etc.
@@ -59,8 +61,12 @@ emergency_contacts, lat/lon, birth_*`.
 - This DB is **default-deny**: a new function gets NO client execute. Every
   Resident RPC must `revoke ... from public, anon` +
   `grant execute ... to authenticated, service_role` explicitly, pin
-  `set search_path`, and be `res_`-prefixed (`res_toggle_rsvp`,
-  `res_is_household_member`).
+  `set search_path`, and be `res_`-prefixed:
+  - `res_toggle_rsvp`
+  - `res_is_household_member`
+  - `res_is_community_member`
+  - `res_broadcast_alert`
+  - `res_award_good_neighbour`
 - Cross-app RPCs (Phase 2+): `get_public_trust(p_user_id)` returns ONLY the §3
   columns.
 
@@ -84,6 +90,10 @@ statuses are coordination signals, not transactions.
 
 - **Phase 2**: Resident cards show Gruvs trust (§3) + "Message on The Gruvs"
   (§4 DM rails).
-- **Phase 3**: `res_lift_clubs.event_id` → lifts attach to Gruvs events and
-  surface in the event's CarpoolBoard; handyman ↔ `gig_posts` bridge;
+- **Phase 3**: `res_lift_clubs.event_id` ➔ lifts attach to Gruvs events and
+  surface in the event's CarpoolBoard; handyman ➔ `gig_posts` bridge;
   "moving day" spawns a private Gruvs event.
+- **Phase 4**:
+  - **Panic Alerts**: Critical resident panic alerts trigger `res_broadcast_alert` and pin a warning banner at the top of the social feed in `LandingPage.js`.
+  - **Shared Business Directory**: Spaza shops and handyman services register in Resident and automatically list under Gruvs `ServiceMarketplace.js` gig list.
+  - **Reputation Integration**: Local help/mutual aid actions trigger `res_award_good_neighbour` to increment user's universal Gruvs XP.

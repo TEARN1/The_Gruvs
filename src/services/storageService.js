@@ -61,6 +61,31 @@ const uriToBlob = (uri) => new Promise((resolve, reject) => {
   xhr.send();
 });
 
+// Downscale + re-encode big images before upload so we stop accumulating ~1MB
+// source files (cheaper storage, faster weserv resize on display). Web-only
+// (canvas); returns the ORIGINAL blob on anything unexpected so it can never
+// break an upload. Videos, GIFs and small images pass through untouched.
+const COMPRESSIBLE = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const COMPRESS_MAX_DIM = 1600;
+const COMPRESS_MIN_BYTES = 350 * 1024;
+const compressImageBlob = async (blob, type) => {
+  try {
+    if (typeof document === 'undefined' || typeof createImageBitmap === 'undefined') return blob;
+    if (!COMPRESSIBLE.has(type) || blob.size < COMPRESS_MIN_BYTES) return blob;
+    const bmp = await createImageBitmap(blob);
+    const scale = Math.min(1, COMPRESS_MAX_DIM / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * scale));
+    const h = Math.max(1, Math.round(bmp.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    bmp.close?.();
+    const out = await new Promise((res) => canvas.toBlob(res, 'image/webp', 0.72));
+    // Keep the compressed copy only if it actually helped.
+    return (out && out.size > 0 && out.size < blob.size) ? out : blob;
+  } catch { return blob; }
+};
+
 /**
  * Upload a local file URI to Supabase Storage.
  * @param {string} uri          - Local URI from expo-image-picker or expo-document-picker.
@@ -94,6 +119,9 @@ export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {
     const mb = (blob.size / 1024 / 1024).toFixed(1);
     throw new Error(`File is ${mb} MB — maximum size is 150 MB.`);
   }
+
+  // Shrink oversized images before upload (no-op on native / small / non-image).
+  blob = await compressImageBlob(blob, (blob.type && blob.type !== 'application/octet-stream') ? blob.type : type);
 
   const finalType = (blob.type && blob.type !== 'application/octet-stream') ? blob.type : type;
 

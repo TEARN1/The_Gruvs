@@ -27,6 +27,7 @@
         "applinks:www.thegruvs.com"
       ],
       "infoPlist": {
+        "UIBackgroundModes": ["audio"],
         "NSLocationWhenInUseUsageDescription": "The Gruvs uses your location to show nearby events and vibers.",
         "NSCameraUsageDescription": "The Gruvs needs camera access to scan tickets and post event photos.",
         "NSPhotoLibraryUsageDescription": "The Gruvs needs photo library access to upload event media.",
@@ -63,7 +64,9 @@
         "android.permission.VIBRATE",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ],
       "intentFilters": [
         {
