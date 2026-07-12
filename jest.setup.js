@@ -12,6 +12,22 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
+// ── expo-font (SDK 52 test harness) ──────────────────────────────────────────
+// @expo/vector-icons does `loadedNativeFonts.forEach(...)`, but under jest-expo
+// on SDK 52 that export isn't an iterable, so ANY component rendering an icon
+// blows up with "loadedNativeFonts.forEach is not a function". This is purely a
+// test-environment gap — the real web build and the native APK both render icons
+// fine — so give it the array shape it expects.
+jest.mock('expo-font', () => {
+  const actual = jest.requireActual('expo-font');
+  return {
+    ...actual,
+    loadedNativeFonts: [],
+    isLoaded: jest.fn(() => true),
+    loadAsync: jest.fn(() => Promise.resolve()),
+  };
+});
+
 // ── expo-haptics (no-op in tests) ────────────────────────────────────────────
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
