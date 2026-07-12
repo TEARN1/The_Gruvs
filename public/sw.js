@@ -9,7 +9,7 @@
  *   - Everything else (Supabase, weserv images, APIs, cross-origin): pass
  *     straight through, never cached.
  */
-const VERSION = 'gruvs-v1';
+const VERSION = 'gruvs-v2';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 

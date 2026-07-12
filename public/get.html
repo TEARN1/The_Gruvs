@@ -142,9 +142,11 @@
         else show('desktopSteps');
       };
 
-      // Proactively show steps so users aren't guessing.
+      // Proactively show steps so users aren't guessing — the manual menu path
+      // works even when Chrome never fires the auto-install prompt.
       if (isIOS) show('iosSteps');
-      else if (isDesktop) show('desktopSteps');
+      else if (isAndroid) show('androidSteps');
+      else show('desktopSteps');
     })();
   </script>
 </body>
