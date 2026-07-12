@@ -208,7 +208,7 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
             accessibilityLabel={`Trending: ${spot.description || spot.title || 'Trending Gruv'}, ${spot.rsvp_count || spot.going || 0} vibing`}
           >
             <Image
-              source={typeof spot.image === 'string' ? { uri: spot.image } : (spot.image || require('../../assets/events/pixel.png'))}
+              source={typeof spot.image === 'string' ? { uri: spot.image } : (spot.image || require('../../assets/events/pixel.jpg'))}
               style={tm.thumb}
             />
             <View style={{ flex: 1 }}>
