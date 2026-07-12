@@ -389,7 +389,13 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     setError('');
     setScanNote('');
 
-    if (!canScanPoster()) { setScanNote('Poster added — fill in the details below.'); return; }
+    // No on-device reader here (native has no DOM for the OCR engine). Don't
+    // dead-end the host — open the paste box, which works on every platform.
+    if (!canScanPoster()) {
+      setPasteOpen(true);
+      setScanNote("Poster added. Paste the flyer's caption below and we'll fill the details in for you.");
+      return;
+    }
 
     setScanning(true); setScanPct(0);
     try {
@@ -1087,9 +1093,13 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     ) : (
                       <>
                         <Feather name="image" size={24} color={primary} />
-                        <Text style={{ color: primary, fontWeight: '900', fontSize: 14.5 }}>Upload poster → auto-fill</Text>
+                        <Text style={{ color: primary, fontWeight: '900', fontSize: 14.5 }}>
+                          {canScanPoster() ? 'Upload poster → auto-fill' : 'Upload your poster'}
+                        </Text>
                         <Text style={{ color: muted, fontSize: 11.5, textAlign: 'center', lineHeight: 16 }}>
-                          Got a flyer? Upload it and we'll read the title, date, time, venue & price for you — just check and tweak.
+                          {canScanPoster()
+                            ? "Got a flyer? Upload it and we'll read the title, date, time, venue & price for you — just check and tweak."
+                            : "Got a flyer? Add it here — then paste its caption below and we'll fill the details in for you."}
                         </Text>
                       </>
                     )}

@@ -24,10 +24,25 @@ import { Platform } from 'react-native';
 const TESSERACT_CDN = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
 let _loadPromise = null;
 
+/**
+ * Every await in this file talks to the network or the browser's image decoder,
+ * and neither is guaranteed to call us back — a blocked CDN or a half-loaded
+ * image just goes quiet. Without a deadline the scan spinner would hang at 0%
+ * forever and leave the button disabled, so every wait gets one.
+ */
+const TIMEOUT = { script: 20000, image: 15000, scan: 90000 };
+function withTimeout(promise, ms, label) {
+  let timer;
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)),
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label}-timeout`)), ms); }),
+  ]);
+}
+
 function loadTesseract() {
   if (typeof window !== 'undefined' && window.Tesseract) return Promise.resolve(window.Tesseract);
   if (_loadPromise) return _loadPromise;
-  _loadPromise = new Promise((resolve, reject) => {
+  _loadPromise = withTimeout(new Promise((resolve, reject) => {
     try {
       const s = document.createElement('script');
       s.src = TESSERACT_CDN;
@@ -36,7 +51,10 @@ function loadTesseract() {
       s.onerror = () => reject(new Error('tesseract-load-failed'));
       document.head.appendChild(s);
     } catch (e) { reject(e); }
-  });
+  }), TIMEOUT.script, 'tesseract');
+  // Never cache a FAILED load — otherwise one CDN blip bricks scanning for the
+  // rest of the session and the next attempt fails instantly for no reason.
+  _loadPromise.catch(() => { _loadPromise = null; });
   return _loadPromise;
 }
 
@@ -45,13 +63,13 @@ export const canScanPoster = () =>
   Platform.OS === 'web' && typeof document !== 'undefined' && typeof window !== 'undefined';
 
 function loadImageEl(uri) {
-  return new Promise((resolve, reject) => {
+  return withTimeout(new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('img-load-failed'));
     img.src = uri;
-  });
+  }), TIMEOUT.image, 'img');
 }
 
 /**
@@ -132,6 +150,12 @@ function mergeText(a, b) {
  */
 export async function scanPoster(imageUri, onProgress) {
   if (!canScanPoster() || !imageUri) return null;
+  // Hard deadline over the whole pipeline: recognition itself can stall on a
+  // huge image, and a scan that never returns is worse than one that fails.
+  return withTimeout(runScan(imageUri, onProgress), TIMEOUT.scan, 'scan').catch(() => null);
+}
+
+async function runScan(imageUri, onProgress) {
   let worker = null;
   try {
     const Tesseract = await loadTesseract();
