@@ -1013,7 +1013,7 @@ export const TrendingManager = {
         cache.set(cacheKey, mapped, 120000);
         return mapped;
       }
-    } catch { }
+    } catch (e) { logError('Leaderboard.primary', e); }
 
     return [];
   },
@@ -1550,7 +1550,7 @@ export const UserManager = {
           vibe_score: 0,
         });
       }
-    } catch { }
+    } catch (e) { logError('Profile.ensureExists', e, { userId }); }
   },
 
   async getMutuals(userId) {
@@ -1699,7 +1699,7 @@ export const CheckInManager = {
         try {
           const { data: prof } = await supabase.from('profiles').select('vibe_score').eq('id', userId).single();
           await supabase.from('profiles').update({ vibe_score: (prof?.vibe_score || 0) + 8 }).eq('id', userId);
-        } catch { }
+        } catch (e) { logError('Score.incrementFallback', e, { userId }); }
       }
 
       cache.invalidate(`profile:${userId}`);
@@ -2310,7 +2310,7 @@ async function _notifyEventAuthor(eventId, actorId, type) {
     const msg = messages[type];
     if (!msg) return;
     await _notify(event.author_id, actorId, type, msg.title, msg.body);
-  } catch { }
+  } catch (e) { logError('Notify.host', e, { type }); }
 }
 
 async function _notify(recipientId, actorId, type, title, body, data = {}) {
@@ -2335,7 +2335,7 @@ async function _notify(recipientId, actorId, type, title, body, data = {}) {
         data,
         read: false,
       });
-    } catch { }
+    } catch (e) { logError('Notify.insert', e, { type }); }
   }
 }
 
@@ -2627,7 +2627,7 @@ export const MessageManager = {
     try {
       await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', messageId).eq('recipient_id', userId).is('read_at', null);
       cache.invalidate(`dm_unread:${userId}`);
-    } catch { }
+    } catch (e) { logError('DM.markAsRead', e, { messageId }); }
   },
 
   async sendTypingStatus(senderId, recipientId, isTyping) {
@@ -2908,9 +2908,9 @@ export const PresenceManager = {
       this._heartbeatTimer = setInterval(async () => {
         try {
           await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', userId);
-        } catch { }
+        } catch (e) { logError('Presence.heartbeat', e, { userId }); }
       }, 4 * 60 * 1000);
-    } catch { }
+    } catch (e) { logError('Presence.goOnline', e, { userId }); }
   },
 
   async goOffline(userId) {
@@ -2919,7 +2919,7 @@ export const PresenceManager = {
     try {
       await supabase.from('profiles').update({ is_online: false, last_seen: new Date().toISOString() }).eq('id', userId);
       cache.invalidate(`profile:${userId}`);
-    } catch { }
+    } catch (e) { logError('Presence.goOffline', e, { userId }); }
   },
 
   // ── "I'm here" live presence beacon ──────────────────────────────────────
@@ -2953,7 +2953,7 @@ export const PresenceManager = {
     try {
       await supabase.from('profiles').update({ is_beacon_active: false, beacon_expires_at: null }).eq('id', userId);
     } catch {
-      try { await supabase.from('profiles').update({ is_beacon_active: false }).eq('id', userId); } catch {}
+      try { await supabase.from('profiles').update({ is_beacon_active: false }).eq('id', userId); } catch (e) { logError('Beacon.deactivate', e, { userId }); }
     }
     cache.invalidate(`profile:${userId}`);
   },
@@ -3222,7 +3222,7 @@ export const RetentionManager = {
           RewardEngine.checkMilestones(userId).catch(() => { });
         }
       }
-    } catch { }
+    } catch (e) { logError('Retention.streak', e, { userId }); }
   },
 
   async getGlobalStats() {

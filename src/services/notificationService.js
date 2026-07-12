@@ -7,6 +7,7 @@ import { supabase } from './supabase';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { shouldInterrupt } from '../utils/notificationPolicy';
+import { logError } from '../utils/logError';
 
 export const NotificationService = {
 
@@ -146,7 +147,7 @@ export const NotificationService = {
         data,
         read: false,
       });
-    } catch {}
+    } catch (e) { logError('Notify.push', e, { type }); }
     // Device push is delivered server-side by the push-notify Supabase Edge Function,
     // which fires on every notifications INSERT via a DB webhook.  No client-side
     // Expo Push API call is needed here.
@@ -277,7 +278,7 @@ export const NotificationService = {
           }
         }
       }
-    } catch {}
+    } catch (e) { logError('Notify.friendsAtEvent', e); }
   },
 
   // ── Now playing notifications ─────────────────────────────────────────────────
@@ -299,7 +300,7 @@ export const NotificationService = {
           eventId,
         });
       }
-    } catch {}
+    } catch (e) { logError('Notify.nowPlaying', e); }
   },
 
   async notifyLineupChange(eventId, message) {
@@ -318,7 +319,7 @@ export const NotificationService = {
           eventId,
         });
       }
-    } catch {}
+    } catch (e) { logError('Notify.lineupChange', e); }
   },
 
   async notifySessionStarting(eventId, sessionTitle, room) {
@@ -338,7 +339,7 @@ export const NotificationService = {
           eventId,
         });
       }
-    } catch {}
+    } catch (e) { logError('Notify.sessionStarting', e); }
   },
 
   // ── Sports / match notifications ─────────────────────────────────────────────
@@ -360,7 +361,7 @@ export const NotificationService = {
           eventId,
         });
       }
-    } catch {}
+    } catch (e) { logError('Notify.sportGoal', e); }
   },
 
   async notifyMatchResult(eventId, homeTeam, awayTeam, homeScore, awayScore, result) {
@@ -381,7 +382,7 @@ export const NotificationService = {
           eventId,
         });
       }
-    } catch {}
+    } catch (e) { logError('Notify.sportResult', e); }
   },
 
   async notifyFixtureScheduled(eventId, homeTeam, awayTeam, scheduledAt) {
@@ -403,7 +404,7 @@ export const NotificationService = {
           eventId,
         });
       }
-    } catch {}
+    } catch (e) { logError('Notify.sportFixture', e); }
   },
 
   async markAllRead(userId) {
@@ -414,7 +415,7 @@ export const NotificationService = {
         .update({ read: true })
         .eq('recipient_id', userId)
         .eq('read', false);
-    } catch {}
+    } catch (e) { logError('Notify.markAllRead', e, { userId }); }
   },
 
   async getUnreadCount(userId) {
