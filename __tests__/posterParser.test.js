@@ -47,6 +47,13 @@ describe('parsePrice', () => {
     expect(parsePrice('Presale R120 / Door R180')).toMatchObject({ amount: 120, fromPrice: true });
     expect(parsePrice('R1,500 VIP')).toMatchObject({ amount: 1500 });
   });
+  it('pulls VIP / VVIP tiers when labelled', () => {
+    const r = parsePosterText('General R150  VIP R400  VVIP R900', NOW);
+    expect(r.price).toBe(150);
+    expect(r.vipPrice).toBe(400);
+    expect(r.vvipPrice).toBe(900);
+  });
+
   it('detects free entry', () => {
     expect(parsePrice('FREE ENTRY')).toMatchObject({ isFree: true, amount: 0 });
     expect(parsePrice('Free event — all welcome').isFree).toBe(true);

@@ -127,10 +127,20 @@ export function parsePrice(text) {
     const n = parseInt(m[1].replace(/[\s,]/g, ''), 10);
     if (Number.isFinite(n) && n > 0 && n < 1000000) amounts.push(n);
   }
-  if (!amounts.length) return { amount: null, isFree: false, fromPrice: false };
+  if (!amounts.length) return { amount: null, isFree: false, fromPrice: false, vip: null, vvip: null };
   const min = Math.min(...amounts);
   const fromPrice = /\bfrom\b/.test(t) || amounts.length > 1;
-  return { amount: min, isFree: false, fromPrice };
+  // Tiered pricing: pull the amount that sits right after a VIP / VVIP label.
+  const labelled = (label) => {
+    const m = text.match(new RegExp(`${label}[^r\\d]{0,14}r\\s*([\\d][\\d\\s,]*)`, 'i'));
+    if (!m) return null;
+    const n = parseInt(m[1].replace(/[\s,]/g, ''), 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  const vvip = labelled('vvip');
+  let vip = labelled('vip');
+  if (vip && vvip && vip === vvip) vip = null; // the "vip" regex can catch the "vvip" line
+  return { amount: min, isFree: false, fromPrice, vip, vvip };
 }
 
 // ── Category ─────────────────────────────────────────────────────────────────
@@ -266,9 +276,11 @@ export function parsePosterText(rawText, now = new Date()) {
     date,                                   // 'YYYY-MM-DD' | null
     time: time?.start || null,              // { h, m } | null
     endTime: time?.end || null,             // { h, m } | null
-    price: price.amount,                    // number | null
+    price: price.amount,                    // number | null (entry / lowest)
     isFree: price.isFree,
     fromPrice: price.fromPrice,
+    vipPrice: price.vip,                    // number | null
+    vvipPrice: price.vvip,                  // number | null
     phone: phone || '',
     email: email || '',
     ticketUrl: ticketUrl || '',

@@ -311,6 +311,46 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const [scanning, setScanning] = useState(false);
   const [scanPct, setScanPct] = useState(0);
   const [scanNote, setScanNote] = useState('');
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+
+  // Fill only the EMPTY fields from a parsed result; returns the list filled.
+  const applyParsed = (p) => {
+    const filled = [];
+    if (p.title && !title.trim()) { setTitle(p.title); filled.push('title'); }
+    if (p.description && !description.trim()) { setDescription(p.description); filled.push('description'); }
+    if (p.address && !address.trim()) { setAddress(p.address); filled.push('venue'); }
+    if (p.city && !city.trim()) { setCity(p.city); filled.push('city'); }
+    if (p.date) { const d = new Date(`${p.date}T00:00:00`); if (!isNaN(d.getTime())) { setPickedDate(d); filled.push('date'); } }
+    if (p.time) { setPickedHour(p.time.h); setPickedMinute(p.time.m); setTimeSet(true); filled.push('time'); }
+    if (p.endTime) { setEndHour(p.endTime.h); setEndMinute(p.endTime.m); setEndTimeSet(true); filled.push('end time'); }
+    if (p.isFree) { setEntryPrice('0'); filled.push('free entry'); }
+    else if (p.price != null && !String(entryPrice).trim()) { setEntryPrice(String(p.price)); filled.push('price'); }
+    if (p.vipPrice != null && !String(vipPrice).trim()) { setVipPrice(String(p.vipPrice)); filled.push('VIP price'); }
+    if (p.vvipPrice != null && !String(vvipPrice).trim()) { setVvipPrice(String(p.vvipPrice)); filled.push('VVIP price'); }
+    if (p.phone && !contactPhone.trim()) { setContactPhone(p.phone); filled.push('phone'); }
+    if (p.email && !contactEmail.trim()) { setContactEmail(p.email); filled.push('email'); }
+    if (p.ticketUrl && !ticketUrl.trim()) { setTicketUrl(p.ticketUrl); filled.push('tickets link'); }
+    if (p.ageMin && !ageMin) { setAgeMin(p.ageMin); filled.push('age limit'); }
+    if (p.categories?.length && selectedCategories.length === 0) { setSelectedCategories(p.categories); filled.push('category'); }
+    return filled;
+  };
+
+  const fillFromText = (rawText, { source } = {}) => {
+    const p = parsePosterText(rawText);
+    const filled = applyParsed(p);
+    setScanNote(filled.length
+      ? `Filled ${filled.length}: ${filled.join(', ')} — please double-check as you go.`
+      : `Read the ${source || 'text'} but couldn't pull clear details — please fill them in.`);
+    return filled.length;
+  };
+
+  const pasteAndFill = () => {
+    if (!pasteText.trim()) { setScanNote('Paste the event text first, then tap Auto-fill.'); return; }
+    setPosterMode(false); // they gave us the words, not (only) a poster image
+    setError('');
+    fillFromText(pasteText, { source: 'text' });
+  };
 
   const scanAndFill = async () => {
     if (scanning) return;
@@ -341,26 +381,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     setScanning(true); setScanPct(0);
     try {
       const text = await scanPoster(asset.uri, (p) => setScanPct(p));
-      if (!text) { setScanNote("Couldn't read this poster — please fill in the details below."); return; }
-      const p = parsePosterText(text);
-      const filled = [];
-      if (p.title && !title.trim()) { setTitle(p.title); filled.push('title'); }
-      if (p.description && !description.trim()) { setDescription(p.description); filled.push('description'); }
-      if (p.address && !address.trim()) { setAddress(p.address); filled.push('venue'); }
-      if (p.city && !city.trim()) { setCity(p.city); filled.push('city'); }
-      if (p.date) { const d = new Date(`${p.date}T00:00:00`); if (!isNaN(d.getTime())) { setPickedDate(d); filled.push('date'); } }
-      if (p.time) { setPickedHour(p.time.h); setPickedMinute(p.time.m); setTimeSet(true); filled.push('time'); }
-      if (p.endTime) { setEndHour(p.endTime.h); setEndMinute(p.endTime.m); setEndTimeSet(true); filled.push('end time'); }
-      if (p.isFree) { setEntryPrice('0'); filled.push('free entry'); }
-      else if (p.price != null && !String(entryPrice).trim()) { setEntryPrice(String(p.price)); filled.push('price'); }
-      if (p.phone && !contactPhone.trim()) { setContactPhone(p.phone); filled.push('phone'); }
-      if (p.email && !contactEmail.trim()) { setContactEmail(p.email); filled.push('email'); }
-      if (p.ticketUrl && !ticketUrl.trim()) { setTicketUrl(p.ticketUrl); filled.push('tickets link'); }
-      if (p.ageMin && !ageMin) { setAgeMin(p.ageMin); filled.push('age limit'); }
-      if (p.categories?.length && selectedCategories.length === 0) { setSelectedCategories(p.categories); filled.push('category'); }
-      setScanNote(filled.length
-        ? `Filled ${filled.length}: ${filled.join(', ')} — please double-check as you go.`
-        : "Read the poster but couldn't pull clear details — please fill them in.");
+      if (!text) { setScanNote("Couldn't read this poster — try the 'paste text' option, or fill in the details below."); return; }
+      fillFromText(text, { source: 'poster' });
     } catch {
       setScanNote("Couldn't read the poster — please fill in the details below.");
     } finally { setScanning(false); setScanPct(0); }
@@ -1059,6 +1081,32 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                       </>
                     )}
                   </TouchableOpacity>
+                  {/* …or paste the event text (WhatsApp / Instagram caption) */}
+                  <TouchableOpacity onPress={() => setPasteOpen(o => !o)} activeOpacity={0.7} style={{ alignSelf: 'center', marginBottom: pasteOpen ? 8 : 14, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Feather name={pasteOpen ? 'chevron-up' : 'clipboard'} size={13} color={muted} />
+                    <Text style={{ color: muted, fontSize: 12, fontWeight: '700' }}>{pasteOpen ? 'Hide text paste' : 'or paste the event text instead'}</Text>
+                  </TouchableOpacity>
+                  {pasteOpen && (
+                    <View style={{ marginBottom: 14 }}>
+                      <TextInput
+                        style={[pm.input, pm.textarea, { color: textColor, borderColor: `${primary}35`, minHeight: 90 }]}
+                        placeholder="Paste the flyer text, a WhatsApp blast or an Instagram caption — we'll pull out the date, time, venue, price…"
+                        placeholderTextColor={muted}
+                        value={pasteText}
+                        onChangeText={setPasteText}
+                        multiline
+                      />
+                      <TouchableOpacity
+                        onPress={pasteAndFill}
+                        disabled={!pasteText.trim()}
+                        activeOpacity={0.85}
+                        style={{ marginTop: 8, paddingVertical: 11, borderRadius: 10, alignItems: 'center', backgroundColor: pasteText.trim() ? primary : `${primary}30` }}
+                      >
+                        <Text style={{ color: pasteText.trim() ? '#000' : muted, fontWeight: '900', fontSize: 13 }}>Auto-fill from text</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
                   {!!scanNote && (
                     <View style={{ marginBottom: 14, padding: 11, borderRadius: 10, backgroundColor: `${primary}10`, borderWidth: 1, borderColor: `${primary}30`, flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
                       <Feather name="check-circle" size={14} color={primary} style={{ marginTop: 1 }} />
