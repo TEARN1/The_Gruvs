@@ -10,6 +10,7 @@ import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
 import { thumb } from '../utils/storageThumb';
 import { feature } from '../constants/launchConfig';
+import { track } from '../utils/analytics';
 import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { WeatherService } from '../services/weatherService';
 import { GlitterBurst } from '../components/GlitterBurst';
@@ -283,6 +284,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   if (media.length) media = media.map(x => (x && x.type !== 'video' && x.url) ? { ...x, url: thumb.cover(x.url) } : x);
   const matchCard = parseMatchCard(event?.match_card);
 
+  // Funnel: an event detail was opened (discovery → interest step).
+  useEffect(() => { if (event?.id) track('event_view', { eventId: event.id, category: event.category }); }, [event?.id]);
+
   // Countdown clock — ticks every second while event is in the future
   useEffect(() => {
     const target = event?.event_date
@@ -471,7 +475,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     try {
       const ok = await RSVPManager.upsert(event.id, user.id, status);
       if (!ok) throw new Error('RSVP update failed');
-      
+      if (status === 'going' || status === 'maybe') track('rsvp', { eventId: event.id, status });
       showToast(
         status === 'going' ? "You're Locked In!" : status === 'maybe' ? "Marked Maybe" : "Removed",
         'success'
@@ -654,6 +658,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         setCheckinFx(Date.now());
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
         SoundFX.play('touchDown'); // the hero sound — the signature moment
+        track('touch_down', { eventId: event.id, category: event.category });
         showToast("Touched Down! Your footprint is lit. 🔥", 'success');
         // Reveal who you keep crossing paths with — but only where there's enough
         // density for it to be magic (parked at launch; see launchConfig).

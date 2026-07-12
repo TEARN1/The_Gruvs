@@ -44,6 +44,7 @@ import { ReelsRail } from '../components/ReelsRail';
 import { LazyCard } from '../components/LazyCard';
 import { feature } from '../constants/launchConfig';
 import { logError } from '../utils/logError';
+import { track } from '../utils/analytics';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { CrewOutCard } from '../components/CrewOutCard';
 import { CheckInNudge } from '../components/CheckInNudge';
@@ -1842,6 +1843,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       toast.show('Share is not available on this platform', 'info');
       return;
     }
+    track('share', { eventId: event?.id });
     Share.share({ message: buildShareText(event) })
       .catch(() => { toast.show('Unable to share this Gruv right now', 'error'); });
   };

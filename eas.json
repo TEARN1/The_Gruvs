@@ -31,7 +31,13 @@
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"
       },
-      "env": { "APP_ENV": "production" }
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://feevvddvrjmfbhffccbf.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlZXZ2ZGR2cmptZmJoZmZjY2JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2OTEwNTAsImV4cCI6MjA4ODI2NzA1MH0.CvZRz05orvSEeaawwponcjpZypX3CePBny6zsgmc4bU",
+        "EXPO_PUBLIC_FUNCTIONS_URL": "https://feevvddvrjmfbhffccbf.supabase.co/functions/v1",
+        "EXPO_PUBLIC_APP_URL": "https://thegruvs.com"
+      }
     }
   },
   "submit": {

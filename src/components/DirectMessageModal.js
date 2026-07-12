@@ -653,7 +653,11 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         // First path segment MUST be the user id — chat_media INSERT policy checks
         // (storage.foldername(name))[1] = auth.uid(). A "dms/" prefix fails RLS,
         // which is why DM image sends were silently failing.
-        const path = `${user.id}/dm_${Date.now()}.${ext}`;
+        // A random token makes the public URL UNGUESSABLE — listing is already
+        // owner-only via RLS, so this closes the practical enumeration vector on
+        // a public bucket without switching the whole feature to signed URLs.
+        const rand = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 8);
+        const path = `${user.id}/dm_${Date.now()}_${rand}.${ext}`;
         const publicUrl = await uploadToStorage(uri, 'chat_media', path);
         const newMsg = await MessageManager.send(user.id, recipient.id, '', { messageType: 'image', mediaUrl: publicUrl });
         if (newMsg) setMessages(prev => [...prev, newMsg]);
