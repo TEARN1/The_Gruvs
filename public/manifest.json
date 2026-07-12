@@ -5,10 +5,6 @@
   "id": "/",
   "start_url": "/",
   "display": "standalone",
-  "display_override": [
-    "window-controls-overlay",
-    "standalone"
-  ],
   "orientation": "portrait",
   "theme_color": "#00f2ff",
   "background_color": "#0d1112",
