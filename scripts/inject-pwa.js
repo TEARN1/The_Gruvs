@@ -26,6 +26,11 @@ if (html.includes('rel="manifest"')) {
   process.exit(0);
 }
 
+const SITE = 'https://thegruvs.com';
+const TITLE = 'The Gruvs — Discover what’s on tonight';
+const DESC = 'The Gruvs is South Africa’s realtime nightlife & events discovery app — find what’s on tonight, RSVP, Touch Down at the venue, and see who else is out. Real nights, verified.';
+const OG_IMAGE = `${SITE}/icon-512.png`;
+
 const head = `
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/logo.png" />
@@ -34,6 +39,26 @@ const head = `
     <meta name="apple-mobile-web-app-title" content="The Gruvs" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="The Gruvs" />
+    <link rel="canonical" href="${SITE}/" />
+
+    <!-- Open Graph — the card shown when the link is shared on WhatsApp / IG / FB -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="The Gruvs" />
+    <meta property="og:title" content="${TITLE}" />
+    <meta property="og:description" content="${DESC}" />
+    <meta property="og:url" content="${SITE}/" />
+    <meta property="og:image" content="${OG_IMAGE}" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="The Gruvs" />
+    <meta property="og:locale" content="en_ZA" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${TITLE}" />
+    <meta name="twitter:description" content="${DESC}" />
+    <meta name="twitter:image" content="${OG_IMAGE}" />
+
     <script>
       // Register the service worker as early as possible so the browser marks
       // the site installable. The in-app InstallAppBanner also registers it,
@@ -46,6 +71,15 @@ const head = `
     </script>
 `;
 
+// Upgrade the bare <title>/description that Expo emits to something search- and
+// share-friendly (the SPA still overrides document.title per tab once booted).
+html = html.replace(/<title>[^<]*<\/title>/, `<title>${TITLE}</title>`);
+if (/<meta name="description"[^>]*>/.test(html)) {
+  html = html.replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${DESC}" />`);
+} else {
+  html = html.replace('</head>', `    <meta name="description" content="${DESC}" />\n</head>`);
+}
+
 html = html.replace('</head>', head + '</head>');
 fs.writeFileSync(indexPath, html);
-console.log('[inject-pwa] Injected manifest link, Apple PWA meta, and SW registration into dist/index.html');
+console.log('[inject-pwa] Injected manifest, Apple PWA meta, Open Graph + Twitter cards, canonical, SEO title/description, and SW registration into dist/index.html');
