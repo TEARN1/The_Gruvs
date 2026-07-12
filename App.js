@@ -641,6 +641,23 @@ const MainNavigator = () => {
     setVisitedTabs(prev => (prev.has(currentTab) ? prev : new Set(prev).add(currentTab)));
   }, [currentTab]);
 
+  // Progressive prefetch — once the first screen is up, quietly mount the other
+  // sections in the background (staggered) so the FIRST time a user opens one it
+  // is already loaded instead of triggering a fresh "download" they wait on.
+  // Hidden screens stay paused (e.g. Reels gates on tabActive), so this only
+  // warms their data + layout; it never plays media or steals focus.
+  useEffect(() => {
+    const guestOk  = ['reels', 'explore'];
+    const authOnly = ['notifications', 'chats', 'profile'];
+    const queue = [...guestOk, ...(authUser ? authOnly : [])];
+    const timers = queue.map((tab, i) =>
+      setTimeout(() => {
+        setVisitedTabs(prev => (prev.has(tab) ? prev : new Set(prev).add(tab)));
+      }, 2000 + i * 1500) // reels ~2s, then every 1.5s so we never spike the CPU
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [authUser]);
+
   const screenFor = (tabKey) => {
     switch (tabKey) {
       case 'feed':
