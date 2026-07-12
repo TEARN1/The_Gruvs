@@ -149,27 +149,36 @@ const skStyles = StyleSheet.create({
   line: { height: 10, borderRadius: 6 },
 });
 
-// ── Visitor banner ─────────────────────────────────────────────────────────────
-// Item 57: accessible sign-in prompt
-const VisitorBanner = ({ onSignIn, primary, muted }) => (
-  <TouchableOpacity
-    style={[vb.wrap, { backgroundColor: `${primary}10`, borderColor: `${primary}30` }]}
-    onPress={onSignIn}
-    activeOpacity={0.8}
-    accessibilityRole="button"
-    accessibilityLabel="Sign in to RSVP, react and post events"
-  >
-    <Feather name="user" size={15} color={primary} />
-    <Text style={[vb.text, { color: muted }]}>
-      Browsing as guest — <Text style={{ color: primary, fontWeight: '800' }}>sign in</Text> to RSVP, react & post
+// ── Visitor hero ────────────────────────────────────────────────────────────────
+// First impression for logged-out strangers (e.g. someone who followed a shared
+// link): say what the app IS in one line, name the one verb that makes it
+// different (Touch Down), then the sign-in CTA. Guest-only, so it never clutters
+// the signed-in feed.
+const VisitorBanner = ({ onSignIn, primary, muted, textColor }) => (
+  <View style={[vb.hero, { backgroundColor: `${primary}0e`, borderColor: `${primary}30` }]}>
+    <Text style={[vb.heroTitle, { color: textColor }]}>What’s on tonight, near you.</Text>
+    <Text style={[vb.heroSub, { color: muted }]}>
+      Real nights, verified. Find what’s happening, RSVP, and <Text style={{ color: primary, fontWeight: '800' }}>Touch Down</Text> at the door to prove you were there.
     </Text>
-    <Feather name="chevron-right" size={14} color={`${primary}80`} />
-  </TouchableOpacity>
+    <TouchableOpacity
+      style={[vb.heroBtn, { backgroundColor: primary }]}
+      onPress={onSignIn}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel="Sign in or create an account to RSVP, react and post events"
+    >
+      <Text style={vb.heroBtnText}>Sign in / Join — it’s free</Text>
+      <Feather name="arrow-right" size={15} color="#000" />
+    </TouchableOpacity>
+  </View>
 );
 
 const vb = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginVertical: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
-  text: { flex: 1, fontSize: 12, lineHeight: 17 },
+  hero: { marginHorizontal: 16, marginTop: 10, marginBottom: 8, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 16, borderWidth: 1 },
+  heroTitle: { fontSize: 19, fontWeight: '900', letterSpacing: -0.3, marginBottom: 5 },
+  heroSub: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
+  heroBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 11, borderRadius: 24 },
+  heroBtnText: { color: '#000', fontWeight: '900', fontSize: 14 },
 });
 
 // ── Trending "See All" full-screen modal ───────────────────────────────────────
@@ -2081,7 +2090,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       )}
 
       {/* Visitor banner — only if no user */}
-      {!user && <VisitorBanner onSignIn={onAuthRequired} primary={primary} muted={muted} />}
+      {!user && <VisitorBanner onSignIn={onAuthRequired} primary={primary} muted={muted} textColor={textColor} />}
 
       {/* Search history chips */}
       <SearchHistoryBar
