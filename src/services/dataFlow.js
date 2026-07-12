@@ -2546,6 +2546,17 @@ export const MessageManager = {
         accepted = !!prior;
       } catch { accepted = false; }
 
+      // Verified co-presence IS the warm introduction. If these two have actually
+      // Touched Down at the same event, they have already met in the real world —
+      // so this is not a cold DM and must not sit behind the request gate. This is
+      // the one thing no other network can do: the intro is PROVEN, not claimed.
+      if (!accepted) {
+        try {
+          const { haveMet } = await import('./coPresence');
+          if (await haveMet(senderId, recipientId)) accepted = true;
+        } catch { /* messaging must never break on this */ }
+      }
+
       const trimmedBody = (body || '').trim() || null;
       const msgPayload = {
         ...(_pregenId ? { id: _pregenId } : {}),

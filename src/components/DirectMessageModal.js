@@ -269,6 +269,19 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [requestStatus, setRequestStatus] = useState('none'); // 'none'|'pending'|'accepted'|'declined'
+  // Verified co-presence — the two of you actually stood in the same room.
+  const [sharedMet, setSharedMet] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    if (!visible || !user?.id || !recipient?.id) { setSharedMet(null); return undefined; }
+    import('../services/coPresence')
+      .then(({ sharedPresence, describeSharedPresence }) =>
+        sharedPresence(user.id, recipient.id).then(evts => {
+          if (alive) setSharedMet(describeSharedPresence(evts));
+        }))
+      .catch(() => {}); // never let this break the conversation
+    return () => { alive = false; };
+  }, [visible, user?.id, recipient?.id]);
   const [selectedMsgId, setSelectedMsgId] = useState(null);
   const [showReactions, setShowReactions] = useState(false);
   const [reactionMsgId, setReactionMsgId] = useState(null);
@@ -1016,6 +1029,29 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           />
         )}
 
+        {/* Proof of presence — the warmest intro there is, and it can't be faked.
+            Only shows when BOTH people verifiably Touched Down at the same event. */}
+        {sharedMet && (
+          <TouchableOpacity
+            activeOpacity={sharedMet.eventId ? 0.75 : 1}
+            onPress={() => { if (sharedMet.eventId) onNavigateToEvent?.(sharedMet.eventId); }}
+            style={[dm.metBanner, { backgroundColor: `${primary}12`, borderColor: `${primary}35` }]}
+          >
+            <View style={[dm.metIcon, { backgroundColor: `${primary}22` }]}>
+              <Feather name="check-circle" size={13} color={primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[dm.metText, { color: textColor }]} numberOfLines={2}>
+                You both <Text style={{ fontWeight: '900', color: primary }}>Touched Down</Text> at{' '}
+                <Text style={{ fontWeight: '800' }}>{sharedMet.title}</Text>
+                {sharedMet.more ? ` and ${sharedMet.more} more` : ''}
+                {sharedMet.when ? ` · ${sharedMet.when}` : ''}
+              </Text>
+              <Text style={[dm.metSub, { color: muted }]}>Verified — you've actually met</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* Sender's pending request status */}
         {requestStatus === 'pending' && !isIAmRecipientOfPendingRequest && (
           <View style={[dm.pendingSenderBanner, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
@@ -1254,6 +1290,11 @@ const dm = StyleSheet.create({
   replyBar: { width: 3, height: '80%', borderRadius: 2 },
   locationBubble: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.2)' },
   pendingSenderBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, margin: 14, padding: 12, borderRadius: 12, borderWidth: 1 },
+  // Proof-of-presence banner
+  metBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 14, marginTop: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1 },
+  metIcon: { width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  metText: { fontSize: 12.5, lineHeight: 17, fontWeight: '600' },
+  metSub: { fontSize: 10.5, fontWeight: '700', marginTop: 2, letterSpacing: 0.3 },
   pendingSenderText: { flex: 1, fontSize: 13, fontWeight: '700' },
   pendingLimitBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
   pendingLimitText: { flex: 1, fontSize: 12, fontWeight: '600', lineHeight: 17 },
