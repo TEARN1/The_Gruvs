@@ -449,7 +449,8 @@ export const PathMapScreen = ({ visible, onClose }) => {
       const todayStr = new Date().toISOString().split('T')[0];
       const { data: rsvpData } = await supabase
         .from('event_rsvps')
-        .select('id, user_id, status, event_id, events(id, title, lat, lon, city, venue_name, event_date, event_time)')
+        // event_rsvps has no `id` column (composite PK) — selecting it 400s.
+        .select('user_id, status, event_id, events(id, title, lat, lon, city, venue_name, event_date, event_time)')
         .eq('user_id', user?.id)
         .in('status', ['going', 'maybe'])
         .gte('events.event_date', todayStr);

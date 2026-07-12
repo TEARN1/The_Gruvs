@@ -1297,13 +1297,17 @@ export const RSVPManager = {
 
   async getGoingCount(eventId) {
     try {
-      const { count } = await supabase
+      // event_rsvps has NO `id` column (composite PK on event_id+user_id) — the
+      // same trap that broke the follow button. Selecting `id` 400s, count comes
+      // back undefined, and every event silently reported "0 going".
+      const { count, error } = await supabase
         .from('event_rsvps')
-        .select('id', { count: 'exact', head: true })
+        .select('event_id', { count: 'exact', head: true })
         .eq('event_id', eventId)
         .eq('status', 'going');
+      if (error) { logError('RSVP.goingCount', error, { code: error.code }); return 0; }
       return count || 0;
-    } catch { return 0; }
+    } catch (e) { logError('RSVP.goingCount', e); return 0; }
   },
 
   // Fetch all RSVPs for a user's events in one shot (for organiser dashboards)

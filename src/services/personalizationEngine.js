@@ -262,7 +262,8 @@ export async function computeUserDeepProfile(userId) {
         .single(),
       // Recent 30 days for velocity
       supabase.from('event_rsvps')
-        .select('id', { count: 'exact', head: true })
+        // no `id` column on event_rsvps (composite PK) — selecting it 400s
+        .select('event_id', { count: 'exact', head: true })
         .eq('user_id', userId)
         .gte('created_at', since30),
       // Dwell-time signal — what they linger on / open (TikTok-style)

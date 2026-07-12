@@ -32,8 +32,13 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Build Expo web
-        run: npx expo export --platform web
+      # MUST be `npm run build`, not a bare `expo export`: the postbuild step
+      # copies .well-known AND runs scripts/inject-pwa.js, which injects the
+      # manifest link + Apple meta + service-worker registration into
+      # dist/index.html. Exporting without it ships a build that CANNOT be
+      # installed as an app (Chrome never offers "Install").
+      - name: Build Expo web (export + PWA injection)
+        run: npm run build
         env:
           EXPO_PUBLIC_SUPABASE_URL:          ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY:     ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}

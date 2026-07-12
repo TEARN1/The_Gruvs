@@ -1,0 +1,98 @@
+# ────────────────────────────────────────────────────────────────────────────
+# Guardian — the app watches itself.
+#
+# The lesson of the 2026-07 audit: 24 database queries were broken in production
+# for months (RSVP, Crews, polls, event chat, and the ticket/QR system that had
+# NEVER worked for anyone) and nothing told us, because they fail *silently* —
+# the app renders a dead feature as "empty".
+#
+# So the app now checks itself and RAISES AN ISSUE when it is broken:
+#   • schema drift — every live query is run against the real database
+#   • health       — the real site is loaded in a real browser and must actually boot
+#
+# Runs every 6 hours, on every PR (schema only), and on demand.
+# ────────────────────────────────────────────────────────────────────────────
+name: Guardian
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'   # every 6h (offset so it isn't on the hour with everyone else)
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  schema-drift:
+    name: Schema drift (does the code still match the database?)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with: { node-version: 20 }
+      - name: Audit every live query against the database
+        run: node scripts/audit-schema.mjs
+        env:
+          SUPABASE_URL:      ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
+  health:
+    name: Health (does the live site actually work?)
+    runs-on: ubuntu-latest
+    # Only meaningful against production — skip on PRs.
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Load the real site and assert it boots
+        run: node scripts/health-check.mjs
+        env:
+          SITE_URL: https://thegruvs.com
+
+  # If anything above failed on a scheduled run, tell the human. Loudly.
+  raise-the-alarm:
+    name: Raise an issue
+    runs-on: ubuntu-latest
+    needs: [schema-drift, health]
+    if: failure() && github.event_name == 'schedule'
+    steps:
+      - name: Open (or update) an issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const title = '🔴 Guardian: The Gruvs is broken in production';
+            const body = [
+              'The scheduled Guardian run **failed**, which means something is broken on the live site.',
+              '',
+              `**Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'One of these is true:',
+              '- **Schema drift** — a query no longer matches the database, so a feature is silently dead (this is how RSVP, Crews, polls and tickets broke without anyone noticing).',
+              '- **Health** — thegruvs.com does not boot, is throwing errors, or is no longer installable as an app.',
+              '',
+              'Open the run above for the exact failure.',
+            ].join('\n');
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'guardian',
+            });
+
+            if (existing.data.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body: `Still broken as of ${new Date().toISOString()} — ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['guardian', 'bug'],
+              });
+            }
