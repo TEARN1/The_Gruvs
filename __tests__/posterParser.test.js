@@ -1,4 +1,4 @@
-import { parsePosterText, parseDate, parseTime, parsePrice, detectCategories, parsePower, detectEventTags, parseEventFormat, parseSecretAct, parseAgeRange, parseTiers, parseLineup } from '../src/utils/posterParser';
+import { parsePosterText, parseDate, parseTime, parsePrice, detectCategories, parsePower, detectEventTags, parseEventFormat, parseSecretAct, parseAgeRange, parseTiers, parseLineup, normalizeOcr } from '../src/utils/posterParser';
 
 const NOW = new Date('2026-07-01T12:00:00');
 
@@ -249,5 +249,43 @@ describe('description', () => {
 
     expect(p.description).toContain('best view in the city');
     expect(p.description).not.toMatch(/R150|R400|21-35|082|http|wheelchair|generator/i);
+  });
+});
+
+describe('venue', () => {
+  it('reads a real venue from an @ / at cue', () => {
+    expect(parsePosterText('AMAPIANO SUNSET\nat The Bannister Hotel, Braamfontein', NOW).venue)
+      .toBe('The Bannister Hotel, Braamfontein');
+    expect(parsePosterText('BIG NIGHT\n@ Kitcheners Carvery Bar', NOW).venue)
+      .toBe('Kitcheners Carvery Bar');
+  });
+  it('reads a bare venue name line', () => {
+    expect(parsePosterText('JAZZ NIGHT\nThe Orbit Jazz Club', NOW).venue).toBe('The Orbit Jazz Club');
+  });
+  it('never mistakes marketing copy for a venue', () => {
+    // "rooftop" is a venue word, but this line is prose — better to leave Venue
+    // empty for the host than to fill it with a slogan.
+    expect(parsePosterText('SUNSET\nRooftop rave with the best view in the city.', NOW).venue).toBe('');
+    expect(parsePosterText('SUNSET\nCome join us at the biggest party of the year', NOW).venue).toBe('');
+  });
+  it('falls back to a street address', () => {
+    expect(parsePosterText('POP UP\n12 Juta Street, Braamfontein', NOW).venue).toBe('12 Juta Street, Braamfontein');
+  });
+});
+
+describe('OCR repair', () => {
+  it('fixes digits misread as letters inside prices and times', () => {
+    expect(normalizeOcr('Entry RI5O')).toBe('Entry R150');
+    expect(normalizeOcr('Doors 2I:OO')).toBe('Doors 21:00');
+    expect(normalizeOcr('I8h3O')).toBe('18h30');
+  });
+  it('never touches ordinary words', () => {
+    expect(normalizeOcr('ROOFTOP RAVE at LOUNGE, SOWETO')).toBe('ROOFTOP RAVE at LOUNGE, SOWETO');
+    expect(normalizeOcr('RSVP now')).toBe('RSVP now');
+  });
+  it('recovers a price and time a raw OCR pass would have lost', () => {
+    const p = parsePosterText('AMAPIANO\nDoors 2I:OO · Entry RI5O', NOW);
+    expect(p.price).toBe(150);
+    expect(p.time).toEqual({ h: 21, m: 0 });
   });
 });

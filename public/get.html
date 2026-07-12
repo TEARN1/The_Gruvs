@@ -56,6 +56,17 @@
       <span>You opened this inside another app. Tap <strong>Open in browser</strong> below, then tap Install.</span>
     </div>
 
+    <!-- ANDROID: the real native app (.apk). Shown only when the file exists. -->
+    <a id="apkBtn" class="cta hidden" href="/thegruvs.apk" download>
+      <span>🤖</span><span>Download the App (Android)</span>
+    </a>
+    <div id="apkNote" class="steps hidden">
+      <h3>Installing the Android app</h3>
+      <div class="step"><div class="num">1</div><div>Tap <strong>Download</strong> above, then open the file.</div></div>
+      <div class="step"><div class="num">2</div><div>If Android asks, allow <strong>“Install unknown apps”</strong> for Chrome.</div></div>
+      <div class="step"><div class="num">3</div><div>If you see a Play Protect warning, tap <strong>“Install anyway”</strong> — it's our app, just not from the Play Store yet.</div></div>
+    </div>
+
     <!-- Primary action (label/behaviour set by JS) -->
     <button id="cta" class="cta">
       <span id="ctaIcon">⬇️</span><span id="ctaLabel">Install the App</span>
@@ -147,6 +158,25 @@
       if (isIOS) show('iosSteps');
       else if (isAndroid) show('androidSteps');
       else show('desktopSteps');
+
+      // ANDROID: if we're hosting the real native APK, make THAT the headline
+      // action and demote the web install to a secondary option. (iPhone can't
+      // sideload — Apple forbids it — so this is Android-only by design.)
+      if (isAndroid && !inApp) {
+        fetch('/thegruvs.apk', { method: 'HEAD' })
+          .then(function (r) {
+            if (!r.ok) return;
+            show('apkBtn');
+            show('apkNote');
+            // Web install becomes the fallback, not the main event.
+            cta.classList.add('ghost');
+            cta.classList.remove('cta');
+            ctaLabel.textContent = 'Or install the web app instead';
+            ctaIcon.textContent = '🌐';
+            document.getElementById('androidSteps').classList.add('hidden');
+          })
+          .catch(function () { /* no APK hosted yet — web install stays primary */ });
+      }
     })();
   </script>
 </body>

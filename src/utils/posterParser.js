@@ -244,6 +244,29 @@ export function parseAgeRange(text) {
   return { min: 0, max: 0 };
 }
 
+// ── OCR repair ───────────────────────────────────────────────────────────────
+// Tesseract routinely misreads digits as letters on stylised poster fonts:
+// R150 → "RI5O", 21:00 → "2I:OO". Left alone that yields a wrong price or a
+// missing time. We only rewrite inside a *numeric context* (after an R, or in a
+// clock token) and only when the token still contains at least one real digit —
+// so ordinary words like ROOFTOP or LOUNGE are never touched.
+const OCR_DIGIT = { O: '0', o: '0', Q: '0', D: '0', I: '1', l: '1', L: '1', i: '1', Z: '2', z: '2', S: '5', s: '5', B: '8', G: '6', T: '7', b: '6' };
+const toDigits = (s) => s.replace(/[A-Za-z]/g, (c) => OCR_DIGIT[c] ?? c);
+const hasDigit = (s) => /\d/.test(s);
+export function normalizeOcr(raw) {
+  let t = String(raw || '');
+  // Prices: R150, R 1 500, R2.5k …
+  t = t.replace(/\bR\s?([0-9OoQDIlLiZzSsBGTb]{2,})\b/g, (m, num) => (hasDigit(num) ? `R${toDigits(num)}` : m));
+  // Clock tokens: 21:00, 2I:OO, 18h30
+  t = t.replace(/\b([0-9OoQDIlLiZzSsBGTb]{1,2})\s*([:h])\s*([0-9OoQDIlLiZzSsBGTb]{2})\b/g, (m, h, sep, min) => {
+    if (!hasDigit(h + min)) return m;
+    const H = toDigits(h), M = toDigits(min);
+    if (!/^\d{1,2}$/.test(H) || !/^\d{2}$/.test(M) || +H > 23 || +M > 59) return m;
+    return `${H}${sep}${M}`;
+  });
+  return t;
+}
+
 // ── Ticket tiers beyond entry/VIP/VVIP (Early Bird, Phase 1, Table…) ────────
 const TIER_NAME = /\b(early ?bird|phase\s*\d|presale|pre-?sale|general admission|general|standard|golden circle|table(?: booking)?|booth|group(?: of \d+)?|student|couples?|door|at the gate|gate|season pass|weekend pass|day pass)\b/i;
 export function parseTiers(text) {
@@ -317,19 +340,42 @@ const parseAge = (t) => {
 };
 
 // ── Venue / city / address ───────────────────────────────────────────────────
+// Marketing copy is not a venue. "Rooftop rave with the best view in the city"
+// contains a venue word ("rooftop") but is prose — filling it into the Venue
+// field is worse than leaving the field empty for the host.
+const PROSE_WORDS = /\b(with|come|join|we|us|our|your|you|best|biggest|don'?t|miss|bring|expect|enjoy|experience|featuring|presents|ready|get)\b/i;
+const looksLikeProse = (s) => {
+  const words = s.trim().split(/\s+/);
+  return words.length > 5 && PROSE_WORDS.test(s);
+};
+const asVenue = (s) => {
+  const v = clean(String(s)).replace(/[.!,;:]+$/, '');
+  if (!v || v.length > 80) return null;
+  if (!/[a-z]{2,}/i.test(v)) return null;          // needs real letters
+  if (looksLikeProse(v)) return null;              // it's copy, not a place
+  return v;
+};
 function parseVenue(lines) {
-  // Prefer an "@ Venue" / "at Venue" / "Venue:" cue, else the first line with a
-  // venue keyword, else a line that looks like a street address.
+  // Prefer an "@ Venue" / "at Venue" / "Venue:" cue, else a line that is
+  // predominantly a venue name, else a line that looks like a street address.
   for (const l of lines) {
     const cue = l.match(/(?:^|\s)(?:@|at|venue|location|where)\s*:?\s*(.+)$/i);
-    if (cue && /[a-z]{2,}/i.test(cue[1]) && (VENUE_WORDS.test(cue[1]) || /\d/.test(cue[1]) || cue[1].split(' ').length <= 6)) {
-      return clean(cue[1]);
-    }
+    if (!cue) continue;
+    const v = asVenue(cue[1]);
+    if (v && (VENUE_WORDS.test(v) || /\d/.test(v) || v.split(' ').length <= 6)) return v;
   }
-  const kw = lines.find((l) => VENUE_WORDS.test(l) && l.length < 80);
-  if (kw) return clean(kw);
-  const addr = lines.find((l) => /\b(street|st\.?|road|rd\.?|avenue|ave\.?|drive|dr\.?|lane|blvd|boulevard)\b/i.test(l));
-  return addr ? clean(addr) : null;
+  for (const l of lines) {
+    if (!VENUE_WORDS.test(l)) continue;
+    const v = asVenue(l);
+    // A bare keyword line is only a venue if it reads like a name, not a sentence.
+    if (v && v.split(/\s+/).length <= 8) return v;
+  }
+  for (const l of lines) {
+    if (!/\b(street|st\.?|road|rd\.?|avenue|ave\.?|drive|dr\.?|lane|blvd|boulevard)\b/i.test(l)) continue;
+    const v = asVenue(l);
+    if (v) return v;
+  }
+  return null;
 }
 function parseCity(text) {
   const t = text.toLowerCase();
@@ -369,7 +415,7 @@ function parseTitle(lines) {
  *   fields:Object }} — `fields[name]=true` for each thing we actually detected.
  */
 export function parsePosterText(rawText, now = new Date()) {
-  const text = String(rawText || '');
+  const text = normalizeOcr(String(rawText || ''));
   const lines = text.split(/\r?\n/).map(clean).filter((l) => l.length > 0);
   const blob = lines.join('  ');
 
@@ -452,5 +498,5 @@ export function parsePosterText(rawText, now = new Date()) {
 export default {
   parsePosterText, parseDate, parseTime, parsePrice, detectCategories,
   parsePower, detectEventTags, parseEventFormat, parseSecretAct, parseAgeRange,
-  parseTiers, parseLineup,
+  parseTiers, parseLineup, normalizeOcr,
 };
