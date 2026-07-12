@@ -4,7 +4,7 @@ import { useDraft } from '../hooks/useDraft';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Image, Dimensions,
+  KeyboardAvoidingView, Platform, Image, Dimensions, Alert,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
