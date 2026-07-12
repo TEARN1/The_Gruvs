@@ -312,7 +312,7 @@ export const PresenceBar = ({
     try {
       const { data: mutual } = await supabase
         .from('path_stars')
-        .select('id')
+        .select('from_user_id')
         .eq('from_user_id', toUserId)
         .eq('to_user_id', user.id)
         .eq('event_id', eventId)

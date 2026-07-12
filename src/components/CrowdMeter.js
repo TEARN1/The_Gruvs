@@ -30,7 +30,7 @@ export const CrowdMeter = ({ eventId, primary = '#00f2ff', textColor = '#fff', m
       const since = new Date(Date.now() - WINDOW_MS).toISOString();
       const { data } = await supabase
         .from('event_crowd_votes')
-        .select('user_id, level, created_at')
+        .select('user_id, level:vote, created_at')
         .eq('event_id', eventId)
         .gte('created_at', since);
       setVotes(data || []);

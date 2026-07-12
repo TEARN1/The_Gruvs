@@ -2779,7 +2779,7 @@ export const BlockManager = {
   async isBlocked(blockerId, blockedId) {
     try {
       const { data } = await supabase
-        .from('user_blocks').select('id')
+        .from('user_blocks').select('blocker_id')
         .eq('blocker_id', blockerId).eq('blocked_id', blockedId).maybeSingle();
       return !!data;
     } catch { return false; }
@@ -3496,7 +3496,7 @@ export const ChatManager = {
   async fetchMessages(eventId, limit = 60) {
     const { data, error } = await supabase
       .from('event_chat_messages')
-      .select('id, message, created_at, reply_to, pinned, pinned_by, deleted, user_id, profiles:user_id(id, username, avatar_url, is_verified)')
+      .select('id, message, created_at, reply_to, pinned:is_pinned, deleted, user_id, profiles:user_id(id, username, avatar_url, is_verified)')
       .eq('event_id', eventId)
       .eq('deleted', false)
       .order('created_at', { ascending: true })
@@ -3519,7 +3519,7 @@ export const ChatManager = {
     const { data, error } = await supabase
       .from('event_chat_messages')
       .insert({ event_id: eventId, user_id: userId, message: clean, reply_to: replyTo })
-      .select('id, message, created_at, reply_to, pinned, deleted, user_id')
+      .select('id, message, created_at, reply_to, pinned:is_pinned, deleted, user_id')
       .single();
     if (error) throw error;
     return data;
@@ -3530,9 +3530,11 @@ export const ChatManager = {
     if (error) throw error;
   },
 
-  async setPinned(messageId, pinned, pinnedBy) {
+  async setPinned(messageId, pinned) {
+    // The column is `is_pinned` — there is no `pinned` or `pinned_by` column, so
+    // this UPDATE errored every time: pinning a chat message never worked.
     const { error } = await supabase.from('event_chat_messages')
-      .update({ pinned, pinned_by: pinned ? pinnedBy : null }).eq('id', messageId);
+      .update({ is_pinned: pinned }).eq('id', messageId);
     if (error) throw error;
   },
 };

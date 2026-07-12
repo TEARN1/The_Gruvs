@@ -67,7 +67,7 @@ export const StreakBadges = ({ userId, primary, textColor, muted, surface }) => 
     try {
       const { data } = await supabase
         .from('event_checkins')
-        .select('id, created_at, city')
+        .select('id, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
       setCheckins(data || []);

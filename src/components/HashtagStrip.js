@@ -39,7 +39,10 @@ const aggregateTags = (texts) => {
 const fetchFromHashtagsTable = async () => {
   const { data, error } = await supabase
     .from('hashtags')
-    .select('tag, count')
+    // NOTE: PostgREST parses a bare `count` in select() as the aggregate
+    // count(), not the column — `select('tag, count')` 400s with
+    // "must appear in the GROUP BY clause". Selecting * sidesteps the parser.
+    .select('*')
     .order('count', { ascending: false })
     .limit(20);
 

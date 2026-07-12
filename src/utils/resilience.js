@@ -39,16 +39,49 @@ const isTransient = (err) => {
          msg.includes('econnreset') || msg.includes('socket');
 };
 
-// PostgREST schema-cache misses — a missing function (PGRST202), table (PGRST205)
-// or column (PGRST204). Permanent for THIS tier (retrying never helps), but the
-// NEXT fallback tier still should run — so these are deliberately NOT "fatal"
-// (fatal skips the whole cascade). This is what makes an RPC-then-table fallback
-// switch to the table path instantly instead of burning ~900ms of dead retries.
+// Schema drift — the query names a table/column/relationship the database does
+// not have. Permanent for THIS tier (retrying never helps), but the NEXT fallback
+// tier still should run, so these are deliberately NOT "fatal" (fatal skips the
+// whole cascade).
+//
+// This used to only match PostgREST's PGRST2xx codes. Postgres' own schema errors
+// (42703 undefined_column, 42P01 undefined_table, 42883 undefined_function) fell
+// through EVERY classifier — not fatal, not transient, not a schema miss — so they
+// were treated as unknown-retryable: 9 doomed requests, then a silent null. That is
+// exactly how 24 broken queries rotted in production unnoticed. They are now
+// classified AND logged loudly (see reportSchemaMiss) so drift can never hide again.
+const PG_SCHEMA_CODES = new Set([
+  '42703', // undefined_column
+  '42P01', // undefined_table
+  '42883', // undefined_function
+  '42P10', // invalid_column_reference
+]);
+
 export const isSchemaMiss = (err) => {
   const code = err?.code;
-  if (typeof code === 'string' && /^PGRST2\d\d$/i.test(code)) return true;
+  if (typeof code === 'string') {
+    if (/^PGRST2\d\d$/i.test(code)) return true;      // PostgREST schema cache
+    if (PG_SCHEMA_CODES.has(code.toUpperCase())) return true; // Postgres itself
+  }
   const msg = (err?.message || '').toLowerCase();
-  return msg.includes('schema cache') || msg.includes('could not find the function');
+  return msg.includes('schema cache') ||
+         msg.includes('could not find the function') ||
+         msg.includes('could not find a relationship') ||
+         msg.includes('does not exist');
+};
+
+// Schema drift is a BUG, not a runtime condition — never let it fail quietly.
+const _seenMiss = new Set();
+const reportSchemaMiss = (err, label) => {
+  const key = `${label}|${err?.code}|${err?.message}`;
+  if (_seenMiss.has(key)) return;  // once per unique problem, not per retry
+  _seenMiss.add(key);
+  // eslint-disable-next-line no-console
+  console.error(
+    `[SCHEMA DRIFT] ${label}: ${err?.message || err}` +
+    (err?.code ? ` (code ${err.code})` : '') +
+    ' — the query does not match the database. This feature is BROKEN, not empty.'
+  );
 };
 
 // ─── Core resilience primitive ─────────────────────────────────────────────────
@@ -69,17 +102,23 @@ export async function attemptWithBackoff(fn, maxAttempts = 3, baseMs = 300, labe
       const result = await fn(i);
       // Supabase pattern: { data, error } — treat error as thrown
       if (result && typeof result === 'object' && 'error' in result && result.error) {
-        if (isFatal(result.error)) return result; // don't retry bad inputs
+        // Schema drift can never succeed by retrying — surface it and move on
+        // to the next tier immediately.
+        if (isSchemaMiss(result.error)) {
+          reportSchemaMiss(result.error, label);
+          throw result.error;
+        }
+        if (isFatal(result.error)) throw result.error; // don't retry bad inputs
         lastErr = result.error;
       } else {
         return result;
       }
     } catch (err) {
-      if (isFatal(err)) throw err; // bail immediately on 4xx / permission
       // Missing RPC/table/column: this tier can never succeed, so stop retrying
       // and let resilient() fall through to the next tier (it isn't "fatal", so
       // the cascade continues instead of aborting).
-      if (isSchemaMiss(err)) throw err;
+      if (isSchemaMiss(err)) { reportSchemaMiss(err, label); throw err; }
+      if (isFatal(err)) throw err; // bail immediately on 4xx / permission
       lastErr = err;
     }
     if (i < maxAttempts - 1) {
