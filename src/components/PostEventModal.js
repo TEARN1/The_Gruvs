@@ -428,17 +428,29 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       }
     }
     if (uploaded.length === 0 && failed.length > 0) {
-      // Surface the most actionable error message
       const firstErr = failed[0] || '';
-      if (firstErr.includes('Bucket not found') || firstErr.includes('bucket')) {
-        throw new Error(
-          'Storage not set up yet. Run supabase/patch_storage_media.sql in the Supabase SQL Editor (Dashboard → SQL Editor), then try again.'
-        );
+      // Log the REAL cause for us; never show a user plumbing they can't act on.
+      console.error('[PostEventModal] media upload failed:', firstErr);
+
+      // These messages are read by a host trying to announce their night — they
+      // must be human, and must never tell someone to "run a SQL file".
+      let human;
+      if (/bucket not found|bucket/i.test(firstErr)) {
+        human = "We couldn't reach photo storage just now.";
+      } else if (/not authorized|policy|jwt|401|403/i.test(firstErr)) {
+        human = 'Your session expired, so the photos were blocked. Sign out and back in, then try again.';
+      } else if (/too large|size|150 MB/i.test(firstErr)) {
+        human = 'That file is too big. Try a smaller photo (under 150 MB).';
+      } else if (/not supported|file type/i.test(firstErr)) {
+        human = "That file type isn't supported. Use a JPG, PNG or MP4.";
+      } else if (/network|fetch|timeout/i.test(firstErr)) {
+        human = 'Your connection dropped while uploading.';
+      } else {
+        human = "The photos couldn't be uploaded.";
       }
-      if (firstErr.includes('not authorized') || firstErr.includes('policy')) {
-        throw new Error('Upload blocked by storage policy. Make sure you are signed in and storage policies are applied.');
-      }
-      throw new Error(`Media upload failed: ${firstErr}`);
+      const err = new Error(human);
+      err.mediaOnly = true; // the event itself is fine — only the media failed
+      throw err;
     }
     if (failed.length > 0) {
       setError(`${failed.length} of ${mediaItems.length} files failed to upload — posting with ${uploaded.length} file(s).`);
@@ -496,9 +508,31 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         mediaUrls = await uploadAllMedia();
       } catch (uploadErr) {
         setUploadingMedia(false);
-        setError(`Media upload failed: ${uploadErr.message || 'Unknown error'}. Fix the storage issue or remove the photos and try again.`);
-        setLoading(false);
-        return;
+        // A failed photo must NEVER stop someone announcing their event — that is
+        // the whole point of the app. Offer to publish without the media instead
+        // of dead-ending the host (which is what used to happen).
+        const msg = uploadErr.message || "The photos couldn't be uploaded.";
+        const proceed = await new Promise((resolve) => {
+          if (Platform.OS === 'web') {
+            resolve(typeof window !== 'undefined' &&
+              window.confirm(`${msg}\n\nPost the event without the photos? You can add them later.`));
+          } else {
+            Alert.alert(
+              "Photos didn't upload",
+              `${msg}\n\nPost the event without them? You can add them later.`,
+              [
+                { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+                { text: 'Post without photos', onPress: () => resolve(true) },
+              ],
+            );
+          }
+        });
+        if (!proceed) {
+          setError(`${msg} Tap Post to try again, or remove the photos.`);
+          setLoading(false);
+          return;
+        }
+        mediaUrls = []; // publish the event; the host keeps their night
       }
       setUploadingMedia(false);
     }

@@ -79,6 +79,25 @@ export function parseDate(text, now = new Date()) {
     if (y < 100) y += 2000;
     const r = mk(y, mo, d); if (r) return r;
   }
+
+  // Relative dates — the WhatsApp/Instagram case. A blast almost never carries
+  // a calendar date; it says "this saturday" or just "FRIDAY". Only reached
+  // when no explicit date matched, so an explicit date always wins.
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const iso = (dt) => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+  const shift = (days) => { const d = new Date(today); d.setDate(d.getDate() + days); return iso(d); };
+
+  if (/\b(tonight|today)\b/.test(t)) return shift(0);
+  if (/\btomorrow\b/.test(t)) return shift(1);
+
+  const wd = t.match(/\b(?:(this|next|coming)\s+)?(sun|mon|tue|wed|thu|fri|sat)[a-z]*day?\b/);
+  if (wd) {
+    const idx = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 }[wd[2]];
+    let delta = (idx - today.getDay() + 7) % 7;
+    // "next friday" said ON a Friday means the one coming, not today.
+    if (delta === 0 && wd[1] === 'next') delta = 7;
+    return shift(delta);
+  }
   return null;
 }
 
@@ -112,6 +131,21 @@ export function parseTime(text) {
 }
 
 // ── Price ────────────────────────────────────────────────────────────────────
+/**
+ * "R1.500" is R1 500 (a thousands separator — common on SA flyers), NOT R1.50.
+ * Reading it as 1 is the difference between a R1 500 wine flight and a R1 one.
+ * Rule: a dot followed by exactly 3 digits is a separator; 1-2 digits is cents.
+ */
+function randToNumber(raw) {
+  const s = String(raw).replace(/[\s,]/g, '');
+  const dot = s.match(/^(\d+)\.(\d{1,3})$/);
+  if (dot) {
+    if (dot[2].length === 3) return parseInt(dot[1] + dot[2], 10); // 1.500 → 1500
+    return Math.round(parseFloat(s));                              // 1.50  → 2 (cents)
+  }
+  return parseInt(s, 10);
+}
+
 // Returns { amount:number|null, isFree:bool, fromPrice:bool }.
 export function parsePrice(text) {
   const t = text.toLowerCase();
@@ -119,12 +153,14 @@ export function parsePrice(text) {
       /\bfree\b/.test(t) && !/\bR\s*\d/i.test(text)) {
     return { amount: 0, isFree: true, fromPrice: false };
   }
-  // all Rand amounts
+  // All Rand amounts. The R must START a word — otherwise the trailing R of an
+  // ordinary word swallows the next number ("NO UNDE-R 18s" → R18, "AT THE
+  // DOO-R 350" → R350), which silently publishes a wrong price.
   const amounts = [];
-  const re = /r\s*([\d][\d\s,]*)(?:\.\d{1,2})?/gi;
+  const re = /(?:^|[^a-z])r\s?([\d][\d\s,]*(?:\.\d{1,3})?)/gi;
   let m;
   while ((m = re.exec(text)) !== null) {
-    const n = parseInt(m[1].replace(/[\s,]/g, ''), 10);
+    const n = randToNumber(m[1]);
     if (Number.isFinite(n) && n > 0 && n < 1000000) amounts.push(n);
   }
   if (!amounts.length) return { amount: null, isFree: false, fromPrice: false, vip: null, vvip: null };
@@ -132,9 +168,9 @@ export function parsePrice(text) {
   const fromPrice = /\bfrom\b/.test(t) || amounts.length > 1;
   // Tiered pricing: pull the amount that sits right after a VIP / VVIP label.
   const labelled = (label) => {
-    const m = text.match(new RegExp(`${label}[^r\\d]{0,14}r\\s*([\\d][\\d\\s,]*)`, 'i'));
+    const m = text.match(new RegExp(`${label}[^r\\d]{0,14}(?:^|[^a-z])r\\s?([\\d][\\d\\s,]*(?:\\.\\d{1,3})?)`, 'im'));
     if (!m) return null;
-    const n = parseInt(m[1].replace(/[\s,]/g, ''), 10);
+    const n = randToNumber(m[1]);
     return Number.isFinite(n) && n > 0 ? n : null;
   };
   const vvip = labelled('vvip');
@@ -276,9 +312,9 @@ export function parseTiers(text) {
   for (const chunk of String(text || '').split(/\n|·|\||•|,|\s{2,}/)) {
     const name = chunk.match(TIER_NAME);
     if (!name) continue;
-    const amt = chunk.match(/R\s?(\d[\d\s,]*)(?:\.\d{2})?/i) || chunk.match(/\b(\d{2,5})\b/);
+    const amt = chunk.match(/(?:^|[^a-z])r\s?(\d[\d\s,]*(?:\.\d{1,3})?)/i) || chunk.match(/\b(\d{2,5})\b/);
     if (!amt) continue;
-    const price = parseInt(String(amt[1]).replace(/[\s,]/g, ''), 10);
+    const price = randToNumber(amt[1]);
     if (!Number.isFinite(price) || price <= 0 || price > 100000) continue;
     const label = clean(name[0]).replace(/\b\w/g, (c) => c.toUpperCase());
     const key = `${label.toLowerCase()}|${price}`;
@@ -320,7 +356,19 @@ const DATE_WORDS = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|mon|tue|w
 
 // A line is "metadata" when its content is already captured as a structured
 // field — keeping it in the description just makes the host delete it by hand.
-const META_LINE = /(R\s?\d)|(\bfree\b)|(\bages?\b.*\d)|(\d{2}\s*\+)|(https?:\/\/)|(www\.)|(@)|(\b0\d{2}[\s-]?\d{3}[\s-]?\d{4}\b)|(\btickets?\b)|(\brsvp\b)|(\bdoors\b)|(\bentry\b)|(\bcontact\b)|(\binfo\b)|(\bgenerator|solar|inverter|load.?shedding\b)|(\bwheelchair|parking|car guards?|strobe|sober|eco.?friendly\b)|(\bline.?up\b)/i;
+const META_LINE = new RegExp([
+  '(^|[^a-z])r\\s?\\d',                       // a Rand price (R must start a word)
+  '\\bfree\\b', '\\bages?\\b.*\\d', '\\d{2}\\s*\\+',
+  'https?://', 'www\\.', '@', '\\b0\\d{2}[\\s-]?\\d{3}[\\s-]?\\d{4}\\b',
+  '\\btickets?\\b', '\\brsvp\\b', '\\bdoors?\\b', '\\bentry\\b', '\\bentrance\\b',
+  '\\bcontact\\b', '\\binfo\\b', '\\bgates?\\s+open\\b',
+  '\\b(generator|solar|inverter|load.?shedding)\\b',
+  '\\b(wheelchair|parking|car guards?|strobe|sober|eco.?friendly)\\b',
+  '\\bline.?up\\b',
+  // Label lines ("VENUE: ...", "TIME: ...") — the value is already a field.
+  '^(venue|location|where|when|time|date|price|cost|address)\\s*:',
+  '^[^a-z0-9]+$',                             // pure decoration: "~~~", "***"
+].join('|'), 'i');
 
 // ── Contact / links ──────────────────────────────────────────────────────────
 const parsePhone = (t) => {
@@ -348,11 +396,15 @@ const looksLikeProse = (s) => {
   const words = s.trim().split(/\s+/);
   return words.length > 5 && PROSE_WORDS.test(s);
 };
+// "R350 AT THE DOOR" is a PRICE, not a place. Ticket/entry words after an "at"
+// cue are the single most common way the venue field gets a garbage value.
+const NOT_A_VENUE = /^(the\s+)?(door|gate|entrance|gates|box office|late|night|sunset|sunrise)\b|\br\s?\d/i;
 const asVenue = (s) => {
-  const v = clean(String(s)).replace(/[.!,;:]+$/, '');
+  const v = clean(String(s)).replace(/^[~*\-–—•|]+\s*/, '').replace(/[.!,;:]+$/, '');
   if (!v || v.length > 80) return null;
   if (!/[a-z]{2,}/i.test(v)) return null;          // needs real letters
   if (looksLikeProse(v)) return null;              // it's copy, not a place
+  if (NOT_A_VENUE.test(v)) return null;            // it's a price/entry note
   return v;
 };
 function parseVenue(lines) {
@@ -375,11 +427,33 @@ function parseVenue(lines) {
     const v = asVenue(l);
     if (v) return v;
   }
+  // Last resort: a SHORT line that names a place ("KONKA SOWETO", "emmarentia
+  // dam jhb"). Most SA venues aren't in any keyword list, but they're almost
+  // always written next to the suburb/city — that's the signal.
+  //
+  // NEVER the first line: that's the headline slot on every flyer, and titles
+  // routinely carry a place name ("SOWETO DERBY FUN DAY") — taking it as the
+  // venue steals the title and leaves the title field to grab junk.
+  for (let i = 1; i < lines.length; i++) {
+    const l = lines[i];
+    if (!parseCity(l)) continue;
+    const v = asVenue(l);
+    if (v && v.split(/\s+/).length <= 6 && !parseDate(l) && !parseTime(l)) return v;
+  }
   return null;
 }
+// SA shorthand — how people ACTUALLY write it in a WhatsApp blast.
+const CITY_ALIASES = {
+  jhb: 'Johannesburg', joburg: 'Johannesburg', jozi: 'Johannesburg', jozi_: 'Johannesburg',
+  cpt: 'Cape Town', kaapstad: 'Cape Town', dbn: 'Durban', pta: 'Pretoria',
+  ethekwini: 'Durban', tshwane: 'Pretoria', mbombela: 'Nelspruit', gqeberha: 'Port Elizabeth',
+};
 function parseCity(text) {
   const t = text.toLowerCase();
-  for (const c of SA_CITIES) if (t.includes(c)) return titleCase(c === 'joburg' || c === 'jozi' ? 'Johannesburg' : c);
+  // Whole-word match — `includes()` matched substrings inside other words.
+  const hit = (name) => new RegExp(`\\b${name.replace(/\s+/g, '\\s+')}\\b`, 'i').test(t);
+  for (const [alias, full] of Object.entries(CITY_ALIASES)) if (hit(alias)) return full;
+  for (const c of SA_CITIES) if (hit(c)) return CITY_ALIASES[c] || titleCase(c);
   return null;
 }
 
@@ -397,8 +471,15 @@ const looksLikeMeta = (l) => {
     l.replace(/[^a-z]/gi, '').length < 3
   );
 };
-function parseTitle(lines) {
-  const head = lines.slice(0, 8).filter((l) => !looksLikeMeta(l));
+function parseTitle(lines, venue) {
+  // The venue line is not the title. On a WhatsApp blast with no real title,
+  // the venue is often the only short prominent line, and it was winning.
+  // A sentence is not a title. A WhatsApp blast often has NO title at all, and
+  // grabbing "bring your own food" as one is worse than leaving it blank for
+  // the host to type — an empty field prompts them, a wrong one gets published.
+  const isSentence = (l) => l.trim().split(/\s+/).length > 2 && PROSE_WORDS.test(l);
+  const head = lines.slice(0, 8)
+    .filter((l) => !looksLikeMeta(l) && l !== venue && !isSentence(l));
   if (!head.length) return null;
   // Prefer an all-caps / long prominent line among the first few; else the first.
   const scored = head.slice(0, 5).map((l, i) => {
@@ -429,7 +510,7 @@ export function parsePosterText(rawText, now = new Date()) {
   const ticketUrl = parseUrl(blob);
   const ageMin = parseAge(blob);
   const categories = detectCategories(blob);
-  const title = parseTitle(lines);
+  const title = parseTitle(lines, venue);
   const powerBackup = parsePower(blob);
   const eventTags = detectEventTags(blob);
   const eventType = parseEventFormat(blob);
