@@ -244,6 +244,61 @@ export function parseAgeRange(text) {
   return { min: 0, max: 0 };
 }
 
+// ── Ticket tiers beyond entry/VIP/VVIP (Early Bird, Phase 1, Table…) ────────
+const TIER_NAME = /\b(early ?bird|phase\s*\d|presale|pre-?sale|general admission|general|standard|golden circle|table(?: booking)?|booth|group(?: of \d+)?|student|couples?|door|at the gate|gate|season pass|weekend pass|day pass)\b/i;
+export function parseTiers(text) {
+  const tiers = [];
+  const seen = new Set();
+  // Split on the separators SA flyers actually use, so one line can hold many.
+  for (const chunk of String(text || '').split(/\n|·|\||•|,|\s{2,}/)) {
+    const name = chunk.match(TIER_NAME);
+    if (!name) continue;
+    const amt = chunk.match(/R\s?(\d[\d\s,]*)(?:\.\d{2})?/i) || chunk.match(/\b(\d{2,5})\b/);
+    if (!amt) continue;
+    const price = parseInt(String(amt[1]).replace(/[\s,]/g, ''), 10);
+    if (!Number.isFinite(price) || price <= 0 || price > 100000) continue;
+    const label = clean(name[0]).replace(/\b\w/g, (c) => c.toUpperCase());
+    const key = `${label.toLowerCase()}|${price}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    tiers.push({ name: label, price: String(price) });
+  }
+  return tiers.slice(0, 6);
+}
+
+// ── Lineup / running order → schedule slots ─────────────────────────────────
+// "21:00 Kabza De Small" · "22h30 — DJ Maphorisa (live set)" · "23:00 - 00:00 Uncle Waffles"
+export function parseLineup(text) {
+  const out = [];
+  for (const raw of String(text || '').split(/\r?\n/)) {
+    const l = clean(raw);
+    const m = l.match(/^(\d{1,2})\s*[:h.]\s*(\d{2})\s*(?:(?:-|–|—|till|to)\s*\d{1,2}\s*[:h.]?\s*\d{0,2})?\s*[-–—:|·]?\s*(.+)$/i);
+    if (!m) continue;
+    const h = +m[1], min = +m[2];
+    if (h > 23 || min > 59) continue;
+    let act = clean(m[3]).replace(/^[-–—:|·]\s*/, '');
+    const notes = (act.match(/\(([^)]{2,40})\)/) || [])[1] || '';
+    act = clean(act.replace(/\([^)]*\)/g, ''));
+    // A slot needs a real act name, not a leftover price or date fragment.
+    if (act.length < 2 || act.length > 60) continue;
+    if (/^R\s?\d/i.test(act) || !/[a-z]{2,}/i.test(act)) continue;
+    if (DATE_WORDS.test(act)) continue;
+    out.push({
+      time: `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`,
+      title: act,
+      performer: act,
+      notes,
+    });
+  }
+  // One time on its own isn't a lineup — that's just the start time.
+  return out.length >= 2 ? out.slice(0, 12) : [];
+}
+const DATE_WORDS = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|mon|tue|wed|thu|fri|sat|sun)\w*\b/i;
+
+// A line is "metadata" when its content is already captured as a structured
+// field — keeping it in the description just makes the host delete it by hand.
+const META_LINE = /(R\s?\d)|(\bfree\b)|(\bages?\b.*\d)|(\d{2}\s*\+)|(https?:\/\/)|(www\.)|(@)|(\b0\d{2}[\s-]?\d{3}[\s-]?\d{4}\b)|(\btickets?\b)|(\brsvp\b)|(\bdoors\b)|(\bentry\b)|(\bcontact\b)|(\binfo\b)|(\bgenerator|solar|inverter|load.?shedding\b)|(\bwheelchair|parking|car guards?|strobe|sober|eco.?friendly\b)|(\bline.?up\b)/i;
+
 // ── Contact / links ──────────────────────────────────────────────────────────
 const parsePhone = (t) => {
   const m = t.match(/(\+27|0)\s?[6-8]\d(?:[\s-]?\d){7}/);
@@ -335,9 +390,21 @@ export function parsePosterText(rawText, now = new Date()) {
   const secretAct = parseSecretAct(text);
   const ageRange = parseAgeRange(blob);
 
-  // description = the leftover human copy (exclude title + pure-metadata lines)
+  const tiers = parseTiers(text);
+  const lineup = parseLineup(text);
+
+  // description = the human copy ONLY. Anything already captured as a structured
+  // field (prices, ages, contacts, links, tags, power, lineup slots) is dropped —
+  // otherwise the host has to hand-delete it out of the description.
+  const lineupTimes = new Set(lineup.map((s) => s.time));
   const description = clean(
-    lines.filter((l) => l !== title && !parseDate(l) && !parseTime(l) && l.length > 12 && !/https?:\/\//i.test(l)).join(' ')
+    lines
+      .filter((l) => l !== title)
+      .filter((l) => l.length > 12)
+      .filter((l) => !META_LINE.test(l))
+      .filter((l) => !parseDate(l) && !parseTime(l))
+      .filter((l) => !lineupTimes.has(clean(l).slice(0, 5).replace('h', ':')))
+      .join(' ')
   ).slice(0, 400);
 
   const fields = {};
@@ -347,6 +414,7 @@ export function parsePosterText(rawText, now = new Date()) {
   set('ticketUrl', ticketUrl); set('categories', categories);
   set('powerBackup', powerBackup); set('eventTags', eventTags);
   set('eventType', eventType); set('secretAct', secretAct);
+  set('extraTiers', tiers); set('lineup', lineup);
   if (price.isFree) fields.price = true;
   if (ageMin || ageRange.min) fields.age = true;
 
@@ -373,6 +441,8 @@ export function parsePosterText(rawText, now = new Date()) {
     categories,
     eventType,                              // '' | one of EVENT_TYPES
     eventTags,                              // EVENT_TAGS keys ("Good to know")
+    extraTiers: tiers,                      // [{ name, price }] — Early Bird, Phase 1, Table…
+    lineup,                                 // [{ time, title, performer, notes }]
     powerBackup,                            // 'generator' | 'solar' | 'ups' | null
     secretAct: secretAct || '',             // '' | name | 'TBA'
     fields,                                 // what we actually detected
@@ -382,4 +452,5 @@ export function parsePosterText(rawText, now = new Date()) {
 export default {
   parsePosterText, parseDate, parseTime, parsePrice, detectCategories,
   parsePower, detectEventTags, parseEventFormat, parseSecretAct, parseAgeRange,
+  parseTiers, parseLineup,
 };

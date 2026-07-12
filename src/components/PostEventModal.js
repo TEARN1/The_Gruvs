@@ -338,6 +338,14 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (p.powerBackup && !powerBackup) { setPowerBackup(p.powerBackup); filled.push('load-shedding power'); }
     if (p.eventTags?.length && eventTags.length === 0) { setEventTags(p.eventTags); filled.push('good to know'); }
     if (p.secretAct && !secretAct.trim()) { setSecretAct(p.secretAct); filled.push('secret headliner'); }
+    if (p.extraTiers?.length && extraTiers.length === 0) {
+      setExtraTiers(p.extraTiers.map(t => ({ ...t })));
+      filled.push(`${p.extraTiers.length} ticket tier${p.extraTiers.length > 1 ? 's' : ''}`);
+    }
+    if (p.lineup?.length && scheduleItems.length === 0) {
+      setScheduleItems(p.lineup.map((s, i) => ({ id: `scan-${Date.now()}-${i}`, ...s })));
+      filled.push(`${p.lineup.length}-act lineup`);
+    }
     return filled;
   };
 

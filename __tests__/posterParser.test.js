@@ -1,4 +1,4 @@
-import { parsePosterText, parseDate, parseTime, parsePrice, detectCategories, parsePower, detectEventTags, parseEventFormat, parseSecretAct, parseAgeRange } from '../src/utils/posterParser';
+import { parsePosterText, parseDate, parseTime, parsePrice, detectCategories, parsePower, detectEventTags, parseEventFormat, parseSecretAct, parseAgeRange, parseTiers, parseLineup } from '../src/utils/posterParser';
 
 const NOW = new Date('2026-07-01T12:00:00');
 
@@ -208,5 +208,46 @@ describe('parsePosterText — full poster', () => {
     expect(p.email).toBe('hello@gruvs.co.za');
     expect(p.phone).toContain('082');
     expect(p.categories.length).toBeGreaterThan(0);
+  });
+});
+
+describe('ticket tiers', () => {
+  it('pulls named tiers off one line', () => {
+    expect(parseTiers('Early Bird R100 · Phase 1 R150 · Table booking R2500')).toEqual([
+      { name: 'Early Bird', price: '100' },
+      { name: 'Phase 1', price: '150' },
+      { name: 'Table Booking', price: '2500' },
+    ]);
+  });
+  it('ignores prices with no tier name', () => {
+    expect(parseTiers('Entry R150')).toEqual([]);
+  });
+});
+
+describe('lineup', () => {
+  it('turns a running order into schedule slots', () => {
+    expect(parseLineup('21:00 Kabza De Small\n22h30 — DJ Maphorisa (live set)')).toEqual([
+      { time: '21:00', title: 'Kabza De Small', performer: 'Kabza De Small', notes: '' },
+      { time: '22:30', title: 'DJ Maphorisa', performer: 'DJ Maphorisa', notes: 'live set' },
+    ]);
+  });
+  it('does not treat a lone start time as a lineup', () => {
+    expect(parseLineup('Doors 20:00 sharp')).toEqual([]);
+    expect(parseLineup('21:00 Kabza De Small')).toEqual([]);
+  });
+});
+
+describe('description', () => {
+  it('keeps human copy and drops anything already captured as a field', () => {
+    const p = parsePosterText(`AMAPIANO SUNSET
+    Rooftop rave with the best view in the city.
+    Entry R150 · VIP R400 · Ages 21-35
+    Generator on site — load-shedding proof
+    Wheelchair access · gated parking
+    Tickets: https://quicket.co.za/x
+    Info: 082 123 4567 / hello@gruvs.co.za`, NOW);
+
+    expect(p.description).toContain('best view in the city');
+    expect(p.description).not.toMatch(/R150|R400|21-35|082|http|wheelchair|generator/i);
   });
 });
