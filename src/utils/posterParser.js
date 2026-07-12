@@ -169,6 +169,81 @@ export function detectCategories(text) {
   return [...new Set(hits)].slice(0, 3);
 }
 
+// ── Power during load-shedding ('generator' | 'solar' | 'ups') ───────────────
+export function parsePower(text) {
+  const t = ' ' + text.toLowerCase() + ' ';
+  if (/\b(solar[- ]?powered|solar power|solar)\b/.test(t)) return 'solar';
+  if (/\b(ups|inverter|battery backup)\b/.test(t)) return 'ups';
+  if (/\b(generator|genny|back-?up power|load[- ]?shedding proof|loadshedding proof|power back-?up)\b/.test(t)) return 'generator';
+  return null;
+}
+
+// ── "Good to know" tags (accessibility · sensory · vibe · safety) ────────────
+// Keys MUST match src/constants/EventTags.js
+const TAG_HINTS = [
+  ['wheelchair',          /\b(wheelchair|wheel ?chair)\b/],
+  ['accessible_restroom', /\b(accessible (restroom|toilet|bathroom))\b/],
+  ['seating',             /\b(seating|seated|chairs provided)\b/],
+  ['quiet_zone',          /\b(quiet zone|chill (zone|room)|calm space)\b/],
+  ['strobe',              /\b(strobe|flashing lights)\b/],
+  ['loud',                /\b(very loud|loud music|high volume)\b/],
+  ['pyro',                /\b(pyro|pyrotechnics|fireworks|flames)\b/],
+  ['sober_friendly',      /\b(sober[- ]?friendly|alcohol[- ]?free|no alcohol|dry event)\b/],
+  ['all_ages',            /\b(all ages|family[- ]?friendly|kids welcome|child friendly)\b/],
+  ['gated_parking',       /\b(gated parking|secure parking|safe parking)\b/],
+  ['car_guards',          /\b(car guards?)\b/],
+  ['uber_dropoff',        /\b(uber|bolt) (drop[- ]?off|friendly)\b|\buber drop\b/],
+  ['eco_friendly',        /\b(eco[- ]?friendly|green event|zero waste|sustainable)\b/],
+  ['near_transit',        /\b(near transit|gautrain|train station|taxi rank|public transport)\b/],
+];
+export function detectEventTags(text) {
+  const t = ' ' + text.toLowerCase() + ' ';
+  return [...new Set(TAG_HINTS.filter(([, re]) => re.test(t)).map(([k]) => k))];
+}
+
+// ── Event format — must match EVENT_TYPES in PostEventModal ──────────────────
+const FORMAT_HINTS = [
+  ['Rave',        /\brave\b/],
+  ['Festival',    /\b(festival|fest|carnival)\b/],
+  ['Concert',     /\b(concert|live music|gig|band|tour)\b/],
+  ['Conference',  /\b(conference|summit|expo|convention)\b/],
+  ['Workshop',    /\b(workshop|masterclass|training|bootcamp|seminar|class)\b/],
+  ['Competition', /\b(competition|tournament|cup|league|championship|contest)\b/],
+  ['Market',      /\b(market|bazaar|fair|flea)\b/],
+  ['Pop-Up',      /\b(pop[- ]?up)\b/],
+  ['Retreat',     /\b(retreat|getaway)\b/],
+  ['Meetup',      /\b(meet[- ]?up|networking|mixer)\b/],
+  ['Party',       /\b(party|club night|after ?party|turn ?up)\b/],
+  ['Social',      /\b(social|mingle|singles|hangout|picnic)\b/],
+];
+export function parseEventFormat(text) {
+  const t = ' ' + text.toLowerCase() + ' ';
+  for (const [type, re] of FORMAT_HINTS) if (re.test(t)) return type;
+  return '';
+}
+
+// ── Secret headliner ─────────────────────────────────────────────────────────
+export function parseSecretAct(text) {
+  const m = text.match(/(?:secret headliner|surprise (?:act|guest|headliner)|special guest|mystery guest)\s*[:\-–]\s*([^\n,.|]{2,60})/i);
+  if (m) return clean(m[1]);
+  // Mentioned but unnamed → flag it so the host knows to fill it in.
+  if (/\b(secret headliner|surprise (act|guest|headliner)|mystery guest|special guest|tba headliner)\b/i.test(text)) return 'TBA';
+  return '';
+}
+
+// ── Age range (min–max) ──────────────────────────────────────────────────────
+// Only with an explicit age cue, so prices/times can never be misread as ages.
+export function parseAgeRange(text) {
+  const t = text.toLowerCase();
+  let m = t.match(/\bages?\s*:?\s*(\d{2})\s*(?:-|–|to)\s*(\d{2})\b/);
+  if (!m) m = t.match(/\b(\d{2})\s*(?:-|–|to)\s*(\d{2})\s*(?:years?|yrs?|year[- ]olds?|yo)\b/);
+  if (m) {
+    const min = +m[1], max = +m[2];
+    if (min >= 13 && max <= 99 && min < max) return { min, max };
+  }
+  return { min: 0, max: 0 };
+}
+
 // ── Contact / links ──────────────────────────────────────────────────────────
 const parsePhone = (t) => {
   const m = t.match(/(\+27|0)\s?[6-8]\d(?:[\s-]?\d){7}/);
@@ -254,6 +329,11 @@ export function parsePosterText(rawText, now = new Date()) {
   const ageMin = parseAge(blob);
   const categories = detectCategories(blob);
   const title = parseTitle(lines);
+  const powerBackup = parsePower(blob);
+  const eventTags = detectEventTags(blob);
+  const eventType = parseEventFormat(blob);
+  const secretAct = parseSecretAct(text);
+  const ageRange = parseAgeRange(blob);
 
   // description = the leftover human copy (exclude title + pure-metadata lines)
   const description = clean(
@@ -264,8 +344,11 @@ export function parsePosterText(rawText, now = new Date()) {
   const set = (k, v) => { if (v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length)) fields[k] = true; };
   set('title', title); set('date', date); set('time', time); set('price', price.amount);
   set('venue', venue); set('city', city); set('phone', phone); set('email', email);
-  set('ticketUrl', ticketUrl); set('ageMin', ageMin); set('categories', categories);
+  set('ticketUrl', ticketUrl); set('categories', categories);
+  set('powerBackup', powerBackup); set('eventTags', eventTags);
+  set('eventType', eventType); set('secretAct', secretAct);
   if (price.isFree) fields.price = true;
+  if (ageMin || ageRange.min) fields.age = true;
 
   return {
     title: title || '',
@@ -284,10 +367,19 @@ export function parsePosterText(rawText, now = new Date()) {
     phone: phone || '',
     email: email || '',
     ticketUrl: ticketUrl || '',
-    ageMin: ageMin || 0,
+    // Age: an explicit range ("ages 21-35") wins; else "18+" gives just the floor.
+    ageMin: ageRange.min || ageMin || 0,
+    ageMax: ageRange.max || 0,
     categories,
+    eventType,                              // '' | one of EVENT_TYPES
+    eventTags,                              // EVENT_TAGS keys ("Good to know")
+    powerBackup,                            // 'generator' | 'solar' | 'ups' | null
+    secretAct: secretAct || '',             // '' | name | 'TBA'
     fields,                                 // what we actually detected
   };
 }
 
-export default { parsePosterText, parseDate, parseTime, parsePrice, detectCategories };
+export default {
+  parsePosterText, parseDate, parseTime, parsePrice, detectCategories,
+  parsePower, detectEventTags, parseEventFormat, parseSecretAct, parseAgeRange,
+};

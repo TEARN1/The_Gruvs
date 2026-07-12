@@ -641,19 +641,31 @@ const MainNavigator = () => {
     setVisitedTabs(prev => (prev.has(currentTab) ? prev : new Set(prev).add(currentTab)));
   }, [currentTab]);
 
-  // Progressive prefetch — once the first screen is up, quietly mount the other
-  // sections in the background (staggered) so the FIRST time a user opens one it
-  // is already loaded instead of triggering a fresh "download" they wait on.
-  // Hidden screens stay paused (e.g. Reels gates on tabActive), so this only
-  // warms their data + layout; it never plays media or steals focus.
+  // Progressive prefetch — quietly mount the other sections in the background so
+  // the FIRST time a user opens one it is already loaded instead of triggering a
+  // fresh "download" they wait on. Hidden screens stay paused (e.g. Reels gates
+  // on tabActive), so this only warms their data + layout.
+  //
+  // IMPORTANT: each warm-up waits for the browser to be genuinely IDLE. Mounting
+  // these on a plain timer competed with first paint/hydration and made the tab
+  // bar take far longer to appear on slow devices (it wiped out CI entirely).
+  // requestIdleCallback yields to rendering, so prefetch can never delay the UI.
   useEffect(() => {
-    const guestOk  = ['reels', 'explore'];
+    // NOTE: 'reels' is deliberately NOT prefetched — mounting it starts fetching
+    // video, which burns mobile data in the background (bad on SA data plans) and
+    // fires range requests. Reels loads on demand; the rest are light.
+    const guestOk  = ['explore'];
     const authOnly = ['notifications', 'chats', 'profile'];
     const queue = [...guestOk, ...(authUser ? authOnly : [])];
+
+    const warm = (tab) => setVisitedTabs(prev => (prev.has(tab) ? prev : new Set(prev).add(tab)));
+    const idle = typeof globalThis.requestIdleCallback === 'function'
+      ? (cb) => globalThis.requestIdleCallback(cb, { timeout: 10000 })
+      : (cb) => setTimeout(cb, 0);
+
     const timers = queue.map((tab, i) =>
-      setTimeout(() => {
-        setVisitedTabs(prev => (prev.has(tab) ? prev : new Set(prev).add(tab)));
-      }, 2000 + i * 1500) // reels ~2s, then every 1.5s so we never spike the CPU
+      // Start well after first paint, stagger widely, and still only run on idle.
+      setTimeout(() => idle(() => warm(tab)), 5000 + i * 2500)
     );
     return () => timers.forEach(clearTimeout);
   }, [authUser]);

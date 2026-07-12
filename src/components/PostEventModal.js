@@ -331,8 +331,13 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (p.phone && !contactPhone.trim()) { setContactPhone(p.phone); filled.push('phone'); }
     if (p.email && !contactEmail.trim()) { setContactEmail(p.email); filled.push('email'); }
     if (p.ticketUrl && !ticketUrl.trim()) { setTicketUrl(p.ticketUrl); filled.push('tickets link'); }
-    if (p.ageMin && !ageMin) { setAgeMin(p.ageMin); filled.push('age limit'); }
+    if (p.ageMin && !ageMin) { setAgeMin(p.ageMin); filled.push('min age'); }
+    if (p.ageMax && !ageMax) { setAgeMax(p.ageMax); filled.push('max age'); }
     if (p.categories?.length && selectedCategories.length === 0) { setSelectedCategories(p.categories); filled.push('category'); }
+    if (p.eventType && !eventType) { setEventType(p.eventType); filled.push('event format'); }
+    if (p.powerBackup && !powerBackup) { setPowerBackup(p.powerBackup); filled.push('load-shedding power'); }
+    if (p.eventTags?.length && eventTags.length === 0) { setEventTags(p.eventTags); filled.push('good to know'); }
+    if (p.secretAct && !secretAct.trim()) { setSecretAct(p.secretAct); filled.push('secret headliner'); }
     return filled;
   };
 
@@ -1090,7 +1095,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     <View style={{ marginBottom: 14 }}>
                       <TextInput
                         style={[pm.input, pm.textarea, { color: textColor, borderColor: `${primary}35`, minHeight: 90 }]}
-                        placeholder="Paste the flyer text, a WhatsApp blast or an Instagram caption — we'll pull out the date, time, venue, price…"
+                        placeholder="Paste the flyer text, a WhatsApp blast or an Instagram caption — we'll pull out the date, time, venue, city, prices, ages, format, tickets link, contacts, load-shedding power and the good-to-know bits."
                         placeholderTextColor={muted}
                         value={pasteText}
                         onChangeText={setPasteText}

@@ -1,4 +1,4 @@
-import { parsePosterText, parseDate, parseTime, parsePrice, detectCategories } from '../src/utils/posterParser';
+import { parsePosterText, parseDate, parseTime, parsePrice, detectCategories, parsePower, detectEventTags, parseEventFormat, parseSecretAct, parseAgeRange } from '../src/utils/posterParser';
 
 const NOW = new Date('2026-07-01T12:00:00');
 
@@ -123,5 +123,90 @@ A massive Halaal food market`;
     const r = parsePosterText('@#$%^&*', NOW);
     expect(r.title).toBe('');
     expect(Object.keys(r.fields).length).toBe(0);
+  });
+});
+
+describe('load-shedding power', () => {
+  it('reads the backup source', () => {
+    expect(parsePower('Generator on site — no load-shedding blackouts')).toBe('generator');
+    expect(parsePower('100% solar powered venue')).toBe('solar');
+    expect(parsePower('Backed by UPS / inverter')).toBe('ups');
+    expect(parsePower('Party at Kitcheners')).toBe(null);
+  });
+});
+
+describe('good-to-know tags', () => {
+  it('maps copy to EVENT_TAGS keys', () => {
+    const t = detectEventTags('Wheelchair access · gated parking · car guards on duty. Strobe lights used. Sober-friendly space near the Gautrain.');
+    expect(t).toEqual(expect.arrayContaining([
+      'wheelchair', 'gated_parking', 'car_guards', 'strobe', 'sober_friendly', 'near_transit',
+    ]));
+  });
+  it('returns nothing when the poster says nothing', () => {
+    expect(detectEventTags('Live jazz all night')).toEqual([]);
+  });
+});
+
+describe('event format', () => {
+  it('maps to an EVENT_TYPES value', () => {
+    expect(parseEventFormat('Warehouse rave till sunrise')).toBe('Rave');
+    expect(parseEventFormat('Photography workshop')).toBe('Workshop');
+    expect(parseEventFormat('Summer music festival')).toBe('Festival');
+    expect(parseEventFormat('Founders networking mixer')).toBe('Meetup');
+    expect(parseEventFormat('A quiet evening')).toBe('');
+  });
+});
+
+describe('secret headliner', () => {
+  it('pulls the named act', () => {
+    expect(parseSecretAct('Secret headliner: Black Coffee')).toBe('Black Coffee');
+    expect(parseSecretAct('Special guest - Kabza De Small')).toBe('Kabza De Small');
+  });
+  it('flags TBA when teased but unnamed', () => {
+    expect(parseSecretAct('Plus a surprise guest you do NOT want to miss')).toBe('TBA');
+  });
+  it('is empty when absent', () => {
+    expect(parseSecretAct('Doors at 9pm')).toBe('');
+  });
+});
+
+describe('age range', () => {
+  it('reads an explicit range', () => {
+    expect(parseAgeRange('Ages 21-35 only')).toEqual({ min: 21, max: 35 });
+    expect(parseAgeRange('18 to 30 year olds')).toEqual({ min: 18, max: 30 });
+  });
+  it('never mistakes prices or times for ages', () => {
+    expect(parseAgeRange('R150-R300 · 21:00 - 02:00')).toEqual({ min: 0, max: 0 });
+  });
+});
+
+describe('parsePosterText — full poster', () => {
+  it('fills every field the poster mentions', () => {
+    const p = parsePosterText(`AMAPIANO SUNSET
+    Rooftop rave at The Bannister Hotel, Braamfontein, Johannesburg
+    Saturday 15 August 2026 · 18h00 - 02h00
+    Ages 21-35 · Entry R150 · VIP R400
+    Secret headliner: Kabza De Small
+    Generator on site — load-shedding proof
+    Wheelchair access · gated parking · car guards
+    Tickets: https://quicket.co.za/amapiano-sunset
+    Info: 082 123 4567 / hello@gruvs.co.za`, NOW);
+
+    expect(p.date).toBe('2026-08-15');
+    expect(p.time).toEqual({ h: 18, m: 0 });
+    expect(p.endTime).toEqual({ h: 2, m: 0 });
+    expect(p.city).toBe('Johannesburg');
+    expect(p.price).toBe(150);
+    expect(p.vipPrice).toBe(400);
+    expect(p.ageMin).toBe(21);
+    expect(p.ageMax).toBe(35);
+    expect(p.eventType).toBe('Rave');
+    expect(p.powerBackup).toBe('generator');
+    expect(p.secretAct).toBe('Kabza De Small');
+    expect(p.eventTags).toEqual(expect.arrayContaining(['wheelchair', 'gated_parking', 'car_guards']));
+    expect(p.ticketUrl).toContain('quicket');
+    expect(p.email).toBe('hello@gruvs.co.za');
+    expect(p.phone).toContain('082');
+    expect(p.categories.length).toBeGreaterThan(0);
   });
 });
