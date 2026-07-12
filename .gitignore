@@ -24,3 +24,12 @@ UsersACER.git-credentials
 # Test artifacts
 playwright-report/
 test-results/
+
+# Build artifacts — never commit (a 97MB APK got in once)
+thegruvs.apk
+*.apk
+*.aab
+build.log
+build.txt
+dist.tgz
+d.tgz
