@@ -101,11 +101,22 @@ class PlayerStateMachine {
 export const ReelsPreferences = new PlayerStateMachine();
 
 // ── 4. REELS REPOSITORY PATTERN ──────────────────────────────────────────────
+// Short-lived in-memory cache so a section that was prewarmed on launch (or
+// re-opened seconds later) renders instantly instead of re-fetching. Pull-to-
+// refresh passes force:true to bypass it.
+const _reelCache = new Map(); // key -> { data, ts }
+const REEL_CACHE_TTL = 90000; // 90s
+
 export const ReelsRepository = {
   /**
    * Fetch reels list with resilient retries, fallback queries, and offline mock fail-safes
    */
-  async getReelsFeed({ tab = 'foryou', hashtag = null, userId = null }) {
+  async getReelsFeed({ tab = 'foryou', hashtag = null, userId = null, force = false }) {
+    const _cacheKey = `${tab}:${hashtag || ''}:${userId || 'anon'}`;
+    if (!force) {
+      const _hit = _reelCache.get(_cacheKey);
+      if (_hit && Date.now() - _hit.ts < REEL_CACHE_TTL) return _hit.data;
+    }
     // 1. Check offline scenario or network bypass
     const applyOrder = (qb) => {
       if (tab === 'trending') return qb.order('like_count', { ascending: false });
@@ -218,6 +229,7 @@ export const ReelsRepository = {
 
       // Real data only — never fabricate reels. An empty feed shows the
       // "Be the first to post" empty state instead of fake sample content.
+      _reelCache.set(_cacheKey, { data: parsedData, ts: Date.now() });
       return parsedData;
     } catch (e) {
       console.warn('Reels fetch failed:', e);

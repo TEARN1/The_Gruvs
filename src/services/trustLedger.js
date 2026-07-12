@@ -47,7 +47,7 @@ export const TrustLedger = {
    */
   async getSISScore(userId) {
     try {
-      const { data: prof } = await supabase.from('profiles').select('social_integrity_score, last_active_at, base_trust_index, followers_count').eq('id', userId).single();
+      const { data: prof } = await supabase.from('profiles').select('social_integrity_score, last_active_at:last_seen, followers_count').eq('id', userId).single();
 
       if (!prof) return 50.00000000;
 

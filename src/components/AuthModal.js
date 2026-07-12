@@ -11,6 +11,7 @@ import { supabase } from '../services/supabase';
 import { APP_WEB_URL } from '../constants/appUrl';
 import { resilient } from '../utils/resilience';
 import { SecurityService } from '../services/securityService';
+import { track } from '../utils/analytics';
 import { useToast } from './ToastNotification';
 import { useBackClose } from '../hooks/useBackClose';
 import { GlitterBurst } from './GlitterBurst';
@@ -242,6 +243,7 @@ export const AuthModal = ({ visible, onClose }) => {
     if (!data) return;
     if (data.user) {
       SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_SUCCESS');
+      track('signup', { hasCity: !!city.trim(), interests: selectedInterests.length });
       const profilePayload = {
         id: data.user.id,
         username: username.trim(),

@@ -18,10 +18,9 @@ import { Feather } from '@expo/vector-icons';
 const getHomeBase = (checkin) => {
   const p = checkin?.profiles;
   if (!p) return 'Unknown';
-  // Try city field, then first segment of address string
+  // profiles only has city / location (no address or home_base columns).
   if (p.city) return p.city;
-  if (p.address) return p.address.split(',')[0].trim();
-  if (p.home_base) return p.home_base;
+  if (p.location) return String(p.location).split(',')[0].trim();
   return 'Nearby';
 };
 

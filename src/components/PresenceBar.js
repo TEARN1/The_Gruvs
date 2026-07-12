@@ -101,7 +101,9 @@ export const PresenceBar = ({
   // Fetch checkins
   // ------------------------------------------------------------------
   const fetchCheckins = useCallback(async (loc = userLocation) => {
-    if (!eventId) return;
+    // Presence is RLS-protected: a signed-out visitor always gets 401, so don't
+    // even ask (this fired on every guest page load).
+    if (!eventId || !user?.id) return;
     try {
       const { data, error } = await supabase
         .from('live_checkins')
@@ -310,7 +312,7 @@ export const PresenceBar = ({
     try {
       const { data: mutual } = await supabase
         .from('path_stars')
-        .select('id')
+        .select('from_user_id')
         .eq('from_user_id', toUserId)
         .eq('to_user_id', user.id)
         .eq('event_id', eventId)

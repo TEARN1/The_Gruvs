@@ -18,6 +18,7 @@ import { IdentityProvider } from './src/context/IdentityContext';
 import { CurrencyProvider } from './src/context/CurrencyContext';
 import { ToastProvider, useToast } from './src/components/ToastNotification';
 import { OfflineBanner } from './src/components/OfflineBanner';
+import { InstallAppBanner } from './src/components/InstallAppBanner';
 import { useWebAppUpdate, reloadForUpdate } from './src/hooks/useWebAppUpdate';
 import { LandingPage } from './src/screens/LandingPage';
 // Hooks from these modules are used at shell level — keep eager
@@ -41,6 +42,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { SecurityService } from './src/services/securityService';
 import { VibeEconomyEngine } from './src/services/revenueEngine';
 import { supabase } from './src/services/supabase';
+import { prewarmSections } from './src/services/prewarm';
 import { backStack } from './src/utils/backStack';
 
 // Install before any component mounts so all boot errors are captured
@@ -316,6 +318,12 @@ const MainNavigator = () => {
   const backPressCount = useRef(0);
   const backPressTimer = useRef(null);
   const lastHapticRef = useRef(0);
+
+  // Warm the caches for the other sections on launch so the first time the user
+  // reaches Reels / Explore (or refreshes the feed) it's already loaded.
+  useEffect(() => {
+    prewarmSections({ userId: authUser?.id || null });
+  }, [authUser?.id]);
 
   const handleTabChange = useCallback((tab) => {
     if (Platform.OS !== 'web') {
@@ -633,6 +641,35 @@ const MainNavigator = () => {
     setVisitedTabs(prev => (prev.has(currentTab) ? prev : new Set(prev).add(currentTab)));
   }, [currentTab]);
 
+  // Progressive prefetch — quietly mount the other sections in the background so
+  // the FIRST time a user opens one it is already loaded instead of triggering a
+  // fresh "download" they wait on. Hidden screens stay paused (e.g. Reels gates
+  // on tabActive), so this only warms their data + layout.
+  //
+  // IMPORTANT: each warm-up waits for the browser to be genuinely IDLE. Mounting
+  // these on a plain timer competed with first paint/hydration and made the tab
+  // bar take far longer to appear on slow devices (it wiped out CI entirely).
+  // requestIdleCallback yields to rendering, so prefetch can never delay the UI.
+  useEffect(() => {
+    // NOTE: 'reels' is deliberately NOT prefetched — mounting it starts fetching
+    // video, which burns mobile data in the background (bad on SA data plans) and
+    // fires range requests. Reels loads on demand; the rest are light.
+    const guestOk  = ['explore'];
+    const authOnly = ['notifications', 'chats', 'profile'];
+    const queue = [...guestOk, ...(authUser ? authOnly : [])];
+
+    const warm = (tab) => setVisitedTabs(prev => (prev.has(tab) ? prev : new Set(prev).add(tab)));
+    const idle = typeof globalThis.requestIdleCallback === 'function'
+      ? (cb) => globalThis.requestIdleCallback(cb, { timeout: 10000 })
+      : (cb) => setTimeout(cb, 0);
+
+    const timers = queue.map((tab, i) =>
+      // Start well after first paint, stagger widely, and still only run on idle.
+      setTimeout(() => idle(() => warm(tab)), 5000 + i * 2500)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [authUser]);
+
   const screenFor = (tabKey) => {
     switch (tabKey) {
       case 'feed':
@@ -718,6 +755,7 @@ const MainNavigator = () => {
           </Text>
         </TouchableOpacity>
       )}
+      <InstallAppBanner primary={primary} />
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={bg}

@@ -7,7 +7,7 @@ jest.mock('../src/services/supabase', () => {
   let result = { data: [], error: null };
   const makeQB = () => {
     const qb = {};
-    ['select', 'neq', 'limit', 'order', 'in', 'ilike', 'eq', 'is'].forEach((m) => { qb[m] = () => qb; });
+    ['select', 'neq', 'limit', 'order', 'in', 'ilike', 'eq', 'is', 'filter', 'or', 'gte', 'lte', 'lt', 'gt', 'not', 'range', 'contains'].forEach((m) => { qb[m] = () => qb; });
     qb.then = (resolve) => resolve(result); // awaitable
     return qb;
   };
@@ -23,20 +23,20 @@ import * as supa from '../src/services/supabase';
 describe('ReelsRepository.getReelsFeed', () => {
   it('returns an empty array for an empty (but successful) feed', async () => {
     supa.__setResult({ data: [], error: null });
-    const out = await ReelsRepository.getReelsFeed({ tab: 'foryou' });
+    const out = await ReelsRepository.getReelsFeed({ tab: 'foryou', force: true });
     expect(Array.isArray(out)).toBe(true);
     expect(out).toHaveLength(0);
   });
 
   it('returns real rows when the query succeeds', async () => {
     supa.__setResult({ data: [{ id: 'r1', media_url: 'x.mp4', user_id: 'u1' }], error: null });
-    const out = await ReelsRepository.getReelsFeed({ tab: 'foryou' });
+    const out = await ReelsRepository.getReelsFeed({ tab: 'foryou', force: true });
     expect(out).toHaveLength(1);
     expect(out[0].id).toBe('r1');
   });
 
   it('throws (not fake-empty) when every tier fails', async () => {
     supa.__setResult({ data: null, error: { message: 'network down' } });
-    await expect(ReelsRepository.getReelsFeed({ tab: 'foryou' })).rejects.toBeTruthy();
+    await expect(ReelsRepository.getReelsFeed({ tab: 'foryou', force: true })).rejects.toBeTruthy();
   });
 });

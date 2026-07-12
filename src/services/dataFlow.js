@@ -655,7 +655,14 @@ export const FeedManager = {
     // the full upcoming catalogue), not an infinite-scroll discovery feed. Web
     // onEndReached is flaky, so a small page there means "not all my events show".
     // Pull a big single page for those modes so everything appears at once.
-    const pageSize = (mode === 'mine' || mode === 'upcoming') ? 200 : this.PAGE_SIZE;
+    const singlePage = (mode === 'mine' || mode === 'upcoming');
+    const pageSize = singlePage ? 200 : this.PAGE_SIZE;
+
+    // These modes are ONE page by design. If the list still asks for page 2+
+    // (flaky onEndReached), don't hit the network: PostgREST answers an offset
+    // past the last row with 416 Range Not Satisfiable, which spammed an error
+    // on every load. There is nothing after page 0 here, so return empty.
+    if (singlePage && page > 0) return [];
 
     // ── Tier helpers ──────────────────────────────────────────────────────────
     const buildBaseQuery = (select, opts = {}) => {
@@ -1006,7 +1013,7 @@ export const TrendingManager = {
         cache.set(cacheKey, mapped, 120000);
         return mapped;
       }
-    } catch { }
+    } catch (e) { logError('Leaderboard.primary', e); }
 
     return [];
   },
@@ -1543,7 +1550,7 @@ export const UserManager = {
           vibe_score: 0,
         });
       }
-    } catch { }
+    } catch (e) { logError('Profile.ensureExists', e, { userId }); }
   },
 
   async getMutuals(userId) {
@@ -1692,7 +1699,7 @@ export const CheckInManager = {
         try {
           const { data: prof } = await supabase.from('profiles').select('vibe_score').eq('id', userId).single();
           await supabase.from('profiles').update({ vibe_score: (prof?.vibe_score || 0) + 8 }).eq('id', userId);
-        } catch { }
+        } catch (e) { logError('Score.incrementFallback', e, { userId }); }
       }
 
       cache.invalidate(`profile:${userId}`);
@@ -2303,7 +2310,7 @@ async function _notifyEventAuthor(eventId, actorId, type) {
     const msg = messages[type];
     if (!msg) return;
     await _notify(event.author_id, actorId, type, msg.title, msg.body);
-  } catch { }
+  } catch (e) { logError('Notify.host', e, { type }); }
 }
 
 async function _notify(recipientId, actorId, type, title, body, data = {}) {
@@ -2328,7 +2335,7 @@ async function _notify(recipientId, actorId, type, title, body, data = {}) {
         data,
         read: false,
       });
-    } catch { }
+    } catch (e) { logError('Notify.insert', e, { type }); }
   }
 }
 
@@ -2620,7 +2627,7 @@ export const MessageManager = {
     try {
       await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', messageId).eq('recipient_id', userId).is('read_at', null);
       cache.invalidate(`dm_unread:${userId}`);
-    } catch { }
+    } catch (e) { logError('DM.markAsRead', e, { messageId }); }
   },
 
   async sendTypingStatus(senderId, recipientId, isTyping) {
@@ -2772,7 +2779,7 @@ export const BlockManager = {
   async isBlocked(blockerId, blockedId) {
     try {
       const { data } = await supabase
-        .from('user_blocks').select('id')
+        .from('user_blocks').select('blocker_id')
         .eq('blocker_id', blockerId).eq('blocked_id', blockedId).maybeSingle();
       return !!data;
     } catch { return false; }
@@ -2901,9 +2908,9 @@ export const PresenceManager = {
       this._heartbeatTimer = setInterval(async () => {
         try {
           await supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', userId);
-        } catch { }
+        } catch (e) { logError('Presence.heartbeat', e, { userId }); }
       }, 4 * 60 * 1000);
-    } catch { }
+    } catch (e) { logError('Presence.goOnline', e, { userId }); }
   },
 
   async goOffline(userId) {
@@ -2912,7 +2919,7 @@ export const PresenceManager = {
     try {
       await supabase.from('profiles').update({ is_online: false, last_seen: new Date().toISOString() }).eq('id', userId);
       cache.invalidate(`profile:${userId}`);
-    } catch { }
+    } catch (e) { logError('Presence.goOffline', e, { userId }); }
   },
 
   // ── "I'm here" live presence beacon ──────────────────────────────────────
@@ -2946,7 +2953,7 @@ export const PresenceManager = {
     try {
       await supabase.from('profiles').update({ is_beacon_active: false, beacon_expires_at: null }).eq('id', userId);
     } catch {
-      try { await supabase.from('profiles').update({ is_beacon_active: false }).eq('id', userId); } catch {}
+      try { await supabase.from('profiles').update({ is_beacon_active: false }).eq('id', userId); } catch (e) { logError('Beacon.deactivate', e, { userId }); }
     }
     cache.invalidate(`profile:${userId}`);
   },
@@ -3215,7 +3222,7 @@ export const RetentionManager = {
           RewardEngine.checkMilestones(userId).catch(() => { });
         }
       }
-    } catch { }
+    } catch (e) { logError('Retention.streak', e, { userId }); }
   },
 
   async getGlobalStats() {
@@ -3489,7 +3496,7 @@ export const ChatManager = {
   async fetchMessages(eventId, limit = 60) {
     const { data, error } = await supabase
       .from('event_chat_messages')
-      .select('id, message, created_at, reply_to, pinned, pinned_by, deleted, user_id, profiles:user_id(id, username, avatar_url, is_verified)')
+      .select('id, message, created_at, reply_to, pinned:is_pinned, deleted, user_id, profiles:user_id(id, username, avatar_url, is_verified)')
       .eq('event_id', eventId)
       .eq('deleted', false)
       .order('created_at', { ascending: true })
@@ -3512,7 +3519,7 @@ export const ChatManager = {
     const { data, error } = await supabase
       .from('event_chat_messages')
       .insert({ event_id: eventId, user_id: userId, message: clean, reply_to: replyTo })
-      .select('id, message, created_at, reply_to, pinned, deleted, user_id')
+      .select('id, message, created_at, reply_to, pinned:is_pinned, deleted, user_id')
       .single();
     if (error) throw error;
     return data;
@@ -3523,9 +3530,11 @@ export const ChatManager = {
     if (error) throw error;
   },
 
-  async setPinned(messageId, pinned, pinnedBy) {
+  async setPinned(messageId, pinned) {
+    // The column is `is_pinned` — there is no `pinned` or `pinned_by` column, so
+    // this UPDATE errored every time: pinning a chat message never worked.
     const { error } = await supabase.from('event_chat_messages')
-      .update({ pinned, pinned_by: pinned ? pinnedBy : null }).eq('id', messageId);
+      .update({ is_pinned: pinned }).eq('id', messageId);
     if (error) throw error;
   },
 };

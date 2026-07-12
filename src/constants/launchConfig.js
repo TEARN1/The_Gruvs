@@ -28,9 +28,14 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   pathMap:      false, // Path Map — needs crowd density to feel alive
   crossedPaths: false, // Crossed Paths — needs density
   stories:      true,  // kept — cheap, familiar, low-risk
+  // Resident (sister app) community safety alerts. The res_* schema is NOT on
+  // the live DB, so querying res_alerts 404s on every load. Flip to true in the
+  // same change that deploys resident_schema_v2.sql.
+  residentAlerts: false,
 } : {
   reelsRail: true, business: true, gifting: true,
   pathMap: true, crossedPaths: true, stories: true,
+  residentAlerts: false, // still gated on the res_* schema actually existing
 };
 
 /** feature('business') → true when the surface is live. Unknown keys default on. */

@@ -294,7 +294,7 @@ export const EventPollSection = ({ eventId, canPost = false }) => {
     try {
       const { data, error } = await supabase
         .from('event_polls')
-        .select('*, event_poll_votes(user_id, option_ids)')
+        .select('*, event_poll_votes(user_id, option_index)')
         .eq('event_id', eventId)
         .order('created_at', { ascending: false });
       if (error) throw error;

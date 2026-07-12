@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { getMediaLikes, toggleMediaLike } from '../services/mediaLikes';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const placeholderSource = require('../../assets/events/pixel.png');
+const placeholderSource = require('../../assets/events/pixel.jpg');
 
 // ── Per-image like state — PERSISTED to media_likes, not just local ──────────
 // { [url]: { count, mine } }. Optimistic toggle, rolls back if the write fails

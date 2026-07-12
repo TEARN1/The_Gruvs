@@ -56,14 +56,14 @@ export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
           async () => {
             const { data, error } = await supabase.from('event_rsvps')
               .upsert({ event_id: event.id, user_id: user?.id, status: selected }, { onConflict: 'event_id,user_id' })
-              .select('id').single();
+              .select().single();
             if (error) throw error;
             return data;
           },
           async () => {
             const { data, error } = await supabase.from('event_rsvps')
               .insert({ event_id: event.id, user_id: user?.id, status: selected })
-              .select('id').single();
+              .select().single();
             if (error) throw error;
             return data;
           },

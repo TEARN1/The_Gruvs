@@ -76,11 +76,11 @@ export const ActivityCenterModal = ({ visible, onClose }) => {
       if (eventIds.length > 0) {
         queries.push(
           supabase.from('event_vibes')
-            .select('id, event_id, user_id, created_at, profiles(username, avatar_url)')
+            .select('event_id, user_id, created_at, profiles(username, avatar_url)')
             .in('event_id', eventIds).neq('user_id', user?.id)
             .order('created_at', { ascending: false }).limit(30),
           supabase.from('event_rsvps')
-            .select('id, event_id, user_id, created_at, profiles(username, avatar_url)')
+            .select('event_id, user_id, created_at, profiles(username, avatar_url)')
             .in('event_id', eventIds).neq('user_id', user?.id)
             .order('created_at', { ascending: false }).limit(30),
           supabase.from('echoes')

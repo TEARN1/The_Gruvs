@@ -9,7 +9,8 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from './ToastNotification';
+import { useToast } from './ToastNotification';
+
 import { useBackClose } from '../hooks/useBackClose';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -393,7 +394,7 @@ export const CarpoolBoard = ({ event, primary, textColor, muted, surface }) => {
     try {
       const { data: offersData } = await supabase
         .from('event_carpools')
-        .select('id, driver_id, seats_available, departure_area, departure_time, return_trip, return_time, note, profiles:driver_id(username)')
+        .select('id, driver_id, seats_available, departure_time, profiles:driver_id(username)')
         .eq('event_id', event.id)
         .order('created_at', { ascending: false });
 

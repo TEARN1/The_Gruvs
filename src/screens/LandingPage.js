@@ -44,6 +44,7 @@ import { ReelsRail } from '../components/ReelsRail';
 import { LazyCard } from '../components/LazyCard';
 import { feature } from '../constants/launchConfig';
 import { logError } from '../utils/logError';
+import { track } from '../utils/analytics';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
 import { CrewOutCard } from '../components/CrewOutCard';
 import { CheckInNudge } from '../components/CheckInNudge';
@@ -76,6 +77,11 @@ import { EventMapView }         from '../components/EventMapView';
 import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './PathMapScreen';
 import { EventDetailScreen }    from './EventDetailScreen';
+
+// Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
+// missing-table response so we stop 404-ing on every load; flips back on with a
+// fresh app load once the schema is deployed.
+let residentAlertsEnabled = true;
 
 const SCREEN_W = Dimensions.get('window').width;
 const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
@@ -148,27 +154,36 @@ const skStyles = StyleSheet.create({
   line: { height: 10, borderRadius: 6 },
 });
 
-// ── Visitor banner ─────────────────────────────────────────────────────────────
-// Item 57: accessible sign-in prompt
-const VisitorBanner = ({ onSignIn, primary, muted }) => (
-  <TouchableOpacity
-    style={[vb.wrap, { backgroundColor: `${primary}10`, borderColor: `${primary}30` }]}
-    onPress={onSignIn}
-    activeOpacity={0.8}
-    accessibilityRole="button"
-    accessibilityLabel="Sign in to RSVP, react and post events"
-  >
-    <Feather name="user" size={15} color={primary} />
-    <Text style={[vb.text, { color: muted }]}>
-      Browsing as guest — <Text style={{ color: primary, fontWeight: '800' }}>sign in</Text> to RSVP, react & post
+// ── Visitor hero ────────────────────────────────────────────────────────────────
+// First impression for logged-out strangers (e.g. someone who followed a shared
+// link): say what the app IS in one line, name the one verb that makes it
+// different (Touch Down), then the sign-in CTA. Guest-only, so it never clutters
+// the signed-in feed.
+const VisitorBanner = ({ onSignIn, primary, muted, textColor }) => (
+  <View style={[vb.hero, { backgroundColor: `${primary}0e`, borderColor: `${primary}30` }]}>
+    <Text style={[vb.heroTitle, { color: textColor }]}>What’s on tonight, near you.</Text>
+    <Text style={[vb.heroSub, { color: muted }]}>
+      Real nights, verified. Find what’s happening, RSVP, and <Text style={{ color: primary, fontWeight: '800' }}>Touch Down</Text> at the door to prove you were there.
     </Text>
-    <Feather name="chevron-right" size={14} color={`${primary}80`} />
-  </TouchableOpacity>
+    <TouchableOpacity
+      style={[vb.heroBtn, { backgroundColor: primary }]}
+      onPress={onSignIn}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel="Sign in or create an account to RSVP, react and post events"
+    >
+      <Text style={vb.heroBtnText}>Sign in / Join — it’s free</Text>
+      <Feather name="arrow-right" size={15} color="#000" />
+    </TouchableOpacity>
+  </View>
 );
 
 const vb = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginVertical: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
-  text: { flex: 1, fontSize: 12, lineHeight: 17 },
+  hero: { marginHorizontal: 16, marginTop: 10, marginBottom: 8, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 16, borderWidth: 1 },
+  heroTitle: { fontSize: 19, fontWeight: '900', letterSpacing: -0.3, marginBottom: 5 },
+  heroSub: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
+  heroBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 11, borderRadius: 24 },
+  heroBtnText: { color: '#000', fontWeight: '900', fontSize: 14 },
 });
 
 // ── Trending "See All" full-screen modal ───────────────────────────────────────
@@ -193,7 +208,7 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
             accessibilityLabel={`Trending: ${spot.description || spot.title || 'Trending Gruv'}, ${spot.rsvp_count || spot.going || 0} vibing`}
           >
             <Image
-              source={typeof spot.image === 'string' ? { uri: spot.image } : (spot.image || require('../../assets/events/pixel.png'))}
+              source={typeof spot.image === 'string' ? { uri: spot.image } : (spot.image || require('../../assets/events/pixel.jpg'))}
               style={tm.thumb}
             />
             <View style={{ flex: 1 }}>
@@ -999,10 +1014,56 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [loading, setLoading] = useState(true);
   const [selectedCat, setSelectedCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  // ── Community Safety Alert (from The Resident) ────────────────────────────
+  const [communityAlert, setCommunityAlert] = useState(null);
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [prediction, setPrediction] = useState(null);
   const [loadingPrediction, setLoadingPrediction] = useState(false);
   const [layoutType, setLayoutType] = useState('list'); // 'list' | 'grid' (Pinterest masonry)
+  // ── Real-time Resident community safety alerts ────────────────────────────
+  // The Resident schema (res_*) is not deployed on the live DB yet, so this
+  // table can be absent. When it is, PostgREST 404s on EVERY load and we'd also
+  // open a realtime channel on a table that doesn't exist. Probe once, then stay
+  // quiet — the feature lights up automatically once res_alerts exists.
+  useEffect(() => {
+    // Gated: the res_* schema isn't deployed, so don't even ask (it 404s).
+    if (!feature('residentAlerts') || !residentAlertsEnabled) return;
+    const suburb = profile?.suburb || profile?.location;
+    let channel = null;
+
+    const loadAlert = async () => {
+      const query = supabase
+        .from('res_alerts')
+        .select('id, title, description, severity, suburb, created_at')
+        .in('severity', ['critical', 'panic'])
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (suburb) query.ilike('suburb', `%${suburb}%`);
+      const { data, error } = await query;
+      if (error) {
+        // Missing table / not exposed → disable for the rest of the session.
+        if (error.code === 'PGRST205' || error.code === '42P01' || error.message?.includes('does not exist')) {
+          residentAlertsEnabled = false;
+        }
+        setCommunityAlert(null);
+        return false;
+      }
+      setCommunityAlert(data?.length ? data[0] : null);
+      return true;
+    };
+
+    (async () => {
+      const ok = await loadAlert();
+      if (!ok || !residentAlertsEnabled) return; // don't subscribe to a missing table
+      channel = supabase.channel('res_alerts_feed')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'res_alerts' }, loadAlert)
+        .subscribe();
+    })();
+
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [profile?.suburb, profile?.location]);
+
   // Restore the user's last-chosen feed layout
   useEffect(() => {
     AsyncStorage.getItem('@gruvs_feed_layout')
@@ -1564,11 +1625,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // Fetch checkins for event (for ReturnPathCard)
   const fetchEventCheckins = useCallback(async (eventId) => {
     if (!eventId || fetchedCheckinIds.current.has(eventId)) return; // cached
+    // Presence is protected by RLS — a signed-out visitor always gets 401, so
+    // don't make the request at all.
+    if (!user?.id) return;
     fetchedCheckinIds.current.add(eventId);
     try {
       const { data } = await supabase
         .from('live_checkins')
-        .select('id, user_id, event_id, checked_in_at, expires_at, profiles(username, avatar_url, city, address, home_base)')
+        // profiles has city/location — there is no `address` or `home_base` column
+        // (selecting them 400'd the whole query, so check-ins never loaded).
+        .select('id, user_id, event_id, checked_in_at, expires_at, profiles(username, avatar_url, city, location)')
         .eq('event_id', eventId)
         .order('checked_in_at', { ascending: false });
       setEventCheckins(prev => ({ ...prev, [eventId]: data || [] }));
@@ -1576,7 +1642,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       fetchedCheckinIds.current.delete(eventId); // allow retry on failure
       setEventCheckins(prev => ({ ...prev, [eventId]: [] }));
     }
-  }, []);
+    // user?.id is read above, so it MUST be a dep — otherwise the callback keeps
+    // a stale null user after sign-in and check-ins would never load.
+  }, [user?.id]);
 
 
 
@@ -1814,6 +1882,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       toast.show('Share is not available on this platform', 'info');
       return;
     }
+    track('share', { eventId: event?.id });
     Share.share({ message: buildShareText(event) })
       .catch(() => { toast.show('Unable to share this Gruv right now', 'error'); });
   };
@@ -2051,7 +2120,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       )}
 
       {/* Visitor banner — only if no user */}
-      {!user && <VisitorBanner onSignIn={onAuthRequired} primary={primary} muted={muted} />}
+      {!user && <VisitorBanner onSignIn={onAuthRequired} primary={primary} muted={muted} textColor={textColor} />}
 
       {/* Search history chips */}
       <SearchHistoryBar
@@ -2387,6 +2456,35 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     <View style={[styles.root, { backgroundColor: bg }]}>
       <LiquidBackground intensity={0.9} />
       <AuraEffect />
+
+      {/* ── Community Safety Alert Banner (from The Resident) ────────────── */}
+      {!!communityAlert && (
+        <View style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999,
+          backgroundColor: communityAlert.severity === 'panic' ? '#ef444488' : '#f59e0b88',
+          borderBottomWidth: 1,
+          borderBottomColor: communityAlert.severity === 'panic' ? '#ef4444' : '#f59e0b',
+          paddingHorizontal: 14, paddingVertical: 10,
+          flexDirection: 'row', alignItems: 'center', gap: 10,
+        }}>
+          <Text style={{ fontSize: 20 }}>
+            {communityAlert.severity === 'panic' ? '🚨' : '⚠️'}
+          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }} numberOfLines={1}>
+              {communityAlert.title}
+            </Text>
+            {!!communityAlert.description && (
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10 }} numberOfLines={1}>
+                {communityAlert.description}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity onPress={() => setCommunityAlert(null)} style={{ padding: 4 }}>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 14 }}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FlatList
         ref={flatListRef}

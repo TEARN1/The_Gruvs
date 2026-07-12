@@ -17,6 +17,8 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { uploadToStorage } from '../services/storageService';
+import { scanPoster, canScanPoster } from '../services/posterScan';
+import { parsePosterText } from '../utils/posterParser';
 import { CategoryPickerModal } from './CategoryPickerModal';
 import { CompetitionPicker } from './CompetitionPicker';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
@@ -156,10 +158,23 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (Array.isArray(d.scheduleItems)) setScheduleItems(d.scheduleItems);
     if (d.competitionId) setCompetitionId(d.competitionId);
     if (d.endDate) { const ed = new Date(d.endDate); if (!isNaN(ed.getTime())) setEndDate(ed); }
+    // Media (photos/videos), date/time, tags & power — previously NOT drafted,
+    // so an interrupted host lost them. Local picker URIs are valid for the
+    // session; a dead URI just renders a broken thumbnail (never crashes).
+    if (Array.isArray(d.mediaItems)) setMediaItems(d.mediaItems.filter(m => m && m.uri));
+    if (d.pickedDate) { const pd = new Date(d.pickedDate); if (!isNaN(pd.getTime())) setPickedDate(pd); }
+    if (typeof d.pickedHour === 'number') setPickedHour(d.pickedHour);
+    if (typeof d.pickedMinute === 'number') setPickedMinute(d.pickedMinute);
+    if (typeof d.timeSet === 'boolean') setTimeSet(d.timeSet);
+    if (Array.isArray(d.eventTags)) setEventTags(d.eventTags);
+    if (typeof d.powerBackup === 'string') setPowerBackup(d.powerBackup);
+    if (typeof d.secretAct === 'string') setSecretAct(d.secretAct);
+    if (typeof d.revealThreshold === 'string') setRevealThreshold(d.revealThreshold);
   };
   const { clearDraft } = useDraft(
     user ? `draft:event:${user.id}` : null,
-    () => ({ title, description, address, city, ticketUrl, contactPhone, contactEmail, entryPrice, vipPrice, vvipPrice, otherTickets, extraTiers, eventType, ageMin, ageMax, selectedCategories, scheduleItems, competitionId, endDate: endDate ? endDate.toISOString() : null }),
+    () => ({ title, description, address, city, ticketUrl, contactPhone, contactEmail, entryPrice, vipPrice, vvipPrice, otherTickets, extraTiers, eventType, ageMin, ageMax, selectedCategories, scheduleItems, competitionId, endDate: endDate ? endDate.toISOString() : null,
+      mediaItems, pickedDate: pickedDate ? pickedDate.toISOString() : null, pickedHour, pickedMinute, timeSet, eventTags, powerBackup, secretAct, revealThreshold }),
     restoreDraft,
     { enabled: visible && !!user },
   );
@@ -286,6 +301,110 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
 
   const removeMedia = (index) => {
     setMediaItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // ── Poster scan → auto-fill ───────────────────────────────────────────────
+  // Upload the flyer once; on-device OCR reads it and pre-fills every field we
+  // can, so the host reviews instead of typing. Fully guarded: if OCR is
+  // unavailable or fails, the poster is still attached and fields fall back to
+  // manual — a scan can never block posting.
+  const [scanning, setScanning] = useState(false);
+  const [scanPct, setScanPct] = useState(0);
+  const [scanNote, setScanNote] = useState('');
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+
+  // Fill only the EMPTY fields from a parsed result; returns the list filled.
+  const applyParsed = (p) => {
+    const filled = [];
+    if (p.title && !title.trim()) { setTitle(p.title); filled.push('title'); }
+    if (p.description && !description.trim()) { setDescription(p.description); filled.push('description'); }
+    if (p.address && !address.trim()) { setAddress(p.address); filled.push('venue'); }
+    if (p.city && !city.trim()) { setCity(p.city); filled.push('city'); }
+    if (p.date) { const d = new Date(`${p.date}T00:00:00`); if (!isNaN(d.getTime())) { setPickedDate(d); filled.push('date'); } }
+    if (p.time) { setPickedHour(p.time.h); setPickedMinute(p.time.m); setTimeSet(true); filled.push('time'); }
+    if (p.endTime) { setEndHour(p.endTime.h); setEndMinute(p.endTime.m); setEndTimeSet(true); filled.push('end time'); }
+    if (p.isFree) { setEntryPrice('0'); filled.push('free entry'); }
+    else if (p.price != null && !String(entryPrice).trim()) { setEntryPrice(String(p.price)); filled.push('price'); }
+    if (p.vipPrice != null && !String(vipPrice).trim()) { setVipPrice(String(p.vipPrice)); filled.push('VIP price'); }
+    if (p.vvipPrice != null && !String(vvipPrice).trim()) { setVvipPrice(String(p.vvipPrice)); filled.push('VVIP price'); }
+    if (p.phone && !contactPhone.trim()) { setContactPhone(p.phone); filled.push('phone'); }
+    if (p.email && !contactEmail.trim()) { setContactEmail(p.email); filled.push('email'); }
+    if (p.ticketUrl && !ticketUrl.trim()) { setTicketUrl(p.ticketUrl); filled.push('tickets link'); }
+    if (p.ageMin && !ageMin) { setAgeMin(p.ageMin); filled.push('min age'); }
+    if (p.ageMax && !ageMax) { setAgeMax(p.ageMax); filled.push('max age'); }
+    if (p.categories?.length && selectedCategories.length === 0) { setSelectedCategories(p.categories); filled.push('category'); }
+    if (p.eventType && !eventType) { setEventType(p.eventType); filled.push('event format'); }
+    if (p.powerBackup && !powerBackup) { setPowerBackup(p.powerBackup); filled.push('load-shedding power'); }
+    if (p.eventTags?.length && eventTags.length === 0) { setEventTags(p.eventTags); filled.push('good to know'); }
+    if (p.secretAct && !secretAct.trim()) { setSecretAct(p.secretAct); filled.push('secret headliner'); }
+    if (p.extraTiers?.length && extraTiers.length === 0) {
+      setExtraTiers(p.extraTiers.map(t => ({ ...t })));
+      filled.push(`${p.extraTiers.length} ticket tier${p.extraTiers.length > 1 ? 's' : ''}`);
+    }
+    if (p.lineup?.length && scheduleItems.length === 0) {
+      setScheduleItems(p.lineup.map((s, i) => ({ id: `scan-${Date.now()}-${i}`, ...s })));
+      filled.push(`${p.lineup.length}-act lineup`);
+    }
+    return filled;
+  };
+
+  const fillFromText = (rawText, { source } = {}) => {
+    const p = parsePosterText(rawText);
+    const filled = applyParsed(p);
+    setScanNote(filled.length
+      ? `Filled ${filled.length}: ${filled.join(', ')} — please double-check as you go.`
+      : `Read the ${source || 'text'} but couldn't pull clear details — please fill them in.`);
+    return filled.length;
+  };
+
+  const pasteAndFill = () => {
+    if (!pasteText.trim()) { setScanNote('Paste the event text first, then tap Auto-fill.'); return; }
+    setPosterMode(false); // they gave us the words, not (only) a poster image
+    setError('');
+    fillFromText(pasteText, { source: 'text' });
+  };
+
+  const scanAndFill = async () => {
+    if (scanning) return;
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') { setError('Photo library access is required.'); return; }
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.9,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    const asset = result.assets[0];
+    // Attach the poster as media + flip on poster mode (the flyer carries the
+    // visual details; we ALSO extract the structured fields the app needs).
+    setMediaItems(prev => prev.some(m => m.uri === asset.uri) ? prev : [...prev, {
+      uri: asset.uri,
+      type: 'image',
+      name: asset.fileName || `poster_${Date.now()}.jpg`,
+      mimeType: asset.mimeType || undefined,
+    }].slice(0, MAX_MEDIA));
+    setPosterMode(true);
+    setError('');
+    setScanNote('');
+
+    // No on-device reader here (native has no DOM for the OCR engine). Don't
+    // dead-end the host — open the paste box, which works on every platform.
+    if (!canScanPoster()) {
+      setPasteOpen(true);
+      setScanNote("Poster added. Paste the flyer's caption below and we'll fill the details in for you.");
+      return;
+    }
+
+    setScanning(true); setScanPct(0);
+    try {
+      const text = await scanPoster(asset.uri, (p) => setScanPct(p));
+      if (!text) { setScanNote("Couldn't read this poster — try the 'paste text' option, or fill in the details below."); return; }
+      fillFromText(text, { source: 'poster' });
+    } catch {
+      setScanNote("Couldn't read the poster — please fill in the details below.");
+    } finally { setScanning(false); setScanPct(0); }
   };
 
   // ── Upload all media to Supabase Storage ─────────────────────────────────
@@ -958,6 +1077,66 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
               {/* ── STEP 1: Core info ────────────────────────────────────── */}
               {step === 1 && (
                 <>
+                  {/* Poster scan — upload the flyer first, we auto-fill the rest */}
+                  <TouchableOpacity
+                    onPress={scanAndFill}
+                    disabled={scanning}
+                    activeOpacity={0.85}
+                    style={{ marginBottom: 14, paddingVertical: 18, paddingHorizontal: 16, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: primary, backgroundColor: `${primary}0e`, alignItems: 'center', gap: 6 }}
+                  >
+                    {scanning ? (
+                      <>
+                        <ActivityIndicator color={primary} />
+                        <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>Reading your poster… {Math.round(scanPct * 100)}%</Text>
+                        <Text style={{ color: muted, fontSize: 11 }}>First scan downloads the reader — hang tight.</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Feather name="image" size={24} color={primary} />
+                        <Text style={{ color: primary, fontWeight: '900', fontSize: 14.5 }}>
+                          {canScanPoster() ? 'Upload poster → auto-fill' : 'Upload your poster'}
+                        </Text>
+                        <Text style={{ color: muted, fontSize: 11.5, textAlign: 'center', lineHeight: 16 }}>
+                          {canScanPoster()
+                            ? "Got a flyer? Upload it and we'll read the title, date, time, venue & price for you — just check and tweak."
+                            : "Got a flyer? Add it here — then paste its caption below and we'll fill the details in for you."}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                  {/* …or paste the event text (WhatsApp / Instagram caption) */}
+                  <TouchableOpacity onPress={() => setPasteOpen(o => !o)} activeOpacity={0.7} style={{ alignSelf: 'center', marginBottom: pasteOpen ? 8 : 14, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Feather name={pasteOpen ? 'chevron-up' : 'clipboard'} size={13} color={muted} />
+                    <Text style={{ color: muted, fontSize: 12, fontWeight: '700' }}>{pasteOpen ? 'Hide text paste' : 'or paste the event text instead'}</Text>
+                  </TouchableOpacity>
+                  {pasteOpen && (
+                    <View style={{ marginBottom: 14 }}>
+                      <TextInput
+                        style={[pm.input, pm.textarea, { color: textColor, borderColor: `${primary}35`, minHeight: 90 }]}
+                        placeholder="Paste the flyer text, a WhatsApp blast or an Instagram caption — we'll pull out the date, time, venue, city, prices, ages, format, tickets link, contacts, load-shedding power and the good-to-know bits."
+                        placeholderTextColor={muted}
+                        value={pasteText}
+                        onChangeText={setPasteText}
+                        multiline
+                      />
+                      <TouchableOpacity
+                        onPress={pasteAndFill}
+                        disabled={!pasteText.trim()}
+                        activeOpacity={0.85}
+                        style={{ marginTop: 8, paddingVertical: 11, borderRadius: 10, alignItems: 'center', backgroundColor: pasteText.trim() ? primary : `${primary}30` }}
+                      >
+                        <Text style={{ color: pasteText.trim() ? '#000' : muted, fontWeight: '900', fontSize: 13 }}>Auto-fill from text</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {!!scanNote && (
+                    <View style={{ marginBottom: 14, padding: 11, borderRadius: 10, backgroundColor: `${primary}10`, borderWidth: 1, borderColor: `${primary}30`, flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
+                      <Feather name="check-circle" size={14} color={primary} style={{ marginTop: 1 }} />
+                      <Text style={{ color: primary, fontSize: 12, flex: 1, lineHeight: 16 }}>{scanNote}</Text>
+                    </View>
+                  )}
+
                   <Text style={[pm.label, { color: muted }]} onLayout={e => { fieldY.current.title = e.nativeEvent.layout.y; }}>Event Title *</Text>
                   <TextInput
                     ref={titleRef}
