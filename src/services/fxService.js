@@ -8,6 +8,7 @@
  * "symbol only, no conversion" behaviour) so prices never break.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
 const CACHE_KEY = 'gruvs_fx_rates_v1';
 const TTL_MS = 24 * 60 * 60 * 1000; // 24h
@@ -34,7 +35,7 @@ export const FxService = {
 
     // Network refresh.
     try {
-      const res = await fetch(ENDPOINT);
+      const res = await fetchWithTimeout(ENDPOINT);
       const json = await res.json();
       if (json && json.result === 'success' && json.rates) {
         _rates = { base: 'ZAR', rates: json.rates, ts: Date.now() };

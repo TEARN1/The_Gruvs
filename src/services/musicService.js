@@ -11,8 +11,8 @@
  */
 
 import { supabase, isSupabaseEnabled } from './supabase';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
-const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const SPOTIFY_SEARCH_URL = 'https://api.spotify.com/v1/search';
 const YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search';
 
@@ -60,7 +60,7 @@ const formatDuration = (ms) => {
 const searchSpotify = async (query, limit = 10) => {
   const token = await getSpotifyToken();
   const params = new URLSearchParams({ q: query, type: 'track', limit: String(limit), market: 'ZA' });
-  const res = await fetch(`${SPOTIFY_SEARCH_URL}?${params}`, {
+  const res = await fetchWithTimeout(`${SPOTIFY_SEARCH_URL}?${params}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`Spotify search failed: ${res.status}`);
@@ -94,7 +94,7 @@ const searchYouTube = async (query, limit = 10) => {
     regionCode: 'ZA',
   });
 
-  const res = await fetch(`${YOUTUBE_SEARCH_URL}?${params}`);
+  const res = await fetchWithTimeout(`${YOUTUBE_SEARCH_URL}?${params}`);
   if (!res.ok) throw new Error(`YouTube search failed: ${res.status}`);
   const data = await res.json();
 

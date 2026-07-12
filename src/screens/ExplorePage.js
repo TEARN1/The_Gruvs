@@ -651,8 +651,10 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         const twoWeeksAgo = new Date(Date.now() - 30 * 86400000).toISOString();
         const [galleryRes, momentsRes, reelsRes, eventMediaRes] = await Promise.allSettled([
           // 1. Event gallery uploads
+          // The column is `url` (not media_url) — alias it so the merge below,
+          // which normalises everything to media_url, keeps working.
           supabase.from('event_gallery')
-            .select('id, media_url, media_type, caption, event_id, created_at, events(title, category)')
+            .select('id, media_url:url, media_type, caption, event_id, created_at, events(title, category)')
             .eq('media_type', 'image')
             .order('created_at', { ascending: false })
             .limit(30),
@@ -663,9 +665,9 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             .eq('media_type', 'image')
             .order('created_at', { ascending: false })
             .limit(30),
-          // 3. Reels thumbnails / cover frames
+          // 3. Reels thumbnails (reels has no cover_url column — thumbnail_url only)
           supabase.from('reels')
-            .select('id, thumbnail_url, cover_url, event_id, created_at, events(title, category)')
+            .select('id, thumbnail_url, event_id, created_at, events(title, category)')
             .order('created_at', { ascending: false })
             .limit(20),
           // 4. Events with cover photos (recent events)
@@ -680,7 +682,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         const gallery = galleryRes.status === 'fulfilled' ? (galleryRes.value.data || []) : [];
         const moments = momentsRes.status === 'fulfilled' ? (momentsRes.value.data || []) : [];
         const reels   = reelsRes.status === 'fulfilled'   ? (reelsRes.value.data || []).map(r => ({
-          id: `reel_${r.id}`, media_url: r.thumbnail_url || r.cover_url,
+          id: `reel_${r.id}`, media_url: r.thumbnail_url,
           event_id: r.event_id, created_at: r.created_at, events: r.events,
         })).filter(r => r.media_url) : [];
         const eventMedia = eventMediaRes.status === 'fulfilled' ? (eventMediaRes.value.data || []).flatMap(ev => {

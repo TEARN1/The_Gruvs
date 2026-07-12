@@ -1628,7 +1628,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     try {
       const { data } = await supabase
         .from('live_checkins')
-        .select('id, user_id, event_id, checked_in_at, expires_at, profiles(username, avatar_url, city, address, home_base)')
+        // profiles has city/location — there is no `address` or `home_base` column
+        // (selecting them 400'd the whole query, so check-ins never loaded).
+        .select('id, user_id, event_id, checked_in_at, expires_at, profiles(username, avatar_url, city, location)')
         .eq('event_id', eventId)
         .order('checked_in_at', { ascending: false });
       setEventCheckins(prev => ({ ...prev, [eventId]: data || [] }));

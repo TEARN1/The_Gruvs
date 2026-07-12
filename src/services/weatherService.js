@@ -7,6 +7,9 @@
  * and the UI simply hides the chip. Best-effort: never throws.
  */
 
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
+
+
 // WMO weather codes → [label, Feather icon].
 const WMO = {
   0: ['Clear', 'sun'], 1: ['Mainly clear', 'sun'], 2: ['Partly cloudy', 'cloud'], 3: ['Overcast', 'cloud'],
@@ -45,7 +48,7 @@ export const WeatherService = {
       `&start_date=${date}&end_date=${date}`;
 
     try {
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url);
       const json = await res.json();
       const d = json && json.daily;
       if (!d || !d.time || !d.time.length) return null;

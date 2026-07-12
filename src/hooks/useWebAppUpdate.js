@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
 /**
  * useWebAppUpdate — detects when a newer web build has been deployed so the app
@@ -33,7 +34,7 @@ export function useWebAppUpdate() {
     const check = async () => {
       if (stopped || document.visibilityState === 'hidden') return;
       try {
-        const res = await fetch('/', { cache: 'no-store' });
+        const res = await fetchWithTimeout('/', { cache: 'no-store' });
         if (!res.ok) return;
         const html = await res.text();
         const latest = hashOf(html);
