@@ -655,7 +655,14 @@ export const FeedManager = {
     // the full upcoming catalogue), not an infinite-scroll discovery feed. Web
     // onEndReached is flaky, so a small page there means "not all my events show".
     // Pull a big single page for those modes so everything appears at once.
-    const pageSize = (mode === 'mine' || mode === 'upcoming') ? 200 : this.PAGE_SIZE;
+    const singlePage = (mode === 'mine' || mode === 'upcoming');
+    const pageSize = singlePage ? 200 : this.PAGE_SIZE;
+
+    // These modes are ONE page by design. If the list still asks for page 2+
+    // (flaky onEndReached), don't hit the network: PostgREST answers an offset
+    // past the last row with 416 Range Not Satisfiable, which spammed an error
+    // on every load. There is nothing after page 0 here, so return empty.
+    if (singlePage && page > 0) return [];
 
     // ── Tier helpers ──────────────────────────────────────────────────────────
     const buildBaseQuery = (select, opts = {}) => {

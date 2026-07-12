@@ -78,6 +78,11 @@ import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './PathMapScreen';
 import { EventDetailScreen }    from './EventDetailScreen';
 
+// Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
+// missing-table response so we stop 404-ing on every load; flips back on with a
+// fresh app load once the schema is deployed.
+let residentAlertsEnabled = true;
+
 const SCREEN_W = Dimensions.get('window').width;
 const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
 const TREND_CARD_H = Math.round(TREND_CARD_W * 0.62);
@@ -1016,29 +1021,46 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [loadingPrediction, setLoadingPrediction] = useState(false);
   const [layoutType, setLayoutType] = useState('list'); // 'list' | 'grid' (Pinterest masonry)
   // ── Real-time Resident community safety alerts ────────────────────────────
+  // The Resident schema (res_*) is not deployed on the live DB yet, so this
+  // table can be absent. When it is, PostgREST 404s on EVERY load and we'd also
+  // open a realtime channel on a table that doesn't exist. Probe once, then stay
+  // quiet — the feature lights up automatically once res_alerts exists.
   useEffect(() => {
+    if (!residentAlertsEnabled) return;
     const suburb = profile?.suburb || profile?.location;
-    // Fetch any active critical/panic alert
+    let channel = null;
+
     const loadAlert = async () => {
-      try {
-        const query = supabase
-          .from('res_alerts')
-          .select('id, title, description, severity, suburb, created_at')
-          .in('severity', ['critical', 'panic'])
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(1);
-        if (suburb) query.ilike('suburb', `%${suburb}%`);
-        const { data } = await query;
-        if (data && data.length > 0) setCommunityAlert(data[0]);
-        else setCommunityAlert(null);
-      } catch {}
+      const query = supabase
+        .from('res_alerts')
+        .select('id, title, description, severity, suburb, created_at')
+        .in('severity', ['critical', 'panic'])
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (suburb) query.ilike('suburb', `%${suburb}%`);
+      const { data, error } = await query;
+      if (error) {
+        // Missing table / not exposed → disable for the rest of the session.
+        if (error.code === 'PGRST205' || error.code === '42P01' || error.message?.includes('does not exist')) {
+          residentAlertsEnabled = false;
+        }
+        setCommunityAlert(null);
+        return false;
+      }
+      setCommunityAlert(data?.length ? data[0] : null);
+      return true;
     };
-    loadAlert();
-    const ch = supabase.channel('res_alerts_feed')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'res_alerts' }, loadAlert)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+
+    (async () => {
+      const ok = await loadAlert();
+      if (!ok || !residentAlertsEnabled) return; // don't subscribe to a missing table
+      channel = supabase.channel('res_alerts_feed')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'res_alerts' }, loadAlert)
+        .subscribe();
+    })();
+
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [profile?.suburb, profile?.location]);
 
   // Restore the user's last-chosen feed layout
