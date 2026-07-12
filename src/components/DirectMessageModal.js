@@ -10,6 +10,7 @@ import {
   ActivityIndicator, Animated, Alert, Linking,
 } from 'react-native';
 import { SmartImage } from './SmartImage';
+import { SignedImage } from './SignedImage';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -845,7 +846,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 })()}
 
                 {item.message_type === 'image' && item.media_url && (
-                  <SmartImage source={item.media_url} style={dm.bubbleImage} resizeMode="cover" />
+                  <SignedImage source={item.media_url} style={dm.bubbleImage} resizeMode="cover" />
                 )}
                 {item.event_id && renderEventShare(item.event_id)}
                 {item.message_type === 'location' && item.latitude && item.longitude ? (
