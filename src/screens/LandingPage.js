@@ -1026,7 +1026,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // open a realtime channel on a table that doesn't exist. Probe once, then stay
   // quiet — the feature lights up automatically once res_alerts exists.
   useEffect(() => {
-    if (!residentAlertsEnabled) return;
+    // Gated: the res_* schema isn't deployed, so don't even ask (it 404s).
+    if (!feature('residentAlerts') || !residentAlertsEnabled) return;
     const suburb = profile?.suburb || profile?.location;
     let channel = null;
 
@@ -1624,6 +1625,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // Fetch checkins for event (for ReturnPathCard)
   const fetchEventCheckins = useCallback(async (eventId) => {
     if (!eventId || fetchedCheckinIds.current.has(eventId)) return; // cached
+    // Presence is protected by RLS — a signed-out visitor always gets 401, so
+    // don't make the request at all.
+    if (!user?.id) return;
     fetchedCheckinIds.current.add(eventId);
     try {
       const { data } = await supabase
@@ -1638,7 +1642,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       fetchedCheckinIds.current.delete(eventId); // allow retry on failure
       setEventCheckins(prev => ({ ...prev, [eventId]: [] }));
     }
-  }, []);
+    // user?.id is read above, so it MUST be a dep — otherwise the callback keeps
+    // a stale null user after sign-in and check-ins would never load.
+  }, [user?.id]);
 
 
 
