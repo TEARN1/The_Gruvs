@@ -19,6 +19,28 @@ if (!fs.existsSync(indexPath)) {
   process.exit(0);
 }
 
+// ── Fail the build if the bundle has no Supabase URL ────────────────────────
+// A build made without the env vars produces a bundle that throws
+// "Invalid supabaseUrl" on boot — a WHITE SCREEN for every user. That exact
+// thing shipped to production once (2026-07-12) and nobody noticed until the
+// health check caught it. Never again: refuse to produce a deployable dist.
+const jsDir = path.join(__dirname, '..', 'dist', '_expo', 'static', 'js', 'web');
+if (fs.existsSync(jsDir)) {
+  const entry = fs.readdirSync(jsDir).find(f => /^AppEntry-.*\.js$/.test(f));
+  if (entry) {
+    const bundle = fs.readFileSync(path.join(jsDir, entry), 'utf8');
+    if (!/https:\/\/[a-z0-9]+\.supabase\.co/.test(bundle)) {
+      console.error(
+        '\n[inject-pwa] FATAL: the bundle contains no Supabase URL.\n' +
+        '  This build was made without EXPO_PUBLIC_SUPABASE_URL / ANON_KEY.\n' +
+        '  Deploying it would white-screen every user. Refusing to continue.\n' +
+        '  Fix: ensure .env (local) or the repo secrets (CI) are set, then rebuild.\n'
+      );
+      process.exit(1);
+    }
+  }
+}
+
 let html = fs.readFileSync(indexPath, 'utf8');
 
 if (html.includes('rel="manifest"')) {
