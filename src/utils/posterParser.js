@@ -63,7 +63,7 @@ const pad = (n) => String(n).padStart(2, '0');
 // ── Date ─────────────────────────────────────────────────────────────────────
 // Returns 'YYYY-MM-DD' or null. Year is inferred to the next future occurrence
 // when the poster omits it (as most do).
-export function parseDate(text, now = new Date()) {
+export function parseDate(text, now = new Date(), dateOrder = 'DMY') {
   const t = ' ' + text.toLowerCase().replace(/(\d)(st|nd|rd|th)\b/g, '$1') + ' ';
   const thisYear = now.getFullYear();
   const inferYear = (mo, day) => {
@@ -96,11 +96,18 @@ export function parseDate(text, now = new Date()) {
     const r = mk(y, mo, d); if (r) return r;
   }
 
-  // DD/MM/YYYY or DD/MM/YY or DD-MM (SA order: day first)
+  // Slash dates — the ONLY genuinely ambiguous format, and the one that silently
+  // destroys an event. "05/07/2026" is 5 July in ZA/UK/NG, but 7 May in the US.
+  // `dateOrder` comes from the host's country (GPS → locale → ZA); a US flyer is
+  // read month-first, everyone else day-first.
   m = t.match(/\b(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?\b/);
   if (m) {
-    let d = +m[1], mo = +m[2];
-    if (mo > 12 && d <= 12) { const tmp = d; d = mo; mo = tmp; } // tolerate MM/DD
+    const a = +m[1], b = +m[2];
+    let d, mo;
+    if (dateOrder === 'MDY') { mo = a; d = b; } else { d = a; mo = b; }
+    // Whatever the convention, a value > 12 can only be the day — trust the
+    // number over the convention (a typo'd order is better than an invalid date).
+    if (mo > 12 && d <= 12) { const tmp = d; d = mo; mo = tmp; }
     let y = m[3] ? +m[3] : inferYear(mo, d);
     if (y < 100) y += 2000;
     const r = mk(y, mo, d); if (r) return r;
@@ -494,6 +501,30 @@ const CITY_ALIASES = {
   cpt: 'Cape Town', kaapstad: 'Cape Town', dbn: 'Durban', pta: 'Pretoria',
   ethekwini: 'Durban', tshwane: 'Pretoria', mbombela: 'Nelspruit', gqeberha: 'Port Elizabeth',
 };
+// US cities read their slash-dates MONTH-first. Everywhere else on earth is
+// day-first, so this set (not a country list) is all the exception we need.
+const US_CITIES = new Set([
+  'new york', 'brooklyn', 'los angeles', 'chicago', 'houston', 'miami', 'atlanta',
+  'boston', 'san francisco', 'seattle', 'las vegas', 'austin', 'philadelphia',
+  'washington', 'detroit', 'new orleans',
+]);
+
+/**
+ * Remove the city from the end of a venue string, but ONLY when it is its own
+ * comma-separated part. "The Bannister Hotel, Braamfontein, Johannesburg" →
+ * "The Bannister Hotel, Braamfontein". A venue whose NAME contains the city
+ * ("KONKA SOWETO") is left alone — that's its name, not a duplicate.
+ */
+export function stripTrailingCity(venue, city) {
+  if (!venue || !city) return venue || '';
+  const parts = venue.split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length < 2) return venue;
+  if (parts[parts.length - 1].toLowerCase() === city.toLowerCase()) {
+    return parts.slice(0, -1).join(', ');
+  }
+  return venue;
+}
+
 function parseCity(text) {
   const t = text.toLowerCase();
   // Whole-word match — `includes()` matched substrings inside other words.
@@ -541,22 +572,33 @@ function parseTitle(lines, venue) {
  *   price, isFree, fromPrice, phone, email, ticketUrl, ageMin, categories,
  *   fields:Object }} — `fields[name]=true` for each thing we actually detected.
  */
-export function parsePosterText(rawText, now = new Date()) {
+export function parsePosterText(rawText, now = new Date(), opts = {}) {
   const text = normalizeOcr(String(rawText || ''));
   const lines = text.split(/\r?\n/).map(clean).filter((l) => l.length > 0);
   const blob = lines.join('  ');
 
-  const date = parseDate(blob, now);
+  const city = parseCity(blob);
+  // The FLYER's own city beats the host's location: a New York poster is
+  // month-first even when it's pasted by someone sitting in Johannesburg.
+  const dateOrder = (city && US_CITIES.has(city.toLowerCase()))
+    ? 'MDY'
+    : (opts.dateOrder === 'MDY' ? 'MDY' : 'DMY');
+
+  const date = parseDate(blob, now, dateOrder);
   const time = parseTime(blob);
   const price = parsePrice(text);
-  const venue = parseVenue(lines);
-  const city = parseCity(blob);
+  const venueRaw = parseVenue(lines);
+  // Don't repeat the city inside the Venue field — "The Bannister Hotel,
+  // Braamfontein, Johannesburg" with City=Johannesburg means the host sees the
+  // city twice and has to delete it. Strip it only when it's a trailing
+  // comma-separated part (never from a name like "KONKA SOWETO").
+  const venue = stripTrailingCity(venueRaw, city);
   const phone = parsePhone(blob);
   const email = parseEmail(blob);
   const ticketUrl = parseUrl(blob);
   const ageMin = parseAge(blob);
   const categories = detectCategories(blob);
-  const title = parseTitle(lines, venue);
+  const title = parseTitle(lines, venueRaw);
   const powerBackup = parsePower(blob);
   const eventTags = detectEventTags(blob);
   const eventType = parseEventFormat(blob);
@@ -569,10 +611,13 @@ export function parsePosterText(rawText, now = new Date()) {
   // description = the human copy ONLY. Anything already captured as a structured
   // field (prices, ages, contacts, links, tags, power, lineup slots) is dropped —
   // otherwise the host has to hand-delete it out of the description.
+  // The venue line already IS the Venue field — echoing it back into the
+  // Description made the host delete the address out of their own blurb.
   const lineupTimes = new Set(lineup.map((s) => s.time));
   const description = clean(
     lines
       .filter((l) => l !== title)
+      .filter((l) => !(venueRaw && (l === venueRaw || l.includes(venueRaw))))
       .filter((l) => l.length > 12)
       .filter((l) => !META_LINE.test(l))
       .filter((l) => !parseDate(l) && !parseTime(l))

@@ -172,3 +172,65 @@ Entry KSh 1500`, NOW);
     expect(p.ageMin).toBe(18);
   });
 });
+
+/**
+ * FIELD PLACEMENT — the data must land in the RIGHT box.
+ * Parsing a value correctly and then putting it in the wrong field is just as
+ * broken as not parsing it, and it's worse for the host: it looks filled in.
+ */
+describe('field placement', () => {
+  it('does not repeat the city inside the venue field', () => {
+    const p = parsePosterText(`AMAPIANO SUNSET
+The Bannister Hotel, Braamfontein, Johannesburg
+Saturday 15 August 2026 · 18h00
+Entry R150`, NOW);
+    expect(p.city).toBe('Johannesburg');
+    expect(p.venue).toBe('The Bannister Hotel, Braamfontein'); // city stripped
+  });
+
+  it('leaves a venue whose NAME contains the city alone', () => {
+    const p = parsePosterText(`KONKA LIVE\nKONKA SOWETO\nSat 15 Aug · 20:00\nR200`, NOW);
+    expect(p.venue).toBe('KONKA SOWETO'); // that IS its name, not a duplicate
+    expect(p.city).toBe('Soweto');
+  });
+
+  it('never echoes the venue line back into the description', () => {
+    const p = parsePosterText(`AMAPIANO SUNSET
+The Bannister Hotel, Braamfontein, Johannesburg
+Saturday 15 August 2026 · 18h00
+Entry R150`, NOW);
+    expect(p.description).not.toMatch(/Bannister/);
+  });
+});
+
+/**
+ * DATE ORDER — the ambiguity that silently destroys an event.
+ * "05/07/2026" is 5 July in ZA/UK/NG but 7 May in the US. Getting this wrong
+ * moves a host's event by two months and nobody notices until nobody shows up.
+ */
+describe('country-aware date order', () => {
+  it('reads slash dates day-first by default (ZA/UK/NG/most of the world)', () => {
+    expect(parsePosterText('GIG\nBraamfontein\n05/07/2026', NOW).date).toBe('2026-07-05');
+  });
+
+  it('reads a US host month-first', () => {
+    expect(parsePosterText('GIG\nSomewhere\n05/07/2026', NOW, { dateOrder: 'MDY' }).date)
+      .toBe('2026-05-07');
+  });
+
+  // The flyer's own city outranks the reader's location: a New York poster is
+  // month-first even when pasted by someone sitting in Johannesburg.
+  it("lets the flyer's US city override the host's region", () => {
+    const p = parsePosterText(`SUMMER BLOCK PARTY
+Bushwick, New York
+05/07/2026 · 8pm
+Tickets $25`, NOW, { dateOrder: 'DMY' });
+    expect(p.date).toBe('2026-05-07'); // May 7, because it's a NYC flyer
+  });
+
+  it('trusts a number over the convention when it can only be a day', () => {
+    // 25 cannot be a month, so this is 25 July whatever the country says.
+    expect(parsePosterText('GIG\nX\n25/07/2026', NOW, { dateOrder: 'MDY' }).date)
+      .toBe('2026-07-25');
+  });
+});

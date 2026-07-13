@@ -53,11 +53,8 @@ const EXPECTED_MISSING = new Set([
 // The bar to add something here is high: it must be a tracked bug, not a
 // convenient way to silence the guard.
 const KNOWN_DRIFT = new Map([
-  // The sports engine was written against a schema that was never fully built:
-  // sport_matches has no `format`, events has no `home_team_id`, and the
-  // team/profile embeds have no FKs. Needs a dedicated schema pass.
-  ['sport_matches',     'sports engine schema was never completed — needs its own migration'],
-  ['sport_match_events', 'sports engine: missing FK to profiles'],
+  // (empty) — every known drift has been fixed. Adding an entry here requires a
+  // tracked bug and a plan, never just a way to silence the guard.
 ]);
 
 function walk(dir, acc = []) {

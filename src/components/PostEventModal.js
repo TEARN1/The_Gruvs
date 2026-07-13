@@ -1,5 +1,5 @@
 import { FeedManager } from '../services/dataFlow';
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useDraft } from '../hooks/useDraft';
 import {
   Modal, View, Text, StyleSheet, TextInput,
@@ -31,6 +31,7 @@ import { COMMUNITY_TAG_GROUPS, GENDER_OPTIONS, LANGUAGE_OPTIONS, describeAudienc
 import { rateContent } from '../utils/contentAgeRating';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 import { CountdownPill } from './CountdownPill';
+import { getDateOrder, resolveRegionFromCoords, loadRegion } from '../utils/region';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -266,10 +267,17 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       });
       setLat(loc.coords.latitude);
       setLon(loc.coords.longitude);
+      // Real GPS is the most truthful signal for WHICH COUNTRY the host is in,
+      // which decides how their dates and prices get read. Fire-and-forget.
+      resolveRegionFromCoords(loc.coords.latitude, loc.coords.longitude).catch(() => {});
     } catch (e) {
       setError('Could not get precise location fix.');
     }
   };
+
+  // Warm the cached region (GPS from a previous session, else device locale) so
+  // the very first paste already reads dates the host's way.
+  useEffect(() => { loadRegion().catch(() => {}); }, []);
 
   // ── Media picker ─────────────────────────────────────────────────────────
   const pickMedia = async () => {
@@ -352,7 +360,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   };
 
   const fillFromText = (rawText, { source } = {}) => {
-    const p = parsePosterText(rawText);
+    // Country matters: "05/07/2026" is 5 July here, 7 May in the US. Read the
+    // date the way the HOST's country writes it (GPS → locale → ZA).
+    const p = parsePosterText(rawText, new Date(), { dateOrder: getDateOrder() });
     const filled = applyParsed(p);
     setScanNote(filled.length
       ? `Filled ${filled.length}: ${filled.join(', ')} — please double-check as you go.`

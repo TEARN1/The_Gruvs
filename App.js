@@ -724,6 +724,11 @@ const MainNavigator = () => {
             style={isActive ? styles.screenActive : styles.screenHidden}
             pointerEvents={isActive ? 'auto' : 'none'}
             aria-hidden={!isActive}
+            // Screens are pre-mounted hidden (background prefetch), so the DOM
+            // holds several screens at once. Mark the live one so tests — and
+            // anything else walking the tree — can scope to what's on screen
+            // instead of matching text inside a hidden tab.
+            dataSet={{ screen: tab.key, active: isActive ? 'true' : 'false' }}
           >
             <ErrorBoundary label={tab.label}>
               {screenFor(tab.key)}

@@ -124,3 +124,15 @@ export async function activeTabLabel(page: Page): Promise<string | null> {
   });
 }
 
+
+/**
+ * The screen currently ON SCREEN.
+ *
+ * Tabs are pre-mounted in the background (so the first visit to each is instant),
+ * which means several screens sit in the DOM at once — the inactive ones hidden.
+ * A bare `page.getByText(x).first()` can therefore match text inside a HIDDEN
+ * tab and fail as "hidden". Scope to this instead.
+ */
+export function activeScreen(page: Page) {
+  return page.locator('[data-active="true"]');
+}

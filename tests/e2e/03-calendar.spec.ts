@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForApp, goToTab, mockFonts } from './helpers';
+import { waitForApp, goToTab, mockFonts, activeScreen } from './helpers';
 
 test.describe('Calendar Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -12,8 +12,9 @@ test.describe('Calendar Page', () => {
 
   test('shows today\'s date somewhere on screen', async ({ page }) => {
     const todayNum = new Date().getDate().toString();
-    // The week strip shows day numbers
-    const dateEl = page.getByText(todayNum).first();
+    // Scope to the VISIBLE screen: other tabs are pre-mounted hidden, so a bare
+    // page-wide match can land on a day number inside a hidden tab.
+    const dateEl = activeScreen(page).getByText(todayNum).first();
     await expect(dateEl).toBeVisible({ timeout: 10_000 });
   });
 
