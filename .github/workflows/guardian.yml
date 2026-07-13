@@ -63,7 +63,7 @@ jobs:
     if: failure() && github.event_name == 'schedule'
     steps:
       - name: Open (or update) an issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const title = '🔴 Guardian: The Gruvs is broken in production';
