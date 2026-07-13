@@ -17,6 +17,19 @@ test.describe('Swipe Navigation E2E Tests', () => {
     await page.goto('/');
     await waitForApp(page);
 
+    // The Focus Cut parks Reels (launchConfig: HIDDEN_TABS = ['reels']), so there
+    // is no Reels tab to swipe to — this asserts a surface that deliberately does
+    // not exist. Skip while it's parked; the moment Reels is un-parked the tab
+    // reappears and these tests run again on their own.
+    if ((await page.getByRole('tab', { name: /reels/i }).count()) === 0) {
+      testInfo.annotations.push({
+        type: 'skip-reason',
+        description: 'Reels tab is parked by the Focus Cut (HIDDEN_TABS) — nothing to swipe to.',
+      });
+      test.skip();
+      return;
+    }
+
     // Assert initial state is Feed by checking for the brand name
     const title = page.getByText(/gruvs/i).first();
     await expect(title).toBeVisible();
@@ -50,6 +63,19 @@ test.describe('Swipe Navigation E2E Tests', () => {
     await mockFonts(page);
     await page.goto('/');
     await waitForApp(page);
+
+    // The Focus Cut parks Reels (launchConfig: HIDDEN_TABS = ['reels']), so there
+    // is no Reels tab to swipe to — this asserts a surface that deliberately does
+    // not exist. Skip while it's parked; the moment Reels is un-parked the tab
+    // reappears and these tests run again on their own.
+    if ((await page.getByRole('tab', { name: /reels/i }).count()) === 0) {
+      testInfo.annotations.push({
+        type: 'skip-reason',
+        description: 'Reels tab is parked by the Focus Cut (HIDDEN_TABS) — nothing to swipe to.',
+      });
+      test.skip();
+      return;
+    }
 
     // First check if Reels tab is available in minimal launch mode
     const reelsTab = page.locator('[role="tab"][aria-label="Reels"]');
