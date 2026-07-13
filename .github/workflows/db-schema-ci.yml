@@ -73,9 +73,20 @@ jobs:
       - name: Apply schema_part_1 (extras — push, ai, business)
         run: $PSQL -f supabase/queries/schema_part_1.sql
 
+      # Applied to production 2026-07-13. A freshly built database MUST end up
+      # matching production, or the schema files quietly stop being a usable
+      # rebuild — and the drift they fix (event_rsvps.id, which the whole ticket
+      # / QR check-in system keys on) silently comes back.
+      - name: Apply schema_drift_fixes (tickets, activity feed, crew FKs)
+        run: $PSQL -f supabase/queries/schema_drift_fixes.sql
+
       # Re-run part 4's idempotent patch tail to prove idempotency (safe re-run).
       - name: Re-apply schema_part_4 (idempotency check)
         run: $PSQL -f supabase/queries/schema_part_4.sql
+
+      # And prove the drift fixes are idempotent too.
+      - name: Re-apply schema_drift_fixes (idempotency check)
+        run: $PSQL -f supabase/queries/schema_drift_fixes.sql
 
       - name: Summary
         if: always()

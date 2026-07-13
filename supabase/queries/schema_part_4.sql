@@ -1473,15 +1473,30 @@ ALTER TABLE public.path_crossings ADD COLUMN IF NOT EXISTS cross_count INTEGER D
 ALTER TABLE public.route_steps ADD COLUMN IF NOT EXISTS step_order INTEGER DEFAULT 1;
 
 -- ticket_tokens table
+-- NOTE: this used to declare `token_str` / `used`, which contradicted the
+-- definition in schema_part_1 (`token` / `qr_payload` / `used_at` / `expires_at`)
+-- AND the real production table. Because DB Schema CI applies part_4 BEFORE
+-- part_1, this wrong version won the CREATE ... IF NOT EXISTS race, part_1's
+-- CREATE became a no-op, and its index on `token` then failed — so the schema
+-- files could not rebuild the database from scratch at all.
+-- This now mirrors production exactly. Keep the two definitions identical.
 CREATE TABLE IF NOT EXISTS public.ticket_tokens (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  rsvp_id UUID NOT NULL,
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-  token_str TEXT UNIQUE NOT NULL,
-  used BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now()
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rsvp_id     UUID NOT NULL,
+  user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  event_id    UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  token       TEXT NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+  qr_payload  TEXT,
+  used_at     TIMESTAMPTZ,
+  expires_at  TIMESTAMPTZ DEFAULT now() + interval '24 hours',
+  created_at  TIMESTAMPTZ DEFAULT now()
 );
+
+-- Reconcile a pre-existing table that was created with the old column names.
+ALTER TABLE public.ticket_tokens ADD COLUMN IF NOT EXISTS token      TEXT;
+ALTER TABLE public.ticket_tokens ADD COLUMN IF NOT EXISTS qr_payload TEXT;
+ALTER TABLE public.ticket_tokens ADD COLUMN IF NOT EXISTS used_at    TIMESTAMPTZ;
+ALTER TABLE public.ticket_tokens ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ DEFAULT now() + interval '24 hours';
 
 ALTER TABLE public.ticket_tokens ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "ticket_tokens_own" ON public.ticket_tokens;
