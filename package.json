@@ -21,7 +21,9 @@
     "db:audit": "node scripts/db-audit.js",
     "deploy": "node scripts/pre-deploy-check.js && npm run build",
     "loadtest": "k6 run load/feed-stress.js",
-    "monitor": "node scripts/monitor-errors.js"
+    "monitor": "node scripts/monitor-errors.js",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "jest": {
     "preset": "jest-expo",

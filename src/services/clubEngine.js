@@ -294,10 +294,15 @@ export const CareerStatsManager = {
 
   // Called after a match completes to update player stats from match events
   async recomputeFromMatchEvents(userId, sportType) {
+    // athlete_id references sport_athletes (NOT profiles), and it holds a
+    // sport_athletes.id — not a user id. The old query embedded the wrong table
+    // AND filtered athlete_id by a user id, so it could never match anyone even
+    // if the embed had resolved. Join through sport_athletes and filter on its
+    // user_id instead.
     const { data: events } = await supabase
       .from('sport_match_events')
-      .select('event_type, athlete_id, profiles!athlete_id(user_id)')
-      .eq('athlete_id', userId);
+      .select('event_type, athlete_id, sport_athletes!inner(user_id)')
+      .eq('sport_athletes.user_id', userId);
     // Build aggregates
     const goals        = (events || []).filter(e => ['goal','try'].includes(e.event_type)).length;
     const assists      = (events || []).filter(e => e.event_type === 'assist').length;

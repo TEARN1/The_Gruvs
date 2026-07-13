@@ -564,11 +564,7 @@ export const AthleteManager = {
 export const MatchManager = {
   async listFixtures(eventId, options = {}) {
     let q = supabase.from('sport_matches')
-      .select(`*,
-        home_team:home_team_id(id, name, short_name, logo_url, color1),
-        away_team:away_team_id(id, name, short_name, logo_url, color1),
-        sport_groups(name)
-      `)
+      .select(`*, home_team:home_team_id(id, name, short_name, logo_url, color1), away_team:away_team_id(id, name, short_name, logo_url, color1), sport_groups(name)`)
       .eq('event_id', eventId)
       .order('round_number', { ascending: true })
       .order('match_number', { ascending: true });
@@ -585,12 +581,7 @@ export const MatchManager = {
       () => MatchCache.getMatchStale(matchId),
       async () => {
         const { data } = await supabase.from('sport_matches')
-          .select(`*,
-            home_team:home_team_id(id, name, short_name, logo_url, color1, players),
-            away_team:away_team_id(id, name, short_name, logo_url, color1, players),
-            home_athlete:home_athlete_id(*),
-            away_athlete:away_athlete_id(*)
-          `)
+          .select(`*, home_team:home_team_id(id, name, short_name, logo_url, color1, players), away_team:away_team_id(id, name, short_name, logo_url, color1, players), home_athlete:home_athlete_id(*), away_athlete:away_athlete_id(*)`)
           .eq('id', matchId)
           .single();
         return data;
@@ -630,11 +621,7 @@ export const MatchManager = {
     }
 
     const { data: refetched } = await supabase.from('sport_matches')
-      .select(`*,
-        home_team:home_team_id(id, name, short_name, logo_url, color1),
-        away_team:away_team_id(id, name, short_name, logo_url, color1),
-        sport_groups(name)
-      `)
+      .select(`*, home_team:home_team_id(id, name, short_name, logo_url, color1), away_team:away_team_id(id, name, short_name, logo_url, color1), sport_groups(name)`)
       .eq('event_id', eventId)
       .order('round_number', { ascending: true })
       .order('match_number', { ascending: true });

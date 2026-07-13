@@ -215,9 +215,11 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     });
     if (result.canceled || !result.assets?.length) return;
     const picked = result.assets[0];
-    const MAX_BYTES = 150 * 1024 * 1024; // 150 MB
+    // The `reels` bucket rejects anything over 100 MB server-side. Claiming 150 MB
+    // here just let a too-big video through to fail later with a useless error.
+    const MAX_BYTES = 100 * 1024 * 1024; // 100 MB — matches the reels bucket
     if (picked.fileSize && picked.fileSize > MAX_BYTES) {
-      toast.show('File too large — max 150 MB', 'error');
+      toast.show('That video is too big — max 100 MB', 'error');
       return;
     }
     

@@ -115,3 +115,60 @@ INFO: 083 999 0000`, NOW);
     expect(p.description).toBe('');
   });
 });
+
+/**
+ * The Gruvs is GLOBAL — South Africa is the launch market, not the scope.
+ * The parser was written Rand-only + SA-cities-only, so a flyer from London,
+ * Lagos or New York produced NO price, NO city and NO phone. That is not a
+ * missing nicety — it is the app being unusable outside one country.
+ */
+describe('international flyers', () => {
+  it('reads a London flyer', () => {
+    const p = parsePosterText(`WAREHOUSE PROJECT
+Printworks, London
+Sat 15 August · 22:00
+Entry £15 · VIP £40
+Info: +44 20 7946 0958`, NOW);
+    expect(p.price).toBe(15);
+    expect(p.vipPrice).toBe(40);
+    expect(p.city).toBe('London');
+    expect(p.phone).toBe('+442079460958');
+  });
+
+  it('reads a Lagos flyer', () => {
+    const p = parsePosterText(`DETTY DECEMBER
+Landmark Beach, Lagos
+Sun 20 December · 18:00
+Gate ₦5000
+Call +234 802 123 4567`, NOW);
+    expect(p.price).toBe(5000);
+    expect(p.city).toBe('Lagos');
+    expect(p.phone).toBe('+2348021234567');
+  });
+
+  it('reads a New York flyer', () => {
+    const p = parsePosterText(`BROOKLYN MIRAGE OPENING
+Brooklyn, New York
+Fri 5 June · 21:00
+Tickets $25 · VIP $80`, NOW);
+    expect(p.price).toBe(25);
+    expect(p.vipPrice).toBe(80);
+    expect(p.city).toBe('New York'); // "Brooklyn, New York" — the CITY is New York
+  });
+
+  it('reads a Nairobi flyer with a word-symbol currency', () => {
+    const p = parsePosterText(`KOROGA FESTIVAL
+Arboretum, Nairobi
+Sat 2 May · 12:00
+Entry KSh 1500`, NOW);
+    expect(p.price).toBe(1500);
+    expect(p.city).toBe('Nairobi');
+  });
+
+  it('still refuses to read a letter-R inside a word as a price', () => {
+    // The global token list must not reintroduce the "NO UNDER 18s" → R18 bug.
+    const p = parsePosterText(`BERLIN RAVE\nBerlin\nSat 1 August · 23:00\nEntry €20\nNO UNDER 18s`, NOW);
+    expect(p.price).toBe(20);
+    expect(p.ageMin).toBe(18);
+  });
+});

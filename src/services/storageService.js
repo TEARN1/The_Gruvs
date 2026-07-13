@@ -19,7 +19,26 @@ const ALLOWED_TYPES = [
   'video/mp4', 'video/quicktime', 'video/x-m4v', 'video/webm',
 ];
 
-const MAX_SIZE = 150 * 1024 * 1024; // 150 MB — matches the Reel composer's stated limit
+// ── Per-bucket size limits — these MIRROR the real limits on storage.buckets ──
+// The client used to validate every upload against ONE 150 MB cap while each
+// bucket enforces its own, much smaller limit server-side. So a normal phone
+// photo (6–12 MB) sailed past the client check and was then REJECTED by the
+// bucket — surfacing to the user as the useless "Fix the storage issue".
+// Avatar uploads over 5 MB failed outright and always had.
+//
+// Keep this in sync with:  select id, file_size_limit from storage.buckets;
+const BUCKET_LIMITS = {
+  avatars:        15 * 1024 * 1024,   // 15 MB
+  covers:         20 * 1024 * 1024,   // 20 MB
+  chat_media:     20 * 1024 * 1024,   // 20 MB
+  moments:        50 * 1024 * 1024,   // 50 MB
+  'event-media':  100 * 1024 * 1024,  // 100 MB
+  reels:          100 * 1024 * 1024,  // 100 MB
+};
+const DEFAULT_MAX_SIZE = 100 * 1024 * 1024; // never exceed the smallest common ceiling
+
+const limitFor = (bucket) => BUCKET_LIMITS[bucket] ?? DEFAULT_MAX_SIZE;
+const mb = (bytes) => (bytes / 1024 / 1024).toFixed(1).replace(/\.0$/, '');
 
 const extFromPath = (storagePath) => {
   const base = storagePath.split('?')[0];
@@ -115,15 +134,23 @@ export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {
     throw new Error('The selected file is empty or could not be read. Please try a different photo.');
   }
 
-  if (blob.size > MAX_SIZE) {
-    const mb = (blob.size / 1024 / 1024).toFixed(1);
-    throw new Error(`File is ${mb} MB — maximum size is 150 MB.`);
-  }
-
-  // Shrink oversized images before upload (no-op on native / small / non-image).
+  // Compress FIRST, then judge the size — a 12 MB phone photo usually shrinks
+  // under the limit, so we should never reject a user we could simply fit.
   blob = await compressImageBlob(blob, (blob.type && blob.type !== 'application/octet-stream') ? blob.type : type);
 
   const finalType = (blob.type && blob.type !== 'application/octet-stream') ? blob.type : type;
+
+  // Enforce THIS bucket's real limit, not one global number. The bucket rejects
+  // anything over its own ceiling server-side, so checking a 150 MB cap here just
+  // pushed the failure downstream into an unhelpful error.
+  const limit = limitFor(bucket);
+  if (blob.size > limit) {
+    const isImage = finalType.startsWith('image/');
+    throw new Error(
+      `This ${isImage ? 'photo' : 'file'} is ${mb(blob.size)} MB — the limit here is ${mb(limit)} MB. ` +
+      (isImage ? 'Try a smaller photo.' : 'Try a shorter or lower-quality video.')
+    );
+  }
 
   const { error: uploadError } = await supabase.storage
     .from(bucket)

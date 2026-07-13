@@ -19,14 +19,40 @@ const MONTHS = {
 };
 const MONTH_RE = 'jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?';
 
+// The Gruvs is GLOBAL — South Africa is the launch market, not the scope. SA is
+// listed in depth (suburb-level, because that's where the first hosts are), then
+// the world's major event cities. Longest names are matched first so "cape town"
+// can't be shadowed by a shorter entry.
 const SA_CITIES = [
+  // South Africa — deep, suburb level
   'johannesburg', 'joburg', 'jozi', 'sandton', 'soweto', 'midrand', 'randburg', 'roodepoort',
   'pretoria', 'centurion', 'tshwane', 'cape town', 'kaapstad', 'durban', 'ethekwini', 'umhlanga',
   'port elizabeth', 'gqeberha', 'bloemfontein', 'polokwane', 'nelspruit', 'mbombela', 'kimberley',
   'rustenburg', 'east london', 'pietermaritzburg', 'stellenbosch', 'kempton park', 'benoni',
   'boksburg', 'germiston', 'vereeniging', 'welkom', 'george', 'knysna', 'ballito', 'edenvale',
   'krugersdorp', 'vanderbijlpark', 'newcastle', 'witbank', 'emalahleni',
-];
+  // Africa
+  'lagos', 'abuja', 'accra', 'nairobi', 'mombasa', 'kampala', 'dar es salaam', 'kigali',
+  'addis ababa', 'cairo', 'casablanca', 'marrakech', 'dakar', 'abidjan', 'lusaka', 'harare',
+  'gaborone', 'windhoek', 'maputo', 'kinshasa', 'douala', 'yaounde', 'luanda', 'port louis',
+  // Europe
+  'london', 'manchester', 'birmingham', 'glasgow', 'dublin', 'paris', 'marseille', 'lyon',
+  'berlin', 'munich', 'hamburg', 'cologne', 'frankfurt', 'amsterdam', 'rotterdam', 'brussels',
+  'madrid', 'barcelona', 'valencia', 'lisbon', 'porto', 'rome', 'milan', 'naples', 'vienna',
+  'zurich', 'geneva', 'prague', 'warsaw', 'budapest', 'stockholm', 'oslo', 'copenhagen',
+  'helsinki', 'athens', 'istanbul', 'ibiza', 'mykonos',
+  // Americas
+  'new york', 'brooklyn', 'los angeles', 'chicago', 'houston', 'miami', 'atlanta', 'boston',
+  'san francisco', 'seattle', 'las vegas', 'austin', 'philadelphia', 'washington', 'detroit',
+  'new orleans', 'toronto', 'vancouver', 'montreal', 'mexico city', 'sao paulo', 'rio de janeiro',
+  'buenos aires', 'bogota', 'lima', 'santiago', 'kingston',
+  // Asia-Pacific & Middle East
+  'dubai', 'abu dhabi', 'doha', 'riyadh', 'tel aviv', 'mumbai', 'delhi', 'new delhi',
+  'bangalore', 'bengaluru', 'goa', 'hyderabad', 'chennai', 'kolkata', 'karachi', 'lahore',
+  'bangkok', 'singapore', 'kuala lumpur', 'jakarta', 'manila', 'hong kong', 'shanghai',
+  'beijing', 'tokyo', 'osaka', 'seoul', 'taipei', 'sydney', 'melbourne', 'brisbane', 'perth',
+  'auckland', 'wellington',
+].sort((a, b) => b.length - a.length);
 const VENUE_WORDS = /\b(club|lounge|arena|hall|centre|center|convention|park|rooftop|stadium|theatre|theater|bar|hotel|resort|gardens?|racecourse|amphitheatre|dome|grounds?|venue|palace|hub|studio|deck|yard|warehouse|estate|winery|vineyard|cafe|restaurant|market|expo)\b/i;
 const TICKET_SITES = /(quicket|webtickets|computicket|howler|ticketpro|plankton|nutickets)\.?[a-z.]*/i;
 
@@ -132,7 +158,15 @@ export function parseTime(text) {
 
 // ── Price ────────────────────────────────────────────────────────────────────
 /**
- * "R1.500" is R1 500 (a thousands separator — common on SA flyers), NOT R1.50.
+ * Currency tokens we accept on a poster, ANYWHERE in the world. The Gruvs is
+ * global — South Africa is the launch market, not the scope — so a flyer saying
+ * "$25", "£15", "€20", "₦5000" or "KSh 1500" must parse exactly like "R150".
+ * Order matters: longer tokens first, so "R$" (Brazil) beats a bare "R".
+ */
+const CURRENCY_TOKEN = '(?:R\\$|GH₵|FCFA|CFA|KSh|TSh|USh|N\\$|A\\$|C\\$|E£|AED|ZK|DH|USD|EUR|GBP|ZAR|NGN|KES|INR|NAIRA|RAND|DOLLARS?|EUROS?|POUNDS?|RUPEES?|[R$€£₦₹₵₱¥])';
+
+/**
+ * "R1.500" is R1 500 (a thousands separator — common on SA/EU flyers), NOT R1.50.
  * Reading it as 1 is the difference between a R1 500 wine flight and a R1 one.
  * Rule: a dot followed by exactly 3 digits is a separator; 1-2 digits is cents.
  */
@@ -150,25 +184,32 @@ function randToNumber(raw) {
 export function parsePrice(text) {
   const t = text.toLowerCase();
   if (/\b(free entry|free admission|no cover|entrance free|free event|gratis)\b/.test(t) ||
-      /\bfree\b/.test(t) && !/\bR\s*\d/i.test(text)) {
+      /\bfree\b/.test(t) && !new RegExp(`${CURRENCY_TOKEN}\\s?\\d`, 'i').test(text)) {
     return { amount: 0, isFree: true, fromPrice: false };
   }
-  // All Rand amounts. The R must START a word — otherwise the trailing R of an
-  // ordinary word swallows the next number ("NO UNDE-R 18s" → R18, "AT THE
-  // DOO-R 350" → R350), which silently publishes a wrong price.
+  // Any currency, not just Rand — The Gruvs is global; South Africa is only the
+  // launch market. A symbol/code must START a word, otherwise the trailing R of
+  // an ordinary word swallows the next number ("NO UNDE-R 18s" → R18), which
+  // silently publishes a wrong price.
   const amounts = [];
-  const re = /(?:^|[^a-z])r\s?([\d][\d\s,]*(?:\.\d{1,3})?)/gi;
+  const re = new RegExp(`(?:^|[^a-z0-9])${CURRENCY_TOKEN}\\s?([\\d][\\d\\s,]*(?:\\.\\d{1,3})?)`, 'gi');
   let m;
   while ((m = re.exec(text)) !== null) {
     const n = randToNumber(m[1]);
-    if (Number.isFinite(n) && n > 0 && n < 1000000) amounts.push(n);
+    if (Number.isFinite(n) && n > 0 && n < 10000000) amounts.push(n);
+  }
+  // Trailing-symbol styles too: "25 €", "5000 naira", "15 USD".
+  const reAfter = new RegExp(`\\b([\\d][\\d\\s,]*(?:\\.\\d{1,3})?)\\s?${CURRENCY_TOKEN}\\b`, 'gi');
+  while ((m = reAfter.exec(text)) !== null) {
+    const n = randToNumber(m[1]);
+    if (Number.isFinite(n) && n > 0 && n < 10000000) amounts.push(n);
   }
   if (!amounts.length) return { amount: null, isFree: false, fromPrice: false, vip: null, vvip: null };
   const min = Math.min(...amounts);
   const fromPrice = /\bfrom\b/.test(t) || amounts.length > 1;
   // Tiered pricing: pull the amount that sits right after a VIP / VVIP label.
   const labelled = (label) => {
-    const m = text.match(new RegExp(`${label}[^r\\d]{0,14}(?:^|[^a-z])r\\s?([\\d][\\d\\s,]*(?:\\.\\d{1,3})?)`, 'im'));
+    const m = text.match(new RegExp(`${label}[^\\d]{0,14}${CURRENCY_TOKEN}\\s?([\\d][\\d\\s,]*(?:\\.\\d{1,3})?)`, 'im'));
     if (!m) return null;
     const n = randToNumber(m[1]);
     return Number.isFinite(n) && n > 0 ? n : null;
@@ -312,7 +353,7 @@ export function parseTiers(text) {
   for (const chunk of String(text || '').split(/\n|·|\||•|,|\s{2,}/)) {
     const name = chunk.match(TIER_NAME);
     if (!name) continue;
-    const amt = chunk.match(/(?:^|[^a-z])r\s?(\d[\d\s,]*(?:\.\d{1,3})?)/i) || chunk.match(/\b(\d{2,5})\b/);
+    const amt = chunk.match(new RegExp(`(?:^|[^a-z0-9])${CURRENCY_TOKEN}\\s?(\\d[\\d\\s,]*(?:\\.\\d{1,3})?)`, 'i')) || chunk.match(/\b(\d{2,5})\b/);
     if (!amt) continue;
     const price = randToNumber(amt[1]);
     if (!Number.isFinite(price) || price <= 0 || price > 100000) continue;
@@ -371,9 +412,14 @@ const META_LINE = new RegExp([
 ].join('|'), 'i');
 
 // ── Contact / links ──────────────────────────────────────────────────────────
+// Phones worldwide, not just +27. The Gruvs is global — a +44, +1 or +234 flyer
+// must work exactly as well as a South African one. An international number
+// wins; otherwise fall back to a local trunk-0 number.
 const parsePhone = (t) => {
-  const m = t.match(/(\+27|0)\s?[6-8]\d(?:[\s-]?\d){7}/);
-  return m ? m[0].replace(/[\s-]/g, '') : null;
+  const intl = t.match(/\+\d{1,3}[\s-]?(?:\(?\d{1,4}\)?[\s-]?){1,4}\d{2,4}/);
+  if (intl && intl[0].replace(/\D/g, '').length >= 9) return intl[0].replace(/[\s\-().]/g, '');
+  const local = t.match(/\b0\d{1,2}[\s-]?\d{3}[\s-]?\d{3,4}\b/);
+  return local ? local[0].replace(/[\s-]/g, '') : null;
 };
 const parseEmail = (t) => { const m = t.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i); return m ? m[0] : null; };
 const parseUrl = (t) => {
