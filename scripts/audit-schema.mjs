@@ -58,11 +58,6 @@ const KNOWN_DRIFT = new Map([
   // team/profile embeds have no FKs. Needs a dedicated schema pass.
   ['sport_matches',     'sports engine schema was never completed — needs its own migration'],
   ['sport_match_events', 'sports engine: missing FK to profiles'],
-  // Fixed by supabase/queries/schema_drift_fixes.sql — remove these two once it
-  // has been applied to the live database.
-  ['crew_members',      'awaiting schema_drift_fixes.sql (missing FK to profiles)'],
-  ['crew_invites',      'awaiting schema_drift_fixes.sql (missing FK to profiles)'],
-  ['activity_feed',     'awaiting schema_drift_fixes.sql (missing content columns)'],
 ]);
 
 function walk(dir, acc = []) {
