@@ -77,6 +77,7 @@ import { EventMapView }         from '../components/EventMapView';
 import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './PathMapScreen';
 import { EventDetailScreen }    from './EventDetailScreen';
+import { countdown as getCountdown } from '../utils/countdown';
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
@@ -318,15 +319,16 @@ const EventCard = React.memo(({
   }, [isSaved]);
   const goingPct = event.capacity ? Math.min(100, Math.round(((event.going || 0) / event.capacity) * 100)) : 0;
 
-  const getCountdown = (dateStr) => {
-    if (!dateStr) return null;
-    const diff = new Date(dateStr).getTime() - Date.now();
-    if (diff <= 0) return null;
-    const days = Math.floor(diff / 86400000);
-    const hrs = Math.floor((diff % 86400000) / 3600000);
-    return days > 0 ? `${days}d ${hrs}h` : `${hrs}h away`;
-  };
-  const countdown = getCountdown(event.event_date);
+  // Real countdown: the old one ignored event_time (so it counted to midnight,
+  // not to when the Gruv actually starts), and went blank the moment a night
+  // began instead of saying it was on. Ticks every minute while mounted.
+  const [, countdownTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => countdownTick((n) => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
+  const cd = getCountdown(event);
+  const countdown = cd.state === 'past' || cd.state === 'unknown' ? null : cd.label;
   const heat = heatLabel(event); // honest: verified presence first, null when no real signal
   const isWeb = Platform.OS === 'web';
   const cardDate = event.event_date

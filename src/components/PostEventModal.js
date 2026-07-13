@@ -29,6 +29,8 @@ import { money } from '../constants/currencies';
 import { EVENT_TAGS } from '../constants/EventTags';
 import { COMMUNITY_TAG_GROUPS, GENDER_OPTIONS, LANGUAGE_OPTIONS, describeAudience, hasAudienceTargeting } from '../constants/AudienceTargeting';
 import { rateContent } from '../utils/contentAgeRating';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
+import { CountdownPill } from './CountdownPill';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -772,7 +774,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         const q = [venue, stopCity].filter(Boolean).join(', ');
         if (q.trim().length < 4) return null;
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, { headers: { 'Accept': 'application/json' } });
+          // Timeout: a hung geocode would freeze the tour save at "Saving stop 1/N…"
+          const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, { headers: { 'Accept': 'application/json' } }, 8000);
           const json = await res.json();
           if (json?.length) { const la = parseFloat(json[0].lat), lo = parseFloat(json[0].lon); if (Number.isFinite(la) && Number.isFinite(lo)) return { lat: la, lon: lo }; }
         } catch { /* best-effort */ }
@@ -913,9 +916,17 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     return a;
   };
 
-  const canProceedStep1 = posterMode
-    ? title.trim().length > 2
-    : title.trim().length > 2 && address.trim().length > 3;
+  // A tour has NO single venue/date — every stop carries its own. Gating step 1
+  // on the shared `address` field made tours impossible to submit: the host
+  // correctly left Venue blank, and NEXT stayed dead forever.
+  const validTourStops = tourStops.filter(
+    (s) => s.venue?.trim() && s.date instanceof Date && !isNaN(s.date.getTime())
+  );
+  const canProceedStep1 = isTour
+    ? title.trim().length > 2 && validTourStops.length >= 2
+    : posterMode
+      ? title.trim().length > 2
+      : title.trim().length > 2 && address.trim().length > 3;
   // Description is optional — a Gruv is droppable with just name + place + time
   // (poster mode needs only the flyer + title). Keeps posting friction near zero.
 
@@ -1511,6 +1522,20 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                               </Text>
                             </TouchableOpacity>
                           </View>
+                          {/* How far out this stop is — so the host can see the
+                              gaps in the route without doing date maths. */}
+                          {s.date instanceof Date && !isNaN(s.date.getTime()) && (
+                            <CountdownPill
+                              compact
+                              primary={primary}
+                              muted={muted}
+                              style={{ marginTop: 8 }}
+                              event={{
+                                event_date: `${s.date.getFullYear()}-${String(s.date.getMonth() + 1).padStart(2, '0')}-${String(s.date.getDate()).padStart(2, '0')}`,
+                                event_time: s.timeSet ? `${String(s.hour).padStart(2, '0')}:${String(s.minute).padStart(2, '0')}` : null,
+                              }}
+                            />
+                          )}
                           <TextInput
                             style={[pm.input, { color: textColor, borderColor: `${primary}25`, fontSize: 12, height: 40, paddingVertical: 8, marginTop: 8, marginBottom: 0 }]}
                             placeholder="This stop's ticket link (optional)"
@@ -1699,7 +1724,14 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                         scrollAndFocus('description', descriptionRef);
                         return;
                       }
-                      if (!posterMode && !address.trim()) {
+                      // A tour is driven by its STOPS — it has no shared venue,
+                      // so never demand the single address field here.
+                      if (isTour) {
+                        if (validTourStops.length < 2) {
+                          setError('A tour needs at least 2 stops — each with a venue and a date.');
+                          return;
+                        }
+                      } else if (!posterMode && !address.trim()) {
                         setError('Venue / address is required so people know where to show up.');
                         scrollAndFocus('address', addressRef);
                         return;
