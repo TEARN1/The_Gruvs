@@ -65,3 +65,34 @@ describe('Post a Gruv — tour flow', () => {
     expect(screen.getByText(/Venue \/ address is required/i)).toBeTruthy();
   });
 });
+
+describe('Clear button', () => {
+  it('needs two taps — one tap must never nuke a half-written event', () => {
+    setup();
+    fireEvent.changeText(screen.getByPlaceholderText(/Give your event a name/i), 'Summer Sessions');
+    fireEvent.press(screen.getByText(/^Clear$/i));
+    expect(screen.getByText(/Tap to confirm/i)).toBeTruthy();
+    // still there after the first tap
+    expect(screen.getByDisplayValue('Summer Sessions')).toBeTruthy();
+  });
+
+  it('wipes the form on the second tap', () => {
+    setup();
+    fireEvent.changeText(screen.getByPlaceholderText(/Give your event a name/i), 'Summer Sessions');
+    fireEvent.changeText(screen.getByPlaceholderText(/Full address or venue name/i), 'Konka, Soweto');
+    fireEvent.press(screen.getByText(/^Clear$/i));
+    fireEvent.press(screen.getByText(/Tap to confirm/i));
+    expect(screen.queryByDisplayValue('Summer Sessions')).toBeNull();
+    expect(screen.queryByDisplayValue('Konka, Soweto')).toBeNull();
+  });
+
+  it('clears tour stops too', () => {
+    setup();
+    fireEvent.changeText(screen.getByPlaceholderText(/Give your event a name/i), 'Tour');
+    fireEvent.press(screen.getByText(/Make this a Tour/i));
+    expect(screen.getAllByText(/Date \*/i).length).toBeGreaterThan(0);
+    fireEvent.press(screen.getByText(/^Clear$/i));
+    fireEvent.press(screen.getByText(/Tap to confirm/i));
+    expect(screen.queryByText(/Date \*/i)).toBeNull(); // tour mode + stops gone
+  });
+});

@@ -2916,8 +2916,13 @@ export const PresenceManager = {
       await supabase.from('profiles').update({ is_online: true, last_seen: new Date().toISOString() }).eq('id', userId);
       cache.invalidate(`profile:${userId}`);
       RetentionManager.logSession(userId).catch(() => { });
-      // Log daily activity for streak tracking (fire-and-forget RPC)
-      supabase.rpc('record_daily_activity', { p_user: userId }).catch(() => {});
+      // Log daily activity for streak tracking (fire-and-forget RPC).
+      // supabase.rpc() returns a THENABLE, not a real Promise — it has .then but
+      // NO .catch. Calling .catch threw a TypeError right here, which aborted the
+      // rest of goOnline, so the heartbeat below never started: last_seen never
+      // refreshed and streaks never recorded, for every user, every session.
+      // (Caught by the client_errors telemetry.) .then(ok, err) is the safe form.
+      supabase.rpc('record_daily_activity', { p_user: userId }).then(() => {}, () => {});
       // Heartbeat: refresh last_seen every 4 minutes so the 5-min window stays accurate
       if (this._heartbeatTimer) clearInterval(this._heartbeatTimer);
       this._heartbeatTimer = setInterval(async () => {

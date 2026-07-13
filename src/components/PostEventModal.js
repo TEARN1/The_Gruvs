@@ -32,6 +32,7 @@ import { rateContent } from '../utils/contentAgeRating';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 import { CountdownPill } from './CountdownPill';
 import { getDateOrder, resolveRegionFromCoords, loadRegion } from '../utils/region';
+import { logError } from '../utils/logError';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -197,9 +198,31 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     setIsRecurring(false); setRecurrenceType('weekly'); setRecurrenceInterval(1);
     setRecurrenceDays([]); setRecurrenceEndDate(null); setCustomDates([]);
     setIsTour(false); setTourName(''); setTourStops([]); setStopCalIdx(null); setStopTimeIdx(null); setTourProgress('');
+    // These were being left behind by reset(): a "Clear" that silently keeps the
+    // secret act, the good-to-know tags or the poster text is worse than none,
+    // because the host believes the form is empty and posts stale data.
+    setSecretAct(''); setRevealThreshold(''); setEventTags([]); setPowerBackup(null);
+    setCompetitionId(null);
+    setScanning(false); setScanPct(0); setScanNote(''); setPasteOpen(false); setPasteText('');
     setStep(1);
     setLoading(false); setUploadingMedia(false); setError('');
     setCalendarVisible(false); setTimePickerVisible(false);
+  };
+
+  // Clear everything the host has typed — for when the autofill (or a mis-tap)
+  // put the wrong data in and starting over beats hunting field by field.
+  // Two-tap so it can't nuke a half-written event by accident.
+  const [confirmClear, setConfirmClear] = useState(false);
+  const clearAll = () => {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      setTimeout(() => setConfirmClear(false), 4000); // re-arms itself
+      return;
+    }
+    setConfirmClear(false);
+    reset();
+    clearDraft();   // also wipe the saved draft, or it reappears on reopen
+    setError('');
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -778,7 +801,6 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     // ── TOUR PATH ── one identity, many stops, each its own date/venue/coords ──
     if (isTour) {
       const fmtDate = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-      const uuidv4 = () => (globalThis.crypto?.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }));
       // Per-stop geocode — uses THE STOP's own city (resolveCoords binds the shared one).
       const geocodeStop = async (venue, stopCity) => {
         const q = [venue, stopCity].filter(Boolean).join(', ');
@@ -799,12 +821,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       // Shared identity for every stop — strip the single-event location/date fields.
       const { event_date: _ed2, event_time: _et2, end_date: _end2, address: _ad2, city: _ci2, lat: _la2, lon: _lo2, ...sharedBase } = payload;
 
-      // Create the parent tour record (host = creator_id). Fall back to a client
-      // uuid if the parent insert is blocked, so stops still thread by series_id.
+      // Create the parent tour record (host = creator_id). Every stop's series_id
+      // is a FOREIGN KEY into event_series, so a made-up client uuid can NEVER
+      // work — it would be rejected by the FK and take the whole tour down with
+      // an unexplained "All save attempts failed". If the parent won't insert,
+      // say so plainly instead of guaranteeing a worse failure downstream.
       let seriesId = null;
       try {
         const cities = new Set(stops.map(s => (s.city || '').trim().toLowerCase()).filter(Boolean));
-        const { data: seriesRow } = await supabase.from('event_series').insert({
+        const { data: seriesRow, error: seriesErr } = await supabase.from('event_series').insert({
           creator_id: user.id,
           name: (tourName.trim() || title.trim()),
           description: description.trim() || null,
@@ -815,9 +840,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
           starts_on: fmtDate(stops[0].date),
           ends_on: fmtDate(stops[stops.length - 1].date),
         }).select('id').single();
-        if (seriesRow?.id) seriesId = seriesRow.id;
-      } catch { /* fall through to client uuid */ }
-      if (!seriesId) seriesId = uuidv4();
+        if (seriesErr) throw seriesErr;
+        seriesId = seriesRow?.id || null;
+      } catch (e) {
+        logError('Tour.createSeries', e, { code: e?.code, stops: stops.length });
+        setTourProgress('');
+        setError("Couldn't start the tour — please try again in a moment.");
+        setLoading(false);
+        return;
+      }
 
       const created = [];
       for (let i = 0; i < stops.length; i++) {
@@ -1114,9 +1145,31 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                 <Text style={[pm.title, { color: primary }]}>NEW ROYAL VIBE</Text>
                 <Text style={[pm.stepLabel, { color: muted }]}>Step {step} of 3</Text>
               </View>
-              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Feather name="x" size={22} color={textColor} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                {/* Start over — the escape hatch when the autofill puts the wrong
+                    data in and fixing it field-by-field is slower than redoing it. */}
+                <TouchableOpacity
+                  onPress={clearAll}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={confirmClear ? 'Tap again to clear the whole form' : 'Clear the form'}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: confirmClear ? '#ef4444' : `${muted}55`,
+                    backgroundColor: confirmClear ? 'rgba(239,68,68,0.14)' : 'transparent',
+                  }}
+                >
+                  <Feather name={confirmClear ? 'alert-triangle' : 'rotate-ccw'} size={12} color={confirmClear ? '#ef4444' : muted} />
+                  <Text style={{ color: confirmClear ? '#ef4444' : muted, fontSize: 11, fontWeight: '800' }}>
+                    {confirmClear ? 'Tap to confirm' : 'Clear'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Feather name="x" size={22} color={textColor} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Progress */}
