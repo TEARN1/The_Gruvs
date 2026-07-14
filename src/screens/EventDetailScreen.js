@@ -76,6 +76,7 @@ import { EventRecapCard } from '../components/EventRecapCard';
 import { money } from '../constants/currencies';
 import { setEventSeo, clearEventSeo } from '../utils/seo';
 import { getGuestList, downloadCsv } from '../services/guestList';
+import { getTurnout } from '../services/turnout';
 
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
@@ -185,6 +186,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [guestListBusy, setGuestListBusy] = useState(false);
+  // What will ACTUALLY be in the room — RSVPs weighted by each person's real
+  // show-up history. The number a host can plan against.
+  const [turnout, setTurnout] = useState(null);
   const [guests, setGuests] = useState([]);
   const [guestsModalOpen, setGuestsModalOpen] = useState(false);
   // Hype hearts on lineup guests — { [guestId]: { count, mine } }, persisted
@@ -213,6 +217,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     if (event?.id) setEventSeo(event);
     return () => clearEventSeo();
   }, [event?.id, event?.title, event?.event_date]);
+
+  // Honest turnout. RSVPs lie — everyone taps "going", about half show up. We
+  // have the other half of the equation (verified Touch Downs), so we can say
+  // what will really be in the room instead of repeating a fiction.
+  useEffect(() => {
+    let alive = true;
+    if (!event?.id) return;
+    getTurnout(event).then((t) => { if (alive) setTurnout(t); }).catch(() => {});
+    return () => { alive = false; };
+  }, [event?.id, goingCount]);
 
   // Load hype hearts for the lineup once guests are known.
   useEffect(() => {
@@ -1137,6 +1151,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                 <View style={[styles.progressFill, { width: `${capacityPct * 100}%`, backgroundColor: capacityPct > 0.8 ? "#ef4444" : primary }]} />
               </View>
+              {/* The honest number. Everyone taps "going"; about half actually
+                  show. We have the Touch Down history, so we can say what will
+                  really be in the room instead of repeating the RSVP fiction. */}
+              {turnout && turnout.confidence !== 'low' && turnout.going > 0 && (
+                <Text style={{ color: textMuted, fontSize: 11.5, marginTop: 8, fontWeight: '600' }}>
+                  ~{turnout.expected} usually show
+                  {turnout.capacity?.label ? ` · ${turnout.capacity.label}` : ''}
+                </Text>
+              )}
             </GlassView>
           )}
 

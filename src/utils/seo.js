@@ -12,6 +12,7 @@
  */
 import { Platform } from 'react-native';
 import { eventInstant } from './tz';
+import { eventUrl } from './slug';
 
 const LD_ID = 'gruvs-event-jsonld';
 const SITE = 'https://thegruvs.com';
@@ -45,7 +46,9 @@ export function setEventSeo(event) {
   try {
     const title = event.title || 'A Gruv';
     const desc = (event.description || `${title} — find it on The Gruvs.`).slice(0, 300);
-    const url = `${SITE}/event/${event.id}`;
+    // Human, readable URL — Google reads it, and so does the person deciding
+    // whether to tap a link forwarded into a WhatsApp group.
+    const url = eventUrl(event, SITE);
     const image = event.cover_url || event.cover_image || `${SITE}/icon-512.png`;
     const start = startIso(event);
 
