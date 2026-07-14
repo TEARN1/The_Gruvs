@@ -10,15 +10,19 @@
  * an event is more than an hour away, day-granularity is all that changes, so a
  * 60s tick is plenty.
  */
+import { eventInstant, zonedTimeToUtc } from './tz';
 
-/** Combine an event's date + optional time into a Date. Null if unparseable. */
+/**
+ * Combine an event's date + time into a real instant, IN THE VENUE'S TIMEZONE.
+ *
+ * This used to do `new Date('2026-08-15T21:00')`, which parses in the VIEWER's
+ * zone — so a Lagos event viewed from New York counted down six hours wrong, and
+ * "Live now" fired at the wrong moment. An event happens where it happens.
+ */
 export function eventStart(event) {
   if (!event) return null;
-  const d = String(event.event_date || '').slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
-  const t = /^\d{2}:\d{2}/.test(String(event.event_time || '')) ? String(event.event_time).slice(0, 5) : '00:00';
-  const dt = new Date(`${d}T${t}:00`);
-  return isNaN(dt.getTime()) ? null : dt;
+  const ms = eventInstant(event);           // honours event.timezone
+  return ms == null ? null : new Date(ms);
 }
 
 const MIN = 60000, HOUR = 3600000, DAY = 86400000;
@@ -46,7 +50,7 @@ export function countdown(event, now = Date.now()) {
 
   // Still on? Use end_date if given, else assume a night runs ~6h.
   const endsAt = event.end_date && /^\d{4}-\d{2}-\d{2}/.test(String(event.end_date))
-    ? new Date(`${String(event.end_date).slice(0, 10)}T23:59:59`).getTime()
+    ? (zonedTimeToUtc(event.end_date, '23:59', event.timezone) ?? start.getTime() + 6 * HOUR)
     : start.getTime() + 6 * HOUR;
 
   if (ms <= 0) {

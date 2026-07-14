@@ -74,6 +74,8 @@ import { SoundFX } from '../services/soundFX';
 import { buildShareText } from '../utils/shareText';
 import { EventRecapCard } from '../components/EventRecapCard';
 import { money } from '../constants/currencies';
+import { setEventSeo, clearEventSeo } from '../utils/seo';
+import { getGuestList, downloadCsv } from '../services/guestList';
 
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
@@ -182,6 +184,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
+  const [guestListBusy, setGuestListBusy] = useState(false);
   const [guests, setGuests] = useState([]);
   const [guestsModalOpen, setGuestsModalOpen] = useState(false);
   // Hype hearts on lineup guests — { [guestId]: { count, mine } }, persisted
@@ -201,6 +204,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     if (event?.id) TalentEngine.getEventGuests(event.id).then(setGuests).catch(() => {});
   }, [event?.id]);
   useEffect(() => { loadGuests(); }, [loadGuests]);
+
+  // Publish schema.org Event markup + share meta while this event is open, so
+  // Google can list it as a rich result and WhatsApp/IG unfurl a real card. The
+  // SPA serves one HTML shell for every URL, so without this every event looks
+  // identical to a crawler.
+  useEffect(() => {
+    if (event?.id) setEventSeo(event);
+    return () => clearEventSeo();
+  }, [event?.id, event?.title, event?.event_date]);
 
   // Load hype hearts for the lineup once guests are known.
   useEffect(() => {
@@ -993,6 +1005,38 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               visible={nowPlayingOpen}
               onClose={() => setNowPlayingOpen(false)}
             />
+          )}
+
+          {/* Host only: the door list. RSVP next to VERIFIED attendance — the one
+              thing a spreadsheet can't give them, and the first thing they ask for. */}
+          {isOrganiser && event?.id && (
+            <TouchableOpacity
+              onPress={async () => {
+                if (guestListBusy) return;
+                setGuestListBusy(true);
+                try {
+                  const rows = await getGuestList(event.id);
+                  if (!rows.length) { showToast('No guests yet — no RSVPs or Touch Downs.'); return; }
+                  const ok = downloadCsv(rows, event.title);
+                  showToast(ok
+                    ? `Guest list downloaded — ${rows.length} guest${rows.length === 1 ? '' : 's'}.`
+                    : 'Download is only available on the web app.');
+                } finally {
+                  setGuestListBusy(false);
+                }
+              }}
+              activeOpacity={0.85}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                marginHorizontal: 16, marginTop: 12, paddingVertical: 12, borderRadius: 12,
+                borderWidth: 1, borderColor: `${primary}40`, backgroundColor: `${primary}10`,
+              }}
+            >
+              <Feather name={guestListBusy ? 'loader' : 'download'} size={15} color={primary} />
+              <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>
+                {guestListBusy ? 'Building guest list…' : 'Download guest list (CSV)'}
+              </Text>
+            </TouchableOpacity>
           )}
 
           {countdown?.over && (

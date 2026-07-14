@@ -33,6 +33,7 @@ import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 import { CountdownPill } from './CountdownPill';
 import { getDateOrder, resolveRegionFromCoords, loadRegion } from '../utils/region';
 import { logError } from '../utils/logError';
+import { deviceTimeZone } from '../utils/tz';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -617,6 +618,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       lat: finalLat,
       lon: finalLon,
       status: 'published',
+      // The venue's timezone. An event happens at a PLACE, in that place's time —
+      // without this, "21:00" is read in the viewer's zone and a Lagos night
+      // counts down six hours wrong in New York. The host is almost always in the
+      // same zone as the venue they're posting, so their device zone is the truth.
+      timezone: deviceTimeZone(),
     };
     if (posterMode) payload.poster_mode = true;
     // coords: only set if PostGIS available — computed from lat/lon
@@ -782,6 +788,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
             price_min: p.price_min,
             price_max: p.price_max,
             category: p.category,   // MUST keep — drives all feed filters
+            timezone: p.timezone,   // MUST keep — without it the time is read in
+                                    // the viewer's zone and the event is simply wrong
             series_id: p.series_id,
             tour_stop_index: p.tour_stop_index,
             status: 'published',
