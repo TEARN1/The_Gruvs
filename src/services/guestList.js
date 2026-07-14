@@ -21,7 +21,7 @@ export async function getGuestList(eventId) {
       supabase
         .from('event_rsvps')
         // never select `id` on event_rsvps — composite PK, no id column
-        .select('user_id, status, created_at, profiles:user_id(username, full_name)')
+        .select('user_id, status, created_at, profiles:user_id(username, display_name)')
         .eq('event_id', eventId),
       supabase
         .from('live_checkins')
@@ -36,7 +36,7 @@ export async function getGuestList(eventId) {
     const rows = (rsvps || []).map((r) => ({
       userId: r.user_id,
       username: r.profiles?.username || 'unknown',
-      name: r.profiles?.full_name || '',
+      name: r.profiles?.display_name || '',
       rsvp: r.status || 'going',
       rsvpAt: r.created_at || null,
       touchedDown: arrived.has(r.user_id),
