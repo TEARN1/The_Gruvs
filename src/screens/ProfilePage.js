@@ -310,10 +310,24 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     try {
-      const { data } = await supabase.from('profiles').select('id, username, display_name, avatar_url, bio, location, interests, career_title, career_description, looks_description, profile_gallery, vibe_score, is_verified, share_events, show_online, identity_mode, is_discoverable, is_beacon_active, push_token, first_name, surname, email, age, siblings, emergency_contacts').eq('id', user.id).single();
-      // clan_name / birth_date fetched separately so an un-migrated DB doesn't break the whole load.
-      supabase.from('profiles').select('clan_name, birth_date').eq('id', user.id).maybeSingle()
-        .then(({ data: extra }) => { if (extra) { setClanName(extra.clan_name || ''); setBirthDate(extra.birth_date || ''); } }, () => {});
+      // This is the current user's OWN Edit-Profile load, and it reads PII
+      // (email, push_token, first_name, surname, emergency_contacts, siblings)
+      // that `authenticated` is being locked out of for OTHER users
+      // (lock_authenticated_pii.sql). Read own row via the self-only RPC; fall
+      // back to the direct select while the RPC isn't deployed yet. The RPC
+      // returns the full row, so clan_name/birth_date come with it.
+      let data = null;
+      const rpc = await supabase.rpc('get_my_profile').maybeSingle();
+      if (!rpc.error && rpc.data) {
+        data = rpc.data;
+        setClanName(data.clan_name || ''); setBirthDate(data.birth_date || '');
+      } else {
+        const sel = await supabase.from('profiles').select('id, username, display_name, avatar_url, bio, location, interests, career_title, career_description, looks_description, profile_gallery, vibe_score, is_verified, share_events, show_online, identity_mode, is_discoverable, is_beacon_active, push_token, first_name, surname, email, age, siblings, emergency_contacts').eq('id', user.id).single();
+        data = sel.data;
+        // clan_name / birth_date fetched separately so an un-migrated DB doesn't break the whole load.
+        supabase.from('profiles').select('clan_name, birth_date').eq('id', user.id).maybeSingle()
+          .then(({ data: extra }) => { if (extra) { setClanName(extra.clan_name || ''); setBirthDate(extra.birth_date || ''); } }, () => {});
+      }
       // home_village / community_tags / languages — targeting self-tags, also fetched separately.
       supabase.from('profiles').select('home_village, community_tags, languages').eq('id', user.id).maybeSingle()
         .then(({ data: t }) => { if (t) { setHomeVillage(t.home_village || ''); setCommunityTags(t.community_tags || []); setLanguages(t.languages || []); } }, () => {});

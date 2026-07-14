@@ -26,11 +26,19 @@ export const AuthProvider = ({ children }) => {
     if (!force && lastFetchedUserId.current === userId) return;
     lastFetchedUserId.current = userId;
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select(PROFILE_FIELDS)
-        .eq('id', userId)
-        .single();
+      // Prefer the self-only RPC: it returns the caller's OWN full row (incl.
+      // push_token and other columns that `authenticated` is being locked out
+      // of for OTHER users — see lock_authenticated_pii.sql). If the RPC isn't
+      // deployed yet it 404s and we fall back to the direct select, so this is
+      // safe to ship before the migration lands.
+      let data = null;
+      const rpc = await supabase.rpc('get_my_profile').maybeSingle();
+      if (!rpc.error && rpc.data) {
+        data = rpc.data;
+      } else {
+        const sel = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', userId).single();
+        data = sel.data;
+      }
       if (data) setProfile(data);
     } catch {
       // Profile fetch failure is non-fatal — user can still navigate

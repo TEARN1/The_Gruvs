@@ -2356,6 +2356,9 @@ export const InviteManager = {
     const empty = { groups: { firstName: [], surname: [], clan: [] }, all: [], terms: {} };
     if (!userId) return empty;
     try {
+      // first_name/surname/clan_name stay readable (the family-tree search needs
+      // them cross-user) — only email/push_token/phone/emergency_contacts/siblings
+      // get locked. So a plain select is fine here.
       const { data: me } = await supabase
         .from('profiles').select('first_name, surname, clan_name').eq('id', userId).maybeSingle();
       const terms = {
