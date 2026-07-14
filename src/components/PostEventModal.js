@@ -34,6 +34,8 @@ import { CountdownPill } from './CountdownPill';
 import { getDateOrder, resolveRegionFromCoords, loadRegion } from '../utils/region';
 import { logError } from '../utils/logError';
 import { deviceTimeZone } from '../utils/tz';
+import { checkEvent } from '../utils/eventGuard';
+import { findDuplicate } from '../utils/eventKey';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -214,6 +216,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   // put the wrong data in and starting over beats hunting field by field.
   // Two-tap so it can't nuke a half-written event by accident.
   const [confirmClear, setConfirmClear] = useState(false);
+  // Sanity-guard warnings, and the "yes I meant it" acknowledgement.
+  const [guardIssues, setGuardIssues] = useState([]);
+  const [guardAcked, setGuardAcked] = useState(false);
+  // A likely repost of an event that already exists.
+  const [dupe, setDupe] = useState(null);
   const clearAll = () => {
     if (!confirmClear) {
       setConfirmClear(true);
@@ -302,6 +309,32 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   // Warm the cached region (GPS from a previous session, else device locale) so
   // the very first paste already reads dates the host's way.
   useEffect(() => { loadRegion().catch(() => {}); }, []);
+
+  // ── Duplicate detection ───────────────────────────────────────────────────
+  // The same night gets posted by the promoter, the venue AND a fan. Three cards
+  // for one party splits the crowd and makes every RSVP count look dead. Offer
+  // to send them to the existing event instead — never block them.
+  useEffect(() => {
+    if (isTour || !title.trim() || !pickedDate) { setDupe(null); return; }
+    const day = `${pickedDate.getFullYear()}-${String(pickedDate.getMonth() + 1).padStart(2, '0')}-${String(pickedDate.getDate()).padStart(2, '0')}`;
+    let alive = true;
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await supabase
+          .from('events')
+          .select('id, title, address, city, event_date, author_id, going')
+          .eq('event_date', day)
+          .limit(50);
+        if (!alive) return;
+        const hit = findDuplicate(
+          { title: title.trim(), address: address.trim(), city: city.trim(), event_date: day },
+          data || [],
+        );
+        setDupe(hit && hit.event.author_id !== user?.id ? hit : null);
+      } catch { /* never block posting on this */ }
+    }, 600);
+    return () => { alive = false; clearTimeout(t); };
+  }, [title, address, city, pickedDate, isTour, user?.id]);
 
   // ── Media picker ─────────────────────────────────────────────────────────
   const pickMedia = async () => {
@@ -532,6 +565,36 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       return;
     }
     if (!user?.id) { setError('Sign in required to post a Gruv.'); return; }
+
+    // ── Sanity guard ──────────────────────────────────────────────────────────
+    // Catch the objectively-broken before it publishes: a past date, a
+    // fat-fingered price, a pin in the wrong province. These only WARN — a false
+    // positive that silences a real host is worse than a typo that ships, so one
+    // more tap publishes anyway. The age gate is the single exception: it's law.
+    if (!isTour) {
+      const issues = checkEvent(
+        {
+          title: title.trim(),
+          event_date: pickedDate ? `${pickedDate.getFullYear()}-${String(pickedDate.getMonth() + 1).padStart(2, '0')}-${String(pickedDate.getDate()).padStart(2, '0')}` : null,
+          event_time: timeSet ? `${String(pickedHour).padStart(2, '0')}:${String(pickedMinute).padStart(2, '0')}` : null,
+          timezone: deviceTimeZone(),
+          price: entryPrice ? Number(entryPrice) : null,
+          category: selectedCategories[0],
+          age_min: ageMin,
+          city: city.trim(),
+          lat, lon,
+        },
+        { now: Date.now() },
+      );
+      const blocker = issues.find((i) => i.severity === 'block');
+      if (blocker) { setError(blocker.message); return; }
+      if (issues.length && !guardAcked) {
+        setGuardIssues(issues);
+        setGuardAcked(true);           // next tap publishes
+        setError(`${issues[0].message} Tap Post again to publish anyway.`);
+        return;
+      }
+    }
 
     setLoading(true);
     setError('');
@@ -1781,6 +1844,22 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                   )}
 
                   {!!error && <View style={pm.errorBox}><Text style={pm.errorText}>⚠️ {error}</Text></View>}
+
+                  {/* Someone already posted this night. Sending the host to the
+                      existing event keeps the crowd — and the RSVP count — in one
+                      place. Advice, never a block: they can post anyway. */}
+                  {dupe && (
+                    <View style={{ marginBottom: 12, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#f59e0b55', backgroundColor: 'rgba(245,158,11,0.10)' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <Feather name="copy" size={13} color="#f59e0b" />
+                        <Text style={{ color: '#f59e0b', fontWeight: '800', fontSize: 12 }}>This Gruv may already be posted</Text>
+                      </View>
+                      <Text style={{ color: muted, fontSize: 11.5, lineHeight: 16 }}>
+                        “{dupe.event.title}” is already up for this date ({dupe.reason}).
+                        Posting again splits the crowd across two cards — you can still continue if it's a different event.
+                      </Text>
+                    </View>
+                  )}
 
                   <TouchableOpacity
                     style={[pm.nextBtn, { backgroundColor: canProceedStep1 ? primary : `${primary}20` }]}

@@ -78,6 +78,7 @@ import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './PathMapScreen';
 import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
+import { rankFeed } from '../utils/ranking';
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
@@ -984,18 +985,8 @@ const orderForGuest = (list) =>
     .map((x) => x.e);
 
 // ── Main LandingPage ──────────────────────────────────────────────────────────
-// Deterministic shuffle: same `seed` → same order (stable within a visit), but a
-// new seed each time the feed mounts/refreshes → users see a different line-up every time.
-function seededShuffle(arr, seed) {
-  const a = [...arr];
-  let s = (seed >>> 0) || 1;
-  for (let i = a.length - 1; i > 0; i--) {
-    s = (s * 1103515245 + 12345) & 0x7fffffff;
-    const j = s % (i + 1);
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+// (The feed used to be a seeded random SHUFFLE. It's now ranked honestly —
+//  soonest, nearest, most verified presence — see utils/ranking.)
 
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels }) => {
   const insets = useSafeAreaInsets();
@@ -1007,7 +998,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   const [events, setEvents] = useState([]);
   // New seed each mount/refresh so the feed line-up varies every visit.
-  const [feedSeed, setFeedSeed] = useState(() => Date.now());
   const [birthdaysToday, setBirthdaysToday] = useState([]);
   const [birthdayLeadUp, setBirthdayLeadUp] = useState(null);
   const [trending, setTrending] = useState([]);
@@ -1390,7 +1380,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    setFeedSeed(Date.now()); // reshuffle the line-up on every pull-to-refresh
     loadData(true);
   }, [loadData]);
 
@@ -1443,8 +1432,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
 
     const filteredTrending = trendingEvents.filter(filter);
-    // Shuffle the regular events so the line-up isn't identical every visit (seeded per mount).
-    const filteredRegular  = seededShuffle(events.filter(e => !trendingIds.has(e.id) && filter(e)), feedSeed);
+    const filteredRegular = events.filter(e => !trendingIds.has(e.id) && filter(e));
     // Final dedupe: never show the same event twice across trending + regular + paged loads.
     const seen = new Set();
     const deduped = [...filteredTrending, ...filteredRegular].filter(e => {
@@ -1452,9 +1440,19 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       seen.add(e.id);
       return true;
     });
+
+    // Rank honestly instead of shuffling at random.
+    //
+    // The old order was a seeded SHUFFLE — the feed was literally arbitrary. Now:
+    // what's on SOONEST, what's NEAREST, and what has real verified presence
+    // (Touch Downs). Likes are not an input — they're buyable; people standing in
+    // a room are not. Proximity is a soft weight, never a filter, and one prolific
+    // promoter can't own the whole feed.
+    const ranked = rankFeed(deduped, { user: LocationService.getCached() || undefined });
+
     // One card per tour — a multi-stop tour must not flood the drop with N stops.
-    return collapseTourStops(deduped);
-  }, [trendingEvents, events, trendingIds, selectedCat, dateRange, feedSeed, feedMode]);
+    return collapseTourStops(ranked);
+  }, [trendingEvents, events, trendingIds, selectedCat, dateRange, feedMode]);
 
   // Debounce search — avoids a network hit on every keystroke
   useEffect(() => {
