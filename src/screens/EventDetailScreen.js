@@ -77,6 +77,7 @@ import { money } from '../constants/currencies';
 import { setEventSeo, clearEventSeo } from '../utils/seo';
 import { getGuestList, downloadCsv } from '../services/guestList';
 import { getTurnout } from '../services/turnout';
+import { BroadcastModal } from '../components/BroadcastModal';
 
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
@@ -189,6 +190,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   // What will ACTUALLY be in the room — RSVPs weighted by each person's real
   // show-up history. The number a host can plan against.
   const [turnout, setTurnout] = useState(null);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [guests, setGuests] = useState([]);
   const [guestsModalOpen, setGuestsModalOpen] = useState(false);
   // Hype hearts on lineup guests — { [guestId]: { count, mine } }, persisted
@@ -1051,6 +1053,34 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 {guestListBusy ? 'Building guest list…' : 'Download guest list (CSV)'}
               </Text>
             </TouchableOpacity>
+          )}
+
+          {/* Host only: reach everyone who committed. A last-minute change with
+              no way to tell them strands people at a locked door — that single
+              experience costs more trust than any missing feature. */}
+          {isOrganiser && event?.id && (
+            <TouchableOpacity
+              onPress={() => setBroadcastOpen(true)}
+              activeOpacity={0.85}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                marginHorizontal: 16, marginTop: 10, paddingVertical: 12, borderRadius: 12,
+                borderWidth: 1, borderColor: `${primary}40`, backgroundColor: `${primary}10`,
+              }}
+            >
+              <Feather name="radio" size={15} color={primary} />
+              <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>Send an update to everyone coming</Text>
+            </TouchableOpacity>
+          )}
+
+          {isOrganiser && event?.id && (
+            <BroadcastModal
+              visible={broadcastOpen}
+              onClose={() => setBroadcastOpen(false)}
+              event={event}
+              hostId={user?.id}
+              onSent={(n) => showToast(n ? `Update sent to ${n} ${n === 1 ? 'person' : 'people'}.` : 'Nobody has RSVPd yet.')}
+            />
           )}
 
           {countdown?.over && (

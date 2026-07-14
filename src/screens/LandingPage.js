@@ -79,6 +79,7 @@ import { PathMapScreen }        from './PathMapScreen';
 import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
 import { rankFeed } from '../utils/ranking';
+import { friendsGoing, friendsLabel } from '../services/socialProof';
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
@@ -275,6 +276,7 @@ const EventCard = React.memo(({
   isRoute,
   isFollowing,
   checkins,
+  friendsGoingList,
   onAuthRequired,
   onNavigateToServices,
   onSelectEvent,
@@ -650,6 +652,17 @@ const EventCard = React.memo(({
                 {event.poster_mode
                   ? <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={1}>📋 Details on the poster</Text>
                   : <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>}
+                {/* The strongest reason anyone ever leaves the house: someone
+                    they know will be there. Names the person — an abstract count
+                    is a statistic, a name is a reason. */}
+                {friendsGoingList?.length > 0 && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 }}>
+                    <Feather name="users" size={11} color={primary} />
+                    <Text style={{ color: primary, fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>
+                      {friendsLabel(friendsGoingList)}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
 
               {/* Right column: short, fixed-size chips only — never overlaps */}
@@ -1453,6 +1466,20 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     // One card per tour — a multi-stop tour must not flood the drop with N stops.
     return collapseTourStops(ranked);
   }, [trendingEvents, events, trendingIds, selectedCat, dateRange, feedMode]);
+
+  // Who you follow is going where. The strongest reason anyone has ever had to
+  // leave the house is that someone they know will be there. Fetched for the
+  // whole feed in ONE query — per-card would be N+1 and would crawl.
+  const [friendsByEvent, setFriendsByEvent] = useState(new Map());
+  useEffect(() => {
+    const ids = feedData.map((e) => e?.id).filter(Boolean).slice(0, 100);
+    if (!user?.id || !ids.length) { setFriendsByEvent(new Map()); return; }
+    let alive = true;
+    friendsGoing(user.id, ids)
+      .then((m) => { if (alive) setFriendsByEvent(m); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [user?.id, feedData]);
 
   // Debounce search — avoids a network hit on every keystroke
   useEffect(() => {
@@ -2417,6 +2444,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         isRoute={routeEvents.some(re => re.id === id)}
         isFollowing={followingSet.has(event.profiles?.id)}
         checkins={eventCheckins[id]}
+        friendsGoingList={friendsByEvent.get(id)}
         onAuthRequired={onAuthRequired}
         onNavigateToServices={onNavigateToServices}
         onSelectEvent={setSelectedEvent}
