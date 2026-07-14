@@ -3,7 +3,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, Animated, KeyboardAvoidingView,
-  Platform, ScrollView, ActivityIndicator, Dimensions,
+  Platform, ScrollView, ActivityIndicator, Dimensions, useWindowDimensions,
 } from 'react-native';
 
 import { useTheme } from '../context/ThemeContext';
@@ -40,6 +40,13 @@ export const AuthModal = ({ visible, onClose }) => {
   useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const toast = useToast();
+  // Responsive: react to the ACTUAL viewport (resize, rotation, small phones),
+  // not a value captured once at module load.
+  const { width: winW } = useWindowDimensions();
+  const isSmall = winW < 400;
+  // Always leave a gutter on tiny screens (a hard-capped 440 could touch both
+  // edges on a 360px phone). Vertical overflow is handled by the scroller.
+  const cardMaxW = Math.min(440, winW - (isSmall ? 20 : 32));
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -321,13 +328,27 @@ export const AuthModal = ({ visible, onClose }) => {
             // tap that focuses an input on mobile browsers -> keyboard never opens.
             // Use a plain scrollable View on web; the browser scrolls natively.
             const Scroller = isWeb ? View : ScrollView;
+            // IMPORTANT: the container centers its child but must NOT use
+            // justify-content:center together with overflow:auto — when the form
+            // is taller than the screen (Step 2 always is on a phone) that combo
+            // CLIPS THE TOP and it can't be scrolled to. We center with the card's
+            // own `margin:auto` instead (below), which collapses correctly and
+            // keeps the whole form reachable. justifyContent stays flex-start here.
             const scrollerProps = isWeb
-              ? { style: [styles.scrollContent, { width: '100%', maxHeight: '100%', overflowY: 'auto' }] }
+              ? { style: [styles.scrollContent, { width: '100%', maxHeight: '100%', overflowY: 'auto', justifyContent: 'flex-start' }] }
               : { showsVerticalScrollIndicator: false, contentContainerStyle: styles.scrollContent, keyboardShouldPersistTaps: 'always' };
             return (
           <Wrap {...wrapProps}>
             <Scroller {...scrollerProps}>
-                <View style={[styles.card, { backgroundColor: bg, borderColor: `${primary}33` }]}>
+                <View style={[styles.card, {
+                  backgroundColor: bg, borderColor: `${primary}33`,
+                  maxWidth: cardMaxW,
+                  // `margin:auto` centers the card when it fits and lets it scroll
+                  // from the top when it doesn't — the fix for the clipped-top bug.
+                  // No maxHeight here: the card has overflow:hidden, so the OUTER
+                  // scroller owns the vertical overflow.
+                  marginVertical: 'auto',
+                }]}>
 
                   <View style={[styles.glowBar, { backgroundColor: primary }]} />
 
@@ -662,7 +683,10 @@ export const AuthModal = ({ visible, onClose }) => {
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center' },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  // justifyContent is flex-start (NOT center): the card centres itself with
+  // marginVertical:'auto', which — unlike justify-content:center — never clips
+  // the top when the form is taller than the screen. padding gives the gutter.
+  scrollContent: { flexGrow: 1, justifyContent: 'flex-start', alignItems: 'center', padding: 20 },
   card: { width: '100%', maxWidth: 440, borderRadius: 24, borderWidth: 1, overflow: 'hidden', paddingBottom: 30 },
   glowBar: { height: 4, width: '100%', opacity: 0.9 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: HM, paddingTop: 25, paddingBottom: 20 },
