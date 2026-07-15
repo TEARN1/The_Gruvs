@@ -23,7 +23,7 @@ export const HIDDEN_TABS = LAUNCH_MINIMAL ? ['reels'] : [];
 // instantly (or set LAUNCH_MINIMAL = false to restore the whole app).
 export const FEATURES = LAUNCH_MINIMAL ? {
   reelsRail:    false, // the Reels strip on The Drop (Reels tab already hidden)
-  business:     false, // Business dashboard + Store builder + campaigns (B2B, premature)
+  business:     true,  // Business dashboard + Store builder + campaigns — un-parked (founder wants it visible)
   gifting:      false, // creator gifting economy (regulated fintech — build last)
   pathMap:      false, // Path Map — needs crowd density to feel alive
   crossedPaths: false, // Crossed Paths — needs density
