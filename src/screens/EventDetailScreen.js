@@ -48,6 +48,7 @@ import { EventWeather }           from '../components/EventWeather';
 import { VIPTierSelector }        from '../components/VIPTierSelector';
 import { CarpoolBoard }           from '../components/CarpoolBoard';
 import { ResidentLiftsSection }   from '../components/ResidentLiftsSection';
+import { ResidentStaysSection }   from '../components/ResidentStaysSection';
 import { EventContextualAds }     from '../components/EventContextualAds';
 import { EventScheduleSection }   from '../components/EventScheduleSection';
 import { EventChatRoom }          from '../components/EventChatRoom';
@@ -1512,6 +1513,26 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 muted={textMuted}
               />
             </SafeSection>
+          )}
+
+          {/* Stays — rooms/guesthouses near the event, from The Resident. Gated
+              by feature('accommodation') + self-disabling on missing table, so
+              it renders nothing until res_listings is live. */}
+          {feature('accommodation') && event?.id && (event?.city || event?.suburb) && (
+            <>
+              <View style={styles.sectionDivider} />
+              <SafeSection label="Stays" primary={primary}>
+                <View style={{ paddingHorizontal: 16 }}>
+                  <ResidentStaysSection
+                    event={event}
+                    primary={primary}
+                    surface={surface}
+                    textColor={textColor}
+                    muted={textMuted}
+                  />
+                </View>
+              </SafeSection>
+            </>
           )}
 
           <View style={styles.sectionDivider} />

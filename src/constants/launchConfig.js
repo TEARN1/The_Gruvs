@@ -32,10 +32,15 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   // the live DB, so querying res_alerts 404s on every load. Flip to true in the
   // same change that deploys resident_schema_v2.sql.
   residentAlerts: false,
+  // Resident "Stays" — rooms/guesthouses near an event (res_listings). Same
+  // gate: OFF until resident_schema_v2.sql is live and seeded. The section also
+  // self-disables on a missing-table response, so this flag is belt-and-braces.
+  accommodation: false,
 } : {
   reelsRail: true, business: true, gifting: true,
   pathMap: true, crossedPaths: true, stories: true,
   residentAlerts: false, // still gated on the res_* schema actually existing
+  accommodation: false,  // still gated on the res_* schema actually existing
 };
 
 /** feature('business') → true when the surface is live. Unknown keys default on. */

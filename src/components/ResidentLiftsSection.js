@@ -21,6 +21,16 @@ const timeLabel = (iso) => {
 
 const RESIDENT_GREEN = '#22c55e';
 
+// res_lift_clubs may not exist on the DB yet. Flipped off on the first
+// missing-table response so we stop 404-ing (and re-subscribing to a missing
+// table) on every event open; a fresh app load re-probes once the schema lands.
+let residentLiftsEnabled = true;
+
+const isMissingTable = (error) =>
+  error?.code === 'PGRST205' ||
+  error?.code === '42P01' ||
+  (typeof error?.message === 'string' && error.message.includes('does not exist'));
+
 // ─── Single Resident Lift Card ────────────────────────────────────────────────
 
 const ResidentLiftCard = ({ lift, surface, textColor, muted }) => {
@@ -92,14 +102,19 @@ export const ResidentLiftsSection = ({ eventId, primary, surface, textColor, mut
   const [loading, setLoading] = useState(true);
 
   const fetchLifts = useCallback(async () => {
-    if (!eventId) return;
+    if (!eventId || !residentLiftsEnabled) { setLoading(false); return; }
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('res_lift_clubs')
         .select('id, driver_id, driver_name, origin, destination, departure_time, price_per_seat, currency, available_seats, total_seats')
         .eq('event_id', eventId)
         .gt('available_seats', 0)
         .order('created_at', { ascending: false });
+      if (error) {
+        if (isMissingTable(error)) residentLiftsEnabled = false; // disable for the session
+        setLifts([]);
+        return;
+      }
       setLifts(data || []);
     } catch {}
     finally { setLoading(false); }
@@ -108,7 +123,7 @@ export const ResidentLiftsSection = ({ eventId, primary, surface, textColor, mut
   useEffect(() => {
     fetchLifts();
 
-    if (!eventId) return;
+    if (!eventId || !residentLiftsEnabled) return;
     const ch = supabase.channel(`res_lifts:${eventId}`)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'res_lift_clubs',
