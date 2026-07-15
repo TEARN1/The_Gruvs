@@ -321,33 +321,46 @@ export const AuthModal = ({ visible, onClose }) => {
           {(() => {
             const isWeb = Platform.OS === 'web';
             const Wrap = isWeb ? View : KeyboardAvoidingView;
+            // On web the Wrap must have a DEFINITE height (fill the overlay) or a
+            // `%` height on anything inside it resolves to nothing — which is why
+            // the "scroller" used to grow to its content and never scroll.
+            // minHeight:0 is ESSENTIAL — a flex item's default min-height is
+            // `auto`, i.e. its content size, so `flex:1` alone will NOT shrink it
+            // below a tall form. Without this the scroller grows to the content
+            // and never scrolls (the exact bug). Verified headless at 390x620.
             const wrapProps = isWeb
-              ? { style: { width: '100%', alignItems: 'center' } }
+              ? { style: { flex: 1, minHeight: 0, width: '100%' } }
               : { behavior: Platform.OS === 'ios' ? 'padding' : 'height', style: { width: '100%', alignItems: 'center' } };
             // On web, RN's ScrollView adds touch/responder handlers that can eat the
             // tap that focuses an input on mobile browsers -> keyboard never opens.
             // Use a plain scrollable View on web; the browser scrolls natively.
             const Scroller = isWeb ? View : ScrollView;
-            // IMPORTANT: the container centers its child but must NOT use
-            // justify-content:center together with overflow:auto — when the form
-            // is taller than the screen (Step 2 always is on a phone) that combo
-            // CLIPS THE TOP and it can't be scrolled to. We center with the card's
-            // own `margin:auto` instead (below), which collapses correctly and
-            // keeps the whole form reachable. justifyContent stays flex-start here.
+            // Web: a PURE scroll container — bounded height (flex:1 fills the Wrap,
+            // which fills the overlay) + overflowY:auto. The centering lives on the
+            // inner wrapper below, NOT here, so it can never clip.
             const scrollerProps = isWeb
-              ? { style: [styles.scrollContent, { width: '100%', maxHeight: '100%', overflowY: 'auto', justifyContent: 'flex-start' }] }
+              ? { style: { flex: 1, minHeight: 0, width: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch' } }
               : { showsVerticalScrollIndicator: false, contentContainerStyle: styles.scrollContent, keyboardShouldPersistTaps: 'always' };
+            // The known-good "center when it fits, scroll-from-top when it doesn't"
+            // pattern: an inner box with min-height:100% + justify-center. Short
+            // form → fills the viewport and centres. Tall form (Step 2 on a phone)
+            // → grows past 100%, centring collapses to zero, the WHOLE form stays
+            // reachable from the top. Native keeps using the ScrollView's own
+            // contentContainerStyle.
+            const InnerWrap = isWeb ? View : React.Fragment;
+            const innerProps = isWeb
+              ? { style: { minHeight: '100%', width: '100%', justifyContent: 'center', alignItems: 'center', paddingVertical: 20, paddingHorizontal: 16, boxSizing: 'border-box' } }
+              : {};
             return (
           <Wrap {...wrapProps}>
             <Scroller {...scrollerProps}>
+              <InnerWrap {...innerProps}>
                 <View style={[styles.card, {
                   backgroundColor: bg, borderColor: `${primary}33`,
                   maxWidth: cardMaxW,
-                  // `margin:auto` centers the card when it fits and lets it scroll
-                  // from the top when it doesn't — the fix for the clipped-top bug.
-                  // No maxHeight here: the card has overflow:hidden, so the OUTER
-                  // scroller owns the vertical overflow.
-                  marginVertical: 'auto',
+                  // Centring is handled by the InnerWrap (min-height:100% + justify
+                  // center). The card just sizes to its content and the scroller
+                  // owns the overflow.
                 }]}>
 
                   <View style={[styles.glowBar, { backgroundColor: primary }]} />
@@ -672,6 +685,7 @@ export const AuthModal = ({ visible, onClose }) => {
             {/* Signup Success Confetti Burst */}
             <GlitterBurst trigger={signupSuccessFx} size={220} colors={[primary, '#fde047', '#ffffff', '#10b981', '#fca5a5']} />
           </View>
+              </InnerWrap>
       </Scroller>
           </Wrap>
             );
