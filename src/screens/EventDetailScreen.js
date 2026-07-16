@@ -83,6 +83,7 @@ import { BroadcastModal } from '../components/BroadcastModal';
 import { getHostReliability } from '../services/hostStats';
 import { lifecycleState } from '../utils/eventLifecycle';
 import { DoorCheckInModal } from '../components/DoorCheckInModal';
+import { checkinVerdict, movementPlausible } from '../utils/checkinGuard';
 
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
@@ -681,23 +682,32 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch { }
       const coords = await LocationService.requestAndGet();
 
-      // ── Distance gate — relaxed on web (GPS is inaccurate) ─────────────────
-      if (coords && event?.lat != null && event?.lon != null) {
-        const R = 6371;
-        const dLat = (Number(event.lat) - coords.lat) * Math.PI / 180;
-        const dLon = (Number(event.lon) - coords.lon) * Math.PI / 180;
-        const a =
-          Math.sin(dLat / 2) ** 2 +
-          Math.cos(coords.lat * Math.PI / 180) *
-          Math.cos(Number(event.lat) * Math.PI / 180) *
-          Math.sin(dLon / 2) ** 2;
-        const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        // Web GPS via WiFi/IP is inherently inaccurate — use a 10km gate on web, 2km on native
-        const maxDistKm = Platform.OS === 'web' ? 10 : 2;
-        if (distKm > maxDistKm) {
-          showToast(`You need to be at the venue to Touch Down (${(distKm).toFixed(1)}km away)`, 'error');
-          return;
-        }
+      // ── Anti-spoof: Touch Down means you're physically here ────────────────
+      // Proximity gate (tested checkinGuard, single source of truth). Web GPS via
+      // WiFi/IP is inaccurate, so the reject radius is looser there; native is tight.
+      const maxMeters = Platform.OS === 'web' ? 10000 : 2000;
+      const verdict = checkinVerdict(coords, { lat: Number(event?.lat), lon: Number(event?.lon) }, { maxMeters });
+      if (!verdict.allow) {
+        showToast(`You need to be at the venue to Touch Down (${(verdict.distanceM / 1000).toFixed(1)}km away)`, 'error');
+        return;
+      }
+      // Teleport check: a check-in here is a spoof if the same user "was" hundreds
+      // of km away moments ago — no human covers that gap. Best-effort; never blocks
+      // on a lookup failure.
+      if (coords) {
+        try {
+          const { data: recent } = await supabase
+            .from('live_checkins')
+            .select('lat, lon, checked_in_at')
+            .eq('user_id', user.id)
+            .order('checked_in_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (recent && !movementPlausible(recent, { lat: coords.lat, lon: coords.lon, at: Date.now() }).plausible) {
+            showToast("That's too far, too fast — Touch Down from where you actually are.", 'error');
+            return;
+          }
+        } catch { /* lookup failed — don't block a real check-in */ }
       }
 
       const privateCoords = coords ? applyLocationPrivacy(coords.lat, coords.lon) : {};
