@@ -620,6 +620,15 @@ const EventCard = React.memo(({
               </View>
             )}
 
+            {/* Promoted pill — the boosted-event slot is ALWAYS labeled (Truth
+                Protocol): paid reach never masquerades as organic heat. */}
+            {event._boosted && (
+              <View style={[styles.crewBadge, { backgroundColor: 'rgba(139,92,246,0.12)', borderColor: 'rgba(139,92,246,0.4)' }]}>
+                <Feather name="zap" size={11} color="#8b5cf6" />
+                <Text style={[styles.crewBadgeText, { color: '#8b5cf6' }]}>Promoted</Text>
+              </View>
+            )}
+
             {/* Heat pill — verified presence leads (live green), else honest intent */}
             {heat && (
               <View style={[
