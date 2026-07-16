@@ -3951,14 +3951,52 @@ export const TicketManager = {
     return data || [];
   },
 
-  async validateTicket(tokenStr) {
-    const { data, error } = await supabase
+  /**
+   * Validate a ticket AT THE DOOR. Returns { valid, reason, ticket }.
+   *
+   * The old version flipped `used:true` unconditionally, so the SAME ticket
+   * scanned twice both read "valid" (double-entry), and any event's ticket
+   * validated at any door. This is the atomic, replay-safe version:
+   *
+   *   • The update only matches an UNUSED ticket (`.eq('used', false)`), so the
+   *     second scan flips zero rows — double-entry is impossible at the DB level,
+   *     with no check-then-write race.
+   *   • Optionally scoped to the event, so a ticket only opens its OWN door.
+   *   • Distinguishes "already used" from "not a real ticket" for the host.
+   */
+  async validateTicket(tokenStr, eventId = null) {
+    const token = String(tokenStr || '').trim();
+    if (!token) return { valid: false, reason: 'empty', ticket: null };
+
+    // Atomic claim: only an unused ticket transitions to used.
+    let q = supabase
       .from('ticket_tokens')
-      .update({ used: true })
-      .eq('token_str', tokenStr)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
+      .update({ used: true, used_at: new Date().toISOString() })
+      .eq('token_str', token)
+      .eq('used', false);
+    if (eventId) q = q.eq('event_id', eventId);
+    const { data, error } = await q.select('*, profiles:user_id(username, avatar_url), events(title)');
+    if (error) { logError('Ticket.validate', error); return { valid: false, reason: 'error', ticket: null }; }
+
+    if (data && data.length) return { valid: true, reason: 'ok', ticket: data[0] };
+
+    // Nothing flipped — say WHY: already used, wrong event, or never existed.
+    const { data: existing } = await supabase
+      .from('ticket_tokens')
+      .select('used, event_id')
+      .eq('token_str', token)
+      .maybeSingle();
+    return ticketOutcome(existing, eventId);
   },
 };
+
+/**
+ * Pure: given the existing ticket row (or null) after an atomic claim flipped
+ * zero rows, explain WHY the door should reject it. Kept separate so the
+ * decision is unit-tested even though the DB call around it isn't.
+ */
+export function ticketOutcome(existing, eventId = null) {
+  if (!existing) return { valid: false, reason: 'not_found', ticket: null };
+  if (eventId && existing.event_id !== eventId) return { valid: false, reason: 'wrong_event', ticket: null };
+  return { valid: false, reason: 'already_used', ticket: null };
+}

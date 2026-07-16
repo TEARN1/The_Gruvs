@@ -915,6 +915,31 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       .catch(() => { setCatFilterLoading(false); });
   }, [activeCat, happeningNow, trendingEvents]);
 
+  // When moods are selected, fetch FRESH upcoming events for those categories.
+  // Moods used to filter only the tiny already-loaded happeningNow pool (~8
+  // events), so most moods showed nothing even when the city had plenty.
+  const [moodFilteredEvents, setMoodFilteredEvents] = useState([]);
+  useEffect(() => {
+    if (activeMoods.size === 0) { setMoodFilteredEvents([]); return; }
+    const catList = [...new Set(MOODS.filter(m => activeMoods.has(m.key)).flatMap(m => m.cats))];
+    const today = new Date().toISOString().split('T')[0];
+    let alive = true;
+    supabase
+      .from('events')
+      .select('id, title, category, categories, sport_type, event_date, event_time, venue_name, city, cover_url, media, poster_mode, vibe_count, price, lat, lon, profiles!author_id(username, avatar_url)')
+      .in('category', catList)
+      .gte('event_date', today)
+      .is('deleted_at', null)
+      .neq('status', 'cancelled')
+      .order('event_date', { ascending: true }) // a mood is about the NEXT fitting night — soonest first
+      .limit(40)
+      .then(({ data, error }) => {
+        if (alive && !error && data?.length) setMoodFilteredEvents(data);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [activeMoods]);
+
   const filteredEvents = useMemo(() => {
     const matchesCatSet = (e, catSet) => {
       if (!catSet) return true;
@@ -930,14 +955,18 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     }
     if (activeMoods.size > 0) {
       const allCats = new Set(MOODS.filter(m => activeMoods.has(m.key)).flatMap(m => m.cats));
-      const moodFiltered = happeningNow.filter(e => matchesCatSet(e, allCats));
+      // Fresh DB results first (the whole upcoming catalogue for these moods);
+      // in-memory pool only as the pre-fetch/offline fallback.
+      const moodFiltered = moodFilteredEvents.length > 0
+        ? moodFilteredEvents
+        : happeningNow.filter(e => matchesCatSet(e, allCats));
       return activeSport ? moodFiltered.filter(e => e.sport_type === activeSport) : moodFiltered;
     }
     if (activeSport) {
       return happeningNow.filter(e => e.sport_type === activeSport || e.category === 'sport');
     }
     return happeningNow;
-  }, [happeningNow, trendingEvents, activeCat, activeMoods, catFilteredEvents, activeSport]);
+  }, [happeningNow, trendingEvents, activeCat, activeMoods, catFilteredEvents, moodFilteredEvents, activeSport]);
 
   const isSearching = query.trim().length > 0;
   const renderWelcome = () => {
