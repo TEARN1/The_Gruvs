@@ -596,18 +596,23 @@ export const ScoreEngine = {
    *
    * Pure + deterministic given inputs (seedable jitter), safe on any array.
    */
-  diversify(events, { seenIds = new Set(), coldStart = false, categoryPenalty = 0.35, hostPenalty = 0.25, exploration = 0.15, maxPerHost = 2 } = {}) {
+  diversify(events, { seenIds = new Set(), dwellById = new Map(), coldStart = false, categoryPenalty = 0.35, hostPenalty = 0.25, exploration = 0.15, maxPerHost = 2 } = {}) {
     if (!Array.isArray(events) || events.length < 3) return events || [];
 
     const scoreOf = (e) => (typeof e._heatScore === 'number' ? e._heatScore : 0);
     const maxScore = Math.max(1, ...events.map(scoreOf));
 
-    // Pre-weight: novelty lift for unseen, demotion for already-seen.
+    // Pre-weight: novelty lift for unseen, dwell-aware demotion for seen
+    // (Drop rule 15): lingering ≥8s or opening the detail = live interest →
+    // keep it near the top; skimming past = a pass → demote harder.
     const pool = events.map((e) => {
       let w = scoreOf(e);
       const seen = seenIds.has(e.id);
-      if (seen) w *= 0.6;                              // exploit less — they've seen it
-      else w += maxScore * exploration * (coldStart ? 1.4 : 1); // explore the new
+      if (seen) {
+        const d = dwellById.get(e.id);
+        const engaged = !!d && ((d.dwellMs || 0) >= 8000 || d.opened);
+        w *= engaged ? 0.85 : 0.5;
+      } else w += maxScore * exploration * (coldStart ? 1.4 : 1); // explore the new
       return { e, base: w };
     });
 
@@ -771,6 +776,20 @@ export const FeedManager = {
       // (patch 25). Non-breaking pre-migration — auto_hidden is undefined on an
       // un-migrated DB, so nothing is filtered until the column + trigger exist.
       let events = normalizeEvents((data || []).filter(e => !e.auto_hidden));
+      // SAFETY (Drop rule 26): events from people the viewer has BLOCKED or
+      // MUTED never render. Blocking already gated DMs but the feed kept
+      // showing the blocked host's events — that's the opposite of what a
+      // block promises. Cached lists → ~zero cost after first load.
+      if (userId) {
+        try {
+          const [blocked, muted] = await Promise.all([
+            BlockManager.getBlockedIds(userId),
+            MuteManager.getMutedIds(userId),
+          ]);
+          const hidden = new Set([...(blocked || []), ...(muted || [])]);
+          if (hidden.size) events = events.filter(e => !hidden.has(e.author_id));
+        } catch { /* never let safety filtering break the feed itself */ }
+      }
       if (!query.trim()) {
         // Stamp heat scores so applyPersonalisedBoost can re-rank with them; add random jitter to shuffle drops.
         // eventScore returns 0 for FINISHED events — drop those here (the Drop
@@ -796,16 +815,28 @@ export const FeedManager = {
       // Final advance: diversity + explore/exploit re-rank (page 0 only, no search).
       if (page === 0 && !query.trim() && events.length > 3) {
         let seenIds = new Set();
+        const dwellById = new Map();
         if (userId) {
           try {
-            const { data: seen } = await supabase
-              .from('event_views').select('event_id').eq('user_id', userId)
+            // Dwell-aware (Drop rule 15): HOW they saw it matters — an event they
+            // lingered on or opened is live interest; one they skimmed past is a
+            // pass. Falls back to ids-only if dwell columns aren't migrated.
+            let { data: seen, error } = await supabase
+              .from('event_views').select('event_id, dwell_ms, opened').eq('user_id', userId)
               .order('updated_at', { ascending: false }).limit(120);
-            seenIds = new Set((seen || []).map(r => r.event_id));
+            if (error) {
+              ({ data: seen } = await supabase
+                .from('event_views').select('event_id').eq('user_id', userId)
+                .order('updated_at', { ascending: false }).limit(120));
+            }
+            (seen || []).forEach(r => {
+              seenIds.add(r.event_id);
+              dwellById.set(r.event_id, { dwellMs: r.dwell_ms || 0, opened: !!r.opened });
+            });
           } catch { /* event_views may not be migrated — skip */ }
         }
         const coldStart = (userInterests?.length || 0) === 0 && resolvedFollowedIds.length === 0;
-        events = ScoreEngine.diversify(events, { seenIds, coldStart });
+        events = ScoreEngine.diversify(events, { seenIds, dwellById, coldStart });
       }
       const result = { events, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
       cache.set(cacheKey, result);

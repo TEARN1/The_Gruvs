@@ -51,6 +51,40 @@ describe('ScoreEngine.diversify', () => {
     );
   });
 
+  it('dwell-aware (Drop rule 15): a seen event they LINGERED on outranks one they skimmed past', () => {
+    const input = [
+      ev('skimmed', 'music', 100), ev('dwelled', 'art', 100),
+      ev('x', 'food', 20), ev('y', 'sport', 10),
+    ];
+    const out = ScoreEngine.diversify(input, {
+      seenIds: new Set(['skimmed', 'dwelled']),
+      dwellById: new Map([
+        ['skimmed', { dwellMs: 900, opened: false }],   // flicked past — a pass
+        ['dwelled', { dwellMs: 15000, opened: false }], // stared at it — live interest
+      ]),
+    });
+    expect(out.indexOf(out.find(e => e.id === 'dwelled'))).toBeLessThan(
+      out.indexOf(out.find(e => e.id === 'skimmed'))
+    );
+  });
+
+  it('dwell-aware: opening the detail counts as engagement even with low dwell', () => {
+    const input = [
+      ev('opened', 'music', 100), ev('skimmed', 'art', 100),
+      ev('x', 'food', 20), ev('y', 'sport', 10),
+    ];
+    const out = ScoreEngine.diversify(input, {
+      seenIds: new Set(['opened', 'skimmed']),
+      dwellById: new Map([
+        ['opened', { dwellMs: 500, opened: true }],
+        ['skimmed', { dwellMs: 500, opened: false }],
+      ]),
+    });
+    expect(out.indexOf(out.find(e => e.id === 'opened'))).toBeLessThan(
+      out.indexOf(out.find(e => e.id === 'skimmed'))
+    );
+  });
+
   it('is deterministic for the same input', () => {
     const input = [
       ev('m1', 'music', 100), ev('m2', 'music', 98), ev('m3', 'music', 96),
