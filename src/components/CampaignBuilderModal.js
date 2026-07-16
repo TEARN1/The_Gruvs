@@ -16,6 +16,7 @@ import { resilient } from '../utils/resilience';
 import { GlassView } from './GlassView';
 import { LiquidBackground } from './LiquidBackground';
 import { useBackClose } from '../hooks/useBackClose';
+import { clampAudience } from '../services/businessEntitlements';
 
 
 // ── Targeting Definitions ────────────────────────────────────────────────────
@@ -337,12 +338,18 @@ const tp = StyleSheet.create({
 });
 
 // ── Reach Estimator ───────────────────────────────────────────────────────────
+// Deterministic: each active multi-filter narrows by its selectivity (more
+// selections = broader within the category), each text filter narrows 15%.
+// No Math.random — an estimate shown to a paying business must be stable,
+// never a dice roll (Truth Protocol).
 const estimateReach = (targeting) => {
   let base = 50000;
   Object.values(targeting).forEach(cat => {
     if (!cat) return;
     Object.values(cat).forEach(val => {
-      if (Array.isArray(val) && val.length > 0) base = Math.floor(base * (0.6 + Math.random() * 0.3));
+      if (Array.isArray(val) && val.length > 0) {
+        base = Math.floor(base * Math.min(0.9, 0.55 + val.length * 0.08));
+      }
       if (typeof val === 'string' && val) base = Math.floor(base * 0.85);
     });
   });
@@ -350,7 +357,7 @@ const estimateReach = (targeting) => {
 };
 
 // ── Main Modal ────────────────────────────────────────────────────────────────
-export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, onSaved, primary, textColor, muted, bg }) => {
+export const CampaignBuilderModal = ({ visible, onClose, businessId, tier = 'starter', existing, onSaved, primary, textColor, muted, bg }) => {
   const [step, setStep]               = useState(1);
   // Back steps through the wizard before closing it.
   useBackClose(visible, () => { if (step > 1) setStep((prev) => prev - 1); else onClose(); });
@@ -388,7 +395,11 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
     setStep(1);
   }, [existing, visible]);
 
-  const reach = estimateReach(targeting);
+  // A1: the tier's Crowd-target ceiling caps every Mission's reach — the cap
+  // is stored ON the campaign (targeting.reach_cap) so delivery respects it.
+  const rawReach = estimateReach(targeting);
+  const reach = clampAudience(tier, rawReach);
+  const reachCapped = reach < rawReach;
 
   const save = async () => {
     if (!form.name.trim()) { Alert.alert('Required', 'Campaign name is required.'); return; }
@@ -408,7 +419,7 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
       start_date: form.start_date || null,
       end_date: form.end_date || null,
       status: existing?.status || 'draft',
-      targeting: { ...targeting, event_phases: phases },
+      targeting: { ...targeting, event_phases: phases, reach_cap: reach },
     };
 
     try {
@@ -500,7 +511,11 @@ export const CampaignBuilderModal = ({ visible, onClose, businessId, existing, o
               <Text style={[cms.reachVal, { color: primary }]}>{reach.toLocaleString()}</Text>
               <Text style={[cms.reachLabel, { color: muted }]}>Estimated Crowd Size</Text>
             </View>
-            <Text style={[cms.reachNote, { color: muted }]}>Tune your targeting to narrow or widen The Crowd</Text>
+            <Text style={[cms.reachNote, { color: reachCapped ? '#f59e0b' : muted }]}>
+              {reachCapped
+                ? `Capped at your plan's ${reach.toLocaleString()} targets per Mission — upgrade for wider reach`
+                : 'Tune your targeting to narrow or widen The Crowd'}
+            </Text>
           </GlassView>
 
           {Object.entries(TARGETING).map(([catKey, category]) => (

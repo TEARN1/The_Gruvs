@@ -14,6 +14,7 @@ import { GlassView } from '../components/GlassView';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
+import { can, tierFor, missionQuota } from '../services/businessEntitlements';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 import { StagePlaybookModal } from '../components/StagePlaybookModal';
 import { GiftBoostModal } from '../components/GiftBoostModal';
@@ -603,6 +604,22 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     setUpgradeVisible(true);
   };
 
+  // A1 — tiers actually gate. ONE guard for every Mission-launch entry point:
+  // Starter is capped at its monthly Mission quota (editing an existing
+  // Mission is always allowed — the cap is on LAUNCHES, not maintenance).
+  const openCampaignBuilder = (editing = null) => {
+    if (!editing) {
+      const q = missionQuota(biz?.tier, campaigns);
+      if (q.blocked) {
+        showToast(`${TIERS[biz?.tier]?.label || 'Starter'} is capped at ${q.quota} Missions/month (${q.used} used) — upgrade for unlimited.`, 'error');
+        setUpgradeVisible(true);
+        return;
+      }
+    }
+    setEditingCampaign(editing);
+    setShowCampaignBuilder(true);
+  };
+
   const upgradeTierAction = async (newTier) => {
     if (!biz) return;
     setUpgradeVisible(false);
@@ -778,8 +795,8 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           <Text style={[sc.sectionTitle, { color: textColor }]}>Quick Moves</Text>
           <View style={sc.quickActions}>
             {[
-              { label: 'New Mission', icon: 'target', onPress: () => { setEditingCampaign(null); setShowCampaignBuilder(true); } },
-              { label: 'Drop Discount', icon: 'percent', onPress: () => { setEditingCampaign(null); setShowCampaignBuilder(true); } },
+              { label: 'New Mission', icon: 'target', onPress: () => openCampaignBuilder() },
+              { label: 'Drop Discount', icon: 'percent', onPress: () => openCampaignBuilder() },
               { label: 'Edit Storefront', icon: 'layout', onPress: () => handleTabPress('store') },
               { label: 'View Reads', icon: 'bar-chart-2', onPress: () => handleTabPress('analytics') },
               { label: 'Add Connect', icon: 'link-2', onPress: () => handleTabPress('ecosystem') },
@@ -810,8 +827,22 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       );
 
       // ── STORE ───────────────────────────────────────────────────────────────
-      case 'store': return (
+      // A1: the Storefront builder is a marketed Pro perk — gate it for real.
+      case 'store': return can(biz?.tier, 'storefront') ? (
         <BusinessStoreBuilder biz={biz} primary={primary} textColor={textColor} muted={muted} bg={bg} surface={surface} />
+      ) : (
+        <ScrollView contentContainerStyle={sc.tabContent}>
+          <GlassView style={[sc.emptyState, { borderColor: `${primary}25` }]}>
+            <Feather name="lock" size={36} color={primary} />
+            <Text style={[sc.emptyTitle, { color: textColor }]}>Storefront is a {TIERS[tierFor('storefront')]?.label} feature</Text>
+            <Text style={[sc.emptyBody, { color: muted }]}>
+              Build an always-on shop inside the app — products, tickets, table bookings. Upgrade to unlock the builder.
+            </Text>
+            <TouchableOpacity onPress={handleUpgradeTier} style={[sc.emptyBtn, { backgroundColor: primary }]}>
+              <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>SEE PLANS</Text>
+            </TouchableOpacity>
+          </GlassView>
+        </ScrollView>
       );
 
       // ── CAMPAIGNS ───────────────────────────────────────────────────────────
@@ -820,7 +851,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
           <View style={sc.sectionHeaderRow}>
             <Text style={[sc.sectionTitle, { color: textColor }]}>Active Missions</Text>
-            <TouchableOpacity onPress={() => { setEditingCampaign(null); setShowCampaignBuilder(true); }}
+            <TouchableOpacity onPress={() => openCampaignBuilder()}
               style={[sc.newBtn, { backgroundColor: primary }]}>
               <Feather name="plus" size={14} color="#000" />
               <Text style={sc.newBtnText}>NEW</Text>
@@ -858,13 +889,13 @@ export const BusinessDashboardScreen = ({ onClose }) => {
               <Feather name="target" size={36} color={muted} />
               <Text style={[sc.emptyTitle, { color: textColor }]}>No Missions running</Text>
               <Text style={[sc.emptyBody, { color: muted }]}>Launch your first Mission to start reaching The Crowd.</Text>
-              <TouchableOpacity onPress={() => setShowCampaignBuilder(true)} style={[sc.emptyBtn, { backgroundColor: primary }]}>
+              <TouchableOpacity onPress={() => openCampaignBuilder()} style={[sc.emptyBtn, { backgroundColor: primary }]}>
                 <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>LAUNCH MISSION</Text>
               </TouchableOpacity>
             </GlassView>
           ) : campaigns.map(c => (
             <CampaignRow key={c.id} campaign={c} primary={primary} textColor={textColor} muted={muted}
-              onEdit={() => { setEditingCampaign(c); setShowCampaignBuilder(true); }}
+              onEdit={() => openCampaignBuilder(c)}
               onToggle={handleToggleCampaign} />
           ))}
 
@@ -885,7 +916,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
           <View style={sc.sectionHeaderRow}>
             <Text style={[sc.sectionTitle, { color: textColor }]}>Crowd Segments</Text>
-            <TouchableOpacity onPress={() => { setEditingCampaign(null); setShowCampaignBuilder(true); }}
+            <TouchableOpacity onPress={() => openCampaignBuilder()}
               style={[sc.newBtn, { backgroundColor: primary }]}>
               <Feather name="plus" size={14} color="#000" />
               <Text style={sc.newBtnText}>NEW</Text>
@@ -957,10 +988,28 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       case 'analytics': return (
         <ScrollView contentContainerStyle={sc.tabContent} showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}>
-          {/* Verified attendance — the proof-of-who-came moat (real live_checkins data) */}
-          <AttendanceAnalyticsPanel userId={user?.id} primary={primary} textColor={textColor} muted={muted} />
-          {/* Your Superfans — who keeps coming back, worth treating special */}
-          <SuperfansPanel userId={user?.id} primary={primary} textColor={textColor} muted={muted} />
+          {/* A1: Advanced Reads (verified attendance + Superfans + per-Mission
+              performance) are the marketed Pro perk; Starter keeps Basic Reads
+              (Vibe Funnel + 7-day activity) so the dashboard is never empty. */}
+          {can(biz?.tier, 'advancedReads') ? (
+            <>
+              {/* Verified attendance — the proof-of-who-came moat (real live_checkins data) */}
+              <AttendanceAnalyticsPanel userId={user?.id} primary={primary} textColor={textColor} muted={muted} />
+              {/* Your Superfans — who keeps coming back, worth treating special */}
+              <SuperfansPanel userId={user?.id} primary={primary} textColor={textColor} muted={muted} />
+            </>
+          ) : (
+            <GlassView style={[sc.emptyState, { borderColor: `${primary}25`, marginBottom: 14 }]}>
+              <Feather name="lock" size={22} color={primary} />
+              <Text style={[sc.emptyTitle, { color: textColor }]}>Advanced Reads is a Pro feature</Text>
+              <Text style={[sc.emptyBody, { color: muted }]}>
+                See verified attendance, your Superfans, and per-Mission performance.
+              </Text>
+              <TouchableOpacity onPress={handleUpgradeTier} style={[sc.emptyBtn, { backgroundColor: primary }]}>
+                <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>SEE PLANS</Text>
+              </TouchableOpacity>
+            </GlassView>
+          )}
           <Text style={[sc.sectionTitle, { color: textColor }]}>Vibe Funnel</Text>
           <GlassView style={[sc.funnelCard, { borderColor: `${primary}15` }]}>
             {[
@@ -977,10 +1026,14 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           </GlassView>
 
           <Text style={[sc.sectionTitle, { color: textColor }]}>Mission Performance</Text>
-          {campaigns.length === 0 ? (
+          {!can(biz?.tier, 'advancedReads') ? (
+            <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
+              <Text style={[sc.emptyBody, { color: muted }]}>Per-Mission Reach / CTR / ROI unlock with Pro.</Text>
+            </GlassView>
+          ) : campaigns.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Text style={[sc.emptyBody, { color: muted }]}>Run campaigns to see performance data.</Text>
-              <TouchableOpacity onPress={() => setShowCampaignBuilder(true)} style={[sc.emptyBtn, { backgroundColor: primary }]}>
+              <TouchableOpacity onPress={() => openCampaignBuilder()} style={[sc.emptyBtn, { backgroundColor: primary }]}>
                 <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>LAUNCH MISSION</Text>
               </TouchableOpacity>
             </GlassView>
@@ -1031,7 +1084,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           {campaigns.length === 0 ? (
             <GlassView style={[sc.emptyState, { borderColor: `${primary}15` }]}>
               <Text style={[sc.emptyBody, { color: muted }]}>No Mission War Chests set yet.</Text>
-              <TouchableOpacity onPress={() => setShowCampaignBuilder(true)} style={[sc.emptyBtn, { backgroundColor: primary }]}>
+              <TouchableOpacity onPress={() => openCampaignBuilder()} style={[sc.emptyBtn, { backgroundColor: primary }]}>
                 <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>LAUNCH MISSION</Text>
               </TouchableOpacity>
             </GlassView>
@@ -1211,6 +1264,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         visible={showCampaignBuilder}
         onClose={() => setShowCampaignBuilder(false)}
         businessId={biz?.id}
+        tier={biz?.tier}
         existing={editingCampaign}
         onSaved={() => { setShowCampaignBuilder(false); loadAll(); }}
         primary={primary}
