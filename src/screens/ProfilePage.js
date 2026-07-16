@@ -58,6 +58,7 @@ import { ReferralCard } from '../components/ReferralCard';
 import { CollapsibleSection } from '../components/CollapsibleSection';
 import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
 import { ResidentTrustBadge } from '../components/ResidentTrustBadge';
+import { VerifiedRequestCard } from '../components/VerifiedRequestCard';
 import { ClubScreen } from './ClubScreen';
 
 // ── Static imports — avoids "unknown module" chunk failures on web ──
@@ -2761,6 +2762,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               {/* Trust provenance from the sister app (renders nothing until the
                   Resident trust bridge is live and this profile has earned a tier). */}
               <ResidentTrustBadge tier={profile?.resident_trust_tier ?? user?.resident_trust_tier} size="large" />
+              {/* A2 — the Verified engine: live criteria checklist + apply. */}
+              <VerifiedRequestCard primary={primary} surface={bg} textColor={textColor} muted={muted} />
             </View>
           </CollapsibleSection>
         )}

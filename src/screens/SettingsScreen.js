@@ -35,6 +35,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { supabase } from '../services/supabase';
 import { haptics } from '../utils/haptics';
 import { THEMES } from '../constants/Themes';
+import { exportMyData } from '../services/dataExport';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
@@ -248,6 +249,24 @@ export const SettingsScreen = ({
       setSavingCareer(false);
     }
   }, [user, careerTitle, careerDescription, looksDescription, refreshProfile, toast]);
+
+  // Right to access / portability (POPIA s.23): hand the user a copy of their
+  // own data. Read-only twin of delete-account — no new permissions.
+  const [exportingData, setExportingData] = useState(false);
+  const handleExportData = useCallback(async () => {
+    if (exportingData || !user?.id) return;
+    setExportingData(true);
+    try {
+      const { ok, tables } = await exportMyData(user.id);
+      toast?.show(
+        ok ? `Your data (${tables} record set${tables === 1 ? '' : 's'}) has been downloaded.`
+           : 'Download is only available on the web app for now.',
+        ok ? 'success' : 'info',
+      );
+    } finally {
+      setExportingData(false);
+    }
+  }, [exportingData, user?.id, toast]);
 
   const confirmDelete = useCallback(() => {
     const doDelete = async () => {
@@ -496,6 +515,7 @@ export const SettingsScreen = ({
 
         {/* DANGER ZONE */}
         <SectionCard icon="alert-triangle" title="Account actions" primary={primary} muted={muted} textColor={textColor}>
+          <LinkRow icon="download" label={exportingData ? 'Preparing your data…' : 'Download my data'} onPress={handleExportData} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="log-out" label="Sign out" onPress={confirmSignOut} danger primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="trash-2" label="Delete account" onPress={confirmDelete} danger primary={primary} muted={muted} textColor={textColor} />
         </SectionCard>
