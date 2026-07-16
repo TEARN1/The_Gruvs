@@ -19,6 +19,8 @@ import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { EventMapView } from '../components/EventMapView';
 import { money } from '../constants/currencies';
+import { filterByViewerAge } from '../utils/contentAgeRating';
+import { viewerAgeSync } from '../utils/viewerAge';
 
 // react-native-maps is native-only — lazy require prevents web crash
 let RNMapView = null;
@@ -464,6 +466,13 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
     return () => pulse.stop();
   }, []);
 
+  // B-pass: Scout is a discovery surface like The Drop — the same viewer-age
+  // content gate applies (it was missing here; a minor could scout 18+ nights).
+  const ageGate = useCallback(
+    (list) => filterByViewerAge(list || [], viewerAgeSync(), e => `${e.title || ''} ${e.description || ''}`),
+    []
+  );
+
   // Load events — cache-first, then 3-tier live fetch
   const loadEvents = useCallback(async (coords) => {
     try {
@@ -471,7 +480,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
       if (cached) {
         const { events: cachedEvents, ts } = JSON.parse(cached);
         if (Date.now() - ts < 600000) {
-          setEvents(cachedEvents);
+          setEvents(ageGate(cachedEvents));
           setLoading(false);
         }
       }
@@ -517,7 +526,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
         [],
         'ScoutScreen.loadEvents'
       );
-      setEvents(evts || []);
+      setEvents(ageGate(evts));
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({ events: evts || [], ts: Date.now() }));
     } catch (err) {
       console.warn('ScoutScreen.loadEvents live err:', err);
@@ -592,7 +601,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, (payload) => {
         const e = payload.new;
         if (e.lat != null && e.lon != null) {
-          setEvents(prev => [e, ...prev]);
+          setEvents(prev => [...ageGate([e]), ...prev]);
         }
       })
       .subscribe();

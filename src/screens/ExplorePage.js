@@ -28,6 +28,8 @@ import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/C
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
 import { ServiceMarketplace } from './ServiceMarketplace';
 import { LAUNCH_MINIMAL } from '../constants/launchConfig';
+import { filterByViewerAge } from '../utils/contentAgeRating';
+import { viewerAgeSync } from '../utils/viewerAge';
 import { ScoutScreen } from './ScoutScreen';
 import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
 import { WhoWasThereModal } from '../components/WhoWasThereModal';
@@ -868,7 +870,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       setSearching(true);
       try {
         const { events, users } = await FeedManager.searchAll(query);
-        setSearchResults(events || []);
+        // Search results are discovery too — same viewer-age content gate.
+        setSearchResults(filterByViewerAge(events || [], viewerAgeSync(), e => `${e.title || ''} ${e.description || ''}`));
         setUserResults(users || []);
       } catch { setSearchResults([]); setUserResults([]); }
       finally { setSearching(false); }
@@ -941,6 +944,11 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   }, [activeMoods]);
 
   const filteredEvents = useMemo(() => {
+    // B-pass: Explore is a discovery surface like The Drop — apply the same
+    // viewer-age content gate at this single choke point (covers happeningNow,
+    // mood, category and sport paths; it was missing on all of them).
+    const ageGate = (list) =>
+      filterByViewerAge(list || [], viewerAgeSync(), e => `${e.title || ''} ${e.description || ''}`);
     const matchesCatSet = (e, catSet) => {
       if (!catSet) return true;
       const eCat = e.category?.toLowerCase();
@@ -950,8 +958,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     };
     if (activeCat) {
       // Use DB-fetched results if available, otherwise filter in-memory
-      return catFilteredEvents.length > 0 ? catFilteredEvents :
-        happeningNow.filter(e => matchesCatSet(e, CAT_KEY_TO_SUBCATS[activeCat] || new Set([activeCat])));
+      return ageGate(catFilteredEvents.length > 0 ? catFilteredEvents :
+        happeningNow.filter(e => matchesCatSet(e, CAT_KEY_TO_SUBCATS[activeCat] || new Set([activeCat]))));
     }
     if (activeMoods.size > 0) {
       const allCats = new Set(MOODS.filter(m => activeMoods.has(m.key)).flatMap(m => m.cats));
@@ -960,12 +968,12 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const moodFiltered = moodFilteredEvents.length > 0
         ? moodFilteredEvents
         : happeningNow.filter(e => matchesCatSet(e, allCats));
-      return activeSport ? moodFiltered.filter(e => e.sport_type === activeSport) : moodFiltered;
+      return ageGate(activeSport ? moodFiltered.filter(e => e.sport_type === activeSport) : moodFiltered);
     }
     if (activeSport) {
-      return happeningNow.filter(e => e.sport_type === activeSport || e.category === 'sport');
+      return ageGate(happeningNow.filter(e => e.sport_type === activeSport || e.category === 'sport'));
     }
-    return happeningNow;
+    return ageGate(happeningNow);
   }, [happeningNow, trendingEvents, activeCat, activeMoods, catFilteredEvents, moodFilteredEvents, activeSport]);
 
   const isSearching = query.trim().length > 0;
