@@ -16,6 +16,7 @@ import { SecurityService } from './securityService';
 import { VibeEquityLedger } from './vibeEquityLedger';
 import { VibeEconomyEngine } from './revenueEngine';
 import { NotificationService } from './notificationService';
+import { heatScore as canonicalHeatScore } from '../utils/heatScore';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
 export const normalizeEvent = (event) => {
@@ -396,7 +397,11 @@ function interestAffinityScore(category, userInterests) {
 export const ScoreEngine = {
 
   // Advanced multi-signal relevance score for a single event.
-  // Combines 9 orthogonal signals into a composite score.
+  // THE single event ranker (F1) — LandingPage no longer re-ranks behind it.
+  // Anti-engagement by design: likes are buyable, people standing in a room
+  // are not — so verified presence outweighs vibes, and imminence outweighs
+  // both ("what's on tonight" beats "what was big last month").
+  // Combines 10 orthogonal signals into a composite score.
   eventScore(event, {
     userInterests = [],
     followedIds = [],
@@ -410,6 +415,30 @@ export const ScoreEngine = {
     const vibes = event.vibe_count || 0;
     const going = event.going || 0;
     const totalEngagement = vibes + going;
+
+    // ── SIGNAL 0: Over → never rank. LIVE → dominate.
+    // (Absorbed from the retired utils/ranking rankFeed — the Drop query has no
+    // date filter, so THIS is what keeps finished events out of the feed.)
+    let liveBoost = 0;
+    if (event.event_date) {
+      const startMs = new Date(`${event.event_date}T${event.event_time || '20:00'}:00`).getTime();
+      if (Number.isFinite(startMs)) {
+        // An event runs ~8h past its start; multi-day events run to end_date.
+        let overMs = startMs + 8 * 3600000;
+        if (event.end_date) {
+          const endMs = new Date(`${event.end_date}T23:59:00`).getTime();
+          if (Number.isFinite(endMs)) overMs = Math.max(overMs, endMs);
+        }
+        if (now > overMs) return 0;          // it's over — never rank it
+        if (now >= startMs) liveBoost = 30;  // LIVE NOW — the most useful thing we can show
+      }
+    }
+
+    // ── SIGNAL 0b: Verified presence — the unfakeable signal.
+    // Touch Downs are people physically in the room: unbuyable. Weighted so ~20
+    // verified heads outrank any amount of likes.
+    const here = Number(event.here_count ?? event.checkin_count ?? event.touchdown_count ?? 0) || 0;
+    const presenceSignal = Math.log1p(Math.max(0, here)) * 18;
 
     // ── SIGNAL 1: Host trust prior (Bayesian weight)
     // social_integrity_score [0,200] treated as a prior on content quality.
@@ -478,22 +507,24 @@ export const ScoreEngine = {
 
     // ── COMPOSITE SCORE
     // Each signal is independent; trustMultiplier scales the whole bundle.
-    const raw = wilsonProof + velocitySignal + freshness + imminenceSignal
+    let raw = wilsonProof + velocitySignal + freshness + imminenceSignal
       + geoSignal + affinitySignal + networkSignal
-      + freeBoost + verifiedBoost + socialMass;
+      + freeBoost + verifiedBoost + socialMass
+      + presenceSignal + liveBoost;
+
+    // NEW-HOST RESCUE (absorbed from the retired rankFeed): a first-time host
+    // has no heat, no history, so no ranking, so no attendance, so no heat.
+    // Break that loop deliberately or the platform can never grow a new host.
+    if ((event.host_event_count ?? null) === 0) raw = Math.max(raw, 30);
 
     return raw * trustMultiplier;
   },
 
-  // Heat score for trending — Wilson + velocity only (no personalization)
+  // Heat score for trending — delegates to the ONE canonical heat definition
+  // (utils/heatScore: verified presence + momentum + imminence). Clamped at 0
+  // so a finished event's -Infinity sink never leaks into a displayed number.
   heatScore(event) {
-    const ageH = Math.max(0.01, (Date.now() - new Date(event.created_at).getTime()) / 3600000);
-    const total = (event.vibe_count || 0) + (event.going || 0);
-    const impressions = Math.max(total * 3, 10);
-    const wilson = wilsonLowerBound(total, impressions) * 100;
-    const velocity = ageH < 72 ? engagementMomentum(total, ageH) : 0;
-    const freshness = expDecay(20, ageH, 0.05);
-    return wilson + velocity + freshness;
+    return Math.max(0, canonicalHeatScore(event));
   },
 
   // Compute and persist a user's Vibe Score
@@ -563,7 +594,7 @@ export const ScoreEngine = {
    *
    * Pure + deterministic given inputs (seedable jitter), safe on any array.
    */
-  diversify(events, { seenIds = new Set(), coldStart = false, categoryPenalty = 0.35, hostPenalty = 0.25, exploration = 0.15 } = {}) {
+  diversify(events, { seenIds = new Set(), coldStart = false, categoryPenalty = 0.35, hostPenalty = 0.25, exploration = 0.15, maxPerHost = 2 } = {}) {
     if (!Array.isArray(events) || events.length < 3) return events || [];
 
     const scoreOf = (e) => (typeof e._heatScore === 'number' ? e._heatScore : 0);
@@ -592,7 +623,12 @@ export const ScoreEngine = {
         const hostN = usedHost.get(e.author_id) || 0;
         // Repetition penalty grows with how many of the same we've already shown.
         const penalty = 1 - Math.min(0.85, catN * categoryPenalty + hostN * hostPenalty);
-        const val = base * penalty;
+        let val = base * penalty;
+        // ANTI-MONOPOLY (folded from the retired rankFeed): past a host's first
+        // maxPerHost events, further ones are hard-demoted toward the back — a
+        // promoter posting 20 nights can't bury every other scene. Demoted,
+        // never deleted.
+        if (hostN >= maxPerHost) val *= 0.05;
         if (val > bestVal) { bestVal = val; bestIdx = i; }
       }
       const { e } = remaining.splice(bestIdx, 1)[0];
@@ -734,11 +770,17 @@ export const FeedManager = {
       // un-migrated DB, so nothing is filtered until the column + trigger exist.
       let events = normalizeEvents((data || []).filter(e => !e.auto_hidden));
       if (!query.trim()) {
-        // Stamp heat scores so applyPersonalisedBoost can re-rank with them; add random jitter to shuffle drops
-        events = events.map(e => ({
-          ...e,
-          _heatScore: ScoreEngine.eventScore(e, { userInterests, followedIds: resolvedFollowedIds, userLat, userLon, aiRecommendedIds }) + (Math.random() - 0.5) * 80,
-        }));
+        // Stamp heat scores so applyPersonalisedBoost can re-rank with them; add random jitter to shuffle drops.
+        // eventScore returns 0 for FINISHED events — drop those here (the Drop
+        // query has no date filter; this is the pipeline's "never show what's
+        // over" gate, previously done by LandingPage's retired rankFeed pass).
+        events = events
+          .map(e => ({
+            e,
+            score: ScoreEngine.eventScore(e, { userInterests, followedIds: resolvedFollowedIds, userLat, userLon, aiRecommendedIds }),
+          }))
+          .filter(x => x.score > 0)
+          .map(x => ({ ...x.e, _heatScore: x.score + (Math.random() - 0.5) * 80 }));
         events.sort((a, b) => b._heatScore - a._heatScore);
       }
       // AI recommendations assignment removed

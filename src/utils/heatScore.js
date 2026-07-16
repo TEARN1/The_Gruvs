@@ -1,8 +1,10 @@
-// ── Lineup heat ───────────────────────────────────────────────────────────────
-// Rank Gruvs by how HOT they are right now — NOT by personal taste (that's the
-// feed's job). Verified presence dominates (the only unfakeable signal), then
-// momentum (logged so it can't drown out presence), then imminence. This is the
-// leaderboard's ranking. Pure.
+// ── Heat — THE canonical "how hot is this right now" (F1) ────────────────────
+// The app used to have THREE heat definitions (this one, ScoreEngine.heatScore,
+// and utils/ranking's heatScore). This is now the only one — ScoreEngine.heatScore
+// delegates here, and utils/ranking is retired. Rank Gruvs by how HOT they are
+// right now — NOT by personal taste (that's eventScore's job). Verified presence
+// dominates (the only unfakeable signal), then momentum (logged so it can't
+// drown out presence), then imminence. Pure.
 
 export function heatScore(event, now = Date.now()) {
   if (!event) return 0;
@@ -22,8 +24,19 @@ export function heatScore(event, now = Date.now()) {
     }
   }
 
+  // MOMENTUM (inherited from the trending job): engagement per hour since
+  // posting — a new event catching fire beats an old one coasting on volume.
+  // Log-capped so velocity can never drown out verified presence.
+  let momentum = 0;
+  if (event.created_at) {
+    const ageH = (now - new Date(event.created_at).getTime()) / 3600000;
+    if (Number.isFinite(ageH) && ageH > 0 && ageH < 72) {
+      momentum = Math.log1p(Math.min(buzz / Math.max(ageH, 0.5), 50)) * 6;
+    }
+  }
+
   // verified presence dominates; momentum capped by log so it can't drown it out
-  return here * 10 + Math.log1p(Math.max(0, buzz)) * 8 + imminence;
+  return here * 10 + Math.log1p(Math.max(0, buzz)) * 8 + momentum + imminence;
 }
 
 /**

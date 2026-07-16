@@ -78,7 +78,6 @@ import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './PathMapScreen';
 import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
-import { rankFeed } from '../utils/ranking';
 import { friendsGoing, friendsLabel } from '../services/socialProof';
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
@@ -998,8 +997,9 @@ const orderForGuest = (list) =>
     .map((x) => x.e);
 
 // ── Main LandingPage ──────────────────────────────────────────────────────────
-// (The feed used to be a seeded random SHUFFLE. It's now ranked honestly —
-//  soonest, nearest, most verified presence — see utils/ranking.)
+// (The feed order is built by the ONE ranking pipeline in FeedManager —
+//  ScoreEngine.eventScore + personalisation + diversify. This screen only
+//  filters, dedupes and collapses tours; it never re-ranks.)
 
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels }) => {
   const insets = useSafeAreaInsets();
@@ -1454,17 +1454,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       return true;
     });
 
-    // Rank honestly instead of shuffling at random.
-    //
-    // The old order was a seeded SHUFFLE — the feed was literally arbitrary. Now:
-    // what's on SOONEST, what's NEAREST, and what has real verified presence
-    // (Touch Downs). Likes are not an input — they're buyable; people standing in
-    // a room are not. Proximity is a soft weight, never a filter, and one prolific
-    // promoter can't own the whole feed.
-    const ranked = rankFeed(deduped, { user: LocationService.getCached() || undefined });
-
+    // ONE ranking pipeline (F1). The order arriving here was already built by
+    // ScoreEngine.eventScore (imminence, proximity, verified presence, interest
+    // affinity, social graph, host trust) + personalisation + the diversity /
+    // explore-exploit pass in FeedManager. This screen used to RE-RANK all of it
+    // with a second, contradictory ranker (utils/ranking rankFeed) — throwing the
+    // personalised order away. It no longer does: filter + dedupe only, preserve
+    // the pipeline's order. Finished events are dropped inside the pipeline.
     // One card per tour — a multi-stop tour must not flood the drop with N stops.
-    return collapseTourStops(ranked);
+    return collapseTourStops(deduped);
   }, [trendingEvents, events, trendingIds, selectedCat, dateRange, feedMode]);
 
   // Who you follow is going where. The strongest reason anyone has ever had to

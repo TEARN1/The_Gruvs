@@ -15,7 +15,7 @@
  * that gets published, because the host never comes back. Every check returns a
  * reason the host can read and dismiss.
  */
-import { distanceKm } from './ranking';
+import { distanceKm } from './geo';
 import { zonedTimeToUtc } from './tz';
 
 export const SEVERITY = { BLOCK: 'block', WARN: 'warn' };
