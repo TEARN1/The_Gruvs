@@ -1,11 +1,24 @@
 /**
- * VIBE-EQUITY LEDGER v1.0 — Non-Monetary Wealth Engine.
+ * VIBE-EQUITY LEDGER v2.0 — Non-Monetary Wealth Engine.
  *
  * Formalizes "Vibe" as a scarce social asset.
  * Governed by the 32M-Token Neural Mesh to ensure economic stability.
+ *
+ * F2 — ONE vibe_score writer: equity now lives in its OWN column
+ * (profiles.vibe_equity — see supabase/queries/vibe_equity_column.sql), never
+ * vibe_score. Before, one check-in fired THREE vibe_score writers (this mint,
+ * touchDown's +8, computeVibeScore's recompute) that clobbered each other —
+ * the recompute rounded the 8-decimal equity float away every time.
+ * vibe_score = earned contribution, written ONLY by ScoreEngine.computeVibeScore.
+ * vibe_equity = spendable social asset, written ONLY here (mint/burn).
+ * Pre-migration the column may not exist: mint/burn then no-op gracefully.
  */
 import { supabase } from './supabase';
 import projectDNA from './projectDNA.json';
+
+const isMissingColumn = (error) =>
+  error?.code === '42703' ||
+  /vibe_equity|column|schema cache/i.test(error?.message || '');
 
 export const VibeEquityLedger = {
   // Economic Constants (Weighted by PhD Brain)
@@ -25,7 +38,7 @@ export const VibeEquityLedger = {
     try {
       const weight = this.MULTIPLIERS[actionType] || 1.0;
 
-      const { count: totalSupply } = await supabase.from('profiles').select('vibe_score', { count: 'exact', head: true });
+      const { count: totalSupply } = await supabase.from('profiles').select('id', { count: 'exact', head: true });
       const halvingInterval = projectDNA.sovereign_mint_params.halving_interval_equity;
       const phase = Math.floor((totalSupply || 0) / halvingInterval);
       const supplyCap = projectDNA.sovereign_mint_params.global_supply_cap;
@@ -37,19 +50,25 @@ export const VibeEquityLedger = {
 
       const scarcityFactor = 1 / Math.pow(2, phase);
 
-      const { data: profile } = await supabase.from('profiles').select('vibe_score, social_integrity_score').eq('id', userId).single();
+      // vibe_equity is the ONLY column this ledger touches — never vibe_score.
+      const { data: profile, error: readErr } = await supabase
+        .from('profiles').select('vibe_equity, social_integrity_score').eq('id', userId).single();
+      if (readErr && isMissingColumn(readErr)) return { minted: 0, total: 0, persisted: false }; // pre-migration — no-op
       const integrityEfficiency = (profile?.social_integrity_score || 50) / 100;
 
       const amount = weight * integrityEfficiency * scarcityFactor;
-      const newEquity = (profile?.vibe_score || 0) + amount;
+      const newEquity = (Number(profile?.vibe_equity) || 0) + amount;
 
       const { error: updateErr } = await supabase.from('profiles').update({
-        vibe_score: parseFloat(newEquity.toFixed(8)),
+        vibe_equity: parseFloat(newEquity.toFixed(8)),
         last_mint_at: new Date().toISOString()
       }).eq('id', userId);
-      if (updateErr) throw updateErr;
+      if (updateErr) {
+        if (isMissingColumn(updateErr)) return { minted: 0, total: 0, persisted: false };
+        throw updateErr;
+      }
 
-      return { minted: amount, total: newEquity, phase: phase + 1 };
+      return { minted: amount, total: newEquity, phase: phase + 1, persisted: true };
     } catch (e) {
       console.error('[VibeEquityLedger] mintEquity failed', e);
       return { minted: 0, total: 0 };
@@ -59,14 +78,17 @@ export const VibeEquityLedger = {
   /**
    * "Burn" Equity to perform high-privilege actions.
    * e.g. Pinning a Gruv to the top of the Kingdom.
+   * Spends vibe_equity — a burn can never touch the earned vibe_score.
    */
   async burnEquity(userId, amount) {
     try {
-      const { data: profile } = await supabase.from('profiles').select('vibe_score').eq('id', userId).single();
-      if ((profile?.vibe_score || 0) < amount) throw new Error("Insufficient Vibe Score.");
+      const { data: profile, error: readErr } = await supabase
+        .from('profiles').select('vibe_equity').eq('id', userId).single();
+      if (readErr && isMissingColumn(readErr)) throw new Error('Vibe Equity not available yet.');
+      if ((Number(profile?.vibe_equity) || 0) < amount) throw new Error("Insufficient Vibe Equity.");
 
-      const newEquity = profile.vibe_score - amount;
-      await supabase.from('profiles').update({ vibe_score: newEquity }).eq('id', userId);
+      const newEquity = Number(profile.vibe_equity) - amount;
+      await supabase.from('profiles').update({ vibe_equity: newEquity }).eq('id', userId);
 
       return newEquity;
     } catch (e) {

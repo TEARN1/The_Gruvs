@@ -1738,15 +1738,11 @@ export const CheckInManager = {
         if (error) { console.warn('[touchDown] insert failed:', error.message); logError('CheckIn.touchDown', error, { code: error.code }); throw error; }
       }
 
-      // Atomic vibe score increment — fallback to read-then-write if RPC not deployed yet
-      try {
-        await supabase.rpc('increment_profile_score', { uid: userId, amount: 8 });
-      } catch {
-        try {
-          const { data: prof } = await supabase.from('profiles').select('vibe_score').eq('id', userId).single();
-          await supabase.from('profiles').update({ vibe_score: (prof?.vibe_score || 0) + 8 }).eq('id', userId);
-        } catch (e) { logError('Score.incrementFallback', e, { userId }); }
-      }
+      // F2 — ONE vibe_score writer. The check-in row inserted above IS the
+      // contribution signal: computeVibeScore counts live_checkins at the
+      // highest weight and recomputes the score deterministically. The old
+      // direct "+8" here was one of THREE writers clobbering each other.
+      ScoreEngine.computeVibeScore(userId).catch(() => {});
 
       cache.invalidate(`profile:${userId}`);
       cache.invalidate(`profile_stats:${userId}`);

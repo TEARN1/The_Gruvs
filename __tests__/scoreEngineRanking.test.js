@@ -10,7 +10,11 @@ import { ScoreEngine } from '../src/services/dataFlow';
 import { heatScore } from '../src/utils/heatScore';
 
 const iso = (d) => d.toISOString();
-const dateStr = (d) => d.toISOString().slice(0, 10);
+// LOCAL date + LOCAL time — eventScore parses `${date}T${time}` as local, so
+// fixtures must never mix a UTC date with local hours (flaky near midnight).
+const dateStr = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const timeStr = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 const NOW = Date.now();
 const hoursFromNow = (h) => new Date(NOW + h * 3600000);
 
@@ -18,7 +22,7 @@ const ev = (over = {}) => ({
   id: 'e1',
   created_at: iso(hoursFromNow(-5)),
   event_date: dateStr(hoursFromNow(6)),
-  event_time: `${String(hoursFromNow(6).getHours()).padStart(2, '0')}:00`,
+  event_time: timeStr(hoursFromNow(6)),
   vibe_count: 5,
   going: 5,
   category: 'music',
@@ -44,8 +48,8 @@ describe('ScoreEngine.eventScore — F1 absorbed rules', () => {
   });
 
   it('LIVE now outranks the identical event still hours away', () => {
-    const live = ev({ event_date: dateStr(hoursFromNow(-1)), event_time: `${String(hoursFromNow(-1).getHours()).padStart(2, '0')}:00` });
-    const later = ev({ event_date: dateStr(hoursFromNow(30)) });
+    const live = ev({ event_date: dateStr(hoursFromNow(-1)), event_time: timeStr(hoursFromNow(-1)) });
+    const later = ev({ event_date: dateStr(hoursFromNow(30)), event_time: timeStr(hoursFromNow(30)) });
     expect(ScoreEngine.eventScore(live)).toBeGreaterThan(ScoreEngine.eventScore(later));
   });
 
