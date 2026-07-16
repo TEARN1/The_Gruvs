@@ -8,6 +8,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { shouldInterrupt } from '../utils/notificationPolicy';
 import { logError } from '../utils/logError';
+import { WEB_PUSH_PUBLIC_KEY, urlBase64ToUint8Array } from '../constants/webPush';
 
 export const NotificationService = {
 
@@ -42,18 +43,43 @@ export const NotificationService = {
     }
   },
 
-  // ── Web push (browser Notification API) ───────────────────────────────────────
-  // Native push needs Expo tokens; the web needs the browser's own Notification
-  // permission. This makes the toggle actually work on web and delivers real
-  // browser notifications while the app is open (background-tab included). Full
-  // closed-tab push needs a service worker + VAPID — see registerWebPush notes.
-  async registerWebPush() {
+  // ── Web push ──────────────────────────────────────────────────────────────────
+  // Two layers: (1) tab-open browser notifications via the Notification API,
+  // (2) REAL closed-tab push — the service worker subscribes with our VAPID key
+  // and the subscription is stored in web_push_subscriptions; the push-notify
+  // edge function delivers through the browser's push service, so a DM pops on
+  // the phone with no Gruvs tab open. Layer 2 is best-effort: if the table /
+  // secrets aren't deployed yet, layer 1 still works exactly as before.
+  async registerWebPush(userId = null) {
     try {
       if (typeof window === 'undefined' || typeof Notification === 'undefined') return null;
       let perm = Notification.permission;
       if (perm === 'default') perm = await Notification.requestPermission();
       if (perm !== 'granted') return null;
       try { window.localStorage.setItem('gruvs_web_push', '1'); } catch {}
+
+      // Layer 2 — closed-tab push subscription (enhancement only, never blocks).
+      try {
+        if (userId && 'serviceWorker' in navigator && 'PushManager' in window) {
+          const reg = await navigator.serviceWorker.ready;
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(WEB_PUSH_PUBLIC_KEY),
+          });
+          const json = sub.toJSON();
+          if (json?.endpoint && json?.keys?.p256dh && json?.keys?.auth) {
+            await supabase.from('web_push_subscriptions').upsert({
+              user_id: userId,
+              endpoint: json.endpoint,
+              p256dh: json.keys.p256dh,
+              auth: json.keys.auth,
+              user_agent: (typeof navigator !== 'undefined' && navigator.userAgent || '').slice(0, 180) || null,
+              last_seen_at: new Date().toISOString(),
+            }, { onConflict: 'endpoint' });
+          }
+        }
+      } catch { /* table/SW/VAPID not live yet — tab-open notifications still work */ }
+
       return 'web-push-on';
     } catch { return null; }
   },
@@ -69,6 +95,18 @@ export const NotificationService = {
 
   disableWebPush() {
     try { window.localStorage.removeItem('gruvs_web_push'); } catch {}
+    // Also tear down the closed-tab subscription (fire-and-forget).
+    (async () => {
+      try {
+        if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager?.getSubscription();
+        if (sub) {
+          try { await supabase.from('web_push_subscriptions').delete().eq('endpoint', sub.endpoint); } catch {}
+          await sub.unsubscribe();
+        }
+      } catch {}
+    })();
   },
 
   showBrowserNotification(title, body, data = {}) {
@@ -85,7 +123,7 @@ export const NotificationService = {
   // Registers device for push and stores token in profiles table
   async registerForPush(userId) {
     if (!userId) return null;
-    if (Platform.OS === 'web') return this.registerWebPush();
+    if (Platform.OS === 'web') return this.registerWebPush(userId);
     try {
       const { status: existing } = await Notifications.getPermissionsAsync();
       let finalStatus = existing;

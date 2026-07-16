@@ -9,7 +9,7 @@
  *   - Everything else (Supabase, weserv images, APIs, cross-origin): pass
  *     straight through, never cached.
  */
-const VERSION = 'gruvs-v2';
+const VERSION = 'gruvs-v3';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 
@@ -62,4 +62,38 @@ self.addEventListener('fetch', (event) => {
         .catch(() => caches.match('/index.html').then((r) => r || caches.match('/')))
     );
   }
+});
+
+/* ── Web Push — closed-tab notifications ──────────────────────────────────────
+ * Delivered by the push-notify edge function (Web Push protocol + VAPID).
+ * This is what makes the website behave like the real app: a DM pops on the
+ * phone even when no Gruvs tab is open. */
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch {
+    try { payload = { body: event.data.text() }; } catch {}
+  }
+  const title = payload.title || 'The Gruvs';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body || '',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: (payload.data && payload.data.type) || 'gruvs', // same-type collapses — no pile-up
+      renotify: false,
+      data: payload.data || {},
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((tabs) => {
+      for (const tab of tabs) {
+        if ('focus' in tab) return tab.focus(); // an open Gruvs tab → bring it forward
+      }
+      return self.clients.openWindow('/');      // none open → launch the app
+    })
+  );
 });

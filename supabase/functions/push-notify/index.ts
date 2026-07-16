@@ -16,12 +16,71 @@
  */
 
 import { createClient } from 'npm:@supabase/supabase-js';
+import webpush from 'npm:web-push@3.6.7';
 
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL')              || '';
 const SERVICE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
+// Web Push (VAPID) — closed-tab browser push for thegruvs.com / the PWA.
+// Public key mirrors src/constants/webPush.js; private key is a function secret.
+const VAPID_PUBLIC  = Deno.env.get('VAPID_PUBLIC_KEY')  || 'BFcGNc-yn3m7MgqI1y2e4uAfywbTL3pnkP6CtPTOBz247ddaL2MVZqUe_zBoybkaiiCeRa8uifTnc2zZfJ1VLZU';
+const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY') || '';
+const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT')     || 'mailto:asemahlenkwali@gmail.com';
+if (VAPID_PRIVATE) {
+  try { webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE); } catch (e) {
+    console.error('[push-notify] bad VAPID config:', e);
+  }
+}
+
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
+/**
+ * Deliver Web Push to every browser subscription the recipient has.
+ * Best-effort: dead endpoints (404/410) are pruned; failures never block Expo.
+ */
+async function sendWebPush(notif: NotificationRow): Promise<number> {
+  if (!VAPID_PRIVATE) return 0; // secret not set yet — web push disabled
+  const { data: subs } = await supabase
+    .from('web_push_subscriptions')
+    .select('endpoint, p256dh, auth')
+    .eq('user_id', notif.recipient_id)
+    .limit(10);
+  if (!subs?.length) return 0;
+
+  const payload = JSON.stringify({
+    title: notif.title,
+    body: notif.body || '',
+    data: {
+      type: notif.type,
+      notificationId: notif.id,
+      eventId: notif.event_id || undefined,
+      actorId: notif.actor_id || undefined,
+      ...(notif.data || {}),
+    },
+  });
+
+  let delivered = 0;
+  await Promise.all(subs.map(async (s) => {
+    try {
+      await webpush.sendNotification(
+        { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+        payload,
+        { TTL: 3600 },
+      );
+      delivered++;
+    } catch (err: unknown) {
+      const code = (err as { statusCode?: number })?.statusCode;
+      if (code === 404 || code === 410) {
+        // Browser revoked / uninstalled — prune the dead subscription.
+        await supabase.from('web_push_subscriptions').delete().eq('endpoint', s.endpoint);
+      } else {
+        console.warn('[push-notify] web push failed:', code, (err as Error)?.message);
+      }
+    }
+  }));
+  return delivered;
+}
 
 // Expo push priority by notification type
 const PRIORITY: Record<string, 'high' | 'normal' | 'default'> = {
@@ -90,7 +149,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return new Response('No recipient', { status: 200 });
   }
 
-  // Look up recipient's push token
+  // Web Push first — a web-only user has NO Expo token, so this must run
+  // regardless of the Expo path below. Never throws.
+  const webDelivered = await sendWebPush(notif).catch(() => 0);
+
+  // Look up recipient's push token (native / Expo path)
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('push_token')
@@ -98,8 +161,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .maybeSingle();
 
   if (error || !profile?.push_token) {
-    // No token registered — in-app notification already written, nothing more to do
-    return new Response('No push token', { status: 200 });
+    // No Expo token — web push (if any) already delivered above.
+    return new Response(JSON.stringify({ ok: true, web: webDelivered, expo: false }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   const token: string = profile.push_token;
