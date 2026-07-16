@@ -28,6 +28,7 @@ import { LocationService } from '../services/locationService';
 import { uploadToStorage } from '../services/storageService';
 import { useBackClose } from '../hooks/useBackClose';
 import { money, priceLabel } from '../constants/currencies';
+import { buildVibeCardShareText } from '../utils/vibeCardShare';
 
 // Dynamic wrapper to break static circular import cycle
 const ViberProfileModal = (props) => {
@@ -602,16 +603,19 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   };
 
   // ── Share Vibe Card ───────────────────────────────────────────────────────────
+  // A4 — ONE Vibe Card: this used to build its own ad-hoc card text that
+  // drifted from the canonical builder (no tier, no verified, no link). The
+  // Vibe Card has ONE meaning — your identity summary — and ONE renderer.
   const handleShareVibeCard = async () => {
     if (!user) return;
     setShowAttachmentMenu(false);
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, vibe_score, avatar_url, bio')
+        .select('username, display_name, vibe_score, is_verified, followers_count')
         .eq('id', user.id)
         .single();
-      const cardText = `🎴 Vibe Card\n@${profile?.username || user.email}\n⚡ ${profile?.vibe_score || 0} pts${profile?.bio ? `\n"${profile.bio}"` : ''}`;
+      const cardText = buildVibeCardShareText(profile || { username: user.email });
       const newMsg = await MessageManager.send(user.id, recipient.id, cardText, { messageType: 'vibe_card', profile_id: user?.id });
       if (newMsg) {
         setMessages(prev => [...prev, newMsg]);
