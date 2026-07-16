@@ -268,15 +268,28 @@ export const StoriesRow = ({ onAuthRequired }) => {
         if (!byUser[uid]) byUser[uid] = { userId: uid, username: s.profiles?.username, avatar_url: s.profiles?.avatar_url, stories: [] };
         byUser[uid].stories.push(s);
       }
-      const sorted = Object.values(byUser).sort((a, b) => a.userId === user.id ? -1 : b.userId === user.id ? 1 : 0);
-      setGrouped(sorted);
 
+      // Fetch seen BEFORE ordering the rail — the order depends on it.
       const { data: seen } = await supabase
         .from('story_views')
         .select('story_id')
         .eq('viewer_id', user.id);
       const map = {};
       for (const v of seen || []) map[v.story_id] = true;
+
+      // Rail order: you first, then UNSEEN rings before seen ones (each bucket
+      // newest-first). A rail that buries the three unseen stories behind ten
+      // greyed-out rings you've already watched wastes the only glance it gets.
+      const newest = (g) => Math.max(...g.stories.map(s => new Date(s.created_at).getTime() || 0));
+      const hasUnseen = (g) => g.stories.some(s => !map[s.id]);
+      const sorted = Object.values(byUser).sort((a, b) => {
+        if (a.userId === user.id) return -1;
+        if (b.userId === user.id) return 1;
+        const ua = hasUnseen(a), ub = hasUnseen(b);
+        if (ua !== ub) return ua ? -1 : 1;
+        return newest(b) - newest(a);
+      });
+      setGrouped(sorted);
       setSeenMap(map);
     } catch { /* keep current stories on transient failure */ }
   }, [user]);
