@@ -17,6 +17,8 @@ import { VibeEquityLedger } from './vibeEquityLedger';
 import { VibeEconomyEngine } from './revenueEngine';
 import { NotificationService } from './notificationService';
 import { heatScore as canonicalHeatScore } from '../utils/heatScore';
+import { getXpLevel } from '../utils/vibeLevel';
+import { secureCode } from '../utils/secureId';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
 export const normalizeEvent = (event) => {
@@ -3206,8 +3208,9 @@ export const LevelManager = {
   },
 
   calculateLevel(xp) {
-    // Level = floor(sqrt(xp / 100)) + 1
-    return Math.floor(Math.sqrt(xp / 100)) + 1;
+    // F3 — ONE leveling curve: delegate to the canonical getXpLevel so the
+    // level-up notification and the profile XP bar can never disagree again.
+    return getXpLevel(xp).level;
   },
 
   async addXP(userId, action) {
@@ -3832,7 +3835,10 @@ export const GamificationEngine = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const TicketManager = {
   async reserveTicket(eventId, userId, rsvpId) {
-    const tokenStr = `VIBE-TKT-${eventId.slice(0, 4).toUpperCase()}-${userId.slice(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    // A QR entry ticket is a CREDENTIAL. The old suffix was 4 random digits
+    // (~9,000 guesses) on top of predictable event/user prefixes — brute-forceable
+    // at a door. Use a CSPRNG token with real entropy instead.
+    const tokenStr = `VIBE-TKT-${eventId.slice(0, 4).toUpperCase()}-${secureCode(3, 4)}`;
     const { data, error } = await supabase
       .from('ticket_tokens')
       .insert({ rsvp_id: rsvpId, user_id: userId, event_id: eventId, token_str: tokenStr, used: false })

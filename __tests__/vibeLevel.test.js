@@ -1,4 +1,4 @@
-import { getVibeLevel, VIBE_LEVELS } from '../src/utils/vibeLevel';
+import { getVibeLevel, getXpLevel, VIBE_LEVELS } from '../src/utils/vibeLevel';
 
 describe('getVibeLevel', () => {
   it('maps scores to the right tier', () => {
@@ -43,5 +43,37 @@ describe('getVibeLevel', () => {
     for (let i = 1; i < VIBE_LEVELS.length; i++) {
       expect(VIBE_LEVELS[i].min).toBe(VIBE_LEVELS[i - 1].max + 1);
     }
+  });
+
+  it('every tier carries a color (single source for badge styling)', () => {
+    VIBE_LEVELS.forEach((l) => expect(l.color).toMatch(/^#/));
+    expect(getVibeLevel(300).color).toBe('#06b6d4');
+  });
+});
+
+// F3 — the ONE numeric XP curve. LevelManager notifications and the ProfilePage
+// XP bar both call this; these tests keep them from ever diverging again.
+describe('getXpLevel', () => {
+  it('level = floor(sqrt(xp/50)) + 1, capped at 100', () => {
+    expect(getXpLevel(0).level).toBe(1);
+    expect(getXpLevel(49).level).toBe(1);
+    expect(getXpLevel(50).level).toBe(2);
+    expect(getXpLevel(200).level).toBe(3);
+    expect(getXpLevel(10 ** 9).level).toBe(100);
+  });
+
+  it('progress bar math is consistent with the curve', () => {
+    const r = getXpLevel(200); // level 3 spans 200..450
+    expect(r.xpStart).toBe(200);
+    expect(r.xpEnd).toBe(450);
+    expect(r.pct).toBe(0);
+    expect(r.toNext).toBe(250);
+  });
+
+  it('is null-safe / clamps negatives; capped level has no toNext', () => {
+    expect(getXpLevel(undefined).level).toBe(1);
+    expect(getXpLevel(-10).level).toBe(1);
+    expect(getXpLevel(10 ** 9).toNext).toBe(0);
+    expect(getXpLevel(10 ** 9).pct).toBe(100);
   });
 });

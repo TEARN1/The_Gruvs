@@ -14,6 +14,7 @@ import { DiscoveryManager, isOnline as checkOnline } from '../services/dataFlow'
 import { LocationService } from '../services/locationService';
 import { resilientRead, resilient } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
+import { getVibeLevel } from '../utils/vibeLevel';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -102,14 +103,9 @@ const DESC_INTERESTS = [
   'Gaming', 'Travel', 'Fitness', 'Comedy', 'Nightlife', 'Wellness', 'Business',
 ];
 
-const RANK_LABELS = [
-  { min: 0,     max: 100,    name: 'Viber',       color: "#94a3b8" },
-  { min: 101,   max: 500,    name: 'Elite Viber', color: "#06b6d4" },
-  { min: 501,   max: 2000,   name: 'Royal Viber', color: "#8b5cf6" },
-  { min: 2001,  max: 10000,  name: 'Gruv Master', color: "#f59e0b" },
-  { min: 10001, max: Infinity, name: 'Grand Viber', color: "#ef4444" },
-];
-const getRank = (score = 0) => RANK_LABELS.find(r => score >= r.min && score <= r.max) || RANK_LABELS[0];
+// F3 — ONE ladder: this screen used to ship its own copy of the tiers (with
+// the top tier misnamed "Grand Viber"). It now reads the canonical ladder.
+const getRank = (score = 0) => getVibeLevel(score);
 
 const avatarBg = (u = '') =>
   ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u.charCodeAt(0) || 0) % 5];

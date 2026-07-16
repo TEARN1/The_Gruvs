@@ -166,13 +166,14 @@ describe('DataFlow Integration Test', () => {
 
   describe('XP / Level Up Flow', () => {
     it('increments XP and triggers level up notification when crossing threshold', async () => {
-      // Mock profile with 90 XP (Level 1)
-      __setResult('profiles', 'single', { data: { xp: 90 }, error: null });
+      // Mock profile with 30 XP (Level 1 on the canonical curve)
+      __setResult('profiles', 'single', { data: { xp: 30 }, error: null });
 
-      // Action CHECK_IN adds 50 XP (total 140 XP -> Level 2: sqrt(140/100) + 1 = 2)
+      // Action CHECK_IN adds 50 XP (total 80 XP -> Level 2 on the ONE canonical
+      // curve, getXpLevel: floor(sqrt(80/50)) + 1 = 2 — F3)
       const result = await LevelManager.addXP('user-123', 'CHECK_IN');
 
-      expect(result.xp).toBe(140);
+      expect(result.xp).toBe(80);
       expect(result.level).toBe(2);
       expect(result.leveledUp).toBe(true);
 

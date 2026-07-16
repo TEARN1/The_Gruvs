@@ -25,7 +25,7 @@ import { THEMES } from '../constants/Themes';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
-import { getVibeLevel } from '../utils/vibeLevel';
+import { getVibeLevel, getXpLevel } from '../utils/vibeLevel';
 import { nextUnlocks } from '../utils/levelUnlocks';
 import { DiscoveryManager, UserManager, BehavioralEngine, ActivityFeedManager, PresenceManager, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient, resilientRead } from '../utils/resilience';
@@ -2682,14 +2682,11 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           </View>
         )}
 
-        {/* XP Level bar */}
+        {/* XP Level bar — F3: the ONE canonical curve (getXpLevel), shared with
+            LevelManager's level-up notifications so they can never disagree. */}
         {user && (() => {
           const xp = profile?.xp || 0;
-          const level = Math.min(100, Math.floor(Math.sqrt(xp / 50)) + 1);
-          const xpForLevel = (n) => Math.pow(n - 1, 2) * 50;
-          const xpStart = xpForLevel(level);
-          const xpEnd   = xpForLevel(level + 1);
-          const pct = level >= 100 ? 100 : Math.round(((xp - xpStart) / (xpEnd - xpStart)) * 100);
+          const { level, xpEnd, pct } = getXpLevel(xp);
           return (
             <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
