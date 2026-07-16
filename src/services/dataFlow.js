@@ -804,6 +804,11 @@ export const FeedManager = {
           .filter(x => x.score > 0)
           .map(x => ({ ...x.e, _heatScore: x.score + (Math.random() - 0.5) * 80 }));
         events.sort((a, b) => b._heatScore - a._heatScore);
+      } else {
+        // B-sweep 3: in-feed SEARCH was ordered by vibe_count (fame-first) —
+        // rank by real match relevance instead; non-matching fuzz drops out.
+        const ranked = rankEventResults(query, events);
+        if (ranked.length) events = ranked;
       }
       // AI recommendations assignment removed
       // Apply personalised traffic routing boost (non-blocking, best-effort)
@@ -1252,7 +1257,9 @@ export const TrendingManager = {
         .neq('status', 'cancelled')
         .order('vibe_count', { ascending: false })
         .limit(20);
-      const result = data || [];
+      // B-sweep 3: the week rail shows what's HOT this week, not most-liked —
+      // rank the fetched pool by the canonical heat before caching.
+      const result = (data || []).slice().sort((a, b) => canonicalHeatScore(b) - canonicalHeatScore(a));
       cache.set(cacheKey, result, 300000); // 5-min TTL
       return result;
     } catch { return []; }

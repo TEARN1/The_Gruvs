@@ -901,7 +901,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       .gte('event_date', today)
       .is('deleted_at', null)
       .neq('status', 'cancelled')
-      .order('vibe_count', { ascending: false })
+      .order('event_date', { ascending: true }) // browsing a category = "what's on in it" — soonest first, not most-liked
       .limit(40)
       .then(({ data, error }) => {
         if (!error && data?.length) { setCatFilteredEvents(data); }

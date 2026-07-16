@@ -21,7 +21,7 @@ import { SafeSection } from '../components/SafeSection';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { thumb } from '../utils/storageThumb';
 import { buildShareText } from '../utils/shareText';
-import { heatLabel } from '../utils/heatScore';
+import { heatLabel, heatScore as heatScoreCanon } from '../utils/heatScore';
 import { filterByViewerAge } from '../utils/contentAgeRating';
 import { loadViewerAge, viewerAgeSync } from '../utils/viewerAge';
 import { SecurityService } from '../services/securityService';
@@ -1295,11 +1295,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         .order('vibe_count', { ascending: false })
         .limit(5);
       if (topEvents?.length) {
-        const ranked = topEvents.map((ev, i) => ({
-          ...ev,
-          _isTrending: ev.vibe_count > 0,
-          _trendingRank: i + 1,
-        }));
+        // B-sweep 3: the trending seed ranks by canonical HEAT (presence +
+        // momentum + imminence), not raw likes — a finished mega-event can't
+        // squat the trending rail (heat sinks it to -Infinity).
+        const ranked = topEvents
+          .slice().sort((a, b) => heatScoreCanon(b) - heatScoreCanon(a))
+          .filter(ev => heatScoreCanon(ev) > -100)
+          .map((ev, i) => ({
+            ...ev,
+            _isTrending: ev.vibe_count > 0,
+            _trendingRank: i + 1,
+          }));
         setTrendingEvents(ranked);
       }
     } catch { /* trending load is best-effort — feed still works without it */ }
