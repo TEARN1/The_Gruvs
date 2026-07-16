@@ -11,6 +11,7 @@ import { useIdentity } from '../context/IdentityContext';
 import { DirectMessageModal } from './DirectMessageModal';
 import { ViberProfileModal } from './ViberProfileModal';
 import { useBackClose } from '../hooks/useBackClose';
+import { personScore } from '../services/peopleScore';
 
 const avatarBg = (u = '') =>
   ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u.charCodeAt(0) || 0) % 5];
@@ -85,7 +86,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
   useBackClose(visible, onClose);
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { applyProfilePrivacy } = useIdentity();
 
   const primary   = currentTheme?.primary    || "#00f2ff";
@@ -199,11 +200,32 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
         unique = unique.filter(u => u.username?.toLowerCase().includes(q) || u.display_name?.toLowerCase().includes(q));
       }
 
+      // RANK (F5): filters stay permissive by design — a missing descriptor
+      // must never HIDE the person you're trying to find. But it shouldn't
+      // rank like a match either. Order: people who CONFIRMEDLY match the
+      // selected descriptors first, then person-relevance (people you've
+      // shared rooms with, shared interests, proximity, recency) — not just
+      // whoever checked in last.
+      const confirmedMatches = (u) => {
+        let k = 0;
+        if (filterGender && filterGender !== 'any' && u.gender) k++;
+        if (filterHair && u.hair_style) k++;
+        if (filterBodyType && u.body_type) k++;
+        if (filterSkinTone && u.skin_tone) k++;
+        if (filterOutfit && u.outfit_vibe) k++;
+        if (filterAgeRange && u.age_range) k++;
+        return k; // known mismatches were already filtered out above
+      };
+      const viewer = { id: user?.id, interests: profile?.interests, lat: profile?.lat, lon: profile?.lon };
+      unique = unique
+        .map(u => ({ ...u, _confirmed: confirmedMatches(u), _personScore: personScore(viewer, u) }))
+        .sort((a, b) => b._confirmed - a._confirmed || b._personScore - a._personScore);
+
       setResults(unique);
     } catch { setResults([]); } finally {
       setLoading(false);
     }
-  }, [user, venue, fromDate, toDate, filterGender, filterHair, filterBodyType, filterSkinTone, filterOutfit, filterAgeRange, filterUsername]);
+  }, [user, profile, venue, fromDate, toDate, filterGender, filterHair, filterBodyType, filterSkinTone, filterOutfit, filterAgeRange, filterUsername]);
 
   const fmtAge = (ts) => {
     if (!ts) return '';

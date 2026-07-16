@@ -2035,6 +2035,40 @@ export const DiscoveryManager = {
       return [];
     }
   },
+
+  // "Rising Vibers" — people being followed RIGHT NOW (7-day follow velocity),
+  // not all-time fame. This was the genuinely-missing trending-people model:
+  // every "trending" people rail used to fall back to vibe_score DESC, which
+  // shows the same five famous accounts forever. Velocity finds who's HOT this
+  // week. Client-side aggregation over recent follow edges — cheap at current
+  // scale, trivially movable to an RPC when the edges table grows.
+  async fetchRisingPeople(limit = 6, { excludeIds = [] } = {}) {
+    const cacheKey = `rising_people:${limit}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data: edges, error } = await supabase.from('follows')
+        .select('following_id, created_at')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(600);
+      if (error) throw error;
+      const counts = new Map();
+      (edges || []).forEach(e => counts.set(e.following_id, (counts.get(e.following_id) || 0) + 1));
+      (excludeIds || []).forEach(id => counts.delete(id));
+      const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([id]) => id);
+      if (!top.length) return [];
+      const { data: profiles } = await supabase.from('profiles')
+        .select('id, username, avatar_url, is_verified, vibe_score, bio')
+        .in('id', top);
+      const ranked = (profiles || [])
+        .map(p => ({ ...p, _risingFollows: counts.get(p.id) || 0 }))
+        .sort((a, b) => b._risingFollows - a._risingFollows);
+      cache.set(cacheKey, ranked, 300000); // 5 min — it's a "this week" signal
+      return ranked;
+    } catch { return []; }
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

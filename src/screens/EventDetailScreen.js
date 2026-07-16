@@ -81,6 +81,7 @@ import { getGuestList, downloadCsv } from '../services/guestList';
 import { getTurnout } from '../services/turnout';
 import { BroadcastModal } from '../components/BroadcastModal';
 import { getHostReliability } from '../services/hostStats';
+import { lifecycleState } from '../utils/eventLifecycle';
 
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
@@ -327,26 +328,37 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   // Funnel: an event detail was opened (discovery → interest step).
   useEffect(() => { if (event?.id) track('event_view', { eventId: event.id, category: event.category }); }, [event?.id]);
 
-  // Countdown clock — ticks every second while event is in the future
+  // Countdown clock. Uses the VENUE's timezone (eventInstant) — the old naive
+  // `new Date(date+time)` parsed in the viewer's zone, so a Lagos event was hours
+  // off in another country. And it derives live/ended from lifecycleState, which
+  // BOUNDS the live window — the old `over` stayed true forever, so a year-old
+  // event kept showing the "LIVE" banner.
   useEffect(() => {
-    const target = event?.event_date
-      ? new Date(`${event.event_date}${event.event_time ? 'T' + event.event_time : 'T00:00:00'}`)
-      : null;
-    if (!target || isNaN(target.getTime())) { setCountdown(null); return; }
+    const target = eventInstant(event);
+    if (target == null) { setCountdown(null); return; }
 
     const tick = () => {
-      const diff = target.getTime() - Date.now();
-      if (diff <= 0) { setCountdown({ over: true }); return; }
-      const d = Math.floor(diff / 86400000);
-      const h = Math.floor((diff % 86400000) / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setCountdown({ d, h, m, s, over: false });
+      const now = Date.now();
+      const state = lifecycleState(event, now);      // upcoming | live | recent | ended
+      const diff = target - now;
+      if (diff > 0) {
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        setCountdown({ d, h, m, s, over: false, live: false, ended: false });
+      } else {
+        setCountdown({
+          over: true,                                  // has started (drives recap etc.)
+          live: state === 'live',                      // ONLY show LIVE while truly live
+          ended: state === 'ended' || state === 'recent',
+        });
+      }
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [event?.event_date, event?.event_time]);
+  }, [event?.event_date, event?.event_time, event?.timezone, event?.end_date]);
 
   // Free weather forecast for the event location + date (open-meteo, no key).
   useEffect(() => {
@@ -1107,7 +1119,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             />
           )}
 
-          {countdown?.over && (
+          {countdown?.live && (
             <SafeSection label="Live Banner" primary={primary}>
               <LiveEventBanner
                 event={event}

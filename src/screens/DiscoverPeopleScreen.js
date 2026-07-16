@@ -257,20 +257,19 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
             .select('id, username, avatar_url, is_verified, vibe_score, bio')
             .in('id', ids);
           if (pErr) throw pErr;
-          return (profiles || []).map(p => ({
+          // F5: rank suggestions by person-relevance, not just the raw mutual count.
+          const withMutuals = (profiles || []).map(p => ({
             ...p,
             mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0,
-          })).sort((a, b) => b.mutual_count - a.mutual_count);
+          }));
+          const viewer = { id: user.id, interests: profile?.interests, lat: profile?.lat, lon: profile?.lon };
+          return rankPeople(viewer, withMutuals, new Map(withMutuals.map(p => [p.id, { mutualCount: p.mutual_count }])));
         },
         async () => {
-          const { data: profiles, error } = await supabase
-            .from('profiles')
-            .select('id, username, avatar_url, is_verified, vibe_score')
-            .neq('id', user.id)
-            .order('vibe_score', { ascending: false })
-            .limit(6);
-          if (error) throw error;
-          return (profiles || []).map(p => ({ ...p, mutual_count: 0 }));
+          // Fallback: RISING people (7-day follow velocity) — who's hot this
+          // week, not the same five famous accounts forever (old: vibe_score DESC).
+          const rising = await DiscoveryManager.fetchRisingPeople(6, { excludeIds: [user.id] });
+          return rising.map(p => ({ ...p, mutual_count: 0 }));
         },
         async () => [],
         [],
@@ -278,7 +277,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       );
       if (scored.length) setSuggested(scored);
     } catch { }
-  }, [user]);
+  }, [user, profile]);
 
   const fetchAll = useCallback(async (q = '') => {
     let qb = supabase
