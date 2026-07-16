@@ -22,6 +22,12 @@
 import { Platform } from 'react-native';
 
 const TESSERACT_CDN = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+// Subresource Integrity: this script runs in the user's browser, so if the CDN
+// were ever compromised it could run arbitrary code on our users. The hash pins
+// the EXACT bytes of the @5.1.1 build (verified by fetching + sha384). If the
+// served file doesn't match, the browser refuses to run it and OCR falls back to
+// manual entry — a broken scan is fine; hijacked code on our users is not.
+const TESSERACT_SRI = 'sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F';
 let _loadPromise = null;
 
 /**
@@ -47,6 +53,10 @@ function loadTesseract() {
       const s = document.createElement('script');
       s.src = TESSERACT_CDN;
       s.async = true;
+      // Verify the CDN bytes before executing them. crossOrigin is required for
+      // the browser to check integrity on a cross-origin script.
+      s.integrity = TESSERACT_SRI;
+      s.crossOrigin = 'anonymous';
       s.onload = () => (window.Tesseract ? resolve(window.Tesseract) : reject(new Error('tesseract-missing')));
       s.onerror = () => reject(new Error('tesseract-load-failed'));
       document.head.appendChild(s);

@@ -9,6 +9,8 @@ import { useTheme } from '../context/ThemeContext';
 import * as Haptics from 'expo-haptics';
 import { GlitterBurst } from './GlitterBurst';
 import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
+import { heatScore } from '../utils/heatScore';
+import { weightedPick } from '../utils/weightedPick';
 
 export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, primary }) => {
   const { currentTheme } = useTheme();
@@ -68,8 +70,15 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
       return;
     }
 
-    // Pick winning event
-    const finalEvent = candidates[Math.floor(Math.random() * candidates.length)];
+    // Pick the winning event — WEIGHTED by real heat (verified presence,
+    // momentum, imminence), not uniform random. Tonight's live floor is more
+    // likely to win than a dead listing, but every candidate keeps a shot —
+    // serendipity is the product. (_heatScore = the feed pipeline's richer
+    // personalised score when the event came from it.)
+    const finalEvent = weightedPick(
+      candidates,
+      (e) => (typeof e._heatScore === 'number' ? e._heatScore : Math.max(0, heatScore(e)))
+    );
     const winningCat = finalEvent.category || 'all';
 
     // Find slice index
