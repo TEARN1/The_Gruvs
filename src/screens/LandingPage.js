@@ -80,6 +80,7 @@ import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
 import { friendsGoing, friendsLabel } from '../services/socialProof';
 import { insertStartHeaders } from '../utils/startGroup';
+import { UnlockTeaserCard } from '../components/UnlockTeaserCard';
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
@@ -958,6 +959,12 @@ const EventCard = React.memo(({
       </FadeInView>
       {showAd && (
         <AdFlywheel intentTag="attending" onNavigateToServices={onNavigateToServices} />
+      )}
+      {/* Drop rule 40: unlock-ladder teaser — once per feed, after card 8.
+          Shows how close the viewer is to their next tier (retention engine
+          made visible). Renders nothing for guests / Legends. */}
+      {index === 7 && (
+        <UnlockTeaserCard primary={primary} surface={surface} textColor={textColor} muted={muted} />
       )}
     </React.Fragment>
   );

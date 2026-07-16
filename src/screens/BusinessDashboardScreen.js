@@ -15,6 +15,7 @@ import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { can, tierFor, missionQuota } from '../services/businessEntitlements';
+import { BusinessTrendPanel } from '../components/BusinessTrendPanel';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 import { StagePlaybookModal } from '../components/StagePlaybookModal';
 import { GiftBoostModal } from '../components/GiftBoostModal';
@@ -790,6 +791,9 @@ export const BusinessDashboardScreen = ({ onClose }) => {
               <MiniBarChart data={analytics.chart} color={primary} label="7-Day Activity" textColor={textColor} muted={muted} />
             </GlassView>
           )}
+
+          {/* Market intel — what The Crowd is into near you (real event heat) */}
+          <BusinessTrendPanel tier={biz?.tier} primary={primary} textColor={textColor} muted={muted} surface={surface} />
 
           {/* Quick actions */}
           <Text style={[sc.sectionTitle, { color: textColor }]}>Quick Moves</Text>
