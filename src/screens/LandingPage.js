@@ -79,6 +79,7 @@ import { PathMapScreen }        from './PathMapScreen';
 import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
 import { friendsGoing, friendsLabel } from '../services/socialProof';
+import { insertStartHeaders } from '../utils/startGroup';
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
@@ -1441,7 +1442,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       });
       // Collapse a multi-stop tour to one card in discovery ('upcoming'); keep
       // every stop in 'mine' so a host can see and manage all of them.
-      return feedMode === 'mine' ? list : collapseTourStops(list);
+      // Upcoming gets "starts-in-N" headers (Tonight / Tomorrow / This week…)
+      // so it reads as a plan, not one flat date wall.
+      return feedMode === 'mine' ? list : insertStartHeaders(collapseTourStops(list));
     }
 
     const filteredTrending = trendingEvents.filter(filter);
@@ -1470,7 +1473,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // whole feed in ONE query — per-card would be N+1 and would crawl.
   const [friendsByEvent, setFriendsByEvent] = useState(new Map());
   useEffect(() => {
-    const ids = feedData.map((e) => e?.id).filter(Boolean).slice(0, 100);
+    const ids = feedData.filter((e) => e && !e._header).map((e) => e.id).filter(Boolean).slice(0, 100);
     if (!user?.id || !ids.length) { setFriendsByEvent(new Map()); return; }
     let alive = true;
     friendsGoing(user.id, ids)
@@ -1519,7 +1522,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // Shake to discover — shake phone to open a random Gruv
   useEffect(() => {
     ShakeDetector.start(() => {
-      const pool = feedData.filter(e => e.id);
+      const pool = feedData.filter(e => e.id && !e._header);
       if (!pool.length) return;
       const random = pool[Math.floor(Math.random() * pool.length)];
       RichHaptics.heavy();
@@ -2338,7 +2341,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     <View style={styles.sectionRow}>
       <Text style={[styles.sectionTitle, { color: textColor }]}>
         {mode === 'drop' ? 'Recent Gruvs' : 'All Gruvs'}
-        {feedData.length > 0 ? <Text style={{ color: muted, fontWeight: '700' }}>  ·  {feedData.length}{hasMore ? '+' : ''}</Text> : null}
+        {feedData.length > 0 ? <Text style={{ color: muted, fontWeight: '700' }}>  ·  {feedData.filter(e => !e._header).length}{hasMore ? '+' : ''}</Text> : null}
       </Text>
       <TouchableOpacity onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}>
         <Text style={[styles.seeAll, { color: primary }]}>Drop a Gruv</Text>
@@ -2411,11 +2414,19 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // ── EVENT CARD ────────────────────────────────────────────────────────────────
   const renderCard = useCallback(({ item: event, index }) => {
     const id = event.id;
+    // "Starts-in-N" section header (Upcoming mode) — a label row, not a card.
+    if (event._header) {
+      return (
+        <Text style={{ color: primary, fontSize: 13, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase', paddingHorizontal: 16, marginTop: 18, marginBottom: 6 }}>
+          {event._header}
+        </Text>
+      );
+    }
     // Masonry mode: one virtual item renders the whole Pinterest grid.
     if (id === '__masonry__') {
       return (
         <MasonryFeed
-          events={feedData}
+          events={feedData.filter(e => !e._header)}
           onSelectEvent={(ev) => setSelectedEvent(ev)}
           primary={primary}
           textColor={textColor}
