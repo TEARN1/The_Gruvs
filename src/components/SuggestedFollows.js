@@ -19,13 +19,14 @@ import { resilientRead } from '../utils/resilience';
 import { haptics } from '../utils/haptics';
 import { ViberProfileModal } from './ViberProfileModal';
 import { GlitterBurst } from './GlitterBurst';
+import { rankPeople } from '../services/peopleScore';
 
 const AV_COLORS = ['#8b5cf6', '#ec4899', '#f97316', '#10b981', '#3b82f6', '#f59e0b', '#06b6d4', '#a78bfa'];
 const avatarBg = (name = '') => AV_COLORS[(name.charCodeAt(0) || 0) % AV_COLORS.length];
 
 export const SuggestedFollows = ({ onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const primary   = currentTheme?.primary    || '#00f2ff';
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.55)';
@@ -45,7 +46,10 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
       followingIds = new Set((data || []).map(r => r.following_id));
     } catch { /* ignore */ }
 
-    const cols = 'id, username, display_name, avatar_url, is_verified, vibe_score, bio, career_title';
+    const cols = 'id, username, display_name, avatar_url, is_verified, vibe_score, bio, career_title, interests, is_online, last_seen, social_integrity_score, lat, lon';
+    // F5 — rank people by RELEVANCE (shared interests, mutuals, proximity,
+    // recency, trust), not by fame. The viewer context feeds personScore.
+    const viewer = { id: user.id, interests: profile?.interests, lat: profile?.lat, lon: profile?.lon };
     const scored = await resilientRead(
       async () => {
         const { data, error } = await supabase.rpc('suggested_follows', { p_user: user.id, p_limit: 14 });
@@ -54,15 +58,18 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
         const ids = data.map(r => r.suggested_id);
         const { data: profiles, error: pErr } = await supabase.from('profiles').select(cols).in('id', ids);
         if (pErr) throw pErr;
-        return (profiles || [])
-          .map(p => ({ ...p, mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0 }))
-          .sort((a, b) => b.mutual_count - a.mutual_count);
+        const withMutuals = (profiles || [])
+          .map(p => ({ ...p, mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0 }));
+        const extras = new Map(withMutuals.map(p => [p.id, { mutualCount: p.mutual_count }]));
+        return rankPeople(viewer, withMutuals, extras);
       },
       async () => {
+        // Fallback pool is fetched by vibe_score (a cheap oversample), but the
+        // ORDER shown is personScore — fame is a pool heuristic, not a ranking.
         const { data, error } = await supabase.from('profiles').select(cols)
-          .neq('id', user.id).order('vibe_score', { ascending: false }).limit(14);
+          .neq('id', user.id).order('vibe_score', { ascending: false }).limit(28);
         if (error) throw error;
-        return (data || []).map(p => ({ ...p, mutual_count: 0 }));
+        return rankPeople(viewer, (data || []).map(p => ({ ...p, mutual_count: 0 }))).slice(0, 14);
       },
       async () => [],
       [],

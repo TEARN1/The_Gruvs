@@ -15,6 +15,7 @@ import { LocationService } from '../services/locationService';
 import { resilientRead, resilient } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
 import { getVibeLevel } from '../utils/vibeLevel';
+import { rankPeople } from '../services/peopleScore';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -194,7 +195,7 @@ function ViberRow({ viber, primary, textColor, muted, bg, onPress, onMessage, is
 export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { applyProfilePrivacy, applyLocationPrivacy } = useIdentity();
   const { show: showToast } = useToast();
 
@@ -282,8 +283,8 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const fetchAll = useCallback(async (q = '') => {
     let qb = supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url, bio, is_online, last_seen, is_verified, vibe_score, interests')
-      .order('vibe_score', { ascending: false })
+      .select('id, username, display_name, avatar_url, bio, is_online, last_seen, is_verified, vibe_score, interests, social_integrity_score, lat, lon')
+      .order('vibe_score', { ascending: false }) // cheap oversample pool — DISPLAY order is personScore (F5)
       .limit(100);
 
     if (user?.id) qb = qb.neq('id', user.id);
@@ -324,8 +325,11 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
         .map(v => applyProfilePrivacy(v, v.id || v.profile_id))
         .filter(v => v !== null);
 
-      // Sort online users to the top — description filters applied reactively via useMemo
-      setVibers(filteredResults.sort((a, b) => (checkOnline(b) ? 1 : 0) - (checkOnline(a) ? 1 : 0)));
+      // F5 — rank by RELEVANCE, not fame: shared interests, proximity, recency
+      // (online-now is a signal inside personScore, not a binary bubble-sort),
+      // trust as a bounded multiplier. Description filters applied via useMemo.
+      const viewer = { id: user?.id, interests: profile?.interests, lat: profile?.lat, lon: profile?.lon };
+      setVibers(rankPeople(viewer, filteredResults));
     } catch (e) {
       setFetchError(e.message || 'Could not load Vibers');
       setVibers([]);
@@ -333,7 +337,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
     }
-  }, [filter, fetchAll, fetchNearby]);
+  }, [filter, fetchAll, fetchNearby, user?.id, profile]);
 
   const displayVibers = useMemo(() => {
     const currentYear = new Date().getFullYear();
