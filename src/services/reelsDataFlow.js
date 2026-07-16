@@ -13,6 +13,7 @@
 import { supabase } from './supabase';
 import { resilient } from '../utils/resilience';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { rankReels } from './reelScore';
 
 // ── 1. OBSERVER REGISTRY PATTERN ─────────────────────────────────────────────
 class ObserverRegistry {
@@ -117,7 +118,10 @@ export const ReelsRepository = {
       const _hit = _reelCache.get(_cacheKey);
       if (_hit && Date.now() - _hit.ts < REEL_CACHE_TTL) return _hit.data;
     }
-    // 1. Check offline scenario or network bypass
+    // Tab semantics: "For You" fetches by recency but is RANKED by reelScore
+    // (engagement quality, freshness, your graph, event pull, watched-demotion,
+    // author diversity). "Following" stays honest-chronological (a timeline you
+    // chose). "Trending" stays a raw leaderboard.
     const applyOrder = (qb) => {
       if (tab === 'trending') return qb.order('like_count', { ascending: false });
       return qb.order('created_at', { ascending: false });
@@ -126,12 +130,16 @@ export const ReelsRepository = {
     let followedIds = [];
     let likedReelIds = [];
     let savedReelIds = [];
+    let viewedReelIds = new Set();
     if (userId) {
       try {
-        const [followRes, likesRes, savesRes] = await Promise.allSettled([
+        const [followRes, likesRes, savesRes, viewsRes] = await Promise.allSettled([
           supabase.from('follows').select('following_id').eq('follower_id', userId).limit(1000),
           supabase.from('reel_likes').select('reel_id').eq('user_id', userId).limit(1000),
           supabase.from('saved_reels').select('reel_id').eq('user_id', userId).limit(1000),
+          // Already-watched (reel_views) — the strongest "show me something new"
+          // signal a For You feed has. Tracked for ages, never used until now.
+          supabase.from('reel_views').select('reel_id').eq('viewer_id', userId).limit(1000),
         ]);
         if (followRes.status === 'fulfilled' && followRes.value.data) {
           followedIds = followRes.value.data.map(r => r.following_id);
@@ -141,6 +149,9 @@ export const ReelsRepository = {
         }
         if (savesRes.status === 'fulfilled' && savesRes.value.data) {
           savedReelIds = savesRes.value.data.map(r => r.reel_id);
+        }
+        if (viewsRes.status === 'fulfilled' && viewsRes.value.data) {
+          viewedReelIds = new Set(viewsRes.value.data.map(r => r.reel_id));
         }
       } catch (err) {
         console.warn('Interactions fetch failed:', err);
@@ -225,6 +236,15 @@ export const ReelsRepository = {
         });
       } else {
         parsedData = parsedData.filter(item => item.visibility == null || item.visibility === 'public');
+      }
+
+      // "For You" gets the real algorithm (reelScore) — never just newest-first.
+      // Hashtag drill-downs keep recency (you asked for a topic, not a ranking).
+      if (tab === 'foryou' && !hashtag) {
+        parsedData = rankReels(parsedData, {
+          viewedIds: viewedReelIds,
+          jitterSeed: force ? Date.now() : 1, // pull-to-refresh reshuffles; cached pull is stable
+        });
       }
 
       // Real data only — never fabricate reels. An empty feed shows the
