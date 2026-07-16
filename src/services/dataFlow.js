@@ -3136,6 +3136,38 @@ export const PresenceManager = {
     cache.invalidate(`profile:${userId}`);
   },
 
+  // ── "I'm out — pull up" (A3: the Beacon PRODUCT) ──────────────────────────
+  // activateBeacon flips the flag; nobody was ever TOLD. This is the product:
+  // going live pings your MUTUALS (people you follow who follow you back —
+  // a deliberate audience, never ambient broadcast) with where to pull up.
+  // Truth Protocol: fires only on a real, user-initiated "go live".
+  async dropBeacon(userId, { coords = {}, minutes = 60, placeLabel = null } = {}) {
+    const expires = await this.activateBeacon(userId, coords, minutes);
+
+    // Fan out to mutuals — bounded, best-effort, never blocks going live.
+    (async () => {
+      try {
+        const [{ data: iFollow }, { data: followMe }] = await Promise.all([
+          supabase.from('follows').select('following_id').eq('follower_id', userId).limit(500),
+          supabase.from('follows').select('follower_id').eq('following_id', userId).limit(500),
+        ]);
+        const mine = new Set((iFollow || []).map(r => r.following_id));
+        const mutuals = (followMe || []).map(r => r.follower_id).filter(id => mine.has(id)).slice(0, 50);
+        if (!mutuals.length) return;
+
+        const { data: me } = await supabase.from('profiles').select('username, display_name').eq('id', userId).maybeSingle();
+        const name = me?.display_name || me?.username || 'A viber';
+        const where = placeLabel ? ` at ${placeLabel}` : ' near you';
+        await Promise.all(mutuals.map(rid =>
+          _notify(rid, userId, 'beacon', `${name} is out — pull up 📍`,
+            `${name} just went live${where}. Beacon is on for ${minutes} min.`).catch(() => {})
+        ));
+      } catch (e) { logError('Beacon.fanout', e, { userId }); }
+    })();
+
+    return expires;
+  },
+
   // Subscribe to a specific user's online status changes
   subscribeToUser(userId, onChange) {
     const channel = supabase

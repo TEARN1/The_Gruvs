@@ -6,7 +6,9 @@
 // layer. Pure.
 
 // High = worth waking someone for; Low = never interruptive (vanity).
-const HIGH = new Set(['message', 'event_day', 'crew_out', 'waitlist', 'sport_goal', 'sport_result', 'now_playing']);
+// 'beacon' is high by design: "I'm out — pull up" is only useful RIGHT NOW,
+// and nightlife's quiet hours are exactly when beacons drop.
+const HIGH = new Set(['message', 'event_day', 'crew_out', 'waitlist', 'sport_goal', 'sport_result', 'now_playing', 'beacon']);
 const LOW  = new Set(['profile_view', 'view', 'reel_view']);
 
 export function notificationPriority(type) {

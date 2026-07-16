@@ -297,10 +297,12 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
             coords = { lat: loc.coords.latitude, lon: loc.coords.longitude };
           }
         } catch { /* beacon still works without a fresh fix */ }
-        await PresenceManager.activateBeacon(user.id, coords, 60);
+        // A3 — the Beacon PRODUCT: going live also pings your mutuals
+        // ("X is out — pull up 📍"), not just a silent flag flip.
+        await PresenceManager.dropBeacon(user.id, { coords, minutes: 60 });
         setBeaconActive(true);
         haptics.success?.();
-        toast?.show?.("You're live — nearby vibers can see you for the next hour.", 'success');
+        toast?.show?.("You're live — your people just got the 'pull up' ping. On for 1 hour.", 'success');
       }
     } catch (e) {
       toast?.show?.(e?.message || 'Could not update your beacon.', 'error');
