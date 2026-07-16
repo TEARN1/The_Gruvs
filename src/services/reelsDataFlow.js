@@ -131,16 +131,22 @@ export const ReelsRepository = {
     let likedReelIds = [];
     let savedReelIds = [];
     let viewedReelIds = new Set();
+    let blockedIds = new Set();
     if (userId) {
       try {
-        const [followRes, likesRes, savesRes, viewsRes] = await Promise.allSettled([
+        const [followRes, likesRes, savesRes, viewsRes, blockRes] = await Promise.allSettled([
           supabase.from('follows').select('following_id').eq('follower_id', userId).limit(1000),
           supabase.from('reel_likes').select('reel_id').eq('user_id', userId).limit(1000),
           supabase.from('saved_reels').select('reel_id').eq('user_id', userId).limit(1000),
           // Already-watched (reel_views) — the strongest "show me something new"
           // signal a For You feed has. Tracked for ages, never used until now.
           supabase.from('reel_views').select('reel_id').eq('viewer_id', userId).limit(1000),
+          // Block is ABSOLUTE (B-sweep 2): a blocked creator's reels never play.
+          supabase.from('user_blocks').select('blocked_id').eq('blocker_id', userId).limit(500),
         ]);
+        if (blockRes.status === 'fulfilled' && blockRes.value.data) {
+          blockedIds = new Set(blockRes.value.data.map(r => r.blocked_id));
+        }
         if (followRes.status === 'fulfilled' && followRes.value.data) {
           followedIds = followRes.value.data.map(r => r.following_id);
         }
@@ -225,6 +231,9 @@ export const ReelsRepository = {
           }
         };
       });
+
+      // Block is absolute — reels by people the viewer blocked never render.
+      if (blockedIds.size) parsedData = parsedData.filter(item => !blockedIds.has(item.user_id));
 
       // Filter access visibility on client side as an extra safety measure.
       // A missing visibility (tier 2, before the column is migrated) is treated

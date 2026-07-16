@@ -212,33 +212,37 @@ export const AuthModal = ({ visible, onClose }) => {
     const day = parseInt(birthDay, 10);
     const month = parseInt(birthMonth, 10);
     const currentYear = new Date().getFullYear(); // evaluated at call-time, not parse-time
-    // Birthday is optional, but if ANY part is given we require a full, valid date.
-    const anyBirth = birthYear || birthDay || birthMonth;
+    // Birthday is REQUIRED with an 18+ floor. The Gruvs hosts age-restricted
+    // (alcohol/nightlife) events and, by requiring 18+ at the door of the app,
+    // sidesteps POPIA's minors regime entirely. This is the app-level gate; the
+    // per-event age_restriction still applies on top for e.g. 21+ events.
     let birthDateStr = null;
-    if (anyBirth) {
-      if (isNaN(year) || isNaN(month) || isNaN(day)) {
-        setError('Please enter your full birthday (day, month and year).');
-        return;
-      }
-      if (year < 1920 || year > currentYear - 13 || month < 1 || month > 12 || day < 1 || day > 31) {
-        setError('Please enter a valid birthday (you must be 13 or older).');
-        return;
-      }
-      const d = new Date(year, month - 1, day);
-      if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
-        setError('That birthday isn’t a real date — please check it.');
-        return;
-      }
-      // Exact age check (handles the month/day, not just the year).
-      let age = currentYear - year;
-      const today = new Date();
-      if (today.getMonth() < month - 1 || (today.getMonth() === month - 1 && today.getDate() < day)) age -= 1;
-      if (age < 13) {
-        setError('You must be 13 or older to use The Gruvs.');
-        return;
-      }
-      birthDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    if (isNaN(year) || isNaN(month) || isNaN(day)) {
+      setError('Please enter your birthday — day, month and year.');
+      setSignupStep(2);
+      return;
     }
+    if (year < 1920 || year > currentYear - 18 || month < 1 || month > 12 || day < 1 || day > 31) {
+      setError('You must be 18 or older to use The Gruvs.');
+      setSignupStep(2);
+      return;
+    }
+    const d = new Date(year, month - 1, day);
+    if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
+      setError('That birthday isn’t a real date — please check it.');
+      setSignupStep(2);
+      return;
+    }
+    // Exact age check (handles the month/day, not just the year).
+    let age = currentYear - year;
+    const today = new Date();
+    if (today.getMonth() < month - 1 || (today.getMonth() === month - 1 && today.getDate() < day)) age -= 1;
+    if (age < 18) {
+      setError('You must be 18 or older to use The Gruvs.');
+      setSignupStep(2);
+      return;
+    }
+    birthDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     setLoading(true);
     setError('');
     let data;
@@ -408,7 +412,7 @@ export const AuthModal = ({ visible, onClose }) => {
                   <View key={s} style={[styles.stepDot, { backgroundColor: signupStep >= s ? primary : `${primary}25` }, signupStep === s && styles.stepDotActive]} />
                 ))}
                 <Text style={[styles.stepText, { color: muted }]}>
-                  {signupStep === 1 ? 'Step 1 of 2 — the essentials' : 'Step 2 of 2 — make it yours (all optional)'}
+                  {signupStep === 1 ? 'Step 1 of 2 — the essentials' : 'Step 2 of 2 — just your birthday, then make it yours'}
                 </Text>
               </View>
             )}
@@ -466,8 +470,8 @@ export const AuthModal = ({ visible, onClose }) => {
                   onChangeText={setCity}
                 />
 
-                <Text style={[styles.label, { color: textColor }]}>Birthday</Text>
-                <Text style={[styles.sublabel, { color: muted }]}>So we can celebrate it with you — your year stays private.</Text>
+                <Text style={[styles.label, { color: textColor }]}>Birthday <Text style={{ color: primary }}>*</Text></Text>
+                <Text style={[styles.sublabel, { color: muted }]}>The Gruvs is 18+. We celebrate your day — your year stays private.</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TextInput
                     style={[styles.input, { flex: 1, borderColor: `${primary}40`, color: textColor }]}

@@ -250,7 +250,12 @@ export const StoriesRow = ({ onAuthRequired }) => {
         .from('follows')
         .select('following_id')
         .eq('follower_id', user.id);
-      const ids = [user.id, ...(follows || []).map(f => f.following_id)];
+      // Block is ABSOLUTE: even if a block didn't unfollow, their stories
+      // never render (B-sweep 2).
+      const { data: blocks } = await supabase
+        .from('user_blocks').select('blocked_id').eq('blocker_id', user.id);
+      const blocked = new Set((blocks || []).map(b => b.blocked_id));
+      const ids = [user.id, ...(follows || []).map(f => f.following_id).filter(id => !blocked.has(id))];
 
       const cutoff = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const { data: stories } = await supabase

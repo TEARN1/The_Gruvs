@@ -41,9 +41,15 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     let followingIds = new Set();
+    let blockedIds = new Set();
     try {
-      const { data } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
+      const [{ data }, { data: blocks }] = await Promise.all([
+        supabase.from('follows').select('following_id').eq('follower_id', user.id),
+        // Block is ABSOLUTE — never SUGGEST someone the viewer blocked (B-sweep 2).
+        supabase.from('user_blocks').select('blocked_id').eq('blocker_id', user.id),
+      ]);
       followingIds = new Set((data || []).map(r => r.following_id));
+      blockedIds = new Set((blocks || []).map(r => r.blocked_id));
     } catch { /* ignore */ }
 
     const cols = 'id, username, display_name, avatar_url, is_verified, vibe_score, bio, career_title, interests, is_online, last_seen, social_integrity_score, lat, lon';
@@ -59,6 +65,7 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
         const { data: profiles, error: pErr } = await supabase.from('profiles').select(cols).in('id', ids);
         if (pErr) throw pErr;
         const withMutuals = (profiles || [])
+          .filter(p => !blockedIds.has(p.id))
           .map(p => ({ ...p, mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0 }));
         const extras = new Map(withMutuals.map(p => [p.id, { mutualCount: p.mutual_count }]));
         return rankPeople(viewer, withMutuals, extras);
@@ -69,7 +76,7 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
         const { data, error } = await supabase.from('profiles').select(cols)
           .neq('id', user.id).order('vibe_score', { ascending: false }).limit(28);
         if (error) throw error;
-        return rankPeople(viewer, (data || []).map(p => ({ ...p, mutual_count: 0 }))).slice(0, 14);
+        return rankPeople(viewer, (data || []).filter(p => !blockedIds.has(p.id)).map(p => ({ ...p, mutual_count: 0 }))).slice(0, 14);
       },
       async () => [],
       [],
