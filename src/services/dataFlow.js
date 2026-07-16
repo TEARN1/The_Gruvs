@@ -18,6 +18,7 @@ import { VibeEconomyEngine } from './revenueEngine';
 import { NotificationService } from './notificationService';
 import { heatScore as canonicalHeatScore } from '../utils/heatScore';
 import { getXpLevel } from '../utils/vibeLevel';
+import { rankEventResults, rankUserResults } from '../utils/searchRelevance';
 import { secureCode } from '../utils/secureId';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
@@ -940,7 +941,34 @@ export const FeedManager = {
           const eventMap = new Map();
           (ftsEvents || ilikeEvents).forEach(e => eventMap.set(e.id, e));
           if (ftsEvents) ilikeEvents.forEach(e => { if (!eventMap.has(e.id)) eventMap.set(e.id, e); });
-          return { events: [...eventMap.values()].slice(0, 20), users };
+
+          // TYPO TOLERANCE: strict matching found nothing but the query looks
+          // like a real word — pull a recent/upcoming candidate pool and fuzzy-
+          // match client-side ("amapaino" still finds Amapiano night).
+          let pool = [...eventMap.values()];
+          if (pool.length === 0 && s.length >= 4) {
+            try {
+              const { data: fuzzPool } = await supabase.from('events')
+                .select('id, title, description, media, cover_url, vibe_count, event_date, event_time, venue_name, category, city, author_id')
+                .is('deleted_at', null).neq('status', 'cancelled')
+                .gte('event_date', new Date(Date.now() - 86400000).toISOString().slice(0, 10))
+                .order('created_at', { ascending: false }).limit(150);
+              pool = normalizeEvents(fuzzPool || []);
+            } catch { /* pool fetch is best-effort */ }
+          }
+
+          // RELEVANCE, not fame: best MATCH first (field-weighted + fuzzy),
+          // upcoming above finished; vibe_count is only a tiebreak.
+          let rankedEvents = rankEventResults(s, pool);
+          // FTS can match stems our client scorer can't see ("dancing"→"danc").
+          // Server said these matched — never let the re-ranker erase them.
+          if (!rankedEvents.length && eventMap.size) rankedEvents = [...eventMap.values()];
+          let rankedUsers = rankUserResults(s, users);
+          if (!rankedUsers.length && users.length) rankedUsers = users;
+          return {
+            events: rankedEvents.slice(0, 20),
+            users: rankedUsers.slice(0, 10),
+          };
         },
         // Tier 2: ilike-only on events, no user search
         async () => {
