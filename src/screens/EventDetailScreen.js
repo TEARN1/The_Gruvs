@@ -49,6 +49,7 @@ import { VIPTierSelector }        from '../components/VIPTierSelector';
 import { CarpoolBoard }           from '../components/CarpoolBoard';
 import { ResidentLiftsSection }   from '../components/ResidentLiftsSection';
 import { ResidentStaysSection }   from '../components/ResidentStaysSection';
+import { ResidentTrustBadge }     from '../components/ResidentTrustBadge';
 import { EventContextualAds }     from '../components/EventContextualAds';
 import { EventScheduleSection }   from '../components/EventScheduleSection';
 import { EventChatRoom }          from '../components/EventChatRoom';
@@ -825,6 +826,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <Text style={[styles.vibeScore, { color: primary }]}>{organizer.vibe_score}</Text>
                 </View>
               )}
+              {/* Trust provenance from the sister app (no-op until the trust
+                  bridge is live — tier is simply undefined before then). */}
+              <ResidentTrustBadge tier={organizer.resident_trust_tier} style={{ marginTop: 3 }} />
             </View>
 
             <TouchableOpacity

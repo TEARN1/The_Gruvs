@@ -57,6 +57,7 @@ import { StreakBadges } from '../components/StreakBadges';
 import { ReferralCard } from '../components/ReferralCard';
 import { CollapsibleSection } from '../components/CollapsibleSection';
 import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
+import { ResidentTrustBadge } from '../components/ResidentTrustBadge';
 import { ClubScreen } from './ClubScreen';
 
 // ── Static imports — avoids "unknown module" chunk failures on web ──
@@ -2758,8 +2759,11 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             <ErrorBoundary inline label="Your Powers" primary={primary}>
               <UnlockMenuCard score={profile?.vibe_score || 0} />
             </ErrorBoundary>
-            <View style={{ paddingHorizontal: 16, paddingBottom: 12, paddingTop: 8 }}>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 12, paddingTop: 8, gap: 8 }}>
               <SocialIntegrityBadge score={user.social_integrity_score ?? 50} size="large" primary={primary} muted={muted} textColor={textColor} bg={bg} />
+              {/* Trust provenance from the sister app (renders nothing until the
+                  Resident trust bridge is live and this profile has earned a tier). */}
+              <ResidentTrustBadge tier={profile?.resident_trust_tier ?? user?.resident_trust_tier} size="large" />
             </View>
           </CollapsibleSection>
         )}
