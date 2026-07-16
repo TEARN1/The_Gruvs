@@ -15,6 +15,7 @@ import { track } from '../utils/analytics';
 import { useToast } from './ToastNotification';
 import { useBackClose } from '../hooks/useBackClose';
 import { GlitterBurst } from './GlitterBurst';
+import { escapeLike, findImpersonation } from '../utils/handleGuard';
 
 const SCREEN_W = Dimensions.get('window').width;
 const HM = SCREEN_W < 375 ? 12 : 25;
@@ -112,9 +113,21 @@ export const AuthModal = ({ visible, onClose }) => {
     setError('');
     setCheckingName(true);
     try {
+      // escapeLike: a handle with `_` or `%` must not act as an ilike wildcard,
+      // or `a_b` would match `axb` and give false "taken" (and let real conflicts slip).
       const { data } = await supabase.from('profiles')
-        .select('id').ilike('username', handle).limit(1).maybeSingle();
+        .select('id').ilike('username', escapeLike(handle)).limit(1).maybeSingle();
       if (data) { setError(`@${handle} is taken — try another username.`); return; }
+
+      // Impersonation: a handle that READS the same as an existing one (k0nka for
+      // konka, kon.ka, konkaa) is how someone trades on a real venue's name.
+      // Best-effort client check; the scalable enforcement is a unique index on a
+      // stored skeleton column (needs the DB migration).
+      try {
+        const { data: existing } = await supabase.from('profiles').select('username').limit(1000);
+        const clash = findImpersonation(handle, (existing || []).map((r) => r.username));
+        if (clash) { setError(`@${handle} looks too much like @${clash} — pick a more distinct name.`); return; }
+      } catch { /* best-effort — never block a real signup on this */ }
     } catch { /* offline / RLS — let signup itself decide */ } finally {
       setCheckingName(false);
     }
