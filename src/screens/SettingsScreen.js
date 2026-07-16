@@ -111,6 +111,7 @@ export const SettingsScreen = ({
   const [discoverable, setDiscoverable] = useState(profile?.is_discoverable ?? true);
   const [showOnline, setShowOnline] = useState(profile?.show_online ?? true);
   const [shareEvents, setShareEvents] = useState(profile?.share_events ?? false);
+  const [wantsEmail, setWantsEmail] = useState(profile?.wants_email ?? true);
   const [pushOn, setPushOn] = useState(!!profile?.push_token || NotificationService.isWebPushEnabled());
   const [pushBusy, setPushBusy] = useState(false);
   const [soundOn, setSoundOn] = useState(SoundFX.isEnabled());
@@ -137,11 +138,12 @@ export const SettingsScreen = ({
     setDiscoverable(profile?.is_discoverable ?? true);
     setShowOnline(profile?.show_online ?? true);
     setShareEvents(profile?.share_events ?? false);
+    setWantsEmail(profile?.wants_email ?? true);
     setPushOn(!!profile?.push_token);
     setCareerTitle(profile?.career_title || '');
     setCareerDescription(profile?.career_description || '');
     setLooksDescription(profile?.looks_description || '');
-  }, [profile?.is_discoverable, profile?.show_online, profile?.share_events, profile?.push_token,
+  }, [profile?.is_discoverable, profile?.show_online, profile?.share_events, profile?.wants_email, profile?.push_token,
       profile?.career_title, profile?.career_description, profile?.looks_description]);
 
   useEffect(() => {
@@ -429,6 +431,11 @@ export const SettingsScreen = ({
           {pushBusy && <ActivityIndicator color={primary} style={{ marginTop: 8 }} />}
           <ToggleRow label="Sound effects" sub="Signature Gruvs sounds for messages, pings & Touch Downs"
             value={soundOn} onValueChange={toggleSound}
+            primary={primary} muted={muted} textColor={textColor} />
+          {/* Consent to marketing email must be WITHDRAWABLE, not just opt-in at
+              signup (POPIA s.11(2)). This is that off-switch. */}
+          <ToggleRow label="Email me about new events & updates" sub="Marketing email — turn off any time"
+            value={wantsEmail} onValueChange={(v) => writeField('wants_email', v, setWantsEmail, wantsEmail)}
             primary={primary} muted={muted} textColor={textColor} />
         </SectionCard>
 
