@@ -82,6 +82,7 @@ import { getTurnout } from '../services/turnout';
 import { BroadcastModal } from '../components/BroadcastModal';
 import { getHostReliability } from '../services/hostStats';
 import { lifecycleState } from '../utils/eventLifecycle';
+import { DoorCheckInModal } from '../components/DoorCheckInModal';
 
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
@@ -195,6 +196,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   // show-up history. The number a host can plan against.
   const [turnout, setTurnout] = useState(null);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [doorOpen, setDoorOpen] = useState(false);
   const [guests, setGuests] = useState([]);
   const [guestsModalOpen, setGuestsModalOpen] = useState(false);
   // Hype hearts on lineup guests — { [guestId]: { count, mine } }, persisted
@@ -1107,6 +1109,27 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <Feather name="radio" size={15} color={primary} />
               <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>Send an update to everyone coming</Text>
             </TouchableOpacity>
+          )}
+
+          {/* Host only: work the door. Validates the CSPRNG ticket, admits once,
+              rejects a re-used code — the usable end of the ticket system. */}
+          {isOrganiser && event?.id && (
+            <TouchableOpacity
+              onPress={() => setDoorOpen(true)}
+              activeOpacity={0.85}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                marginHorizontal: 16, marginTop: 10, paddingVertical: 12, borderRadius: 12,
+                borderWidth: 1, borderColor: `${primary}40`, backgroundColor: `${primary}10`,
+              }}
+            >
+              <Feather name="check-square" size={15} color={primary} />
+              <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>Door check-in</Text>
+            </TouchableOpacity>
+          )}
+
+          {isOrganiser && event?.id && (
+            <DoorCheckInModal visible={doorOpen} onClose={() => setDoorOpen(false)} event={event} />
           )}
 
           {isOrganiser && event?.id && (

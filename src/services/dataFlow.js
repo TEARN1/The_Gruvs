@@ -838,6 +838,28 @@ export const FeedManager = {
         }
         const coldStart = (userInterests?.length || 0) === 0 && resolvedFollowedIds.length === 0;
         events = ScoreEngine.diversify(events, { seenIds, dwellById, coldStart });
+
+        // BOOSTED SLOT (Drop rule 37): a host holding an active ad token gets
+        // ONE labeled "Promoted" placement at position 3 — a fixed slot, never
+        // a ranking bribe (paid reach must not masquerade as organic heat).
+        // Best-effort: RPC missing / no tokens → no slot, feed unchanged.
+        if (userId && events.length > 4) {
+          try {
+            const { data: boosted } = await supabase.rpc('get_boosted_hosts');
+            const boostedHosts = new Set((boosted || []).map(b => b.user_id));
+            if (boostedHosts.size) {
+              const SLOT = 2; // third card — visible without owning the top
+              const idx = events.findIndex((e, i) => i > SLOT && boostedHosts.has(e.author_id));
+              if (idx > SLOT) {
+                const [promo] = events.splice(idx, 1);
+                events.splice(SLOT, 0, { ...promo, _boosted: true });
+              } else if (idx === -1 && events.slice(0, SLOT + 1).some(e => boostedHosts.has(e.author_id))) {
+                // already organically high — label it, don't double-place
+                events = events.map((e, i) => (i <= SLOT && boostedHosts.has(e.author_id)) ? { ...e, _boosted: true } : e);
+              }
+            }
+          } catch { /* boosted slot is enhancement only */ }
+        }
       }
       const result = { events, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
       cache.set(cacheKey, result);
