@@ -80,6 +80,7 @@ import { setEventSeo, clearEventSeo } from '../utils/seo';
 import { getGuestList, downloadCsv } from '../services/guestList';
 import { getTurnout } from '../services/turnout';
 import { BroadcastModal } from '../components/BroadcastModal';
+import { getHostReliability } from '../services/hostStats';
 
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
@@ -199,6 +200,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   // in event_guest_likes (SQL patch 20). Degrades silently if un-migrated.
   const [guestLikes, setGuestLikes] = useState({});
   const [organizerProfileOpen, setOrganizerProfileOpen] = useState(false);
+  const [hostRelLabel, setHostRelLabel] = useState('');
   const [openGuestPlayer, setOpenGuestPlayer] = useState(null);
   const [govOpen, setGovOpen] = useState(false);
   const [giftingOpen, setGiftingOpen] = useState(false);
@@ -231,6 +233,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     getTurnout(event).then((t) => { if (alive) setTurnout(t); }).catch(() => {});
     return () => { alive = false; };
   }, [event?.id, goingCount]);
+
+  // Host reliability badge (Truth Score). Read-only; empty until enough history.
+  useEffect(() => {
+    let alive = true;
+    if (!organizer?.id) { setHostRelLabel(''); return; }
+    getHostReliability(organizer.id).then((r) => { if (alive) setHostRelLabel(r.label); }).catch(() => {});
+    return () => { alive = false; };
+  }, [organizer?.id]);
 
   // Load hype hearts for the lineup once guests are known.
   useEffect(() => {
@@ -820,6 +830,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   {organizer.username || 'Unknown Organizer'}
                 </Text>
               </TouchableOpacity>
+              {/* Truth Score: does this host actually deliver? Earned from their
+                  past events (started on time? crowd showed?). Hidden until there's
+                  enough history — a new host is never shown as unreliable. */}
+              {!!hostRelLabel && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                  <Feather name="shield" size={11} color={primary} />
+                  <Text style={{ color: primary, fontSize: 11, fontWeight: '700' }}>{hostRelLabel}</Text>
+                </View>
+              )}
               {organizer.vibe_score != null && (
                 <View style={[styles.vibeBadge, { borderColor: primary + '80' }]}>
                   <Feather name="zap" size={10} color={primary} />
