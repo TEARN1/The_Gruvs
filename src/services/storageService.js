@@ -80,28 +80,41 @@ const uriToBlob = (uri) => new Promise((resolve, reject) => {
   xhr.send();
 });
 
-// Downscale + re-encode big images before upload so we stop accumulating ~1MB
-// source files (cheaper storage, faster weserv resize on display). Web-only
-// (canvas); returns the ORIGINAL blob on anything unexpected so it can never
-// break an upload. Videos, GIFs and small images pass through untouched.
+// Sanitise (strip metadata) + downscale images before upload.
+//
+// PRIVACY (#352): a phone photo's EXIF carries the GPS coordinates it was taken
+// at — often someone's home. On a location-safety-first app, uploading that raw
+// is a real leak (anyone who downloads the image reads the coordinates).
+// Re-encoding through a canvas produces a clean image with NO metadata, so we
+// now do it for EVERY image on web — not just large ones — even when it doesn't
+// shrink the file. Downscaling still only kicks in for big images.
+//
+// Web-only (canvas). Returns the ORIGINAL on anything unexpected so it can never
+// break an upload. Videos pass through. ⚠ NATIVE uploads are NOT yet stripped —
+// that needs expo-image-manipulator (a native dep + rebuild); flagged.
 const COMPRESSIBLE = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COMPRESS_MAX_DIM = 1600;
 const COMPRESS_MIN_BYTES = 350 * 1024;
 const compressImageBlob = async (blob, type) => {
   try {
     if (typeof document === 'undefined' || typeof createImageBitmap === 'undefined') return blob;
-    if (!COMPRESSIBLE.has(type) || blob.size < COMPRESS_MIN_BYTES) return blob;
+    if (!COMPRESSIBLE.has(type)) return blob;      // videos/gifs — not a GPS-EXIF vector here
     const bmp = await createImageBitmap(blob);
-    const scale = Math.min(1, COMPRESS_MAX_DIM / Math.max(bmp.width, bmp.height));
+    // Downscale only big images; small ones re-encode at full size purely to
+    // drop metadata.
+    const scale = blob.size >= COMPRESS_MIN_BYTES
+      ? Math.min(1, COMPRESS_MAX_DIM / Math.max(bmp.width, bmp.height))
+      : 1;
     const w = Math.max(1, Math.round(bmp.width * scale));
     const h = Math.max(1, Math.round(bmp.height * scale));
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
     bmp.close?.();
-    const out = await new Promise((res) => canvas.toBlob(res, 'image/webp', 0.72));
-    // Keep the compressed copy only if it actually helped.
-    return (out && out.size > 0 && out.size < blob.size) ? out : blob;
+    const out = await new Promise((res) => canvas.toBlob(res, 'image/webp', 0.82));
+    // Prefer the re-encoded (metadata-free) copy — privacy beats a few KB. Only
+    // fall back to the original if the canvas produced nothing usable.
+    return (out && out.size > 0) ? out : blob;
   } catch { return blob; }
 };
 
