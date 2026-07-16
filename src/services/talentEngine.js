@@ -9,6 +9,7 @@
 import { supabase } from './supabase';
 import { resilient } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
+import { pick, PLAYER_EDITABLE } from '../utils/safeUpdate';
 
 const safe = async (fn, fallback) => {
   try { const v = await fn(); return v ?? fallback; } catch { return fallback; }
@@ -149,7 +150,8 @@ export const TalentEngine = {
   /** Update a talent's editable profile fields (creator/claimant/admin only via RLS). */
   async updateTalent(playerId, patch = {}) {
     const ok = await resilient(
-      [() => supabase.from('players').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', playerId)],
+      // Whitelist — never let a caller self-verify or inflate their career_* stats
+      [() => supabase.from('players').update({ ...pick(patch, PLAYER_EDITABLE), updated_at: new Date().toISOString() }).eq('id', playerId)],
       { attemptsPerTier: 2, baseMs: 300, label: 'TalentEngine.updateTalent', fallbackValue: null }
     );
     return ok !== null;

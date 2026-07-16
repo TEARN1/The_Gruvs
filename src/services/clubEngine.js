@@ -7,6 +7,7 @@
  * CareerStatsManager — read player career stats
  */
 import { supabase } from './supabase';
+import { pick, CLUB_EDITABLE } from '../utils/safeUpdate';
 
 // ── CLUB MANAGER ──────────────────────────────────────────────────────────────
 export const ClubManager = {
@@ -23,7 +24,8 @@ export const ClubManager = {
   async update(clubId, data) {
     const { data: club, error } = await supabase
       .from('clubs')
-      .update({ ...data, updated_at: new Date().toISOString() })
+      // Whitelist columns — never let a caller set owner_id / is_verified / counts
+      .update({ ...pick(data, CLUB_EDITABLE), updated_at: new Date().toISOString() })
       .eq('id', clubId)
       .select().single();
     if (error) throw error;

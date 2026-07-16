@@ -21,6 +21,7 @@
  */
 
 import { supabase } from './supabase';
+import { stripPrivileged } from '../utils/safeUpdate';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EVENT TYPE MANAGEMENT CONFIG
@@ -682,7 +683,8 @@ export const HackTeamManager = {
   async submitProject(id, projectData) {
     const { data, error } = await supabase
       .from('event_teams')
-      .update({ ...projectData, submitted: true, submitted_at: new Date().toISOString() })
+      // strip privileged fields — the state change is the explicit `submitted` below
+      .update({ ...stripPrivileged(projectData), submitted: true, submitted_at: new Date().toISOString() })
       .eq('id', id).select().single();
     if (error) throw error;
     return data;

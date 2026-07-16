@@ -19,6 +19,7 @@
 
 import { supabase } from './supabase';
 import { MatchCache, withCache } from './offlineCache';
+import { stripPrivileged } from '../utils/safeUpdate';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SPORT REGISTRY — drives UI rendering and scoring rules per sport
@@ -479,7 +480,8 @@ export const TeamManager = {
   async update(teamId, updates) {
     const { data, error } = await supabase
       .from('sport_teams')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      // strip owner/verification/counter fields a caller must not set
+      .update({ ...stripPrivileged(updates), updated_at: new Date().toISOString() })
       .eq('id', teamId)
       .select()
       .single();
