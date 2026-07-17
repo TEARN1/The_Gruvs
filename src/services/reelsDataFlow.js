@@ -134,7 +134,7 @@ export const ReelsRepository = {
     let blockedIds = new Set();
     if (userId) {
       try {
-        const [followRes, likesRes, savesRes, viewsRes, blockRes] = await Promise.allSettled([
+        const [followRes, likesRes, savesRes, viewsRes, blockRes, muteRes] = await Promise.allSettled([
           supabase.from('follows').select('following_id').eq('follower_id', userId).limit(1000),
           supabase.from('reel_likes').select('reel_id').eq('user_id', userId).limit(1000),
           supabase.from('saved_reels').select('reel_id').eq('user_id', userId).limit(1000),
@@ -143,9 +143,15 @@ export const ReelsRepository = {
           supabase.from('reel_views').select('reel_id').eq('viewer_id', userId).limit(1000),
           // Block is ABSOLUTE (B-sweep 2): a blocked creator's reels never play.
           supabase.from('user_blocks').select('blocked_id').eq('blocker_id', userId).limit(500),
+          // Mute is a soft "hide their content" (B-sweep 6) — now consistent
+          // across feed + reels + stories, not feed-only.
+          supabase.from('muted_users').select('muted_id').eq('user_id', userId).limit(500),
         ]);
         if (blockRes.status === 'fulfilled' && blockRes.value.data) {
           blockedIds = new Set(blockRes.value.data.map(r => r.blocked_id));
+        }
+        if (muteRes.status === 'fulfilled' && muteRes.value.data) {
+          for (const r of muteRes.value.data) blockedIds.add(r.muted_id); // fold mute into the hidden set
         }
         if (followRes.status === 'fulfilled' && followRes.value.data) {
           followedIds = followRes.value.data.map(r => r.following_id);
@@ -232,7 +238,7 @@ export const ReelsRepository = {
         };
       });
 
-      // Block is absolute — reels by people the viewer blocked never render.
+      // Hidden set = blocked (absolute) ∪ muted (soft hide) — neither's reels render.
       if (blockedIds.size) parsedData = parsedData.filter(item => !blockedIds.has(item.user_id));
 
       // Filter access visibility on client side as an extra safety measure.

@@ -36,6 +36,8 @@ import { supabase } from '../services/supabase';
 import { haptics } from '../utils/haptics';
 import { THEMES } from '../constants/Themes';
 import { exportMyData } from '../services/dataExport';
+import { MfaSetupModal } from '../components/MfaSetupModal';
+import { mfaStatus } from '../services/mfa';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
@@ -121,6 +123,11 @@ export const SettingsScreen = ({
     SoundFX.setEnabled(next); // plays a confirmation chime when turned on
     toast?.show(next ? 'Sound effects on 🔊' : 'Sound effects off', next ? 'success' : 'info');
   }, [toast]);
+
+  // Two-factor auth (#997)
+  const [mfaOpen, setMfaOpen] = useState(false);
+  const [mfaOn, setMfaOn] = useState(false);
+  useEffect(() => { mfaStatus().then((s) => setMfaOn(!!s.enabled)); }, []);
 
   // App lock
   const [safetyHubOpen, setSafetyHubOpen] = useState(false);
@@ -507,6 +514,9 @@ export const SettingsScreen = ({
               Biometric app lock isn't available on this device.
             </Text>
           )}
+          <LinkRow icon="shield" label="Two-factor authentication"
+            value={mfaOn ? 'On' : 'Off'} onPress={() => setMfaOpen(true)}
+            primary={primary} muted={muted} textColor={textColor} />
           <View style={st.infoRow}>
             <Feather name="shield" size={15} color={primary} />
             <Text style={[st.rowSub, { color: muted, flex: 1 }]}>Your session is protected by Supabase Auth with secure tokens.</Text>
@@ -529,6 +539,7 @@ export const SettingsScreen = ({
       </ScrollView>
 
       <SafetyHubModal visible={safetyHubOpen} onClose={() => setSafetyHubOpen(false)} />
+      <MfaSetupModal visible={mfaOpen} onClose={() => setMfaOpen(false)} onChanged={setMfaOn} />
     </View>
     </ErrorBoundary>
   );

@@ -250,12 +250,14 @@ export const StoriesRow = ({ onAuthRequired }) => {
         .from('follows')
         .select('following_id')
         .eq('follower_id', user.id);
-      // Block is ABSOLUTE: even if a block didn't unfollow, their stories
-      // never render (B-sweep 2).
-      const { data: blocks } = await supabase
-        .from('user_blocks').select('blocked_id').eq('blocker_id', user.id);
-      const blocked = new Set((blocks || []).map(b => b.blocked_id));
-      const ids = [user.id, ...(follows || []).map(f => f.following_id).filter(id => !blocked.has(id))];
+      // Hidden = blocked (absolute) ∪ muted (soft hide). A block/mute doesn't
+      // unfollow, so filter here so their stories never render (B-sweep 2 + 6).
+      const [{ data: blocks }, { data: mutes }] = await Promise.all([
+        supabase.from('user_blocks').select('blocked_id').eq('blocker_id', user.id),
+        supabase.from('muted_users').select('muted_id').eq('user_id', user.id),
+      ]);
+      const hidden = new Set([...(blocks || []).map(b => b.blocked_id), ...(mutes || []).map(m => m.muted_id)]);
+      const ids = [user.id, ...(follows || []).map(f => f.following_id).filter(id => !hidden.has(id))];
 
       const cutoff = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const { data: stories } = await supabase
