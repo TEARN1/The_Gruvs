@@ -3004,7 +3004,9 @@ export const BlockManager = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MUTE MANAGER  (hide user's events from feed)
+// MUTE MANAGER  (soft "hide their content" — feed events + reels + stories)
+// The gentler cousin of block: you still share DMs/crossed-paths, but their
+// posts, reels and stories stay out of your discovery surfaces.
 // ─────────────────────────────────────────────────────────────────────────────
 export const MuteManager = {
   async mute(muterId, mutedId) {
