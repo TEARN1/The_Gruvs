@@ -467,6 +467,13 @@ create index if not exists idx_res_responders_alert    on public.res_alert_respo
 create index if not exists idx_res_market_user         on public.res_market_items (user_id);
 create index if not exists idx_res_market_community    on public.res_market_items (community_id);
 create index if not exists idx_res_vendors_user        on public.res_vendors (user_id);
+-- Community feeds filter by community_id — index the content tables that carry it.
+create index if not exists idx_res_skills_community    on public.res_skills (community_id);
+create index if not exists idx_res_lostfound_community on public.res_lost_found (community_id);
+create index if not exists idx_res_groupbuys_community on public.res_group_buys (community_id);
+create index if not exists idx_res_resources_community on public.res_shared_resources (community_id);
+create index if not exists idx_res_vendors_community   on public.res_vendors (community_id);
+create index if not exists idx_res_nbhstatus_community on public.res_neighbourhood_status (community_id);
 create index if not exists idx_res_groupbuys_organizer on public.res_group_buys (organizer_id);
 create index if not exists idx_res_lostfound_user      on public.res_lost_found (user_id);
 create index if not exists idx_res_care_subject        on public.res_care_circle (subject_id);
