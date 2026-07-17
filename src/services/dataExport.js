@@ -12,6 +12,7 @@
  */
 import { supabase } from './supabase';
 import { logError } from '../utils/logError';
+import { track } from '../utils/analytics';
 
 // The user's own rows, keyed by the column that ties a row to them.
 const OWNED = [
@@ -73,6 +74,10 @@ export async function exportMyData(userId) {
   const payload = await collectUserData(userId);
   const tables = Object.keys(payload.data).length;
   const ok = downloadJson(payload);
+  // Audit trail (#913, #335): record every bulk export of a user's data, so a
+  // burst of exports is visible after the fact. This is the app-side of mass-read
+  // visibility; true attacker-detection needs Supabase log monitoring (infra).
+  try { track('data_export', { tables, ok }); } catch { /* never block the export */ }
   return { ok, tables };
 }
 
