@@ -1,14 +1,15 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- resident_marketplace_gate.sql — Feature C: trust-gated marketplace writes
 --
--- Only Resident-trusted users may SELL. Enforced in RLS WITH CHECK, not the
--- client — the anti-abuse spine a marketplace needs. Selling requires either:
+-- TRUSTED-MEMBERS-ONLY marketplace. Only Resident-trusted users may SELL *or
+-- even SEE it* — untrusted users get zero rows. Trust = either:
 --   • a Resident trust tier ('trusted' or 'verified' — earned via
 --     res_sync_trust(), see resident_trust_bridge.sql), OR
 --   • profiles.is_verified (verification granted through any other path).
 --
--- Buying/browsing stays open to all signed-in users (SELECT policies
--- unchanged), and buyers contact sellers via DM — broker only, no payments.
+-- Reads AND writes are gated by res_can_sell(); a member always keeps sight of
+-- their OWN rows (a lapsed tier never hides their listings). Contact stays
+-- DM-only — broker, no payments.
 --
 -- ORDER: run AFTER resident_schema_v2.sql AND resident_trust_bridge.sql.
 -- Everything is to_regclass-guarded, so running early is a safe no-op.
@@ -28,10 +29,15 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.res_can_sell(UUID) FROM public, anon;
 GRANT  EXECUTE ON FUNCTION public.res_can_sell(UUID) TO authenticated, service_role;
 
--- ── res_market_items: INSERT/UPDATE require ownership + selling trust ────────
+-- ── res_market_items: trusted-only READ + write; own rows always visible ────
 DO $$
 BEGIN
   IF to_regclass('public.res_market_items') IS NOT NULL THEN
+    DROP POLICY IF EXISTS res_market_select ON public.res_market_items;
+    CREATE POLICY res_market_select ON public.res_market_items
+      FOR SELECT TO authenticated
+      USING (public.res_can_sell(auth.uid()) OR user_id = auth.uid());
+
     DROP POLICY IF EXISTS res_market_insert ON public.res_market_items;
     CREATE POLICY res_market_insert ON public.res_market_items
       FOR INSERT TO authenticated
@@ -45,10 +51,15 @@ BEGIN
   END IF;
 END $$;
 
--- ── res_vendors: a vendor listing is a selling surface — same gate ────────────
+-- ── res_vendors: a vendor listing is a selling surface — same trusted gate ────
 DO $$
 BEGIN
   IF to_regclass('public.res_vendors') IS NOT NULL THEN
+    DROP POLICY IF EXISTS res_vendors_select ON public.res_vendors;
+    CREATE POLICY res_vendors_select ON public.res_vendors
+      FOR SELECT TO authenticated
+      USING (public.res_can_sell(auth.uid()) OR user_id = auth.uid());
+
     DROP POLICY IF EXISTS res_vendors_insert ON public.res_vendors;
     CREATE POLICY res_vendors_insert ON public.res_vendors
       FOR INSERT TO authenticated
