@@ -254,14 +254,16 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
           const ids = data.map(r => r.suggested_id);
           const { data: profiles, error: pErr } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, is_verified, vibe_score, bio')
+            .select('id, username, avatar_url, is_verified, vibe_score, bio, identity_mode, is_beacon_active')
             .in('id', ids);
           if (pErr) throw pErr;
-          // F5: rank suggestions by person-relevance, not just the raw mutual count.
-          const withMutuals = (profiles || []).map(p => ({
-            ...p,
-            mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0,
-          }));
+          // Honor ghost/incognito (privacy is absolute) + block before ranking:
+          // never suggest someone who chose to be hidden.
+          const withMutuals = (profiles || [])
+            .filter(p => !blockedIds.has(p.id))
+            .map(p => applyProfilePrivacy(p, p.id))
+            .filter(Boolean)
+            .map(p => ({ ...p, mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0 }));
           const viewer = { id: user.id, interests: profile?.interests, lat: profile?.lat, lon: profile?.lon };
           return rankPeople(viewer, withMutuals, new Map(withMutuals.map(p => [p.id, { mutualCount: p.mutual_count }])));
         },
@@ -269,7 +271,11 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
           // Fallback: RISING people (7-day follow velocity) — who's hot this
           // week, not the same five famous accounts forever (old: vibe_score DESC).
           const rising = await DiscoveryManager.fetchRisingPeople(6, { excludeIds: [user.id] });
-          return rising.map(p => ({ ...p, mutual_count: 0 }));
+          return rising
+            .filter(p => !blockedIds.has(p.id))
+            .map(p => applyProfilePrivacy(p, p.id))
+            .filter(Boolean)
+            .map(p => ({ ...p, mutual_count: 0 }));
         },
         async () => [],
         [],
@@ -277,7 +283,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       );
       if (scored.length) setSuggested(scored);
     } catch { }
-  }, [user, profile]);
+  }, [user, profile, blockedIds, applyProfilePrivacy]);
 
   const fetchAll = useCallback(async (q = '') => {
     let qb = supabase

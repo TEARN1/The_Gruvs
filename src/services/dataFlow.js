@@ -2089,7 +2089,7 @@ export const DiscoveryManager = {
       const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([id]) => id);
       if (!top.length) return [];
       const { data: profiles } = await supabase.from('profiles')
-        .select('id, username, avatar_url, is_verified, vibe_score, bio')
+        .select('id, username, avatar_url, is_verified, vibe_score, bio, identity_mode, is_beacon_active')
         .in('id', top);
       const ranked = (profiles || [])
         .map(p => ({ ...p, _risingFollows: counts.get(p.id) || 0 }))

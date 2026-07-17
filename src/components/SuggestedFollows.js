@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { thumb } from '../utils/storageThumb';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useIdentity } from '../context/IdentityContext';
 import { supabase } from '../services/supabase';
 import { resilientRead } from '../utils/resilience';
 import { haptics } from '../utils/haptics';
@@ -27,6 +28,7 @@ const avatarBg = (name = '') => AV_COLORS[(name.charCodeAt(0) || 0) % AV_COLORS.
 export const SuggestedFollows = ({ onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
+  const { applyProfilePrivacy } = useIdentity();
   const primary   = currentTheme?.primary    || '#00f2ff';
   const textColor = currentTheme?.text       || '#fff';
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.55)';
@@ -52,7 +54,15 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
       blockedIds = new Set((blocks || []).map(r => r.blocked_id));
     } catch { /* ignore */ }
 
-    const cols = 'id, username, display_name, avatar_url, is_verified, vibe_score, bio, career_title, interests, is_online, last_seen, social_integrity_score, lat, lon';
+    // identity_mode/is_beacon_active are needed to honor ghost/incognito privacy.
+    const cols = 'id, username, display_name, avatar_url, is_verified, vibe_score, bio, career_title, interests, is_online, last_seen, social_integrity_score, lat, lon, identity_mode, is_beacon_active';
+    // Privacy is ABSOLUTE (like block): a ghost is anonymised, an incognito user
+    // (celebrity mode, no beacon) is DROPPED — never suggest someone who chose to
+    // be hidden, with their real identity. Runs before ranking.
+    const privacy = (list) => (list || [])
+      .filter(p => !blockedIds.has(p.id))
+      .map(p => applyProfilePrivacy(p, p.id))
+      .filter(Boolean);
     // F5 — rank people by RELEVANCE (shared interests, mutuals, proximity,
     // recency, trust), not by fame. The viewer context feeds personScore.
     const viewer = { id: user.id, interests: profile?.interests, lat: profile?.lat, lon: profile?.lon };
@@ -64,8 +74,7 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
         const ids = data.map(r => r.suggested_id);
         const { data: profiles, error: pErr } = await supabase.from('profiles').select(cols).in('id', ids);
         if (pErr) throw pErr;
-        const withMutuals = (profiles || [])
-          .filter(p => !blockedIds.has(p.id))
+        const withMutuals = privacy(profiles)
           .map(p => ({ ...p, mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0 }));
         const extras = new Map(withMutuals.map(p => [p.id, { mutualCount: p.mutual_count }]));
         return rankPeople(viewer, withMutuals, extras);
@@ -76,7 +85,7 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
         const { data, error } = await supabase.from('profiles').select(cols)
           .neq('id', user.id).order('vibe_score', { ascending: false }).limit(28);
         if (error) throw error;
-        return rankPeople(viewer, (data || []).filter(p => !blockedIds.has(p.id)).map(p => ({ ...p, mutual_count: 0 }))).slice(0, 14);
+        return rankPeople(viewer, privacy(data).map(p => ({ ...p, mutual_count: 0 }))).slice(0, 14);
       },
       async () => [],
       [],
@@ -84,7 +93,7 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
     );
     setPeople((scored || []).filter(p => p.id !== user.id && !followingIds.has(p.id)));
     setLoading(false);
-  }, [user]);
+  }, [user, profile, applyProfilePrivacy]);
 
   useEffect(() => { load(); }, [load]);
 
