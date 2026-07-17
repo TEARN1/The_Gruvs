@@ -87,6 +87,10 @@ export async function getTourStops(seriesId) {
     .from('events')
     .select('id, title, city, address, lat, lon, event_date, event_time, tour_stop_index, cover_url, cover_image, price, going, capacity')
     .eq('series_id', seriesId)
+    // A deleted/cancelled stop must not show as still-on (Truth Protocol),
+    // consistent with every other discovery surface.
+    .is('deleted_at', null)
+    .or('status.is.null,status.neq.cancelled')
     .order('tour_stop_index', { ascending: true })
     .order('event_date', { ascending: true });
   return data || [];

@@ -32,8 +32,11 @@ export function SceneLevelUpCard({ userId }) {
             .select('checked_in_at, events(venue_name, city, category)')
             .eq('user_id', userId).limit(2000),
           supabase.from('events')
-            .select('title, venue_name, event_date, event_time, going')
-            .gte('event_date', cutoff).limit(100),
+            .select('title, venue_name, event_date, event_time, going, created_at, here_count')
+            .gte('event_date', cutoff)
+            // A cancelled/deleted event must not count toward "hot venue" detection.
+            .is('deleted_at', null).or('status.is.null,status.neq.cancelled')
+            .limit(100),
         ]);
         const tds = (ci.data || []).map((r) => ({
           venue_name: r.events?.venue_name, city: r.events?.city,

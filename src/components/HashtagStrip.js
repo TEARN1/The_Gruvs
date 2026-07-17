@@ -55,6 +55,9 @@ const fetchFallbackFromEvents = async () => {
     .from('events')
     .select('description')
     .not('description', 'is', null)
+    // Trending hashtags shouldn't be mined from deleted/cancelled events.
+    .is('deleted_at', null)
+    .or('status.is.null,status.neq.cancelled')
     .order('created_at', { ascending: false })
     .limit(100);
 
