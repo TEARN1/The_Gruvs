@@ -39,12 +39,9 @@ const REST = `${URL.replace(/\/$/, '')}/rest/v1`;
 
 // Tables we KNOWINGLY do not have yet — don't fail the build on these.
 // Remove an entry the moment its schema ships.
-const EXPECTED_MISSING = new Set([
-  'res_alerts',        // Resident sister-app schema, not deployed (feature-gated)
-  'res_lift_clubs',
-  'res_listings',
-  'res_market_items',
-]);
+// (The res_* Resident schema went LIVE 2026-07-17 — those tables were removed
+// from here so their genuine disappearance would now correctly fail the guard.)
+const EXPECTED_MISSING = new Set([]);
 
 // Known, ACKNOWLEDGED drift with an owner and a plan. These do not fail the
 // build (a guard that is always red gets ignored, and then the next real

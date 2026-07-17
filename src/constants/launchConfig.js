@@ -28,19 +28,18 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   pathMap:      false, // Path Map — needs crowd density to feel alive
   crossedPaths: false, // Crossed Paths — needs density
   stories:      true,  // kept — cheap, familiar, low-risk
-  // Resident (sister app) community safety alerts. The res_* schema is NOT on
-  // the live DB, so querying res_alerts 404s on every load. Flip to true in the
-  // same change that deploys resident_schema_v2.sql.
-  residentAlerts: false,
-  // Resident "Stays" — rooms/guesthouses near an event (res_listings). Same
-  // gate: OFF until resident_schema_v2.sql is live and seeded. The section also
-  // self-disables on a missing-table response, so this flag is belt-and-braces.
-  accommodation: false,
+  // Resident (sister app) community safety alerts. res_* schema is LIVE as of
+  // 2026-07-17 (resident_schema_v2 applied), so res_alerts resolves — ON.
+  residentAlerts: true,
+  // Resident "Stays" — rooms/guesthouses near an event (res_listings). Schema
+  // live; the section still self-disables on any missing-table response, so
+  // this is safe even before listings are seeded (renders nothing until then).
+  accommodation: true,
 } : {
   reelsRail: true, business: true, gifting: true,
   pathMap: true, crossedPaths: true, stories: true,
-  residentAlerts: false, // still gated on the res_* schema actually existing
-  accommodation: false,  // still gated on the res_* schema actually existing
+  residentAlerts: true, // res_* schema live (2026-07-17)
+  accommodation: true,  // res_* schema live (2026-07-17)
 };
 
 /** feature('business') → true when the surface is live. Unknown keys default on. */
