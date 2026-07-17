@@ -84,6 +84,25 @@ export const NotificationService = {
     } catch { return null; }
   },
 
+  // Cross-platform: is push actually ON, and can we still ask?
+  // → { granted, canAsk }. Drives the "turn on notifications" nudge.
+  async getPermissionState() {
+    try {
+      if (Platform.OS === 'web') {
+        if (typeof Notification === 'undefined') return { granted: false, canAsk: false };
+        const p = Notification.permission; // 'granted' | 'denied' | 'default'
+        return {
+          granted: p === 'granted' && this.isWebPushEnabled(),
+          canAsk: p !== 'denied', // once the browser is 'denied' we can't re-prompt
+        };
+      }
+      const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+      return { granted: status === 'granted', canAsk: status !== 'granted' && canAskAgain !== false };
+    } catch {
+      return { granted: false, canAsk: true };
+    }
+  },
+
   isWebPushEnabled() {
     try {
       return Platform.OS === 'web'

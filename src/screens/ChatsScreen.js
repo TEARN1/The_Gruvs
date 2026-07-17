@@ -337,6 +337,8 @@ export const ChatsScreen = ({ onAuthRequired }) => {
               showsVerticalScrollIndicator={false}
               getItemLayout={(_, index) => ({ length: CONVO_ROW_HEIGHT, offset: CONVO_ROW_HEIGHT * index, index })}
               contentContainerStyle={{ paddingBottom: 140 }}
+              // Remind users to allow notifications so DMs actually reach their phone.
+              ListHeaderComponent={<NotificationNudge primary={primary} surface={surface} textColor={textColor} muted={muted} style={{ marginTop: 8 }} />}
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={() => fetchConvos(true)} tintColor={primary} />
               }
