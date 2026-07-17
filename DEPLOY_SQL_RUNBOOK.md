@@ -21,6 +21,7 @@ Total time: ~15 minutes.
 | 5 | `boosted_slot.sql` | Paid boosts actually place a labeled "Promoted" card | `select * from get_boosted_hosts();` (empty is fine) |
 | 6 | `web_push.sql` | Closed-tab web push storage | `select count(*) from web_push_subscriptions;` → 0 |
 | 7 | `verification_engine.sql` | In-app Verified applications (criteria checked server-side) | `select request_verification();` as a NEW user → should REJECT with "account too new" |
+| 8 | `messages_block_gate.sql` | No DM crosses a block, even via direct REST | insert a message across a test block → raises `blocked` |
 
 ## Part 2 — The Resident chain (STRICT order)
 

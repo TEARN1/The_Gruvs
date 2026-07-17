@@ -2608,6 +2608,9 @@ export const MessageManager = {
       if (error) throw error;
 
       const rows = data || [];
+      // Block is absolute: conversations with people you blocked disappear
+      // from the chats list too (their old threads shouldn't haunt the inbox).
+      const blockedSet = new Set(await BlockManager.getBlockedIds(userId).catch(() => []));
       // Deduplicate — keep only latest message per conversation partner
       // Guard against deleted profiles (sender/recipient join returns null)
       const seen = {};
@@ -2616,6 +2619,7 @@ export const MessageManager = {
         const partnerId = msg.sender_id === userId ? msg.recipient_id : msg.sender_id;
         const partner = msg.sender_id === userId ? msg.recipient : msg.sender;
         if (!partner) continue; // deleted account — skip
+        if (blockedSet.has(partnerId)) continue; // blocked — thread hidden
         if (!seen[partnerId]) {
           seen[partnerId] = true;
           convos.push({ ...msg, partner, partnerId });
@@ -2696,6 +2700,26 @@ export const MessageManager = {
     } = options;
     const msgType = messageType || type || 'text';
     try {
+      // BLOCK IS ABSOLUTE (Messaging pass): no DM crosses a block in EITHER
+      // direction — not even as a request. (Server-side twin: the
+      // block_gate_messages trigger in messages_block_gate.sql.)
+      try {
+        const { data: blockRow } = await supabase
+          .from('user_blocks')
+          .select('blocker_id')
+          .or(
+            `and(blocker_id.eq.${senderId},blocked_id.eq.${recipientId}),` +
+            `and(blocker_id.eq.${recipientId},blocked_id.eq.${senderId})`
+          )
+          .limit(1)
+          .maybeSingle();
+        if (blockRow) throw new Error("You can't message this person.");
+      } catch (e) {
+        if (e?.message === "You can't message this person.") throw e;
+        /* block-table lookup failed (offline/unmigrated) — fall through; the
+           server trigger is the real gate */
+      }
+
       // Sanitize message body
       const sanitizedBody = SecurityService.sanitizeContent(body);
 
