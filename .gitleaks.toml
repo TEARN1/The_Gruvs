@@ -1,0 +1,26 @@
+# gitleaks config — secret scanning for The Gruvs (#923).
+#
+# Blocks a build if a real secret is ever committed. The one thing that legitimately
+# looks like a secret but is PUBLIC by design is the Supabase ANON key — it ships in
+# the client bundle and is meant to be exposed (RLS is what protects the data, not
+# the key's secrecy). We allowlist that specific key + the config files it lives in,
+# so a genuine secret (service_role key, a real API token, a private key) still trips
+# the scan.
+
+[extend]
+useDefault = true   # all the built-in secret rules (AWS, GCP, private keys, tokens…)
+
+[allowlist]
+description = "Public-by-design values and where they legitimately live"
+paths = [
+  '''eas\.json''',              # public anon key in build env (intended)
+  '''\.env\.example''',         # template, no real secrets
+  '''\.github/workflows/.*''',  # anon key placeholders in CI env
+  '''supabase/queries/.*''',    # SQL migrations reference the public project ref
+]
+regexes = [
+  # The Supabase ANON JWT (issuer "supabase", role "anon") — public by design.
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS[A-Za-z0-9_.-]+''',
+  # The public project ref / URL (also client-side, safe).
+  '''feevvddvrjmfbhffccbf''',
+]
