@@ -8,7 +8,8 @@ import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
-import { resilient } from '../utils/resilience';
+import { resilient } from '../utils/resilience';
+import { SecurityService } from '../services/securityService';
 import { useBackClose } from '../hooks/useBackClose';
 
 const REASONS = [
@@ -29,6 +30,7 @@ export const ReportModal = ({ visible, onClose, targetId, targetType = 'event' }
   const [details, setDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const primary   = currentTheme?.primary    || "#00f2ff";
   const bg        = currentTheme?.background || "#0d1112";
@@ -39,11 +41,19 @@ export const ReportModal = ({ visible, onClose, targetId, targetType = 'event' }
     setSelected(null);
     setDetails('');
     setDone(false);
+    setErrorMsg('');
     onClose();
   };
 
   const submit = async () => {
     if (!selected || !user) return;
+    // Rate-limit: reporting is genuinely infrequent, so a burst is either abuse
+    // or weaponised mass-reporting (#308). 8 per 5 min is generous for a real
+    // user. The same-target dedup (onConflict below) already stops repeat spam of
+    // one target; this stops flooding across many.
+    const rl = SecurityService.rateLimitCheck(`report:${user.id}`, { maxPerWindow: 8, windowMs: 5 * 60_000 });
+    if (!rl.allowed) { setErrorMsg(rl.message); return; }
+    setErrorMsg('');
     setSubmitting(true);
     try {
       const payload = { reporter_id: user?.id, target_id: targetId, target_type: targetType, reason: selected, details: details.trim() || null };
@@ -116,6 +126,8 @@ export const ReportModal = ({ visible, onClose, targetId, targetType = 'event' }
                 numberOfLines={3}
                 maxLength={300}
               />
+
+              {!!errorMsg && <Text style={{ color: '#ef4444', fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{errorMsg}</Text>}
 
               <TouchableOpacity
                 style={[s.submitBtn, { backgroundColor: selected ? "#ef4444" : `rgba(239,68,68,0.3)` }]}

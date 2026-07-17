@@ -44,6 +44,23 @@ export const CrewManager = {
   async invite(crewId, inviterId, invitee, crewName = 'a crew') {
     const inviteeId = typeof invitee === 'string' ? invitee : invitee?.id;
     if (!crewId || !inviterId || !inviteeId) throw new Error('Missing invite details.');
+    // Block is ABSOLUTE (B-pass): a crew invite is a contact vector like a DM —
+    // it never crosses a block in either direction.
+    try {
+      const { data: blockRow } = await supabase
+        .from('user_blocks')
+        .select('blocker_id')
+        .or(
+          `and(blocker_id.eq.${inviterId},blocked_id.eq.${inviteeId}),` +
+          `and(blocker_id.eq.${inviteeId},blocked_id.eq.${inviterId})`
+        )
+        .limit(1)
+        .maybeSingle();
+      if (blockRow) throw new Error("You can't invite this person.");
+    } catch (e) {
+      if (e?.message === "You can't invite this person.") throw e;
+      /* lookup failed — fall through */
+    }
     const { error } = await supabase
       .from('crew_invites')
       .upsert(
