@@ -89,15 +89,20 @@ const uriToBlob = (uri) => new Promise((resolve, reject) => {
 // now do it for EVERY image on web — not just large ones — even when it doesn't
 // shrink the file. Downscaling still only kicks in for big images.
 //
-// Web-only (canvas). Returns the ORIGINAL on anything unexpected so it can never
-// break an upload. Videos pass through. ⚠ NATIVE uploads are NOT yet stripped —
-// that needs expo-image-manipulator (a native dep + rebuild); flagged.
+// Web downscales + re-encodes via canvas (which drops all metadata). NATIVE has
+// no canvas, so it strips the JPEG EXIF segment directly from the bytes
+// (utils/stripExif) — GPS-in-photo is removed on EVERY platform, no native
+// dependency. Returns the ORIGINAL on anything unexpected so it can never break
+// an upload. Videos pass through.
 const COMPRESSIBLE = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COMPRESS_MAX_DIM = 1600;
 const COMPRESS_MIN_BYTES = 350 * 1024;
 const compressImageBlob = async (blob, type) => {
   try {
-    if (typeof document === 'undefined' || typeof createImageBitmap === 'undefined') return blob;
+    // NATIVE (no canvas): strip EXIF/GPS from the JPEG bytes and upload that.
+    if (typeof document === 'undefined' || typeof createImageBitmap === 'undefined') {
+      return await stripExifFromBlob(blob);
+    }
     if (!COMPRESSIBLE.has(type)) return blob;      // videos/gifs — not a GPS-EXIF vector here
     const bmp = await createImageBitmap(blob);
     // Downscale only big images; small ones re-encode at full size purely to
