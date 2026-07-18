@@ -16,6 +16,7 @@ import { useToast } from './ToastNotification';
 import { useBackClose } from '../hooks/useBackClose';
 import { GlitterBurst } from './GlitterBurst';
 import { escapeLike, findImpersonation } from '../utils/handleGuard';
+import { isLikelyBot } from '../utils/botCheck';
 
 const SCREEN_W = Dimensions.get('window').width;
 const HM = SCREEN_W < 375 ? 12 : 25;
@@ -71,6 +72,9 @@ export const AuthModal = ({ visible, onClose }) => {
   // #1 "signing up is difficult" complaint.
   const [signupStep, setSignupStep] = useState(1);
   const [checkingName, setCheckingName] = useState(false);
+  // Bot defense (#380): a honeypot a human never sees + a form-open timestamp.
+  const [hp, setHp] = useState('');
+  const formOpenedAt = useRef(Date.now());
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const primary = currentTheme?.primary || "#00f2ff";
@@ -195,6 +199,12 @@ export const AuthModal = ({ visible, onClose }) => {
   };
 
   const handleSignUp = async () => {
+    // Bot defense before anything else — a filled honeypot or an instant submit
+    // is a script, not a person. Generic message so we don't teach the bot why.
+    if (isLikelyBot({ honeypot: hp, elapsedMs: Date.now() - formOpenedAt.current }).bot) {
+      setError('Something went wrong — please try again.');
+      return;
+    }
     if (!email.trim() || !password.trim() || !username.trim()) {
       setError('Username, email and password are required.');
       return;
@@ -420,6 +430,19 @@ export const AuthModal = ({ visible, onClose }) => {
             {/* ── SIGN-UP STEP 1: username only (email/password follow below) ── */}
             {mode === 'signup' && signupStep === 1 && (
               <>
+                {/* Honeypot — visually hidden, off the a11y tree. A human never
+                    sees or fills this; a form-filling bot does (#380). */}
+                <TextInput
+                  value={hp}
+                  onChangeText={setHp}
+                  autoComplete="off"
+                  autoCorrect={false}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  tabIndex={-1}
+                  placeholder="Leave this empty"
+                  style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }}
+                />
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: HM, marginBottom: 8 }}>
                   <Text style={[styles.label, { color: textColor, marginHorizontal: 0, marginBottom: 0 }]}>Username *</Text>
                   {username.length > 0 && (
@@ -472,27 +495,37 @@ export const AuthModal = ({ visible, onClose }) => {
 
                 <Text style={[styles.label, { color: textColor }]}>Birthday <Text style={{ color: primary }}>*</Text></Text>
                 <Text style={[styles.sublabel, { color: muted }]}>The Gruvs is 18+. We celebrate your day — your year stays private.</Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={styles.dobRow}>
                   <TextInput
-                    style={[styles.input, { flex: 1, borderColor: `${primary}40`, color: textColor }]}
+                    style={[styles.input, styles.dobField, { flex: 1, borderColor: `${primary}40`, color: textColor }]}
                     placeholder="DD"
                     placeholderTextColor={muted}
                     value={birthDay}
-                    onChangeText={(v) => setBirthDay(v.replace(/[^0-9]/g, ''))}
+                    onChangeText={(v) => {
+                      const d = v.replace(/[^0-9]/g, '').slice(0, 2);
+                      setBirthDay(d);
+                      if (d.length === 2) monthRef.current?.focus();
+                    }}
                     keyboardType="numeric"
                     maxLength={2}
                   />
                   <TextInput
-                    style={[styles.input, { flex: 1, borderColor: `${primary}40`, color: textColor }]}
+                    ref={monthRef}
+                    style={[styles.input, styles.dobField, { flex: 1, borderColor: `${primary}40`, color: textColor }]}
                     placeholder="MM"
                     placeholderTextColor={muted}
                     value={birthMonth}
-                    onChangeText={(v) => setBirthMonth(v.replace(/[^0-9]/g, ''))}
+                    onChangeText={(v) => {
+                      const m = v.replace(/[^0-9]/g, '').slice(0, 2);
+                      setBirthMonth(m);
+                      if (m.length === 2) yearRef.current?.focus();
+                    }}
                     keyboardType="numeric"
                     maxLength={2}
                   />
                   <TextInput
-                    style={[styles.input, { flex: 1.4, borderColor: `${primary}40`, color: textColor }]}
+                    ref={yearRef}
+                    style={[styles.input, styles.dobField, { flex: 1.4, borderColor: `${primary}40`, color: textColor }]}
                     placeholder="YYYY"
                     placeholderTextColor={muted}
                     value={birthYear}
