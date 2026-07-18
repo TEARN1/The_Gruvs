@@ -63,7 +63,6 @@ export const AuthModal = ({ visible, onClose }) => {
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [wantsEmail, setWantsEmail] = useState(true);
   const [signupSuccessFx, setSignupSuccessFx] = useState(0);
-  const [confirmLater, setConfirmLater] = useState(true); // true = continue without confirming
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -75,6 +74,9 @@ export const AuthModal = ({ visible, onClose }) => {
   // Bot defense (#380): a honeypot a human never sees + a form-open timestamp.
   const [hp, setHp] = useState('');
   const formOpenedAt = useRef(Date.now());
+  // Birthday fields auto-advance DD → MM → YYYY.
+  const monthRef = useRef(null);
+  const yearRef = useRef(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const primary = currentTheme?.primary || "#00f2ff";
@@ -291,7 +293,7 @@ export const AuthModal = ({ visible, onClose }) => {
         is_discoverable: true,
         wants_email: wantsEmail,
         email_confirmed: false,
-        confirm_later: confirmLater,
+        confirm_later: true,
       };
       resilient(
         [
@@ -303,26 +305,41 @@ export const AuthModal = ({ visible, onClose }) => {
       ).then(() => {});
     }
 
-    const hasSession = !!data.session;
+    // Signing up should log you straight in. signUp only returns a session when
+    // the project has email confirmation disabled; when it's on, we try the
+    // password we just set — that succeeds only if confirmation isn't enforced.
+    let hasSession = !!data.session;
+    if (!hasSession) {
+      const { data: signInData } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      hasSession = !!signInData?.session;
+    }
+
+    // With "Confirm email" disabled Supabase sends nothing on signup, so we send
+    // the verification link ourselves. A magic link marks the address confirmed
+    // when clicked, which is exactly what we want — the user is already inside.
+    // Fire-and-forget: a mail failure must never block a successful signup.
+    if (hasSession) {
+      supabase.auth
+        .signInWithOtp({
+          email: email.trim(),
+          options: { shouldCreateUser: false, emailRedirectTo: APP_WEB_URL },
+        })
+        .catch(() => {});
+    }
+
     setSignupSuccessFx(Date.now());
 
     setTimeout(() => {
       handleClose();
-      if (hasSession) {
-        // Supabase doesn't require confirmation — user is in immediately
-        toast?.show(
-          confirmLater
-            ? 'Welcome to The Gruvs! 🎉 Confirmation email sent — confirm whenever you\'re ready.'
-            : 'Welcome to The Gruvs! 🎉 Check your inbox to confirm your email.',
-          'success'
-        );
-      } else {
-        // Supabase requires email confirmation before session is granted
-        toast?.show(
-          'Account created! 📧 Check your inbox and confirm your email to sign in.',
-          'info'
-        );
-      }
+      toast?.show(
+        hasSession
+          ? 'Welcome to The Gruvs! 🎉 We sent a verification email — confirm whenever you\'re ready.'
+          : 'Account created! 📧 Check your inbox and confirm your email to sign in.',
+        hasSession ? 'success' : 'info'
+      );
     }, 1200);
   };
 
@@ -661,31 +678,11 @@ export const AuthModal = ({ visible, onClose }) => {
               <>
                 <View style={[styles.confirmBox, { borderColor: `${primary}25`, backgroundColor: `${primary}08` }]}>
                   <Feather name="mail" size={14} color={primary} style={{ marginTop: 2 }} />
-                  <View style={{ flex: 1, gap: 10 }}>
-                    <Text style={[styles.confirmTitle, { color: textColor }]}>Email Confirmation</Text>
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <Text style={[styles.confirmTitle, { color: textColor }]}>You're in straight away</Text>
                     <Text style={[styles.confirmSub, { color: muted }]}>
-                      We'll always send a confirmation email. Choose when to confirm:
+                      We'll email you a link to verify your address — confirm it whenever you're ready.
                     </Text>
-                    <View style={styles.confirmOptions}>
-                      <TouchableOpacity
-                        style={[styles.confirmOpt, { borderColor: confirmLater ? `${primary}30` : primary, backgroundColor: confirmLater ? 'transparent' : `${primary}18` }]}
-                        onPress={() => setConfirmLater(false)}
-                      >
-                        <View style={[styles.radio, { borderColor: confirmLater ? `${primary}40` : primary }]}>
-                          {!confirmLater && <View style={[styles.radioDot, { backgroundColor: primary }]} />}
-                        </View>
-                        <Text style={[styles.confirmOptText, { color: confirmLater ? muted : primary }]}>Verify email first</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.confirmOpt, { borderColor: confirmLater ? primary : `${primary}30`, backgroundColor: confirmLater ? `${primary}18` : 'transparent' }]}
-                        onPress={() => setConfirmLater(true)}
-                      >
-                        <View style={[styles.radio, { borderColor: confirmLater ? primary : `${primary}40` }]}>
-                          {confirmLater && <View style={[styles.radioDot, { backgroundColor: primary }]} />}
-                        </View>
-                        <Text style={[styles.confirmOptText, { color: confirmLater ? primary : muted }]}>Start now, verify later</Text>
-                      </TouchableOpacity>
-                    </View>
                   </View>
                 </View>
 
@@ -761,6 +758,10 @@ const styles = StyleSheet.create({
   label: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginHorizontal: HM, opacity: 0.75 },
   sublabel: { fontSize: 11, marginHorizontal: HM, marginTop: -6, marginBottom: 10 },
   input: { marginHorizontal: HM, marginBottom: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 13, fontSize: 14 },
+  // The DD/MM/YYYY row owns the gutter so the fields inside can drop their own
+  // horizontal margin — otherwise each field re-adds HM and they overflow narrow screens.
+  dobRow: { flexDirection: 'row', gap: 8, marginHorizontal: HM },
+  dobField: { marginHorizontal: 0, textAlign: 'center' },
   passwordWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: HM, marginBottom: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 13 },
   passwordInput: { flex: 1, fontSize: 14 },
   genderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginHorizontal: HM, marginBottom: 16 },
@@ -783,14 +784,9 @@ const styles = StyleSheet.create({
   confirmBox: { flexDirection: 'row', gap: 10, marginHorizontal: HM, marginBottom: 16, borderWidth: 1, borderRadius: 14, padding: 14 },
   confirmTitle: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
   confirmSub: { fontSize: 11, lineHeight: 15 },
-  confirmOptions: { flexDirection: 'row', gap: 8 },
-  confirmOpt: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: HM, marginBottom: 16 },
   stepDot: { width: 18, height: 5, borderRadius: 3 },
   stepDotActive: { width: 28 },
   stepText: { fontSize: 11, fontWeight: '700', marginLeft: 6 },
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: HM, marginBottom: 14 },
-  confirmOptText: { fontSize: 11, fontWeight: '700', flex: 1 },
-  radio: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  radioDot: { width: 8, height: 8, borderRadius: 4 },
 });

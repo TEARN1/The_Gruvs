@@ -147,6 +147,42 @@ function escapeHtml(str: string): string {
     .replace(/>/g, '&gt;');
 }
 
+/**
+ * events.price is TEXT holding either "FREE" or a JSON tier map like
+ * {"general":"200","PreSales":"120"}. Interpolating it raw leaked
+ * `🎟 {"general":"1500"}` into every share card. Mirrors the tier/min/"From"
+ * logic of priceLabel() in src/constants/currencies.js — kept as a copy because
+ * Deno can't import from the RN bundle. Currency is deliberately omitted: the
+ * app resolves the symbol from the viewer's GPS, which a crawler doesn't have.
+ */
+function priceLabel(price: unknown): string {
+  if (price == null || price === 0 || price === 'FREE') return '🆓 Free entry';
+
+  let obj: unknown = price;
+  if (typeof price === 'string') {
+    const t = price.trim();
+    if (t[0] === '{' || t[0] === '[') {
+      try { obj = JSON.parse(t); } catch { return `🎟 ${t}`; }
+    } else {
+      const n = Number(t);
+      if (Number.isFinite(n)) return n === 0 ? '🆓 Free entry' : `🎟 ${n}`;
+      return `🎟 ${t}`;
+    }
+  }
+  if (typeof price === 'number') return price === 0 ? '🆓 Free entry' : `🎟 ${price}`;
+
+  if (obj && typeof obj === 'object') {
+    const nums = Object.values(obj as Record<string, unknown>)
+      .map(v => Number(String(v).replace(/[^0-9.]/g, '')))
+      .filter(n => Number.isFinite(n) && n > 0);
+    if (nums.length === 0) return '🆓 Free entry';
+    const min = Math.min(...nums);
+    const max = Math.max(...nums);
+    return min === max ? `🎟 ${min}` : `🎟 From ${min}`;
+  }
+  return '🆓 Free entry';
+}
+
 // ─── Route handlers ───────────────────────────────────────────────────────────
 
 async function handleEvent(id: string): Promise<OGProps & { redirect: string }> {
@@ -175,8 +211,7 @@ async function handleEvent(id: string): Promise<OGProps & { redirect: string }> 
     : '';
 
   // The deal — free entry or the price, the thing people look for in a preview.
-  const free = event.price == null || event.price === 0 || event.price === 'FREE';
-  const deal = free ? '🆓 Free entry' : `🎟 ${event.price}`;
+  const deal = priceLabel(event.price);
 
   const where = [event.venue_name, event.city].filter(Boolean).join(' · ');
   const vibes = event.vibe_count ? `🔥 ${event.vibe_count} vibing` : '';

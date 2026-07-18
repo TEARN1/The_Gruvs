@@ -81,6 +81,46 @@ const head = `
     <meta name="twitter:description" content="${DESC}" />
     <meta name="twitter:image" content="${OG_IMAGE}" />
 
+    <!--
+      JSON-LD. Google reads this straight out of the raw HTML with no JS, so it
+      is the one place we can state what this site IS to a crawler that never
+      waits for the bundle. WebSite + SearchAction also makes us eligible for a
+      sitelinks search box once the domain has any authority.
+    -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "${SITE}/#org",
+          "name": "The Gruvs",
+          "url": "${SITE}/",
+          "logo": "${OG_IMAGE}",
+          "description": "${DESC}"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "${SITE}/#site",
+          "url": "${SITE}/",
+          "name": "The Gruvs",
+          "description": "${DESC}",
+          "publisher": { "@id": "${SITE}/#org" },
+          "inLanguage": "en-ZA"
+        },
+        {
+          "@type": "MobileApplication",
+          "name": "The Gruvs",
+          "applicationCategory": "LifestyleApplication",
+          "operatingSystem": "Web, Android, iOS",
+          "url": "${SITE}/",
+          "description": "${DESC}",
+          "publisher": { "@id": "${SITE}/#org" }
+        }
+      ]
+    }
+    </script>
+
     <script>
       // Register the service worker as early as possible so the browser marks
       // the site installable. The in-app InstallAppBanner also registers it,
@@ -103,5 +143,26 @@ if (/<meta name="description"[^>]*>/.test(html)) {
 }
 
 html = html.replace('</head>', head + '</head>');
+
+// ── Crawlable first paint ───────────────────────────────────────────────────
+// Expo ships `<div id="root"></div>` — literally zero text. Googlebot's first
+// pass reads raw HTML; JS rendering is a deferred second pass that is slower
+// and far less reliable, so a body with no words is the single biggest reason
+// a working SPA fails to rank. React wipes this the moment it mounts, so it
+// costs real users nothing — and while the 3.8MB bundle parses they now see a
+// branded splash instead of a black screen.
+const SEO_BODY = `<div id="seo-shell" style="margin:auto;padding:40px 24px;max-width:640px;text-align:center;font-family:Inter,system-ui,sans-serif;color:#fff">
+      <h1 style="font-size:28px;font-weight:900;color:#00f2ff;margin:0 0 14px">The Gruvs — discover what’s on tonight</h1>
+      <p style="font-size:15px;line-height:1.6;color:rgba(255,255,255,0.75);margin:0 0 18px">${DESC}</p>
+      <p style="font-size:14px;line-height:1.6;color:rgba(255,255,255,0.55);margin:0 0 18px">Find parties, gigs, live music, sport and nightlife near you in Johannesburg, Cape Town, Durban, Pretoria and across South Africa. See which events are actually busy right now, RSVP with friends, and Touch Down when you arrive.</p>
+      <p style="font-size:13px;color:rgba(255,255,255,0.4);margin:0"><a href="/get.html" style="color:#00f2ff">Get the app</a> · <a href="/privacy.html" style="color:#00f2ff">Privacy</a> · <a href="/terms.html" style="color:#00f2ff">Terms</a></p>
+    </div>`;
+
+if (html.includes('<div id="root"></div>')) {
+  html = html.replace('<div id="root"></div>', `<div id="root">${SEO_BODY}</div>`);
+} else {
+  console.warn('[inject-pwa] WARNING: `<div id="root"></div>` not found — SEO body NOT injected. The homepage will ship with no crawlable text.');
+}
+
 fs.writeFileSync(indexPath, html);
 console.log('[inject-pwa] Injected manifest, Apple PWA meta, Open Graph + Twitter cards, canonical, SEO title/description, and SW registration into dist/index.html');
