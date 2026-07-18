@@ -28,6 +28,7 @@
       ],
       "infoPlist": {
         "UIBackgroundModes": ["audio"],
+        "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "The Gruvs uses your location to show nearby events and vibers.",
         "NSCameraUsageDescription": "The Gruvs needs camera access to scan tickets and post event photos.",
         "NSPhotoLibraryUsageDescription": "The Gruvs needs photo library access to upload event media.",
