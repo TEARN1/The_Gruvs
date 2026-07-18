@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { MessageManager, isOnline as checkOnline } from '../services/dataFlow';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DirectMessageModal } from '../components/DirectMessageModal';
+import { NotificationNudge } from '../components/NotificationNudge';
 import { thumb } from '../utils/storageThumb';
 import { CrewFeedScreen } from './CrewFeedScreen';
 import { ErrorBoundary } from '../components/ErrorBoundary';

@@ -11,6 +11,7 @@ import { supabase } from '../services/supabase';
 import { resilientRead } from '../utils/resilience';
 import { NotificationService } from '../services/notificationService';
 import { ViberProfileModal } from '../components/ViberProfileModal';
+import { NotificationNudge } from '../components/NotificationNudge';
 import { log } from '../utils/log';
 import { thumb } from '../utils/storageThumb';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -346,6 +347,8 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           renderItem={renderItem}
           showsVerticalScrollIndicator={false}
           getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
+          // If push is off, this is exactly the screen to remind them to turn it on.
+          ListHeaderComponent={<NotificationNudge primary={primary} surface={surface} textColor={textColor} muted={muted} style={{ marginTop: 8 }} />}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
