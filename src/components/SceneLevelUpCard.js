@@ -32,7 +32,11 @@ export function SceneLevelUpCard({ userId }) {
             .select('checked_in_at, events(venue_name, city, category)')
             .eq('user_id', userId).limit(2000),
           supabase.from('events')
-            .select('title, venue_name, event_date, event_time, going, created_at, here_count')
+            // No `here_count` — the column does not exist on events (see
+            // hostStats). Selecting it 400'd this query, so `hot` was always
+            // empty and this card never rendered. heatScore already treats a
+            // missing presence count as 0, so heat now ranks on RSVP + recency.
+            .select('title, venue_name, event_date, event_time, going, created_at')
             .gte('event_date', cutoff)
             // A cancelled/deleted event must not count toward "hot venue" detection.
             .is('deleted_at', null).or('status.is.null,status.neq.cancelled')

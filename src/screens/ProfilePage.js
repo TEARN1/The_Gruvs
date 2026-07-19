@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { AwardManager, MembershipManager, ClubManager } from '../services/clubEngine';
 import {
   View, Text, StyleSheet, TouchableOpacity,
@@ -68,10 +68,10 @@ import { CategoryPickerModal }     from '../components/CategoryPickerModal';
 import { PostEventModal }          from '../components/PostEventModal';
 import { EditEventModal }          from '../components/EditEventModal';
 import { LeaderboardScreen }       from './LeaderboardScreen';
-import { PathMapScreen }           from './PathMapScreen';
+import { PathMapScreen }           from './lazyScreens';
 import { BusinessDashboardScreen } from './BusinessDashboardScreen';
 import { FollowListModal } from '../components/FollowListModal';
-import { WalletScreen }            from './WalletScreen';
+import { WalletScreen }            from './lazyScreens';
 import { MonetizationService }     from '../services/monetizationService';
 import { ProviderDashboardScreen } from './ProviderDashboardScreen';
 import { TutorialCenter }          from '../components/TutorialCenter';
@@ -3399,7 +3399,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       )}
       {pathMapVisible && (
         <SafeSection label="Path Map" primary={primary}>
-          <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
+          <Suspense fallback={null}>
+            <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
+          </Suspense>
         </SafeSection>
       )}
       {bizDashVisible && (
@@ -3437,13 +3439,15 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
       )}
       {walletVisible && (
         <SafeSection label="Wallet" primary={primary}>
-          <WalletScreen
-            visible={walletVisible}
-            onClose={() => {
-              setWalletVisible(false);
-              refreshProfile();
-            }}
-          />
+          <Suspense fallback={null}>
+            <WalletScreen
+              visible={walletVisible}
+              onClose={() => {
+                setWalletVisible(false);
+                refreshProfile();
+              }}
+            />
+          </Suspense>
         </SafeSection>
       )}
       {ticketsVisible && (
