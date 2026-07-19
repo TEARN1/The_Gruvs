@@ -19,6 +19,11 @@ on:
     - cron: '17 */6 * * *'   # every 6h (offset so it isn't on the hour with everyone else)
   pull_request:
     branches: [main]
+  # Work here lands as direct pushes, not PRs, so the pull_request trigger above
+  # never fired for most changes — drift reached main and was only discovered by
+  # the 6-hourly schedule, up to 6 hours later. Catch it at the push instead.
+  push:
+    branches: ["**"]
   workflow_dispatch:
 
 permissions:
@@ -42,8 +47,10 @@ jobs:
   health:
     name: Health (does the live site actually work?)
     runs-on: ubuntu-latest
-    # Only meaningful against production — skip on PRs.
-    if: github.event_name != 'pull_request'
+    # Only meaningful against production — skip on PRs, and on pushes too. A
+    # branch push says nothing about whether the LIVE site boots, and the new
+    # push trigger would otherwise run a full browser check on every commit.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
@@ -54,6 +61,39 @@ jobs:
         run: node scripts/health-check.mjs
         env:
           SITE_URL: https://thegruvs.com
+
+  # If everything is green again, STAND THE ALARM DOWN.
+  #
+  # Without this the issue only ever opens or gets another "still broken"
+  # comment — so it stayed open for days, became wallpaper, and stopped being
+  # read. That is the whole reason drift sat in production while the guard was
+  # correctly reporting it. An alarm that never turns off is not an alarm.
+  # Open issue == broken RIGHT NOW, or the signal is worthless.
+  all-clear:
+    name: Stand down the alarm
+    runs-on: ubuntu-latest
+    needs: [schema-drift, health]
+    if: success() && github.event_name == 'schedule'
+    steps:
+      - name: Close any open Guardian issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const open = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'guardian',
+            });
+            for (const issue of open.data) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `✅ Guardian is green as of ${new Date().toISOString()} — schema matches the database and the live site boots. Closing.\n\n${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number, state: 'closed',
+              });
+            }
 
   # If anything above failed on a scheduled run, tell the human. Loudly.
   raise-the-alarm:
