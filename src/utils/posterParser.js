@@ -585,13 +585,21 @@ function parseVenue(lines) {
     const v = asVenue(cue[1]);
     if (v && (VENUE_WORDS.test(v) || /\d/.test(v) || v.split(' ').length <= 6)) return v;
   }
-  for (const l of lines) {
+  // From here on, SKIP LINE 0 — it's the headline slot on every flyer. Event
+  // titles constantly contain venue words ("WAREHOUSE SESSIONS", "ROOFTOP
+  // BRUNCH", "THE GARDEN PARTY", "BEACH HOUSE"), and taking that line as the
+  // venue stole the title, left the title field empty, and pushed the real
+  // address into the description. Only an EXPLICIT cue (@ / Venue:) above is
+  // allowed to name the venue on the first line, because that's stated intent.
+  for (let i = 1; i < lines.length; i++) {
+    const l = lines[i];
     if (!VENUE_WORDS.test(l)) continue;
     const v = asVenue(l);
     // A bare keyword line is only a venue if it reads like a name, not a sentence.
     if (v && v.split(/\s+/).length <= 8) return v;
   }
-  for (const l of lines) {
+  for (let i = 1; i < lines.length; i++) {
+    const l = lines[i];
     if (!/\b(street|st\.?|road|rd\.?|avenue|ave\.?|drive|dr\.?|lane|blvd|boulevard)\b/i.test(l)) continue;
     const v = asVenue(l);
     if (v) return v;
@@ -641,12 +649,42 @@ export function stripTrailingCity(venue, city) {
   return venue;
 }
 
+/**
+ * Suburbs → their city. Flyers name the SUBURB people actually say ("Braam",
+ * "Maboneng", "Obs"), almost never the metro. Without this the City field just
+ * stayed empty on a huge share of real SA posters — and an empty city means the
+ * event can't be found by anyone browsing that city.
+ */
+const SUBURB_TO_CITY = {
+  // Johannesburg
+  braamfontein: 'Johannesburg', braam: 'Johannesburg', maboneng: 'Johannesburg',
+  newtown: 'Johannesburg', melville: 'Johannesburg', rosebank: 'Johannesburg',
+  parkhurst: 'Johannesburg', greenside: 'Johannesburg', fourways: 'Johannesburg',
+  illovo: 'Johannesburg', bryanston: 'Johannesburg', norwood: 'Johannesburg',
+  linden: 'Johannesburg', emmarentia: 'Johannesburg', auckland_park: 'Johannesburg',
+  orlando: 'Soweto', vilakazi: 'Soweto',
+  // Cape Town
+  woodstock: 'Cape Town', observatory: 'Cape Town', obs: 'Cape Town',
+  'sea point': 'Cape Town', 'green point': 'Cape Town', 'camps bay': 'Cape Town',
+  gardens: 'Cape Town', claremont: 'Cape Town', 'long street': 'Cape Town',
+  muizenberg: 'Cape Town', 'v&a waterfront': 'Cape Town', kalk_bay: 'Cape Town',
+  // Durban
+  florida_road: 'Durban', morningside: 'Durban', ballito: 'Durban',
+  // Pretoria
+  hatfield: 'Pretoria', menlyn: 'Pretoria', brooklyn: 'Pretoria',
+};
+
 function parseCity(text) {
   const t = text.toLowerCase();
   // Whole-word match — `includes()` matched substrings inside other words.
   const hit = (name) => new RegExp(`\\b${name.replace(/\s+/g, '\\s+')}\\b`, 'i').test(t);
   for (const [alias, full] of Object.entries(CITY_ALIASES)) if (hit(alias)) return full;
   for (const c of SA_CITIES) if (hit(c)) return CITY_ALIASES[c] || titleCase(c);
+  // No metro named — fall back to the SUBURB people actually write ("Braamfontein",
+  // "Maboneng", "Obs"). An explicit city always wins over this.
+  for (const [suburb, city] of Object.entries(SUBURB_TO_CITY)) {
+    if (hit(suburb.replace(/_/g, ' '))) return city;
+  }
   return null;
 }
 
@@ -665,7 +703,12 @@ const looksLikeMeta = (l) => {
     isDateLine || parseTime(l) ||
     /\br\s*\d/i.test(l) || /\bfree\b/.test(s) ||
     /https?:\/\/|www\.|@[a-z0-9._]+/.test(s) ||
-    VENUE_WORDS.test(l) || /\b\d{2,}\b.*\b(street|road|ave|drive)\b/i.test(l) ||
+    // NOTE: a venue WORD no longer disqualifies a title. Event names constantly
+    // contain them ("WAREHOUSE SESSIONS", "ROOFTOP BRUNCH", "THE GARDEN PARTY"),
+    // and rejecting those left the event with no name while the real title fell
+    // into the description. The actual venue line is already excluded by
+    // parseTitle (l !== venue), so this check was redundant and harmful.
+    /\b\d{2,}\b.*\b(street|road|ave|drive)\b/i.test(l) ||
     /^\s*(doors|tickets?|presented by|feat|featuring|line ?up|hosted by)/i.test(s) ||
     l.replace(/[^a-z]/gi, '').length < 3
   );
@@ -677,7 +720,12 @@ function parseTitle(lines, venue) {
   // grabbing "bring your own food" as one is worse than leaving it blank for
   // the host to type — an empty field prompts them, a wrong one gets published.
   const isSentence = (l) => l.trim().split(/\s+/).length > 2 && PROSE_WORDS.test(l);
+  // Strip "RED BULL PRESENTS:" BEFORE filtering — "presents" reads as prose, so
+  // the whole line was being thrown out as a sentence and the event lost its name.
+  const dePresent = (l) => clean(String(l)
+    .replace(/^.{2,40}?\s+(?:proudly\s+)?(?:presents?|brings you)\s*[:\-–]\s*/i, '')) || l;
   const head = lines.slice(0, 8)
+    .map(dePresent)
     .filter((l) => !looksLikeMeta(l) && l !== venue && !isSentence(l));
   if (!head.length) return null;
   // Prefer an all-caps / long prominent line among the first few; else the first.
@@ -685,7 +733,12 @@ function parseTitle(lines, venue) {
     const caps = (l.match(/[A-Z]/g) || []).length / Math.max(1, l.replace(/\s/g, '').length);
     return { l, score: (l.length >= 6 ? 2 : 0) + caps * 2 - i * 0.5 };
   }).sort((a, b) => b.score - a.score);
-  return clean(scored[0].l).slice(0, 90);
+  // "RED BULL PRESENTS: AMAPIANO SUNSET" — the event is called Amapiano Sunset;
+  // the brand/promoter in front of "presents" is not part of its name.
+  const picked = clean(scored[0].l)
+    .replace(/^.{2,40}?\s+(?:presents?|proudly presents?|brings you)\s*[:\-–]?\s*/i, '')
+    .trim();
+  return (picked || clean(scored[0].l)).slice(0, 90);
 }
 
 /**
@@ -747,6 +800,14 @@ export function parsePosterText(rawText, now = new Date(), opts = {}) {
   const description = clean(
     lines
       .filter((l) => l !== title)
+      // The headline line still matches after we stripped a "X PRESENTS:" prefix
+      // off it — don't echo the event's own name back as its description.
+      .filter((l) => clean(String(l).replace(/^.{2,40}?\s+(?:proudly\s+)?(?:presents?|brings you)\s*[:\-–]\s*/i, '')) !== title)
+      // Address continuation lines ("9 De Beer Street", "Shop 4", "Braamfontein,
+      // Johannesburg") belong to the venue, not the vibe.
+      .filter((l) => !/\b(street|st\.|road|rd\.|avenue|ave\.|drive|dr\.|lane|blvd|boulevard)\b/i.test(l))
+      .filter((l) => !/^\s*shop\s*\d/i.test(l))
+      .filter((l) => !(parseCity(l) && clean(l).split(/\s+/).length <= 4))
       .filter((l) => !(venueRaw && (l === venueRaw || l.includes(venueRaw))))
       .filter((l) => l.length > 12)
       .filter((l) => !META_LINE.test(l))

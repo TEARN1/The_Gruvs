@@ -288,7 +288,13 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
   const fetchAll = useCallback(async (q = '') => {
     let qb = supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url, bio, is_online, last_seen, is_verified, vibe_score, interests, social_integrity_score, lat, lon')
+      // No lat/lon: a browsable list of strangers' coordinates is the single
+      // worst thing this app could hand a client, and coordinates are no longer
+      // client-readable at all (lock_profile_coordinates.sql). personScore
+      // degrades cleanly — distance_km comes back null and the row just omits
+      // the distance chip. Restoring "3km away" needs a server-side RPC that
+      // returns a coarse bucket, never a precise number.
+      .select('id, username, display_name, avatar_url, bio, is_online, last_seen, is_verified, vibe_score, interests, social_integrity_score')
       .order('vibe_score', { ascending: false }) // cheap oversample pool — DISPLAY order is personScore (F5)
       .limit(100);
 

@@ -697,11 +697,32 @@ export async function routeTargetedEvent(eventId, audience, eventGeo = {}, cap =
     // cheap. is_discoverable respects the user's own privacy switch.
     const { data: people } = await supabase
       .from('profiles')
-      .select('id, gender, birth_year, clan_name, surname, home_village, city, languages, community_tags, career_title, lat, lon, is_discoverable')
+      .select('id, gender, birth_year, clan_name, surname, home_village, city, languages, community_tags, career_title, is_discoverable')
       .eq('is_discoverable', true)
       .limit(20000);
 
     if (!people?.length) return 0;
+
+    // Radius is resolved server-side. Pulling lat/lon here used to hand every
+    // campaigning host a location dump of up to 20k users — coordinates are no
+    // longer readable by clients at all (see lock_profile_coordinates.sql).
+    // The RPC returns only the IDs inside the circle.
+    let inRadius = null;
+    if (f.radiusKm) {
+      if (!eventGeo.lat || !eventGeo.lon) {
+        inRadius = new Set(); // no event location → radius can't match anyone
+      } else {
+        const { data: near, error: radiusErr } = await supabase.rpc('profiles_within_radius', {
+          p_lat: eventGeo.lat,
+          p_lon: eventGeo.lon,
+          p_radius_km: f.radiusKm,
+          p_limit: 20000,
+        });
+        // Fail closed: if the radius check can't run, match nobody on distance
+        // rather than silently ignoring the host's radius filter.
+        inRadius = new Set(radiusErr || !near ? [] : near.map((r) => r.id));
+      }
+    }
 
     const passes = (p) => {
       const checks = [];
@@ -721,11 +742,7 @@ export async function routeTargetedEvent(eventId, audience, eventGeo = {}, cap =
         // substring match — host targets "model" → matches "fashion model"
         checks.push(!!ct && f.careers.some((c) => ct.includes(c) || c.includes(ct)));
       }
-      if (f.radiusKm) {
-        const ok = eventGeo.lat && eventGeo.lon && p.lat && p.lon &&
-          haversineKm(eventGeo.lat, eventGeo.lon, p.lat, p.lon) <= f.radiusKm;
-        checks.push(!!ok);
-      }
+      if (f.radiusKm) checks.push(!!inRadius?.has(p.id));
       if (!checks.length) return false;
       return mode === 'all' ? checks.every(Boolean) : checks.some(Boolean);
     };

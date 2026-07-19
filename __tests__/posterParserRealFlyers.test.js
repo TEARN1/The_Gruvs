@@ -308,3 +308,73 @@ Sat 15 August
     expect(p.tourStops).toEqual([]);   // one city, one date — not a tour
   });
 });
+
+/**
+ * THE TITLE↔VENUE COLLISION — the biggest systematic bug in the parser.
+ * Event names constantly contain venue words (WAREHOUSE / ROOFTOP / GARDEN /
+ * BEACH / CLUB / PARK). The venue matcher grabbed the first line containing one
+ * — which is the TITLE — so the title was stolen, the title field went empty,
+ * and the real address fell into the description. Every case below was broken.
+ */
+describe('title vs venue collision', () => {
+  it('does not let a venue-word in the title become the venue', () => {
+    const p = parsePosterText(`WAREHOUSE SESSIONS
+12 Juta Street, Braamfontein
+Sat 15 Aug · 22:00`, NOW);
+    expect(p.title).toBe('WAREHOUSE SESSIONS');
+    expect(p.venue).toBe('12 Juta Street, Braamfontein'); // the real address
+    expect(p.description).toBe('');                        // address not dumped here
+  });
+
+  it('handles ROOFTOP / GARDEN titles too', () => {
+    const roof = parsePosterText(`ROOFTOP BRUNCH\nThe Living Room, Maboneng\nSun 16 Aug`, NOW);
+    expect(roof.title).toBe('ROOFTOP BRUNCH');
+    expect(roof.venue).toBe('The Living Room, Maboneng');
+
+    const garden = parsePosterText(`THE GARDEN PARTY
+Shop 4, The Bannister Hotel
+9 De Beer Street
+Braamfontein, Johannesburg
+Sat 15 Aug`, NOW);
+    expect(garden.title).toBe('THE GARDEN PARTY');
+    expect(garden.venue).toBe('Shop 4, The Bannister Hotel');
+    expect(garden.description).toBe('');                   // address lines excluded
+  });
+});
+
+describe('suburb → city', () => {
+  // Flyers name the suburb people actually say, never the metro. An empty city
+  // means nobody browsing that city can find the event.
+  it('infers the city from a suburb', () => {
+    expect(parsePosterText('GIG\n12 Juta Street, Braamfontein\nSat 15 Aug', NOW).city).toBe('Johannesburg');
+    expect(parsePosterText('GIG\nThe Living Room, Maboneng\nSun 16 Aug', NOW).city).toBe('Johannesburg');
+    expect(parsePosterText('GIG\nSomewhere, Woodstock\nSun 16 Aug', NOW).city).toBe('Cape Town');
+  });
+
+  it('an explicitly named city still wins over the suburb', () => {
+    expect(parsePosterText('GIG\nBraamfontein, Cape Town\nSat 15 Aug', NOW).city).toBe('Cape Town');
+  });
+});
+
+describe('promoter "presents" prefix', () => {
+  it('names the event, not the brand in front of it', () => {
+    const p = parsePosterText(`RED BULL PRESENTS: AMAPIANO SUNSET\nKonka, Soweto\nSat 15 Aug`, NOW);
+    expect(p.title).toBe('AMAPIANO SUNSET');
+    expect(p.description).toBe('');   // and doesn't echo the headline back
+  });
+});
+
+describe('the vibe (description) survives', () => {
+  it('keeps real atmosphere copy while dropping everything structured', () => {
+    const p = parsePosterText(`SUNSET SESSIONS
+Konka, Soweto
+Sat 15 Aug · 18:00
+Come dance barefoot on the rooftop as the sun goes down over Soweto.
+Deep house, amapiano and the best view in the city.
+Strictly over 21s.`, NOW);
+    expect(p.description).toMatch(/dance barefoot/);
+    expect(p.description).toMatch(/best view in the city/);
+    expect(p.description).not.toMatch(/Konka|18:00|15 Aug/);
+    expect(p.ageMin).toBe(21);
+  });
+});
