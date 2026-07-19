@@ -45,15 +45,15 @@ const ResidentLiftCard = ({ lift, surface, textColor, muted }) => {
         <Text style={rl.badgeText}>Via The Resident</Text>
       </View>
 
-      {/* Driver row */}
+      {/* Driver row — name comes from the profiles join on driver_id */}
       <View style={rl.row}>
         <View style={[rl.avatar, { backgroundColor: '#22c55e25' }]}>
           <Text style={{ color: RESIDENT_GREEN, fontWeight: '900', fontSize: 13 }}>
-            {(lift.driver_name || 'R')[0].toUpperCase()}
+            {(lift.profiles?.username || 'R')[0].toUpperCase()}
           </Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[rl.name, { color: textColor }]}>{lift.driver_name || 'Resident Driver'}</Text>
+          <Text style={[rl.name, { color: textColor }]}>{lift.profiles?.username || 'Resident Driver'}</Text>
           <Text style={[rl.route, { color: RESIDENT_GREEN }]} numberOfLines={1}>
             {lift.origin} → {lift.destination}
           </Text>
@@ -106,7 +106,11 @@ export const ResidentLiftsSection = ({ eventId, primary, surface, textColor, mut
     try {
       const { data, error } = await supabase
         .from('res_lift_clubs')
-        .select('id, driver_id, driver_name, origin, destination, departure_time, price_per_seat, currency, available_seats, total_seats')
+        // res_lift_clubs has no `driver_name` column — only `driver_id` (FK to
+        // profiles). Selecting it 400'd, and the self-disable below only trips
+        // on a missing TABLE, so this section errored on every event open.
+        // The name comes from the join.
+        .select('id, driver_id, origin, destination, departure_time, price_per_seat, currency, available_seats, total_seats, profiles:driver_id(username)')
         .eq('event_id', eventId)
         .gt('available_seats', 0)
         .order('created_at', { ascending: false });
