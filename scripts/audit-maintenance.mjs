@@ -49,6 +49,13 @@ const WINDOWS = [
   { field: 'crossings_oldest_days', limit: 30 + 3, label: 'path_crossings (30d retention)' },
 ];
 
+// Per-level staleness (maintenance_levels.sql): cadence tracks consequence.
+// L1 is the legal/safety layer (daily, strict); L2 is hygiene (weekly, lenient).
+const LEVELS = [
+  { key: 'L1', cadence: 'daily',  maxDays: 1 + 3,  strict: true  },
+  { key: 'L2', cadence: 'weekly', maxDays: 7 + 14, strict: false },
+];
+
 const r = await fetch(`${URL.replace(/\/$/, '')}/rest/v1/rpc/maintenance_status`, {
   method: 'POST',
   headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
@@ -70,6 +77,30 @@ if (r.status === 404) {
   console.log('Maintenance status:', JSON.stringify(s, null, 2));
 
   const problems = [];
+
+  // ── Per-level paper trail (maintenance_levels.sql) ────────────────────────
+  if (s.levels_deployed) {
+    for (const { key, cadence, maxDays, strict } of LEVELS) {
+      const run = s.levels?.[key];
+      const report = strict
+        ? (m) => problems.push(m)
+        : (m) => console.log(`::warning::${m}`);
+      if (!run) {
+        report(`${key} (${cadence}) has NEVER run. Is pg_cron enabled and the job scheduled?`);
+      } else if (run.ok === false) {
+        report(`${key}'s last run FAILED: ${JSON.stringify(run.detail?.error || run.detail).slice(0, 150)}`);
+      } else if (Number(run.last_run_days_ago) > maxDays) {
+        report(`${key} (${cadence}) last ran ${run.last_run_days_ago}d ago (max ${maxDays}) — maintenance has stalled.`);
+      }
+    }
+    // Overdue account deletions are a promise broken to a specific person —
+    // always strict, regardless of level plumbing.
+    if (Number(s.deletions_overdue) > 0) {
+      problems.push(`${s.deletions_overdue} account deletion(s) past the 30d grace window and NOT executed.`);
+    }
+  } else {
+    console.log('::notice::maintenance_levels.sql not deployed — per-level tracking unavailable, falling back to data-age checks.');
+  }
 
   if (!s.retention_deployed) {
     console.log('::notice::data_retention.sql not deployed — retention windows not yet enforceable. (Runbook Part 1, item 2.)');
