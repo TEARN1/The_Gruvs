@@ -6,7 +6,7 @@
  */
 
 import { supabase, isSupabaseEnabled } from './supabase';
-import { resilient, resilientRead } from '../utils/resilience';
+import { resilient, resilientRead, isSchemaMiss } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
 import { logError } from '../utils/logError';
 import { log } from '../utils/log';
@@ -2773,41 +2773,65 @@ export const MessageManager = {
         body: msgPayload.body,
       };
 
+      // Idempotency key (#46). Survives retries across every tier below, so a
+      // flaky network can't double-post: the RPC returns the original row
+      // instead of inserting a second one.
+      const clientKey = _pregenId || `${senderId}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+      msgPayload.client_key = clientKey;
+      corePayload.client_key = clientKey;
+
       const data = await resilient(
         [
-          // Tier 1: full insert + return full row
+          // Tier 1: the validated send path. This is the ONLY tier that gets
+          // server-side validation (length, type, empty-body, coordinate
+          // sanity) and idempotency — sender is taken from auth.uid() inside
+          // the RPC, never from a parameter. The direct-insert tiers below are
+          // drift fallbacks for a DB that hasn't had messages_send_hardening
+          // applied; they are not the intended path.
+          async () => {
+            const { data: d, error: e } = await supabase.rpc('send_message_v2', {
+              p_recipient: recipientId,
+              p_body: msgPayload.body,
+              p_type: msgType,
+              p_media_url: mediaUrl,
+              p_event_id: event_id,
+              p_parent_id: parent_id,
+              p_client_key: clientKey,
+              p_lat: latitude,
+              p_lng: longitude,
+            });
+            if (e) throw e;
+            if (!d) throw new Error('send_message_v2 returned no row');
+            return Array.isArray(d) ? d[0] : d;
+          },
+          // Tier 2: full insert + return full row
           async () => {
             const { data: d, error: e } = await supabase.from('messages').insert(msgPayload).select().single();
             if (e) throw e;
             return d;
           },
-          // Tier 2: full insert without select
+          // Tier 3: full insert without select
           async () => {
             const { error: e } = await supabase.from('messages').insert(msgPayload);
             if (e) throw e;
             return { ...msgPayload, id: _pregenId || `local_${Date.now()}`, created_at: new Date().toISOString() };
           },
-          // Tier 3: core columns only (+ select) — drops any not-yet-migrated columns
+          // Tier 4: core columns only (+ select) — drops any not-yet-migrated columns
           async () => {
             const { data: d, error: e } = await supabase.from('messages').insert(corePayload).select().single();
             if (e) throw e;
             return d;
           },
-          // Tier 4: core columns only, no select
+          // Tier 5: core columns only, no select
           async () => {
             const { error: e } = await supabase.from('messages').insert(corePayload);
             if (e) throw e;
             return { ...corePayload, id: corePayload.id || `local_${Date.now()}`, created_at: new Date().toISOString() };
           },
-          // Tier 5: RPC send_message (bypasses RLS quirks)
-          async () => {
-            const { data: d, error: e } = await supabase.rpc('send_message', {
-              p_sender: senderId, p_recipient: recipientId,
-              p_body: msgPayload.body, p_type: msgType,
-            });
-            if (e) throw e;
-            return d || msgPayload;
-          },
+          // (A sixth tier used to call an RPC named `send_message` with a
+          //  client-supplied p_sender. That function does not exist on the
+          //  database — the tier could only ever fail — and the signature was
+          //  send-as-anyone by design. Removed, superseded by Tier 1.)
         ],
         { attemptsPerTier: 2, baseMs: 400, label: 'MessageManager.sendMessage' }
       );
@@ -3758,8 +3782,22 @@ export const ChatManager = {
     if (SecurityService.isSpam(message)) throw new Error('Message flagged as spam. Try again with different content.');
     // Length + XSS strip
     const clean = SecurityService.validateTextInput(message, { field: 'Message', minLen: 1, maxLen: 500 });
-    const { data: canSend } = await supabase.rpc('can_send_chat', { p_user_id: userId, p_event_id: eventId });
-    if (canSend === false) throw new Error('You are not allowed to chat in this event.');
+    // Ban gate. This RPC did not exist on the database until
+    // event_chat_hardening.sql, so the call errored, `canSend` came back
+    // undefined, `=== false` was false, and every send fell straight through —
+    // the gate was open by construction. It is a courtesy check so the UI can
+    // explain itself; gate_event_chat_insert is what actually enforces it, so
+    // an RPC failure here is surfaced rather than silently ignored.
+    const { data: canSend, error: gateErr } = await supabase.rpc('can_send_chat', {
+      p_user_id: userId, p_event_id: eventId,
+    });
+    // A schema-miss (RPC absent on an un-migrated DB) is tolerated — the
+    // BEFORE INSERT trigger still enforces the ban, so failing closed here
+    // would only break chat for everyone on a drifted database. Any other
+    // error is a real failure and fails closed.
+    if (canSend === false || (gateErr && !isSchemaMiss(gateErr))) {
+      throw new Error('You are not allowed to chat in this event.');
+    }
     const { data, error } = await supabase
       .from('event_chat_messages')
       .insert({ event_id: eventId, user_id: userId, message: clean, reply_to: replyTo })
@@ -4089,3 +4127,183 @@ export function ticketOutcome(existing, eventId = null) {
   if (eventId && existing.event_id !== eventId) return { valid: false, reason: 'wrong_event', ticket: null };
   return { valid: false, reason: 'already_used', ticket: null };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DRAFT MANAGER  (co-created events — the group chat plans, fills and launches
+// an event together). Server-side RPCs are the only write path: attribution,
+// claims, confirmation counts and the readiness checklist are all enforced in
+// event_drafts.sql — the client just renders what the server says.
+// ─────────────────────────────────────────────────────────────────────────────
+export const DraftManager = {
+  DRAFT_FIELDS: ['title', 'description', 'category', 'venue_name', 'location',
+    'event_date', 'event_time', 'cover_url', 'price', 'capacity', 'min_age'],
+
+  async create(crewId = null, title = null) {
+    const { data, error } = await supabase.rpc('draft_create', { p_crew_id: crewId, p_title: title });
+    if (error) { logError('Draft.create', error); throw error; }
+    return data;
+  },
+
+  async fetchMine() {
+    try {
+      const { data } = await supabase
+        .from('event_drafts')
+        .select('*, event_draft_members(user_id, role, profiles:user_id(username, avatar_url))')
+        .in('status', ['draft', 'shelved'])
+        .order('updated_at', { ascending: false });
+      return data || [];
+    } catch (e) { logError('Draft.fetchMine', e); return []; }
+  },
+
+  async get(draftId) {
+    const { data, error } = await supabase
+      .from('event_drafts')
+      .select('*, event_draft_members(user_id, role, profiles:user_id(username, avatar_url)), event_draft_confirms(user_id)')
+      .eq('id', draftId)
+      .maybeSingle();
+    if (error) { logError('Draft.get', error); return null; }
+    return data;
+  },
+
+  async addMember(draftId, userId) {
+    const { error } = await supabase.rpc('draft_add_member', { p_draft: draftId, p_user: userId });
+    if (error) { logError('Draft.addMember', error); throw error; }
+  },
+
+  // Value is always sent as text; the server casts per-field and rejects junk.
+  async setField(draftId, field, value) {
+    const { data, error } = await supabase.rpc('draft_set_field', {
+      p_draft: draftId, p_field: field,
+      p_value: value === null || value === undefined ? null : String(value),
+    });
+    if (error) { logError('Draft.setField', error); throw error; }
+    return data;
+  },
+
+  async claimField(draftId, field) {
+    const { error } = await supabase.rpc('draft_claim_field', { p_draft: draftId, p_field: field });
+    if (error) { logError('Draft.claimField', error); throw error; }
+  },
+
+  // Returns the current confirmation count. Any edit voids all confirmations
+  // server-side, so the UI should re-render the arm state from realtime.
+  async confirmLaunch(draftId) {
+    const { data, error } = await supabase.rpc('draft_confirm_launch', { p_draft: draftId });
+    if (error) { logError('Draft.confirmLaunch', error); throw error; }
+    return data;
+  },
+
+  // Resolves to the launched event id. Server enforces the checklist and the
+  // confirmation quorum; a relaunch of an already-launched draft is a no-op
+  // that returns the same event id.
+  async launch(draftId) {
+    const { data, error } = await supabase.rpc('draft_launch', { p_draft: draftId });
+    if (error) { logError('Draft.launch', error); throw error; }
+    cache.invalidate('feed:');
+    return data;
+  },
+
+  async setStatus(draftId, status) {
+    const { error } = await supabase.rpc('draft_set_status', { p_draft: draftId, p_status: status });
+    if (error) { logError('Draft.setStatus', error); throw error; }
+  },
+
+  // "Run it back": fork a past event you hosted into a fresh pre-filled draft
+  // (date intentionally blank — the server refuses to copy it).
+  async forkEvent(eventId, crewId = null) {
+    const { data, error } = await supabase.rpc('draft_fork_event', { p_event: eventId, p_crew_id: crewId });
+    if (error) { logError('Draft.forkEvent', error); throw error; }
+    return data;
+  },
+
+  // Past events the user could run back (hosted or co-hosted, already over).
+  async fetchRunBackCandidates(userId, limit = 8) {
+    try {
+      const cutoff = new Date().toISOString();
+      const [{ data: hosted }, { data: roles }] = await Promise.all([
+        supabase.from('events')
+          .select('id, title, event_date, venue_name, cover_url')
+          .eq('author_id', userId).lt('date_time', cutoff)
+          .order('date_time', { ascending: false }).limit(limit),
+        supabase.from('event_roles')
+          .select('events:event_id(id, title, event_date, venue_name, cover_url, date_time)')
+          .eq('user_id', userId).eq('role', 'co_host').limit(limit),
+      ]);
+      const coHosted = (roles || []).map(r => r.events)
+        .filter(e => e && e.date_time && e.date_time < cutoff);
+      const seen = new Set();
+      return [...(hosted || []), ...coHosted]
+        .filter(e => e && !seen.has(e.id) && seen.add(e.id))
+        .slice(0, limit);
+    } catch (e) { logError('Draft.runBackCandidates', e); return []; }
+  },
+
+  // ── Shared prep tasks (feature 51) ─────────────────────────────────────
+  async fetchTasks(draftId) {
+    const { data, error } = await supabase
+      .from('event_draft_tasks')
+      .select('*')
+      .eq('draft_id', draftId)
+      .order('created_at', { ascending: true });
+    if (error) { logError('Draft.fetchTasks', error); return []; }
+    return data || [];
+  },
+
+  async addTask(draftId, title, assignTo = null) {
+    const { data, error } = await supabase.rpc('draft_task_add',
+      { p_draft: draftId, p_title: title, p_assign: assignTo });
+    if (error) { logError('Draft.addTask', error); throw error; }
+    return data;
+  },
+
+  async toggleTask(taskId, done) {
+    const { data, error } = await supabase.rpc('draft_task_toggle', { p_task: taskId, p_done: done });
+    if (error) { logError('Draft.toggleTask', error); throw error; }
+    return data;
+  },
+
+  async assignTask(taskId, userId) {
+    const { data, error } = await supabase.rpc('draft_task_assign', { p_task: taskId, p_user: userId });
+    if (error) { logError('Draft.assignTask', error); throw error; }
+    return data;
+  },
+
+  async deleteTask(taskId) {
+    const { error } = await supabase.rpc('draft_task_delete', { p_task: taskId });
+    if (error) { logError('Draft.deleteTask', error); throw error; }
+  },
+
+  subscribeTasks(draftId, onChange) {
+    const channel = supabase
+      .channel(`draft_tasks:${draftId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'event_draft_tasks', filter: `draft_id=eq.${draftId}` },
+        () => onChange?.())
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  },
+
+  // The readiness checklist, mirrored client-side ONLY for rendering the
+  // burn-down UI — draft_launch re-checks everything server-side.
+  checklist(draft) {
+    if (!draft) return [];
+    return [
+      { key: 'title', label: 'Name the event', done: !!draft.title },
+      { key: 'event_date', label: 'Pick a date', done: !!draft.event_date },
+      { key: 'location', label: 'Set the location', done: !!(draft.location || draft.venue_name) },
+      { key: 'cover_url', label: 'Add a cover', done: !!draft.cover_url, optional: true },
+      { key: 'description', label: 'Describe it', done: !!draft.description, optional: true },
+    ];
+  },
+
+  // Live co-editing: one channel per open draft card. RLS decides who receives.
+  subscribe(draftId, onChange) {
+    const channel = supabase
+      .channel(`event_draft:${draftId}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'event_drafts', filter: `id=eq.${draftId}` },
+        (payload) => onChange?.(payload.new))
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  },
+};

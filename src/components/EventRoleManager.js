@@ -17,7 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
-import { invalidateEventRoleCache } from '../hooks/useEventRole';
+import { invalidateEventRoleCache } from '../hooks/useEventRole';
 import { useBackClose } from '../hooks/useBackClose';
 
 const ROLES = [
@@ -25,6 +25,10 @@ const ROLES = [
   { key: 'moderator',   icon: 'shield',  color: "#3b82f6", label: 'Moderator',   desc: 'Manage chat & check-ins' },
   { key: 'scanner',     icon: 'scan',    color: "#10b981", label: 'Scanner',     desc: 'Scan tickets at the door' },
   { key: 'vip_manager', icon: 'award',   color: "#8b5cf6", label: 'VIP Manager', desc: 'Approve VIP bookings' },
+  // Not a privilege — the one negative role. Backs can_send_chat() and the
+  // gate_event_chat_insert trigger; without it the Moderator role advertised
+  // "Manage chat" with no mechanism behind it.
+  { key: 'banned',      icon: 'slash',   color: "#ef4444", label: 'Banned',      desc: 'Cannot post in this event chat' },
 ];
 
 const RoleBadge = ({ role, size = 'sm', style }) => {

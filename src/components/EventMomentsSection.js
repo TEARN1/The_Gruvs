@@ -102,7 +102,7 @@ const MomentViewer = ({ moments, startIndex = 0, visible, onClose, primary, user
     });
     // Record view
     if (current.id && user?.id && current.user_id !== user?.id) {
-      supabase.from('event_moment_views').upsert({ moment_id: current.id, viewer_id: user?.id }, { onConflict: 'moment_id,viewer_id' }).then(() => {
+      supabase.from('event_moment_views').upsert({ moment_id: current.id, user_id: user?.id }, { onConflict: 'moment_id,user_id' }).then(() => {
         supabase.from('event_moments').update({ view_count: (current.view_count || 0) + 1 }).eq('id', current.id).then(() => {});
       });
     }

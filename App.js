@@ -10,6 +10,8 @@ import { BREAKPOINT } from './src/constants/DesignTokens';
 import { HIDDEN_TABS } from './src/constants/launchConfig';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { setDriftReporter } from './src/utils/resilience';
+import { logError } from './src/utils/logError';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { EntitlementProvider } from './src/context/EntitlementContext';
@@ -47,6 +49,13 @@ import { backStack } from './src/utils/backStack';
 // Install before any component mounts so all boot errors are captured
 installGlobalErrorHandler();
 validateEnv();
+
+// Schema drift, and paths that only work via a fallback tier, now land in
+// client_errors instead of a console nobody reads in production. That blind
+// spot is how 48 missing RPCs and 14 missing columns survived unnoticed.
+setDriftReporter((label, err, kind) =>
+  logError(`${kind}:${label}`.slice(0, 80), err, { code: err?.code || null })
+);
 
 // Master list — every screen the shell can mount (used for keep-alive + deep links).
 const ALL_TABS = [

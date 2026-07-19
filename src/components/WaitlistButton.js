@@ -55,8 +55,9 @@ export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
       if (wasOn) {
         const ok = await resilient(
           [
+            // Leaving the waitlist removes the row — there is no left_at column
+            // (the old fallback tier here wrote one and could only ever fail).
             () => supabase.from('event_waitlist').delete().eq('event_id', eventId).eq('user_id', user?.id),
-            () => supabase.from('event_waitlist').update({ left_at: new Date().toISOString() }).eq('event_id', eventId).eq('user_id', user?.id),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: 'Waitlist.leave', fallbackValue: null }
         );
@@ -65,7 +66,8 @@ export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
       } else {
         const ok = await resilient(
           [
-            () => supabase.from('event_waitlist').upsert({ event_id: eventId, user_id: user?.id, joined_at: new Date().toISOString() }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
+            // No joined_at column either — created_at already records this.
+            () => supabase.from('event_waitlist').upsert({ event_id: eventId, user_id: user?.id }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
             () => supabase.from('event_waitlist').insert({ event_id: eventId, user_id: user?.id }),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: 'Waitlist.join', fallbackValue: null }

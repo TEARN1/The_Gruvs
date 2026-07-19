@@ -45,8 +45,9 @@ export const RouteJourneyCard = ({ route, onPress }) => {
         setJoinCount(c => Math.max(0, c - 1));
         await resilient(
           [
+            // Leaving removes the row — route_joins has no `active` column, so
+            // the old second tier here could only ever fail.
             () => supabase.from('route_joins').delete().eq('route_id', route.id).eq('user_id', user?.id),
-            () => supabase.from('route_joins').update({ active: false }).eq('route_id', route.id).eq('user_id', user?.id),
             () => supabase.rpc('leave_route', { p_route_id: route.id, p_user_id: user?.id }),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: `RouteJourneyCard.leave:${route.id}`, fallbackValue: null }

@@ -1,4 +1,4 @@
-import { attemptWithBackoff, resilient, isSchemaMiss } from '../src/utils/resilience';
+import { attemptWithBackoff, resilient, isSchemaMiss, setDriftReporter } from '../src/utils/resilience';
 
 describe('attemptWithBackoff', () => {
   it('returns the result on first success', async () => {
@@ -88,5 +88,47 @@ describe('missing-RPC fallback (the follow / reshare / check-in fix)', () => {
     ).resolves.toBe(true);
     expect(rpcTier).toHaveBeenCalledTimes(1); // tried once, no retries
     expect(tableTier).toHaveBeenCalledTimes(1); // cascade continued
+  });
+});
+
+describe('drift reporter (silent-failure visibility)', () => {
+  afterEach(() => setDriftReporter(null));
+
+  const missingCol = () => { const e = new Error('column x does not exist'); e.code = '42703'; return e; };
+
+  it('reports a schema miss to the injected sink, not just the console', async () => {
+    const sink = jest.fn();
+    setDriftReporter(sink);
+    const broken = jest.fn(async () => { throw missingCol(); });
+    const working = jest.fn(async () => 'ok');
+    await resilient([broken, working], { attemptsPerTier: 1, baseMs: 1, label: 'Probe.a' });
+    expect(sink).toHaveBeenCalledWith('Probe.a:primary', expect.anything(), 'SCHEMA_DRIFT');
+  });
+
+  it('flags a fallback-only success as DEGRADED — the bug class that hid 48 dead RPCs', async () => {
+    const sink = jest.fn();
+    setDriftReporter(sink);
+    const deadTier1 = jest.fn(async () => { throw missingCol(); });
+    const workingTier2 = jest.fn(async () => 'saved');
+    await expect(
+      resilient([deadTier1, workingTier2], { attemptsPerTier: 1, baseMs: 1, label: 'Probe.b' })
+    ).resolves.toBe('saved');
+    const kinds = sink.mock.calls.map(c => c[2]);
+    expect(kinds).toContain('DEGRADED_PATH');
+  });
+
+  it('stays silent when tier 1 succeeds — no false alarms', async () => {
+    const sink = jest.fn();
+    setDriftReporter(sink);
+    await resilient([async () => 'fine'], { attemptsPerTier: 1, baseMs: 1, label: 'Probe.c' });
+    expect(sink).not.toHaveBeenCalled();
+  });
+
+  it('never lets a throwing reporter break the operation', async () => {
+    setDriftReporter(() => { throw new Error('telemetry exploded'); });
+    const broken = jest.fn(async () => { throw missingCol(); });
+    await expect(
+      resilient([broken, async () => 'ok'], { attemptsPerTier: 1, baseMs: 1, label: 'Probe.d' })
+    ).resolves.toBe('ok');
   });
 });

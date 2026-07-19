@@ -71,16 +71,54 @@ export const isSchemaMiss = (err) => {
 };
 
 // Schema drift is a BUG, not a runtime condition — never let it fail quietly.
+//
+// console.error alone was not enough: it is invisible in production, which is
+// how 48 missing RPCs and 14 missing columns survived unnoticed (2026-07-19
+// sweep). A reporter can be injected so drift ALSO lands in client_errors and
+// can be read back. Injected rather than imported to keep this module free of
+// a supabase dependency (it is imported almost everywhere).
+let _driftReporter = null;
+
+/**
+ * Register a sink for drift + degradation events, e.g.
+ *   setDriftReporter((label, err, kind) => logError(`${kind}:${label}`, err));
+ * Pass null to disable. Never called more than once per unique problem.
+ */
+export function setDriftReporter(fn) {
+  _driftReporter = typeof fn === 'function' ? fn : null;
+}
+
 const _seenMiss = new Set();
-const reportSchemaMiss = (err, label) => {
-  const key = `${label}|${err?.code}|${err?.message}`;
-  if (_seenMiss.has(key)) return;  // once per unique problem, not per retry
+const reportOnce = (key, consoleMsg, label, err, kind) => {
+  if (_seenMiss.has(key)) return;   // once per unique problem, not per retry
   _seenMiss.add(key);
   // eslint-disable-next-line no-console
-  console.error(
+  console.error(consoleMsg);
+  if (_driftReporter) {
+    try { _driftReporter(label, err, kind); } catch { /* telemetry is never load-bearing */ }
+  }
+};
+
+const reportSchemaMiss = (err, label) => {
+  reportOnce(
+    `miss|${label}|${err?.code}|${err?.message}`,
     `[SCHEMA DRIFT] ${label}: ${err?.message || err}` +
-    (err?.code ? ` (code ${err.code})` : '') +
-    ' — the query does not match the database. This feature is BROKEN, not empty.'
+      (err?.code ? ` (code ${err.code})` : '') +
+      ' — the query does not match the database. This feature is BROKEN, not empty.',
+    label, err, 'SCHEMA_DRIFT'
+  );
+};
+
+// A fallback tier succeeding is not success — it means the intended path is
+// dead and nobody noticed. Every bug in the 2026-07-19 sweep looked "fine"
+// precisely because a lower tier quietly covered for a broken tier 1.
+const reportDegraded = (label, tierIndex, err) => {
+  reportOnce(
+    `degraded|${label}|${tierIndex}`,
+    `[DEGRADED] ${label}: tier ${tierIndex + 1} succeeded, but tier 1 failed` +
+      (err?.message ? ` (${err.message})` : '') +
+      ' — the primary path is broken; this is working by fallback only.',
+    label, err, 'DEGRADED_PATH'
   );
 };
 
@@ -166,9 +204,16 @@ export async function resilient(tiers, opts = {}) {
 
   const tierNames = ['primary', 'secondary', 'tertiary', 'quaternary', 'quinary'];
 
+  let firstError = null;
+
   for (let t = 0; t < tiers.length; t++) {
     const result = await runTier(tiers[t], attemptsPerTier, baseMs, `${label}:${tierNames[t] ?? `tier${t + 1}`}`);
-    if (result.ok) return result.value;
+    if (result.ok) {
+      // Succeeded on a FALLBACK tier: the intended path is broken. Say so.
+      if (t > 0) reportDegraded(label, t, firstError);
+      return result.value;
+    }
+    if (t === 0) firstError = result.error;
     // If transient, the next tier may succeed with a simpler strategy
     // If fatal, skip remaining tiers — wrong input, not a connectivity issue
     if (result.error && isFatal(result.error)) {

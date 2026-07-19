@@ -12,6 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { CrewManager } from '../services/crewManager';
+import { EventDraftPanel } from './EventDraftPanel';
 import { useToast } from './ToastNotification';
 import { useBackClose } from '../hooks/useBackClose';
 
@@ -202,6 +203,8 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
                   </TouchableOpacity>
                 </View>
               ))}
+
+              <EventDraftPanel crew={crew} members={members} />
 
               <TouchableOpacity onPress={leave} style={[s.leaveBtn, { borderColor: '#ef444455' }]}>
                 <Feather name={isOwner ? 'trash-2' : 'log-out'} size={14} color="#ef4444" />

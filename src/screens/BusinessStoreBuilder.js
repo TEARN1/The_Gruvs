@@ -513,8 +513,9 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
           setBlocks(p => p.filter(b => b.id !== blockId));
           await resilient(
             [
+              // Hard delete only — there is no `deleted` column, so the old
+              // soft-delete fallback tier here could never have worked.
               () => supabase.from('business_page_blocks').delete().eq('id', blockId),
-              () => supabase.from('business_page_blocks').update({ deleted: true }).eq('id', blockId),
               () => supabase.rpc('delete_page_block', { p_block_id: blockId }),
             ],
             { attemptsPerTier: 2, baseMs: 400, label: `StoreBuilder.deleteBlock:${blockId}`, fallbackValue: null }

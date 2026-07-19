@@ -50,7 +50,7 @@ const UpdateCard = React.memo(({ item, primary, textColor, muted, surface }) => 
         <Feather name={type.icon} size={14} color={type.color} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[lu.message, { color: textColor }]}>{item.message}</Text>
+        <Text style={[lu.message, { color: textColor }]}>{item.body}</Text>
         <Text style={[lu.meta, { color: muted }]}>
           @{item.profiles?.username || 'organiser'} · {fmt(item.created_at)}
         </Text>
@@ -106,7 +106,10 @@ export const LiveEventUpdates = ({ eventId, organiserId, canPost: canPostProp, p
     try {
       const ok = await resilient(
         [
-          () => supabase.from('event_updates').insert({ event_id: eventId, author_id: user?.id, message: message.trim(), update_type: updateType }),
+          // The column is `body`, not `message` — this insert failed every time,
+          // and the `post_event_update` fallback RPC does not exist on the DB
+          // either, so posting a live update was dead end-to-end.
+          () => supabase.from('event_updates').insert({ event_id: eventId, author_id: user?.id, body: message.trim(), update_type: updateType }),
           () => supabase.rpc('post_event_update', { p_event_id: eventId, p_author: user?.id, p_message: message.trim(), p_type: updateType }),
         ],
         { attemptsPerTier: 2, baseMs: 400, label: 'LiveEventUpdates.post', fallbackValue: null }

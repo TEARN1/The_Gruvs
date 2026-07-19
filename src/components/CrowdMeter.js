@@ -56,8 +56,11 @@ export const CrowdMeter = ({ eventId, primary = '#00f2ff', textColor = '#fff', m
       return [...others, { user_id: user.id, level: lvl, created_at: new Date().toISOString() }];
     });
     try {
+      // The column is `vote` — the read above already aliases it as `level:vote`,
+      // but this write used `level` and so failed every time. The catch below
+      // swallowed it, leaving the optimistic UI showing a vote that never saved.
       await supabase.from('event_crowd_votes').upsert(
-        { event_id: eventId, user_id: user.id, level: lvl, created_at: new Date().toISOString() },
+        { event_id: eventId, user_id: user.id, vote: lvl, created_at: new Date().toISOString() },
         { onConflict: 'event_id,user_id' },
       );
     } catch {

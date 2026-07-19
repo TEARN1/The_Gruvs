@@ -16,14 +16,15 @@
     "test:unit": "jest",
     "test:unit:watch": "jest --watch",
     "test:unit:coverage": "jest --coverage",
-    "preflight": "node scripts/pre-deploy-check.js",
+    "preflight": "node scripts/pre-deploy-check.js && node scripts/audit-schema.mjs && node scripts/audit-writes.mjs",
     "db:patch": "node scripts/apply-patch.js",
     "db:audit": "node scripts/db-audit.js",
     "deploy": "node scripts/pre-deploy-check.js && npm run build",
     "loadtest": "k6 run load/feed-stress.js",
     "monitor": "node scripts/monitor-errors.js",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "audit:writes": "node scripts/audit-writes.mjs"
   },
   "jest": {
     "preset": "jest-expo",
