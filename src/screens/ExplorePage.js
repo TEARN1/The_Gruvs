@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
   TextInput, Dimensions, Animated, Platform, Modal, RefreshControl, ActivityIndicator,
@@ -26,7 +26,7 @@ import { supabase } from '../services/supabase';
 import { LocationService } from '../services/locationService';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor } from '../constants/CategoryConfig';
 import { RouteJourneyCard } from '../components/RouteJourneyCard';
-import { ServiceMarketplace } from './ServiceMarketplace';
+import { ServiceMarketplace } from './lazyScreens';
 import { LAUNCH_MINIMAL } from '../constants/launchConfig';
 import { filterByViewerAge } from '../utils/contentAgeRating';
 import { viewerAgeSync } from '../utils/viewerAge';
@@ -929,7 +929,10 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
     let alive = true;
     supabase
       .from('events')
-      .select('id, title, category, categories, sport_type, event_date, event_time, venue_name, city, cover_url, media, poster_mode, vibe_count, price, lat, lon, profiles!author_id(username, avatar_url)')
+      // No `sport_type` — it lives in schema_part_3.sql, which is not deployed.
+      // Selecting it 400'd the whole mood query, so every mood rendered empty.
+      // Sport filtering falls back to `category` below until that ships.
+      .select('id, title, category, categories, event_date, event_time, venue_name, city, cover_url, media, poster_mode, vibe_count, price, lat, lon, profiles!author_id(username, avatar_url)')
       .in('category', catList)
       .gte('event_date', today)
       .is('deleted_at', null)
@@ -968,7 +971,9 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       const moodFiltered = moodFilteredEvents.length > 0
         ? moodFilteredEvents
         : happeningNow.filter(e => matchesCatSet(e, allCats));
-      return ageGate(activeSport ? moodFiltered.filter(e => e.sport_type === activeSport) : moodFiltered);
+      return ageGate(activeSport
+        ? moodFiltered.filter(e => e.sport_type === activeSport || e.category === 'sport')
+        : moodFiltered);
     }
     if (activeSport) {
       return ageGate(happeningNow.filter(e => e.sport_type === activeSport || e.category === 'sport'));
@@ -1672,10 +1677,12 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         onRequestClose={() => setMarketplaceVisible(false)}
         statusBarTranslucent
       >
-        <ServiceMarketplace
-          onAuthRequired={onAuthRequired}
-          onClose={() => setMarketplaceVisible(false)}
-        />
+        <Suspense fallback={null}>
+          <ServiceMarketplace
+            onAuthRequired={onAuthRequired}
+            onClose={() => setMarketplaceVisible(false)}
+          />
+        </Suspense>
       </Modal>
 
       <TutorialCenter

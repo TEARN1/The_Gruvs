@@ -4021,7 +4021,9 @@ export const TicketManager = {
     const tokenStr = `VIBE-TKT-${eventId.slice(0, 4).toUpperCase()}-${secureCode(3, 4)}`;
     const { data, error } = await supabase
       .from('ticket_tokens')
-      .insert({ rsvp_id: rsvpId, user_id: userId, event_id: eventId, token_str: tokenStr, used: false })
+      // Schema is `token` + nullable `used_at` (NULL = unused). There is no
+      // `token_str` / `used` column — using them 400'd every ticket call.
+      .insert({ rsvp_id: rsvpId, user_id: userId, event_id: eventId, token: tokenStr })
       .select()
       .single();
     if (error) throw error;
@@ -4045,7 +4047,7 @@ export const TicketManager = {
    * scanned twice both read "valid" (double-entry), and any event's ticket
    * validated at any door. This is the atomic, replay-safe version:
    *
-   *   • The update only matches an UNUSED ticket (`.eq('used', false)`), so the
+   *   • The update only matches an UNUSED ticket (`used_at IS NULL`), so the
    *     second scan flips zero rows — double-entry is impossible at the DB level,
    *     with no check-then-write race.
    *   • Optionally scoped to the event, so a ticket only opens its OWN door.
@@ -4058,9 +4060,9 @@ export const TicketManager = {
     // Atomic claim: only an unused ticket transitions to used.
     let q = supabase
       .from('ticket_tokens')
-      .update({ used: true, used_at: new Date().toISOString() })
-      .eq('token_str', token)
-      .eq('used', false);
+      .update({ used_at: new Date().toISOString() })
+      .eq('token', token)
+      .is('used_at', null);
     if (eventId) q = q.eq('event_id', eventId);
     const { data, error } = await q.select('*, profiles:user_id(username, avatar_url), events(title)');
     if (error) { logError('Ticket.validate', error); return { valid: false, reason: 'error', ticket: null }; }
@@ -4070,8 +4072,8 @@ export const TicketManager = {
     // Nothing flipped — say WHY: already used, wrong event, or never existed.
     const { data: existing } = await supabase
       .from('ticket_tokens')
-      .select('used, event_id')
-      .eq('token_str', token)
+      .select('used_at, event_id')
+      .eq('token', token)
       .maybeSingle();
     return ticketOutcome(existing, eventId);
   },
