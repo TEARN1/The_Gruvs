@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useFonts, loadAsync as _loadFontAsync } from 'expo-font';
 const Font = { loadAsync: _loadFontAsync };
 import {
@@ -27,14 +27,13 @@ import { ChatsScreen, useUnreadDMCount } from './src/screens/ChatsScreen';
 import { AuthModal } from './src/components/AuthModal';
 import { BrandLogo } from './src/components/BrandLogo';
 import { useNotifications } from './src/hooks/useNotifications';
-import { ProfilePage } from './src/screens/ProfilePage';
 import { ViberProfileModal } from './src/components/ViberProfileModal';
-import { CalendarPage } from './src/screens/CalendarPage';
-import { ExplorePage } from './src/screens/ExplorePage';
-import { ReelsScreen } from './src/screens/ReelsScreen';
+// Split on web, static on native — see src/screens/lazyScreens.js
+import {
+  ProfilePage, CalendarPage, ExplorePage, ReelsScreen, GodViewDashboard,
+} from './src/screens/lazyScreens';
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
-import { GodViewDashboard } from './src/screens/GodViewDashboard';
 import { AppLockGate } from './src/components/AppLockGate';
 import { installGlobalErrorHandler } from './src/utils/errorReporter';
 import { validateEnv } from './src/utils/validateEnv';
@@ -64,6 +63,18 @@ const ALL_TABS = [
 // In minimal launch mode this drops the demoted tabs (e.g. Reels). Hidden
 // screens still mount via ALL_TABS and stay reachable through deep links.
 const TABS = ALL_TABS.filter(t => !HIDDEN_TABS.includes(t.key));
+
+// Suspense fallback while a web chunk streams in. Hidden tabs prewarm in the
+// background, so they render nothing — a spinner the user can't see is just
+// noise, and on the active tab it should only appear if the chunk is genuinely
+// slow (cached chunks resolve within a frame).
+const ScreenSkeleton = ({ active }) => (
+  active ? (
+    <View style={styles.screenSkeleton}>
+      <ActivityIndicator size="small" />
+    </View>
+  ) : null
+);
 
 const WIDE_BREAKPOINT = BREAKPOINT.wide;
 const SIDEBAR_OPEN_WIDTH = 220;
@@ -731,7 +742,11 @@ const MainNavigator = () => {
             dataSet={{ screen: tab.key, active: isActive ? 'true' : 'false' }}
           >
             <ErrorBoundary label={tab.label}>
-              {screenFor(tab.key)}
+              {/* Per-tab boundary: a background tab still streaming its chunk
+                  must never suspend the tab the user is actually looking at. */}
+              <Suspense fallback={<ScreenSkeleton active={isActive} />}>
+                {screenFor(tab.key)}
+              </Suspense>
             </ErrorBoundary>
           </View>
         );
@@ -943,6 +958,7 @@ const styles = StyleSheet.create({
   screenHost: { flex: 1 },
   screenActive: { ...StyleSheet.absoluteFillObject },
   screenHidden: { display: 'none' },
+  screenSkeleton: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   // Bottom tab bar — height expands to cover bottom inset (home indicator / nav bar)
   tabBar: {

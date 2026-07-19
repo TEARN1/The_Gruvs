@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition, Suspense } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -75,7 +75,7 @@ import { RSVPConfirmModal }     from '../components/RSVPConfirmModal';
 import { ReportModal }          from '../components/ReportModal';
 import { EventMapView }         from '../components/EventMapView';
 import { VibeRouletteModal }    from '../components/VibeRouletteModal';
-import { PathMapScreen }        from './PathMapScreen';
+import { PathMapScreen }        from './lazyScreens';
 import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
 import { friendsGoing, friendsLabel } from '../services/socialProof';
@@ -2877,7 +2877,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       </Modal>
       {pathMapVisible && (
         <SafeSection label="Path Map" primary={primary}>
-          <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
+          <Suspense fallback={null}>
+            <PathMapScreen visible={pathMapVisible} onClose={() => setPathMapVisible(false)} />
+          </Suspense>
         </SafeSection>
       )}
       {!!selectedEvent && (
