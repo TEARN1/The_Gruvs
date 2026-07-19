@@ -30,6 +30,7 @@ import { nextUnlocks } from '../utils/levelUnlocks';
 import { DiscoveryManager, UserManager, BehavioralEngine, ActivityFeedManager, PresenceManager, isOnline as checkOnline } from '../services/dataFlow';
 import { resilient, resilientRead } from '../utils/resilience';
 import { LocationService } from '../services/locationService';
+import { setHomeArea as setHomeAreaRpc, getMyHomeArea } from '../services/homeArea';
 import { SecurityService } from '../services/securityService';
 import { buildSosMessage, whatsappLink, smsLink } from '../utils/sosMessage';
 import * as ImagePicker from 'expo-image-picker';
@@ -335,6 +336,13 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
       // home_village / community_tags / languages — targeting self-tags, also fetched separately.
       supabase.from('profiles').select('home_village, community_tags, languages').eq('id', user.id).maybeSingle()
         .then(({ data: t }) => { if (t) { setHomeVillage(t.home_village || ''); setCommunityTags(t.community_tags || []); setLanguages(t.languages || []); } }, () => {});
+      // home_base_* isn't column-readable even for your own row, so this comes
+      // back through my_home_area() rather than the profile select above.
+      getMyHomeArea().then((h) => {
+        if (!h) return;
+        setHomeArea(h.label || '');
+        setHomeAreaPinned(h.lat != null && h.lon != null);
+      }, () => {});
       
       // Fetch monetization balances
       MonetizationService.getCoinBalance(user.id).then(setCoins).catch(() => {});
@@ -390,6 +398,13 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
     setBirthDate([y, m, d].join('-')); // raw while typing; normalized at save time
   };
   const [homeVillage, setHomeVillage] = useState(profile?.home_village || '');
+  // Home area — where you actually live, so the feed can lead with what's on
+  // near home instead of near wherever you happen to be at 3pm. Always set by
+  // the user; never inferred from location history. The coordinate is optional
+  // and is rounded to ~1.1km by set_home_area() before it is stored.
+  const [homeArea, setHomeArea] = useState('');
+  const [homeAreaPinned, setHomeAreaPinned] = useState(false);
+  const [pinningHome, setPinningHome] = useState(false);
   const [communityTags, setCommunityTags] = useState(profile?.community_tags || []);
   const [languages, setLanguages] = useState(profile?.languages || []);
   const [profileEmail, setProfileEmail] = useState(profile?.email || '');
@@ -422,6 +437,9 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
           return ok ? iso : null;
         })(),
         home_village: homeVillage.trim() || null,
+        // Label only. The coordinate is never written from here — it goes
+        // through set_home_area(), which rounds it before storing.
+        home_area: homeArea.trim() || null,
         community_tags: communityTags,
         languages,
         email: profileEmail.trim() || null,
@@ -431,8 +449,8 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
       };
       // clan_name / birth_date may not be migrated yet — retry without them on failure.
       let { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
-      if (error && /clan_name|birth_date|home_village|community_tags|languages/.test(error.message || '')) {
-        const { clan_name: _c, birth_date: _b, home_village: _hv, community_tags: _ct, languages: _lg, ...safe } = payload;
+      if (error && /clan_name|birth_date|home_village|home_area|community_tags|languages/.test(error.message || '')) {
+        const { clan_name: _c, birth_date: _b, home_village: _hv, home_area: _ha, community_tags: _ct, languages: _lg, ...safe } = payload;
         ({ error } = await supabase.from('profiles').update(safe).eq('id', user.id));
       }
       if (!error) {
@@ -635,6 +653,54 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         />
         <Text style={{ color: muted, fontSize: 11, marginBottom: 14, lineHeight: 15 }}>
           Helps hosts invite people from your home area.
+        </Text>
+
+        {/* Home area — powers "what's on near where I live" */}
+        <Text style={[fm.subLabel, { color: muted }]}>YOUR HOME AREA</Text>
+        <TextInput
+          style={[fm.input, { color: textColor, borderColor: `${primary}30`, marginBottom: 8 }]}
+          placeholder="e.g. Braamfontein, Johannesburg"
+          placeholderTextColor={muted}
+          value={homeArea}
+          onChangeText={setHomeArea}
+          maxLength={80}
+        />
+        <TouchableOpacity
+          activeOpacity={0.8}
+          disabled={pinningHome}
+          onPress={async () => {
+            setPinningHome(true);
+            try {
+              const coords = await LocationService.requestAndGet();
+              if (!coords) {
+                toast?.show('Location permission is off — you can still type your area.', 'info');
+                return;
+              }
+              // Sent at full precision but stored rounded to ~1.1km: the
+              // rounding lives in set_home_area() so it can't be skipped.
+              await setHomeAreaRpc(homeArea.trim() || null, coords);
+              setHomeAreaPinned(true);
+              toast?.show('Home area set — we’ll show you what’s on nearby.', 'success');
+            } catch (e) {
+              toast?.show('Could not set home area: ' + (e?.message || 'try again'), 'error');
+            } finally {
+              setPinningHome(false);
+            }
+          }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
+                   paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1,
+                   borderColor: homeAreaPinned ? primary : `${primary}30`,
+                   backgroundColor: homeAreaPinned ? `${primary}15` : 'transparent', marginBottom: 6 }}
+        >
+          <Feather name={homeAreaPinned ? 'check-circle' : 'map-pin'} size={13} color={homeAreaPinned ? primary : muted} />
+          <Text style={{ color: homeAreaPinned ? primary : muted, fontSize: 12, fontWeight: '700' }}>
+            {pinningHome ? 'Setting…' : homeAreaPinned ? 'Home area pinned' : 'Use my current location'}
+          </Text>
+        </TouchableOpacity>
+        <Text style={{ color: muted, fontSize: 11, marginBottom: 14, lineHeight: 15 }}>
+          Only ever set by you — we never work it out from your movements. Stored
+          roughly (about a 1km area), never your exact address, and never shown to
+          anyone else.
         </Text>
 
         {/* Languages — optional, powers language-targeted invites */}

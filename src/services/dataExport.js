@@ -14,9 +14,17 @@ import { supabase } from './supabase';
 import { logError } from '../utils/logError';
 import { track } from '../utils/analytics';
 
+// `profiles` can NOT be exported with select('*'). The coordinate lockdown
+// (supabase/queries/lock_profile_coordinates.sql) revoked the table-level SELECT
+// grant and re-granted an explicit safe column list, so `*` fails a permission
+// check and the user's profile was being silently dropped from their own export.
+// We request the same field list the app already reads successfully — and it
+// deliberately excludes lat/lon: coordinates never go to a client.
+const PROFILE_EXPORT_COLS = 'id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, is_discoverable, interests, location, career_title, career_description, looks_description, share_events, show_online, gender';
+
 // The user's own rows, keyed by the column that ties a row to them.
 const OWNED = [
-  { table: 'profiles', col: 'id', single: true },
+  { table: 'profiles', col: 'id', single: true, cols: PROFILE_EXPORT_COLS },
   { table: 'events', col: 'author_id' },
   { table: 'event_rsvps', col: 'user_id' },
   { table: 'live_checkins', col: 'user_id' },
@@ -36,9 +44,9 @@ export async function collectUserData(userId) {
   const out = { exported_at: new Date().toISOString(), user_id: userId, data: {} };
   if (!userId) return out;
 
-  await Promise.all(OWNED.map(async ({ table, col, single }) => {
+  await Promise.all(OWNED.map(async ({ table, col, single, cols }) => {
     try {
-      let q = supabase.from(table).select('*').eq(col, userId);
+      let q = supabase.from(table).select(cols || '*').eq(col, userId);
       if (!single) q = q.limit(5000);
       const { data, error } = await q;
       if (error) return;                       // table missing / blocked — skip

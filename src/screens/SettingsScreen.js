@@ -124,6 +124,26 @@ export const SettingsScreen = ({
     toast?.show(next ? 'Sound effects on 🔊' : 'Sound effects off', next ? 'success' : 'info');
   }, [toast]);
 
+  // `wants_email` is NOT in AuthContext.PROFILE_FIELDS, so profile?.wants_email is
+  // always undefined — the toggle showed "on" again after every reopen, which
+  // makes the POPIA consent-withdrawal meaningless. Read it in its OWN guarded
+  // query: it can't be added to PROFILE_FIELDS until the coordinate-lockdown
+  // grant is re-run (new columns aren't readable until then), and a failure there
+  // would break profile loading for everyone. Falls back to true if unreadable.
+  useEffect(() => {
+    if (!user?.id) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles').select('wants_email').eq('id', user.id).maybeSingle();
+        if (!alive || error || !data) return;
+        if (typeof data.wants_email === 'boolean') setWantsEmail(data.wants_email);
+      } catch { /* column not granted yet — keep the default */ }
+    })();
+    return () => { alive = false; };
+  }, [user?.id]);
+
   // Two-factor auth (#997)
   const [mfaOpen, setMfaOpen] = useState(false);
   const [mfaOn, setMfaOn] = useState(false);
