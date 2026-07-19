@@ -8,7 +8,7 @@
     "web": "expo start --web",
     "prebuild": "node scripts/check-bundle-health.js",
     "build": "npx expo export --platform web && npm run postbuild",
-    "postbuild": "node -e \"const fs=require('fs'),path=require('path');const src=path.join(__dirname,'public','.well-known');const dst=path.join(__dirname,'dist','.well-known');if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});fs.readdirSync(src).forEach(f=>fs.copyFileSync(path.join(src,f),path.join(dst,f)));console.log('Copied .well-known to dist/');}\" && node scripts/inject-pwa.js",
+    "postbuild": "node -e \"const fs=require('fs'),path=require('path');const src=path.join(__dirname,'public','.well-known');const dst=path.join(__dirname,'dist','.well-known');if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});fs.readdirSync(src).forEach(f=>fs.copyFileSync(path.join(src,f),path.join(dst,f)));console.log('Copied .well-known to dist/');}\" && node scripts/inject-pwa.js && node scripts/gen-sitemap.js",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",

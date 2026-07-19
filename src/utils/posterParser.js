@@ -57,6 +57,37 @@ const VENUE_WORDS = /\b(club|lounge|arena|hall|centre|center|convention|park|roo
 const TICKET_SITES = /(quicket|webtickets|computicket|howler|ticketpro|plankton|nutickets)\.?[a-z.]*/i;
 
 const clean = (s) => (s || '').replace(/\s+/g, ' ').trim();
+
+/**
+ * Strip the noise a pasted flyer actually arrives with — this is the WhatsApp
+ * path, so the text is full of chat artifacts and decoration that were being
+ * baked into the title and venue ("*AMAPIANO SUNSET* 🌅", "📍 Konka").
+ *
+ *   • WhatsApp forward headers:  [15/08, 20:14] Thabo 🔥:
+ *   • attachment placeholders:   ‎<attached: 000042-PHOTO.jpg>
+ *   • markdown emphasis:         *bold*  _italic_  ~strike~
+ *   • leading/trailing emoji + pictographs used as bullets (📍 🗓 ⏰ 💰 ✨ 🔥)
+ *
+ * Deliberately keeps the LINE structure (only strips per-line edges), because
+ * the parser relies on lines to tell a title from a venue from a price.
+ */
+const EMOJI_EDGE = /^[\s\p{Extended_Pictographic}\p{So}\p{Sk}~*_·•\-–—|]+|[\s\p{Extended_Pictographic}\p{So}\p{Sk}~*_·•|]+$/gu;
+export function stripNoise(raw) {
+  return String(raw || '')
+    .split(/\r?\n/)
+    .map((line) => line
+      // "[15/08, 20:14] Thabo:" — a forwarded WhatsApp message header
+      .replace(/^\s*\[\d{1,2}\/\d{1,2}(?:\/\d{2,4})?,?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:[ap]m)?\]\s*[^:]{0,40}:\s*/i, '')
+      // "<attached: file.jpg>" / "‎image omitted"
+      .replace(/‎?<attached:[^>]*>/gi, '')
+      .replace(/\b(image|video|sticker|document)\s+omitted\b/gi, '')
+      // markdown emphasis around whole words (WhatsApp bold/italic)
+      .replace(/(^|\s)[*_~]([^*_~]{2,})[*_~](?=\s|$|[.,!?])/g, '$1$2')
+      // emoji/pictograph bullets and decoration at the edges of the line
+      .replace(EMOJI_EDGE, '')
+      .trim())
+    .join('\n');
+}
 const titleCase = (s) => clean(s).replace(/\b\w/g, (c) => c.toUpperCase());
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -132,6 +163,91 @@ export function parseDate(text, now = new Date(), dateOrder = 'DMY') {
     return shift(delta);
   }
   return null;
+}
+
+/**
+ * DATE RANGES — multi-day festivals ("15 - 17 August", "Aug 15-17",
+ * "30 July – 2 August"). Without this the single-date parser grabbed the digit
+ * touching the month (the 17th), so a festival got the WRONG start date and lost
+ * its end date entirely.
+ *
+ * Scanned per LINE so a dash on one line can't bind to a date on another (a tour
+ * poster listing "14 Aug — Johannesburg / 21 Aug — Durban" must not read as a range).
+ *
+ * @returns {{start:string, end:string}|null}
+ */
+export function parseDateRange(lines, now = new Date(), dateOrder = 'DMY') {
+  const DASH = '(?:-|–|—|to|until|till)';
+  for (const raw of lines || []) {
+    const l = clean(raw);
+    let m;
+
+    // "15 - 17 August 2026"  (same month, day-first)
+    m = l.match(new RegExp(`\\b(\\d{1,2})\\s*${DASH}\\s*(\\d{1,2})\\s+(${MONTH_RE})\\.?\\s*,?\\s*(20\\d{2})?`, 'i'));
+    if (m) {
+      const [, d1, d2, mon, yr] = m;
+      const s = parseDate(`${d1} ${mon} ${yr || ''}`, now, dateOrder);
+      const e = parseDate(`${d2} ${mon} ${yr || ''}`, now, dateOrder);
+      if (s && e && e >= s) return { start: s, end: e };
+    }
+
+    // "August 15 - 17, 2026"  (month-first)
+    m = l.match(new RegExp(`\\b(${MONTH_RE})\\.?\\s+(\\d{1,2})\\s*${DASH}\\s*(\\d{1,2})\\s*,?\\s*(20\\d{2})?`, 'i'));
+    if (m) {
+      const [, mon, d1, d2, yr] = m;
+      const s = parseDate(`${d1} ${mon} ${yr || ''}`, now, dateOrder);
+      const e = parseDate(`${d2} ${mon} ${yr || ''}`, now, dateOrder);
+      if (s && e && e >= s) return { start: s, end: e };
+    }
+
+    // "30 July – 2 August 2026"  (crosses a month boundary)
+    m = l.match(new RegExp(`\\b(\\d{1,2})\\s+(${MONTH_RE})\\.?\\s*${DASH}\\s*(\\d{1,2})\\s+(${MONTH_RE})\\.?\\s*,?\\s*(20\\d{2})?`, 'i'));
+    if (m) {
+      const [, d1, mon1, d2, mon2, yr] = m;
+      const s = parseDate(`${d1} ${mon1} ${yr || ''}`, now, dateOrder);
+      const e = parseDate(`${d2} ${mon2} ${yr || ''}`, now, dateOrder);
+      if (s && e && e >= s) return { start: s, end: e };
+    }
+  }
+  return null;
+}
+
+/**
+ * TOUR DETECTION — a poster that lists several dates, each with its own city, is
+ * a tour, not one event:
+ *
+ *     14 Aug — Johannesburg
+ *     21 Aug — Durban
+ *     28 Aug — Cape Town
+ *
+ * The parser used to silently keep only the first date and drop the rest. Now we
+ * return the stops so the form can offer to build the tour (which the app already
+ * supports) instead of quietly losing two-thirds of the poster.
+ *
+ * Requires 2+ lines that EACH carry a date, and at least two DIFFERENT cities —
+ * otherwise it's a single event with a schedule, not a tour.
+ *
+ * @returns {Array<{date:string, city:string}>} [] when it isn't a tour
+ */
+export function parseTourStops(lines, now = new Date(), dateOrder = 'DMY') {
+  const stops = [];
+  for (const raw of lines || []) {
+    const l = clean(raw);
+    if (!l || l.length > 90) continue;
+    const d = parseDate(l, now, dateOrder);
+    if (!d) continue;
+    const city = parseCity(l);
+    if (!city) continue;                       // a date alone isn't a stop
+    if (stops.some((s) => s.date === d && s.city === city)) continue;
+    stops.push({ date: d, city });
+  }
+  const cities = new Set(stops.map((s) => s.city));
+  const dates = new Set(stops.map((s) => s.date));
+  // 2+ stops, 2+ distinct cities AND 2+ distinct dates — a real multi-stop run.
+  if (stops.length >= 2 && cities.size >= 2 && dates.size >= 2) {
+    return stops.sort((a, b) => a.date.localeCompare(b.date));
+  }
+  return [];
 }
 
 // ── Time ─────────────────────────────────────────────────────────────────────
@@ -539,8 +655,14 @@ function parseCity(text) {
 // metadata (date/time/price/url/venue). OCR loses font size, so we approximate.
 const looksLikeMeta = (l) => {
   const s = l.toLowerCase();
+  // A line counts as a DATE line if it carries a real date (has a digit), OR if
+  // it's JUST a day name — "~~~ FRIDAY ~~~" is a day label, not the event's name.
+  // But a weekday INSIDE a longer title ("FRIDAY VIBES", "SATURDAY SESSIONS") is
+  // the name: without this distinction those events ended up with no title at all.
+  const isBareWeekday = /^(mon|tues?|wed(?:nes)?|thur?s?|fri|sat(?:ur)?|sun)(?:day)?$/i.test(l.trim());
+  const isDateLine = isBareWeekday || (/\d/.test(l) && !!parseDate(l));
   return (
-    parseDate(l) || parseTime(l) ||
+    isDateLine || parseTime(l) ||
     /\br\s*\d/i.test(l) || /\bfree\b/.test(s) ||
     /https?:\/\/|www\.|@[a-z0-9._]+/.test(s) ||
     VENUE_WORDS.test(l) || /\b\d{2,}\b.*\b(street|road|ave|drive)\b/i.test(l) ||
@@ -573,7 +695,9 @@ function parseTitle(lines, venue) {
  *   fields:Object }} — `fields[name]=true` for each thing we actually detected.
  */
 export function parsePosterText(rawText, now = new Date(), opts = {}) {
-  const text = normalizeOcr(String(rawText || ''));
+  // Strip chat/decoration artifacts BEFORE anything reads the lines — otherwise
+  // "*AMAPIANO SUNSET* 🌅" becomes the title and "📍 Konka" becomes the venue.
+  const text = normalizeOcr(stripNoise(String(rawText || '')));
   const lines = text.split(/\r?\n/).map(clean).filter((l) => l.length > 0);
   const blob = lines.join('  ');
 
@@ -584,7 +708,13 @@ export function parsePosterText(rawText, now = new Date(), opts = {}) {
     ? 'MDY'
     : (opts.dateOrder === 'MDY' ? 'MDY' : 'DMY');
 
-  const date = parseDate(blob, now, dateOrder);
+  // A multi-day range wins over the single-date scan: "15 - 17 August" must give
+  // start=15th + end=17th, not the 17th alone (the digit touching the month).
+  const range = parseDateRange(lines, now, dateOrder);
+  const date = range ? range.start : parseDate(blob, now, dateOrder);
+  const endDate = range ? range.end : null;
+  // Several dates, each with its own city → this is a TOUR, not one event.
+  const tourStops = parseTourStops(lines, now, dateOrder);
   const time = parseTime(blob);
   const price = parsePrice(text);
   const venueRaw = parseVenue(lines);
@@ -643,6 +773,8 @@ export function parsePosterText(rawText, now = new Date(), opts = {}) {
     address: venue || '',
     city: city || '',
     date,                                   // 'YYYY-MM-DD' | null
+    endDate,                                // multi-day festivals ("15-17 Aug")
+    tourStops,                              // [{date, city}] when it's a tour run
     time: time?.start || null,              // { h, m } | null
     endTime: time?.end || null,             // { h, m } | null
     price: price.amount,                    // number | null (entry / lowest)
@@ -670,5 +802,5 @@ export function parsePosterText(rawText, now = new Date(), opts = {}) {
 export default {
   parsePosterText, parseDate, parseTime, parsePrice, detectCategories,
   parsePower, detectEventTags, parseEventFormat, parseSecretAct, parseAgeRange,
-  parseTiers, parseLineup, normalizeOcr,
+  parseTiers, parseLineup, normalizeOcr, stripNoise, parseDateRange, parseTourStops,
 };

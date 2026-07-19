@@ -389,6 +389,26 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (p.address && !address.trim()) { setAddress(p.address); filled.push('venue'); }
     if (p.city && !city.trim()) { setCity(p.city); filled.push('city'); }
     if (p.date) { const d = new Date(`${p.date}T00:00:00`); if (!isNaN(d.getTime())) { setPickedDate(d); filled.push('date'); } }
+    // Multi-day festival ("15 - 17 August") — carry the end date through.
+    if (p.endDate && !endDate) {
+      const ed = new Date(`${p.endDate}T00:00:00`);
+      if (!isNaN(ed.getTime())) { setEndDate(ed); filled.push('end date'); }
+    }
+    // The poster listed several dates, each in a different city — that's a TOUR.
+    // Seed the stops instead of silently keeping only the first date.
+    if (p.tourStops?.length >= 2 && !isTour && tourStops.length === 0) {
+      setIsTour(true);
+      setIsRecurring(false);                       // mutually exclusive
+      setTourStops(p.tourStops.map((s, i) => ({
+        id: Date.now() + i,
+        city: s.city,
+        venue: '',
+        date: new Date(`${s.date}T00:00:00`),
+        hour: 20, minute: 0, timeSet: false,
+        ticketUrl: '',
+      })));
+      filled.push(`${p.tourStops.length}-stop tour`);
+    }
     if (p.time) { setPickedHour(p.time.h); setPickedMinute(p.time.m); setTimeSet(true); filled.push('time'); }
     if (p.endTime) { setEndHour(p.endTime.h); setEndMinute(p.endTime.m); setEndTimeSet(true); filled.push('end time'); }
     if (p.isFree) { setEntryPrice('0'); filled.push('free entry'); }

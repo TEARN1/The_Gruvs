@@ -234,3 +234,77 @@ Tickets $25`, NOW, { dateOrder: 'DMY' });
       .toBe('2026-07-25');
   });
 });
+
+/**
+ * The paste box IS the WhatsApp path, so the text arrives full of chat artifacts
+ * and emoji decoration. Each of these was a real failure found by probing.
+ */
+describe('WhatsApp / decoration noise', () => {
+  it('strips forward headers, *bold* markers and emoji bullets', () => {
+    const p = parsePosterText(`[15/08, 20:14] Thabo 🔥: \u200E<attached: 00000042-PHOTO.jpg>
+*AMAPIANO SUNSET* 🌅🎶
+📍 Konka, Soweto
+🗓 Sat 15 August
+⏰ Doors 18:00
+💰 R150 presale`, NOW);
+    expect(p.title).toBe('AMAPIANO SUNSET');   // no asterisks, no emoji
+    expect(p.venue).toBe('Konka');             // no 📍
+    expect(p.city).toBe('Soweto');
+    expect(p.date).toBe('2026-08-15');
+  });
+
+  // "FRIDAY VIBES" is a TITLE. The relative-weekday parser matched the bare word
+  // "FRIDAY", so the line was discarded as a date and the event had NO name.
+  it('does not mistake a weekday in the title for a date line', () => {
+    const p = parsePosterText(`🔥🔥 FRIDAY VIBES 🔥🔥
+✨ THE MIX LOUNGE ✨
+📆 Fri 24 July · ⏰ 21h00 till late`, NOW);
+    expect(p.title).toBe('FRIDAY VIBES');
+    expect(p.venue).toBe('THE MIX LOUNGE');
+    expect(p.date).toBe('2026-07-24');         // the real date line still wins
+  });
+});
+
+describe('multi-day festivals (date ranges)', () => {
+  // "15 - 17 August" used to yield the 17th (the digit touching the month) and
+  // lose the end date — a festival with the wrong start and no duration.
+  it('reads a range as start + end, not just the last day', () => {
+    const p = parsePosterText(`ROCKING THE DAISIES
+15 - 17 August 2026
+Darling, Cape Town`, NOW);
+    expect(p.date).toBe('2026-08-15');
+    expect(p.endDate).toBe('2026-08-17');
+  });
+
+  it('handles month-first and cross-month ranges', () => {
+    expect(parsePosterText('FEST\nAugust 15 - 17, 2026', NOW).endDate).toBe('2026-08-17');
+    const cross = parsePosterText('FEST\n30 July – 2 August 2026', NOW);
+    expect(cross.date).toBe('2026-07-30');
+    expect(cross.endDate).toBe('2026-08-02');
+  });
+});
+
+describe('tour posters (several dates + cities)', () => {
+  // A tour listed 3 dates/cities and the parser silently kept only the first.
+  it('detects every stop instead of keeping only the first date', () => {
+    const p = parsePosterText(`SCORPION KINGS TOUR 2026
+14 Aug — Johannesburg
+21 Aug — Durban
+28 Aug — Cape Town
+Tickets from R350`, NOW);
+    expect(p.tourStops).toEqual([
+      { date: '2026-08-14', city: 'Johannesburg' },
+      { date: '2026-08-21', city: 'Durban' },
+      { date: '2026-08-28', city: 'Cape Town' },
+    ]);
+  });
+
+  it('does NOT call a single event with a schedule a tour', () => {
+    const p = parsePosterText(`ONE NIGHT ONLY
+Konka, Soweto
+Sat 15 August
+21:00 Kabza De Small
+22:30 DJ Maphorisa`, NOW);
+    expect(p.tourStops).toEqual([]);   // one city, one date — not a tour
+  });
+});
