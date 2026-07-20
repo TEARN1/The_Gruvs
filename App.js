@@ -766,7 +766,9 @@ const MainNavigator = () => {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <OfflineBanner />
+      <ErrorBoundary label="Offline banner" inline>
+        <OfflineBanner />
+      </ErrorBoundary>
       {updateReady && (
         <TouchableOpacity
           onPress={reloadForUpdate}
@@ -785,7 +787,9 @@ const MainNavigator = () => {
           </Text>
         </TouchableOpacity>
       )}
-      <InstallAppBanner primary={primary} />
+      <ErrorBoundary label="Install banner" inline>
+        <InstallAppBanner primary={primary} />
+      </ErrorBoundary>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={bg}
@@ -793,7 +797,11 @@ const MainNavigator = () => {
       />
 
       {/* Password reset: shown over everything when the user returns via a reset link */}
-      {recoveryMode && <ResetPasswordModal visible onDone={endRecovery} />}
+      {recoveryMode && (
+        <ErrorBoundary label="Password reset">
+          <ResetPasswordModal visible onDone={endRecovery} />
+        </ErrorBoundary>
+      )}
 
       {/* Item 37: Hidden ARIA live region announces current tab to screen readers */}
       <View
@@ -826,16 +834,18 @@ const MainNavigator = () => {
         {isWide ? (
           // ── Wide screen: sidebar on left ───────────────────────────────
           <View style={styles.wideLayout}>
-            <SidebarNav
-              currentTab={currentTab}
-              onTabChange={handleTabChange}
-              primary={primary}
-              muted={muted}
-              bg={bg}
-              isOpen={sidebarOpen}
-              onToggle={() => setSidebarOpen(p => !p)}
-              onGodView={() => setGodViewVisible(true)}
-            />
+            <ErrorBoundary label="Navigation" inline>
+              <SidebarNav
+                currentTab={currentTab}
+                onTabChange={handleTabChange}
+                primary={primary}
+                muted={muted}
+                bg={bg}
+                isOpen={sidebarOpen}
+                onToggle={() => setSidebarOpen(p => !p)}
+                onGodView={() => setGodViewVisible(true)}
+              />
+            </ErrorBoundary>
             {/* Item 43: nativeID for skip-link anchor */}
             <Animated.View nativeID="main-content" style={[styles.wideContent, { opacity: screenOpacity }]}>
               {renderScreen()}
@@ -848,42 +858,62 @@ const MainNavigator = () => {
             <Animated.View nativeID="main-content" style={[styles.content, { opacity: screenOpacity }]} {...tabSwipe.panHandlers}>
               {renderScreen()}
             </Animated.View>
-            <TabBar
-              currentTab={currentTab}
-              onTabChange={handleTabChange}
-              primary={primary}
-              muted={muted}
-              bg={bg}
-              unreadCount={unreadCount}
-              unreadDMCount={unreadDMCount}
-            />
+            <ErrorBoundary label="Navigation" inline>
+              <TabBar
+                currentTab={currentTab}
+                onTabChange={handleTabChange}
+                primary={primary}
+                muted={muted}
+                bg={bg}
+                unreadCount={unreadCount}
+                unreadDMCount={unreadDMCount}
+              />
+            </ErrorBoundary>
           </View>
         )}
       </SafeAreaView>
 
       {/* Item 42: accessibilityViewIsModal on AuthModal */}
-      <AuthModal
-        visible={authModalVisible}
-        onClose={() => setAuthModalVisible(false)}
-        accessibilityViewIsModal={true}
-      />
+      <ErrorBoundary label="Sign in">
+        <AuthModal
+          visible={authModalVisible}
+          onClose={() => setAuthModalVisible(false)}
+          accessibilityViewIsModal={true}
+        />
+      </ErrorBoundary>
 
       {/* Tutorial overlay — rendered on top of everything */}
-      {activeTutorial && <TutorialOverlay />}
+      {activeTutorial && (
+        <ErrorBoundary label="Tutorial">
+          <TutorialOverlay />
+        </ErrorBoundary>
+      )}
 
       {/* Deep-link: profile share opens ViberProfileModal over current tab */}
-      <ViberProfileModal
-        visible={!!targetProfile}
-        userId={targetProfile}
-        onClose={() => setTargetProfile(null)}
-        onNavigateToEvent={handleNavigateToEvent}
-      />
+      <ErrorBoundary label="Profile">
+        <ViberProfileModal
+          visible={!!targetProfile}
+          userId={targetProfile}
+          onClose={() => setTargetProfile(null)}
+          onNavigateToEvent={handleNavigateToEvent}
+        />
+      </ErrorBoundary>
 
-      {/* Supreme God View Dashboard */}
-      <GodViewDashboard
-        visible={godViewVisible}
-        onClose={() => setGodViewVisible(false)}
-      />
+      {/* Supreme God View Dashboard — lazy-split on web (src/screens/lazyScreens.js).
+          Mounted unconditionally regardless of `visible` (that's an internal
+          display gate, not a mount gate), so this MUST carry its own Suspense —
+          it sits outside every per-tab boundary and has no ancestor Suspense.
+          Missing this exact wrapper was the confirmed cause of a production
+          incident: an unresolved chunk fetch suspended with nothing local to
+          catch it, falling through to the unlabeled root boundary. */}
+      <ErrorBoundary label="God View" lazyBoundary inline>
+        <Suspense fallback={null}>
+          <GodViewDashboard
+            visible={godViewVisible}
+            onClose={() => setGodViewVisible(false)}
+          />
+        </Suspense>
+      </ErrorBoundary>
     </View>
   );
 };
@@ -976,7 +1006,7 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary critical label="App shell">
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider>
@@ -985,7 +1015,7 @@ export default function App() {
               <CurrencyProvider>
               <TutorialProvider>
                 <ToastProvider>
-                  <ErrorBoundary>
+                  <ErrorBoundary critical label="Main navigator">
                     <AppLockGate>
                       <MainNavigator />
                     </AppLockGate>

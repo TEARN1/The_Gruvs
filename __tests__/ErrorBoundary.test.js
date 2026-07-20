@@ -6,6 +6,13 @@ import { Text } from 'react-native';
 import { render, screen, fireEvent, act } from '@testing-library/react-native';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 
+// RTL's own cleanup afterEach (registered at import time above) unmounts and
+// waits on act() — under full-suite worker contention this occasionally
+// exceeds the default 5000ms hook timeout even though nothing is actually
+// hung (seen once in a full-suite run; this file alone is consistently
+// ~8-11s total). Give hooks more slack rather than chase a phantom hang.
+jest.setTimeout(20000);
+
 jest.mock('../src/services/securityService', () => ({ SecurityService: { logSecurityEvent: jest.fn() } }));
 jest.mock('../src/utils/logError', () => ({ logError: jest.fn() }));
 jest.mock('../src/utils/bootGuard', () => ({ recordCriticalCrash: jest.fn() }));
