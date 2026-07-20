@@ -11,6 +11,7 @@ import { HIDDEN_TABS } from './src/constants/launchConfig';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { setDriftReporter } from './src/utils/resilience';
+import { shouldEnterSafeMode, clearCrashLog } from './src/utils/bootGuard';
 import { logError } from './src/utils/logError';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -888,6 +889,26 @@ const MainNavigator = () => {
 };
 
 export default function App() {
+  // Boot-time circuit breaker (Layer -1) — the earliest defense, checked
+  // before ANY provider mounts. ErrorBoundary's in-session safe mode can't
+  // help a crash that happens before React's tree even finishes building
+  // (a synchronous provider-init throw, a hung font load); this catches
+  // that case using a PERSISTENT log (survives a full app kill, unlike
+  // sessionStorage) written by ErrorBoundary's `critical` catch.
+  const [safeModeChecked, setSafeModeChecked] = useState(false);
+  const [inSafeMode, setInSafeMode] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    // Race against a short timeout — a boot gate must never hang the app
+    // waiting on storage; fail OPEN (normal boot) if the check is slow.
+    Promise.race([
+      shouldEnterSafeMode(),
+      new Promise((resolve) => setTimeout(() => resolve(false), 800)),
+    ]).then((trip) => { if (alive) { setInSafeMode(trip); setSafeModeChecked(true); } })
+      .catch(() => { if (alive) setSafeModeChecked(true); });
+    return () => { alive = false; };
+  }, []);
+
   // Kick off font load in background. Never block rendering — if the load
   // stalls, the app would be permanently blank. Icons self-load in componentDidMount.
   // First paint blocks ONLY on Feather (~56KB) — 96% of the app's icons. The
@@ -913,11 +934,43 @@ export default function App() {
     }
   }, []);
 
-  if (!fontsLoaded && !forceLoaded) {
+  if (!safeModeChecked || (!fontsLoaded && !forceLoaded)) {
     return (
       <View style={styles.loadingScreen}>
         <StatusBar barStyle="light-content" backgroundColor="#0d1112" translucent={false} />
         <ActivityIndicator size="large" color="#00f2ff" />
+      </View>
+    );
+  }
+
+  // Boot guard tripped: skip the normal tree — no providers, no lazy screens,
+  // nothing that could be part of whatever kept crashing. Deliberately has no
+  // dependency on anything else in this file being healthy.
+  if (inSafeMode) {
+    return (
+      <View style={styles.loadingScreen}>
+        <StatusBar barStyle="light-content" backgroundColor="#0d1112" translucent={false} />
+        <Feather name="shield" size={28} color="#00f2ff" />
+        <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800', marginTop: 14, textAlign: 'center', paddingHorizontal: 24 }}>
+          Running in safe mode
+        </Text>
+        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 6, textAlign: 'center', paddingHorizontal: 32, lineHeight: 18 }}>
+          The Gruvs crashed a few times in a row, so it's starting up minimal
+          this time to break the loop.
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 18 }}>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, borderWidth: 1, borderColor: '#00f2ff' }}
+            onPress={async () => {
+              await clearCrashLog();
+              if (typeof window !== 'undefined' && window.location) window.location.reload();
+              else { setInSafeMode(false); }
+            }}
+          >
+            <Feather name="rotate-cw" size={13} color="#00f2ff" />
+            <Text style={{ color: '#00f2ff', fontSize: 13, fontWeight: '700' }}>Exit safe mode</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
