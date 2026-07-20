@@ -15,6 +15,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
+import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { invalidateEventRoleCache } from '../hooks/useEventRole';
@@ -160,12 +161,14 @@ export const EventRoleManager = ({ visible, onClose, event, primary, textColor, 
 
   const handleRevoke = async (roleRow) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const { error } = await supabase
-      .from('event_roles')
-      .delete()
-      .eq('id', roleRow.id);
-
-    if (error) { showToast('Could not revoke role', 'error'); return; }
+    // Privilege revocation, no fallback before -- a transient blip meant the
+    // user had to notice and retry by hand. resilient() gives it real retry
+    // backoff instead of one shot.
+    const ok = await resilient(
+      [() => supabase.from('event_roles').delete().eq('id', roleRow.id)],
+      { attemptsPerTier: 3, baseMs: 300, label: 'EventRoleManager.revoke', fallbackValue: null }
+    );
+    if (ok === null) { showToast('Could not revoke role', 'error'); return; }
     invalidateEventRoleCache(event.id);
     showToast(`Role revoked from @${roleRow.profiles?.username}`, 'success');
     fetchData();
@@ -178,13 +181,16 @@ export const EventRoleManager = ({ visible, onClose, event, primary, textColor, 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
-      const { error } = await supabase.from('event_roles').insert({
-        event_id:   event.id,
-        user_id:    targetProfile.id,
-        role,
-        granted_by: user?.id,
-      });
-      if (error) throw error;
+      const inserted = await resilient(
+        [() => supabase.from('event_roles').insert({
+          event_id:   event.id,
+          user_id:    targetProfile.id,
+          role,
+          granted_by: user?.id,
+        })],
+        { attemptsPerTier: 3, baseMs: 300, label: 'EventRoleManager.grant', fallbackValue: null }
+      );
+      if (inserted === null) throw new Error('Could not assign role');
 
       // Notify the invitee via activity_feed
       await supabase.rpc('notify_cohost_invite', {

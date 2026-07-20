@@ -15,6 +15,7 @@
  */
 import { supabase } from './supabase';
 import projectDNA from './projectDNA.json';
+import { resilient } from '../utils/resilience';
 
 const isMissingColumn = (error) =>
   error?.code === '42703' ||
@@ -59,14 +60,23 @@ export const VibeEquityLedger = {
       const amount = weight * integrityEfficiency * scarcityFactor;
       const newEquity = (Number(profile?.vibe_equity) || 0) + amount;
 
-      const { error: updateErr } = await supabase.from('profiles').update({
-        vibe_equity: parseFloat(newEquity.toFixed(8)),
-        last_mint_at: new Date().toISOString()
-      }).eq('id', userId);
-      if (updateErr) {
-        if (isMissingColumn(updateErr)) return { minted: 0, total: 0, persisted: false };
-        throw updateErr;
-      }
+      // resilient() retries transient failures and falls back to dropping
+      // last_mint_at (the exact column that was missing on the live DB until
+      // schema_drift_columns.sql -- this used to fail the WHOLE update over
+      // one optional column, silently losing a legitimate mint every time).
+      const updated = await resilient(
+        [
+          () => supabase.from('profiles').update({
+            vibe_equity: parseFloat(newEquity.toFixed(8)),
+            last_mint_at: new Date().toISOString(),
+          }).eq('id', userId),
+          () => supabase.from('profiles').update({
+            vibe_equity: parseFloat(newEquity.toFixed(8)),
+          }).eq('id', userId),
+        ],
+        { attemptsPerTier: 2, baseMs: 300, label: 'VibeEquityLedger.mintEquity', fallbackValue: null }
+      );
+      if (updated === null) return { minted: 0, total: 0, persisted: false };
 
       return { minted: amount, total: newEquity, phase: phase + 1, persisted: true };
     } catch (e) {
@@ -88,7 +98,15 @@ export const VibeEquityLedger = {
       if ((Number(profile?.vibe_equity) || 0) < amount) throw new Error("Insufficient Vibe Equity.");
 
       const newEquity = Number(profile.vibe_equity) - amount;
-      await supabase.from('profiles').update({ vibe_equity: newEquity }).eq('id', userId);
+      // The write's result was previously discarded entirely -- a failed
+      // spend (RLS denial, dropped connection) still returned newEquity as
+      // if it had persisted, so a user could see a lower balance client-side
+      // that was never actually saved. resilient() makes the failure real.
+      const updated = await resilient(
+        [() => supabase.from('profiles').update({ vibe_equity: newEquity }).eq('id', userId)],
+        { attemptsPerTier: 2, baseMs: 300, label: 'VibeEquityLedger.burnEquity', fallbackValue: null }
+      );
+      if (updated === null) throw new Error('Could not save your spend -- try again.');
 
       return newEquity;
     } catch (e) {

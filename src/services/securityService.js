@@ -3,6 +3,7 @@
  */
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
+import { resilient } from '../utils/resilience';
 
 // Keys to redact — checked as substrings (case-insensitive) so variants are caught
 const SENSITIVE_KEY_FRAGMENTS = [
@@ -54,6 +55,16 @@ export const SecurityService = {
   // Whitelist approach: only safe, non-PII fields are persisted.
   async logSecurityEvent(userId, eventType, details = {}) {
     if (!eventType) return;
+    // security_logs is auth-gated by design (anti-spoofing, 2026-07-06 audit),
+    // so an anonymous visitor's insert can only 401. Resolve the acting user
+    // from the arg or the live session; with no authenticated user there is
+    // nothing we're allowed to write — skip silently instead of firing a
+    // guaranteed-failing request on every logged-out page load.
+    let uid = userId;
+    if (!uid) {
+      try { uid = (await supabase.auth.getUser())?.data?.user?.id || null; } catch { uid = null; }
+    }
+    if (!uid) return;
     try {
       const safe = {
         event_type: String(eventType).slice(0, 80),
@@ -66,7 +77,7 @@ export const SecurityService = {
       // Strip undefined keys
       Object.keys(safe).forEach(k => safe[k] === undefined && delete safe[k]);
       await supabase.from('security_logs').insert({
-        user_id: userId || null,
+        user_id: uid,
         event_type: safe.event_type,
         details: safe,
         ip_address: null,
@@ -85,19 +96,31 @@ export const SecurityService = {
     return `${name.substring(0, 2)}***@${domain}`;
   },
 
-  // Request account deletion (compliance helper)
+  // Request account deletion (compliance helper). This is the write that
+  // starts the POPIA-driven deletion clock (maintenance_levels.sql's L1
+  // reports it overdue after 30 days) -- a bare try/catch here means a
+  // failed request could silently tell the user "done" while the account
+  // stays fully live and discoverable. resilient() makes the failure real
+  // instead of swallowed.
   async requestAccountDeletion(userId) {
     if (!userId) return false;
-    try {
-      await supabase.from('profiles').update({
-        deletion_requested_at: new Date().toISOString(),
-        is_discoverable: false,
-      }).eq('id', userId);
-      await this.logSecurityEvent(userId, 'ACCOUNT_DELETION_REQUESTED');
-      return true;
-    } catch {
-      return false;
-    }
+    const ok = await resilient(
+      [
+        () => supabase.from('profiles').update({
+          deletion_requested_at: new Date().toISOString(),
+          is_discoverable: false,
+        }).eq('id', userId),
+        // Schema-drift-safe fallback: just the column the deletion clock
+        // actually reads, in case is_discoverable has drifted.
+        () => supabase.from('profiles').update({
+          deletion_requested_at: new Date().toISOString(),
+        }).eq('id', userId),
+      ],
+      { attemptsPerTier: 2, baseMs: 300, label: 'SecurityService.requestAccountDeletion', fallbackValue: null }
+    );
+    if (ok === null) return false;
+    await this.logSecurityEvent(userId, 'ACCOUNT_DELETION_REQUESTED');
+    return true;
   },
 
   // Client-side throttle — evicts stale entries on every call to prevent unbounded growth

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { resilient } from '../utils/resilience';
 
 const TIERS = [
   {
@@ -98,44 +99,34 @@ export const TrustLedger = {
       // Round to 2dp
       const roundedDelta = Math.round(delta * 100) / 100;
 
-      // Try RPC first
-      const { error: rpcError } = await supabase.rpc('update_sis_score', {
-        user_id: userId,
-        check_in_reliable: checkinReliable,
-        cargo_intact: cargoIntact,
-        social_positive: socialPositive,
-      });
+      // Was an ad hoc if(!rpcError) branch to a manual read-modify-write --
+      // correct, but silent: a broken RPC ran the fallback path forever with
+      // nobody told. resilient() keeps the exact same two strategies but
+      // reports DEGRADED_PATH the moment tier 1 isn't the one running.
+      const ok = await resilient(
+        [
+          () => supabase.rpc('update_sis_score', {
+            user_id: userId,
+            check_in_reliable: checkinReliable,
+            cargo_intact: cargoIntact,
+            social_positive: socialPositive,
+          }),
+          async () => {
+            const { data: prof, error: fetchErr } = await supabase
+              .from('profiles').select('social_integrity_score').eq('id', userId).single();
+            if (fetchErr || !prof) throw fetchErr || new Error('profile not found');
+            const current = typeof prof.social_integrity_score === 'number' ? prof.social_integrity_score : 50;
+            const newScore = Math.min(100, Math.max(0, current + roundedDelta));
+            return supabase.from('profiles').update({ social_integrity_score: newScore }).eq('id', userId);
+          },
+        ],
+        { attemptsPerTier: 2, baseMs: 300, label: 'TrustLedger.updateAfterPath', fallbackValue: null }
+      );
 
-      if (!rpcError) return true;
-
-      // RPC doesn't exist or failed — manual fallback
-      const { data: prof, error: fetchErr } = await supabase
-        .from('profiles')
-        .select('social_integrity_score')
-        .eq('id', userId)
-        .single();
-
-      if (fetchErr || !prof) {
-        console.error('[TrustLedger.updateAfterPath] fetch error:', fetchErr?.message);
+      if (ok === null) {
+        console.error('[TrustLedger.updateAfterPath] both tiers failed');
         return false;
       }
-
-      const current = typeof prof.social_integrity_score === 'number'
-        ? prof.social_integrity_score
-        : 50;
-
-      const newScore = Math.min(100, Math.max(0, current + roundedDelta));
-
-      const { error: updateErr } = await supabase
-        .from('profiles')
-        .update({ social_integrity_score: newScore })
-        .eq('id', userId);
-
-      if (updateErr) {
-        console.error('[TrustLedger.updateAfterPath] update error:', updateErr.message);
-        return false;
-      }
-
       return true;
     } catch (err) {
       console.error('[TrustLedger.updateAfterPath] unexpected:', err.message);

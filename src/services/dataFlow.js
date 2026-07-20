@@ -2995,24 +2995,48 @@ export const MessageManager = {
 // BLOCK MANAGER
 // ─────────────────────────────────────────────────────────────────────────────
 export const BlockManager = {
+  // Both used a bare try/catch, which is not a fallback -- it's a bug.
+  // Supabase does not throw on a query error, it RETURNS { error }, so the
+  // catch here never fired: block()/unblock() reported success even when the
+  // write silently failed (a bad column, an RLS denial, a dropped connection
+  // after the request left the client). resilient() already unwraps that
+  // {data,error} shape and treats error as a real failure (resilience.js),
+  // which is the entire fix -- a user could previously believe they'd
+  // blocked someone who was never actually blocked.
   async block(blockerId, blockedId) {
-    try {
-      await supabase.from('user_blocks').upsert(
-        { blocker_id: blockerId, blocked_id: blockedId },
-        { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
-      );
-      cache.invalidate(`blocks:${blockerId}`);
-      return true;
-    } catch { return false; }
+    const ok = await resilient(
+      [
+        () => supabase.from('user_blocks').upsert(
+          { blocker_id: blockerId, blocked_id: blockedId },
+          { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
+        ),
+        // Fallback: delete any stale/conflicting row first, then a plain
+        // insert -- covers the case where the upsert's onConflict target
+        // itself is what's failing (e.g. a constraint-name drift).
+        async () => {
+          await supabase.from('user_blocks').delete()
+            .eq('blocker_id', blockerId).eq('blocked_id', blockedId);
+          return supabase.from('user_blocks').insert({ blocker_id: blockerId, blocked_id: blockedId });
+        },
+      ],
+      { attemptsPerTier: 2, baseMs: 300, label: 'BlockManager.block', fallbackValue: null }
+    );
+    if (ok === null) return false;
+    cache.invalidate(`blocks:${blockerId}`);
+    return true;
   },
 
   async unblock(blockerId, blockedId) {
-    try {
-      await supabase.from('user_blocks')
-        .delete().eq('blocker_id', blockerId).eq('blocked_id', blockedId);
-      cache.invalidate(`blocks:${blockerId}`);
-      return true;
-    } catch { return false; }
+    const ok = await resilient(
+      [
+        () => supabase.from('user_blocks').delete().eq('blocker_id', blockerId).eq('blocked_id', blockedId),
+        () => supabase.from('user_blocks').delete().match({ blocker_id: blockerId, blocked_id: blockedId }),
+      ],
+      { attemptsPerTier: 2, baseMs: 300, label: 'BlockManager.unblock', fallbackValue: null }
+    );
+    if (ok === null) return false;
+    cache.invalidate(`blocks:${blockerId}`);
+    return true;
   },
 
   async isBlocked(blockerId, blockedId) {

@@ -3,6 +3,7 @@ import { TrustLedger } from './trustLedger';
 import { LevelManager } from './dataFlow';
 import { log } from '../utils/log';
 import { withRetry } from '../utils/retry';
+import { resilient } from '../utils/resilience';
 
 export const EscrowService = {
   /**
@@ -91,29 +92,31 @@ export const EscrowService = {
         return false;
       }
 
-      // Increment provider wallet_balance (rands = cents / 100)
+      // Increment provider wallet_balance (rands = cents / 100). This used to
+      // be an ad hoc if(walletErr) branch to a manual read-modify-write --
+      // exactly the "a fallback silently covers for a broken primary" shape
+      // that let 48 missing RPCs go unnoticed platform-wide (2026-07-19
+      // sweep). resilient() makes tier 1 (the RPC) failing loud instead of
+      // quiet: reportDegraded fires via the drift reporter the moment the
+      // manual path is what's actually running.
       const amountRands = booking.amount_cents / 100;
 
-      const { error: walletErr } = await supabase.rpc('increment_wallet_balance', {
-        user_id: providerId,
-        amount: amountRands,
-      });
-
-      if (walletErr) {
-        // Fallback: manual read-modify-write — scoped to providerId
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('wallet_balance')
-          .eq('id', providerId)
-          .single();
-        if (prof) {
-          await withRetry(() =>
-            supabase.from('profiles')
-              .update({ wallet_balance: (prof.wallet_balance || 0) + amountRands })
-              .eq('id', providerId)
-          );
-        }
-      }
+      await resilient(
+        [
+          () => supabase.rpc('increment_wallet_balance', { user_id: providerId, amount: amountRands }),
+          async () => {
+            const { data: prof } = await supabase
+              .from('profiles').select('wallet_balance').eq('id', providerId).single();
+            return supabase.from('profiles')
+              .update({ wallet_balance: (prof?.wallet_balance || 0) + amountRands })
+              .eq('id', providerId);
+          },
+        ],
+        // attemptsPerTier: 1 — matches the original behavior exactly (try
+        // the RPC once, fall back immediately on any failure, no retry
+        // storm against a possibly-still-broken RPC before falling back).
+        { attemptsPerTier: 1, baseMs: 300, label: 'EscrowService.releaseToProvider.wallet', fallbackValue: null }
+      );
 
       // ── Movement OS Integration: Update Social Integrity Score ──
       // Reward the provider for successful delivery
