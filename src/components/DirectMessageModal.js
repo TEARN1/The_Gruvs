@@ -236,8 +236,10 @@ const sec = StyleSheet.create({
   price: { fontSize: 11, fontWeight: '900' },
 });
 
-export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEvent, initialMessage = '' }) => {
-  useBackClose(visible, onClose);
+export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEvent, initialMessage = '', embedded = false }) => {
+  // In embedded (split-pane) mode there is no Modal to intercept back — the
+  // parent screen owns the hardware-back behaviour, so skip the hook.
+  useBackClose(visible && !embedded, onClose);
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const { show: showToast } = useToast();
@@ -478,6 +480,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       } , (payload) => {
         // Sync read receipts and delivered_at back onto our optimistic messages
         setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new, _optimistic: false } : m));
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'messages',
+        filter: `recipient_id=eq.${user.id}`,
+      } , (payload) => {
+        // Messages THEY sent to me being updated — reactions land here (and any
+        // edit). Only merge rows already in view; don't resurrect deleted ones.
+        if (payload.new.sender_id !== recipient.id) return;
+        setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
       })
       .subscribe();
     channelRef.current = channel;
@@ -766,8 +777,18 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const handleReact = async (msgId, emoji) => {
     setShowReactions(false);
     setReactionMsgId(null);
-    await MessageManager.reactToMessage(msgId, emoji);
-    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reaction: emoji } : m));
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+    // Optimistic: toggle this user's emoji in the local map immediately.
+    setMessages(prev => prev.map(m => {
+      if (m.id !== msgId) return m;
+      const map = { ...(m.reactions || {}) };
+      if (map[user?.id] === emoji) delete map[user?.id];
+      else map[user?.id] = emoji;
+      return { ...m, reactions: map };
+    }));
+    const map = await MessageManager.reactToMessage(msgId, emoji, user?.id);
+    // Reconcile with the server's authoritative map (no-op if it matched).
+    if (map) setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reactions: map } : m));
   };
 
   // ── Render message bubble ─────────────────────────────────────────────────────
@@ -884,11 +905,26 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 ) : item.body ? (
                   <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{transform(item.body, msgStyles[item.sender_id])}</Text>
                 ) : null}
-                {item.reaction && (
-                  <View style={dm.reactionBubble}>
-                    <Text style={{ fontSize: 14 }}>{item.reaction}</Text>
-                  </View>
-                )}
+                {item.reactions && Object.keys(item.reactions).length > 0 && (() => {
+                  // reactions is { userId: emoji } — collapse to counts per emoji,
+                  // and mark the ones I placed so mine read as "selected".
+                  const counts = {};
+                  for (const [uid, e] of Object.entries(item.reactions)) {
+                    if (!counts[e]) counts[e] = { n: 0, mine: false };
+                    counts[e].n += 1;
+                    if (uid === user?.id) counts[e].mine = true;
+                  }
+                  return (
+                    <View style={dm.reactionBubble}>
+                      {Object.entries(counts).map(([e, { n, mine }]) => (
+                        <View key={e} style={[dm.reactionChip, mine && { borderColor: primary, borderWidth: 1 }]}>
+                          <Text style={{ fontSize: 13 }}>{e}</Text>
+                          {n > 1 && <Text style={{ fontSize: 10, color: '#fff', fontWeight: '800', marginLeft: 2 }}>{n}</Text>}
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })()}
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4, gap: 2 }}>
                   <Text
                     style={[
@@ -985,17 +1021,17 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const myPendingCount = messages.filter(m => m.sender_id === user?.id).length;
   const inputLocked = (requestStatus === 'pending' && myPendingCount >= 3) || requestStatus === 'declined';
 
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+  const inner = (
+    <>
       <KeyboardAvoidingView
         style={[dm.root, { backgroundColor: bg }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top}
+        keyboardVerticalOffset={embedded ? 0 : insets.top}
       >
         {/* Header */}
-        <View style={[dm.header, { borderBottomColor: `${primary}18`, paddingTop: insets.top + 10 }]}>
+        <View style={[dm.header, { borderBottomColor: `${primary}18`, paddingTop: embedded ? 14 : insets.top + 10 }]}>
           <TouchableOpacity onPress={onClose} style={dm.backBtn}>
-            <Feather name="arrow-left" size={22} color={textColor} />
+            <Feather name={embedded ? 'x' : 'arrow-left'} size={22} color={textColor} />
           </TouchableOpacity>
           <TouchableOpacity style={dm.headerInfo} onPress={() => setProfileModalVisible(true)} activeOpacity={0.8}>
             {recipient?.avatar_url
@@ -1255,6 +1291,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           </View>
         </View>
       </Modal>
+    </>
+  );
+
+  // Split-pane / desktop: render inline as a panel, no Modal chrome.
+  if (embedded) return <View style={[dm.root, { flex: 1, backgroundColor: bg }]}>{inner}</View>;
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      {inner}
     </Modal>
   );
 };
@@ -1273,7 +1318,8 @@ const dm = StyleSheet.create({
   bubbleInner: { maxWidth: '78%', borderRadius: 18, padding: 12 },
   bodyText: { fontSize: 14, lineHeight: 20 },
   timeText: { fontSize: 10, marginTop: 2 },
-  reactionBubble: { position: 'absolute', bottom: -10, right: 6, backgroundColor: "#1a2225", borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2 },
+  reactionBubble: { position: 'absolute', bottom: -12, right: 6, flexDirection: 'row', gap: 3, alignItems: 'center' },
+  reactionChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: "#1a2225", borderColor: 'transparent', borderWidth: 1, borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2 },
   deleteBtn: { marginTop: 4, padding: 8, borderRadius: 10, alignSelf: 'flex-end' },
   reactionPickerWrap: {},
   attachMenu: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-around', flexWrap: 'wrap', paddingHorizontal: 12, paddingTop: 14, paddingBottom: 8, borderTopWidth: 1 },

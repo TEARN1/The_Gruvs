@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, TextInput, BackHandler, Platform, Animated } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, TextInput, BackHandler, Platform, Animated, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -32,7 +32,7 @@ const avatarBg = (name) => {
 };
 
 // ── Conversation Row ──────────────────────────────────────────────────────────
-const ConvoRow = React.memo(({ item, userId, primary, textColor, muted, surface, onPress, index }) => {
+const ConvoRow = React.memo(({ item, userId, primary, textColor, muted, surface, onPress, index, isActive }) => {
   const partner      = item.partner;
   const isUnread     = !item.read_at && item.recipient_id === userId;
   const isPending    = item.is_request && !item.request_accepted && item.recipient_id === userId;
@@ -66,7 +66,7 @@ const ConvoRow = React.memo(({ item, userId, primary, textColor, muted, surface,
   return (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
       <TouchableOpacity
-        style={[cs.row, { borderBottomColor: `${primary}12` }]}
+        style={[cs.row, { borderBottomColor: `${primary}12` }, isActive && { backgroundColor: `${primary}14`, borderLeftWidth: 3, borderLeftColor: primary }]}
         onPress={onPress}
         activeOpacity={0.8}
         accessibilityRole="button"
@@ -118,6 +118,7 @@ const ConvoRow = React.memo(({ item, userId, primary, textColor, muted, surface,
     prev.index === next.index &&
     prev.userId === next.userId &&
     prev.primary === next.primary &&
+    prev.isActive === next.isActive &&
     prev.textColor === next.textColor &&
     prev.muted === next.muted &&
     prev.surface === next.surface &&
@@ -167,6 +168,11 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   const [search,      setSearch]      = useState('');
   const [activeConvo, setActiveConvo] = useState(null);  // partner profile for DM modal
   const unsubRef = useRef(null);
+
+  // Wide screens (web/tablet) get a WhatsApp-Web split: list on the left, the
+  // open chat inline on the right. Phones keep the full-screen modal.
+  const { width } = useWindowDimensions();
+  const isWide = width >= 900;
 
   // Close direct messaging modal on Android hardware back press
   useEffect(() => {
@@ -246,9 +252,10 @@ export const ChatsScreen = ({ onAuthRequired }) => {
       textColor={textColor}
       muted={muted}
       surface={surface}
+      isActive={isWide && activeConvo?.id === item.partner?.id}
       onPress={() => setActiveConvo(item.partner)}
     />
-  ), [user?.id, primary, textColor, muted, surface]);
+  ), [user?.id, primary, textColor, muted, surface, isWide, activeConvo?.id]);
 
   if (!user) {
     return (
@@ -298,76 +305,111 @@ export const ChatsScreen = ({ onAuthRequired }) => {
 
       {pageMode === 'crew' ? (
         <CrewFeedScreen onAuthRequired={onAuthRequired} />
-      ) : (
-        <>
-          {/* Search */}
-          <GlassView glow intensity={1.1} style={[ch.searchWrap, { borderColor: primary, backgroundColor: `${surface}95` }]}>
-            <Feather name="search" size={15} color={muted} />
-            <TextInput
-              style={[ch.searchInput, { color: textColor }]}
-              placeholder="Search conversations..."
-              placeholderTextColor={muted}
-              value={search}
-              onChangeText={setSearch}
-            />
-            {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch('')}>
-                <Feather name="x" size={15} color={muted} />
-              </TouchableOpacity>
-            )}
-          </GlassView>
+      ) : (() => {
+        // The list column (search + conversations) — shared by both layouts.
+        const listColumn = (
+          <>
+            {/* Search */}
+            <GlassView glow intensity={1.1} style={[ch.searchWrap, { borderColor: primary, backgroundColor: `${surface}95` }]}>
+              <Feather name="search" size={15} color={muted} />
+              <TextInput
+                style={[ch.searchInput, { color: textColor }]}
+                placeholder="Search conversations..."
+                placeholderTextColor={muted}
+                value={search}
+                onChangeText={setSearch}
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <Feather name="x" size={15} color={muted} />
+                </TouchableOpacity>
+              )}
+            </GlassView>
 
-          {/* List */}
-          {loading ? (
-            <View style={{ paddingTop: 6 }}>
-              {[...Array(7)].map((_, i) => (
-                <View key={i} style={[cs.row, { borderBottomColor: `${primary}12` }]}>
-                  <View style={[cs.avatar, { backgroundColor: `${primary}12` }]} />
-                  <View style={{ flex: 1, marginLeft: 14, gap: 10 }}>
-                    <View style={{ height: 13, width: '50%', borderRadius: 6, backgroundColor: `${primary}12` }} />
-                    <View style={{ height: 11, width: '75%', borderRadius: 6, backgroundColor: `${primary}08` }} />
+            {/* List */}
+            {loading ? (
+              <View style={{ paddingTop: 6 }}>
+                {[...Array(7)].map((_, i) => (
+                  <View key={i} style={[cs.row, { borderBottomColor: `${primary}12` }]}>
+                    <View style={[cs.avatar, { backgroundColor: `${primary}12` }]} />
+                    <View style={{ flex: 1, marginLeft: 14, gap: 10 }}>
+                      <View style={{ height: 13, width: '50%', borderRadius: 6, backgroundColor: `${primary}12` }} />
+                      <View style={{ height: 11, width: '75%', borderRadius: 6, backgroundColor: `${primary}08` }} />
+                    </View>
                   </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <FlatList
-              data={filtered}
-              keyExtractor={item => item.id}
-              renderItem={renderConvoRow}
-              showsVerticalScrollIndicator={false}
-              getItemLayout={(_, index) => ({ length: CONVO_ROW_HEIGHT, offset: CONVO_ROW_HEIGHT * index, index })}
-              contentContainerStyle={{ paddingBottom: 140 }}
-              // Remind users to allow notifications so DMs actually reach their phone.
-              ListHeaderComponent={<NotificationNudge primary={primary} surface={surface} textColor={textColor} muted={muted} style={{ marginTop: 8 }} />}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={() => fetchConvos(true)} tintColor={primary} />
-              }
-              ListEmptyComponent={
-                <View style={ch.empty}>
-                  <Feather name="message-circle" size={44} color={muted} />
-                  <Text style={[ch.emptyTitle, { color: textColor }]}>No conversations yet</Text>
-                  <Text style={[ch.emptySub, { color: muted }]}>
-                    {search ? 'No chats match that name' : 'Tap a Viber\'s profile and hit the message button to link up'}
-                  </Text>
-                </View>
-              }
-            />
-          )}
+                ))}
+              </View>
+            ) : (
+              <FlatList
+                data={filtered}
+                keyExtractor={item => item.id}
+                renderItem={renderConvoRow}
+                showsVerticalScrollIndicator={false}
+                getItemLayout={(_, index) => ({ length: CONVO_ROW_HEIGHT, offset: CONVO_ROW_HEIGHT * index, index })}
+                contentContainerStyle={{ paddingBottom: 140 }}
+                // Remind users to allow notifications so DMs actually reach their phone.
+                ListHeaderComponent={<NotificationNudge primary={primary} surface={surface} textColor={textColor} muted={muted} style={{ marginTop: 8 }} />}
+                refreshControl={
+                  <RefreshControl refreshing={refreshing} onRefresh={() => fetchConvos(true)} tintColor={primary} />
+                }
+                ListEmptyComponent={
+                  <View style={ch.empty}>
+                    <Feather name="message-circle" size={44} color={muted} />
+                    <Text style={[ch.emptyTitle, { color: textColor }]}>No conversations yet</Text>
+                    <Text style={[ch.emptySub, { color: muted }]}>
+                      {search ? 'No chats match that name' : 'Tap a Viber\'s profile and hit the message button to link up'}
+                    </Text>
+                  </View>
+                }
+              />
+            )}
+          </>
+        );
 
-          {/* DM Modal */}
-          {activeConvo && (
-            <DirectMessageModal
-              visible={!!activeConvo}
-              recipient={activeConvo}
-              onClose={() => {
-                setActiveConvo(null);
-                fetchConvos();
-              }}
-            />
-          )}
-        </>
-      )}
+        // ── Wide (web / tablet): master-detail split ──────────────────────
+        if (isWide) {
+          return (
+            <View style={{ flex: 1, flexDirection: 'row' }}>
+              <View style={{ width: 360, borderRightWidth: 1, borderRightColor: `${primary}12` }}>
+                {listColumn}
+              </View>
+              <View style={{ flex: 1 }}>
+                {activeConvo ? (
+                  <DirectMessageModal
+                    key={activeConvo.id}
+                    embedded
+                    visible
+                    recipient={activeConvo}
+                    onClose={() => { setActiveConvo(null); fetchConvos(); }}
+                  />
+                ) : (
+                  <View style={[ch.empty, { flex: 1 }]}>
+                    <Feather name="message-square" size={52} color={muted} />
+                    <Text style={[ch.emptyTitle, { color: textColor }]}>Pick a conversation</Text>
+                    <Text style={[ch.emptySub, { color: muted }]}>
+                      Tap a name on the left to open the chat right here.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          );
+        }
+
+        // ── Narrow (phone): list + full-screen modal ──────────────────────
+        return (
+          <>
+            {listColumn}
+            {activeConvo && (
+              <DirectMessageModal
+                visible={!!activeConvo}
+                recipient={activeConvo}
+                onClose={() => { setActiveConvo(null); fetchConvos(); }}
+              />
+            )}
+          </>
+        );
+      })()}
     </SafeAreaView>
 
     </ErrorBoundary>

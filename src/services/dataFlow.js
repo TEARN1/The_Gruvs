@@ -2955,11 +2955,22 @@ export const MessageManager = {
   },
 
   // React to a message with an emoji
-  async reactToMessage(messageId, emoji) {
+  // Per-user emoji reactions live in the `reactions` JSONB map ({ userId: emoji }).
+  // (The old code wrote a singular `reaction` column that never existed on the
+  // DB, so reactions silently never persisted.) Reacting with the same emoji
+  // again toggles it off. Returns the new map, or null on failure.
+  async reactToMessage(messageId, emoji, userId) {
+    if (!userId) return null;
     try {
-      await supabase.from('messages').update({ reaction: emoji }).eq('id', messageId);
-      return true;
-    } catch { return false; }
+      const { data: row } = await supabase
+        .from('messages').select('reactions').eq('id', messageId).single();
+      const map = (row && row.reactions && typeof row.reactions === 'object') ? { ...row.reactions } : {};
+      if (map[userId] === emoji) delete map[userId];  // toggle off
+      else map[userId] = emoji;
+      const { error } = await supabase.from('messages').update({ reactions: map }).eq('id', messageId);
+      if (error) throw error;
+      return map;
+    } catch (e) { logError('Message.react', e); return null; }
   },
 
   // Real-time subscription for DM unread badge
