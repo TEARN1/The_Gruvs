@@ -1,55 +1,31 @@
-import { lazy } from 'react';
-import { Platform } from 'react-native';
-
-// Web-only code splitting.
+// Screens are eager-required on every platform.
 //
-// Every screen used to be a static import in App.js, so the first parse paid
-// for Reels, Explore, Lineup, Vibe Card and God View even though the shell
-// mounts them lazily (see visitedTabs). Splitting them moves that cost off the
-// critical path: the browser parses The Drop, then streams the rest on idle.
+// These were React.lazy(() => import(...)) on web to split them off the first-
+// parse critical path. But the web build ships with app.json
+// `web.output: "single"` — a single-bundle output with NO runtime to load and
+// register the async chunks that import() emits. The chunks were built and
+// even fetched (HTTP 200), but their modules never registered, so every split
+// screen (Explore, Lineup, Vibe Card, God View, …) threw at runtime
+// ("Requiring unknown module N") and fell to its error boundary in production.
+// Dev never split, so it hid the bug entirely.
 //
-// Native stays static on purpose. Metro resolves import() at build time, so
-// React.lazy buys nothing there and only adds a Suspense boundary that can
-// flash. Platform.OS is constant-folded per bundle, so the native build keeps
-// the plain require path.
+// Static requires put every screen in the one bundle that actually loads —
+// correctness over the ~0.7 MB the split saved. Revisiting code-splitting for
+// web means switching to `web.output: "static"` first, so the async-chunk
+// loader actually exists.
 //
-// LandingPage / ChatsScreen / NotificationsScreen are deliberately NOT here:
-// The Drop is the first paint, and the other two export shell-level hooks
-// (useUnreadDMCount, useUnreadCount) that run before any tab is visited.
+// LandingPage / ChatsScreen / NotificationsScreen were never here: The Drop is
+// the first paint, and the other two export shell-level unread hooks that run
+// before any tab is visited.
 
-const named = (loader, key) => () => loader().then(m => ({ default: m[key] }));
+export const ReelsScreen = require('./ReelsScreen').ReelsScreen;
+export const ExplorePage = require('./ExplorePage').ExplorePage;
+export const CalendarPage = require('./CalendarPage').CalendarPage;
+export const ProfilePage = require('./ProfilePage').ProfilePage;
+export const GodViewDashboard = require('./GodViewDashboard').GodViewDashboard;
 
-export const ReelsScreen = Platform.OS === 'web'
-  ? lazy(named(() => import('./ReelsScreen'), 'ReelsScreen'))
-  : require('./ReelsScreen').ReelsScreen;
-
-export const ExplorePage = Platform.OS === 'web'
-  ? lazy(named(() => import('./ExplorePage'), 'ExplorePage'))
-  : require('./ExplorePage').ExplorePage;
-
-export const CalendarPage = Platform.OS === 'web'
-  ? lazy(named(() => import('./CalendarPage'), 'CalendarPage'))
-  : require('./CalendarPage').CalendarPage;
-
-export const ProfilePage = Platform.OS === 'web'
-  ? lazy(named(() => import('./ProfilePage'), 'ProfilePage'))
-  : require('./ProfilePage').ProfilePage;
-
-export const GodViewDashboard = Platform.OS === 'web'
-  ? lazy(named(() => import('./GodViewDashboard'), 'GodViewDashboard'))
-  : require('./GodViewDashboard').GodViewDashboard;
-
-// Conditional overlays reached from inside another screen. PathMapScreen and
-// WalletScreen sit behind parked Focus Cut flags (pathMap, gifting) — before
-// this they were parsed on every single load to render nothing at all.
-export const PathMapScreen = Platform.OS === 'web'
-  ? lazy(named(() => import('./PathMapScreen'), 'PathMapScreen'))
-  : require('./PathMapScreen').PathMapScreen;
-
-export const WalletScreen = Platform.OS === 'web'
-  ? lazy(named(() => import('./WalletScreen'), 'WalletScreen'))
-  : require('./WalletScreen').WalletScreen;
-
-export const ServiceMarketplace = Platform.OS === 'web'
-  ? lazy(named(() => import('./ServiceMarketplace'), 'ServiceMarketplace'))
-  : require('./ServiceMarketplace').ServiceMarketplace;
+// Conditional overlays reached from inside another screen (PathMapScreen and
+// WalletScreen sit behind parked Focus Cut flags).
+export const PathMapScreen = require('./PathMapScreen').PathMapScreen;
+export const WalletScreen = require('./WalletScreen').WalletScreen;
+export const ServiceMarketplace = require('./ServiceMarketplace').ServiceMarketplace;
