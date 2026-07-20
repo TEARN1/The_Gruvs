@@ -36,7 +36,7 @@ BEGIN
   IF p_recipient IS NULL OR p_recipient = uid THEN
     RAISE EXCEPTION 'invalid recipient';
   END IF;
-  IF p_type NOT IN ('text','image','location','vibe_card','event','voice','video') THEN
+  IF p_type NOT IN ('text','image','location','vibe_card','event','voice','video','document') THEN
     RAISE EXCEPTION 'invalid message type';
   END IF;
   IF (p_lat IS NULL) <> (p_lng IS NULL) THEN

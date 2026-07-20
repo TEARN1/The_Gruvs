@@ -21,6 +21,7 @@ import { SoundFX } from '../services/soundFX';
 import { resilientRead } from '../utils/resilience';
 import { MessageManager, BlockManager, isOnline as checkOnline } from '../services/dataFlow';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useDraft } from '../hooks/useDraft';
@@ -732,23 +733,41 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     } catch { showToast('Could not open your library.', 'error'); }
   };
 
+  // Pick any document (pdf, doc, etc.), preview a file card, then send.
+  const handlePickDocument = async () => {
+    if (inputLocked || requestStatus === 'incoming_request') return;
+    setShowAttachmentMenu(false);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        const a = result.assets[0];
+        setPendingCaption('');
+        setPendingMedia({ uri: a.uri, type: 'document', name: a.name || 'file', size: a.size, mime: a.mimeType });
+      }
+    } catch { showToast('Could not open your files.', 'error'); }
+  };
+
   // Confirm from the preview → upload to storage → send.
   const confirmSendMedia = async () => {
     if (!pendingMedia) return;
-    const { uri, type } = pendingMedia;
+    const { uri, type, name } = pendingMedia;
     const caption = pendingCaption.trim();
     setPendingMedia(null);
     setPendingCaption('');
     setMediaLoading(true);
     try {
-      const ext = (uri.split('?')[0].split('.').pop() || (type === 'video' ? 'mp4' : 'jpg')).toLowerCase();
+      const fallbackExt = type === 'video' ? 'mp4' : type === 'document' ? 'bin' : 'jpg';
+      const ext = ((name || uri).split('?')[0].split('.').pop() || fallbackExt).toLowerCase();
       // First path segment MUST be the user id — chat_media INSERT policy checks
       // (storage.foldername(name))[1] = auth.uid(). A random token makes the
       // public URL unguessable (listing is already owner-only via RLS).
       const rand = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 8);
       const path = `${user.id}/dm_${Date.now()}_${rand}.${ext}`;
       const publicUrl = await uploadToStorage(uri, 'chat_media', path);
-      const newMsg = await MessageManager.send(user.id, recipient.id, caption, { messageType: type, mediaUrl: publicUrl });
+      // Documents carry their filename as the body so the file card can label
+      // it (a caption, if given, wins).
+      const body = type === 'document' ? (caption || name || 'Document') : caption;
+      const newMsg = await MessageManager.send(user.id, recipient.id, body, { messageType: type, mediaUrl: publicUrl });
       if (newMsg) {
         setMessages(prev => [...prev, newMsg]);
         if (requestStatus === 'none') setRequestStatus('pending');
@@ -954,6 +973,21 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                     resizeMode="contain"
                   />
                 )}
+                {item.message_type === 'document' && item.media_url && (
+                  <TouchableOpacity
+                    onPress={() => Linking.openURL(item.media_url)}
+                    style={[dm.docCard, { borderColor: isMine ? 'rgba(0,0,0,0.15)' : `${primary}30`, backgroundColor: isMine ? 'rgba(0,0,0,0.05)' : `${primary}0f` }]}
+                  >
+                    <View style={[dm.docIcon, { backgroundColor: isMine ? 'rgba(0,0,0,0.08)' : `${primary}20` }]}>
+                      <Feather name="file-text" size={20} color={isMine ? '#000' : primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: isMine ? '#000' : textColor, fontWeight: '800', fontSize: 13 }} numberOfLines={2}>{item.body || 'Document'}</Text>
+                      <Text style={{ color: isMine ? 'rgba(0,0,0,0.5)' : muted, fontSize: 11 }}>Tap to open</Text>
+                    </View>
+                    <Feather name="download" size={16} color={isMine ? 'rgba(0,0,0,0.5)' : primary} />
+                  </TouchableOpacity>
+                )}
                 {item.message_type === 'vibe_card' && (
                   <VibeCardBubble
                     userId={item.sender_id}
@@ -980,7 +1014,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                     <Text style={[dm.bodyText, { color: isMine ? '#000' : primary, marginLeft: 5 }]}>Shared Location</Text>
                     <Text style={[dm.timeText, { color: isMine ? 'rgba(0,0,0,0.5)' : muted, marginLeft: 10 }]}>Tap to view</Text>
                   </TouchableOpacity>
-                ) : (item.body && item.message_type !== 'vibe_card') ? (
+                ) : (item.body && item.message_type !== 'vibe_card' && item.message_type !== 'document') ? (
                   <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{transform(item.body, msgStyles[item.sender_id])}</Text>
                 ) : null}
                 {item.reactions && Object.keys(item.reactions).length > 0 && (() => {
@@ -1273,6 +1307,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
               <View style={[dm.attachMenu, { backgroundColor: bg, borderTopColor: `${primary}18` }]}>
                 {[
                   { label: 'Photo / Video', icon: 'image', onPress: handlePickMedia },
+                  { label: 'Document', icon: 'file-text', onPress: handlePickDocument },
                   { label: 'Location', icon: 'map-pin', onPress: handleShareLocation },
                   { label: 'Share Gruv', icon: 'zap', onPress: openEventPicker },
                   { label: 'Vibe Card', icon: 'user', onPress: handleShareVibeCard },
@@ -1345,7 +1380,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
               <Feather name="x" size={26} color="#fff" />
             </TouchableOpacity>
             <Text style={{ color: '#fff', fontWeight: '900', fontSize: 15 }}>
-              {pendingMedia?.type === 'video' ? 'Send video' : 'Send photo'}
+              {pendingMedia?.type === 'video' ? 'Send video' : pendingMedia?.type === 'document' ? 'Send document' : 'Send photo'}
             </Text>
             <View style={{ width: 26 }} />
           </View>
@@ -1353,9 +1388,19 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 }}>
             {pendingMedia?.type === 'video'
               ? <Video source={{ uri: pendingMedia.uri }} style={{ width: '100%', height: '80%' }} useNativeControls resizeMode="contain" shouldPlay={false} />
-              : pendingMedia?.uri
-                ? <SmartImage source={pendingMedia.uri} style={{ width: '100%', height: '80%', borderRadius: 12 }} resizeMode="contain" />
-                : null}
+              : pendingMedia?.type === 'document'
+                ? (
+                  <View style={{ alignItems: 'center', gap: 14, padding: 24 }}>
+                    <View style={{ width: 88, height: 88, borderRadius: 24, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="file-text" size={40} color={primary} />
+                    </View>
+                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15, textAlign: 'center' }} numberOfLines={3}>{pendingMedia?.name || 'Document'}</Text>
+                    {pendingMedia?.size ? <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{(pendingMedia.size / 1024).toFixed(0)} KB</Text> : null}
+                  </View>
+                )
+                : pendingMedia?.uri
+                  ? <SmartImage source={pendingMedia.uri} style={{ width: '100%', height: '80%', borderRadius: 12 }} resizeMode="contain" />
+                  : null}
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, paddingBottom: (insets.bottom || 12) + 10 }}>
@@ -1507,6 +1552,8 @@ const dm = StyleSheet.create({
   input: { flex: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 120 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   bubbleImage: { width: 220, height: 160, borderRadius: 12, marginBottom: 8 },
+  docCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, padding: 10, width: 240, marginBottom: 4 },
+  docIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   eventCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 10, overflow: 'hidden', marginBottom: 6 },
   eventBar: { width: 4, height: '100%' },
   eventTitle: { fontSize: 13, fontWeight: '800' },
