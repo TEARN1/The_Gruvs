@@ -43,6 +43,13 @@ jobs:
         env:
           SUPABASE_URL:      ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+      # Fully static (no DB, no secrets) — checks the RENDER layer instead of
+      # the data layer: every ErrorBoundary has a label, every React.lazy()
+      # render has a local Suspense. This is the exact pair of checks that
+      # would have caught the 2026-07-20 incident (an unlabeled root boundary
+      # catching a lazy component with no Suspense) before it shipped.
+      - name: Audit render-boundary + Suspense contract
+        run: node scripts/audit-resilience.mjs
 
   maintenance:
     name: Maintenance (is the platform still cleaning up after itself?)
