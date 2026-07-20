@@ -38,7 +38,7 @@ import {
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
 import { AppLockGate } from './src/components/AppLockGate';
-import { installGlobalErrorHandler } from './src/utils/errorReporter';
+import { installGlobalErrorHandler, installWebErrorHandler } from './src/utils/errorReporter';
 import { validateEnv } from './src/utils/validateEnv';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { SecurityService } from './src/services/securityService';
@@ -47,8 +47,18 @@ import { supabase } from './src/services/supabase';
 import { prewarmSections } from './src/services/prewarm';
 import { backStack } from './src/utils/backStack';
 
-// Install before any component mounts so all boot errors are captured
+// Install before any component mounts so all boot errors are captured.
+// installGlobalErrorHandler covers native (ErrorUtils); installWebErrorHandler
+// covers web (ErrorUtils is confirmed undefined under react-native-web) —
+// between them, event-handler throws and unhandled promise rejections are
+// caught on every platform instead of only wherever ErrorUtils happens to
+// exist. Reporters are injected (not imported directly) so this module stays
+// free of a supabase dependency, matching resilience.js's setDriftReporter.
 installGlobalErrorHandler();
+installWebErrorHandler({
+  logError: (label, err) => logError(label, err),
+  logSecurityEvent: (userId, type, details) => SecurityService.logSecurityEvent(userId, type, details),
+});
 validateEnv();
 
 // Schema drift, and paths that only work via a fallback tier, now land in
