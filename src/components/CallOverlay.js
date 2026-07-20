@@ -5,7 +5,7 @@
  * a MediaStream; on web we attach it to a real <video> element). On native the
  * call feature isn't offered, so the stream views simply don't render.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { SmartImage } from './SmartImage';
@@ -46,6 +46,11 @@ const RoundBtn = ({ icon, onPress, active, danger, color }) => (
   </TouchableOpacity>
 );
 
+const fmtDur = (s) => {
+  const m = Math.floor(s / 60), ss = s % 60;
+  return `${m}:${String(ss).padStart(2, '0')}`;
+};
+
 export const CallOverlay = ({
   status,        // 'incoming' | 'connecting' | 'connected' | 'ringing'
   video,         // is this a video call
@@ -54,21 +59,46 @@ export const CallOverlay = ({
   remoteStream,
   muted,
   camOff,
+  recording,        // am I recording
+  peerRecording,    // is the other side recording
+  canRecord,
   primary = '#00f2ff',
   onAccept,
   onReject,
   onHangUp,
   onToggleMute,
   onToggleCamera,
+  onToggleRecord,
 }) => {
   const isIncoming = status === 'incoming';
+
+  // Call duration — starts ticking once connected.
+  const [secs, setSecs] = useState(0);
+  useEffect(() => {
+    if (status !== 'connected') { setSecs(0); return; }
+    const id = setInterval(() => setSecs((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [status]);
+
   const label = isIncoming
     ? (video ? 'Incoming video call' : 'Incoming call')
-    : status === 'connected' ? 'Connected'
+    : status === 'connected' ? fmtDur(secs)
     : 'Calling…';
 
   return (
     <View style={cs.root}>
+      {/* Recording banner — always visible to BOTH parties (consent) */}
+      {(recording || peerRecording) && (
+        <View style={cs.recBanner}>
+          <View style={cs.recDot} />
+          <Text style={cs.recText}>
+            {recording && peerRecording ? 'Both recording'
+              : recording ? 'You are recording'
+              : `@${peer?.username || 'They'} is recording`}
+          </Text>
+        </View>
+      )}
+
       {/* Remote video fills the screen for a connected video call */}
       {video && remoteStream && status === 'connected' ? (
         <View style={StyleSheet.absoluteFill}><StreamVideo stream={remoteStream} /></View>
@@ -100,6 +130,9 @@ export const CallOverlay = ({
           <>
             <RoundBtn icon={muted ? 'mic-off' : 'mic'} active={muted} onPress={onToggleMute} />
             {video ? <RoundBtn icon={camOff ? 'video-off' : 'video'} active={camOff} onPress={onToggleCamera} /> : null}
+            {canRecord && status === 'connected'
+              ? <RoundBtn icon={recording ? 'square' : 'circle'} active={recording} onPress={onToggleRecord} color="#ef4444" />
+              : null}
             <RoundBtn icon="phone-off" danger onPress={onHangUp} />
           </>
         )}
@@ -115,6 +148,9 @@ const cs = StyleSheet.create({
   name: { color: '#fff', fontSize: 22, fontWeight: '900' },
   status: { color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: '600' },
   pip: { position: 'absolute', top: 24, right: 16, width: 110, height: 150, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  controls: { position: 'absolute', bottom: 48, flexDirection: 'row', gap: 22, alignItems: 'center' },
+  controls: { position: 'absolute', bottom: 48, flexDirection: 'row', gap: 18, alignItems: 'center' },
   roundBtn: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  recBanner: { position: 'absolute', top: 20, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(239,68,68,0.18)', borderColor: '#ef4444', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, zIndex: 60 },
+  recDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#ef4444' },
+  recText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 });

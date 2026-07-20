@@ -1,0 +1,78 @@
+/**
+ * permissions.js — one place to ask for (and explain) device access.
+ *
+ * Web-first: camera/mic go through getUserMedia, location through the
+ * Permissions API, notifications through Notification.permission. Every helper
+ * fails soft and returns a typed result so the UI can show a specific,
+ * actionable message ("access is blocked — tap the lock icon…") instead of a
+ * vague "something went wrong."
+ */
+import { Platform } from 'react-native';
+
+const isWeb = Platform.OS === 'web' && typeof navigator !== 'undefined';
+
+// 'granted' | 'denied' | 'prompt' | 'unknown'
+export async function queryPermission(name) {
+  if (!isWeb) return 'unknown';
+  try {
+    if (name === 'notifications') {
+      return typeof Notification !== 'undefined' ? Notification.permission : 'unknown';
+    }
+    if (navigator.permissions?.query) {
+      const status = await navigator.permissions.query({ name });
+      return status.state;
+    }
+  } catch { /* Permissions API not available for this name */ }
+  return 'unknown';
+}
+
+// Ask for camera+mic. Returns { ok, stream } or { ok:false, error }.
+// error ∈ 'denied' | 'no-device' | 'insecure' | 'unsupported' | 'unknown'
+export async function requestMedia({ video = false } = {}) {
+  if (!isWeb || !navigator.mediaDevices?.getUserMedia) return { ok: false, error: 'unsupported' };
+  if (typeof window !== 'undefined' && window.isSecureContext === false) return { ok: false, error: 'insecure' };
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: !!video });
+    return { ok: true, stream };
+  } catch (e) {
+    const n = e?.name || '';
+    if (n === 'NotAllowedError' || n === 'SecurityError') return { ok: false, error: 'denied' };
+    if (n === 'NotFoundError' || n === 'DevicesNotFoundError' || n === 'OverconstrainedError') return { ok: false, error: 'no-device' };
+    return { ok: false, error: 'unknown' };
+  }
+}
+
+// Notifications — returns 'granted' | 'denied' | 'default' | 'unknown'.
+export async function requestNotifications() {
+  if (!isWeb || typeof Notification === 'undefined') return 'unknown';
+  try {
+    if (Notification.permission === 'granted') return 'granted';
+    return await Notification.requestPermission();
+  } catch { return 'unknown'; }
+}
+
+// A human, actionable line for a failed/denied request.
+export function permissionHint(error, kind = 'camera and mic') {
+  switch (error) {
+    case 'denied':
+      return `${cap(kind)} access is blocked. Tap the lock icon in your address bar, allow ${kind}, then try again.`;
+    case 'no-device':
+      return `No ${kind} found on this device.`;
+    case 'insecure':
+      return `${cap(kind)} needs a secure (https) connection.`;
+    case 'unsupported':
+      return `This browser doesn't support ${kind} here.`;
+    default:
+      return `Couldn't get ${kind} access — check your browser's site settings.`;
+  }
+}
+
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// What each permission unlocks — for a friendly pre-prompt UI.
+export const PERMISSION_COPY = {
+  camera:      { icon: 'video',    title: 'Camera',        why: 'Video calls and sharing photos.' },
+  microphone:  { icon: 'mic',      title: 'Microphone',    why: 'Voice and video calls.' },
+  geolocation: { icon: 'map-pin',  title: 'Location',      why: 'Find events near you and share where you are.' },
+  notifications:{ icon: 'bell',    title: 'Notifications', why: 'Know when someone messages or calls you.' },
+};

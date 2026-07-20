@@ -15,6 +15,7 @@
  * connection, and every failure path tears the session down cleanly.
  */
 import { supabase } from './supabase';
+import { requestMedia } from '../utils/permissions';
 
 const RTC = (typeof globalThis !== 'undefined' && globalThis.RTCPeerConnection) || null;
 
@@ -34,20 +35,24 @@ const ICE_CONFIG = {
 // One live call between two users. Callbacks let the UI react without knowing
 // any WebRTC detail.
 export class PeerSession {
-  constructor({ selfId, peerId, onRemoteStream, onLocalStream, onStatus, onIncoming }) {
+  constructor({ selfId, peerId, onRemoteStream, onLocalStream, onStatus, onIncoming, onPeerRecording }) {
     this.selfId = selfId;
     this.peerId = peerId;
     this.onRemoteStream = onRemoteStream;
     this.onLocalStream = onLocalStream;
-    this.onStatus = onStatus;         // 'connecting' | 'connected' | 'ended' | 'failed'
-    this.onIncoming = onIncoming;     // ({ video }) — an offer arrived
+    this.onStatus = onStatus;             // 'connecting' | 'connected' | 'ended' | 'failed'
+    this.onIncoming = onIncoming;         // ({ video }) — an offer arrived
+    this.onPeerRecording = onPeerRecording; // (bool) — the OTHER side started/stopped recording
     this.channelName = `rtc:${[selfId, peerId].sort().join('__')}`;
     this.pc = null;
     this.channel = null;
     this.localStream = null;
+    this.remoteStream = null;
     this._pendingOffer = null;
     this._pendingIce = [];
     this._destroyed = false;
+    this._recorder = null;
+    this._recChunks = [];
   }
 
   // Subscribe to the signalling channel. Callee calls this on mount so an
@@ -68,14 +73,17 @@ export class PeerSession {
   async _makePc(video) {
     const pc = new RTC(ICE_CONFIG);
     pc.onicecandidate = (e) => { if (e.candidate) this._send('ice', { candidate: e.candidate }); };
-    pc.ontrack = (e) => this.onRemoteStream?.(e.streams[0]);
+    pc.ontrack = (e) => { this.remoteStream = e.streams[0]; this.onRemoteStream?.(e.streams[0]); };
     pc.onconnectionstatechange = () => {
       const st = pc.connectionState;
       if (st === 'connected') this.onStatus?.('connected');
       else if (st === 'failed') { this.onStatus?.('failed'); this.destroy(); }
       else if (st === 'disconnected' || st === 'closed') this.onStatus?.('ended');
     };
-    this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: !!video });
+    // Typed permission errors so the UI can say exactly what to fix.
+    const media = await requestMedia({ video });
+    if (!media.ok) { const err = new Error('media-' + media.error); err.mediaError = media.error; throw err; }
+    this.localStream = media.stream;
     this.onLocalStream?.(this.localStream);
     this.localStream.getTracks().forEach((t) => pc.addTrack(t, this.localStream));
     this.pc = pc;
@@ -121,6 +129,46 @@ export class PeerSession {
     return false;
   }
 
+  // ── Recording (browser-native MediaRecorder; records the OTHER person's
+  //    stream, which is what you'd want to keep). Broadcasts a consent flag so
+  //    the other side always sees a "REC" badge — never record silently. ──────
+  canRecord() {
+    return typeof MediaRecorder !== 'undefined' && !!(this.remoteStream || this.localStream);
+  }
+
+  startRecording() {
+    if (this._recorder) return false;
+    const stream = this.remoteStream || this.localStream;
+    if (!stream || typeof MediaRecorder === 'undefined') return false;
+    const mime = ['video/webm;codecs=vp8,opus', 'video/webm', 'audio/webm']
+      .find((m) => MediaRecorder.isTypeSupported?.(m)) || '';
+    try {
+      this._recChunks = [];
+      this._recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      this._recorder.ondataavailable = (e) => { if (e.data && e.data.size) this._recChunks.push(e.data); };
+      this._recorder.start(1000);
+      this._send('rec', { on: true });   // consent: tell the other side
+      return true;
+    } catch { this._recorder = null; return false; }
+  }
+
+  // Resolves to a Blob (webm) or null.
+  stopRecording() {
+    return new Promise((resolve) => {
+      const rec = this._recorder;
+      if (!rec) return resolve(null);
+      rec.onstop = () => {
+        const type = rec.mimeType || 'video/webm';
+        const blob = this._recChunks.length ? new Blob(this._recChunks, { type }) : null;
+        this._recorder = null;
+        this._recChunks = [];
+        this._send('rec', { on: false });
+        resolve(blob);
+      };
+      try { rec.stop(); } catch { this._recorder = null; resolve(null); }
+    });
+  }
+
   async _onSignal(p) {
     if (this._destroyed || p.to !== this.selfId || p.from !== this.peerId) return;
     try {
@@ -132,6 +180,8 @@ export class PeerSession {
       } else if (p.type === 'ice') {
         if (this.pc?.remoteDescription) { try { await this.pc.addIceCandidate(p.candidate); } catch {} }
         else this._pendingIce.push(p.candidate);
+      } else if (p.type === 'rec') {
+        this.onPeerRecording?.(!!p.on);
       } else if (p.type === 'end') {
         this.onStatus?.('ended');
         this.destroy();
@@ -142,6 +192,8 @@ export class PeerSession {
   destroy() {
     if (this._destroyed) return;
     this._destroyed = true;
+    try { if (this._recorder && this._recorder.state !== 'inactive') this._recorder.stop(); } catch {}
+    this._recorder = null;
     try { this.localStream?.getTracks().forEach((t) => t.stop()); } catch {}
     try { this.pc?.close(); } catch {}
     if (this.channel) { try { supabase.removeChannel(this.channel); } catch {} }

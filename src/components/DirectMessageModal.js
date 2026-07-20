@@ -14,6 +14,7 @@ import { VibeCardBubble } from './VibeCardBubble';
 import { Video } from 'expo-av';
 import { PeerSession, isCallSupported } from '../services/webrtcCall';
 import { CallOverlay } from './CallOverlay';
+import { permissionHint } from '../utils/permissions';
 import { SignedImage } from './SignedImage';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -320,6 +321,8 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [remoteStream, setRemoteStream] = useState(null);
   const [callMuted, setCallMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [peerRecording, setPeerRecording] = useState(false);
 
   useEffect(() => {
     if (!callSupported || !user?.id || !recipient?.id) return;
@@ -329,6 +332,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       onLocalStream: setLocalStream,
       onRemoteStream: setRemoteStream,
       onIncoming: ({ video }) => setCall({ status: 'incoming', video, role: 'callee' }),
+      onPeerRecording: (on) => setPeerRecording(on),
       onStatus: (st) => {
         if (st === 'connected') setCall((c) => (c ? { ...c, status: 'connected' } : c));
         else if (st === 'ended' || st === 'failed') endCallLocal();
@@ -342,22 +346,46 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 
   const endCallLocal = () => {
     setCall(null); setLocalStream(null); setRemoteStream(null);
-    setCallMuted(false); setCamOff(false);
+    setCallMuted(false); setCamOff(false); setRecording(false); setPeerRecording(false);
   };
   const startCall = async (video) => {
     if (!callRef.current) return;
     setCall({ status: 'connecting', video, role: 'caller' });
     try { await callRef.current.call(video); }
-    catch { showToast('Could not start the call — check mic/camera permissions.', 'error'); endCallLocal(); }
+    catch (e) {
+      showToast(permissionHint(e?.mediaError, video ? 'camera and mic' : 'microphone'), 'error');
+      endCallLocal();
+    }
   };
   const acceptCall = async () => {
     try { await callRef.current?.accept(); setCall((c) => (c ? { ...c, status: 'connecting' } : c)); }
-    catch { showToast('Could not join the call.', 'error'); endCallLocal(); }
+    catch (e) { showToast(permissionHint(e?.mediaError, 'camera and mic'), 'error'); endCallLocal(); }
   };
   const rejectCall = () => { callRef.current?.reject(); endCallLocal(); };
   const hangUp = () => { callRef.current?.hangUp(); endCallLocal(); };
   const toggleCallMute = () => setCallMuted(callRef.current?.toggleMute() ?? false);
   const toggleCallCam = () => setCamOff(callRef.current?.toggleCamera() ?? false);
+  const toggleRecord = async () => {
+    const s = callRef.current;
+    if (!s) return;
+    if (recording) {
+      const blob = await s.stopRecording();
+      setRecording(false);
+      if (blob && typeof document !== 'undefined') {
+        // Web: hand the recording to the user as a download.
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `gruvs-call-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.webm`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showToast('Recording saved.', 'success');
+      }
+    } else {
+      if (s.startRecording()) setRecording(true);
+      else showToast("Can't record this call on this device.", 'error');
+    }
+  };
 
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedMsgIds, setSelectedMsgIds] = useState(new Set());
@@ -1433,12 +1461,16 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           remoteStream={remoteStream}
           muted={callMuted}
           camOff={camOff}
+          recording={recording}
+          peerRecording={peerRecording}
+          canRecord={callRef.current?.canRecord?.()}
           primary={primary}
           onAccept={acceptCall}
           onReject={rejectCall}
           onHangUp={hangUp}
           onToggleMute={toggleCallMute}
           onToggleCamera={toggleCallCam}
+          onToggleRecord={toggleRecord}
         />
       )}
 
