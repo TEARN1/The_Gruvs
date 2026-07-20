@@ -182,7 +182,14 @@ begin
   get diagnostics n = row_count;
   d := d || jsonb_build_object('maintenance_runs_purged', n);
 
-  -- 5. Leaderboard snapshot refresh (the one commented out in schema_part_2) —
+  -- 5. client_errors (see client_errors_anon_write.sql) — 90d is ample for
+  --    triaging any real incident; this table is a mailbox, not an archive.
+  if to_regproc('public.purge_stale_client_errors') is not null then
+    select purge_stale_client_errors() into n;
+    d := d || jsonb_build_object('client_errors_purged', coalesce(n, 0));
+  end if;
+
+  -- 6. Leaderboard snapshot refresh (the one commented out in schema_part_2) —
   --    only if the matview exists.
   if exists (select 1 from pg_matviews where matviewname = 'leaderboard_snapshot') then
     refresh materialized view concurrently leaderboard_snapshot;
