@@ -17,27 +17,22 @@
  *   );
  */
 
+import { _internal as classifier } from './failureClassifier';
+
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 // ─── Classification helpers ────────────────────────────────────────────────────
+//
+// These now delegate to failureClassifier.js — the one shared vocabulary every
+// tier (render boundary, global handler, data layer) uses to decide "what kind
+// of failure is this." Kept as local names/signatures so nothing below this
+// line, or any external caller, has to change.
 
 // 4xx errors are the caller's fault — no point retrying, bail immediately.
-const isFatal = (err) => {
-  const status = err?.status ?? err?.code ?? err?.statusCode;
-  if (typeof status === 'number') return status >= 400 && status < 500;
-  const msg = (err?.message || '').toLowerCase();
-  return msg.includes('permission denied') || msg.includes('invalid input');
-};
+const isFatal = (err) => classifier.isFatalInput(err);
 
 // Transient errors are worth retrying.
-const isTransient = (err) => {
-  const status = err?.status ?? err?.code ?? err?.statusCode;
-  if (typeof status === 'number') return status >= 500 || status === 429;
-  const msg = (err?.message || '').toLowerCase();
-  return msg.includes('network') || msg.includes('timeout') ||
-         msg.includes('fetch') || msg.includes('aborted') ||
-         msg.includes('econnreset') || msg.includes('socket');
-};
+const isTransient = (err) => classifier.isTransient(err);
 
 // Schema drift — the query names a table/column/relationship the database does
 // not have. Permanent for THIS tier (retrying never helps), but the NEXT fallback
@@ -50,25 +45,7 @@ const isTransient = (err) => {
 // were treated as unknown-retryable: 9 doomed requests, then a silent null. That is
 // exactly how 24 broken queries rotted in production unnoticed. They are now
 // classified AND logged loudly (see reportSchemaMiss) so drift can never hide again.
-const PG_SCHEMA_CODES = new Set([
-  '42703', // undefined_column
-  '42P01', // undefined_table
-  '42883', // undefined_function
-  '42P10', // invalid_column_reference
-]);
-
-export const isSchemaMiss = (err) => {
-  const code = err?.code;
-  if (typeof code === 'string') {
-    if (/^PGRST2\d\d$/i.test(code)) return true;      // PostgREST schema cache
-    if (PG_SCHEMA_CODES.has(code.toUpperCase())) return true; // Postgres itself
-  }
-  const msg = (err?.message || '').toLowerCase();
-  return msg.includes('schema cache') ||
-         msg.includes('could not find the function') ||
-         msg.includes('could not find a relationship') ||
-         msg.includes('does not exist');
-};
+export const isSchemaMiss = (err) => classifier.isSchemaMiss(err);
 
 // Schema drift is a BUG, not a runtime condition — never let it fail quietly.
 //
@@ -122,22 +99,114 @@ const reportDegraded = (label, tierIndex, err) => {
   );
 };
 
+// ─── Circuit breaker ────────────────────────────────────────────────────────
+//
+// resilient() used to re-attempt every tier, full backoff and all, on EVERY
+// call — including the 50th call in a row against a table that's been down
+// for a minute. That's not resilience, it's noise: it stacks latency onto a
+// user action that was always going to fail, and hammers a confirmed-dead
+// endpoint. If a label has fully exhausted its cascade CIRCUIT_THRESHOLD
+// times within CIRCUIT_WINDOW_MS, the breaker "opens": subsequent calls skip
+// straight to fallbackValue with no network attempt at all.
+//
+// A fully-blocking open breaker can never recover on its own — nothing gets
+// through to prove the endpoint is back, so it can only close by the window
+// aging out (up to CIRCUIT_WINDOW_MS of blind fallback-only behavior even
+// after the real fix ships). Real half-open behavior instead: once open, let
+// exactly one PROBE call through per PROBE_INTERVAL_MS. A probe that
+// succeeds closes the circuit immediately; a probe that fails counts as
+// another failure and keeps it open.
+const CIRCUIT_THRESHOLD = 3;
+const CIRCUIT_WINDOW_MS = 60_000;
+const PROBE_INTERVAL_MS = 15_000;
+const _circuitFailures = new Map(); // label -> number[] (failure timestamps)
+const _circuitLastProbe = new Map(); // label -> timestamp of last probe let through
+
+function isOpenState(label) {
+  const times = _circuitFailures.get(label);
+  if (!times) return false;
+  const cutoff = Date.now() - CIRCUIT_WINDOW_MS;
+  const recent = times.filter((t) => t > cutoff);
+  if (recent.length !== times.length) _circuitFailures.set(label, recent);
+  return recent.length >= CIRCUIT_THRESHOLD;
+}
+
+/** true = short-circuit to fallbackValue now; false = proceed (normal OR probe). */
+function circuitIsOpen(label) {
+  if (!isOpenState(label)) return false;
+  const lastProbe = _circuitLastProbe.get(label) || 0;
+  if (Date.now() - lastProbe >= PROBE_INTERVAL_MS) {
+    _circuitLastProbe.set(label, Date.now()); // this call IS the probe — let it through
+    return false;
+  }
+  return true; // open, and not yet due for another probe
+}
+
+function recordCircuitFailure(label) {
+  const times = _circuitFailures.get(label) || [];
+  times.push(Date.now());
+  _circuitFailures.set(label, times);
+  // Every failure — including the one that opens the circuit — counts as
+  // "just probed and it's still bad," so the cooldown starts from the most
+  // recent evidence, not from an unset 0 that would let the very next call
+  // straight through as an accidental immediate probe.
+  _circuitLastProbe.set(label, Date.now());
+}
+
+function recordCircuitSuccess(label) {
+  _circuitFailures.delete(label);
+  _circuitLastProbe.delete(label);
+}
+
+const _seenCircuitOpen = new Set();
+function reportCircuitOpen(label) {
+  if (_seenCircuitOpen.has(label)) return;
+  _seenCircuitOpen.add(label);
+  // eslint-disable-next-line no-console
+  console.error(
+    `[CIRCUIT OPEN] ${label}: failed its full cascade ${CIRCUIT_THRESHOLD}+ times in the ` +
+    `last ${CIRCUIT_WINDOW_MS / 1000}s — skipping network attempts and returning the ` +
+    'fallback directly until it recovers.'
+  );
+  if (_driftReporter) {
+    try { _driftReporter(label, new Error('circuit open'), 'CIRCUIT_OPEN'); } catch { /* never load-bearing */ }
+  }
+  // Self-clear the dedupe so a LATER re-open (after recovering and breaking
+  // again) still gets reported instead of going silent forever.
+  setTimeout(() => _seenCircuitOpen.delete(label), CIRCUIT_WINDOW_MS);
+}
+
+// Exposed for the GodViewDashboard resilience panel (Layer 4) and tests —
+// read-only snapshot of which labels are currently short-circuited.
+export function getOpenCircuits() {
+  const cutoff = Date.now() - CIRCUIT_WINDOW_MS;
+  const open = [];
+  for (const [label, times] of _circuitFailures.entries()) {
+    if (times.filter((t) => t > cutoff).length >= CIRCUIT_THRESHOLD) open.push(label);
+  }
+  return open;
+}
+
 // ─── Core resilience primitive ─────────────────────────────────────────────────
 
 /**
  * Run `fn` up to `maxAttempts` times with exponential backoff + jitter.
  * Returns the result on the first success; throws on final failure.
  *
- * @param {() => Promise<any>} fn          — async operation to attempt
+ * @param {() => Promise<any>} fn          — async operation to attempt. Called
+ *                              as fn(attemptIndex, { idempotencyKey }) — extra
+ *                              args are safely ignored by existing tiers that
+ *                              take no parameters.
  * @param {number}             maxAttempts — max tries (default 3)
  * @param {number}             baseMs      — base delay in ms (default 300)
  * @param {string}             label       — for logging
+ * @param {string|null}        idempotencyKey — see resilient()'s opts.idempotencyKey
  */
-export async function attemptWithBackoff(fn, maxAttempts = 3, baseMs = 300, label = 'op') {
+export async function attemptWithBackoff(fn, maxAttempts = 3, baseMs = 300, label = 'op', idempotencyKey = null) {
   let lastErr;
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const result = await fn(i);
+      const result = await fn(i, { idempotencyKey });
       // Supabase pattern: { data, error } — treat error as thrown
       if (result && typeof result === 'object' && 'error' in result && result.error) {
         // Schema drift can never succeed by retrying — surface it and move on
@@ -171,9 +240,9 @@ export async function attemptWithBackoff(fn, maxAttempts = 3, baseMs = 300, labe
  * Run a single tier (a function) with up to `attemptsPerTier` tries.
  * Returns { ok: true, value } on success or { ok: false, error } on failure.
  */
-async function runTier(fn, attemptsPerTier, baseMs, tierLabel) {
+async function runTier(fn, attemptsPerTier, baseMs, tierLabel, idempotencyKey) {
   try {
-    const value = await attemptWithBackoff(fn, attemptsPerTier, baseMs, tierLabel);
+    const value = await attemptWithBackoff(fn, attemptsPerTier, baseMs, tierLabel, idempotencyKey);
     return { ok: true, value };
   } catch (err) {
     return { ok: false, error: err };
@@ -183,13 +252,22 @@ async function runTier(fn, attemptsPerTier, baseMs, tierLabel) {
 /**
  * 3-Tier Hierarchical Fallback Cascade.
  *
- * @param {Array<() => Promise<any>>} tiers            — [primary, secondary, tertiary]
+ * @param {Array<() => Promise<any>>} tiers            — [primary, secondary, tertiary].
+ *   Each tier may accept (attemptIndex, { idempotencyKey }) — see opts.idempotencyKey.
  * @param {object}                    opts
  * @param {number}                    opts.attemptsPerTier — retries within each tier (default 3)
  * @param {number}                    opts.baseMs          — base backoff delay in ms (default 300)
- * @param {string}                    opts.label           — debug label for logs
+ * @param {string}                    opts.label           — debug label for logs, and the
+ *   circuit-breaker key (see getOpenCircuits())
  * @param {() => Promise<any>}        opts.onExhausted     — "mother" escalation if all 3 tiers fail
  * @param {any}                       opts.fallbackValue   — static value to return if even mother fails
+ * @param {string}                    [opts.idempotencyKey] — a stable key (e.g. a client-generated
+ *   UUID) passed to every tier so a write can be deduped if tier 1 actually
+ *   succeeded server-side but the client never saw the ack (network drop
+ *   post-write) and tier 2 gets attempted — the exact class of bug
+ *   send_message_v2's client_key was built to close. Tiers that write should
+ *   thread this into an `on conflict (idempotency_key) do nothing`-style
+ *   upsert or an RPC arg; tiers that ignore it behave exactly as before.
  *
  * @returns {Promise<any>} — result from the first succeeding tier/strategy
  */
@@ -200,15 +278,22 @@ export async function resilient(tiers, opts = {}) {
     label           = 'operation',
     onExhausted     = null,
     fallbackValue   = null,
+    idempotencyKey  = null,
   } = opts;
+
+  if (circuitIsOpen(label)) {
+    reportCircuitOpen(label);
+    return fallbackValue;
+  }
 
   const tierNames = ['primary', 'secondary', 'tertiary', 'quaternary', 'quinary'];
 
   let firstError = null;
 
   for (let t = 0; t < tiers.length; t++) {
-    const result = await runTier(tiers[t], attemptsPerTier, baseMs, `${label}:${tierNames[t] ?? `tier${t + 1}`}`);
+    const result = await runTier(tiers[t], attemptsPerTier, baseMs, `${label}:${tierNames[t] ?? `tier${t + 1}`}`, idempotencyKey);
     if (result.ok) {
+      recordCircuitSuccess(label);
       // Succeeded on a FALLBACK tier: the intended path is broken. Say so.
       if (t > 0) reportDegraded(label, t, firstError);
       return result.value;
@@ -226,12 +311,16 @@ export async function resilient(tiers, opts = {}) {
   if (onExhausted) {
     try {
       // Mother itself is resilient — give it its own retry budget
-      return await attemptWithBackoff(onExhausted, attemptsPerTier, baseMs * 2, `${label}:mother`);
+      const value = await attemptWithBackoff(onExhausted, attemptsPerTier, baseMs * 2, `${label}:mother`, idempotencyKey);
+      recordCircuitSuccess(label);
+      return value;
     } catch {
+      recordCircuitFailure(label);
       return fallbackValue;
     }
   }
 
+  recordCircuitFailure(label);
   return fallbackValue;
 }
 
