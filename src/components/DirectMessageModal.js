@@ -10,6 +10,8 @@ import {
   ActivityIndicator, Animated, Alert, Linking,
 } from 'react-native';
 import { SmartImage } from './SmartImage';
+import { VibeCardBubble } from './VibeCardBubble';
+import { Video } from 'expo-av';
 import { SignedImage } from './SignedImage';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -300,6 +302,12 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [pickerEvents, setPickerEvents] = useState([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
+  const [profileTarget, setProfileTarget] = useState(null); // user id to open (defaults to recipient)
+
+  // Media preview before send: hold the picked asset here until the user
+  // confirms (with an optional caption), instead of firing it off blind.
+  const [pendingMedia, setPendingMedia] = useState(null); // { uri, type: 'image'|'video' }
+  const [pendingCaption, setPendingCaption] = useState('');
 
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedMsgIds, setSelectedMsgIds] = useState(new Set());
@@ -706,34 +714,47 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     />
   );
 
-  const handleImageUpload = async () => {
+  // Pick an image OR video from the library, then PREVIEW it (with an optional
+  // caption) before anything uploads — nothing is sent until the user confirms.
+  const handlePickMedia = async () => {
     if (inputLocked || requestStatus === 'incoming_request') return;
+    setShowAttachmentMenu(false);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        mediaTypes: ImagePicker.MediaTypeOptions.All, // images + video
         quality: 0.7,
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
-        setMediaLoading(true);
-        const { uri } = result.assets[0];
-        const ext = (uri.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
-        // First path segment MUST be the user id — chat_media INSERT policy checks
-        // (storage.foldername(name))[1] = auth.uid(). A "dms/" prefix fails RLS,
-        // which is why DM image sends were silently failing.
-        // A random token makes the public URL UNGUESSABLE — listing is already
-        // owner-only via RLS, so this closes the practical enumeration vector on
-        // a public bucket without switching the whole feature to signed URLs.
-        const rand = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 8);
-        const path = `${user.id}/dm_${Date.now()}_${rand}.${ext}`;
-        const publicUrl = await uploadToStorage(uri, 'chat_media', path);
-        const newMsg = await MessageManager.send(user.id, recipient.id, '', { messageType: 'image', mediaUrl: publicUrl });
-        if (newMsg) setMessages(prev => [...prev, newMsg]);
-        setMediaLoading(false);
+        const asset = result.assets[0];
+        setPendingCaption('');
+        setPendingMedia({ uri: asset.uri, type: asset.type === 'video' ? 'video' : 'image' });
       }
-    } catch (e) {
-      setMediaLoading(false);
-    }
+    } catch { showToast('Could not open your library.', 'error'); }
+  };
+
+  // Confirm from the preview → upload to storage → send.
+  const confirmSendMedia = async () => {
+    if (!pendingMedia) return;
+    const { uri, type } = pendingMedia;
+    const caption = pendingCaption.trim();
+    setPendingMedia(null);
+    setPendingCaption('');
+    setMediaLoading(true);
+    try {
+      const ext = (uri.split('?')[0].split('.').pop() || (type === 'video' ? 'mp4' : 'jpg')).toLowerCase();
+      // First path segment MUST be the user id — chat_media INSERT policy checks
+      // (storage.foldername(name))[1] = auth.uid(). A random token makes the
+      // public URL unguessable (listing is already owner-only via RLS).
+      const rand = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 8);
+      const path = `${user.id}/dm_${Date.now()}_${rand}.${ext}`;
+      const publicUrl = await uploadToStorage(uri, 'chat_media', path);
+      const newMsg = await MessageManager.send(user.id, recipient.id, caption, { messageType: type, mediaUrl: publicUrl });
+      if (newMsg) {
+        setMessages(prev => [...prev, newMsg]);
+        if (requestStatus === 'none') setRequestStatus('pending');
+      }
+    } catch { showToast('Could not send that.', 'error'); }
+    finally { setMediaLoading(false); }
   };
 
   // ── Share Location ───────────────────────────────────────────────────────────
@@ -742,16 +763,16 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     setMediaLoading(true); // Use mediaLoading for any attachment type
     try {
       const coords = await LocationService.requestAndGet();
-      if (coords && user && recipient) {
-        // Apply fuzzing based on identity mode, or offer an explicit option
-        // For now, let's assume we send the raw location and let the recipient's app decide to fuzz if they are in ghost mode.
-        // Or, we can explicitly fuzz here if the sender is in ghost mode.
-        // For this example, we'll send the raw coordinates and let the display logic handle fuzzing if needed.
+      // requestAndGet returns { lat, lon } — reading .latitude/.longitude here
+      // (the old code) sent undefined coords, so every "Shared location" arrived
+      // with no pin and rendered as dead text.
+      const lat = coords?.lat, lng = coords?.lon;
+      if (lat != null && lng != null && user && recipient) {
         const newMsg = await MessageManager.send(
           user.id,
           recipient.id,
           'Shared location', // Default body for location message
-          { messageType: 'location', latitude: coords.latitude, longitude: coords.longitude }
+          { messageType: 'location', latitude: lat, longitude: lng }
         );
         if (newMsg) {
           setMessages(prev => [...prev, newMsg]);
@@ -925,13 +946,31 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 {item.message_type === 'image' && item.media_url && (
                   <SignedImage source={item.media_url} style={dm.bubbleImage} resizeMode="cover" />
                 )}
-                {item.event_id && renderEventShare(item.event_id)}
+                {item.message_type === 'video' && item.media_url && (
+                  <Video
+                    source={{ uri: item.media_url }}
+                    style={dm.bubbleImage}
+                    useNativeControls
+                    resizeMode="contain"
+                  />
+                )}
+                {item.message_type === 'vibe_card' && (
+                  <VibeCardBubble
+                    userId={item.sender_id}
+                    primary={primary}
+                    textColor={textColor}
+                    muted={muted}
+                    onPress={() => { setProfileTarget(item.sender_id); setProfileModalVisible(true); }}
+                  />
+                )}
+                {item.event_id && item.message_type !== 'vibe_card' && renderEventShare(item.event_id)}
                 {item.message_type === 'location' && item.latitude && item.longitude ? (
                   <TouchableOpacity
                     onPress={() => {
                       const url = Platform.select({
                         ios: `http://maps.apple.com/?ll=${item.latitude},${item.longitude}`,
                         android: `geo:${item.latitude},${item.longitude}?q=${item.latitude},${item.longitude}`,
+                        default: `https://www.google.com/maps?q=${item.latitude},${item.longitude}`,
                       });
                       if (url) Linking.openURL(url);
                     }}
@@ -941,7 +980,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                     <Text style={[dm.bodyText, { color: isMine ? '#000' : primary, marginLeft: 5 }]}>Shared Location</Text>
                     <Text style={[dm.timeText, { color: isMine ? 'rgba(0,0,0,0.5)' : muted, marginLeft: 10 }]}>Tap to view</Text>
                   </TouchableOpacity>
-                ) : item.body ? (
+                ) : (item.body && item.message_type !== 'vibe_card') ? (
                   <Text style={[dm.bodyText, { color: isMine ? '#000' : textColor }]}>{transform(item.body, msgStyles[item.sender_id])}</Text>
                 ) : null}
                 {item.reactions && Object.keys(item.reactions).length > 0 && (() => {
@@ -1233,7 +1272,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             {showAttachmentMenu && (
               <View style={[dm.attachMenu, { backgroundColor: bg, borderTopColor: `${primary}18` }]}>
                 {[
-                  { label: 'Photo', icon: 'image', onPress: handleImageUpload },
+                  { label: 'Photo / Video', icon: 'image', onPress: handlePickMedia },
                   { label: 'Location', icon: 'map-pin', onPress: handleShareLocation },
                   { label: 'Share Gruv', icon: 'zap', onPress: openEventPicker },
                   { label: 'Vibe Card', icon: 'user', onPress: handleShareVibeCard },
@@ -1291,12 +1330,48 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       <React.Suspense fallback={null}>
         <ViberProfileModal
           visible={profileModalVisible}
-          user={recipient}
-          userId={recipient?.id}
-          onClose={() => setProfileModalVisible(false)}
+          user={profileTarget && profileTarget !== recipient?.id ? undefined : recipient}
+          userId={profileTarget || recipient?.id}
+          onClose={() => { setProfileModalVisible(false); setProfileTarget(null); }}
           onNavigateToEvent={onNavigateToEvent}
         />
       </React.Suspense>
+
+      {/* Media preview — confirm before sending an image / video */}
+      <Modal visible={!!pendingMedia} transparent animationType="fade" onRequestClose={() => setPendingMedia(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: (insets.top || 12) + 8 }}>
+            <TouchableOpacity onPress={() => { setPendingMedia(null); setPendingCaption(''); }} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <Feather name="x" size={26} color="#fff" />
+            </TouchableOpacity>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 15 }}>
+              {pendingMedia?.type === 'video' ? 'Send video' : 'Send photo'}
+            </Text>
+            <View style={{ width: 26 }} />
+          </View>
+
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 }}>
+            {pendingMedia?.type === 'video'
+              ? <Video source={{ uri: pendingMedia.uri }} style={{ width: '100%', height: '80%' }} useNativeControls resizeMode="contain" shouldPlay={false} />
+              : pendingMedia?.uri
+                ? <SmartImage source={pendingMedia.uri} style={{ width: '100%', height: '80%', borderRadius: 12 }} resizeMode="contain" />
+                : null}
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, paddingBottom: (insets.bottom || 12) + 10 }}>
+            <TextInput
+              value={pendingCaption}
+              onChangeText={setPendingCaption}
+              placeholder="Add a caption..."
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              style={{ flex: 1, color: '#fff', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 22, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14 }}
+            />
+            <TouchableOpacity onPress={confirmSendMedia} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: primary, alignItems: 'center', justifyContent: 'center' }}>
+              <Feather name="send" size={20} color="#000" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Share Gruv — event picker */}
       <Modal visible={eventPickerVisible} transparent animationType="slide" onRequestClose={() => setEventPickerVisible(false)}>
