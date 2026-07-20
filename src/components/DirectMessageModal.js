@@ -294,6 +294,13 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [crossPathCount, setCrossPathCount] = useState(0);
 
+  // Event picker for "Share Gruv" — pick which event to send, instead of the
+  // old dead button that sent an empty event card.
+  const [eventPickerVisible, setEventPickerVisible] = useState(false);
+  const [pickerEvents, setPickerEvents] = useState([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedMsgIds, setSelectedMsgIds] = useState(new Set());
   const [showShareModal, setShowShareModal] = useState(false);
@@ -654,6 +661,38 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     } finally {
       setMediaLoading(false);
     }
+  };
+
+  // ── Share Gruv: open a picker of events you can actually share ────────────────
+  // Your upcoming events — the ones you host or are going to — are what you'd
+  // want to send someone. Deduped, soonest first.
+  const openEventPicker = async () => {
+    setShowAttachmentMenu(false);
+    setPickerSearch('');
+    setEventPickerVisible(true);
+    setPickerLoading(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const cols = 'id, title, event_date, venue_name, cover_url, cover_image, image_url';
+      const [hosted, rsvps] = await Promise.all([
+        supabase.from('events').select(cols)
+          .eq('author_id', user.id).gte('event_date', today)
+          .order('event_date', { ascending: true }).limit(25),
+        supabase.from('event_rsvps').select(`events:event_id(${cols})`)
+          .eq('user_id', user.id).eq('status', 'going').limit(25),
+      ]);
+      const going = (rsvps.data || []).map(r => r.events).filter(Boolean);
+      const seen = new Set();
+      const merged = [...(hosted.data || []), ...going]
+        .filter(e => e && !seen.has(e.id) && seen.add(e.id));
+      setPickerEvents(merged);
+    } catch { setPickerEvents([]); }
+    finally { setPickerLoading(false); }
+  };
+
+  const pickAndShareEvent = (ev) => {
+    setEventPickerVisible(false);
+    handleShareEvent(ev.id);
   };
 
   // ── Render Shared Event ──────────────────────────────────────────────────────
@@ -1194,9 +1233,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             {showAttachmentMenu && (
               <View style={[dm.attachMenu, { backgroundColor: bg, borderTopColor: `${primary}18` }]}>
                 {[
-                  { label: 'Camera', icon: 'camera', onPress: handleImageUpload },
+                  { label: 'Photo', icon: 'image', onPress: handleImageUpload },
                   { label: 'Location', icon: 'map-pin', onPress: handleShareLocation },
-                  { label: 'Share Gruv', icon: 'zap', onPress: () => handleShareEvent(null) },
+                  { label: 'Share Gruv', icon: 'zap', onPress: openEventPicker },
                   { label: 'Vibe Card', icon: 'user', onPress: handleShareVibeCard },
                 ].map(item => (
                   <TouchableOpacity key={item.label} onPress={item.onPress} style={dm.attachMenuItem}>
@@ -1258,6 +1297,68 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           onNavigateToEvent={onNavigateToEvent}
         />
       </React.Suspense>
+
+      {/* Share Gruv — event picker */}
+      <Modal visible={eventPickerVisible} transparent animationType="slide" onRequestClose={() => setEventPickerVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '80%', minHeight: 300, borderTopWidth: 1, borderTopColor: `${primary}25`, paddingBottom: insets.bottom || 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <Text style={{ color: textColor, fontSize: 16, fontWeight: '900' }}>Share a Gruv</Text>
+              <TouchableOpacity onPress={() => setEventPickerVisible(false)}>
+                <Feather name="x" size={20} color={textColor} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: `${primary}10`, borderRadius: 12, paddingHorizontal: 12, marginBottom: 12 }}>
+              <Feather name="search" size={15} color={muted} />
+              <TextInput
+                value={pickerSearch}
+                onChangeText={setPickerSearch}
+                placeholder="Search your events..."
+                placeholderTextColor={muted}
+                style={{ flex: 1, color: textColor, paddingVertical: 10, fontSize: 14 }}
+              />
+            </View>
+            {pickerLoading ? (
+              <ActivityIndicator color={primary} style={{ marginVertical: 40 }} />
+            ) : (
+              <FlatList
+                data={pickerSearch.trim()
+                  ? pickerEvents.filter(e => (e.title || '').toLowerCase().includes(pickerSearch.toLowerCase()))
+                  : pickerEvents}
+                keyExtractor={item => String(item.id)}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={
+                  <Text style={{ color: muted, textAlign: 'center', marginTop: 40 }}>
+                    No upcoming events yet. Host one or RSVP going, then share it here.
+                  </Text>
+                }
+                renderItem={({ item }) => {
+                  const cover = item.cover_url || item.cover_image || item.image_url;
+                  return (
+                    <TouchableOpacity
+                      onPress={() => pickAndShareEvent(item)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}
+                    >
+                      {cover
+                        ? <SmartImage source={cover} style={{ width: 48, height: 48, borderRadius: 10 }} />
+                        : <View style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: `${primary}15`, alignItems: 'center', justifyContent: 'center' }}>
+                            <Feather name="calendar" size={18} color={primary} />
+                          </View>}
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: textColor, fontWeight: '800', fontSize: 14 }} numberOfLines={1}>{item.title || 'Untitled event'}</Text>
+                        <Text style={{ color: muted, fontSize: 12 }} numberOfLines={1}>
+                          {[item.event_date, item.venue_name].filter(Boolean).join(' · ')}
+                        </Text>
+                      </View>
+                      <Feather name="send" size={16} color={primary} />
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Share Contacts Modal */}
       <Modal visible={showShareModal} transparent animationType="slide" onRequestClose={() => setShowShareModal(false)}>
