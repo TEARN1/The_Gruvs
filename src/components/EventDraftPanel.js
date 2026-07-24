@@ -272,7 +272,7 @@ const DraftSheet = ({ visible, draftId, crew, members, onClose, onChanged }) => 
     setBusy(true);
     try {
       await DraftManager.launch(draftId);
-      toast('🎉 Your event is LIVE!', 'success');
+      toast('Your event is LIVE!', 'success');
       onChanged?.(); onClose();
     } catch (e) { toast(e?.message || 'Not ready to launch yet.', 'error'); load(); }
     finally { setBusy(false); }
@@ -343,9 +343,14 @@ const DraftSheet = ({ visible, draftId, crew, members, onClose, onChanged }) => 
                 ) : (
                   <TouchableOpacity onPress={launch} disabled={!armed || busy}
                     style={[s.cta, { backgroundColor: armed ? '#10b981' : `${accent}30` }]}>
-                    {busy ? <ActivityIndicator color="#000" /> : (
+                    {busy ? <ActivityIndicator color="#000" /> : armed ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Feather name="send" size={16} color="#000" />
+                        <Text style={s.ctaText}>Launch the event</Text>
+                      </View>
+                    ) : (
                       <Text style={s.ctaText}>
-                        {armed ? '🚀 Launch the event' : `Waiting for ${needed - confirms.length} more confirmation…`}
+                        {`Waiting for ${needed - confirms.length} more confirmation…`}
                       </Text>
                     )}
                   </TouchableOpacity>

@@ -130,27 +130,27 @@ export function detectBrowser() {
 // is why people give up here — the steps differ meaningfully per browser.
 const STEPS = {
   chrome: [
-    'Tap the 🔒 lock (or ⓘ) icon on the left of the address bar',
+    'Tap the lock (or info) icon on the left of the address bar',
     'Open “Site settings”',
     'Set Camera and Microphone to “Allow”',
     'Reload this page',
   ],
   edge: [
-    'Tap the 🔒 lock icon on the left of the address bar',
+    'Tap the lock icon on the left of the address bar',
     'Open “Permissions for this site”',
     'Set Camera and Microphone to “Allow”',
     'Reload this page',
   ],
   opera: [
-    'Tap the 🔒 lock icon in the address bar',
+    'Tap the lock icon in the address bar',
     'Open “Site settings”',
     'Set Camera and Microphone to “Allow”',
     'Reload this page',
   ],
   firefox: [
-    'Tap the 🔒 lock icon on the left of the address bar',
+    'Tap the lock icon on the left of the address bar',
     'Find the blocked Camera / Microphone entry',
-    'Click the ✕ next to “Blocked” to clear it',
+    'Clear the “Blocked” entry using the small cross beside it',
     'Reload this page and choose “Allow”',
   ],
   safari: [

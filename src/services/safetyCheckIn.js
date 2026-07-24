@@ -80,7 +80,7 @@ export async function startCheckIn({ userId, contacts, placeLabel, minutes }) {
   const dueAt = Date.now() + Math.max(5, Number(minutes) || 60) * 60000;
   const where = placeLabel ? ` at ${placeLabel}` : '';
   const body =
-    `🛟 Safety check-in\n` +
+    `Safety check-in\n` +
     `I'm out${where} tonight and I've set you as my trusted contact.\n` +
     `I expect to be home by ${hhmm(dueAt)}. If you don't hear from me after that, check on me.`;
 
@@ -104,7 +104,7 @@ export async function completeCheckIn({ userId }) {
   if (!userId || !active?.contactIds?.length) return { ok: true, sent: 0 };
   let sent = 0;
   for (const id of active.contactIds) {
-    try { if (await MessageManager.send(userId, id, '💚 Home safe. Thanks for looking out for me.')) sent++; } catch {}
+    try { if (await MessageManager.send(userId, id, 'Home safe. Thanks for looking out for me.')) sent++; } catch {}
   }
   return { ok: true, sent };
 }
@@ -115,7 +115,7 @@ export async function raiseOverdueAlert({ userId }) {
   if (!userId || !active?.contactIds?.length) return { ok: false, sent: 0 };
   const where = active.placeLabel ? ` (last out at ${active.placeLabel})` : '';
   const body =
-    `⚠️ I haven't checked in\n` +
+    `I haven't checked in\n` +
     `I said I'd be home by ${hhmm(active.dueAt)}${where} and I haven't marked myself safe. Please check on me.`;
   let sent = 0;
   for (const id of active.contactIds) {

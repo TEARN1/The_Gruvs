@@ -374,7 +374,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     if (!startedAt || !user?.id || !recipient?.id) return;   // never connected → no record
     const secs = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
     const mm = Math.floor(secs / 60), ss = secs % 60;
-    const body = `${meta?.video ? '📹 Video call' : '📞 Voice call'} · ${mm}:${String(ss).padStart(2, '0')}`;
+    const body = `${meta?.video ? 'Video call' : 'Voice call'} · ${mm}:${String(ss).padStart(2, '0')}`;
     try {
       const msg = await MessageManager.send(user.id, recipient.id, body);
       if (msg) setMessages((prev) => [...prev, msg]);
@@ -961,7 +961,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
     try {
       await MessageManager.acceptRequest(recipient.id, user.id);
-      const welcomeMsg = await MessageManager.send(user.id, recipient.id, "🔒 Locked in! Let's talk.");
+      const welcomeMsg = await MessageManager.send(user.id, recipient.id, "Locked in! Let's talk.");
       if (welcomeMsg) setMessages(prev => [...prev, welcomeMsg]);
       await fetchMessages();
     } catch {

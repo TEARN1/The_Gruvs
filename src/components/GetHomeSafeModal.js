@@ -80,7 +80,7 @@ export function GetHomeSafeModal({ visible, onClose }) {
     setBusy(true);
     const { ok, sent } = await startCheckIn({ userId: user?.id, contacts, placeLabel: place.trim(), minutes });
     setBusy(false);
-    if (ok) { toast?.show(`${sent} ${sent === 1 ? 'person knows' : 'people know'} where you are 🛟`, 'success'); refresh(); }
+    if (ok) { toast?.show(`${sent} ${sent === 1 ? 'person knows' : 'people know'} where you are`, 'success'); refresh(); }
     else toast?.show("Couldn't send the check-in — try again.", 'error');
   };
 
@@ -88,7 +88,7 @@ export function GetHomeSafeModal({ visible, onClose }) {
     setBusy(true);
     await completeCheckIn({ userId: user?.id });
     setBusy(false);
-    toast?.show('Home safe 💚', 'success');
+    toast?.show('Home safe', 'success');
     refresh();
     onClose?.();
   };
@@ -133,7 +133,12 @@ export function GetHomeSafeModal({ visible, onClose }) {
               </View>
 
               <TouchableOpacity onPress={imHome} disabled={busy} style={[s.primaryBtn, { backgroundColor: primary }]}>
-                {busy ? <ActivityIndicator color="#000" /> : <Text style={s.primaryBtnText}>I'm home safe 💚</Text>}
+                {busy ? <ActivityIndicator color="#000" /> : (
+                  <View style={s.btnInner}>
+                    <Feather name="check-circle" size={17} color="#000" />
+                    <Text style={s.primaryBtnText}>I'm home safe</Text>
+                  </View>
+                )}
               </TouchableOpacity>
 
               {overdue && (
@@ -241,6 +246,7 @@ const s = StyleSheet.create({
   presetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   preset: { borderWidth: 1, borderRadius: 16, paddingVertical: 8, paddingHorizontal: 14 },
   primaryBtn: { marginTop: 20, borderRadius: 26, paddingVertical: 15, alignItems: 'center' },
+  btnInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   primaryBtnText: { color: '#000', fontWeight: '900', fontSize: 15 },
   dangerBtn: { marginTop: 10, borderRadius: 26, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, borderWidth: 1 },
   dangerBtnText: { color: '#ef4444', fontWeight: '900', fontSize: 14 },
