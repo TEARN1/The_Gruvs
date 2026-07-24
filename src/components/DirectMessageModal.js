@@ -323,6 +323,10 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [camOff, setCamOff] = useState(false);
   const [recording, setRecording] = useState(false);
   const [peerRecording, setPeerRecording] = useState(false);
+  const [sharingScreen, setSharingScreen] = useState(false);
+  const [peerSharingScreen, setPeerSharingScreen] = useState(false);
+  const callStartRef = useRef(null);   // when the call actually connected
+  const callMetaRef = useRef(null);    // { video, role } for the summary line
 
   useEffect(() => {
     if (!callSupported || !user?.id || !recipient?.id) return;
@@ -333,9 +337,12 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       onRemoteStream: setRemoteStream,
       onIncoming: ({ video }) => setCall({ status: 'incoming', video, role: 'callee' }),
       onPeerRecording: (on) => setPeerRecording(on),
+      onPeerScreenShare: (on) => setPeerSharingScreen(on),
       onStatus: (st) => {
-        if (st === 'connected') setCall((c) => (c ? { ...c, status: 'connected' } : c));
-        else if (st === 'ended' || st === 'failed') endCallLocal();
+        if (st === 'connected') {
+          callStartRef.current = Date.now();
+          setCall((c) => { if (c) callMetaRef.current = { video: c.video, role: c.role }; return c ? { ...c, status: 'connected' } : c; });
+        } else if (st === 'ended' || st === 'failed') endCallLocal();
       },
     });
     callRef.current = session;
@@ -344,9 +351,46 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callSupported, user?.id, recipient?.id]);
 
+  // Ring while a call is incoming — looped until answered or dismissed.
+  useEffect(() => {
+    if (call?.status !== 'incoming') return;
+    SoundFX.play('ringtone');
+    const id = setInterval(() => SoundFX.play('ringtone'), 1800);
+    return () => clearInterval(id);
+  }, [call?.status]);
+
+  // Post a call summary into the thread so the conversation keeps a record —
+  // "Video call · 4:12" — the way any real messenger does.
+  const postCallSummary = async () => {
+    const startedAt = callStartRef.current;
+    const meta = callMetaRef.current;
+    callStartRef.current = null; callMetaRef.current = null;
+    if (!startedAt || !user?.id || !recipient?.id) return;   // never connected → no record
+    const secs = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+    const mm = Math.floor(secs / 60), ss = secs % 60;
+    const body = `${meta?.video ? '📹 Video call' : '📞 Voice call'} · ${mm}:${String(ss).padStart(2, '0')}`;
+    try {
+      const msg = await MessageManager.send(user.id, recipient.id, body);
+      if (msg) setMessages((prev) => [...prev, msg]);
+    } catch { /* a missing call log must never surface as an error */ }
+  };
+
   const endCallLocal = () => {
     setCall(null); setLocalStream(null); setRemoteStream(null);
     setCallMuted(false); setCamOff(false); setRecording(false); setPeerRecording(false);
+    setSharingScreen(false); setPeerSharingScreen(false);
+    postCallSummary();
+  };
+
+  const toggleScreenShare = async () => {
+    const s = callRef.current;
+    if (!s) return;
+    if (sharingScreen) { await s.stopScreenShare(); setSharingScreen(false); }
+    else {
+      const ok = await s.startScreenShare();
+      setSharingScreen(ok);
+      if (!ok) showToast('Screen sharing was cancelled or is unavailable here.', 'info');
+    }
   };
   const startCall = async (video) => {
     if (!callRef.current) return;
@@ -1464,6 +1508,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           recording={recording}
           peerRecording={peerRecording}
           canRecord={callRef.current?.canRecord?.()}
+          sharingScreen={sharingScreen}
+          peerSharingScreen={peerSharingScreen}
+          canShareScreen={callRef.current?.canShareScreen?.()}
           primary={primary}
           onAccept={acceptCall}
           onReject={rejectCall}
@@ -1471,6 +1518,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           onToggleMute={toggleCallMute}
           onToggleCamera={toggleCallCam}
           onToggleRecord={toggleRecord}
+          onToggleScreenShare={toggleScreenShare}
         />
       )}
 

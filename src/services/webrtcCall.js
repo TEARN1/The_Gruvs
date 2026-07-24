@@ -35,7 +35,7 @@ const ICE_CONFIG = {
 // One live call between two users. Callbacks let the UI react without knowing
 // any WebRTC detail.
 export class PeerSession {
-  constructor({ selfId, peerId, onRemoteStream, onLocalStream, onStatus, onIncoming, onPeerRecording }) {
+  constructor({ selfId, peerId, onRemoteStream, onLocalStream, onStatus, onIncoming, onPeerRecording, onPeerScreenShare }) {
     this.selfId = selfId;
     this.peerId = peerId;
     this.onRemoteStream = onRemoteStream;
@@ -43,6 +43,7 @@ export class PeerSession {
     this.onStatus = onStatus;             // 'connecting' | 'connected' | 'ended' | 'failed'
     this.onIncoming = onIncoming;         // ({ video }) — an offer arrived
     this.onPeerRecording = onPeerRecording; // (bool) — the OTHER side started/stopped recording
+    this.onPeerScreenShare = onPeerScreenShare; // (bool) — the OTHER side is sharing their screen
     this.channelName = `rtc:${[selfId, peerId].sort().join('__')}`;
     this.pc = null;
     this.channel = null;
@@ -53,6 +54,8 @@ export class PeerSession {
     this._destroyed = false;
     this._recorder = null;
     this._recChunks = [];
+    this._screenStream = null;
+    this._camTrack = null;
   }
 
   // Subscribe to the signalling channel. Callee calls this on mount so an
@@ -129,6 +132,43 @@ export class PeerSession {
     return false;
   }
 
+  // ── Screen share ─────────────────────────────────────────────────────────
+  // Swaps the outgoing video track for a display capture, then restores the
+  // camera when the user stops sharing (browsers fire 'ended' on the track's
+  // own "Stop sharing" bar, so that path is handled too).
+  canShareScreen() {
+    return typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getDisplayMedia && !!this.pc;
+  }
+
+  async startScreenShare() {
+    if (!this.canShareScreen() || this._screenStream) return false;
+    let display;
+    try {
+      display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    } catch { return false; } // user cancelled the picker
+    const track = display.getVideoTracks()[0];
+    if (!track) return false;
+    const sender = this.pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+    if (!sender) { track.stop(); return false; }
+    this._camTrack = sender.track;
+    await sender.replaceTrack(track);
+    this._screenStream = display;
+    track.onended = () => { this.stopScreenShare().catch(() => {}); };
+    this._send('screen', { on: true });
+    return true;
+  }
+
+  async stopScreenShare() {
+    if (!this._screenStream) return false;
+    try { this._screenStream.getTracks().forEach((t) => t.stop()); } catch {}
+    this._screenStream = null;
+    const sender = this.pc?.getSenders().find((s) => s.track && s.track.kind === 'video');
+    if (sender && this._camTrack) { try { await sender.replaceTrack(this._camTrack); } catch {} }
+    this._camTrack = null;
+    this._send('screen', { on: false });
+    return true;
+  }
+
   // ── Recording (browser-native MediaRecorder; records the OTHER person's
   //    stream, which is what you'd want to keep). Broadcasts a consent flag so
   //    the other side always sees a "REC" badge — never record silently. ──────
@@ -182,6 +222,8 @@ export class PeerSession {
         else this._pendingIce.push(p.candidate);
       } else if (p.type === 'rec') {
         this.onPeerRecording?.(!!p.on);
+      } else if (p.type === 'screen') {
+        this.onPeerScreenShare?.(!!p.on);
       } else if (p.type === 'end') {
         this.onStatus?.('ended');
         this.destroy();
@@ -194,6 +236,8 @@ export class PeerSession {
     this._destroyed = true;
     try { if (this._recorder && this._recorder.state !== 'inactive') this._recorder.stop(); } catch {}
     this._recorder = null;
+    try { this._screenStream?.getTracks().forEach((t) => t.stop()); } catch {}
+    this._screenStream = null; this._camTrack = null;
     try { this.localStream?.getTracks().forEach((t) => t.stop()); } catch {}
     try { this.pc?.close(); } catch {}
     if (this.channel) { try { supabase.removeChannel(this.channel); } catch {} }

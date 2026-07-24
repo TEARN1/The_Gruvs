@@ -62,6 +62,9 @@ export const CallOverlay = ({
   recording,        // am I recording
   peerRecording,    // is the other side recording
   canRecord,
+  sharingScreen,
+  peerSharingScreen,
+  canShareScreen,
   primary = '#00f2ff',
   onAccept,
   onReject,
@@ -69,6 +72,7 @@ export const CallOverlay = ({
   onToggleMute,
   onToggleCamera,
   onToggleRecord,
+  onToggleScreenShare,
 }) => {
   const isIncoming = status === 'incoming';
 
@@ -96,6 +100,14 @@ export const CallOverlay = ({
               : recording ? 'You are recording'
               : `@${peer?.username || 'They'} is recording`}
           </Text>
+        </View>
+      )}
+
+      {/* Screen-share notice — the other side is presenting */}
+      {peerSharingScreen && status === 'connected' && (
+        <View style={[cs.recBanner, { top: (recording || peerRecording) ? 56 : 20, backgroundColor: 'rgba(0,242,255,0.15)', borderColor: primary }]}>
+          <Feather name="monitor" size={12} color={primary} />
+          <Text style={cs.recText}>@{peer?.username || 'They'} is sharing their screen</Text>
         </View>
       )}
 
@@ -130,6 +142,9 @@ export const CallOverlay = ({
           <>
             <RoundBtn icon={muted ? 'mic-off' : 'mic'} active={muted} onPress={onToggleMute} />
             {video ? <RoundBtn icon={camOff ? 'video-off' : 'video'} active={camOff} onPress={onToggleCamera} /> : null}
+            {canShareScreen && status === 'connected'
+              ? <RoundBtn icon="monitor" active={sharingScreen} onPress={onToggleScreenShare} />
+              : null}
             {canRecord && status === 'connected'
               ? <RoundBtn icon={recording ? 'square' : 'circle'} active={recording} onPress={onToggleRecord} color="#ef4444" />
               : null}

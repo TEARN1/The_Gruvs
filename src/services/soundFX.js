@@ -61,6 +61,14 @@ export const SOUNDS = {
     { type: 'sine', f0: HZ.G5, start: 0.0, dur: 0.2, gain: 0.45, decay: 0.13 },
     { type: 'sine', f0: HZ.C6, start: 0.06, dur: 0.22, gain: 0.4, decay: 0.14 },
   ]),
+  // Incoming call — insistent two-tone ring. Deliberately longer and more
+  // urgent than a ping; the caller loops it while the call is ringing.
+  ringtone: R([
+    { type: 'sine', f0: HZ.E6, start: 0.00, dur: 0.32, gain: 0.55, decay: 0.10 },
+    { type: 'sine', f0: HZ.E6 * SHIM, start: 0.00, dur: 0.32, gain: 0.22, decay: 0.10 },
+    { type: 'sine', f0: HZ.C6, start: 0.36, dur: 0.34, gain: 0.55, decay: 0.12 },
+    { type: 'sine', f0: HZ.C6 * SHIM, start: 0.36, dur: 0.34, gain: 0.22, decay: 0.12 },
+  ]),
   // Soft error — a gentle low "donk", never harsh.
   error: R([
     { type: 'sine', f0: HZ.Bb3, f1: HZ.G3, start: 0, dur: 0.18, gain: 0.4, decay: 0.11 },
