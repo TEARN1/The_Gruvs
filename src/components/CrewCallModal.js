@@ -17,7 +17,7 @@ import { useToast } from './ToastNotification';
 import { useBackClose } from '../hooks/useBackClose';
 import { GroupCall, MAX_CREW_CALL } from '../services/groupCall';
 import { isCallSupported } from '../services/webrtcCall';
-import { permissionHint } from '../utils/permissions';
+import { PermissionGuideModal } from './PermissionGuideModal';
 
 const Tile = ({ stream, label, muted, mirror, primary }) => {
   const ref = useRef(null);
@@ -64,6 +64,7 @@ export function CrewCallModal({ visible, crew, onClose }) {
   const [isMuted, setIsMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
   const [video, setVideo] = useState(true);
+  const [permGuide, setPermGuide] = useState(null);
 
   const leave = useCallback(async () => {
     await callRef.current?.leave();
@@ -87,7 +88,7 @@ export function CrewCallModal({ visible, crew, onClose }) {
       video: withVideo,
       onPeersChanged: setPeers,
       onLocalStream: setLocalStream,
-      onError: (err) => toast?.show(permissionHint(err, withVideo ? 'camera and mic' : 'microphone'), 'error'),
+      onError: (err) => setPermGuide({ reason: err, needVideo: withVideo }),
     });
     callRef.current = gc;
     const ok = await gc.join();
@@ -173,6 +174,15 @@ export function CrewCallModal({ visible, crew, onClose }) {
               </View>
             </>
           )}
+
+          <PermissionGuideModal
+            visible={!!permGuide}
+            reason={permGuide?.reason}
+            needVideo={permGuide?.needVideo}
+            kind={permGuide?.needVideo ? 'camera and mic' : 'microphone'}
+            onGranted={() => join(!!permGuide?.needVideo)}
+            onClose={() => setPermGuide(null)}
+          />
         </View>
       </View>
     </Modal>

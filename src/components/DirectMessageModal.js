@@ -14,7 +14,7 @@ import { VibeCardBubble } from './VibeCardBubble';
 import { Video } from 'expo-av';
 import { PeerSession, isCallSupported } from '../services/webrtcCall';
 import { CallOverlay } from './CallOverlay';
-import { permissionHint } from '../utils/permissions';
+import { PermissionGuideModal } from './PermissionGuideModal';
 import { SignedImage } from './SignedImage';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -325,6 +325,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [peerRecording, setPeerRecording] = useState(false);
   const [sharingScreen, setSharingScreen] = useState(false);
   const [filterKey, setFilterKey] = useState('none');
+  // A blocked mic/camera can never be re-prompted, so show real instructions
+  // instead of a toast that disappears before it's read.
+  const [permGuide, setPermGuide] = useState(null); // { reason, needVideo }
   const [callReactions, setCallReactions] = useState([]); // [{id,emoji,mine}]
   const [peerSharingScreen, setPeerSharingScreen] = useState(false);
   const callStartRef = useRef(null);   // when the call actually connected
@@ -420,13 +423,17 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     setCall({ status: 'connecting', video, role: 'caller' });
     try { await callRef.current.call(video); }
     catch (e) {
-      showToast(permissionHint(e?.mediaError, video ? 'camera and mic' : 'microphone'), 'error');
       endCallLocal();
+      setPermGuide({ reason: e?.mediaError || 'unknown', needVideo: !!video });
     }
   };
   const acceptCall = async () => {
     try { await callRef.current?.accept(); setCall((c) => (c ? { ...c, status: 'connecting' } : c)); }
-    catch (e) { showToast(permissionHint(e?.mediaError, 'camera and mic'), 'error'); endCallLocal(); }
+    catch (e) {
+      const wasVideo = !!call?.video;
+      endCallLocal();
+      setPermGuide({ reason: e?.mediaError || 'unknown', needVideo: wasVideo });
+    }
   };
   const rejectCall = () => { callRef.current?.reject(); endCallLocal(); };
   const hangUp = () => { callRef.current?.hangUp(); endCallLocal(); };
@@ -1548,6 +1555,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           onToggleScreenShare={toggleScreenShare}
         />
       )}
+
+      <PermissionGuideModal
+        visible={!!permGuide}
+        reason={permGuide?.reason}
+        needVideo={permGuide?.needVideo}
+        kind={permGuide?.needVideo ? 'camera and mic' : 'microphone'}
+        onGranted={() => startCall(!!permGuide?.needVideo)}
+        onClose={() => setPermGuide(null)}
+      />
 
       <React.Suspense fallback={null}>
         <ViberProfileModal

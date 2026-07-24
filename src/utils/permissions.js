@@ -111,6 +111,75 @@ export function permissionHint(error, kind = 'camera and mic') {
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
+// Which browser are we in? Order matters — Edge/Brave/Opera all contain
+// "Chrome" in their UA, and iOS Chrome/Firefox are really Safari underneath.
+export function detectBrowser() {
+  if (typeof navigator === 'undefined') return 'unknown';
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (iOS) return 'ios';                              // every iOS browser is WebKit
+  if (/Edg\//.test(ua)) return 'edge';
+  if (/OPR\/|Opera/.test(ua)) return 'opera';
+  if (/Firefox\//.test(ua)) return 'firefox';
+  if (/Chrome\//.test(ua)) return 'chrome';           // covers Brave/Vivaldi closely enough
+  if (/Safari\//.test(ua)) return 'safari';
+  return 'unknown';
+}
+
+// Step-by-step, in the user's ACTUAL browser. A generic "check your settings"
+// is why people give up here — the steps differ meaningfully per browser.
+const STEPS = {
+  chrome: [
+    'Tap the 🔒 lock (or ⓘ) icon on the left of the address bar',
+    'Open “Site settings”',
+    'Set Camera and Microphone to “Allow”',
+    'Reload this page',
+  ],
+  edge: [
+    'Tap the 🔒 lock icon on the left of the address bar',
+    'Open “Permissions for this site”',
+    'Set Camera and Microphone to “Allow”',
+    'Reload this page',
+  ],
+  opera: [
+    'Tap the 🔒 lock icon in the address bar',
+    'Open “Site settings”',
+    'Set Camera and Microphone to “Allow”',
+    'Reload this page',
+  ],
+  firefox: [
+    'Tap the 🔒 lock icon on the left of the address bar',
+    'Find the blocked Camera / Microphone entry',
+    'Click the ✕ next to “Blocked” to clear it',
+    'Reload this page and choose “Allow”',
+  ],
+  safari: [
+    'In the menu bar, open Safari → Settings for This Website',
+    'Set Camera and Microphone to “Allow”',
+    'Reload this page',
+  ],
+  ios: [
+    'Open the iPhone Settings app',
+    'Scroll down and tap your browser (Safari or Chrome)',
+    'Tap Camera and Microphone and choose “Allow”',
+    'Come back and reload this page',
+  ],
+  unknown: [
+    'Open your browser’s site settings for thegruvs.com',
+    'Set Camera and Microphone to “Allow”',
+    'Reload this page',
+  ],
+};
+
+export function unblockSteps(browser = detectBrowser()) {
+  return STEPS[browser] || STEPS.unknown;
+}
+
+export const BROWSER_LABEL = {
+  chrome: 'Chrome', edge: 'Edge', opera: 'Opera', firefox: 'Firefox',
+  safari: 'Safari', ios: 'your iPhone', unknown: 'your browser',
+};
+
 // What each permission unlocks — for a friendly pre-prompt UI.
 export const PERMISSION_COPY = {
   camera:      { icon: 'video',    title: 'Camera',        why: 'Video calls and sharing photos.' },
