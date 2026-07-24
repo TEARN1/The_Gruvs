@@ -38,6 +38,7 @@ import { THEMES } from '../constants/Themes';
 import { exportMyData } from '../services/dataExport';
 import { MfaSetupModal } from '../components/MfaSetupModal';
 import { mfaStatus } from '../services/mfa';
+import { PermissionsPanel } from '../components/PermissionsPanel';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
@@ -464,6 +465,11 @@ export const SettingsScreen = ({
           <ToggleRow label="Email me about new events & updates" sub="Marketing email — turn off any time"
             value={wantsEmail} onValueChange={(v) => writeField('wants_email', v, setWantsEmail, wantsEmail)}
             primary={primary} muted={muted} textColor={textColor} />
+        </SectionCard>
+
+        {/* DEVICE ACCESS — what the browser has allowed, and how to unblock it */}
+        <SectionCard icon="shield" title="Device access" primary={primary} muted={muted} textColor={textColor}>
+          <PermissionsPanel primary={primary} muted={muted} textColor={textColor} />
         </SectionCard>
 
         {/* CAREER & LOOKS */}

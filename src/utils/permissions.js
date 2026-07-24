@@ -42,6 +42,22 @@ export async function requestMedia({ video = false } = {}) {
   }
 }
 
+// Location — triggers the browser prompt. Returns 'granted' | 'denied' | 'unknown'.
+export async function requestLocation() {
+  if (!isWeb || !navigator.geolocation) return 'unknown';
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (v) => { if (!settled) { settled = true; resolve(v); } };
+    try {
+      navigator.geolocation.getCurrentPosition(
+        () => done('granted'),
+        (err) => done(err?.code === 1 ? 'denied' : 'unknown'),
+        { timeout: 10000, maximumAge: 60000 },
+      );
+    } catch { done('unknown'); }
+  });
+}
+
 // Notifications — returns 'granted' | 'denied' | 'default' | 'unknown'.
 export async function requestNotifications() {
   if (!isWeb || typeof Notification === 'undefined') return 'unknown';
