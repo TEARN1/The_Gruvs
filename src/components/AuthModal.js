@@ -17,6 +17,7 @@ import { useBackClose } from '../hooks/useBackClose';
 import { GlitterBurst } from './GlitterBurst';
 import { escapeLike, findImpersonation } from '../utils/handleGuard';
 import { isLikelyBot } from '../utils/botCheck';
+import { CalendarPicker } from './DateTimePickers';
 
 const SCREEN_W = Dimensions.get('window').width;
 const HM = SCREEN_W < 375 ? 12 : 25;
@@ -77,6 +78,7 @@ export const AuthModal = ({ visible, onClose }) => {
   // Birthday fields auto-advance DD → MM → YYYY.
   const monthRef = useRef(null);
   const yearRef = useRef(null);
+  const [dobPickerOpen, setDobPickerOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const primary = currentTheme?.primary || "#00f2ff";
@@ -512,45 +514,20 @@ export const AuthModal = ({ visible, onClose }) => {
 
                 <Text style={[styles.label, { color: textColor }]}>Birthday <Text style={{ color: primary }}>*</Text></Text>
                 <Text style={[styles.sublabel, { color: muted }]}>The Gruvs is 18+. We celebrate your day — your year stays private.</Text>
-                <View style={styles.dobRow}>
-                  <TextInput
-                    style={[styles.input, styles.dobField, { flex: 1, borderColor: `${primary}40`, color: textColor }]}
-                    placeholder="DD"
-                    placeholderTextColor={muted}
-                    value={birthDay}
-                    onChangeText={(v) => {
-                      const d = v.replace(/[^0-9]/g, '').slice(0, 2);
-                      setBirthDay(d);
-                      if (d.length === 2) monthRef.current?.focus();
-                    }}
-                    keyboardType="numeric"
-                    maxLength={2}
-                  />
-                  <TextInput
-                    ref={monthRef}
-                    style={[styles.input, styles.dobField, { flex: 1, borderColor: `${primary}40`, color: textColor }]}
-                    placeholder="MM"
-                    placeholderTextColor={muted}
-                    value={birthMonth}
-                    onChangeText={(v) => {
-                      const m = v.replace(/[^0-9]/g, '').slice(0, 2);
-                      setBirthMonth(m);
-                      if (m.length === 2) yearRef.current?.focus();
-                    }}
-                    keyboardType="numeric"
-                    maxLength={2}
-                  />
-                  <TextInput
-                    ref={yearRef}
-                    style={[styles.input, styles.dobField, { flex: 1.4, borderColor: `${primary}40`, color: textColor }]}
-                    placeholder="YYYY"
-                    placeholderTextColor={muted}
-                    value={birthYear}
-                    onChangeText={(v) => setBirthYear(v.replace(/[^0-9]/g, ''))}
-                    keyboardType="numeric"
-                    maxLength={4}
-                  />
-                </View>
+                {/* One tap-to-open calendar instead of three cramped DD/MM/YYYY
+                    boxes that overlapped on narrow screens. Defaults the view to
+                    18 years ago so an adult isn't paging back decades. */}
+                <TouchableOpacity
+                  onPress={() => setDobPickerOpen(true)}
+                  style={[styles.input, { borderColor: `${primary}40`, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+                >
+                  <Text style={{ color: birthDay && birthMonth && birthYear ? textColor : muted, fontSize: 15 }}>
+                    {birthDay && birthMonth && birthYear
+                      ? `${birthDay.padStart(2, '0')}/${birthMonth.padStart(2, '0')}/${birthYear}`
+                      : 'Pick your birthday'}
+                  </Text>
+                  <Feather name="calendar" size={17} color={primary} />
+                </TouchableOpacity>
 
                 <Text style={[styles.label, { color: textColor }]}>Gender</Text>
                 <View style={styles.genderRow}>
@@ -737,6 +714,28 @@ export const AuthModal = ({ visible, onClose }) => {
           </Wrap>
             );
           })()}
+
+  {/* Birthday calendar — 18+ is a legal hard gate, so open the view at the
+      most recent date that already qualifies. */}
+  <CalendarPicker
+    visible={dobPickerOpen}
+    onClose={() => setDobPickerOpen(false)}
+    value={birthDay && birthMonth && birthYear
+      ? new Date(Number(birthYear), Number(birthMonth) - 1, Number(birthDay))
+      : new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate())}
+    onConfirm={(d) => {
+      if (d instanceof Date) {
+        setBirthDay(String(d.getDate()));
+        setBirthMonth(String(d.getMonth() + 1));
+        setBirthYear(String(d.getFullYear()));
+      }
+      setDobPickerOpen(false);
+    }}
+    primary={primary}
+    bg={bg}
+    textColor={textColor}
+    muted={muted}
+  />
   </View>
 </Modal>
   );

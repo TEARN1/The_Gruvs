@@ -31,10 +31,36 @@ export async function queryPermission(name) {
 export async function requestMedia({ video = false } = {}) {
   if (!isWeb || !navigator.mediaDevices?.getUserMedia) return { ok: false, error: 'unsupported' };
   if (typeof window !== 'undefined' && window.isSecureContext === false) return { ok: false, error: 'insecure' };
+  // Voice quality is the thing people actually notice, so ask for the DSP that
+  // makes a call sound clean: kill the speaker echo, suppress room noise, and
+  // even out volume. Video is capped at 720p/30 so it can't hog the uplink and
+  // starve audio — the #1 cause of "you're breaking up" on video calls.
+  const constraints = {
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 1,
+    },
+    video: video ? {
+      width: { ideal: 1280, max: 1280 },
+      height: { ideal: 720, max: 720 },
+      frameRate: { ideal: 30, max: 30 },
+      facingMode: 'user',
+    } : false,
+  };
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: !!video });
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
     return { ok: true, stream };
   } catch (e) {
+    // Some devices reject the ideal constraints outright — retry plainly rather
+    // than telling the user their camera is broken.
+    if (e?.name === 'OverconstrainedError' || e?.name === 'NotReadableError') {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: !!video });
+        return { ok: true, stream };
+      } catch { /* fall through to the typed error below */ }
+    }
     const n = e?.name || '';
     if (n === 'NotAllowedError' || n === 'SecurityError') return { ok: false, error: 'denied' };
     if (n === 'NotFoundError' || n === 'DevicesNotFoundError' || n === 'OverconstrainedError') return { ok: false, error: 'no-device' };

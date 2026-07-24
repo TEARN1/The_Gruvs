@@ -29,8 +29,40 @@ export function isCallSupported() {
 const ICE_CONFIG = {
   iceServers: [
     { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+    { urls: ['stun:stun2.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
   ],
+  // Gather candidates BEFORE the user hits call, so the handshake doesn't spend
+  // its first second discovering the network — this is most of the "why does it
+  // take so long before they can hear me" delay.
+  iceCandidatePoolSize: 4,
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require',
 };
+
+// Audio must never lose bandwidth to video: cap the video sender and mark the
+// audio sender high-priority. On a squeezed uplink the picture degrades and the
+// voice stays clean — the trade every user actually wants.
+const VIDEO_MAX_BITRATE = 900_000; // ~0.9 Mbps is plenty for 720p talking heads
+
+async function tuneSenders(pc) {
+  for (const sender of pc.getSenders()) {
+    if (!sender.track) continue;
+    try {
+      const params = sender.getParameters();
+      if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+      if (sender.track.kind === 'video') {
+        params.encodings[0].maxBitrate = VIDEO_MAX_BITRATE;
+        params.encodings[0].priority = 'low';
+        params.encodings[0].networkPriority = 'low';
+        params.degradationPreference = 'maintain-framerate';
+      } else {
+        params.encodings[0].priority = 'high';
+        params.encodings[0].networkPriority = 'high';
+      }
+      await sender.setParameters(params);
+    } catch { /* setParameters is best-effort across browsers */ }
+  }
+}
 
 // One live call between two users. Callbacks let the UI react without knowing
 // any WebRTC detail.
@@ -90,6 +122,7 @@ export class PeerSession {
     this.onLocalStream?.(this.localStream);
     this.localStream.getTracks().forEach((t) => pc.addTrack(t, this.localStream));
     this.pc = pc;
+    await tuneSenders(pc);   // audio high-priority, video bitrate-capped
     return pc;
   }
 
@@ -152,6 +185,7 @@ export class PeerSession {
     if (!sender) { track.stop(); return false; }
     this._camTrack = sender.track;
     await sender.replaceTrack(track);
+    await tuneSenders(this.pc);   // the new track needs the same caps
     this._screenStream = display;
     track.onended = () => { this.stopScreenShare().catch(() => {}); };
     this._send('screen', { on: true });
@@ -163,7 +197,9 @@ export class PeerSession {
     try { this._screenStream.getTracks().forEach((t) => t.stop()); } catch {}
     this._screenStream = null;
     const sender = this.pc?.getSenders().find((s) => s.track && s.track.kind === 'video');
-    if (sender && this._camTrack) { try { await sender.replaceTrack(this._camTrack); } catch {} }
+    if (sender && this._camTrack) {
+      try { await sender.replaceTrack(this._camTrack); await tuneSenders(this.pc); } catch {}
+    }
     this._camTrack = null;
     this._send('screen', { on: false });
     return true;
