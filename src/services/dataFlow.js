@@ -814,7 +814,7 @@ export const FeedManager = {
       // Apply personalised traffic routing boost (non-blocking, best-effort)
       if (userId && page === 0) {
         try {
-          const { applyPersonalisedBoost } = await import('./personalizationEngine');
+          const { applyPersonalisedBoost } = require('./personalizationEngine');
           events = await applyPersonalisedBoost(events, userId);
         } catch { /* silently skip — personalization is enhancement only */ }
       }
@@ -1389,9 +1389,11 @@ export const RSVPManager = {
         _notifyEventAuthor(eventId, userId, 'rsvp').catch(() => {});
         ScoreEngine.computeVibeScore(userId).catch(() => {});
         // Refresh deep profile after each RSVP — throttled by the engine itself
-        import('./personalizationEngine').then(({ computeUserDeepProfile }) =>
-          computeUserDeepProfile(userId).catch(() => {})
-        ).catch(() => {});
+        // require(), not import(): async chunks never register under
+        // web.output:'single', so import() here silently never ran in prod.
+        try {
+          require('./personalizationEngine').computeUserDeepProfile(userId).catch(() => {});
+        } catch { /* deep profile is best-effort */ }
       }
       return true;
     }
@@ -1843,9 +1845,9 @@ export const CheckInManager = {
       _notifyEventAuthor(eventId, userId, 'checkin').catch(() => { });
 
       // Check-ins are the highest-trust signal — always refresh deep profile
-      import('./personalizationEngine').then(({ computeUserDeepProfile }) =>
-        computeUserDeepProfile(userId).catch(() => {})
-      ).catch(() => {});
+      try {
+        require('./personalizationEngine').computeUserDeepProfile(userId).catch(() => {});
+      } catch { /* deep profile is best-effort */ }
 
       return true;
     } catch (e) {
@@ -2745,7 +2747,7 @@ export const MessageManager = {
       // the one thing no other network can do: the intro is PROVEN, not claimed.
       if (!accepted) {
         try {
-          const { haveMet } = await import('./coPresence');
+          const { haveMet } = require('./coPresence');
           if (await haveMet(senderId, recipientId)) accepted = true;
         } catch { /* messaging must never break on this */ }
       }
@@ -3809,7 +3811,7 @@ export const ChatManager = {
   },
 
   async send(eventId, userId, message, replyTo = null) {
-    const { SecurityService } = await import('./securityService');
+    const { SecurityService } = require('./securityService');
     // Rate-limit: max 20 messages per 60s per user+event
     const rl = SecurityService.rateLimitCheck(`chat:${userId}:${eventId}`, { maxPerWindow: 20, windowMs: 60_000 });
     if (!rl.allowed) throw new Error(rl.message);

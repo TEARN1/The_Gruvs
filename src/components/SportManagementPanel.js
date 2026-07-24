@@ -112,7 +112,7 @@ const TeamsTab = ({ event, sportMeta, primary, textColor, muted }) => {
     }
     setSearchingClubs(true);
     try {
-      const { ClubManager: LocalClubManager } = await import('../services/clubEngine');
+      const { ClubManager: LocalClubManager } = require('../services/clubEngine');
       const results = await LocalClubManager.search(q, event?.sport_type || event?.category);
       setClubSearchResults(results || []);
     } catch (e) {
@@ -143,7 +143,7 @@ const TeamsTab = ({ event, sportMeta, primary, textColor, muted }) => {
         teamData.club_id = selectedClub.id;
         teamData.logo_url = selectedClub.logo_url || null;
         try {
-          const { MembershipManager: LocalMembershipManager } = await import('../services/clubEngine');
+          const { MembershipManager: LocalMembershipManager } = require('../services/clubEngine');
           const roster = await LocalMembershipManager.getRoster(selectedClub.id);
           if (roster && roster.length > 0) {
             teamData.players = roster.map(m => ({
