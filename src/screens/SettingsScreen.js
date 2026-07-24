@@ -39,6 +39,7 @@ import { exportMyData } from '../services/dataExport';
 import { MfaSetupModal } from '../components/MfaSetupModal';
 import { mfaStatus } from '../services/mfa';
 import { PermissionsPanel } from '../components/PermissionsPanel';
+import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
@@ -152,6 +153,7 @@ export const SettingsScreen = ({
 
   // App lock
   const [safetyHubOpen, setSafetyHubOpen] = useState(false);
+  const [getHomeSafeOpen, setGetHomeSafeOpen] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioLabel, setBioLabel] = useState('Biometrics');
   const [lockEnabled, setLockEnabled] = useState(false);
@@ -564,7 +566,14 @@ export const SettingsScreen = ({
         </SectionCard>
       </ScrollView>
 
-      <SafetyHubModal visible={safetyHubOpen} onClose={() => setSafetyHubOpen(false)} />
+      {/* onManageContacts was a dangling prop — the row never rendered because
+          nothing was passed. It now opens the check-in sheet. */}
+      <SafetyHubModal
+        visible={safetyHubOpen}
+        onClose={() => setSafetyHubOpen(false)}
+        onManageContacts={() => setGetHomeSafeOpen(true)}
+      />
+      <GetHomeSafeModal visible={getHomeSafeOpen} onClose={() => setGetHomeSafeOpen(false)} />
       <MfaSetupModal visible={mfaOpen} onClose={() => setMfaOpen(false)} onChanged={setMfaOn} />
     </View>
     </ErrorBoundary>

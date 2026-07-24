@@ -90,8 +90,8 @@ export function SafetyHubModal({ visible, onClose, onManageContacts }) {
             {/* Emergency contacts */}
             {onManageContacts && (
               <TouchableOpacity onPress={() => { onClose?.(); onManageContacts(); }} style={[s.row, { borderColor: `${primary}20` }]}>
-                <Feather name="phone" size={16} color={primary} />
-                <Text style={[s.rowText, { color: textColor }]}>Emergency contacts & SOS</Text>
+                <Feather name="life-buoy" size={16} color={primary} />
+                <Text style={[s.rowText, { color: textColor }]}>Get home safe · trusted contacts</Text>
                 <Feather name="chevron-right" size={16} color={muted} />
               </TouchableOpacity>
             )}
