@@ -324,6 +324,8 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [recording, setRecording] = useState(false);
   const [peerRecording, setPeerRecording] = useState(false);
   const [sharingScreen, setSharingScreen] = useState(false);
+  const [filterKey, setFilterKey] = useState('none');
+  const [callReactions, setCallReactions] = useState([]); // [{id,emoji,mine}]
   const [peerSharingScreen, setPeerSharingScreen] = useState(false);
   const callStartRef = useRef(null);   // when the call actually connected
   const callMetaRef = useRef(null);    // { video, role } for the summary line
@@ -338,6 +340,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       onIncoming: ({ video }) => setCall({ status: 'incoming', video, role: 'callee' }),
       onPeerRecording: (on) => setPeerRecording(on),
       onPeerScreenShare: (on) => setPeerSharingScreen(on),
+      onPeerReaction: (emoji) => pushCallReaction(emoji, false),
       onStatus: (st) => {
         if (st === 'connected') {
           callStartRef.current = Date.now();
@@ -379,7 +382,27 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     setCall(null); setLocalStream(null); setRemoteStream(null);
     setCallMuted(false); setCamOff(false); setRecording(false); setPeerRecording(false);
     setSharingScreen(false); setPeerSharingScreen(false);
+    setFilterKey('none'); setCallReactions([]);
     postCallSummary();
+  };
+
+  // Reactions live ~2.6s (the float animation), then clean themselves up so the
+  // list can't grow during a long call.
+  const pushCallReaction = (emoji, mine) => {
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    setCallReactions((prev) => [...prev.slice(-14), { id, emoji, mine }]);
+    setTimeout(() => setCallReactions((prev) => prev.filter((r) => r.id !== id)), 2800);
+  };
+
+  const sendCallReaction = (emoji) => {
+    pushCallReaction(emoji, true);
+    callRef.current?.sendReaction(emoji);
+  };
+
+  const pickFilter = async (f) => {
+    setFilterKey(f.key);
+    const ok = await callRef.current?.setVideoFilter(f.css);
+    if (ok === false) { setFilterKey('none'); showToast("Filters aren't supported on this device.", 'info'); }
   };
 
   const toggleScreenShare = async () => {
@@ -1511,6 +1534,10 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           sharingScreen={sharingScreen}
           peerSharingScreen={peerSharingScreen}
           canShareScreen={callRef.current?.canShareScreen?.()}
+          filterKey={filterKey}
+          onPickFilter={pickFilter}
+          reactions={callReactions}
+          onSendReaction={sendCallReaction}
           primary={primary}
           onAccept={acceptCall}
           onReject={rejectCall}

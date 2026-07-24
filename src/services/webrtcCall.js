@@ -16,6 +16,7 @@
  */
 import { supabase } from './supabase';
 import { requestMedia } from '../utils/permissions';
+import { createFilteredVideoTrack } from '../utils/videoFilters';
 
 const RTC = (typeof globalThis !== 'undefined' && globalThis.RTCPeerConnection) || null;
 
@@ -67,7 +68,7 @@ async function tuneSenders(pc) {
 // One live call between two users. Callbacks let the UI react without knowing
 // any WebRTC detail.
 export class PeerSession {
-  constructor({ selfId, peerId, onRemoteStream, onLocalStream, onStatus, onIncoming, onPeerRecording, onPeerScreenShare }) {
+  constructor({ selfId, peerId, onRemoteStream, onLocalStream, onStatus, onIncoming, onPeerRecording, onPeerScreenShare, onPeerReaction, sharedStream }) {
     this.selfId = selfId;
     this.peerId = peerId;
     this.onRemoteStream = onRemoteStream;
@@ -76,6 +77,7 @@ export class PeerSession {
     this.onIncoming = onIncoming;         // ({ video }) — an offer arrived
     this.onPeerRecording = onPeerRecording; // (bool) — the OTHER side started/stopped recording
     this.onPeerScreenShare = onPeerScreenShare; // (bool) — the OTHER side is sharing their screen
+    this.onPeerReaction = onPeerReaction;   // (emoji) — they tapped a reaction
     this.channelName = `rtc:${[selfId, peerId].sort().join('__')}`;
     this.pc = null;
     this.channel = null;
@@ -88,6 +90,12 @@ export class PeerSession {
     this._recChunks = [];
     this._screenStream = null;
     this._camTrack = null;
+    this._filter = null;
+    this._filterSource = null;
+    // Group calls acquire ONE camera/mic and hand the same stream to every
+    // peer connection — otherwise a 4-way call would prompt for the camera
+    // four times and run four capture pipelines.
+    this.sharedStream = sharedStream || null;
   }
 
   // Subscribe to the signalling channel. Callee calls this on mount so an
@@ -115,10 +123,14 @@ export class PeerSession {
       else if (st === 'failed') { this.onStatus?.('failed'); this.destroy(); }
       else if (st === 'disconnected' || st === 'closed') this.onStatus?.('ended');
     };
-    // Typed permission errors so the UI can say exactly what to fix.
-    const media = await requestMedia({ video });
-    if (!media.ok) { const err = new Error('media-' + media.error); err.mediaError = media.error; throw err; }
-    this.localStream = media.stream;
+    if (this.sharedStream) {
+      this.localStream = this.sharedStream;
+    } else {
+      // Typed permission errors so the UI can say exactly what to fix.
+      const media = await requestMedia({ video });
+      if (!media.ok) { const err = new Error('media-' + media.error); err.mediaError = media.error; throw err; }
+      this.localStream = media.stream;
+    }
     this.onLocalStream?.(this.localStream);
     this.localStream.getTracks().forEach((t) => pc.addTrack(t, this.localStream));
     this.pc = pc;
@@ -163,6 +175,45 @@ export class PeerSession {
     const track = this.localStream?.getVideoTracks?.()[0];
     if (track) { track.enabled = !track.enabled; return !track.enabled; }
     return false;
+  }
+
+  // ── Live look filter ─────────────────────────────────────────────────────
+  // Routes the camera through a canvas and sends THAT, so the other person
+  // sees the filter too. Swapped via replaceTrack — no renegotiation.
+  async setVideoFilter(css) {
+    if (!this.pc || !this.localStream) return false;
+    const sender = this.pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+    if (!sender) return false;
+
+    // Back to the raw camera.
+    if (!css || css === 'none') {
+      if (!this._filter) return true;
+      const cam = this._filterSource || this.localStream.getVideoTracks()[0];
+      try { await sender.replaceTrack(cam); } catch {}
+      this._filter.stop(); this._filter = null; this._filterSource = null;
+      await tuneSenders(this.pc);
+      return true;
+    }
+
+    // Already filtering — just change the look, no track churn.
+    if (this._filter) { this._filter.setFilter(css); return true; }
+
+    const cam = this.localStream.getVideoTracks()[0];
+    if (!cam) return false;
+    const filtered = createFilteredVideoTrack(this.localStream, css);
+    if (!filtered) return false;
+    this._filterSource = cam;
+    this._filter = filtered;
+    try { await sender.replaceTrack(filtered.track); } catch { return false; }
+    await tuneSenders(this.pc);
+    return true;
+  }
+
+  // ── In-call reactions ────────────────────────────────────────────────────
+  // A tiny broadcast — the emoji floats on BOTH screens.
+  sendReaction(emoji) {
+    if (!emoji) return;
+    this._send('react', { emoji: String(emoji).slice(0, 8) });
   }
 
   // ── Screen share ─────────────────────────────────────────────────────────
@@ -258,6 +309,8 @@ export class PeerSession {
         else this._pendingIce.push(p.candidate);
       } else if (p.type === 'rec') {
         this.onPeerRecording?.(!!p.on);
+      } else if (p.type === 'react') {
+        this.onPeerReaction?.(p.emoji);
       } else if (p.type === 'screen') {
         this.onPeerScreenShare?.(!!p.on);
       } else if (p.type === 'end') {
@@ -272,9 +325,11 @@ export class PeerSession {
     this._destroyed = true;
     try { if (this._recorder && this._recorder.state !== 'inactive') this._recorder.stop(); } catch {}
     this._recorder = null;
+    try { this._filter?.stop(); } catch {}
+    this._filter = null; this._filterSource = null;
     try { this._screenStream?.getTracks().forEach((t) => t.stop()); } catch {}
     this._screenStream = null; this._camTrack = null;
-    try { this.localStream?.getTracks().forEach((t) => t.stop()); } catch {}
+    if (!this.sharedStream) { try { this.localStream?.getTracks().forEach((t) => t.stop()); } catch {} }
     try { this.pc?.close(); } catch {}
     if (this.channel) { try { supabase.removeChannel(this.channel); } catch {} }
     this.pc = null; this.channel = null; this.localStream = null;

@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { CrewManager } from '../services/crewManager';
 import { EventDraftPanel } from './EventDraftPanel';
+import { CrewCallModal } from './CrewCallModal';
 import { useToast } from './ToastNotification';
 import { useBackClose } from '../hooks/useBackClose';
 
@@ -118,6 +119,7 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
   const [members, setMembers] = useState([]);
   const [follows, setFollows] = useState([]);
   const [invited, setInvited] = useState(new Set());
+  const [callOpen, setCallOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const isOwner = crew && user && crew.owner_id === user.id;
@@ -176,6 +178,16 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
           </View>
 
           {crew.description ? <Text style={{ color: muted, fontSize: 13, marginBottom: 10 }}>{crew.description}</Text> : null}
+
+          {/* Call the whole crew */}
+          <TouchableOpacity
+            onPress={() => setCallOpen(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 22, backgroundColor: `${crew.color || primary}22`, borderWidth: 1, borderColor: crew.color || primary, marginBottom: 12 }}
+          >
+            <Feather name="video" size={16} color={crew.color || primary} />
+            <Text style={{ color: crew.color || primary, fontWeight: '900', fontSize: 13 }}>Call the crew</Text>
+          </TouchableOpacity>
+          <CrewCallModal visible={callOpen} crew={crew} onClose={() => setCallOpen(false)} />
 
           {loading ? <ActivityIndicator color={primary} style={{ marginVertical: 24 }} /> : (
             <ScrollView showsVerticalScrollIndicator={false}>
