@@ -1071,6 +1071,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             />
           )}
 
+          {/* Host tools are the one region only the organiser renders — so a crash
+              in the door list / broadcast / door-scanner would take down the WHOLE
+              event page for hosts while anonymous visitors saw it fine. Its own
+              boundary keeps a failure to a small labelled chip and, next time,
+              tells us exactly which host tool broke instead of hiding it. */}
+          <SafeSection label="Host tools" primary={primary}>
           {/* Host only: the door list. RSVP next to VERIFIED attendance — the one
               thing a spreadsheet can't give them, and the first thing they ask for. */}
           {isOrganiser && event?.id && (
@@ -1151,6 +1157,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               onSent={(n) => showToast(n ? `Update sent to ${n} ${n === 1 ? 'person' : 'people'}.` : 'Nobody has RSVPd yet.')}
             />
           )}
+          </SafeSection>
 
           {countdown?.live && (
             <SafeSection label="Live Banner" primary={primary}>
