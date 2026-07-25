@@ -130,13 +130,23 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
     const mem = await CrewManager.getMembers(crew.id);
     setMembers(mem);
     const memIds = new Set(mem.map(m => m.id));
-    // People you follow, minus existing members
-    const { data } = await supabase
-      .from('follows')
-      .select('profiles:following_id(id, username, avatar_url)')
-      .eq('follower_id', user.id)
-      .limit(200);
-    setFollows((data || []).map(r => r.profiles).filter(p => p && !memIds.has(p.id)));
+    // You can only invite MUTUALS — people you follow who also follow you back.
+    // A crew is a trusted circle, not a broadcast list, so both sides must have
+    // opted into the relationship first. Intersect the two follow directions.
+    const [outRes, inRes] = await Promise.all([
+      supabase.from('follows')
+        .select('profiles:following_id(id, username, avatar_url)')
+        .eq('follower_id', user.id).limit(500),
+      supabase.from('follows')
+        .select('follower_id')
+        .eq('following_id', user.id).limit(500),
+    ]);
+    const followsMe = new Set((inRes.data || []).map(r => r.follower_id));
+    setFollows(
+      (outRes.data || [])
+        .map(r => r.profiles)
+        .filter(p => p && followsMe.has(p.id) && !memIds.has(p.id))
+    );
     setLoading(false);
   }, [crew?.id, user]);
 
@@ -201,9 +211,9 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
                 </View>
               ))}
 
-              <Text style={[s.label, { color: muted, marginTop: 14 }]}>INVITE PEOPLE YOU FOLLOW</Text>
+              <Text style={[s.label, { color: muted, marginTop: 14 }]}>INVITE YOUR MUTUALS</Text>
               {follows.length === 0 ? (
-                <Text style={{ color: muted, fontSize: 12, paddingVertical: 8 }}>Everyone you follow is already in this crew, or you're not following anyone yet.</Text>
+                <Text style={{ color: muted, fontSize: 12, paddingVertical: 8 }}>You can only invite mutuals — people you follow who follow you back. None left to add here yet.</Text>
               ) : follows.map(p => (
                 <View key={p.id} style={s.personRow}>
                   {p.avatar_url ? <Image source={{ uri: p.avatar_url }} style={s.personAvatar} />

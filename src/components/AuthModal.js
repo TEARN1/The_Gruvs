@@ -334,15 +334,20 @@ export const AuthModal = ({ visible, onClose }) => {
 
     setSignupSuccessFx(Date.now());
 
-    setTimeout(() => {
+    // With a session we're already authenticated — drop the user straight into
+    // the app. Closing fast is the whole point: the auth-state change re-renders
+    // App into the main experience the instant the modal is gone. Only the
+    // no-session path (email-confirmation enforced on the project) needs to wait
+    // and explain, because there's nothing to route into yet.
+    if (hasSession) {
       handleClose();
-      toast?.show(
-        hasSession
-          ? 'Welcome to The Gruvs! 🎉 We sent a verification email — confirm whenever you\'re ready.'
-          : 'Account created! 📧 Check your inbox and confirm your email to sign in.',
-        hasSession ? 'success' : 'info'
-      );
-    }, 1200);
+      toast?.show('Welcome to The Gruvs! 🎉 We sent a verification email — confirm whenever you\'re ready.', 'success');
+    } else {
+      setTimeout(() => {
+        handleClose();
+        toast?.show('Account created! 📧 Check your inbox and confirm your email to sign in.', 'info');
+      }, 1200);
+    }
   };
 
   const reset = () => {
@@ -731,6 +736,7 @@ export const AuthModal = ({ visible, onClose }) => {
       }
       setDobPickerOpen(false);
     }}
+    dimPast={false}
     primary={primary}
     bg={bg}
     textColor={textColor}

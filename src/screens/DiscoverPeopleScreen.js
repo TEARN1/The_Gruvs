@@ -231,6 +231,15 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
 
   const searchTimer = useRef(null);
 
+  // Read latest profile / blocklist inside callbacks WITHOUT making the
+  // callbacks depend on them — otherwise every profile re-render or blocklist
+  // update rebuilds load()/loadSuggested(), re-fires the load effect, and the
+  // screen loops forever (the flicker + endless skeletons + "0 online").
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const blockedRef = useRef(blockedIds);
+  blockedRef.current = blockedIds;
+
   const loadFollowing = useCallback(async () => {
     if (!user) return;
     try {
@@ -241,7 +250,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       if (followSettled.status === 'fulfilled') setFollowedIds(new Set((followSettled.value?.data || []).map(r => r.following_id)));
       if (blockSettled.status === 'fulfilled') setBlockedIds(new Set((blockSettled.value?.data || []).map(r => r.blocked_id)));
     } catch (e) { console.warn('DiscoverPeople follow/block load', e); }
-  }, [user]);
+  }, [user?.id]);
 
   const loadSuggested = useCallback(async () => {
     if (!user) return;
@@ -260,11 +269,12 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
           // Honor ghost/incognito (privacy is absolute) + block before ranking:
           // never suggest someone who chose to be hidden.
           const withMutuals = (profiles || [])
-            .filter(p => !blockedIds.has(p.id))
+            .filter(p => !blockedRef.current.has(p.id))
             .map(p => applyProfilePrivacy(p, p.id))
             .filter(Boolean)
             .map(p => ({ ...p, mutual_count: data.find(r => r.suggested_id === p.id)?.mutual_count || 0 }));
-          const viewer = { id: user.id, interests: profile?.interests, lat: profile?.lat, lon: profile?.lon };
+          const prof = profileRef.current;
+          const viewer = { id: user.id, interests: prof?.interests, lat: prof?.lat, lon: prof?.lon };
           return rankPeople(viewer, withMutuals, new Map(withMutuals.map(p => [p.id, { mutualCount: p.mutual_count }])));
         },
         async () => {
@@ -272,7 +282,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
           // week, not the same five famous accounts forever (old: vibe_score DESC).
           const rising = await DiscoveryManager.fetchRisingPeople(6, { excludeIds: [user.id] });
           return rising
-            .filter(p => !blockedIds.has(p.id))
+            .filter(p => !blockedRef.current.has(p.id))
             .map(p => applyProfilePrivacy(p, p.id))
             .filter(Boolean)
             .map(p => ({ ...p, mutual_count: 0 }));
@@ -283,7 +293,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       );
       if (scored.length) setSuggested(scored);
     } catch { }
-  }, [user, profile, blockedIds, applyProfilePrivacy]);
+  }, [user?.id, applyProfilePrivacy]);
 
   const fetchAll = useCallback(async (q = '') => {
     let qb = supabase
@@ -306,7 +316,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
     const { data, error } = await qb;
     if (error) throw new Error(error.message);
     return data || [];
-  }, [filter, user]);
+  }, [filter, user?.id]);
 
   const fetchNearby = useCallback(async () => {
     if (!user) return [];
@@ -322,7 +332,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
     }
     const results = await DiscoveryManager.findNearbyVibers(user.id, nearbyRadius);
     return (results || []).filter(v => v.id !== user.id);
-  }, [user, nearbyRadius, applyLocationPrivacy]);
+  }, [user?.id, nearbyRadius, applyLocationPrivacy]);
 
   const load = useCallback(async (isRefresh = false, q = '') => {
     if (isRefresh) setRefreshing(true);
@@ -339,7 +349,8 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       // F5 — rank by RELEVANCE, not fame: shared interests, proximity, recency
       // (online-now is a signal inside personScore, not a binary bubble-sort),
       // trust as a bounded multiplier. Description filters applied via useMemo.
-      const viewer = { id: user?.id, interests: profile?.interests, lat: profile?.lat, lon: profile?.lon };
+      const prof = profileRef.current;
+      const viewer = { id: user?.id, interests: prof?.interests, lat: prof?.lat, lon: prof?.lon };
       setVibers(rankPeople(viewer, filteredResults));
     } catch (e) {
       setFetchError(e.message || 'Could not load Vibers');
@@ -348,7 +359,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
     }
-  }, [filter, fetchAll, fetchNearby, user?.id, profile]);
+  }, [filter, fetchAll, fetchNearby, user?.id]);
 
   const displayVibers = useMemo(() => {
     const currentYear = new Date().getFullYear();
