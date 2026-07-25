@@ -39,6 +39,10 @@ export function CallProvider({ children }) {
   const peerRef = useRef(null);      // { id, username, avatar_url } we're talking to
   const callStartRef = useRef(null); // ms when it actually connected
   const callMetaRef = useRef(null);  // { video, role } for the summary line
+  const roleRef = useRef(null);      // 'caller' | 'callee' for this call
+  const videoRef = useRef(false);    // was this a video call
+  const connectedRef = useRef(false);// did media ever connect (answered)
+  const ringTimerRef = useRef(null); // no-answer timeout
 
   const [peer, setPeer] = useState(null);
   const [call, setCall] = useState(null); // { status, video, role } | null
@@ -60,21 +64,34 @@ export function CallProvider({ children }) {
     setTimeout(() => setCallReactions((prev) => prev.filter((r) => r.id !== id)), 2800);
   }, []);
 
-  // "Voice call · 4:12" left in the thread, the way any messenger does. Only for
-  // calls that actually connected (callStartRef set).
+  // Leave a call-log line in the thread — "📞 Voice call · 4:12" when answered,
+  // "📞 Missed voice call" when not. It's a normal message, so both sides see
+  // when they were called (the message timestamp) and can reply to it.
+  //
+  // Only the CALLER writes it: one entry per call in the shared thread, no
+  // duplicate from each end. A missed/declined/cancelled call still logs so the
+  // callee can see they were rung.
   const postCallSummary = useCallback(async () => {
     const startedAt = callStartRef.current;
-    const meta = callMetaRef.current;
     const other = peerRef.current;
-    callStartRef.current = null; callMetaRef.current = null;
-    if (!startedAt || !user?.id || !other?.id) return;
-    const secs = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-    const mm = Math.floor(secs / 60), ss = secs % 60;
-    const body = `${meta?.video ? 'Video call' : 'Voice call'} · ${mm}:${String(ss).padStart(2, '0')}`;
+    const wasConnected = connectedRef.current;
+    const video = videoRef.current;
+    const role = roleRef.current;
+    callStartRef.current = null; callMetaRef.current = null; connectedRef.current = false;
+    if (role !== 'caller' || !user?.id || !other?.id) return;
+    let body;
+    if (wasConnected && startedAt) {
+      const secs = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+      const mm = Math.floor(secs / 60), ss = secs % 60;
+      body = `${video ? '📹 Video call' : '📞 Voice call'} · ${mm}:${String(ss).padStart(2, '0')}`;
+    } else {
+      body = video ? '📹 Missed video call' : '📞 Missed voice call';
+    }
     try { await MessageManager.send(user.id, other.id, body); } catch { /* a missing log must never surface */ }
   }, [user?.id]);
 
   const endCallLocal = useCallback(() => {
+    if (ringTimerRef.current) { clearTimeout(ringTimerRef.current); ringTimerRef.current = null; }
     setCall(null); setLocalStream(null); setRemoteStream(null);
     setCallMuted(false); setCamOff(false); setRecording(false); setPeerRecording(false);
     setSharingScreen(false); setPeerSharingScreen(false); setFilterKey('none'); setCallReactions([]);
@@ -94,6 +111,8 @@ export function CallProvider({ children }) {
     onPeerReaction: (emoji) => pushCallReaction(emoji, false),
     onStatus: (st) => {
       if (st === 'connected') {
+        connectedRef.current = true;
+        if (ringTimerRef.current) { clearTimeout(ringTimerRef.current); ringTimerRef.current = null; }
         callStartRef.current = Date.now();
         setCall((c) => { if (c) callMetaRef.current = { video: c.video, role: c.role }; return c ? { ...c, status: 'connected' } : c; });
       } else if (st === 'ended' || st === 'failed') {
@@ -108,9 +127,16 @@ export function CallProvider({ children }) {
     if (!user?.id || !targetPeer?.id) return;
     if (callRef.current) { showToast('You\'re already in a call.', 'info'); return; }
     peerRef.current = targetPeer; setPeer(targetPeer);
+    roleRef.current = 'caller'; videoRef.current = !!video; connectedRef.current = false;
     const session = buildSession(targetPeer.id);
     callRef.current = session;
     setCall({ status: 'connecting', video: !!video, role: 'caller' });
+    // No-answer timeout: if they haven't picked up in 35s, tear down — endCall
+    // logs it as a missed call.
+    if (ringTimerRef.current) clearTimeout(ringTimerRef.current);
+    ringTimerRef.current = setTimeout(() => {
+      if (!connectedRef.current && callRef.current) { try { callRef.current.hangUp(); } catch {} endCallLocal(); }
+    }, 35000);
     // Ring them app-wide so they get the incoming call from any screen, then
     // place the call on the pair channel.
     ringUser({
@@ -130,6 +156,7 @@ export function CallProvider({ children }) {
   }, [supported, user?.id, profile?.username, profile?.avatar_url, buildSession, showToast]);
 
   const acceptCall = useCallback(async () => {
+    if (ringTimerRef.current) { clearTimeout(ringTimerRef.current); ringTimerRef.current = null; }
     try { await callRef.current?.accept(); setCall((c) => (c ? { ...c, status: 'connecting' } : c)); }
     catch (e) {
       const wasVideo = !!call?.video;
@@ -207,16 +234,23 @@ export function CallProvider({ children }) {
         ? payload.fromProfile
         : { id: from, username: 'Viber' };
       peerRef.current = fromProfile; setPeer(fromProfile);
+      roleRef.current = 'callee'; videoRef.current = !!payload.video; connectedRef.current = false;
       const session = buildSession(from);
       callRef.current = session;
       setCall({ status: 'incoming', video: !!payload.video, role: 'callee' });
       // Subscribe to the pair channel and announce 'join' so the caller resends
       // the offer — this is what lets us answer from outside the chat thread.
       session.listen().catch(() => {});
+      // Auto-dismiss an unanswered incoming call so it doesn't ring forever; the
+      // caller writes the "missed call" log on their end.
+      if (ringTimerRef.current) clearTimeout(ringTimerRef.current);
+      ringTimerRef.current = setTimeout(() => {
+        if (!connectedRef.current && callRef.current) { try { callRef.current.reject(); } catch {} endCallLocal(); }
+      }, 40000);
     });
     ch.subscribe();
     return () => { try { supabase.removeChannel(ch); } catch {} };
-  }, [supported, user?.id, buildSession]);
+  }, [supported, user?.id, buildSession, endCallLocal]);
 
   // Tear the call down if the user logs out.
   useEffect(() => {
