@@ -12,9 +12,7 @@ import {
 import { SmartImage } from './SmartImage';
 import { VibeCardBubble } from './VibeCardBubble';
 import { Video } from 'expo-av';
-import { PeerSession, isCallSupported } from '../services/webrtcCall';
-import { CallOverlay } from './CallOverlay';
-import { PermissionGuideModal } from './PermissionGuideModal';
+import { useCall } from '../context/CallContext';
 import { SignedImage } from './SignedImage';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -313,153 +311,12 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [pendingMedia, setPendingMedia] = useState(null); // { uri, type: 'image'|'video' }
   const [pendingCaption, setPendingCaption] = useState('');
 
-  // ── Voice / video calling (WebRTC over Supabase Realtime, web-first) ──────
-  const callSupported = isCallSupported();
-  const callRef = useRef(null);
-  const [call, setCall] = useState(null); // { status, video, role } | null
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
-  const [callMuted, setCallMuted] = useState(false);
-  const [camOff, setCamOff] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [peerRecording, setPeerRecording] = useState(false);
-  const [sharingScreen, setSharingScreen] = useState(false);
-  const [filterKey, setFilterKey] = useState('none');
-  // A blocked mic/camera can never be re-prompted, so show real instructions
-  // instead of a toast that disappears before it's read.
-  const [permGuide, setPermGuide] = useState(null); // { reason, needVideo }
-  const [callReactions, setCallReactions] = useState([]); // [{id,emoji,mine}]
-  const [peerSharingScreen, setPeerSharingScreen] = useState(false);
-  const callStartRef = useRef(null);   // when the call actually connected
-  const callMetaRef = useRef(null);    // { video, role } for the summary line
-
-  useEffect(() => {
-    if (!callSupported || !user?.id || !recipient?.id) return;
-    const session = new PeerSession({
-      selfId: user.id,
-      peerId: recipient.id,
-      onLocalStream: setLocalStream,
-      onRemoteStream: setRemoteStream,
-      onIncoming: ({ video }) => setCall({ status: 'incoming', video, role: 'callee' }),
-      onPeerRecording: (on) => setPeerRecording(on),
-      onPeerScreenShare: (on) => setPeerSharingScreen(on),
-      onPeerReaction: (emoji) => pushCallReaction(emoji, false),
-      onStatus: (st) => {
-        if (st === 'connected') {
-          callStartRef.current = Date.now();
-          setCall((c) => { if (c) callMetaRef.current = { video: c.video, role: c.role }; return c ? { ...c, status: 'connected' } : c; });
-        } else if (st === 'ended' || st === 'failed') endCallLocal();
-      },
-    });
-    callRef.current = session;
-    session.listen().catch(() => {});
-    return () => { session.destroy(); callRef.current = null; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callSupported, user?.id, recipient?.id]);
-
-  // Ring while a call is incoming — looped until answered or dismissed.
-  useEffect(() => {
-    if (call?.status !== 'incoming') return;
-    SoundFX.play('ringtone');
-    const id = setInterval(() => SoundFX.play('ringtone'), 1800);
-    return () => clearInterval(id);
-  }, [call?.status]);
-
-  // Post a call summary into the thread so the conversation keeps a record —
-  // "Video call · 4:12" — the way any real messenger does.
-  const postCallSummary = async () => {
-    const startedAt = callStartRef.current;
-    const meta = callMetaRef.current;
-    callStartRef.current = null; callMetaRef.current = null;
-    if (!startedAt || !user?.id || !recipient?.id) return;   // never connected → no record
-    const secs = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-    const mm = Math.floor(secs / 60), ss = secs % 60;
-    const body = `${meta?.video ? 'Video call' : 'Voice call'} · ${mm}:${String(ss).padStart(2, '0')}`;
-    try {
-      const msg = await MessageManager.send(user.id, recipient.id, body);
-      if (msg) setMessages((prev) => [...prev, msg]);
-    } catch { /* a missing call log must never surface as an error */ }
-  };
-
-  const endCallLocal = () => {
-    setCall(null); setLocalStream(null); setRemoteStream(null);
-    setCallMuted(false); setCamOff(false); setRecording(false); setPeerRecording(false);
-    setSharingScreen(false); setPeerSharingScreen(false);
-    setFilterKey('none'); setCallReactions([]);
-    postCallSummary();
-  };
-
-  // Reactions live ~2.6s (the float animation), then clean themselves up so the
-  // list can't grow during a long call.
-  const pushCallReaction = (emoji, mine) => {
-    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    setCallReactions((prev) => [...prev.slice(-14), { id, emoji, mine }]);
-    setTimeout(() => setCallReactions((prev) => prev.filter((r) => r.id !== id)), 2800);
-  };
-
-  const sendCallReaction = (emoji) => {
-    pushCallReaction(emoji, true);
-    callRef.current?.sendReaction(emoji);
-  };
-
-  const pickFilter = async (f) => {
-    setFilterKey(f.key);
-    const ok = await callRef.current?.setVideoFilter(f.css);
-    if (ok === false) { setFilterKey('none'); showToast("Filters aren't supported on this device.", 'info'); }
-  };
-
-  const toggleScreenShare = async () => {
-    const s = callRef.current;
-    if (!s) return;
-    if (sharingScreen) { await s.stopScreenShare(); setSharingScreen(false); }
-    else {
-      const ok = await s.startScreenShare();
-      setSharingScreen(ok);
-      if (!ok) showToast('Screen sharing was cancelled or is unavailable here.', 'info');
-    }
-  };
-  const startCall = async (video) => {
-    if (!callRef.current) return;
-    setCall({ status: 'connecting', video, role: 'caller' });
-    try { await callRef.current.call(video); }
-    catch (e) {
-      endCallLocal();
-      setPermGuide({ reason: e?.mediaError || 'unknown', needVideo: !!video });
-    }
-  };
-  const acceptCall = async () => {
-    try { await callRef.current?.accept(); setCall((c) => (c ? { ...c, status: 'connecting' } : c)); }
-    catch (e) {
-      const wasVideo = !!call?.video;
-      endCallLocal();
-      setPermGuide({ reason: e?.mediaError || 'unknown', needVideo: wasVideo });
-    }
-  };
-  const rejectCall = () => { callRef.current?.reject(); endCallLocal(); };
-  const hangUp = () => { callRef.current?.hangUp(); endCallLocal(); };
-  const toggleCallMute = () => setCallMuted(callRef.current?.toggleMute() ?? false);
-  const toggleCallCam = () => setCamOff(callRef.current?.toggleCamera() ?? false);
-  const toggleRecord = async () => {
-    const s = callRef.current;
-    if (!s) return;
-    if (recording) {
-      const blob = await s.stopRecording();
-      setRecording(false);
-      if (blob && typeof document !== 'undefined') {
-        // Web: hand the recording to the user as a download.
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `gruvs-call-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.webm`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-        showToast('Recording saved.', 'success');
-      }
-    } else {
-      if (s.startRecording()) setRecording(true);
-      else showToast("Can't record this call on this device.", 'error');
-    }
-  };
+  // ── Voice / video calling ─────────────────────────────────────────────────
+  // Calls are owned by the global CallProvider so an incoming call rings from
+  // any screen and there's only ever one session. Here we just fire an outgoing
+  // call at this recipient; the overlay/permission UI lives in the provider.
+  const { startCall: startCallGlobal, callSupported } = useCall();
+  const startCall = (video) => startCallGlobal(recipient, video);
 
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedMsgIds, setSelectedMsgIds] = useState(new Set());
@@ -1525,45 +1382,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         )}
       </KeyboardAvoidingView>
 
-      {/* Active / incoming call overlay */}
-      {call && (
-        <CallOverlay
-          status={call.status}
-          video={call.video}
-          peer={recipient}
-          localStream={localStream}
-          remoteStream={remoteStream}
-          muted={callMuted}
-          camOff={camOff}
-          recording={recording}
-          peerRecording={peerRecording}
-          canRecord={callRef.current?.canRecord?.()}
-          sharingScreen={sharingScreen}
-          peerSharingScreen={peerSharingScreen}
-          canShareScreen={callRef.current?.canShareScreen?.()}
-          filterKey={filterKey}
-          onPickFilter={pickFilter}
-          reactions={callReactions}
-          onSendReaction={sendCallReaction}
-          primary={primary}
-          onAccept={acceptCall}
-          onReject={rejectCall}
-          onHangUp={hangUp}
-          onToggleMute={toggleCallMute}
-          onToggleCamera={toggleCallCam}
-          onToggleRecord={toggleRecord}
-          onToggleScreenShare={toggleScreenShare}
-        />
-      )}
-
-      <PermissionGuideModal
-        visible={!!permGuide}
-        reason={permGuide?.reason}
-        needVideo={permGuide?.needVideo}
-        kind={permGuide?.needVideo ? 'camera and mic' : 'microphone'}
-        onGranted={() => startCall(!!permGuide?.needVideo)}
-        onClose={() => setPermGuide(null)}
-      />
+      {/* The call overlay + permission UI are rendered globally by CallProvider. */}
 
       <React.Suspense fallback={null}>
         <ViberProfileModal

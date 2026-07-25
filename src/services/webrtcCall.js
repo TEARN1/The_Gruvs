@@ -27,6 +27,35 @@ export function isCallSupported() {
     && typeof navigator.mediaDevices.getUserMedia === 'function';
 }
 
+// Per-user "ring" channel. A caller broadcasts here so the callee is alerted no
+// matter what screen they're on — the pair signalling channel only works once
+// both sides are subscribed, which is exactly what the ring kicks off.
+export const ringChannelName = (userId) => `rtc-ring:${userId}`;
+
+// Fire a ring at someone. Opens their ring channel just long enough to send,
+// then tears it down. Best-effort: a failed ring must never throw into the UI.
+export async function ringUser({ fromId, toId, fromProfile, video }) {
+  if (!fromId || !toId) return false;
+  try {
+    const ch = supabase.channel(ringChannelName(toId), { config: { broadcast: { self: false } } });
+    await new Promise((resolve) => {
+      let done = false;
+      const fin = () => { if (!done) { done = true; resolve(); } };
+      ch.subscribe((status) => { if (status === 'SUBSCRIBED') fin(); });
+      setTimeout(fin, 4000); // don't hang forever if realtime is slow
+    });
+    await ch.send({
+      type: 'broadcast',
+      event: 'ring',
+      payload: { from: fromId, to: toId, fromProfile: fromProfile || null, video: !!video },
+    });
+    setTimeout(() => { try { supabase.removeChannel(ch); } catch {} }, 2000);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const ICE_CONFIG = {
   iceServers: [
     { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
@@ -107,6 +136,10 @@ export class PeerSession {
     await new Promise((resolve) => {
       this.channel.subscribe((status) => { if (status === 'SUBSCRIBED') resolve(); });
     });
+    // Announce we're subscribed. If the other side is the caller and already has
+    // an offer queued, this tells it to (re)send — closing the race where the
+    // offer was broadcast before this side had joined the channel.
+    this._send('join');
   }
 
   _send(type, data = {}) {
@@ -138,7 +171,9 @@ export class PeerSession {
     return pc;
   }
 
-  // Caller: get mic/cam, create the offer, send it.
+  // Caller: get mic/cam, create the offer, send it. Ringing the callee app-wide
+  // is the 1:1 provider's job (group/mesh calls must NOT ring each peer), so
+  // it's kept out of here.
   async call(video) {
     this.video = !!video;
     await this.listen();
@@ -146,6 +181,9 @@ export class PeerSession {
     const pc = await this._makePc(video);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
+    // Cache the offer so we can resend it the moment the callee joins the pair
+    // channel (they may not have been subscribed when we first broadcast).
+    this._offer = offer;
     this._send('offer', { sdp: offer, video: !!video });
   }
 
@@ -299,7 +337,11 @@ export class PeerSession {
   async _onSignal(p) {
     if (this._destroyed || p.to !== this.selfId || p.from !== this.peerId) return;
     try {
-      if (p.type === 'offer') {
+      if (p.type === 'join') {
+        // Callee just subscribed — if we're the caller with an offer waiting,
+        // resend it so it can't be missed.
+        if (this._offer && this.pc) this._send('offer', { sdp: this._offer, video: !!this.video });
+      } else if (p.type === 'offer') {
         this._pendingOffer = { sdp: p.sdp, video: p.video };
         this.onIncoming?.({ video: p.video });
       } else if (p.type === 'answer') {
