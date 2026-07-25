@@ -20,6 +20,7 @@ import { ResetPasswordModal } from './src/components/ResetPasswordModal';
 import { IdentityProvider } from './src/context/IdentityContext';
 import { CurrencyProvider } from './src/context/CurrencyContext';
 import { ToastProvider, useToast } from './src/components/ToastNotification';
+import { CallProvider } from './src/context/CallContext';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { InstallAppBanner } from './src/components/InstallAppBanner';
 import { useWebAppUpdate, reloadForUpdate } from './src/hooks/useWebAppUpdate';
@@ -1025,11 +1026,13 @@ export default function App() {
               <CurrencyProvider>
               <TutorialProvider>
                 <ToastProvider>
-                  <ErrorBoundary critical label="Main navigator">
-                    <AppLockGate>
-                      <MainNavigator />
-                    </AppLockGate>
-                  </ErrorBoundary>
+                  <CallProvider>
+                    <ErrorBoundary critical label="Main navigator">
+                      <AppLockGate>
+                        <MainNavigator />
+                      </AppLockGate>
+                    </ErrorBoundary>
+                  </CallProvider>
                 </ToastProvider>
               </TutorialProvider>
               </CurrencyProvider>
