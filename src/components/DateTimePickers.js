@@ -18,6 +18,9 @@ const DAYS_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 export const CalendarPicker = ({
   visible, onClose, onConfirm, value,
   primary, bg, textColor, muted,
+  // Event pickers dim past days (you can't schedule the past); a birthday
+  // picker must not — every valid answer IS in the past. Off dims nothing.
+  dimPast = true,
 }) => {
   useBackClose(visible, onClose);
   const today = new Date();
@@ -26,13 +29,22 @@ export const CalendarPicker = ({
   const [viewYear, setViewYear] = useState(init.getFullYear());
   const [viewMonth, setViewMonth] = useState(init.getMonth());
   const [selected, setSelected] = useState(value instanceof Date ? value : null);
+  // 'days' grid ⇄ 'months' grid ⇄ 'years' grid. Tapping the header steps out;
+  // picking steps back in — so jumping to 2008 is two taps, not 200 chevrons.
+  const [mode, setMode] = useState('days');
 
   useEffect(() => {
     if (visible) {
       const d = value instanceof Date ? value : null;
       if (d) { setViewYear(d.getFullYear()); setViewMonth(d.getMonth()); setSelected(d); }
+      setMode('days');
     }
   }, [visible, value]);
+
+  // Year grid runs from this year back 120 years — enough for any birthday,
+  // and future years stay reachable via the chevrons for event dates.
+  const YEAR_SPAN = 120;
+  const years = Array.from({ length: YEAR_SPAN + 1 }, (_, i) => today.getFullYear() + 1 - i);
 
   const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
@@ -55,19 +67,68 @@ export const CalendarPicker = ({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={cp.overlay} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity activeOpacity={1} style={[cp.card, { backgroundColor: bg }]}>
-          {/* Month/year nav */}
+          {/* Month/year nav. Chevrons page months; the label opens the
+              year/month grids so distant dates are two taps away. */}
           <View style={cp.navRow}>
-            <TouchableOpacity onPress={prevMonth} style={cp.navBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity
+              onPress={mode === 'days' ? prevMonth : undefined}
+              style={[cp.navBtn, mode !== 'days' && { opacity: 0 }]}
+              disabled={mode !== 'days'}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Feather name="chevron-left" size={22} color={textColor} />
             </TouchableOpacity>
-            <Text style={[cp.monthLabel, { color: textColor }]}>
-              {MONTHS[viewMonth]} {viewYear}
-            </Text>
-            <TouchableOpacity onPress={nextMonth} style={cp.navBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity
+              onPress={() => setMode(m => (m === 'days' ? 'years' : m === 'years' ? 'months' : 'days'))}
+              activeOpacity={0.7}
+              style={cp.labelBtn}
+            >
+              <Text style={[cp.monthLabel, { color: textColor }]}>
+                {mode === 'years' ? 'Pick a year' : mode === 'months' ? `${viewYear}` : `${MONTHS[viewMonth]} ${viewYear}`}
+              </Text>
+              <Feather name={mode === 'days' ? 'chevron-down' : 'chevron-up'} size={15} color={muted} style={{ marginLeft: 5 }} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={mode === 'days' ? nextMonth : undefined}
+              style={[cp.navBtn, mode !== 'days' && { opacity: 0 }]}
+              disabled={mode !== 'days'}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Feather name="chevron-right" size={22} color={textColor} />
             </TouchableOpacity>
           </View>
 
+          {mode === 'years' && (
+            <ScrollView style={cp.pickerScroll} contentContainerStyle={cp.pickerWrap}>
+              {years.map(y => (
+                <TouchableOpacity
+                  key={y}
+                  style={[cp.pickerCell, y === viewYear && { backgroundColor: primary }]}
+                  onPress={() => { setViewYear(y); setMode('months'); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[cp.pickerText, { color: y === viewYear ? '#000' : textColor, fontWeight: y === viewYear ? '900' : '600' }]}>{y}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {mode === 'months' && (
+            <View style={cp.pickerWrap}>
+              {MONTHS.map((m, i) => (
+                <TouchableOpacity
+                  key={m}
+                  style={[cp.pickerCell, i === viewMonth && { backgroundColor: primary }]}
+                  onPress={() => { setViewMonth(i); setMode('days'); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[cp.pickerText, { color: i === viewMonth ? '#000' : textColor, fontWeight: i === viewMonth ? '900' : '600' }]}>{m.slice(0, 3)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {mode === 'days' && (<>
           {/* Day-of-week headers */}
           <View style={cp.daysRow}>
             {DAYS_SHORT.map(d => (
@@ -82,7 +143,7 @@ export const CalendarPicker = ({
               const date = new Date(viewYear, viewMonth, day);
               const isSelected = selected && date.toDateString() === selected.toDateString();
               const isToday = date.toDateString() === today.toDateString();
-              const isPast = date < today && !isToday;
+              const isPast = dimPast && date < today && !isToday;
               return (
                 <TouchableOpacity
                   key={`d${day}`}
@@ -105,6 +166,7 @@ export const CalendarPicker = ({
               );
             })}
           </View>
+          </>)}
 
           {/* Confirm */}
           <TouchableOpacity
@@ -129,7 +191,12 @@ const cp = StyleSheet.create({
   card: { width: '100%', maxWidth: Math.min(SCREEN_W - 32, 348), borderRadius: 24, padding: 20 },
   navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
   navBtn: { padding: 4 },
+  labelBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8 },
   monthLabel: { fontSize: 17, fontWeight: '900' },
+  pickerScroll: { maxHeight: ITEM_H * 5 },
+  pickerWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  pickerCell: { width: '31%', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', borderRadius: 12, marginBottom: 8 },
+  pickerText: { fontSize: 15 },
   daysRow: { flexDirection: 'row', marginBottom: 8 },
   dayHeader: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },

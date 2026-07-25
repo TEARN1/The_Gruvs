@@ -319,30 +319,54 @@ export const AuthModal = ({ visible, onClose }) => {
       hasSession = !!signInData?.session;
     }
 
-    // With "Confirm email" disabled Supabase sends nothing on signup, so we send
-    // the verification link ourselves. A magic link marks the address confirmed
-    // when clicked, which is exactly what we want — the user is already inside.
-    // Fire-and-forget: a mail failure must never block a successful signup.
+    setSignupSuccessFx(Date.now());
+
+    // With a session we're already authenticated — drop the user straight into
+    // the app. Closing fast is the whole point: the auth-state change re-renders
+    // App into the main experience the instant the modal is gone.
     if (hasSession) {
+      handleClose();
+      // With "Confirm email" disabled Supabase sends nothing on signup, so we
+      // send the verification link ourselves. But Supabase's built-in mailer is
+      // rate-limited (free tier is a few emails/hour), so this often bounces
+      // with "email rate limit exceeded". NEVER promise a verification email
+      // that didn't actually leave — when the send fails, just welcome them and
+      // stay silent about email. The account works either way; verification is
+      // optional convenience, not a gate.
       supabase.auth
         .signInWithOtp({
           email: email.trim(),
           options: { shouldCreateUser: false, emailRedirectTo: APP_WEB_URL },
         })
-        .catch(() => {});
+        .then(({ error }) => {
+          toast?.show(
+            error
+              ? 'Welcome to The Gruvs! 🎉'
+              : 'Welcome to The Gruvs! 🎉 We sent a verification email — confirm whenever you\'re ready.',
+            'success'
+          );
+        })
+        .catch(() => toast?.show('Welcome to The Gruvs! 🎉', 'success'));
+    } else {
+      // No session means the project enforces "Confirm email". If our own mailer
+      // is out of quota the user would be stranded, so only tell them to check
+      // their inbox when the confirmation mail actually sent.
+      const { error: otpErr } = await supabase.auth
+        .signInWithOtp({
+          email: email.trim(),
+          options: { shouldCreateUser: false, emailRedirectTo: APP_WEB_URL },
+        })
+        .catch(() => ({ error: true }));
+      setTimeout(() => {
+        handleClose();
+        toast?.show(
+          otpErr
+            ? 'Account created! Sign in with your email and password.'
+            : 'Account created! 📧 Check your inbox and confirm your email to sign in.',
+          'info'
+        );
+      }, 1200);
     }
-
-    setSignupSuccessFx(Date.now());
-
-    setTimeout(() => {
-      handleClose();
-      toast?.show(
-        hasSession
-          ? 'Welcome to The Gruvs! 🎉 We sent a verification email — confirm whenever you\'re ready.'
-          : 'Account created! 📧 Check your inbox and confirm your email to sign in.',
-        hasSession ? 'success' : 'info'
-      );
-    }, 1200);
   };
 
   const reset = () => {
@@ -658,7 +682,7 @@ export const AuthModal = ({ visible, onClose }) => {
                   <View style={{ flex: 1, gap: 6 }}>
                     <Text style={[styles.confirmTitle, { color: textColor }]}>You're in straight away</Text>
                     <Text style={[styles.confirmSub, { color: muted }]}>
-                      We'll email you a link to verify your address — confirm it whenever you're ready.
+                      Start using The Gruvs right now — you can verify your email later, no rush.
                     </Text>
                   </View>
                 </View>
@@ -731,6 +755,7 @@ export const AuthModal = ({ visible, onClose }) => {
       }
       setDobPickerOpen(false);
     }}
+    dimPast={false}
     primary={primary}
     bg={bg}
     textColor={textColor}
