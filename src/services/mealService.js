@@ -52,8 +52,8 @@ export const MealService = {
     );
   },
 
-  /** Just the boosted, live meals — for injecting into Near You / The Drop. */
-  async listBoosted({ lat = null, lon = null, limit = 8 } = {}) {
+  /** Live boosted meals only — for injecting "around the app" (Near You, The Drop). */
+  async listBoosted({ lat = null, lon = null, limit = 6 } = {}) {
     const all = await this.listMeals({ lat, lon, limit: 40 });
     const now = Date.now();
     return (all || [])

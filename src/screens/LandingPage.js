@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
+import { BoostedMealRail } from '../components/BoostedMealRail';
 import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { SmartImage } from '../components/SmartImage';
 import { FadeInView } from '../components/FadeInView';
@@ -2361,15 +2362,19 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // ── FEED HEADER ───────────────────────────────────────────────────────────────
   const renderFeedHeader = () => (
-    <View style={styles.sectionRow}>
-      <Text style={[styles.sectionTitle, { color: textColor }]}>
-        {mode === 'drop' ? 'Recent Gruvs' : 'All Gruvs'}
-        {feedData.length > 0 ? <Text style={{ color: muted, fontWeight: '700' }}>  ·  {feedData.filter(e => !e._header).length}{hasMore ? '+' : ''}</Text> : null}
-      </Text>
-      <TouchableOpacity onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}>
-        <Text style={[styles.seeAll, { color: primary }]}>Drop a Gruv</Text>
-      </TouchableOpacity>
-    </View>
+    <>
+      {/* Boosted meals ride into The Drop — self-contained, renders nothing when empty. */}
+      {mode === 'drop' && <BoostedMealRail />}
+      <View style={styles.sectionRow}>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>
+          {mode === 'drop' ? 'Recent Gruvs' : 'All Gruvs'}
+          {feedData.length > 0 ? <Text style={{ color: muted, fontWeight: '700' }}>  ·  {feedData.filter(e => !e._header).length}{hasMore ? '+' : ''}</Text> : null}
+        </Text>
+        <TouchableOpacity onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}>
+          <Text style={[styles.seeAll, { color: primary }]}>Drop a Gruv</Text>
+        </TouchableOpacity>
+      </View>
+    </>
   );
 
   // Stable extraData bundle — FlatList only re-renders items when interaction state actually changes

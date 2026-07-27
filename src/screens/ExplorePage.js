@@ -590,6 +590,11 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [trendingHashtags, setTrendingHashtags] = useState([]);
   const [meals, setMeals] = useState([]);
   const [mealDetail, setMealDetail] = useState(null);
+  // Boosted, still-live meals — injected into the Near You rail for extra reach.
+  const boostedMeals = useMemo(() => {
+    const now = Date.now();
+    return meals.filter(m => m.is_boosted && (!m.boosted_until || new Date(m.boosted_until).getTime() > now)).slice(0, 4);
+  }, [meals]);
   const [scrollY, setScrollY] = useState(0);
   const scrollRef = useRef(null);
   const searchTimer = useRef(null);
@@ -1343,6 +1348,12 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                           isHot={hotIds.has(ev.id)}
                           onPress={() => onNavigateToEvent && onNavigateToEvent(ev)}
                         />
+                      </FadeInView>
+                    ))}
+                    {/* Boosted meals ride along in Near You — "around the app" reach. */}
+                    {boostedMeals.map((m, i) => (
+                      <FadeInView key={`meal-${m.id}`} delay={(nearbyEvents.length + i) * 50} direction="right">
+                        <MealCard meal={m} primary={primary} textColor={textColor} muted={muted} surface={surface} onPress={(meal) => setMealDetail(meal)} width={150} />
                       </FadeInView>
                     ))}
                   </ScrollView>

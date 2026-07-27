@@ -1567,8 +1567,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </SafeSection>
           )}
 
-          {/* Hackathon leaderboard — hackathon / competition events */}
-          {event?.id && ['hackathon', 'competition', 'dance', 'talent', 'gaming', 'esports'].includes(event?.category?.toLowerCase()) && (
+          {/* Submission-style leaderboard — hackathon / talent / dance events.
+              Gaming & esports are intentionally excluded: they use the sports
+              scoreboard (fixtures + league table via SportManagementPanel), so
+              showing a second, disconnected leaderboard here would confuse. */}
+          {event?.id && ['hackathon', 'competition', 'dance', 'talent'].includes(event?.category?.toLowerCase()) && (
             <SafeSection label="Leaderboard" primary={primary}>
               <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', paddingHorizontal: 16, marginBottom: 12 }}>
                 Leaderboard
