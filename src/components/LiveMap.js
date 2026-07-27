@@ -71,6 +71,8 @@ export function LiveMap({
   heat = false,           // show the presence-heat layer
   mine = [],              // [{lat,lng}] — your lit Touch Downs ("Fog of the City")
   showMine = false,
+  crew = [],              // [{lat,lng,count}] — where your crew is heading tonight
+  showCrew = false,
   drawMode = null,        // null | 'line' | 'polygon'
   drawPoints = [],        // [[lng,lat], ...] controlled by parent
   onMapClick,             // (lngLat) => void  — used while drawing
@@ -84,8 +86,10 @@ export function LiveMap({
   const readyRef = useRef(false);
   const heatRef = useRef(heat);
   const mineRef = useRef(showMine);
+  const crewRef = useRef(showCrew);
   useEffect(() => { heatRef.current = heat; toggleHeat(heat); });
   useEffect(() => { mineRef.current = showMine; toggleMine(showMine); });
+  useEffect(() => { crewRef.current = showCrew; toggleCrew(showCrew); });
 
   // ── init once ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -168,6 +172,32 @@ export function LiveMap({
         paint: { 'circle-radius': 5, 'circle-color': '#fbbf24', 'circle-stroke-color': '#fff7ed', 'circle-stroke-width': 1.5 },
       });
 
+      // Crew Convergence — where the people you follow are heading (magenta),
+      // sized by how many of your crew are converging on each spot.
+      map.addSource('crew', { type: 'geojson', data: crewToGeoJSON(crew) });
+      map.addLayer({
+        id: 'crew-ring', type: 'circle', source: 'crew',
+        layout: { visibility: crewRef.current ? 'visible' : 'none' },
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 12, 6, 30],
+          'circle-color': '#ec4899', 'circle-opacity': 0.14, 'circle-blur': 0.5,
+        },
+      });
+      map.addLayer({
+        id: 'crew-dot', type: 'circle', source: 'crew',
+        layout: { visibility: crewRef.current ? 'visible' : 'none' },
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 6, 6, 12],
+          'circle-color': '#ec4899', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5,
+        },
+      });
+      map.addLayer({
+        id: 'crew-count', type: 'symbol', source: 'crew',
+        layout: { visibility: crewRef.current ? 'visible' : 'none',
+          'text-field': ['to-string', ['get', 'count']], 'text-size': 11, 'text-allow-overlap': true },
+        paint: { 'text-color': '#fff' },
+      });
+
       // In-progress draw geometry.
       map.addSource('draw', { type: 'geojson', data: emptyFC() });
       map.addLayer({
@@ -206,6 +236,8 @@ export function LiveMap({
   useEffect(() => { setData('events', eventsToGeoJSON(events)); }, [events]);
   useEffect(() => { setData('zones', zonesToGeoJSON(zones)); }, [zones]);
   useEffect(() => { setData('draw', drawGeoJSON(drawMode, drawPoints)); }, [drawMode, drawPoints]);
+  useEffect(() => { setData('mine', pointsToGeoJSON(mine)); }, [mine]);
+  useEffect(() => { setData('crew', crewToGeoJSON(crew)); }, [crew]);
   useEffect(() => {
     const m = mapRef.current;
     if (m && readyRef.current && center) m.easeTo({ center: [center.lng, center.lat], duration: 700 });
@@ -222,6 +254,22 @@ export function LiveMap({
     const m = mapRef.current;
     if (!m || !readyRef.current || !m.getLayer('events-heat')) return;
     try { m.setLayoutProperty('events-heat', 'visibility', on ? 'visible' : 'none'); } catch {}
+  }
+
+  function toggleMine(on) {
+    const m = mapRef.current;
+    if (!m || !readyRef.current) return;
+    for (const id of ['mine-glow', 'mine-dot']) {
+      if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
+    }
+  }
+
+  function toggleCrew(on) {
+    const m = mapRef.current;
+    if (!m || !readyRef.current) return;
+    for (const id of ['crew-ring', 'crew-dot', 'crew-count']) {
+      if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
+    }
   }
 
   if (!isMapSupported()) {
@@ -242,6 +290,34 @@ export function LiveMap({
 }
 
 const emptyFC = () => ({ type: 'FeatureCollection', features: [] });
+
+// Plain lat/lng points (Fog of the City — your lit Touch Downs).
+function pointsToGeoJSON(pts) {
+  return {
+    type: 'FeatureCollection',
+    features: (pts || [])
+      .filter((p) => p && p.lat != null && p.lng != null)
+      .map((p) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [Number(p.lng), Number(p.lat)] },
+        properties: {},
+      })),
+  };
+}
+
+// Crew Convergence — one pin per event, carrying how many of your crew are going.
+function crewToGeoJSON(crew) {
+  return {
+    type: 'FeatureCollection',
+    features: (crew || [])
+      .filter((c) => c && c.lat != null && c.lng != null)
+      .map((c) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [Number(c.lng), Number(c.lat)] },
+        properties: { count: c.count ?? (c.people ? c.people.length : 1), eventId: c.eventId ?? null },
+      })),
+  };
+}
 
 function drawGeoJSON(mode, pts) {
   if (!mode || !pts || pts.length === 0) return emptyFC();
