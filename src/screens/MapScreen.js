@@ -99,11 +99,26 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       // Upcoming events with coordinates (either lat/lon or latitude/longitude).
       const { data } = await supabase
         .from('events')
-        .select('id, title, latitude, longitude, lat, lon, going, event_date')
+        .select('id, title, category, cover_url, venue, latitude, longitude, lat, lon, going, event_date')
         .gte('event_date', today)
         .is('deleted_at', null)
         .limit(300);
-      setEvents((data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null));
+      const rows = (data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null);
+
+      // Real "here now" = a live tally of verified Touch-Downs (live_checkins is
+      // the same source getLiveAttendees trusts), so the heat/hot pins are truth,
+      // not the static going count. One extra query, counted client-side.
+      try {
+        const ids = rows.map((e) => e.id);
+        if (ids.length) {
+          const { data: ci } = await supabase.from('live_checkins').select('event_id').in('event_id', ids);
+          const tally = new Map();
+          for (const r of ci || []) tally.set(r.event_id, (tally.get(r.event_id) || 0) + 1);
+          rows.forEach((e) => { e.here_count = tally.get(e.id) || 0; });
+        }
+      } catch { /* counts are best-effort; pins still render */ }
+
+      setEvents(rows);
     } catch { setEvents([]); }
   }, []);
 
@@ -115,7 +130,19 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       if (alive) setLoading(false);
     })();
     const off = MapZones.subscribe(() => loadZones());
-    return () => { alive = false; off?.(); };
+
+    // The map breathes: live check-ins and new/updated events repaint the pins
+    // without a manual refresh, so here-now counts and fresh gruvs appear as they
+    // happen. Debounced so a burst of arrivals is one repaint, not fifty.
+    let t = null;
+    const bump = () => { clearTimeout(t); t = setTimeout(() => { if (alive) loadEvents(); }, 1200); };
+    const live = supabase
+      .channel(`map_live_${Math.random().toString(36).slice(2, 8)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_checkins' }, bump)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, bump)
+      .subscribe();
+
+    return () => { alive = false; off?.(); clearTimeout(t); try { supabase.removeChannel(live); } catch {} };
   }, [loadEvents, loadZones]);
 
   // Re-pull zones when the map centre moves meaningfully.

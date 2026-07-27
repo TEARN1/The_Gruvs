@@ -43,7 +43,10 @@ const eventsToGeoJSON = (events = []) => ({
         geometry: { type: 'Point', coordinates: [Number(lng), Number(lat)] },
         properties: {
           id: e.id, title: e.title || 'Event',
-          here: Number(e.here_count || e.going || 0),
+          // Prefer the live Touch-Down tally (?? keeps a real 0 as 0 — heat/hot
+          // pins stay honest); only fall back to going when no live count exists.
+          here: Number(e.here_count ?? e.going ?? 0),
+          cat: e.category || '',
         },
       };
     })
