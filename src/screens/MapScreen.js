@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LiveMap, isMapSupported } from '../components/LiveMap';
 import { ZoneDrawTool } from '../components/ZoneDrawTool';
+import { MapEventPreview } from '../components/MapEventPreview';
 import { MapZones, ZONE_KINDS, ZONE_STATUS } from '../services/mapZones';
 import { supabase } from '../services/supabase';
 import { LocationService } from '../services/locationService';
@@ -24,6 +25,7 @@ import { pickConciergeMove } from '../services/concierge';
 import { MapNudge } from '../components/MapNudge';
 import { VibeRouletteModal } from '../components/VibeRouletteModal';
 import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
+import { getMyFog } from '../services/fogMap';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
@@ -52,12 +54,18 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   // Zone detail
   const [activeZone, setActiveZone] = useState(null);
+  // Tapped event pin → rich preview (swipeable across nearby pins).
+  const [previewId, setPreviewId] = useState(null);
 
   // Phase 2: presence heat + the Concierge
   const [heat, setHeat] = useState(false);
   const [nudge, setNudge] = useState(null);
   const [showRoulette, setShowRoulette] = useState(false);
   const [showHomeSafe, setShowHomeSafe] = useState(false);
+
+  // Phase 2: Fog of the City — your lit Touch Downs.
+  const [showMine, setShowMine] = useState(false);
+  const [myFog, setMyFog] = useState({ points: [], passport: null });
 
   const centerRef = useRef(center);
   useEffect(() => { centerRef.current = center; }, [center]);
@@ -164,6 +172,18 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     if (c?.lat != null) setCenter({ lat: c.lat, lng: c.lon });
   };
 
+  // Fog of the City — light up where you've actually been (lazy-loaded once).
+  const toggleMine = async () => {
+    if (!user) { onAuthRequired?.(); return; }
+    const next = !showMine;
+    setShowMine(next);
+    if (next && myFog.points.length === 0) {
+      const fog = await getMyFog(user.id);
+      setMyFog(fog);
+      if (fog.points.length === 0) toast("Touch Down at events to light up your map.", 'info');
+    }
+  };
+
   const activeClosures = zones.filter((z) => z.kind === 'road_closed' || z.kind === 'detour').length;
 
   return (
@@ -186,17 +206,22 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               zones={zones}
               center={center}
               heat={heat}
+              mine={myFog.points}
+              showMine={showMine}
               drawMode={drawing ? mode : null}
               drawPoints={points}
               onMapClick={onMapClick}
-              onEventPress={(id) => onNavigateToEvent?.({ id })}
-              onZonePress={(id) => { const z = zones.find((x) => x.id === id); if (z) setActiveZone(z); }}
+              onEventPress={(id) => { setActiveZone(null); setPreviewId(id); }}
+              onZonePress={(id) => { const z = zones.find((x) => x.id === id); if (z) { setPreviewId(null); setActiveZone(z); } }}
             />
           </ErrorBoundary>
 
           {/* Floating controls (only when the real map is up and not drawing) */}
           {isMapSupported() && !drawing && (
             <View style={cs.fabCol} pointerEvents="box-none">
+              <TouchableOpacity onPress={toggleMine} style={[cs.fab, { backgroundColor: showMine ? '#fbbf24' : bg, borderColor: showMine ? '#fbbf24' : `${primary}40` }]}>
+                <Feather name="star" size={18} color={showMine ? '#000' : '#fbbf24'} />
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setHeat((h) => !h)} style={[cs.fab, { backgroundColor: heat ? primary : bg, borderColor: `${primary}40` }]}>
                 <Feather name="activity" size={18} color={heat ? '#000' : primary} />
               </TouchableOpacity>
@@ -211,15 +236,27 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           )}
 
           {/* The Concierge nudge — a real alternative when a closure's near */}
-          {nudge && !drawing && !activeZone && (
+          {nudge && !drawing && !activeZone && !previewId && (
             <MapNudge
               move={nudge} onAct={actOnNudge} onDismiss={() => setNudge(null)}
               primary={primary} bg={bg} textColor={textColor} muted={muted}
             />
           )}
 
+          {/* Fog of the City — your exploration stat while your map is lit */}
+          {showMine && myFog.passport && !drawing && (
+            <View style={[cs.fogChip, { backgroundColor: '#fbbf2422', borderColor: '#fbbf24' }]}>
+              <Feather name="star" size={12} color="#fbbf24" />
+              <Text style={cs.fogChipText}>
+                {myFog.passport.venues.length} place{myFog.passport.venues.length === 1 ? '' : 's'} lit
+                {myFog.passport.cities.length > 1 ? ` · ${myFog.passport.cities.length} cities` : ''}
+                {myFog.passport.totalTouchDowns ? ` · ${myFog.passport.totalTouchDowns} Touch Downs` : ''}
+              </Text>
+            </View>
+          )}
+
           {/* Legend (compact) */}
-          {isMapSupported() && !drawing && !activeZone && (
+          {isMapSupported() && !drawing && !activeZone && !previewId && (
             <View style={[cs.legend, { backgroundColor: `${bg}dd`, borderColor: `${primary}22` }]}>
               <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: '#00f2ff' }]} /><Text style={cs.legendText}>Events</Text></View>
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#ef4444' }]} /><Text style={cs.legendText}>Road closed</Text></View>
@@ -243,6 +280,20 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             zone={activeZone} onClose={() => setActiveZone(null)} onVerify={verify}
             onOpenEvent={(id) => { setActiveZone(null); onNavigateToEvent?.({ id }); }}
             primary={primary} bg={bg} textColor={textColor} muted={muted}
+          />
+        )}
+
+        {/* Tapped-pin preview — RSVP, save, route, live here-now, swipe pins */}
+        {previewId && !drawing && !activeZone && (
+          <MapEventPreview
+            events={events}
+            startId={previewId}
+            userCoords={center}
+            zones={zones}
+            onOpenEvent={(id) => { setPreviewId(null); onNavigateToEvent?.({ id }); }}
+            onOpenZone={(z) => { setPreviewId(null); setActiveZone(z); }}
+            onClose={() => setPreviewId(null)}
+            onAuthRequired={onAuthRequired}
           />
         )}
 
@@ -326,6 +377,8 @@ const cs = StyleSheet.create({
   markBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 24 },
   markText: { color: '#000', fontWeight: '900', fontSize: 13 },
   legend: { position: 'absolute', left: 14, bottom: 20, flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 7 },
+  fogChip: { position: 'absolute', top: 10, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  fogChipText: { color: '#fbbf24', fontSize: 11, fontWeight: '800' },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendText: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '700' },
   dot: { width: 9, height: 9, borderRadius: 5 },

@@ -69,6 +69,8 @@ export function LiveMap({
   zones = [],
   center = null,
   heat = false,           // show the presence-heat layer
+  mine = [],              // [{lat,lng}] — your lit Touch Downs ("Fog of the City")
+  showMine = false,
   drawMode = null,        // null | 'line' | 'polygon'
   drawPoints = [],        // [[lng,lat], ...] controlled by parent
   onMapClick,             // (lngLat) => void  — used while drawing
@@ -81,7 +83,9 @@ export function LiveMap({
   const mapRef = useRef(null);
   const readyRef = useRef(false);
   const heatRef = useRef(heat);
+  const mineRef = useRef(showMine);
   useEffect(() => { heatRef.current = heat; toggleHeat(heat); });
+  useEffect(() => { mineRef.current = showMine; toggleMine(showMine); });
 
   // ── init once ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -149,6 +153,19 @@ export function LiveMap({
           'circle-color': '#00f2ff',
           'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5,
         },
+      });
+
+      // Fog of the City — your lit Touch Downs (warm gold), your personal territory.
+      map.addSource('mine', { type: 'geojson', data: pointsToGeoJSON(mine) });
+      map.addLayer({
+        id: 'mine-glow', type: 'circle', source: 'mine',
+        layout: { visibility: mineRef.current ? 'visible' : 'none' },
+        paint: { 'circle-radius': 16, 'circle-color': '#fbbf24', 'circle-opacity': 0.16, 'circle-blur': 0.7 },
+      });
+      map.addLayer({
+        id: 'mine-dot', type: 'circle', source: 'mine',
+        layout: { visibility: mineRef.current ? 'visible' : 'none' },
+        paint: { 'circle-radius': 5, 'circle-color': '#fbbf24', 'circle-stroke-color': '#fff7ed', 'circle-stroke-width': 1.5 },
       });
 
       // In-progress draw geometry.
