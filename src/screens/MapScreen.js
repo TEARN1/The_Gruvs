@@ -26,6 +26,7 @@ import { MapNudge } from '../components/MapNudge';
 import { VibeRouletteModal } from '../components/VibeRouletteModal';
 import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
 import { getMyFog } from '../services/fogMap';
+import { getCrewPlans } from '../services/crewMap';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
@@ -66,6 +67,10 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   // Phase 2: Fog of the City — your lit Touch Downs.
   const [showMine, setShowMine] = useState(false);
   const [myFog, setMyFog] = useState({ points: [], passport: null });
+
+  // Phase 2: Crew Convergence — where the people you follow are heading tonight.
+  const [showCrew, setShowCrew] = useState(false);
+  const [crewPlans, setCrewPlans] = useState([]);
 
   const centerRef = useRef(center);
   useEffect(() => { centerRef.current = center; }, [center]);
@@ -184,6 +189,22 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   };
 
+  // Crew Convergence — pull your follows' tonight-intent, lit as magenta pins.
+  const toggleCrew = async () => {
+    if (!user) { onAuthRequired?.(); return; }
+    const next = !showCrew;
+    setShowCrew(next);
+    if (next && crewPlans.length === 0) {
+      const plans = await getCrewPlans(user.id);
+      setCrewPlans(plans);
+      if (plans.length === 0) toast('None of your crew has marked a plan yet — follow more people.', 'info');
+    }
+  };
+
+  // The biggest convergence (most of your crew on one spot) drives the summary.
+  const topCrew = showCrew && crewPlans.length ? crewPlans[0] : null;
+  const crewOut = crewPlans.reduce((set, p) => { p.people.forEach((x) => set.add(x.id)); return set; }, new Set()).size;
+
   const activeClosures = zones.filter((z) => z.kind === 'road_closed' || z.kind === 'detour').length;
 
   return (
@@ -208,6 +229,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               heat={heat}
               mine={myFog.points}
               showMine={showMine}
+              crew={crewPlans}
+              showCrew={showCrew}
               drawMode={drawing ? mode : null}
               drawPoints={points}
               onMapClick={onMapClick}
@@ -221,6 +244,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             <View style={cs.fabCol} pointerEvents="box-none">
               <TouchableOpacity onPress={toggleMine} style={[cs.fab, { backgroundColor: showMine ? '#fbbf24' : bg, borderColor: showMine ? '#fbbf24' : `${primary}40` }]}>
                 <Feather name="star" size={18} color={showMine ? '#000' : '#fbbf24'} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={toggleCrew} style={[cs.fab, { backgroundColor: showCrew ? '#ec4899' : bg, borderColor: showCrew ? '#ec4899' : `${primary}40` }]}>
+                <Feather name="users" size={18} color={showCrew ? '#fff' : '#ec4899'} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setHeat((h) => !h)} style={[cs.fab, { backgroundColor: heat ? primary : bg, borderColor: `${primary}40` }]}>
                 <Feather name="activity" size={18} color={heat ? '#000' : primary} />
@@ -253,6 +279,21 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                 {myFog.passport.totalTouchDowns ? ` · ${myFog.passport.totalTouchDowns} Touch Downs` : ''}
               </Text>
             </View>
+          )}
+
+          {/* Crew Convergence — who's out and the biggest meet-up tonight */}
+          {showCrew && crewPlans.length > 0 && !drawing && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => { if (topCrew?.eventId) { setActiveZone(null); setPreviewId(topCrew.eventId); } }}
+              style={[cs.crewChip, { backgroundColor: '#ec489922', borderColor: '#ec4899', top: showMine && myFog.passport ? 44 : 10 }]}
+            >
+              <Feather name="users" size={12} color="#ec4899" />
+              <Text style={cs.crewChipText} numberOfLines={1}>
+                {crewOut} of your crew out
+                {topCrew && topCrew.people.length > 1 ? ` · ${topCrew.people.length} at ${topCrew.title}` : ''}
+              </Text>
+            </TouchableOpacity>
           )}
 
           {/* Legend (compact) */}
@@ -379,6 +420,8 @@ const cs = StyleSheet.create({
   legend: { position: 'absolute', left: 14, bottom: 20, flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 7 },
   fogChip: { position: 'absolute', top: 10, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   fogChipText: { color: '#fbbf24', fontSize: 11, fontWeight: '800' },
+  crewChip: { position: 'absolute', alignSelf: 'center', maxWidth: '86%', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  crewChipText: { color: '#ec4899', fontSize: 11, fontWeight: '800' },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendText: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '700' },
   dot: { width: 9, height: 9, borderRadius: 5 },
