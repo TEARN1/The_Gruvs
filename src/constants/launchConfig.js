@@ -35,11 +35,16 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   // live; the section still self-disables on any missing-table response, so
   // this is safe even before listings are seeded (renders nothing until then).
   accommodation: true,
+  // The Living Map (Phase 1) — a real street map with event pins and host-drawn
+  // impact zones (road closures). map_zones schema is LIVE (map_zones.sql). ON
+  // so the new Map tab shows; flip to false to hide the tab + entry points.
+  liveMap: true,
 } : {
   reelsRail: true, business: true, gifting: true,
   pathMap: true, crossedPaths: true, stories: true,
   residentAlerts: true, // res_* schema live (2026-07-17)
   accommodation: true,  // res_* schema live (2026-07-17)
+  liveMap: true,        // The Living Map — map_zones schema live
 };
 
 /** feature('business') → true when the surface is live. Unknown keys default on. */

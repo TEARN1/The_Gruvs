@@ -23,6 +23,7 @@ export const ExplorePage = require('./ExplorePage').ExplorePage;
 export const CalendarPage = require('./CalendarPage').CalendarPage;
 export const ProfilePage = require('./ProfilePage').ProfilePage;
 export const GodViewDashboard = require('./GodViewDashboard').GodViewDashboard;
+export const MapScreen = require('./MapScreen').MapScreen;
 
 // Conditional overlays reached from inside another screen (PathMapScreen and
 // WalletScreen sit behind parked Focus Cut flags).

@@ -7,7 +7,8 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { BREAKPOINT } from './src/constants/DesignTokens';
-import { HIDDEN_TABS } from './src/constants/launchConfig';
+import { HIDDEN_TABS, feature } from './src/constants/launchConfig';
+import { BusinessDashboardScreen } from './src/screens/BusinessDashboardScreen';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { setDriftReporter } from './src/utils/resilience';
@@ -34,7 +35,7 @@ import { useNotifications } from './src/hooks/useNotifications';
 import { ViberProfileModal } from './src/components/ViberProfileModal';
 // Split on web, static on native — see src/screens/lazyScreens.js
 import {
-  ProfilePage, CalendarPage, ExplorePage, ReelsScreen, GodViewDashboard,
+  ProfilePage, CalendarPage, ExplorePage, ReelsScreen, GodViewDashboard, MapScreen,
 } from './src/screens/lazyScreens';
 import { TutorialProvider, useTutorial } from './src/context/TutorialContext';
 import { TutorialOverlay } from './src/components/TutorialOverlay';
@@ -74,6 +75,9 @@ const ALL_TABS = [
   { key: 'feed', label: 'The Drop', icon: 'home' },
   { key: 'reels', label: 'Reels', icon: 'film' },
   { key: 'explore', label: 'Explore', icon: 'compass' },
+  // The Living Map — a co-star of The Drop. Gated by feature('liveMap'); when
+  // off it's filtered out of both the mount list and the nav bar below.
+  ...(feature('liveMap') ? [{ key: 'map', label: 'Map', icon: 'map' }] : []),
   { key: 'calendar', label: 'Lineup', icon: 'calendar' },
   { key: 'chats', label: 'Linked Up', icon: 'message-circle' },
   { key: 'notifications', label: 'Pings', icon: 'bell' },
@@ -200,7 +204,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
 
 // ── Left Sidebar (wide screens) ───────────────────────────────────────────────
 // Item 33: accessibilityRole="navigation" on root
-const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onToggle, onGodView }) => (
+const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onToggle, onGodView, onBusiness }) => (
   <View
     accessibilityRole="navigation"
     accessibilityLabel="Main navigation"
@@ -272,6 +276,21 @@ const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onTog
       })}
     </View>
 
+    {/* The Gruvs for Business — one tap from anywhere, not buried in a profile row */}
+    {feature('business') && onBusiness && (
+      <TouchableOpacity
+        style={[sb.item, { justifyContent: isOpen ? 'flex-start' : 'center', marginTop: 'auto' }]}
+        onPress={onBusiness}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel="The Gruvs for Business"
+        {...(!isOpen && Platform.OS === 'web' ? { 'data-tooltip': 'For Business' } : {})}
+      >
+        <Feather name="briefcase" size={19} color={primary} />
+        {isOpen && <Text style={[sb.itemLabel, { color: primary, fontWeight: '800' }]}>For Business</Text>}
+      </TouchableOpacity>
+    )}
+
     {/* Toggle button — Item 44: accessibility role + label */}
     <TouchableOpacity
       style={[sb.toggleBtn, { justifyContent: isOpen ? 'flex-start' : 'center' }]}
@@ -341,6 +360,7 @@ const MainNavigator = () => {
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [godViewVisible, setGodViewVisible] = useState(false);
+  const [bizHubVisible, setBizHubVisible] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [targetEvent, setTargetEvent] = useState(null);
   const [targetProfile, setTargetProfile] = useState(null);
@@ -416,6 +436,10 @@ const MainNavigator = () => {
       if (backStack.pop()) return true; // close the topmost modal/sheet first
       if (godViewVisible) {
         setGodViewVisible(false);
+        return true;
+      }
+      if (bizHubVisible) {
+        setBizHubVisible(false);
         return true;
       }
       if (authModalVisible) {
@@ -732,6 +756,8 @@ const MainNavigator = () => {
         );
       case 'explore':
         return <ExplorePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
+      case 'map':
+        return <MapScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'calendar':
         return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'chats':
@@ -855,6 +881,7 @@ const MainNavigator = () => {
                 isOpen={sidebarOpen}
                 onToggle={() => setSidebarOpen(p => !p)}
                 onGodView={() => setGodViewVisible(true)}
+                onBusiness={() => setBizHubVisible(true)}
               />
             </ErrorBoundary>
             {/* Item 43: nativeID for skip-link anchor */}
@@ -869,6 +896,20 @@ const MainNavigator = () => {
             <Animated.View nativeID="main-content" style={[styles.content, { opacity: screenOpacity }]} {...tabSwipe.panHandlers}>
               {renderScreen()}
             </Animated.View>
+            {/* The Gruvs for Business — floating pill, one tap from any screen
+                (mobile has no global header). Above the tab bar. */}
+            {feature('business') && (
+              <TouchableOpacity
+                onPress={() => setBizHubVisible(true)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="The Gruvs for Business"
+                style={[styles.bizFab, { backgroundColor: primary, shadowColor: primary }]}
+              >
+                <Feather name="briefcase" size={14} color="#000" />
+                <Text style={styles.bizFabText}>Business</Text>
+              </TouchableOpacity>
+            )}
             <ErrorBoundary label="Navigation" inline>
               <TabBar
                 currentTab={currentTab}
@@ -883,6 +924,13 @@ const MainNavigator = () => {
           </View>
         )}
       </SafeAreaView>
+
+      {/* The Gruvs for Business hub — opened from sidebar / mobile pill */}
+      {bizHubVisible && (
+        <ErrorBoundary label="Business">
+          <BusinessDashboardScreen onClose={() => setBizHubVisible(false)} />
+        </ErrorBoundary>
+      )}
 
       {/* Item 42: accessibilityViewIsModal on AuthModal */}
       <ErrorBoundary label="Sign in">
@@ -1056,6 +1104,13 @@ const styles = StyleSheet.create({
   // Narrow layout
   narrowLayout: { flex: 1 },
   content: { flex: 1 },
+  bizFab: {
+    position: 'absolute', right: 14, bottom: 78, zIndex: 40,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 22,
+    shadowOpacity: 0.5, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
+  },
+  bizFabText: { color: '#000', fontWeight: '900', fontSize: 12, letterSpacing: 0.3 },
 
   // Keep-alive screen host: visited screens stack here; only the active one is
   // visible. Hidden screens stay mounted (state + scroll preserved) but out of
