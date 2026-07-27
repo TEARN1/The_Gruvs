@@ -44,6 +44,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.55)';
 
   const [center, setCenter] = useState(JHB);
+  const [userLoc, setUserLoc] = useState(null); // real device fix only (drives the "you are here" dot)
+  const mapApiRef = useRef(null);                // the MapLibre instance, for fitBounds
   const [events, setEvents] = useState([]);
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     (async () => {
       try {
         const c = await LocationService.requestAndGet();
-        if (c?.lat != null && c?.lon != null) setCenter({ lat: c.lat, lng: c.lon });
+        if (c?.lat != null && c?.lon != null) { setCenter({ lat: c.lat, lng: c.lon }); setUserLoc({ lat: c.lat, lng: c.lon }); }
       } catch { /* keep default */ }
     })();
   }, []);
@@ -174,7 +176,17 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const recenter = async () => {
     const c = await LocationService.requestAndGet();
-    if (c?.lat != null) setCenter({ lat: c.lat, lng: c.lon });
+    if (c?.lat != null) { setCenter({ lat: c.lat, lng: c.lon }); setUserLoc({ lat: c.lat, lng: c.lon }); }
+  };
+
+  // Fit every pin in view — one tap to see the whole night at once.
+  const fitAll = () => {
+    const m = mapApiRef.current;
+    const pts = events.map((e) => [e.lon ?? e.longitude, e.lat ?? e.latitude]).filter((p) => p[0] != null && p[1] != null);
+    if (!m || pts.length === 0) return;
+    let minX = pts[0][0], minY = pts[0][1], maxX = pts[0][0], maxY = pts[0][1];
+    for (const [x, y] of pts) { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); }
+    try { m.fitBounds([[minX, minY], [maxX, maxY]], { padding: 70, maxZoom: 15, duration: 600 }); } catch {}
   };
 
   // Fog of the City — light up where you've actually been (lazy-loaded once).
@@ -226,6 +238,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               events={events}
               zones={zones}
               center={center}
+              userLoc={userLoc}
               heat={heat}
               mine={myFog.points}
               showMine={showMine}
@@ -234,7 +247,13 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               drawMode={drawing ? mode : null}
               drawPoints={points}
               onMapClick={onMapClick}
-              onEventPress={(id) => { setActiveZone(null); setPreviewId(id); }}
+              onReady={(map) => { mapApiRef.current = map; }}
+              onEventPress={(id) => {
+                setActiveZone(null); setPreviewId(id);
+                // Focus the tapped pin (A7) so it sits above the preview sheet.
+                const e = events.find((x) => x.id === id);
+                if (e) setCenter({ lat: e.lat ?? e.latitude, lng: e.lon ?? e.longitude });
+              }}
               onZonePress={(id) => { const z = zones.find((x) => x.id === id); if (z) { setPreviewId(null); setActiveZone(z); } }}
             />
           </ErrorBoundary>
@@ -250,6 +269,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setHeat((h) => !h)} style={[cs.fab, { backgroundColor: heat ? primary : bg, borderColor: `${primary}40` }]}>
                 <Feather name="activity" size={18} color={heat ? '#000' : primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={fitAll} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
+                <Feather name="maximize" size={17} color={primary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={recenter} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
                 <Feather name="crosshair" size={18} color={primary} />
@@ -302,6 +324,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: '#00f2ff' }]} /><Text style={cs.legendText}>Events</Text></View>
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#ef4444' }]} /><Text style={cs.legendText}>Road closed</Text></View>
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#10b981' }]} /><Text style={cs.legendText}>Route</Text></View>
+              {heat && <View style={cs.legendRow}><Feather name="activity" size={9} color="#f59e0b" /><Text style={cs.legendText}>Heat = verified Touch Downs</Text></View>}
             </View>
           )}
         </View>

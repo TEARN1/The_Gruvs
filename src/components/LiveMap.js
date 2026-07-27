@@ -22,9 +22,10 @@ if (Platform.OS === 'web') {
   try { maplibregl = require('maplibre-gl').default || require('maplibre-gl'); } catch { maplibregl = null; }
 }
 
-// OpenFreeMap positron — a clean, free, keyless basemap. Neon pins/zones sit on
-// top and read beautifully against it. (A custom dark style is a later polish.)
-const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
+// OpenFreeMap dark — keyless & free, and it matches the app's dark UI so the
+// neon pins, heat and closures pop instead of washing out on a light ground.
+// Same host as before, so the existing CSP (tiles.openfreemap.org) covers it.
+const MAP_STYLE = 'https://tiles.openfreemap.org/styles/dark';
 const DEFAULT_CENTER = { lng: 28.0473, lat: -26.2041 }; // Johannesburg
 
 export function isMapSupported() {
@@ -68,6 +69,7 @@ export function LiveMap({
   events = [],
   zones = [],
   center = null,
+  userLoc = null,         // { lat, lng } — a real device fix → "you are here" dot
   heat = false,           // show the presence-heat layer
   mine = [],              // [{lat,lng}] — your lit Touch Downs ("Fog of the City")
   showMine = false,
@@ -141,21 +143,55 @@ export function LiveMap({
             0.8, 'rgba(245,158,11,0.8)', 1, 'rgba(239,68,68,0.9)'],
         },
       });
+      // Clustered pins live on their OWN source (a heatmap can't cluster), so at
+      // city zoom overlapping venues group into a count and split as you zoom in.
+      map.addSource('eventsC', {
+        type: 'geojson', data: eventsToGeoJSON(events),
+        cluster: true, clusterRadius: 48, clusterMaxZoom: 13,
+      });
+      // Cluster bubble — colour + size step up with how many venues it holds.
       map.addLayer({
-        id: 'events-glow', type: 'circle', source: 'events',
+        id: 'ev-cluster', type: 'circle', source: 'eventsC', filter: ['has', 'point_count'],
+        layout: { visibility: heatRef.current ? 'none' : 'visible' },
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 0, 9, 50, 22],
-          'circle-color': '#00f2ff',
-          'circle-opacity': 0.18,
-          'circle-blur': 0.6,
+          'circle-color': ['step', ['get', 'point_count'], '#00f2ff', 5, '#10b981', 15, '#f59e0b', 40, '#ef4444'],
+          'circle-opacity': 0.85,
+          'circle-radius': ['step', ['get', 'point_count'], 16, 5, 20, 15, 26, 40, 34],
+          'circle-stroke-color': '#0d1112', 'circle-stroke-width': 2,
         },
       });
       map.addLayer({
-        id: 'events-dot', type: 'circle', source: 'events',
+        id: 'ev-cluster-count', type: 'symbol', source: 'eventsC', filter: ['has', 'point_count'],
+        layout: { visibility: heatRef.current ? 'none' : 'visible',
+          'text-field': ['get', 'point_count_abbreviated'], 'text-size': 13, 'text-allow-overlap': true },
+        paint: { 'text-color': '#0d1112' },
+      });
+      // Individual venue — soft glow, then the "hot right now" ring on busy ones,
+      // then the crisp dot on top.
+      map.addLayer({
+        id: 'ev-glow', type: 'circle', source: 'eventsC', filter: ['!', ['has', 'point_count']],
+        layout: { visibility: heatRef.current ? 'none' : 'visible' },
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 0, 9, 50, 22],
+          'circle-color': '#00f2ff', 'circle-opacity': 0.18, 'circle-blur': 0.6,
+        },
+      });
+      map.addLayer({
+        id: 'ev-hot', type: 'circle', source: 'eventsC',
+        filter: ['all', ['!', ['has', 'point_count']], ['>=', ['get', 'here'], 10]],
+        layout: { visibility: heatRef.current ? 'none' : 'visible' },
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 10, 12, 60, 26],
+          'circle-color': 'rgba(0,0,0,0)',
+          'circle-stroke-color': '#f59e0b', 'circle-stroke-width': 2, 'circle-stroke-opacity': 0.9,
+        },
+      });
+      map.addLayer({
+        id: 'ev-dot', type: 'circle', source: 'eventsC', filter: ['!', ['has', 'point_count']],
+        layout: { visibility: heatRef.current ? 'none' : 'visible' },
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 0, 5, 50, 9],
-          'circle-color': '#00f2ff',
-          'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5,
+          'circle-color': '#00f2ff', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5,
         },
       });
 
@@ -198,6 +234,18 @@ export function LiveMap({
         paint: { 'text-color': '#fff' },
       });
 
+      // You are here — a single bright dot so people orient instantly. Only ever
+      // set from a real device fix (never the default city centre).
+      map.addSource('self', { type: 'geojson', data: pointsToGeoJSON(userLoc ? [userLoc] : []) });
+      map.addLayer({
+        id: 'self-glow', type: 'circle', source: 'self',
+        paint: { 'circle-radius': 20, 'circle-color': '#3b82f6', 'circle-opacity': 0.18, 'circle-blur': 0.8 },
+      });
+      map.addLayer({
+        id: 'self-dot', type: 'circle', source: 'self',
+        paint: { 'circle-radius': 7, 'circle-color': '#3b82f6', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2.5 },
+      });
+
       // In-progress draw geometry.
       map.addSource('draw', { type: 'geojson', data: emptyFC() });
       map.addLayer({
@@ -210,16 +258,24 @@ export function LiveMap({
         paint: { 'circle-radius': 5, 'circle-color': '#ff2d55', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
       });
 
-      // Taps: draw takes priority; else pin hit-test.
+      // Taps: draw takes priority; then cluster (zoom in); then a pin; then a zone.
       map.on('click', (ev) => {
         if (drawModeRef.current) { onClickRef.current?.([ev.lngLat.lng, ev.lngLat.lat]); return; }
-        const hit = map.queryRenderedFeatures(ev.point, { layers: ['events-dot', 'events-glow'] });
+        const cl = map.queryRenderedFeatures(ev.point, { layers: ['ev-cluster'] });
+        if (cl && cl[0]) {
+          const src = map.getSource('eventsC');
+          src.getClusterExpansionZoom(cl[0].properties.cluster_id, (err, zoom) => {
+            if (!err) map.easeTo({ center: cl[0].geometry.coordinates, zoom: Math.min(zoom + 0.5, 17), duration: 500 });
+          });
+          return;
+        }
+        const hit = map.queryRenderedFeatures(ev.point, { layers: ['ev-dot', 'ev-glow', 'ev-hot'] });
         if (hit && hit[0]) { onEventRef.current?.(hit[0].properties.id); return; }
         const z = map.queryRenderedFeatures(ev.point, { layers: ['zones-line', 'zones-fill'] });
         if (z && z[0]) onZoneRef.current?.(z[0].properties.id);
       });
       map.getCanvas().style.cursor = '';
-      onReady?.();
+      onReady?.(map);
     });
 
     return () => { try { map.remove(); } catch {} mapRef.current = null; readyRef.current = false; };
@@ -233,11 +289,12 @@ export function LiveMap({
     onEventRef.current = onEventPress; onZoneRef.current = onZonePress; });
 
   // ── update sources on data change ───────────────────────────────────────────
-  useEffect(() => { setData('events', eventsToGeoJSON(events)); }, [events]);
+  useEffect(() => { const g = eventsToGeoJSON(events); setData('events', g); setData('eventsC', g); }, [events]);
   useEffect(() => { setData('zones', zonesToGeoJSON(zones)); }, [zones]);
   useEffect(() => { setData('draw', drawGeoJSON(drawMode, drawPoints)); }, [drawMode, drawPoints]);
   useEffect(() => { setData('mine', pointsToGeoJSON(mine)); }, [mine]);
   useEffect(() => { setData('crew', crewToGeoJSON(crew)); }, [crew]);
+  useEffect(() => { setData('self', pointsToGeoJSON(userLoc ? [userLoc] : [])); }, [userLoc]);
   useEffect(() => {
     const m = mapRef.current;
     if (m && readyRef.current && center) m.easeTo({ center: [center.lng, center.lat], duration: 700 });
@@ -253,7 +310,12 @@ export function LiveMap({
   function toggleHeat(on) {
     const m = mapRef.current;
     if (!m || !readyRef.current || !m.getLayer('events-heat')) return;
+    // Heat and clustered pins are two readings of the same data — show one or the
+    // other so the map never double-renders the crowd.
     try { m.setLayoutProperty('events-heat', 'visibility', on ? 'visible' : 'none'); } catch {}
+    for (const id of ['ev-cluster', 'ev-cluster-count', 'ev-glow', 'ev-hot', 'ev-dot']) {
+      if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible'); } catch {}
+    }
   }
 
   function toggleMine(on) {
