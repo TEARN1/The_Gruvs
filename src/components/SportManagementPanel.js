@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { SPORT_REGISTRY, TeamManager, MatchManager, TableManager, CommentaryManager } from '../services/sportsEngine';
+import { GAMING_KEYS } from '../constants/AllCategories';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
@@ -658,7 +659,10 @@ export const isSportCategory = (category) => SPORT_CATEGORIES.has(category?.toLo
 // ── Main SportManagementPanel ─────────────────────────────────────────────────
 
 export const SportManagementPanel = ({ event, primary, textColor, muted }) => {
-  const sportType = event?.sport_type || event?.category?.toLowerCase() || 'soccer';
+  // Gaming categories (valorant, ea_fc, moba, …) aren't individual registry
+  // entries — they all run on the shared 'esports' config (match-wins, W/L/Pts).
+  const rawType = event?.sport_type || event?.category?.toLowerCase() || 'soccer';
+  const sportType = (!SPORT_REGISTRY[rawType] && GAMING_KEYS.has(rawType)) ? 'esports' : rawType;
   const sportMeta = SPORT_REGISTRY[sportType] || SPORT_REGISTRY.other || { icon: '🏆', name: 'Sport', team_sport: true };
   const [tab, setTab] = useState('teams');
 

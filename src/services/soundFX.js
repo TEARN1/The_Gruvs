@@ -69,6 +69,13 @@ export const SOUNDS = {
     { type: 'sine', f0: HZ.C6, start: 0.36, dur: 0.34, gain: 0.55, decay: 0.12 },
     { type: 'sine', f0: HZ.C6 * SHIM, start: 0.36, dur: 0.34, gain: 0.22, decay: 0.12 },
   ]),
+  // Caller ringback — the "purr" YOU hear while waiting for them to pick up.
+  // Deliberately softer, lower and more spaced than the incoming ringtone so the
+  // two ends of the same call never sound alike.
+  ringback: R([
+    { type: 'sine', f0: HZ.C5, start: 0.00, dur: 0.30, gain: 0.30, decay: 0.12 },
+    { type: 'sine', f0: HZ.G5, start: 0.30, dur: 0.34, gain: 0.28, decay: 0.14 },
+  ]),
   // Soft error — a gentle low "donk", never harsh.
   error: R([
     { type: 'sine', f0: HZ.Bb3, f1: HZ.G3, start: 0, dur: 0.18, gain: 0.4, decay: 0.11 },

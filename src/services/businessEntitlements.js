@@ -29,6 +29,12 @@ const LIMITS = {
   missionsPerMonth: { starter: 5, pro: Infinity, royal: Infinity, enterprise: Infinity },
   // Max Crowd targets a single Mission may address.
   crowdTargetsPerMission: { starter: 500, pro: 10000, royal: 50000, enterprise: Infinity },
+  // "The Meal" reach economy — free to post, but organic reach is metered so a
+  // higher tier (or a boost) is what buys visibility. These numbers ARE the pitch
+  // shown on the benefits screen, so keep them honest with feed_meals().
+  activeMealBoosts: { starter: 1, pro: 5, royal: 20, enterprise: Infinity },   // meals boosted at once
+  mealRotation:     { starter: 2, pro: Infinity, royal: Infinity, enterprise: Infinity }, // non-boosted meals kept in rails per business
+  mealFreeViews:    { starter: 200, pro: 2000, royal: 10000, enterprise: Infinity },      // organic views before a non-boosted meal drops out
 };
 const FLAGS = {
   advancedReads: 'pro',       // deep analytics panels (Starter keeps Basic Reads)

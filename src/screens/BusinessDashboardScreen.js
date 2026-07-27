@@ -15,6 +15,9 @@ import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { can, tierFor, missionQuota } from '../services/businessEntitlements';
+import { MealService } from '../services/mealService';
+import { MealComposeModal } from '../components/MealComposeModal';
+import { SoundFX } from '../services/soundFX';
 import { BusinessTrendPanel } from '../components/BusinessTrendPanel';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 import { StagePlaybookModal } from '../components/StagePlaybookModal';
@@ -298,10 +301,10 @@ const BUSINESS_TYPES = [
 ];
 
 const TIERS = {
-  starter: { label: 'Starter', color: "#94a3b8", perks: ['5 Missions/mo', 'Basic Reads', '500 Crowd targets/Mission'] },
-  pro: { label: 'Pro', color: "#06b6d4", perks: ['Unlimited Missions', 'Advanced Reads', '10K Crowd targets/Mission', 'Storefront builder'] },
-  royal: { label: 'Royal', color: "#8b5cf6", perks: ['Everything in Pro', 'API access', 'Backing Marketplace', 'Priority support', 'Custom domain'] },
-  enterprise: { label: 'Enterprise', color: "#f59e0b", perks: ['Everything in Royal', 'Dedicated Gruv manager', 'Custom Connects', 'White-label Storefront', 'Bulk Mission tools'] },
+  starter: { label: 'Starter', color: "#94a3b8", perks: ['5 Missions/mo', 'Basic Reads', '500 Crowd targets/Mission', '1 Meal boost · 2 in rotation'] },
+  pro: { label: 'Pro', color: "#06b6d4", perks: ['Unlimited Missions', 'Advanced Reads', '10K Crowd targets/Mission', 'Storefront builder', '5 Meal boosts · unlimited rotation'] },
+  royal: { label: 'Royal', color: "#8b5cf6", perks: ['Everything in Pro', 'API access', 'Backing Marketplace', 'Priority support', 'Custom domain', '20 Meal boosts'] },
+  enterprise: { label: 'Enterprise', color: "#f59e0b", perks: ['Everything in Royal', 'Dedicated Gruv manager', 'Custom Connects', 'White-label Storefront', 'Bulk Mission tools', 'Unlimited Meal boosts'] },
 };
 
 // ── Stat Card ────────────────────────────────────────────────────────────────
@@ -471,6 +474,25 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const [setupMode, setSetupMode] = useState(false);
   const [setupForm, setSetupForm] = useState({ business_name: '', business_type: '', tagline: '', description: '', website: '', phone: '' });
   const [upgradeVisible, setUpgradeVisible] = useState(false);
+  const [mealComposeOpen, setMealComposeOpen] = useState(false);
+  const [myMeals, setMyMeals] = useState([]);
+
+  const loadMyMeals = useCallback(async (businessId) => {
+    if (!businessId) return;
+    try { setMyMeals(await MealService.myMeals(businessId)); } catch { /* meals are optional */ }
+  }, []);
+
+  const boostMyMeal = useCallback(async (mealId) => {
+    try {
+      await MealService.boostMeal(mealId, 24);
+      SoundFX.play?.('levelUp');
+      showToast('Boosted for 24h — now reaching more diners.', 'success');
+      if (biz?.id) loadMyMeals(biz.id);
+    } catch (e) {
+      if (e?.code === 'over_limit') showToast('You\'ve used your free boost — upgrade for more reach.', 'error');
+      else showToast('Could not boost. Try again.', 'error');
+    }
+  }, [biz?.id, loadMyMeals, showToast]);
   const tabScrollRef = useRef(null);
   const headerAnim = useRef(new Animated.Value(0)).current;
 
@@ -490,6 +512,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       }
       if (!bizData) { setSetupMode(true); return; }
       setBiz(bizData);
+      loadMyMeals(bizData.id);
 
       // Parallel data fetch using centralized managers
       const [campData, partData, segments, notifData] = await Promise.all([
@@ -826,6 +849,36 @@ export const BusinessDashboardScreen = ({ onClose }) => {
                 <Text style={[sc.perkText, { color: muted }]}>{p}</Text>
               </View>
             ))}
+          </GlassView>
+
+          {/* The Meal — post dishes/specials that surface in Explore & near diners */}
+          <GlassView style={[sc.tierCard, { borderColor: `${primary}30`, marginTop: 14 }]}>
+            <View style={sc.tierHeader}>
+              <Text style={[sc.tierCardTitle, { color: primary }]}>🍽️ The Meal</Text>
+              <TouchableOpacity onPress={() => setMealComposeOpen(true)} style={[sc.upgradeBtn, { borderColor: primary }]}>
+                <Text style={[sc.upgradeBtnText, { color: primary }]}>+ POST DISH</Text>
+              </TouchableOpacity>
+            </View>
+            {myMeals.length === 0 ? (
+              <Text style={[sc.perkText, { color: muted, paddingVertical: 6 }]}>
+                Post your menu, specials or a tasting — they appear in Explore, and a boost puts them in front of diners nearby.
+              </Text>
+            ) : myMeals.map(m => {
+              const live = m.is_boosted && (!m.boosted_until || new Date(m.boosted_until) > new Date());
+              return (
+                <View key={m.id} style={sc.perkRow}>
+                  <Feather name={live ? 'zap' : 'coffee'} size={13} color={live ? '#f97316' : muted} />
+                  <Text style={[sc.perkText, { color: textColor, flex: 1 }]} numberOfLines={1}>
+                    {m.title}{m.price != null ? ` · ${m.currency || 'R'}${m.price}` : ''}
+                  </Text>
+                  <TouchableOpacity onPress={() => boostMyMeal(m.id)} disabled={live}>
+                    <Text style={{ color: live ? muted : '#f97316', fontSize: 11, fontWeight: '900' }}>
+                      {live ? 'Boosted' : 'Boost'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
           </GlassView>
         </ScrollView>
       );
@@ -1275,6 +1328,13 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         textColor={textColor}
         muted={muted}
         bg={bg}
+      />
+
+      <MealComposeModal
+        visible={mealComposeOpen}
+        business={biz}
+        onClose={() => setMealComposeOpen(false)}
+        onPosted={() => { setMealComposeOpen(false); if (biz?.id) loadMyMeals(biz.id); }}
       />
 
       {/* Stage Playbook — fast pre/during/post offers */}

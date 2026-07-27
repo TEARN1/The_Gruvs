@@ -63,6 +63,7 @@ import { EventManagementPanel }   from '../components/EventManagementPanel';
 import { PosterInsightsPanel }     from '../components/PosterInsightsPanel';
 import { InviteByNameModal }      from '../components/InviteByNameModal';
 import { SportManagementPanel }   from '../components/SportManagementPanel';
+import { GAMING_KEYS }            from '../constants/AllCategories';
 import { EventGuestsModal }       from '../components/EventGuestsModal';
 import { ViberProfileModal }      from '../components/ViberProfileModal';
 import { CrossedPathsModal }      from '../components/CrossedPathsModal';
@@ -85,9 +86,15 @@ import { lifecycleState } from '../utils/eventLifecycle';
 import { DoorCheckInModal } from '../components/DoorCheckInModal';
 import { checkinVerdict, movementPlausible } from '../utils/checkinGuard';
 
+// Gaming events get a scoreboard too (esports engine), EXCEPT the purely social
+// gaming categories where a league table makes no sense.
+const _NON_SCORE_GAMING = new Set(['streamer', 'cosplay_gaming']);
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
-  return SPORT_CATS.has(cat?.toLowerCase());
+  const c = cat?.toLowerCase();
+  if (!c) return false;
+  if (SPORT_CATS.has(c)) return true;
+  return GAMING_KEYS.has(c) && !_NON_SCORE_GAMING.has(c);
 };
 
 const SCREEN_W = Dimensions.get('window').width;

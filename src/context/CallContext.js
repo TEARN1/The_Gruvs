@@ -24,6 +24,17 @@ import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import { useToast } from '../components/ToastNotification';
 
+// Native haptic buzz on incoming ring — guarded so a missing module or the web
+// platform is simply a silent no-op (never throws into the call UI).
+const Haptics = {
+  notify() {
+    try {
+      const H = require('expo-haptics');
+      H.notificationAsync?.(H.NotificationFeedbackType?.Warning).catch?.(() => {});
+    } catch { /* web / not installed → no haptics */ }
+  },
+};
+
 const CallContext = createContext({ startCall: () => {}, callSupported: false, inCall: false });
 export const useCall = () => useContext(CallContext);
 
@@ -214,13 +225,23 @@ export function CallProvider({ children }) {
     }
   }, [recording, showToast]);
 
-  // Ring while a call is incoming.
+  // Audible call state: the callee hears the incoming "ringtone", the caller
+  // hears the softer "ringback" purr while waiting for a pick-up. Different
+  // sounds so each end always knows which side of the call it's on.
   useEffect(() => {
-    if (call?.status !== 'incoming') return;
-    SoundFX.play('ringtone');
-    const id = setInterval(() => SoundFX.play('ringtone'), 1800);
+    if (!call) return;
+    const isIncoming = call.status === 'incoming';
+    const isCallerWaiting = call.role === 'caller' && call.status === 'connecting';
+    if (!isIncoming && !isCallerWaiting) return;
+    const name = isIncoming ? 'ringtone' : 'ringback';
+    SoundFX.play(name);
+    if (isIncoming) Haptics.notify();
+    const id = setInterval(() => {
+      SoundFX.play(name);
+      if (isIncoming) Haptics.notify();
+    }, isIncoming ? 1800 : 3200);
     return () => clearInterval(id);
-  }, [call?.status]);
+  }, [call?.status, call?.role]);
 
   // Always-on incoming-call listener — the whole point of this being global.
   useEffect(() => {

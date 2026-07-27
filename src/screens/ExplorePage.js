@@ -36,6 +36,9 @@ import { WhoWasThereModal } from '../components/WhoWasThereModal';
 import { TutorialCenter } from '../components/TutorialCenter';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SurveyCard } from '../components/SurveyCard';
+import { MealCard } from '../components/MealCard';
+import { MealDetailModal } from '../components/MealDetailModal';
+import { MealService } from '../services/mealService';
 
 const { width } = Dimensions.get('window');
 
@@ -585,6 +588,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [whoWasThereVisible,  setWhoWasThereVisible]  = useState(false);
   const [routes, setRoutes] = useState([]);
   const [trendingHashtags, setTrendingHashtags] = useState([]);
+  const [meals, setMeals] = useState([]);
+  const [mealDetail, setMealDetail] = useState(null);
   const [scrollY, setScrollY] = useState(0);
   const scrollRef = useRef(null);
   const searchTimer = useRef(null);
@@ -758,6 +763,13 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             .map(([tag, count]) => ({ tag, count }))
         );
       } catch { setTrendingHashtags([]); }
+
+      // The Meal — restaurant menus/specials/tastings (boosted-first ranking).
+      try {
+        const cached = LocationService.getCached?.();
+        const list = await MealService.listMeals({ lat: cached?.lat ?? null, lon: cached?.lon ?? null, limit: 30 });
+        setMeals(list || []);
+      } catch { setMeals([]); }
 
       setLocationLoading(true);
       try {
@@ -1338,6 +1350,31 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               </View>
             )}
 
+            {/* ── The Meal — restaurants' menus, specials & tastings ──────── */}
+            {meals.length > 0 && (
+              <View style={{ marginBottom: 22 }}>
+                <SectionHeader
+                  title="The Meal"
+                  textColor={textColor}
+                  primary={primary}
+                />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                  {meals.map((m, i) => (
+                    <FadeInView key={m.id} delay={i * 40} direction="right">
+                      <MealCard
+                        meal={m}
+                        primary={primary}
+                        textColor={textColor}
+                        muted={muted}
+                        surface={surface}
+                        onPress={(meal) => setMealDetail(meal)}
+                      />
+                    </FadeInView>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             {/* ── Vibe Matches (Advanced Matching) ───────────────────────── */}
             {vibeMatches.length > 0 && (
               <View style={{ marginBottom: 25 }}>
@@ -1670,6 +1707,11 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         userId={selectedViber?.id || selectedViber?.profile_id}
         onClose={() => setViberModalVisible(false)}
         onNavigateToEvent={(ev) => { setViberModalVisible(false); onNavigateToEvent?.(ev); }}
+      />
+      <MealDetailModal
+        visible={!!mealDetail}
+        meal={mealDetail}
+        onClose={() => setMealDetail(null)}
       />
       <Modal
         visible={marketplaceVisible}
