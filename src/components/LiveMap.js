@@ -68,6 +68,7 @@ export function LiveMap({
   events = [],
   zones = [],
   center = null,
+  heat = false,           // show the presence-heat layer
   drawMode = null,        // null | 'line' | 'polygon'
   drawPoints = [],        // [[lng,lat], ...] controlled by parent
   onMapClick,             // (lngLat) => void  — used while drawing
@@ -79,6 +80,8 @@ export function LiveMap({
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const readyRef = useRef(false);
+  const heatRef = useRef(heat);
+  useEffect(() => { heatRef.current = heat; toggleHeat(heat); });
 
   // ── init once ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -116,6 +119,20 @@ export function LiveMap({
 
       // Events: glowing dots sized by verified presence.
       map.addSource('events', { type: 'geojson', data: eventsToGeoJSON(events) });
+      // Presence heat — where the crowd actually is (weighted by verified count).
+      map.addLayer({
+        id: 'events-heat', type: 'heatmap', source: 'events',
+        layout: { visibility: heatRef.current ? 'visible' : 'none' },
+        paint: {
+          'heatmap-weight': ['interpolate', ['linear'], ['get', 'here'], 0, 0.15, 50, 1],
+          'heatmap-intensity': 1.1,
+          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 18, 15, 40],
+          'heatmap-opacity': 0.75,
+          'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
+            0, 'rgba(0,0,0,0)', 0.2, 'rgba(0,242,255,0.35)', 0.5, 'rgba(16,185,129,0.6)',
+            0.8, 'rgba(245,158,11,0.8)', 1, 'rgba(239,68,68,0.9)'],
+        },
+      });
       map.addLayer({
         id: 'events-glow', type: 'circle', source: 'events',
         paint: {
@@ -182,6 +199,12 @@ export function LiveMap({
     if (!m || !readyRef.current) return;
     const src = m.getSource(id);
     if (src) src.setData(data);
+  }
+
+  function toggleHeat(on) {
+    const m = mapRef.current;
+    if (!m || !readyRef.current || !m.getLayer('events-heat')) return;
+    try { m.setLayoutProperty('events-heat', 'visibility', on ? 'visible' : 'none'); } catch {}
   }
 
   if (!isMapSupported()) {

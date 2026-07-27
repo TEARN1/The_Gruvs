@@ -20,6 +20,14 @@ import { MapZones, ZONE_KINDS, ZONE_STATUS } from '../services/mapZones';
 import { supabase } from '../services/supabase';
 import { LocationService } from '../services/locationService';
 import { useToast } from '../components/ToastNotification';
+import { pickConciergeMove } from '../services/concierge';
+import { MapNudge } from '../components/MapNudge';
+import { VibeRouletteModal } from '../components/VibeRouletteModal';
+import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
+const NUDGE_COOLDOWN_MS = 2 * 3600 * 1000; // don't nag — at most every 2h
 
 const JHB = { lat: -26.2041, lng: 28.0473 };
 
@@ -44,6 +52,12 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   // Zone detail
   const [activeZone, setActiveZone] = useState(null);
+
+  // Phase 2: presence heat + the Concierge
+  const [heat, setHeat] = useState(false);
+  const [nudge, setNudge] = useState(null);
+  const [showRoulette, setShowRoulette] = useState(false);
+  const [showHomeSafe, setShowHomeSafe] = useState(false);
 
   const centerRef = useRef(center);
   useEffect(() => { centerRef.current = center; }, [center]);
@@ -91,6 +105,36 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   // Re-pull zones when the map centre moves meaningfully.
   useEffect(() => { loadZones(); }, [center, loadZones]);
+
+  // ── The Concierge: a big closure near you + you're not into it → a real
+  //    alternative. Cooldown'd so it never nags. ────────────────────────────
+  useEffect(() => {
+    if (loading || nudge) return;
+    const closures = zones.filter((z) => z.kind === 'road_closed' || z.kind === 'detour');
+    if (closures.length === 0) return;
+    let alive = true;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(NUDGE_COOLDOWN_KEY);
+        if (raw && Date.now() - Number(raw) < NUDGE_COOLDOWN_MS) return;
+        const move = await pickConciergeMove({
+          userId: user?.id,
+          nearbyEvents: events,
+          excludeEventIds: closures.map((z) => z.event_id).filter(Boolean),
+        });
+        if (alive && move) { setNudge(move); AsyncStorage.setItem(NUDGE_COOLDOWN_KEY, String(Date.now())).catch(() => {}); }
+      } catch { /* concierge is best-effort */ }
+    })();
+    return () => { alive = false; };
+  }, [loading, zones, events, user?.id, nudge]);
+
+  const actOnNudge = () => {
+    const m = nudge; setNudge(null);
+    if (!m) return;
+    if (m.kind === 'openEvent' && m.payload?.eventId) onNavigateToEvent?.({ id: m.payload.eventId });
+    else if (m.kind === 'roulette') setShowRoulette(true);
+    else if (m.kind === 'getHomeSafe') { if (!user) onAuthRequired?.(); else setShowHomeSafe(true); }
+  };
 
   // ── draw handlers ───────────────────────────────────────────────────────────
   const startDraw = () => {
@@ -141,6 +185,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               events={events}
               zones={zones}
               center={center}
+              heat={heat}
               drawMode={drawing ? mode : null}
               drawPoints={points}
               onMapClick={onMapClick}
@@ -152,6 +197,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           {/* Floating controls (only when the real map is up and not drawing) */}
           {isMapSupported() && !drawing && (
             <View style={cs.fabCol} pointerEvents="box-none">
+              <TouchableOpacity onPress={() => setHeat((h) => !h)} style={[cs.fab, { backgroundColor: heat ? primary : bg, borderColor: `${primary}40` }]}>
+                <Feather name="activity" size={18} color={heat ? '#000' : primary} />
+              </TouchableOpacity>
               <TouchableOpacity onPress={recenter} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
                 <Feather name="crosshair" size={18} color={primary} />
               </TouchableOpacity>
@@ -160,6 +208,14 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                 <Text style={cs.markText}>Mark a closure</Text>
               </TouchableOpacity>
             </View>
+          )}
+
+          {/* The Concierge nudge — a real alternative when a closure's near */}
+          {nudge && !drawing && !activeZone && (
+            <MapNudge
+              move={nudge} onAct={actOnNudge} onDismiss={() => setNudge(null)}
+              primary={primary} bg={bg} textColor={textColor} muted={muted}
+            />
           )}
 
           {/* Legend (compact) */}
@@ -189,6 +245,14 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             primary={primary} bg={bg} textColor={textColor} muted={muted}
           />
         )}
+
+        {/* Concierge destinations */}
+        <VibeRouletteModal
+          visible={showRoulette} onClose={() => setShowRoulette(false)}
+          events={events} primary={primary}
+          onSelectEvent={(e) => { setShowRoulette(false); if (e?.id) onNavigateToEvent?.({ id: e.id }); }}
+        />
+        <GetHomeSafeModal visible={showHomeSafe} onClose={() => setShowHomeSafe(false)} />
       </SafeAreaView>
     </ErrorBoundary>
   );
