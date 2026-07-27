@@ -106,6 +106,8 @@ jobs:
             rm -rf /var/www/thegruvs_old &&
             if [ -d /var/www/thegruvs ]; then mv /var/www/thegruvs /var/www/thegruvs_old; fi &&
             mv /var/www/thegruvs_stage /var/www/thegruvs &&
+            CONF=\$(grep -rl 'server_name thegruvs.com' /etc/nginx/ 2>/dev/null | head -1) &&
+            { [ -z \"\$CONF\" ] || grep -q 'tiles.openfreemap.org' \"\$CONF\" || sed -i 's#tessdata.projectnaptha.com#tessdata.projectnaptha.com https://tiles.openfreemap.org#' \"\$CONF\"; } &&
             nginx -t && systemctl reload nginx
           "
 
