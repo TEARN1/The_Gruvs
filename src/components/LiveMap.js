@@ -112,8 +112,12 @@ export function LiveMap({
       });
     } catch { return; }
     mapRef.current = map;
+    // Swallow async tile/style errors (a slow tile, a transient 5xx) so they
+    // never bubble up as a crash — the basemap simply retries.
+    map.on('error', () => {});
 
     map.on('load', () => {
+     try {
       readyRef.current = true;
       // Zones: fill (for polygons) under lines (for closures/routes).
       map.addSource('zones', { type: 'geojson', data: zonesToGeoJSON(zones) });
@@ -284,9 +288,13 @@ export function LiveMap({
         const cl = map.queryRenderedFeatures(ev.point, { layers: ['ev-cluster'] });
         if (cl && cl[0]) {
           const src = map.getSource('eventsC');
-          src.getClusterExpansionZoom(cl[0].properties.cluster_id, (err, zoom) => {
-            if (!err) map.easeTo({ center: cl[0].geometry.coordinates, zoom: Math.min(zoom + 0.5, 17), duration: 500 });
-          });
+          const center = cl[0].geometry.coordinates;
+          const fly = (zoom) => map.easeTo({ center, zoom: Math.min((zoom || map.getZoom()) + 0.5, 17), duration: 500 });
+          try {
+            // maplibre v4 returns a Promise; older builds use a callback. Support both.
+            const p = src.getClusterExpansionZoom(cl[0].properties.cluster_id, (err, zoom) => { if (!err) fly(zoom); });
+            if (p && typeof p.then === 'function') p.then(fly).catch(() => {});
+          } catch { fly(); }
           return;
         }
         const hit = map.queryRenderedFeatures(ev.point, { layers: ['ev-dot', 'ev-glow', 'ev-hot'] });
@@ -296,6 +304,7 @@ export function LiveMap({
       });
       map.getCanvas().style.cursor = '';
       onReady?.(map);
+     } catch (e) { /* one bad layer must never blank the whole map */ }
     });
 
     return () => { try { map.remove(); } catch {} mapRef.current = null; readyRef.current = false; };
