@@ -73,6 +73,7 @@ export function LiveMap({
   zones = [],
   center = null,
   userLoc = null,         // { lat, lng } — a real device fix → "you are here" dot
+  ripple = null,          // { lng, lat, key } — pulse a ring when someone checks in
   heat = false,           // show the presence-heat layer
   mine = [],              // [{lat,lng}] — your lit Touch Downs ("Fog of the City")
   showMine = false,
@@ -249,6 +250,13 @@ export function LiveMap({
         paint: { 'circle-radius': 7, 'circle-color': '#3b82f6', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2.5 },
       });
 
+      // Touch-Down ripple — a one-shot expanding ring when someone checks in.
+      map.addSource('ripple', { type: 'geojson', data: emptyFC() });
+      map.addLayer({
+        id: 'ripple-ring', type: 'circle', source: 'ripple',
+        paint: { 'circle-radius': 4, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#10b981', 'circle-stroke-width': 3, 'circle-stroke-opacity': 0.9 },
+      });
+
       // In-progress draw geometry.
       map.addSource('draw', { type: 'geojson', data: emptyFC() });
       map.addLayer({
@@ -298,6 +306,26 @@ export function LiveMap({
   useEffect(() => { setData('mine', pointsToGeoJSON(mine)); }, [mine]);
   useEffect(() => { setData('crew', crewToGeoJSON(crew)); }, [crew]);
   useEffect(() => { setData('self', pointsToGeoJSON(userLoc ? [userLoc] : [])); }, [userLoc]);
+  // Animate a ripple each time `ripple.key` changes — radius grows, ring fades.
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || !readyRef.current || !ripple || ripple.lng == null || !m.getLayer('ripple-ring')) return;
+    setData('ripple', pointsToGeoJSON([{ lat: ripple.lat, lng: ripple.lng }]));
+    const start = performance.now();
+    const DUR = 1400;
+    let raf;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / DUR);
+      try {
+        m.setPaintProperty('ripple-ring', 'circle-radius', 4 + t * 46);
+        m.setPaintProperty('ripple-ring', 'circle-stroke-opacity', 0.9 * (1 - t));
+      } catch {}
+      if (t < 1) raf = requestAnimationFrame(step);
+      else setData('ripple', emptyFC());
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [ripple?.key]); // eslint-disable-line
   useEffect(() => {
     const m = mapRef.current;
     if (m && readyRef.current && center) m.easeTo({ center: [center.lng, center.lat], duration: 700 });

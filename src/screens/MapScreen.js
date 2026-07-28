@@ -62,6 +62,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   // Phase 2: presence heat + the Concierge
   const [heat, setHeat] = useState(false);
+  const [liveOnly, setLiveOnly] = useState(false); // show only venues with verified people there now
+  const [ripple, setRipple] = useState(null);      // {lng,lat,key} — pulse on a live check-in
   const [nudge, setNudge] = useState(null);
   const [showRoulette, setShowRoulette] = useState(false);
   const [showHomeSafe, setShowHomeSafe] = useState(false);
@@ -76,6 +78,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const centerRef = useRef(center);
   useEffect(() => { centerRef.current = center; }, [center]);
+  const eventsRef = useRef(events);
+  useEffect(() => { eventsRef.current = events; }, [events]);
 
   // One-shot deliberate location for the initial centre (never continuous).
   useEffect(() => {
@@ -136,9 +140,17 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     // happen. Debounced so a burst of arrivals is one repaint, not fifty.
     let t = null;
     const bump = () => { clearTimeout(t); t = setTimeout(() => { if (alive) loadEvents(); }, 1200); };
+    // A new check-in: ripple at that venue if it's on the map, then refresh counts.
+    const onCheckin = (p) => {
+      const evId = p?.new?.event_id;
+      const e = evId && eventsRef.current.find((x) => x.id === evId);
+      if (e) { const lat = e.lat ?? e.latitude, lng = e.lon ?? e.longitude; if (lat != null) setRipple({ lat, lng, key: Date.now() }); }
+      bump();
+    };
     const live = supabase
       .channel(`map_live_${Math.random().toString(36).slice(2, 8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_checkins' }, bump)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_checkins' }, onCheckin)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_checkins' }, bump)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, bump)
       .subscribe();
 
@@ -245,6 +257,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const crewOut = crewPlans.reduce((set, p) => { p.people.forEach((x) => set.add(x.id)); return set; }, new Set()).size;
 
   const activeClosures = zones.filter((z) => z.kind === 'road_closed' || z.kind === 'detour').length;
+  // "Live now" filters to venues with verified people currently there; otherwise
+  // the map shows everything upcoming.
+  const shownEvents = liveOnly ? events.filter((e) => (e.here_count || 0) > 0) : events;
 
   return (
     <ErrorBoundary label="Map">
@@ -262,10 +277,11 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         <View style={{ flex: 1 }}>
           <ErrorBoundary label="Live map" inline primary={primary}>
             <LiveMap
-              events={events}
+              events={shownEvents}
               zones={zones}
               center={center}
               userLoc={userLoc}
+              ripple={ripple}
               heat={heat}
               mine={myFog.points}
               showMine={showMine}
@@ -296,6 +312,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setHeat((h) => !h)} style={[cs.fab, { backgroundColor: heat ? primary : bg, borderColor: `${primary}40` }]}>
                 <Feather name="activity" size={18} color={heat ? '#000' : primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setLiveOnly((v) => !v)} style={[cs.fab, { backgroundColor: liveOnly ? '#10b981' : bg, borderColor: liveOnly ? '#10b981' : `${primary}40` }]}>
+                <Feather name="radio" size={17} color={liveOnly ? '#000' : '#10b981'} />
               </TouchableOpacity>
               <TouchableOpacity onPress={fitAll} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
                 <Feather name="maximize" size={17} color={primary} />
