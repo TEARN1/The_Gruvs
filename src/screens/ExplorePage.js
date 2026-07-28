@@ -597,6 +597,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   }, [meals]);
   const [scrollY, setScrollY] = useState(0);
   const scrollRef = useRef(null);
+  const resultsY = useRef(0); // y-offset of the category/mood results, for "take me there" scroll
   const searchTimer = useRef(null);
 
   const primary   = currentTheme?.primary    || "#00f2ff";
@@ -934,6 +935,16 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       })
       .catch(() => { setCatFilterLoading(false); });
   }, [activeCat, happeningNow, trendingEvents]);
+
+  // "Take me there": when a category is picked, scroll its results into view so
+  // it feels like a real filter, not a change buried below the fold.
+  useEffect(() => {
+    if (!activeCat || !scrollRef.current) return;
+    const t = setTimeout(() => {
+      try { scrollRef.current.scrollTo({ y: Math.max(0, resultsY.current - 8), animated: true }); } catch {}
+    }, 260);
+    return () => clearTimeout(t);
+  }, [activeCat]);
 
   // When moods are selected, fetch FRESH upcoming events for those categories.
   // Moods used to filter only the tiny already-loaded happeningNow pool (~8
@@ -1275,8 +1286,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               </View>
             )}
 
-            {/* ── Happening Now ───────────────────────────────────────────── */}
-            <View style={{ marginBottom: 20 }}>
+            {/* ── Happening Now (also the category/mood results anchor) ─────── */}
+            <View style={{ marginBottom: 20 }} onLayout={(e) => { resultsY.current = e.nativeEvent.layout.y; }}>
               <SectionHeader
                 title={activeMoods.size > 0 || activeCat ? `${activeMoods.size > 0 ? MOODS.filter(m => activeMoods.has(m.key)).map(m => m.label).join(' & ') : (CATEGORY_CONFIG[activeCat]?.label || '')} Gruvs` : 'Happening Now'}
                 actionLabel="See all"
