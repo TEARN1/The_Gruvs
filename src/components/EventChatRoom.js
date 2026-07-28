@@ -76,7 +76,7 @@ const MessageBubble = memo(({ msg, isMine, canModerate, primary, textColor, mute
         {/* Reply reference */}
         {replyTarget && (
           <View style={[mb.replyRef, { borderLeftColor: primary, backgroundColor: `${primary}10` }]}>
-            <Text style={[mb.replyUser, { color: primary }]}>@{replyTarget.profiles?.username}</Text>
+            <Text style={[mb.replyUser, { color: primary }]}>{replyTarget.profiles?.username}</Text>
             <Text style={[mb.replyText, { color: muted }]} numberOfLines={1}>{replyTarget.message}</Text>
           </View>
         )}

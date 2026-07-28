@@ -221,7 +221,7 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
               stats?.recentReviews.map((rev, i) => (
                 <GlassView key={i} style={s.reviewCard}>
                   <View style={s.reviewHeader}>
-                    <Text style={[s.reviewer, { color: primary }]}>@{rev.reviewer?.username}</Text>
+                    <Text style={[s.reviewer, { color: primary }]}>{rev.reviewer?.username}</Text>
                     <View style={s.starRating}>
                       {[1,2,3,4,5].map(n => (
                         <Feather key={n} name="star" size={10} color={n <= rev.rating ? "#FFD700" : muted} fill={n <= rev.rating ? "#FFD700" : "transparent"} />

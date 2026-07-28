@@ -58,7 +58,7 @@ const ActivityCard = ({ item, primary, textColor, muted, surface, onPress }) => 
 
       {/* Text */}
       <View style={ac.text}>
-        <Text style={[ac.actor, { color: textColor }]} numberOfLines={1}>@{item.actor_username}</Text>
+        <Text style={[ac.actor, { color: textColor }]} numberOfLines={1}>{item.actor_username}</Text>
         <Text style={[ac.verb, { color: muted }]} numberOfLines={1}>
           {cfg.verb} {item.target_title || ''}
         </Text>

@@ -119,7 +119,7 @@ const UserListModal = ({ visible: v, onClose: oc, title, users, bg, primary, mut
                     </View>
                 }
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>@{u.username}</Text>
+                  <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>{u.username}</Text>
                   <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>{u.vibe_score || 0} pts</Text>
                 </View>
               </View>
@@ -368,13 +368,13 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
           { blocker_id: currentUser.id, blocked_id: targetId },
           { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
         );
-        toast?.show(`@${profile?.username || 'user'} blocked — you won't see their content`, 'info');
+        toast?.show(`${profile?.username || 'user'} blocked — you won't see their content`, 'info');
         onClose?.();
       } catch {
         toast?.show('Could not block. Try again.', 'error');
       }
     };
-    const msg = `Block @${profile?.username || 'this user'}? You won't see each other's content and they can't message you.`;
+    const msg = `Block ${profile?.username || 'this user'}? You won't see each other's content and they can't message you.`;
     if (Platform.OS === 'web') {
       if (typeof window !== 'undefined' && window.confirm(msg)) doBlock();
     } else {
@@ -420,8 +420,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     if (!profile) return;
     try {
       await Share.share({
-        message: `Check out @${profile.username || 'viber'}'s profile on The Gruvs!`,
-        title: `@${profile.username}'s Profile`,
+        message: `Check out ${profile.username || 'viber'}'s profile on The Gruvs!`,
+        title: `${profile.username}'s Profile`,
       });
     } catch (e) {
       console.warn('Share error:', e);
@@ -581,7 +581,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
               {/* Name + rank */}
               <View style={s.nameSection}>
-                <Text style={[s.username, { color: textColor }]}>@{profile.username || 'viber'}</Text>
+                <Text style={[s.username, { color: textColor }]}>{profile.username || 'viber'}</Text>
                 {profile.display_name ? (
                   <Text style={[s.displayName, { color: muted }]}>{profile.display_name}</Text>
                 ) : null}

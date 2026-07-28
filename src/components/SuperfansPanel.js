@@ -33,7 +33,7 @@ const FanRow = ({ fan, rank, textColor, muted, primary }) => {
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={sf.nameRow}>
           <Text style={[sf.name, { color: textColor }]} numberOfLines={1}>
-            {fan.username ? `@${fan.username}` : 'A Viber'}
+            {fan.username ? `${fan.username}` : 'A Viber'}
           </Text>
           <View style={[sf.tierChip, { backgroundColor: `${color}1e`, borderColor: `${color}55` }]}>
             <Text style={[sf.tierChipText, { color }]}>{fan.tierEmoji} {fan.tierLabel}</Text>

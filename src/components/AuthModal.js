@@ -125,7 +125,7 @@ export const AuthModal = ({ visible, onClose }) => {
       // or `a_b` would match `axb` and give false "taken" (and let real conflicts slip).
       const { data } = await supabase.from('profiles')
         .select('id').ilike('username', escapeLike(handle)).limit(1).maybeSingle();
-      if (data) { setError(`@${handle} is taken — try another username.`); return; }
+      if (data) { setError(`${handle} is taken — try another username.`); return; }
 
       // Impersonation: a handle that READS the same as an existing one (k0nka for
       // konka, kon.ka, konkaa) is how someone trades on a real venue's name.
@@ -134,7 +134,7 @@ export const AuthModal = ({ visible, onClose }) => {
       try {
         const { data: existing } = await supabase.from('profiles').select('username').limit(1000);
         const clash = findImpersonation(handle, (existing || []).map((r) => r.username));
-        if (clash) { setError(`@${handle} looks too much like @${clash} — pick a more distinct name.`); return; }
+        if (clash) { setError(`${handle} looks too much like ${clash} — pick a more distinct name.`); return; }
       } catch { /* best-effort — never block a real signup on this */ }
     } catch { /* offline / RLS — let signup itself decide */ } finally {
       setCheckingName(false);
@@ -443,6 +443,10 @@ export const AuthModal = ({ visible, onClose }) => {
                 <Feather name="x" size={22} color={textColor} />
               </TouchableOpacity>
             </View>
+
+            <Text style={[styles.sublabel, { color: muted, marginBottom: 10 }]}>
+              One account — the same login works on The Resident.
+            </Text>
 
             <View style={[styles.tabRow, { borderColor: `${primary}40` }]}>
               {['signin', 'signup'].map((m) => (

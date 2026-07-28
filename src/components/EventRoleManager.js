@@ -96,7 +96,7 @@ const AttendeeRow = React.memo(({ item, onGrant, primary, textColor, muted, surf
       }
     </View>
     <View style={{ flex: 1 }}>
-      <Text style={{ color: textColor, fontWeight: '600', fontSize: 12 }}>@{item.profiles?.username}</Text>
+      <Text style={{ color: textColor, fontWeight: '600', fontSize: 12 }}>{item.profiles?.username}</Text>
       {item.profiles?.city && (
         <Text style={{ color: muted, fontSize: 10 }}>{item.profiles.city}</Text>
       )}
@@ -170,7 +170,7 @@ export const EventRoleManager = ({ visible, onClose, event, primary, textColor, 
     );
     if (ok === null) { showToast('Could not revoke role', 'error'); return; }
     invalidateEventRoleCache(event.id);
-    showToast(`Role revoked from @${roleRow.profiles?.username}`, 'success');
+    showToast(`Role revoked from ${roleRow.profiles?.username}`, 'success');
     fetchData();
   };
 
@@ -202,7 +202,7 @@ export const EventRoleManager = ({ visible, onClose, event, primary, textColor, 
 
       invalidateEventRoleCache(event.id);
       const roleDef = ROLES.find(r => r.key === role);
-      showToast(`@${targetProfile.username} is now ${roleDef?.label}! 🎉`, 'success');
+      showToast(`${targetProfile.username} is now ${roleDef?.label}! 🎉`, 'success');
       fetchData();
     } catch (e) {
       showToast(e.message || 'Could not assign role', 'error');

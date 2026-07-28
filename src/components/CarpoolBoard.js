@@ -154,7 +154,7 @@ const OfferCard = React.memo(({ offer, user, primary, textColor, muted, surface,
           </Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[cp.driverName, { color: textColor }]}>@{offer.driver_username}</Text>
+          <Text style={[cp.driverName, { color: textColor }]}>{offer.driver_username}</Text>
           <Text style={[cp.area, { color: primary }]} numberOfLines={1}>{offer.departure_area}</Text>
         </View>
         <View style={[cp.seatBadge, { backgroundColor: full ? '#ef444422' : `${primary}20`, borderColor: full ? "#ef4444" : primary }]}>
@@ -314,7 +314,7 @@ export const CarpoolDriverPanel = ({ visible, onClose, carpoolId, primary, surfa
                           </Text>
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={[dp.riderName, { color: textColor }]}>@{req.profiles?.username || 'Rider'}</Text>
+                          <Text style={[dp.riderName, { color: textColor }]}>{req.profiles?.username || 'Rider'}</Text>
                           {req.status && req.status !== 'pending' && (
                             <View style={dp.statusRow}>
                               <Feather name={meta.icon} size={11} color={meta.color} />
@@ -510,7 +510,7 @@ export const CarpoolBoard = ({ event, primary, textColor, muted, surface }) => {
         { attemptsPerTier: 2, baseMs: 400, label: 'Carpool.request' }
       );
       if (ok === null) throw new Error();
-      toast.show(`Seat requested from @${offer.driver_username}!`, 'success');
+      toast.show(`Seat requested from ${offer.driver_username}!`, 'success');
     } catch {
       setOffers(prev => prev.map(o => o.id === offer.id
         ? { ...o, my_request_status: null, seats_taken: Math.max(0, o.seats_taken - 1) }

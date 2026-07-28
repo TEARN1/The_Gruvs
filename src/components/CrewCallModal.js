@@ -148,7 +148,7 @@ export function CrewCallModal({ visible, crew, onClose }) {
                 </View>
                 {peers.map((p) => (
                   <View key={p.id} style={{ width: tileW, height: tileW * 0.72 }}>
-                    <Tile stream={p.stream} label={`@${p.username}`} primary={primary} />
+                    <Tile stream={p.stream} label={`${p.username}`} primary={primary} />
                   </View>
                 ))}
               </View>

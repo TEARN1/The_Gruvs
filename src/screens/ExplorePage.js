@@ -372,7 +372,7 @@ const NearbyVibers = ({ vibers, primary, textColor, onPress }) => {
               {checkOnline(v) && <View style={[nv.dot, { backgroundColor: "#10b981", borderColor: "#0d1112", borderWidth: 2 }]} />}
             </View>
             <View style={{ marginTop: 4, alignItems: 'center' }}>
-              <Text style={[nv.name, { color: textColor, fontWeight: '800' }]} numberOfLines={1}>@{v.username}</Text>
+              <Text style={[nv.name, { color: textColor, fontWeight: '800' }]} numberOfLines={1}>{v.username}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                 <Feather name="map-pin" size={8} color={primary} />
                 <Text style={[nv.dist, { color: primary, fontSize: 9, fontWeight: '900' }]}>
@@ -1114,7 +1114,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                               </View>
                           }
                           <View style={{ flex: 1 }}>
-                            <Text style={[src.title, { color: textColor, fontSize: 13 }]}>@{u.username}</Text>
+                            <Text style={[src.title, { color: textColor, fontSize: 13 }]}>{u.username}</Text>
                             {u.bio ? <Text style={[src.metaText, { color: muted }]} numberOfLines={1}>{u.bio}</Text> : null}
                             {u.location ? <Text style={[src.metaText, { color: muted }]}>{u.location}</Text> : null}
                           </View>
@@ -1418,7 +1418,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                           <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>{Math.round(m.matchScore)}%</Text>
                         </View>
                       </View>
-                      <Text style={{ color: textColor, fontWeight: '900', fontSize: 13 }} numberOfLines={1}>@{m.username}</Text>
+                      <Text style={{ color: textColor, fontWeight: '900', fontSize: 13 }} numberOfLines={1}>{m.username}</Text>
                       <Text style={{ color: primary, fontSize: 10, fontWeight: '700', marginTop: 2 }}>{m.career_title || 'Viber'}</Text>
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8, justifyContent: 'center' }}>
                         {m.overlap?.slice(0, 2).map(tag => (
@@ -1505,7 +1505,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                           : <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>{(b.username || '?').slice(0, 1).toUpperCase()}</Text>}
                       </View>
                       <Text style={{ position: 'absolute', top: -2, right: 6, fontSize: 18 }}>🎂</Text>
-                      <Text style={{ color: textColor, fontSize: 11, fontWeight: '700', marginTop: 5 }} numberOfLines={1}>@{b.username || 'viber'}</Text>
+                      <Text style={{ color: textColor, fontSize: 11, fontWeight: '700', marginTop: 5 }} numberOfLines={1}>{b.username || 'viber'}</Text>
                       <Text style={{ color: muted, fontSize: 9 }}>Wish them 🎉</Text>
                     </TouchableOpacity>
                   ))}

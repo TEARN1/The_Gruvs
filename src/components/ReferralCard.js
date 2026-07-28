@@ -41,7 +41,7 @@ export const ReferralCard = ({ userId }) => {
 
   const referralCode = generateReferralCode(userId);
   const inviteLink   = `${APP_BASE_URL}?ref=${referralCode}`;
-  const inviteMsg    = `@${username || 'me'} invited you to The Gruvs 🎉\n\nJoin the app where South Africa gruvs — discover events, connect with Vibers & live the culture.\n\n${inviteLink}`;
+  const inviteMsg    = `${username || 'me'} invited you to The Gruvs 🎉\n\nJoin the app where South Africa gruvs — discover events, connect with Vibers & live the culture.\n\n${inviteLink}`;
 
   const fetchReferralData = useCallback(async () => {
     if (!userId) { setLoading(false); return; }
@@ -132,7 +132,7 @@ export const ReferralCard = ({ userId }) => {
                 backgroundColor="#ffffff"
                 ecl="H"
                 quietZone={6}
-                centerLabel={`@${username || 'gruvs'}`}
+                centerLabel={`${username || 'gruvs'}`}
                 centerColor={primary}
               />
               {/* Centre name plate (native) — "name inside the QR". On web the
@@ -147,7 +147,7 @@ export const ReferralCard = ({ userId }) => {
                 </View>
               )}
             </View>
-            <Text style={rc.qrLabel}>Scan to join {username ? `@${username}` : ''} on The Gruvs</Text>
+            <Text style={rc.qrLabel}>Scan to join {username ? `${username}` : ''} on The Gruvs</Text>
             <View style={[rc.codeRow, { backgroundColor: `${primary}15`, borderColor: `${primary}35` }]}>
               <Text style={[rc.code, { color: primary }]}>{referralCode}</Text>
             </View>

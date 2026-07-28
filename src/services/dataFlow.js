@@ -282,23 +282,17 @@ function dedupe(key, fn) {
 // ONLINE STATUS UTILS
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Consider a user "online" if last_seen within 5 minutes OR is_online flag is true.
-// This handles stale flags gracefully — if someone closed the app, last_seen decays.
+// last_seen is the SINGLE source of truth for "online". The is_online flag alone
+// can't be trusted: it's a boolean that only flips off if the app cleanly runs
+// its teardown, so a crash/closed-tab/lost-network leaves it stuck true forever —
+// which is exactly the "shows online when they're not" bug. So: no recent
+// heartbeat → offline, no matter what the flag says. The flag only widens the
+// freshness window slightly (a live app heartbeats every few minutes).
 export const isOnline = (profile) => {
-  if (!profile) return false;
-  if (profile.is_online === true) {
-    // Verify the flag isn't stale: if last_seen > 10 min ago despite flag, treat as offline
-    if (profile.last_seen) {
-      const minsAgo = (Date.now() - new Date(profile.last_seen).getTime()) / 60000;
-      if (minsAgo > 10) return false;
-    }
-    return true;
-  }
-  if (profile.last_seen) {
-    const minsAgo = (Date.now() - new Date(profile.last_seen).getTime()) / 60000;
-    return minsAgo <= 5;
-  }
-  return false;
+  if (!profile || !profile.last_seen) return false;
+  const minsAgo = (Date.now() - new Date(profile.last_seen).getTime()) / 60000;
+  if (!Number.isFinite(minsAgo) || minsAgo < 0) return false;
+  return profile.is_online === true ? minsAgo <= 5 : minsAgo <= 3;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

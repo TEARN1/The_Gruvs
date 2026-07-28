@@ -118,7 +118,9 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
 
   const [members, setMembers] = useState([]);
   const [follows, setFollows] = useState([]);
-  const [invited, setInvited] = useState(new Set());
+  // id -> 'sending' | 'sent' | 'error'. Feedback lives IN the modal because a
+  // toast renders behind this full-screen Modal and would never be seen.
+  const [inviteState, setInviteState] = useState({});
   const [callOpen, setCallOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -150,14 +152,19 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
     setLoading(false);
   }, [crew?.id, user]);
 
-  useEffect(() => { if (visible) { setInvited(new Set()); load(); } }, [visible, load]);
+  useEffect(() => { if (visible) { setInviteState({}); load(); } }, [visible, load]);
 
   const invite = async (p) => {
+    if (inviteState[p.id] === 'sending' || inviteState[p.id] === 'sent') return;
+    setInviteState(s => ({ ...s, [p.id]: 'sending' }));
     try {
       await CrewManager.invite(crew.id, user.id, p.id, crew.name);
-      setInvited(prev => new Set(prev).add(p.id));
-      toast(`Invited @${p.username}`, 'success');
-    } catch (e) { toast(e?.message || 'Could not invite.', 'error'); }
+      setInviteState(s => ({ ...s, [p.id]: 'sent' }));
+      toast(`Invite sent to ${p.username}`, 'success'); // also toasts, for when the modal later closes
+    } catch (e) {
+      setInviteState(s => ({ ...s, [p.id]: 'error' }));
+      toast(e?.message || 'Could not invite.', 'error');
+    }
   };
 
   const leave = async () => {
@@ -206,7 +213,7 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
                 <View key={m.id} style={s.personRow}>
                   {m.avatar_url ? <Image source={{ uri: m.avatar_url }} style={s.personAvatar} />
                     : <View style={[s.personAvatar, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}><Text style={{ color: text, fontWeight: '800' }}>{(m.username || '?')[0]?.toUpperCase()}</Text></View>}
-                  <Text style={[s.personName, { color: text }]} numberOfLines={1}>@{m.username || 'member'}</Text>
+                  <Text style={[s.personName, { color: text }]} numberOfLines={1}>{m.username || 'member'}</Text>
                   {m.role === 'owner' && <View style={[s.rolePill, { backgroundColor: `${primary}22` }]}><Text style={{ color: primary, fontSize: 9, fontWeight: '900' }}>OWNER</Text></View>}
                 </View>
               ))}
@@ -218,11 +225,21 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
                 <View key={p.id} style={s.personRow}>
                   {p.avatar_url ? <Image source={{ uri: p.avatar_url }} style={s.personAvatar} />
                     : <View style={[s.personAvatar, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}><Text style={{ color: text, fontWeight: '800' }}>{(p.username || '?')[0]?.toUpperCase()}</Text></View>}
-                  <Text style={[s.personName, { color: text }]} numberOfLines={1}>@{p.username || 'viber'}</Text>
-                  <TouchableOpacity onPress={() => invite(p)} disabled={invited.has(p.id)}
-                    style={[s.inviteBtn, { backgroundColor: invited.has(p.id) ? 'transparent' : primary, borderColor: primary }]}>
-                    <Text style={{ color: invited.has(p.id) ? primary : '#000', fontSize: 11, fontWeight: '900' }}>{invited.has(p.id) ? 'Invited' : 'Invite'}</Text>
-                  </TouchableOpacity>
+                  <Text style={[s.personName, { color: text }]} numberOfLines={1}>{p.username || 'viber'}</Text>
+                  {(() => {
+                    const st = inviteState[p.id];
+                    const label = st === 'sending' ? 'Sending…' : st === 'sent' ? '✓ Invited' : st === 'error' ? 'Retry' : 'Invite';
+                    const done = st === 'sent';
+                    const err = st === 'error';
+                    const bgc = done ? 'transparent' : err ? '#ef4444' : primary;
+                    const fg = done ? primary : '#000';
+                    return (
+                      <TouchableOpacity onPress={() => invite(p)} disabled={st === 'sending' || done} activeOpacity={0.7}
+                        style={[s.inviteBtn, { backgroundColor: bgc, borderColor: err ? '#ef4444' : primary, opacity: st === 'sending' ? 0.7 : 1 }]}>
+                        <Text style={{ color: err ? '#fff' : fg, fontSize: 11, fontWeight: '900' }}>{label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })()}
                 </View>
               ))}
 
@@ -282,7 +299,7 @@ export const CrewHub = ({ onAuthRequired }) => {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: text, fontWeight: '800', fontSize: 13 }} numberOfLines={1}>{inv.crews?.name}</Text>
-            <Text style={{ color: muted, fontSize: 11 }}>@{inv.inviter?.username || 'someone'} invited you</Text>
+            <Text style={{ color: muted, fontSize: 11 }}>{inv.inviter?.username || 'someone'} invited you</Text>
           </View>
           <TouchableOpacity onPress={() => respond(inv, true)} style={[s.smBtn, { backgroundColor: primary }]}><Text style={{ color: '#000', fontWeight: '900', fontSize: 11 }}>Join</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => respond(inv, false)} style={[s.smBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: muted }]}><Feather name="x" size={13} color={muted} /></TouchableOpacity>

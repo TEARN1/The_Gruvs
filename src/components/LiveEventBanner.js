@@ -124,7 +124,7 @@ const AvatarChip = ({ profile, color }) => {
             </Text>
           </View>
       }
-      <Text style={[lb.chipName, { color }]} numberOfLines={1}>@{profile?.username || '...'}</Text>
+      <Text style={[lb.chipName, { color }]} numberOfLines={1}>{profile?.username || '...'}</Text>
     </View>
   );
 };

@@ -401,7 +401,7 @@ export const EchoSection = ({ eventId, onAuthRequired }) => {
         }
         <TextInput
           style={[styles.input, { color: textColor, borderColor: `${primary}35` }]}
-          placeholder={replyTo ? `Reply to @${replyTo.username}...` : 'Drop an Echo...'}
+          placeholder={replyTo ? `Reply to ${replyTo.username}...` : 'Drop an Echo...'}
           placeholderTextColor={muted}
           value={text}
           onChangeText={setText}

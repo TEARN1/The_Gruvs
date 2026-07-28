@@ -49,7 +49,7 @@ export function VibeCardBubble({ userId, primary, textColor, muted, onPress }) {
     );
   }
 
-  const handle = p?.username ? `@${p.username}` : (p?.display_name || 'A Viber');
+  const handle = p?.username ? `${p.username}` : (p?.display_name || 'A Viber');
   const score = Number(p?.vibe_score) || 0;
   const level = getVibeLevel(score);
   const crew = Number(p?.followers_count) || 0;

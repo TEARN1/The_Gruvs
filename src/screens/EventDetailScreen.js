@@ -1206,7 +1206,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 ))}
               </View>
               <Text style={{ color: textMuted, fontSize: 12, fontWeight: '700', flex: 1 }}>
-                {attendeePreview[0]?.username && `@${attendeePreview[0].username}`}
+                {attendeePreview[0]?.username && `${attendeePreview[0].username}`}
                 {attendeePreview.length > 1 && ` and ${goingCount - 1} others locked in`}
               </Text>
               <Feather name="chevron-right" size={14} color={primary} />
@@ -1905,7 +1905,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                       </View>
                     }
                     <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={[{ color: textColor, fontWeight: '700', fontSize: 14 }]}>@{p.username}</Text>
+                      <Text style={[{ color: textColor, fontWeight: '700', fontSize: 14 }]}>{p.username}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
                         <Text style={[{ color: primary, fontSize: 11, fontWeight: '600' }]}>⚡ {p.vibe_score || 0} pts</Text>
                         {p.social_integrity_score != null && (

@@ -178,7 +178,7 @@ export const WalletScreen = ({ visible, onClose }) => {
               {(item.service_type || 'Service').toUpperCase()}
             </Text>
             <Text style={[s.bookingSub, { color: muted }]}>
-              {isProvider ? `from @${item.client?.username}` : `to @${item.provider?.username}`} · {date}
+              {isProvider ? `from ${item.client?.username}` : `to ${item.provider?.username}`} · {date}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>

@@ -127,7 +127,7 @@ export const CallOverlay = ({
           <Text style={cs.recText}>
             {recording && peerRecording ? 'Both recording'
               : recording ? 'You are recording'
-              : `@${peer?.username || 'They'} is recording`}
+              : `${peer?.username || 'They'} is recording`}
           </Text>
         </View>
       )}
@@ -136,7 +136,7 @@ export const CallOverlay = ({
       {peerSharingScreen && status === 'connected' && (
         <View style={[cs.recBanner, { top: (recording || peerRecording) ? 56 : 20, backgroundColor: 'rgba(0,242,255,0.15)', borderColor: primary }]}>
           <Feather name="monitor" size={12} color={primary} />
-          <Text style={cs.recText}>@{peer?.username || 'They'} is sharing their screen</Text>
+          <Text style={cs.recText}>{peer?.username || 'They'} is sharing their screen</Text>
         </View>
       )}
 
@@ -150,7 +150,7 @@ export const CallOverlay = ({
             : <View style={[cs.bigAvatar, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
                 <Feather name="user" size={54} color={primary} />
               </View>}
-          <Text style={cs.name}>@{peer?.username || 'Viber'}</Text>
+          <Text style={cs.name}>{peer?.username || 'Viber'}</Text>
           <Text style={cs.status}>{label}</Text>
         </View>
       )}

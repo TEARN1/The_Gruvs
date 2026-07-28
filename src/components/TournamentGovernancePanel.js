@@ -161,7 +161,7 @@ export const TournamentGovernancePanel = ({ visible, competitionId, onClose }) =
                   {official?.user ? (
                     <View style={[g.electedBadge, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}>
                       <Feather name="check-circle" size={13} color={primary} />
-                      <Text style={[g.electedText, { color: primary }]}>@{official.user.username} elected · {official.votes_at_election} teams</Text>
+                      <Text style={[g.electedText, { color: primary }]}>{official.user.username} elected · {official.votes_at_election} teams</Text>
                     </View>
                   ) : (
                     <Text style={[g.vacant, { color: muted }]}>Open seat — needs {threshold} team votes</Text>
@@ -184,7 +184,7 @@ export const TournamentGovernancePanel = ({ visible, competitionId, onClose }) =
                           : <View style={[g.candAvatar, { backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center' }]}>
                               <Text style={{ color: primary, fontWeight: '900', fontSize: 11 }}>{(c.candidate?.username || '?')[0].toUpperCase()}</Text>
                             </View>}
-                        <Text style={[g.candName, { color: textColor }]} numberOfLines={1}>@{c.candidate?.username || 'candidate'}{mine ? ' · your vote' : ''}</Text>
+                        <Text style={[g.candName, { color: textColor }]} numberOfLines={1}>{c.candidate?.username || 'candidate'}{mine ? ' · your vote' : ''}</Text>
                         <Text style={[g.candVotes, { color: primary }]}>{c.votes}/{threshold}</Text>
                       </TouchableOpacity>
                     );

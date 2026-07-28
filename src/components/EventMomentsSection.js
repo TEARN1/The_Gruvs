@@ -164,7 +164,7 @@ const MomentViewer = ({ moments, startIndex = 0, visible, onClose, primary, user
                 </View>
             }
             <View>
-              <Text style={sv.username}>@{current.profiles?.username || 'Viber'}</Text>
+              <Text style={sv.username}>{current.profiles?.username || 'Viber'}</Text>
               {!!timeLeft && <Text style={sv.timeLeft}>{timeLeft}</Text>}
             </View>
           </View>

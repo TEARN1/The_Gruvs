@@ -71,7 +71,7 @@ export const ReelsRail = ({ onOpenReel, primary, textColor, muted }) => {
               </View>
               {/* bottom meta */}
               <View style={rr.meta}>
-                <Text style={rr.author} numberOfLines={1}>@{reel.profiles?.username || 'viber'}</Text>
+                <Text style={rr.author} numberOfLines={1}>{reel.profiles?.username || 'viber'}</Text>
                 <Text style={rr.stats}>❤️ {fmt(reel.like_count)}</Text>
               </View>
             </TouchableOpacity>

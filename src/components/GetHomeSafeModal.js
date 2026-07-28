@@ -178,7 +178,7 @@ export function GetHomeSafeModal({ visible, onClose }) {
                         {p.avatar_url
                           ? <SmartImage source={p.avatar_url} style={s.personAvatar} />
                           : <View style={[s.personAvatar, { backgroundColor: `${primary}22` }]} />}
-                        <Text style={[s.personName, { color: on ? primary : textColor }]} numberOfLines={1}>@{p.username}</Text>
+                        <Text style={[s.personName, { color: on ? primary : textColor }]} numberOfLines={1}>{p.username}</Text>
                         {on && <Feather name="check" size={13} color={primary} />}
                       </TouchableOpacity>
                     );

@@ -152,7 +152,7 @@ const StoryViewerModal = ({ visible, stories, startIndex, onClose, primary, curr
                 <Text style={{ color: '#fff', fontWeight: '900' }}>{(currentUser.username || '?')[0].toUpperCase()}</Text>
               </View>
           }
-          <Text style={sv.headerName}>@{currentUser.username}</Text>
+          <Text style={sv.headerName}>{currentUser.username}</Text>
           <Text style={sv.headerTime}>{fmtAge(currentStory.created_at)}</Text>
           {!isOwnStory && currentUserId ? (
             <TouchableOpacity onPress={handleReshare} disabled={resharing} style={[sv.reshareBtn, { borderColor: primary }]} activeOpacity={0.8}>
@@ -375,7 +375,7 @@ export const StoriesRow = ({ onAuthRequired }) => {
     try {
       // Repost the original media to your own story with clear attribution —
       // the source stays credited (Truth Protocol: never launder someone's content).
-      const via = fromUsername ? `↻ via @${fromUsername}` : '↻ Reshared';
+      const via = fromUsername ? `↻ via ${fromUsername}` : '↻ Reshared';
       const caption = story.caption ? `${via} · ${story.caption}` : via;
       const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
       const storyPayload = {

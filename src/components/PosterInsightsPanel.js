@@ -124,7 +124,7 @@ export const PosterInsightsPanel = ({ eventId, eventTitle, primary, textColor, m
                       </View>}
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={pi.nameRow}>
-                      <Text style={[pi.name, { color: textColor }]} numberOfLines={1}>{f.username ? `@${f.username}` : 'A Viber'}</Text>
+                      <Text style={[pi.name, { color: textColor }]} numberOfLines={1}>{f.username ? `${f.username}` : 'A Viber'}</Text>
                       {f.isRealFan && (
                         <View style={[pi.fanChip, { backgroundColor: `${gold}1e`, borderColor: `${gold}55` }]}>
                           <Text style={[pi.fanChipText, { color: gold }]}>👑 Real fan</Text>

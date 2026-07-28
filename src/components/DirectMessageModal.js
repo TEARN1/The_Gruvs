@@ -113,7 +113,7 @@ const RequestBanner = ({ sender, onAccept, onDecline, primary, textColor, muted 
         <Feather name="user" size={22} color={primary} />
       </View>
     }
-    <Text style={[rb.name, { color: textColor }]}>@{sender?.username || 'Viber'} wants to link up</Text>
+    <Text style={[rb.name, { color: textColor }]}>{sender?.username || 'Viber'} wants to link up</Text>
     <Text style={[rb.sub, { color: muted }]}>Accept to reply and start the conversation.</Text>
     <View style={rb.actions}>
       <TouchableOpacity onPress={onDecline} style={[rb.btn, rb.declineBtn]}>
@@ -340,14 +340,14 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     try {
       const selectedMsgs = messages.filter(m => selectedMsgIds.has(m.id));
       const formattedLines = selectedMsgs.map(m => {
-        const senderName = m.sender_id === user.id ? 'You' : `@${recipient.username}`;
+        const senderName = m.sender_id === user.id ? 'You' : `${recipient.username}`;
         return `> **${senderName}**: ${m.body || '[Media/Shared Event]'}`;
       }).join('\n');
 
-      const shareText = `🔒 Shared messages from chat with @${recipient.username}:\n${formattedLines}`;
+      const shareText = `🔒 Shared messages from chat with ${recipient.username}:\n${formattedLines}`;
 
       await MessageManager.send(user.id, targetPartner.id, shareText);
-      toast?.show(`Shared selected messages to @${targetPartner.username}!`, 'success');
+      toast?.show(`Shared selected messages to ${targetPartner.username}!`, 'success');
       
       setIsMultiSelectMode(false);
       setSelectedMsgIds(new Set());
@@ -830,7 +830,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const handleDecline = () => {
     Alert.alert(
       'Decline & Block',
-      `Block messages from @${recipient?.username}? They won't know you blocked them.`,
+      `Block messages from ${recipient?.username}? They won't know you blocked them.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -1161,7 +1161,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
               </View>
             }
             <View>
-              <Text style={[dm.headerName, { color: textColor }]}>@{recipient?.username || 'Viber'}</Text>
+              <Text style={[dm.headerName, { color: textColor }]}>{recipient?.username || 'Viber'}</Text>
               {isTyping
                 ? <Text style={[dm.headerSub, { color: primary }]}>typing...</Text>
                 : checkOnline(recipient)
@@ -1526,7 +1526,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                     <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${primary}15`, alignItems: 'center', justifyContent: 'center' }}>
                       <Feather name="user" size={16} color={primary} />
                     </View>
-                    <Text style={{ color: textColor, fontWeight: '800' }}>@{item.partner?.username}</Text>
+                    <Text style={{ color: textColor, fontWeight: '800' }}>{item.partner?.username}</Text>
                   </TouchableOpacity>
                 )}
               />

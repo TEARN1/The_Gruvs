@@ -390,7 +390,7 @@ export const ClubScreen = ({ route, navigation, clubId: propClubId, onClose }) =
                 }
                 <View>
                   <Text style={[s.resultName, { color: textColor }]}>{u.display_name || u.username}</Text>
-                  <Text style={[s.resultUsername, { color: muted }]}>@{u.username}</Text>
+                  <Text style={[s.resultUsername, { color: muted }]}>{u.username}</Text>
                 </View>
                 <Feather name="user-plus" size={16} color={primary} style={{ marginLeft: 'auto' }} />
               </TouchableOpacity>

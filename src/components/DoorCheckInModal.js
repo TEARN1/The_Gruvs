@@ -93,7 +93,7 @@ export function DoorCheckInModal({ visible, onClose, event }) {
                   {REASON_TEXT[last.reason] || 'Rejected'}
                 </Text>
                 {ok && holder ? (
-                  <Text style={{ color: textColor, fontSize: 13, marginTop: 1 }}>@{holder}</Text>
+                  <Text style={{ color: textColor, fontSize: 13, marginTop: 1 }}>{holder}</Text>
                 ) : null}
               </View>
             </View>

@@ -41,7 +41,7 @@ const ConvoRow = React.memo(({ item, userId, primary, textColor, muted, surface,
   const unreadLabel = isUnread ? ', unread' : '';
   const previewLabel = isPending ? 'wants to link up' : (item.sender_id === userId ? `You: ${lastMsg}` : lastMsg);
   const timeLabel = item.created_at ? `, ${fmtAge(item.created_at)}` : '';
-  const rowLabel = `@${partner?.username || 'Unknown'}${unreadLabel}, ${previewLabel}${timeLabel}`;
+  const rowLabel = `${partner?.username || 'Unknown'}${unreadLabel}, ${previewLabel}${timeLabel}`;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;

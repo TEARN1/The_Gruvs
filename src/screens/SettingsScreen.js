@@ -364,7 +364,7 @@ export const SettingsScreen = ({
             <LinkRow icon="mail" label="Email" value={profile?.email || user?.email} primary={primary} muted={muted} textColor={textColor} />
           )}
           {!!profile?.username && (
-            <LinkRow icon="at-sign" label="Username" value={`@${profile.username}`} primary={primary} muted={muted} textColor={textColor} />
+            <LinkRow icon="at-sign" label="Username" value={`${profile.username}`} primary={primary} muted={muted} textColor={textColor} />
           )}
         </SectionCard>
 

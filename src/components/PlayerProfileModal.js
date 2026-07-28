@@ -323,7 +323,7 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
                   <View key={i} style={[st.ratingRow, { borderBottomColor: `${primary}10` }]}>
                     <Text style={[st.ratingNum, { color: primary }]}>{Number(r.rating).toFixed(1)}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={[st.rowTitle, { color: textColor }]}>@{r.rater?.username || 'scout'}</Text>
+                      <Text style={[st.rowTitle, { color: textColor }]}>{r.rater?.username || 'scout'}</Text>
                       {r.note ? <Text style={[st.rowSub, { color: muted }]} numberOfLines={2}>{r.note}</Text> : null}
                     </View>
                   </View>

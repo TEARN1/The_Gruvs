@@ -11,7 +11,7 @@ import { APP_WEB_URL } from '../constants/appUrl';
 
 export function buildVibeCardShareText(profile = {}, opts = {}) {
   const p = profile || {};
-  const handle = p.username ? `@${p.username}` : (p.display_name || 'A Viber');
+  const handle = p.username ? `${p.username}` : (p.display_name || 'A Viber');
   const score = Number(p.vibe_score) || 0;
   const level = getVibeLevel(score);
 

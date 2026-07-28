@@ -418,7 +418,7 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
                         </View>
                     }
                     <View style={{ flex: 1 }}>
-                      <Text style={[cs.commentUser, { color: primary }]}>@{c.profiles?.username || 'Viber'}</Text>
+                      <Text style={[cs.commentUser, { color: primary }]}>{c.profiles?.username || 'Viber'}</Text>
                       <Text style={[cs.commentBody, { color: textColor }]}>{c.body}</Text>
                     </View>
                     {user && (
@@ -613,7 +613,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
       { text: 'Spam', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'spam' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
       { text: 'Inappropriate', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'inappropriate' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
       { text: 'Misleading', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'misleading' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
-      { text: `Block @${reel.profiles?.username || 'user'}`, style: 'destructive', onPress: async () => { try { await supabase.from('user_blocks').upsert({ blocker_id: user?.id, blocked_id: reel.user_id }, { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }); Alert.alert('Blocked', 'You will no longer see their content.'); onBlocked?.(); } catch { Alert.alert('Error', 'Could not block. Try again.'); } } },
+      { text: `Block ${reel.profiles?.username || 'user'}`, style: 'destructive', onPress: async () => { try { await supabase.from('user_blocks').upsert({ blocker_id: user?.id, blocked_id: reel.user_id }, { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }); Alert.alert('Blocked', 'You will no longer see their content.'); onBlocked?.(); } catch { Alert.alert('Error', 'Could not block. Try again.'); } } },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -682,7 +682,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
   const handleShare = async () => {
     const url = `${APP_WEB_URL}/?reel=${reel.id}`;
     try {
-      await Share.share({ message: `Check out @${reel.profiles?.username}'s reel on The Gruvs! ${url}`, url });
+      await Share.share({ message: `Check out ${reel.profiles?.username}'s reel on The Gruvs! ${url}`, url });
     } catch (err) {
       console.warn('Share error:', err);
     }
@@ -964,7 +964,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
         {!playerPref.cleanView && (
           <View style={ri.bottom}>
             <TouchableOpacity onPress={() => onProfile(author)} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={ri.username}>@{author.username || 'Viber'}</Text>
+              <Text style={ri.username}>{author.username || 'Viber'}</Text>
               {author.is_verified && <Feather name="check-circle" size={13} color={primary} />}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setCaptionExpanded(e => !e)} activeOpacity={0.9}>
@@ -980,7 +980,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
             <View style={ri.audioPill}>
               <Feather name="music" size={10} color="rgba(255,255,255,0.7)" />
               <Text style={ri.audioPillText} numberOfLines={1}>
-                {reel.sound_name || `original sound · @${author.username || 'Viber'}`}
+                {reel.sound_name || `original sound · ${author.username || 'Viber'}`}
               </Text>
             </View>
           </View>

@@ -176,7 +176,7 @@ const TaskSection = ({ draftId, members, nameOf, colors }) => {
                 <TouchableOpacity key={m.id} onPress={() => assign(t, m.id)}
                   style={[s.assignChip, { borderColor: `${accent}66`, paddingHorizontal: 10 }]}>
                   <Text style={{ color: accent, fontSize: 11, fontWeight: '800' }}>
-                    {m.id === user?.id ? 'me' : `@${m.username || 'member'}`}
+                    {m.id === user?.id ? 'me' : `${m.username || 'member'}`}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -226,7 +226,7 @@ const DraftSheet = ({ visible, draftId, crew, members, onClose, onChanged }) => 
     if (uid === user?.id) return 'you';
     const m = (members || []).find(p => p.id === uid)
       || (draft?.event_draft_members || []).map(r => r.profiles).find(p => p?.id === uid);
-    return m?.username ? `@${m.username}` : 'a member';
+    return m?.username ? `${m.username}` : 'a member';
   }, [members, draft, user?.id]);
 
   const load = useCallback(async () => {

@@ -263,7 +263,7 @@ export const AwardCeremonyPanel = ({ event }) => {
                 <TouchableOpacity key={p.id} style={[ss.resultRow, { borderColor: `${primary}15` }]} onPress={() => selectRecipient(p)}>
                   <Feather name="user" size={14} color={primary} />
                   <Text style={[ss.resultName, { color: textColor }]}>{p.display_name || p.username}</Text>
-                  <Text style={[ss.resultUser, { color: muted }]}>@{p.username}</Text>
+                  <Text style={[ss.resultUser, { color: muted }]}>{p.username}</Text>
                   {form.recipient_user_id === p.id && <Feather name="check" size={14} color={primary} style={{ marginLeft: 'auto' }} />}
                 </TouchableOpacity>
               ))}

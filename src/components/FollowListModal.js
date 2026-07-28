@@ -92,7 +92,7 @@ export const FollowListModal = ({ visible, onClose, userId, mode = 'followers', 
                         </View>
                       )}
                     </View>
-                    <Text style={[fl.handle, { color: muted }]} numberOfLines={1}>@{p.username || 'viber'}</Text>
+                    <Text style={[fl.handle, { color: muted }]} numberOfLines={1}>{p.username || 'viber'}</Text>
                   </View>
                   {Number(p.vibe_score) > 0 && (
                     <Text style={[fl.vibe, { color: primary }]}>⚡ {p.vibe_score}</Text>

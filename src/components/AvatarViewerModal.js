@@ -28,7 +28,7 @@ export const AvatarViewerModal = ({ visible, onClose, uri, username }) => {
       <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={onClose}>
         {!!username && (
           <View style={s.header} pointerEvents="none">
-            <Text style={s.handle}>@{username}</Text>
+            <Text style={s.handle}>{username}</Text>
           </View>
         )}
 

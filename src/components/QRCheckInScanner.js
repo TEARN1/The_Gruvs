@@ -64,7 +64,7 @@ const ResultCard = ({ result, primary, onDismiss }) => {
       ) : null}
 
       <Text style={[rs.username, { color }]}>
-        {result.username ? `@${result.username}` : (ok ? 'Checked In' : 'Denied')}
+        {result.username ? `${result.username}` : (ok ? 'Checked In' : 'Denied')}
       </Text>
       <Text style={[rs.msg, { color: ok ? "#10b981" : "#ef4444" }]}>{result.msg}</Text>
 

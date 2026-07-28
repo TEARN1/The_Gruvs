@@ -2868,7 +2868,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                                   <Text style={{ color: primary, fontWeight: '900', fontSize: 12 }}>{(r.profiles?.username || '?')[0].toUpperCase()}</Text>
                                 </View>
                             }
-                            <Text style={[styles.reactorName, { color: textColor }]}>@{r.profiles?.username || 'Viber'}</Text>
+                            <Text style={[styles.reactorName, { color: textColor }]}>{r.profiles?.username || 'Viber'}</Text>
                             <Text style={{ fontSize: 22, marginLeft: 'auto' }}>{emojiFor(r.reaction_key)}</Text>
                           </View>
                         ))}

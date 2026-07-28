@@ -72,7 +72,7 @@ const LiveBubble = ({ item, textColor, muted, onPress }) => {
         }
         <View style={[lb.dot, { backgroundColor: "#10b981" }]} />
       </View>
-      <Text style={[lb.username, { color: textColor }]} numberOfLines={1}>@{actor?.username}</Text>
+      <Text style={[lb.username, { color: textColor }]} numberOfLines={1}>{actor?.username}</Text>
       <Text style={[lb.venue, { color: muted }]} numberOfLines={1}>{event?.venue_name || event?.title}</Text>
     </TouchableOpacity>
   );
@@ -148,7 +148,7 @@ const ActivityRow = ({ item, primary, textColor, muted, onPress }) => {
       onPress={onPress}
       activeOpacity={0.8}
       accessibilityRole="button"
-      accessibilityLabel={`@${actor?.username} ${VERB[type]} ${event?.title}, ${fmtAge(timestamp)}`}
+      accessibilityLabel={`${actor?.username} ${VERB[type]} ${event?.title}, ${fmtAge(timestamp)}`}
     >
       <View style={{ position: 'relative' }}>
         {actor?.avatar_url
@@ -165,7 +165,7 @@ const ActivityRow = ({ item, primary, textColor, muted, onPress }) => {
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={[ar.line, { color: textColor }]} numberOfLines={2}>
-          <Text style={{ fontWeight: '900' }}>@{actor?.username}</Text>
+          <Text style={{ fontWeight: '900' }}>{actor?.username}</Text>
           <Text style={{ fontWeight: '500', color: muted }}> {VERB[type]} </Text>
           <Text style={{ fontWeight: '800' }}>{event?.title}</Text>
         </Text>

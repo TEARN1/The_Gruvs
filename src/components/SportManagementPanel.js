@@ -801,7 +801,7 @@ const MediaTab = ({ event, primary, textColor, muted }) => {
               {item.caption ? (
                 <Text style={{ color: textColor, fontSize: 13 }} numberOfLines={2}>{item.caption}</Text>
               ) : null}
-              <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>@{item.profiles?.username || 'unknown'}</Text>
+              <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>{item.profiles?.username || 'unknown'}</Text>
             </View>
             <TouchableOpacity
               onPress={() => toggleLike(item.id)}
