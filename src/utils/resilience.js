@@ -21,6 +21,17 @@ import { _internal as classifier } from './failureClassifier';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// A single attempt may NEVER hang forever — a stalled request with no timeout is
+// the #1 cause of screens that "load and never stop". Race every attempt against
+// a timeout so it rejects, retries, and ultimately falls back — the UI always
+// resolves to data, empty, or error, never an infinite spinner.
+const ATTEMPT_TIMEOUT_MS = 12000;
+function withTimeout(value, ms, label) {
+  let to;
+  const timer = new Promise((_, reject) => { to = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms); });
+  return Promise.race([Promise.resolve(value).finally(() => clearTimeout(to)), timer]);
+}
+
 // ─── Classification helpers ────────────────────────────────────────────────────
 //
 // These now delegate to failureClassifier.js — the one shared vocabulary every
@@ -206,7 +217,7 @@ export async function attemptWithBackoff(fn, maxAttempts = 3, baseMs = 300, labe
   let lastErr;
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const result = await fn(i, { idempotencyKey });
+      const result = await withTimeout(fn(i, { idempotencyKey }), ATTEMPT_TIMEOUT_MS, label);
       // Supabase pattern: { data, error } — treat error as thrown
       if (result && typeof result === 'object' && 'error' in result && result.error) {
         // Schema drift can never succeed by retrying — surface it and move on
