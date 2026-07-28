@@ -444,6 +444,10 @@ export const AuthModal = ({ visible, onClose }) => {
               </TouchableOpacity>
             </View>
 
+            <Text style={[styles.sublabel, { color: muted, marginBottom: 10 }]}>
+              One account — the same login works on The Resident.
+            </Text>
+
             <View style={[styles.tabRow, { borderColor: `${primary}40` }]}>
               {['signin', 'signup'].map((m) => (
                 <TouchableOpacity
