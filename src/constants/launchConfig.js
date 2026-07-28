@@ -35,10 +35,11 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   // live; the section still self-disables on any missing-table response, so
   // this is safe even before listings are seeded (renders nothing until then).
   accommodation: true,
-  // The Living Map (Phase 1) — a real street map with event pins and host-drawn
-  // impact zones (road closures). map_zones schema is LIVE (map_zones.sql). ON
-  // so the new Map tab shows; flip to false to hide the tab + entry points.
-  liveMap: true,
+  // The Living Map — NO LONGER its own nav tab. It's been MERGED into Path Map
+  // (opened via the map icon on The Drop): Path Map hosts both "My Path" (your
+  // footprint) and "Live City Map" (the real street map). Keeping this false
+  // removes the standalone tab + its mount; the map lives on inside Path Map.
+  liveMap: false,
 } : {
   reelsRail: true, business: true, gifting: true,
   pathMap: true, crossedPaths: true, stories: true,

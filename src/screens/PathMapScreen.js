@@ -17,6 +17,7 @@ import { useToast } from '../components/ToastNotification';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { WeekendPlannerCard } from '../components/WeekendPlannerCard';
 import { useBackClose } from '../hooks/useBackClose';
+import { MapScreen } from './MapScreen';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const MAP_W = SW;
@@ -391,6 +392,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
   const [showTraceCreator, setShowTraceCreator] = useState(null);
   const [traceNote, setTraceNote] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showLiveMap, setShowLiveMap] = useState(false); // the merged "Live City Map"
 
   // Bounds computed here so handleCanvasTap can use them
   const bounds = useMemo(() => {
@@ -584,15 +586,41 @@ export const PathMapScreen = ({ visible, onClose }) => {
         >
           <View>
             <Text style={[s.headerTitle, { color: textColor }]}>Path Map</Text>
-            <Text style={[s.headerSub, { color: muted }]}>Forward planning — who is going where</Text>
+            <Text style={[s.headerSub, { color: muted }]}>Your footprint + the live city map</Text>
           </View>
-          <TouchableOpacity
-            style={[s.closeBtn, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}
-            onPress={onClose}
-          >
-            <Feather name="x" size={18} color={primary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {/* The Living City Map — merged in here, no longer a nav tab. */}
+            <TouchableOpacity
+              style={[s.liveMapBtn, { backgroundColor: primary }]}
+              onPress={() => setShowLiveMap(true)}
+              accessibilityLabel="Open the live city map"
+            >
+              <Feather name="map" size={15} color="#000" />
+              <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>Live Map</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.closeBtn, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}
+              onPress={onClose}
+            >
+              <Feather name="x" size={18} color={primary} />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {/* The live city map, nested — the merged Living Map experience. */}
+        <Modal visible={showLiveMap} animationType="slide" onRequestClose={() => setShowLiveMap(false)} statusBarTranslucent>
+          <View style={{ flex: 1, backgroundColor: bg }}>
+            <MapScreen onAuthRequired={() => {}} onNavigateToEvent={() => setShowLiveMap(false)} />
+            <TouchableOpacity
+              onPress={() => setShowLiveMap(false)}
+              style={[s.liveMapClose, { top: (insets.top || 0) + 10, backgroundColor: `${bg}e6`, borderColor: `${primary}40` }]}
+              accessibilityLabel="Close the live map"
+            >
+              <Feather name="chevron-left" size={18} color={primary} />
+              <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>My Path</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -862,6 +890,14 @@ const s = StyleSheet.create({
   },
   headerTitle: { fontSize: 20, fontWeight: '900' },
   headerSub: { fontSize: 12, marginTop: 2 },
+  liveMapBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, height: 36, borderRadius: 18,
+  },
+  liveMapClose: {
+    position: 'absolute', left: 12, flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, zIndex: 60,
+  },
   closeBtn: {
     width: 36,
     height: 36,
