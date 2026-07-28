@@ -272,6 +272,16 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     return out;
   }, []);
 
+  // A line from you to the pin you're previewing — "here's the way there".
+  const routeLine = React.useMemo(() => {
+    if (!userLoc || !previewId) return null;
+    const e = events.find((x) => x.id === previewId);
+    if (!e) return null;
+    const lat = e.lat ?? e.latitude, lng = e.lon ?? e.longitude;
+    if (lat == null) return null;
+    return [[userLoc.lng, userLoc.lat], [lng, lat]];
+  }, [userLoc, previewId, events]);
+
   // "Live now" filters to venues with verified people there; the scrubber filters
   // to a chosen night; otherwise everything upcoming shows.
   const shownEvents = React.useMemo(() => {
@@ -322,6 +332,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               center={center}
               userLoc={userLoc}
               ripple={ripple}
+              route={routeLine}
               heat={heat}
               mine={myFog.points}
               showMine={showMine}

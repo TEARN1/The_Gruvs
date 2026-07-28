@@ -74,6 +74,7 @@ export function LiveMap({
   center = null,
   userLoc = null,         // { lat, lng } — a real device fix → "you are here" dot
   ripple = null,          // { lng, lat, key } — pulse a ring when someone checks in
+  route = null,           // [[lng,lat],[lng,lat]] — a line from you to a chosen pin
   heat = false,           // show the presence-heat layer
   mine = [],              // [{lat,lng}] — your lit Touch Downs ("Fog of the City")
   showMine = false,
@@ -250,6 +251,14 @@ export function LiveMap({
         paint: { 'circle-radius': 7, 'circle-color': '#3b82f6', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2.5 },
       });
 
+      // Route line — a dashed path from you to the pin you're eyeing.
+      map.addSource('route', { type: 'geojson', data: lineGeoJSON(route) });
+      map.addLayer({
+        id: 'route-line', type: 'line', source: 'route',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#00f2ff', 'line-width': 4, 'line-opacity': 0.8, 'line-dasharray': [1.5, 1.2] },
+      });
+
       // Touch-Down ripple — a one-shot expanding ring when someone checks in.
       map.addSource('ripple', { type: 'geojson', data: emptyFC() });
       map.addLayer({
@@ -306,6 +315,7 @@ export function LiveMap({
   useEffect(() => { setData('mine', pointsToGeoJSON(mine)); }, [mine]);
   useEffect(() => { setData('crew', crewToGeoJSON(crew)); }, [crew]);
   useEffect(() => { setData('self', pointsToGeoJSON(userLoc ? [userLoc] : [])); }, [userLoc]);
+  useEffect(() => { setData('route', lineGeoJSON(route)); }, [route]);
   // Animate a ripple each time `ripple.key` changes — radius grows, ring fades.
   useEffect(() => {
     const m = mapRef.current;
@@ -383,6 +393,12 @@ export function LiveMap({
 }
 
 const emptyFC = () => ({ type: 'FeatureCollection', features: [] });
+
+// A single LineString from [[lng,lat],…] (the route to a chosen pin).
+function lineGeoJSON(coords) {
+  if (!Array.isArray(coords) || coords.length < 2) return emptyFC();
+  return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} }] };
+}
 
 // Plain lat/lng points (Fog of the City — your lit Touch Downs).
 function pointsToGeoJSON(pts) {
