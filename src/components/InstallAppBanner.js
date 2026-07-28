@@ -113,7 +113,8 @@ const styles = StyleSheet.create({
   btn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 11 },
   btnText: { color: '#000', fontWeight: '900', fontSize: 12.5 },
   fab: {
-    position: 'absolute', bottom: 84, right: 14, zIndex: 50,
+    // Bottom-LEFT so it never collides with the Create (+) FAB on the right.
+    position: 'absolute', bottom: 84, left: 14, zIndex: 50,
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 10, borderRadius: 24,
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6,

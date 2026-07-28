@@ -361,6 +361,17 @@ const MainNavigator = () => {
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [godViewVisible, setGodViewVisible] = useState(false);
   const [bizHubVisible, setBizHubVisible] = useState(false);
+  // Only people who actually run a business see the "For Business" shortcut —
+  // everyone else keeps a clutter-free nav (discovery still lives in Profile).
+  const [hasBusiness, setHasBusiness] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    if (!authUser?.id) { setHasBusiness(false); return; }
+    supabase.from('business_profiles').select('id').eq('user_id', authUser.id).limit(1).maybeSingle()
+      .then(({ data }) => { if (alive) setHasBusiness(!!data); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [authUser?.id]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [targetEvent, setTargetEvent] = useState(null);
   const [targetProfile, setTargetProfile] = useState(null);
@@ -881,7 +892,7 @@ const MainNavigator = () => {
                 isOpen={sidebarOpen}
                 onToggle={() => setSidebarOpen(p => !p)}
                 onGodView={() => setGodViewVisible(true)}
-                onBusiness={() => setBizHubVisible(true)}
+                onBusiness={hasBusiness ? () => setBizHubVisible(true) : undefined}
               />
             </ErrorBoundary>
             {/* Item 43: nativeID for skip-link anchor */}
@@ -896,20 +907,8 @@ const MainNavigator = () => {
             <Animated.View nativeID="main-content" style={[styles.content, { opacity: screenOpacity }]} {...tabSwipe.panHandlers}>
               {renderScreen()}
             </Animated.View>
-            {/* The Gruvs for Business — floating pill, one tap from any screen
-                (mobile has no global header). Above the tab bar. */}
-            {feature('business') && (
-              <TouchableOpacity
-                onPress={() => setBizHubVisible(true)}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="The Gruvs for Business"
-                style={[styles.bizFab, { backgroundColor: primary, shadowColor: primary }]}
-              >
-                <Feather name="briefcase" size={14} color="#000" />
-                <Text style={styles.bizFabText}>Business</Text>
-              </TouchableOpacity>
-            )}
+            {/* (Business entry lives in the side menu / profile — no floating
+                pill on mobile: it collided with Get App + the Create button.) */}
             <ErrorBoundary label="Navigation" inline>
               <TabBar
                 currentTab={currentTab}
@@ -1104,13 +1103,6 @@ const styles = StyleSheet.create({
   // Narrow layout
   narrowLayout: { flex: 1 },
   content: { flex: 1 },
-  bizFab: {
-    position: 'absolute', right: 14, bottom: 78, zIndex: 40,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 22,
-    shadowOpacity: 0.5, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
-  },
-  bizFabText: { color: '#000', fontWeight: '900', fontSize: 12, letterSpacing: 0.3 },
 
   // Keep-alive screen host: visited screens stack here; only the active one is
   // visible. Hidden screens stay mounted (state + scroll preserved) but out of
