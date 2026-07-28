@@ -2588,7 +2588,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           // in prod — the feed capped at initialNumToRender). Drive load-more from
           // the raw scroll geometry instead, which DOES fire.
           if (Platform.OS === 'web' && contentSize?.height > 0) {
-            if (contentOffset.y + layoutMeasurement.height > contentSize.height - 900) {
+            // Prefetch the next page ~2 screens early so a fast scroll never
+            // outruns the data and lands on still-loading cards.
+            const prefetch = Math.max(1800, layoutMeasurement.height * 1.5);
+            if (contentOffset.y + layoutMeasurement.height > contentSize.height - prefetch) {
               handleLoadMore();
             }
           }
@@ -2601,9 +2604,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         // matter how far you scroll — "I only see 5 events"). Browsers handle a
         // few hundred cards fine, so render everything and let the DOM scroll.
         disableVirtualization={Platform.OS === 'web'}
-        maxToRenderPerBatch={Platform.OS === 'web' ? 100 : 5}
-        windowSize={Platform.OS === 'web' ? 1001 : 10}
-        initialNumToRender={Platform.OS === 'web' ? 200 : 5}
+        maxToRenderPerBatch={Platform.OS === 'web' ? 100 : 8}
+        windowSize={Platform.OS === 'web' ? 1001 : 14}
+        initialNumToRender={Platform.OS === 'web' ? 200 : 7}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>
@@ -2651,7 +2654,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={primary} colors={[primary]} progressBackgroundColor={surface} />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={1.5}
         ListFooterComponent={
           loadingMore ? (
             <View style={{ paddingVertical: 20 }}>
