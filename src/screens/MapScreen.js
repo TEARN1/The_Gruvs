@@ -64,6 +64,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [heat, setHeat] = useState(false);
   const [liveOnly, setLiveOnly] = useState(false); // show only venues with verified people there now
   const [ripple, setRipple] = useState(null);      // {lng,lat,key} — pulse on a live check-in
+  const [dayFilter, setDayFilter] = useState(null); // 'YYYY-MM-DD' | null(all) — the time-scrubber
   const [nudge, setNudge] = useState(null);
   const [showRoulette, setShowRoulette] = useState(false);
   const [showHomeSafe, setShowHomeSafe] = useState(false);
@@ -257,9 +258,28 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const crewOut = crewPlans.reduce((set, p) => { p.people.forEach((x) => set.add(x.id)); return set; }, new Set()).size;
 
   const activeClosures = zones.filter((z) => z.kind === 'road_closed' || z.kind === 'detour').length;
-  // "Live now" filters to venues with verified people currently there; otherwise
-  // the map shows everything upcoming.
-  const shownEvents = liveOnly ? events.filter((e) => (e.here_count || 0) > 0) : events;
+  // The scrubber: next 7 nights as chips (today + 6). Tonight is null(all-upcoming)
+  // vs a specific day so the map can jump forward in time — Path Map planning.
+  const days = React.useMemo(() => {
+    const out = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(); d.setDate(d.getDate() + i);
+      out.push({
+        key: d.toISOString().split('T')[0],
+        label: i === 0 ? 'Tonight' : i === 1 ? 'Tomorrow' : d.toLocaleDateString([], { weekday: 'short' }),
+      });
+    }
+    return out;
+  }, []);
+
+  // "Live now" filters to venues with verified people there; the scrubber filters
+  // to a chosen night; otherwise everything upcoming shows.
+  const shownEvents = React.useMemo(() => {
+    let list = events;
+    if (liveOnly) list = list.filter((e) => (e.here_count || 0) > 0);
+    if (dayFilter) list = list.filter((e) => String(e.event_date || '').slice(0, 10) === dayFilter);
+    return list;
+  }, [events, liveOnly, dayFilter]);
 
   return (
     <ErrorBoundary label="Map">
@@ -272,6 +292,26 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               : `${events.length} events${activeClosures ? ` · ${activeClosures} live closure${activeClosures === 1 ? '' : 's'}` : ''}`}
           </Text>
         </View>
+
+        {/* Time-scrubber — jump the map forward night by night */}
+        {isMapSupported() && !drawing && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}
+            style={cs.dayStrip} contentContainerStyle={{ gap: 8, paddingHorizontal: 14 }}>
+            <TouchableOpacity onPress={() => setDayFilter(null)}
+              style={[cs.dayChip, { borderColor: !dayFilter ? primary : `${primary}30`, backgroundColor: !dayFilter ? primary : 'transparent' }]}>
+              <Text style={{ color: !dayFilter ? '#000' : primary, fontSize: 12, fontWeight: '800' }}>All</Text>
+            </TouchableOpacity>
+            {days.map((d) => {
+              const on = dayFilter === d.key;
+              return (
+                <TouchableOpacity key={d.key} onPress={() => setDayFilter(on ? null : d.key)}
+                  style={[cs.dayChip, { borderColor: on ? primary : `${primary}30`, backgroundColor: on ? primary : 'transparent' }]}>
+                  <Text style={{ color: on ? '#000' : primary, fontSize: 12, fontWeight: '800' }}>{d.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
 
         {/* The map fills the rest */}
         <View style={{ flex: 1 }}>
@@ -486,6 +526,8 @@ const cs = StyleSheet.create({
   fab: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   markBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 24 },
   markText: { color: '#000', fontWeight: '900', fontSize: 13 },
+  dayStrip: { flexGrow: 0, paddingVertical: 8 },
+  dayChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, borderWidth: 1.5 },
   legend: { position: 'absolute', left: 14, bottom: 20, flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 7 },
   fogChip: { position: 'absolute', top: 10, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   fogChipText: { color: '#fbbf24', fontSize: 11, fontWeight: '800' },
