@@ -421,6 +421,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: '#00f2ff' }]} /><Text style={cs.legendText}>Events</Text></View>
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#ef4444' }]} /><Text style={cs.legendText}>Road closed</Text></View>
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#10b981' }]} /><Text style={cs.legendText}>Route</Text></View>
+              <View style={cs.legendRow}><Feather name="bell" size={9} color="#eab308" /><Text style={cs.legendText}>Resident alert</Text></View>
               {heat && <View style={cs.legendRow}><Feather name="activity" size={9} color="#f59e0b" /><Text style={cs.legendText}>Heat = verified Touch Downs</Text></View>}
             </View>
           )}
@@ -486,7 +487,9 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[cs.sheetTitle, { color: textColor }]} numberOfLines={1}>{zone.label || meta.label || 'Zone'}</Text>
-            <Text style={{ color: muted, fontSize: 11 }}>{meta.label} · clears in {endsLabel}</Text>
+            <Text style={{ color: muted, fontSize: 11 }}>
+              {zone.source_app === 'resident' ? 'Community report · via The Resident' : meta.label} · clears in {endsLabel}
+            </Text>
           </View>
         </View>
         <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>

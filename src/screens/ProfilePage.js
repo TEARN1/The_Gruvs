@@ -4,7 +4,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
   Switch, Dimensions, Share, Platform, RefreshControl, Modal,
-  KeyboardAvoidingView, Pressable, Image,
+  KeyboardAvoidingView, Pressable, Image, Linking,
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
 import { WritingStylePicker } from '../components/WritingStylePicker';
@@ -235,7 +235,7 @@ const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage }) 
     }
     {checkOnline(person) && <View style={pcard.onlineDot} />}
     <View style={{ flex: 1, marginLeft: 12 }}>
-      <Text style={[pcard.name, { color: textColor }]}>@{person.username}</Text>
+      <Text style={[pcard.name, { color: textColor }]}>{person.username}</Text>
       <Text style={[pcard.meta, { color: muted }]}>{person.distance_km?.toFixed(1) || '?'} km away</Text>
       <View style={pcard.interestRow}>
         {(person.interests || []).slice(0, 2).map(int => (
@@ -906,7 +906,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
             </View>
           }
           <View style={fm.previewInfo}>
-            <Text style={[fm.previewName, { color: textColor }]}>@{profile?.username || 'you'}</Text>
+            <Text style={[fm.previewName, { color: textColor }]}>{profile?.username || 'you'}</Text>
             <Text style={[fm.previewBio, { color: muted }]} numberOfLines={2}>{bio || 'No bio yet...'}</Text>
             {location ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
@@ -1162,7 +1162,7 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
                   onFollow={async () => {
                     if (!user) return;
                     await UserManager.follow(user.id, person.id);
-                    toast?.show(`Following @${person.username}`, 'success');
+                    toast?.show(`Following ${person.username}`, 'success');
                   }}
                   onMessage={() => setDmTarget(person)}
                 />
@@ -2380,7 +2380,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const handleShareProfile = async () => {
     try {
       await Share.share({
-        message: `Check out my vibe on The Gruvs! @${username} 👑`,
+        message: `Check out my vibe on The Gruvs! ${username} 👑`,
         url: 'https://thegruvs.com/profile/' + username,
       });
     } catch (err) {
@@ -2679,7 +2679,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             </View>
           ) : (
             <TouchableOpacity onPress={() => { setNewUsername(username); setEditingUsername(true); }} activeOpacity={0.7}>
-              <Text style={[styles.profileBio, { color: primary, fontWeight: '700', marginTop: 2 }]}>@{username} ✎</Text>
+              <Text style={[styles.profileBio, { color: primary, fontWeight: '700', marginTop: 2 }]}>{username} ✎</Text>
             </TouchableOpacity>
           )}
 
@@ -2832,6 +2832,47 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <ResidentTrustBadge tier={profile?.resident_trust_tier ?? user?.resident_trust_tier} size="large" />
               {/* A2 — the Verified engine: live criteria checklist + apply. */}
               <VerifiedRequestCard primary={primary} surface={bg} textColor={textColor} muted={muted} />
+              
+              {/* VibeMap Surveyor Profile Integration Card */}
+              <View style={{
+                marginTop: 8,
+                padding: 12,
+                borderRadius: 12,
+                backgroundColor: `${primary}08`,
+                borderWidth: 1,
+                borderColor: `${primary}20`,
+                gap: 6
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Feather name="navigation" size={16} color={primary} />
+                    <Text style={{ color: textColor, fontWeight: '700', fontSize: 13 }}>VibeMap Surveyor</Text>
+                  </View>
+                  <Text style={{ color: '#10b981', fontWeight: '800', fontSize: 11 }}>
+                    {profile?.surveyor_xp ? `${profile.surveyor_xp} XP` : '0 XP'}
+                  </Text>
+                </View>
+                <Text style={{ color: muted, fontSize: 11, lineHeight: 15 }}>
+                  Level: {
+                    (profile?.surveyor_xp ?? 0) >= 200 ? 'Master Surveyor' :
+                    (profile?.surveyor_xp ?? 0) >= 50 ? 'Block Surveyor' :
+                    'Apprentice Surveyor'
+                  }
+                </Text>
+                <TouchableOpacity
+                  onPress={() => Linking.openURL('http://localhost:3000/dashboard')}
+                  style={{
+                    backgroundColor: primary,
+                    borderRadius: 8,
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                    alignItems: 'center',
+                    marginTop: 4
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>Launch Resident Map</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </CollapsibleSection>
         )}
