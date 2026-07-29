@@ -373,6 +373,7 @@ export function LiveMap({
   useEffect(() => { setData('draw', drawGeoJSON(drawMode, drawPoints)); }, [drawMode, drawPoints]);
   useEffect(() => { setData('mine', pointsToGeoJSON(mine)); }, [mine]);
   useEffect(() => { setData('crew', crewToGeoJSON(crew)); }, [crew]);
+  useEffect(() => { setData('stays', staysToGeoJSON(stays)); }, [stays]);
   useEffect(() => { setData('self', pointsToGeoJSON(userLoc ? [userLoc] : [])); }, [userLoc]);
   useEffect(() => { setData('route', lineGeoJSON(route)); }, [route]);
   useEffect(() => { setData('reports', reportsToGeoJSON(reports)); }, [reports]);
@@ -431,6 +432,14 @@ export function LiveMap({
     const m = mapRef.current;
     if (!m || !readyRef.current) return;
     for (const id of ['crew-ring', 'crew-dot', 'crew-count']) {
+      if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
+    }
+  }
+
+  function toggleStays(on) {
+    const m = mapRef.current;
+    if (!m || !readyRef.current) return;
+    for (const id of ['stays-glow', 'stays-dot', 'stays-icon']) {
       if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
     }
   }

@@ -18,6 +18,12 @@ Every interactive control in the app, screen by screen. Generated from a source 
 Plus gesture surfaces that aren't tags at all: the tab-bar drag-scrub, tab swipe, and the
 native map's tap/marker handlers.
 
+**Beyond the buttons**, §22 covers every *non-press* interaction — typing, Enter-to-submit,
+switches, Android back on 115 modals, web pull-to-refresh, the QR scanner's camera trigger, and
+keyboard navigation. **Short answer on `onClick`: this app has none** (it's React Native —
+`onPress` is the equivalent), so a broken tap is never an `onClick` problem.
+See [§22](#22-non-press-interactions--everything-that-isnt-a-button).
+
 > **Companion doc:** [FALLBACK_STRATEGY.md](FALLBACK_STRATEGY.md) covers what happens when one of
 > these controls *fails* — the 5-layer model (Guard → Attempt → Degrade → Contain → Observe) and
 > the READ / WRITE / CRITICAL classification that decides how much fallback each button earns.
@@ -685,6 +691,92 @@ correct and worth keeping. The rest print green text to a fake terminal.
 
 > If you ever demo this screen, the moderation queue is the only part that survives scrutiny.
 > The rest is a mock harness — the honesty banner is doing a lot of load-bearing work.
+
+---
+
+## 22. Non-press interactions — everything that isn't a button
+
+Added 2026-07-29 after a sweep of **every** `on*` handler prop (168 distinct names, filtered to
+the ones that represent real user input rather than component-to-component callbacks). The
+sections above cover `onPress`/`onLongPress`; these are the interactions that were missing.
+
+### ⚠️ First, the `onClick` question
+
+**There is no `onClick` in this app.** The sweep found exactly 3 occurrences, all in
+[LiveMap.js](src/components/LiveMap.js) — and they are `onClickRef` / `onMapClick`, a MapLibre
+map-click *prop name*, not a DOM handler:
+
+```
+src/components/LiveMap.js:330   if (drawModeRef.current) { onClickRef.current?.(…) }
+src/components/LiveMap.js:362   const onClickRef = useRef(onMapClick);
+src/components/LiveMap.js:366   onClickRef.current = onMapClick;
+```
+
+That is expected — this is React Native. Even on web, `react-native-web` translates
+`onPress` into DOM click handling for you, so app code never writes `onClick`. **If something
+broke on tap, `onClick` is not where to look.** See [Finding a tap that broke](#finding-a-tap-that-broke).
+
+### The real interaction handlers
+
+| Handler | Count | What it is |
+|---|---|---|
+| `onChangeText` | 219 | Typing into any text field. Higher than the 193 `TextInput` count because custom wrappers (`InputField`, `Field`) forward it. |
+| `onRequestClose` | 115 | **Android hardware back / Esc on a modal.** A real, easily-missed interaction: every one of the 115 modals can be dismissed this way, independently of its ✕ button. |
+| `onSubmitEditing` | 15 | Pressing **Enter / Go / Search** on the keyboard. Submits without touching the on-screen button — used by the door check-in code field, echo composer, event chat, playlist search, category picker, campaign tags, draft tasks, admin check-in. |
+| `onValueChange` | 13 | The `Switch` toggles — Settings' privacy/notification rows, event follow prefs, provider setup, stage playbook, survey builder, profile interests. |
+| `onScroll` / `onMomentumScrollEnd` / `onScrollEndDrag` | 6 | Scroll-driven behaviour: the time picker snaps to the nearest hour/minute on scroll end; the feed and Explore drive scroll-to-top visibility. |
+| `onTouchStart` / `onTouchEnd` | 4 | **Web pull-to-refresh** on The Drop ([LandingPage.js:2567](src/screens/LandingPage.js#L2567)) and Reels' tap zones. |
+| `onPressIn` / `onPressOut` | 4 | Press-and-hold visual feedback (`Motion.js`) and the feed card's flash state. |
+| `onLayout` | 7 | Measurement, not input — used by `PostEventModal` to scroll a failed-validation field into view, and by `MediaViewer` for sizing. |
+| `onBlur` / `onFocus` | 3 | Field focus tracking in the draft panel and Scout's custom-radius entry. |
+| `onContentSizeChange` | 1 | Event chat auto-scrolls to the newest message. |
+| `onBarcodeScanned` | 1 | **The QR scanner's actual trigger** ([QRCheckInScanner.js:388](src/components/QRCheckInScanner.js#L388)) — door check-in fires from the camera, not a button press. |
+| `onNaturalSize` | 1 | Media viewer aspect fitting. |
+
+### Keyboard interactions (web)
+
+- **Enter opens an event card.** Feed cards get `tabIndex: 0` and
+  `onKeyPress: e => e.nativeEvent?.key === 'Enter' && onSelectEvent(event)` on web
+  ([LandingPage.js:379](src/screens/LandingPage.js#L379)) — so the whole card is keyboard-reachable,
+  not just its buttons. They also get `className: 'event-card'` and `cursor: pointer`.
+- **Keys 1–7** switch tabs (App shell, §1).
+- **Esc / hardware back** closes the topmost modal via `onRequestClose` + the `backStack`.
+
+### Two ways to open event details
+
+Worth stating because they behave differently, and this is the surface reported as broken:
+
+| Path | Line | Trigger |
+|---|---|---|
+| Tapping the **title/description column** | [LandingPage.js:661](src/screens/LandingPage.js#L661) | `onPress={() => onSelectEvent(event)}` |
+| **"📋 Details on the poster"** | [LandingPage.js:766](src/screens/LandingPage.js#L766) | `onPress={() => onSelectEvent(event)}` — same handler |
+| **Enter** on a focused card (web) | [LandingPage.js:379](src/screens/LandingPage.js#L379) | `onKeyPress` |
+| **Double-tap** the poster image | [LandingPage.js:2430](src/screens/LandingPage.js#L2430) | 210 ms debounce, then `setSelectedEvent` |
+
+All four funnel into the same `setSelectedEvent`, which renders
+`<EventDetailScreen>` inside a **`SafeSection`** ([LandingPage.js:2900](src/screens/LandingPage.js#L2900)).
+
+### Finding a tap that broke
+
+`SafeSection` is `ErrorBoundary inline` + `Suspense`. When Event Detail throws, it does **not**
+crash the app — it replaces that section with a small *"Event Detail unavailable / Retry"* chip
+and the feed behind it keeps working. So the symptom of a broken event page is a **small inline
+chip, not a white screen**, which is easy to mistake for "the button did nothing".
+
+To find the actual cause:
+
+1. **Look for the inline chip** with the label `Event Detail`. Its presence confirms a throw
+   rather than a dead handler.
+2. **Read `client_errors`** — `ErrorBoundary` reports there. Query for recent rows with a label
+   matching the section.
+3. **Check the browser console** for the boundary's `componentStack`.
+4. If the chip is *absent* and nothing happens at all, the handler never fired — check that the
+   card isn't covered by an overlay, rather than looking for an exception.
+
+> Nothing in the current source reproduces a crash on this path under static analysis: the four
+> entry points are identical one-line calls, and `EventDetailScreen`'s reads (`profiles.city`,
+> own-row `live_checkins`) don't touch a revoked column. Diagnosing further needs the runtime
+> error — step 2 is the fastest route to it.
 
 ---
 
