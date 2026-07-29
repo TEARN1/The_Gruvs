@@ -10,6 +10,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import * as Location from 'expo-location';
 import { LocationService } from '../services/locationService';
+import { forwardGeocode, isValidCoord } from '../services/geocoding';
 import * as ImagePicker from 'expo-image-picker';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
@@ -244,29 +245,11 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   // Nominatim. (The old code only hit Nominatim when permission was denied, so
   // on web — where permission is usually granted — it threw and saved no coords,
   // which is why most web-posted events had null lat/lon.)
+  // Centralised geocoding (device-first on native, Nominatim on web), throttled
+  // + cached in one place — see services/geocoding.js.
   const resolveCoords = useCallback(async (addressText) => {
-    if (!addressText || addressText.trim().length < 4) return null;
-    const query = city.trim() ? `${addressText.trim()}, ${city.trim()}` : addressText.trim();
-    // Native: try the on-device geocoder first (no GPS permission needed for a
-    // forward address lookup, but some platforms gate it — fall through on error).
-    if (Platform.OS !== 'web') {
-      try {
-        const results = await Location.geocodeAsync(query);
-        if (results?.length) return { lat: results[0].latitude, lon: results[0].longitude };
-      } catch { /* fall through to Nominatim */ }
-    }
-    // Web + native fallback: Nominatim open geocoding.
-    try {
-      const encoded = encodeURIComponent(query);
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`, {
-        headers: { 'Accept': 'application/json' },
-      });
-      const json = await res.json();
-      if (json?.length) {
-        const la = parseFloat(json[0].lat), lo = parseFloat(json[0].lon);
-        if (Number.isFinite(la) && Number.isFinite(lo)) return { lat: la, lon: lo };
-      }
-    } catch { /* best-effort */ }
+    const place = await forwardGeocode(addressText, { city: city.trim() });
+    if (place && isValidCoord(place.lat, place.lon)) return { lat: place.lat, lon: place.lon };
     return null;
   }, [city]);
 

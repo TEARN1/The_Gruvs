@@ -51,35 +51,21 @@ export const LocationService = {
     } catch {}
   },
 
-  // Geocode address string to lat/lon (Best-effort / Mock for now)
+  // Address → { lat, lon }. Delegates to the central geocoder so it works on WEB
+  // too (Expo Location.geocodeAsync doesn't exist there — this used to silently
+  // return null on the website).
   async geocode(address) {
     if (!address) return null;
-    try {
-      // In a real app, use Expo's Location.geocodeAsync(address)
-      const results = await Location.geocodeAsync(address);
-      if (results && results.length > 0) {
-        return {
-          lat: results[0].latitude,
-          lon: results[0].longitude,
-        };
-      }
-      return null;
-    } catch {
-      return null;
-    }
+    const { forwardGeocode, isValidCoord } = require('./geocoding');
+    const p = await forwardGeocode(address);
+    return (p && isValidCoord(p.lat, p.lon)) ? { lat: p.lat, lon: p.lon } : null;
   },
 
-  // Reverse geocode lat/lon to address
+  // Coords → human address string (web-capable via the central geocoder).
   async reverseGeocode(lat, lon) {
-    try {
-      const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
-      if (results && results.length > 0) {
-        const item = results[0];
-        return `${item.streetNumber || ''} ${item.street || ''}, ${item.city || ''}, ${item.region || ''}`;
-      }
-      return null;
-    } catch {
-      return null;
-    }
+    const { reverseGeocode } = require('./geocoding');
+    const p = await reverseGeocode(lat, lon);
+    if (!p) return null;
+    return p.displayName || [p.road, p.city, p.province].filter(Boolean).join(', ') || null;
   }
 };
