@@ -806,6 +806,46 @@ closing, but not the security incident it first looked like.
 ⚠️ Separately: **`redeem_gift_boost` does not exist on the live DB**, so `GiftBoostModal`'s
 redeem button would fail outright. Parked, so low priority — but it's live schema drift.
 
+### ✅ Verified 2026-07-29: the location tier holds too
+
+Probed by running actual queries as the `authenticated` role, not by reading policy text.
+
+**Coordinates are locked at the column-grant level.** `authenticated` holds INSERT/UPDATE on
+`profiles.lat` / `profiles.lon` but **no SELECT**. A client attempting to read another user's
+coordinates gets `permission denied for table profiles`. Crossed Paths, Path Map and Find Them
+therefore *cannot* bypass the safe RPCs (`get_crossed_paths`, `get_safe_nearby_vibers`) even
+though their buttons are ungated. Same conclusion as gifting: **product exposure, not a leak.**
+
+**Moderation auto-hide genuinely works.** `profiles_hide_autohidden` is **RESTRICTIVE**, so it
+is AND-ed with the permissive policies and really does subtract. (Worth stating because the
+five permissive `USING (true)` policies beside it look like they would defeat it. They don't.)
+
+#### But two real problems surfaced
+
+**1. `birthdaySpotlight` is silently dead.** Both `peopleWithBirthdayToday`
+([birthdaySpotlight.js:46](src/services/birthdaySpotlight.js#L46)) and `myBirthdayTwins`
+([:84](src/services/birthdaySpotlight.js#L84)) select `lat, lon` off *other* users' profiles.
+That is exactly what the lockdown blocks, so the query throws, a `catch` logs a `console.warn`
+and returns `[]`. The "🎂 Birthday · Wish them 🎉" cards on Explore have therefore been showing
+nothing, with no error surfaced to anyone. This is a textbook **L5 Observe** failure from
+[FALLBACK_STRATEGY.md](FALLBACK_STRATEGY.md) — a silent catch turning a permission error into
+an empty list. It also fetches up to **5,000 rows** to filter client-side, which is its own problem.
+
+**2. Latent PII hazard — safe by accident, not by design.** `email` and `phone` *do* have SELECT
+granted to `authenticated`, and `profiles` carries **five duplicate PERMISSIVE SELECT policies
+all with `USING (true)`**, so every row is readable by every signed-in user. It is not a leak
+today only because both columns are **NULL for all 34 profiles** (the real PII lives in
+`auth.users`). The moment anything writes an email or phone into `profiles`, it becomes
+world-readable to every signed-in user — and `SettingsScreen` already renders `profile?.email`,
+so something intends to populate it.
+
+**Root cause of both: policy sprawl.** `profiles` has 5 identical `USING (true)` SELECT policies
+and 6 overlapping insert/update policies with near-duplicate names ("Users can update own
+profile", "Users can update own profile.", "Users update own profile", `profiles_update_own`,
+`profiles_update_self`). Accumulated migration debt. It makes the effective policy genuinely hard
+to reason about, and it is precisely how someone later hardens one policy while four others still
+say `true`. Consolidating to one SELECT policy per table is the durable fix.
+
 ### Tiering the controls by blast radius
 
 | Tier | Controls | Required guard |
@@ -821,8 +861,9 @@ redeem button would fail outright. Parked, so low priority — but it's live sch
 1. ~~**Verify the server-side half of the three flag leaks.**~~ ✅ **Done 2026-07-29 — it holds.**
    See the verification box above. Gifting is server-authoritative and the ledgers are
    RLS-locked. Severity drops from "possible live hole in a regulated surface" to "product
-   exposure". The remaining equivalent check is the **location** tier (Crossed Paths / Path Map)
-   — confirm those read through the safe RPC rather than querying `profiles` directly.
+   exposure". ✅ The **location** tier was checked the same way and also holds — `lat`/`lon` have
+   no SELECT grant for `authenticated`, so the ungated Crossed Paths / Path Map buttons cannot
+   read raw coordinates. See the verification box above.
 2. **Add the missing `feature()` guards** (~3 lines each). Now a product/compliance fix rather
    than a security one: it stops users transacting in a gifting economy you meant to park.
 3. **Escrow: decide, then act.** "Lock Funds in Escrow" implies custody that doesn't exist. It's
@@ -881,8 +922,18 @@ redeem button would fail outright. Parked, so low priority — but it's live sch
    handler ([ReelsScreen.js:584](src/screens/ReelsScreen.js#L584)) while `#hashtags` right beside
    them are tappable. Users will tap them and nothing happens. One-line fix either way.
 
-7. **Zero `testID`s in 1,427 controls**, and the E2E suite is `continue-on-error`. See the
+7. **`birthdaySpotlight` is silently dead** (verified against the live DB). It reads `lat, lon`
+   off other users' profiles, which the coordinate lockdown blocks, so the Explore birthday cards
+   have been rendering nothing behind a `console.warn`. Fix requires a decision: drop the
+   distance sort, or route it through a safe RPC.
+   ([birthdaySpotlight.js:46](src/services/birthdaySpotlight.js#L46), [:84](src/services/birthdaySpotlight.js#L84))
+
+8. **`profiles` policy sprawl** — 5 duplicate `USING (true)` SELECT policies + 6 overlapping
+   write policies. Harmless today because `email`/`phone` are NULL for all 34 users, but it means
+   any future write of PII into `profiles` is immediately world-readable to signed-in users.
+
+9. **Zero `testID`s in 1,427 controls**, and the E2E suite is `continue-on-error`. See the
    [Automation plan](#automation-plan--making-these-1427-controls-testable).
 
-8. **`ProfilePage.js` is 3,847 lines / 129 controls** in one file. It holds the profile, the identity
+10. **`ProfilePage.js` is 3,847 lines / 129 controls** in one file. It holds the profile, the identity
    form, clubs, the gallery, find-me/find-them, and the edit modal. A split would pay for itself.
