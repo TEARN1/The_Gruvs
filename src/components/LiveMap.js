@@ -13,6 +13,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, Platform, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ZONE_KINDS } from '../services/mapZones';
+import { MAP_REPORT_BY_KEY } from '../constants/mapContributions';
 
 // Guarded so MapLibre (which touches window/document) never loads in the native
 // bundle. Metro constant-folds Platform.OS per platform, so this require is
@@ -80,6 +81,8 @@ export function LiveMap({
   showMine = false,
   crew = [],              // [{lat,lng,count}] — where your crew is heading tonight
   showCrew = false,
+  reports = [],           // crowdsourced typed pins (map_reports)
+  onReportPress,          // (reportId) => void
   drawMode = null,        // null | 'line' | 'polygon'
   drawPoints = [],        // [[lng,lat], ...] controlled by parent
   onMapClick,             // (lngLat) => void  — used while drawing
@@ -264,6 +267,22 @@ export function LiveMap({
       });
 
       // Touch-Down ripple — a one-shot expanding ring when someone checks in.
+      // Crowdsourced reports — typed community pins (queues, water, unsafe…).
+      map.addSource('reports', { type: 'geojson', data: reportsToGeoJSON(reports) });
+      map.addLayer({
+        id: 'reports-halo', type: 'circle', source: 'reports',
+        paint: { 'circle-radius': 13, 'circle-color': ['get', 'color'], 'circle-opacity': 0.16, 'circle-blur': 0.5 },
+      });
+      map.addLayer({
+        id: 'reports-dot', type: 'circle', source: 'reports',
+        paint: {
+          'circle-radius': 7, 'circle-color': ['get', 'color'],
+          'circle-stroke-color': '#0d1112', 'circle-stroke-width': 2,
+          // Confirmed pins read solid; unconfirmed a touch translucent.
+          'circle-opacity': ['case', ['==', ['get', 'status'], 'confirmed'], 1, 0.8],
+        },
+      });
+
       map.addSource('ripple', { type: 'geojson', data: emptyFC() });
       map.addLayer({
         id: 'ripple-ring', type: 'circle', source: 'ripple',
@@ -299,6 +318,8 @@ export function LiveMap({
         }
         const hit = map.queryRenderedFeatures(ev.point, { layers: ['ev-dot', 'ev-glow', 'ev-hot'] });
         if (hit && hit[0]) { onEventRef.current?.(hit[0].properties.id); return; }
+        const rp = map.queryRenderedFeatures(ev.point, { layers: ['reports-dot', 'reports-halo'] });
+        if (rp && rp[0]) { onReportRef.current?.(rp[0].properties.id); return; }
         const z = map.queryRenderedFeatures(ev.point, { layers: ['zones-line', 'zones-fill'] });
         if (z && z[0]) onZoneRef.current?.(z[0].properties.id);
       });
@@ -314,8 +335,9 @@ export function LiveMap({
   // Keep the latest callbacks/mode in refs so the single 'click' handler sees them.
   const drawModeRef = useRef(drawMode); const onClickRef = useRef(onMapClick);
   const onEventRef = useRef(onEventPress); const onZoneRef = useRef(onZonePress);
+  const onReportRef = useRef(onReportPress);
   useEffect(() => { drawModeRef.current = drawMode; onClickRef.current = onMapClick;
-    onEventRef.current = onEventPress; onZoneRef.current = onZonePress; });
+    onEventRef.current = onEventPress; onZoneRef.current = onZonePress; onReportRef.current = onReportPress; });
 
   // ── update sources on data change ───────────────────────────────────────────
   useEffect(() => { const g = eventsToGeoJSON(events); setData('events', g); setData('eventsC', g); }, [events]);
@@ -325,6 +347,7 @@ export function LiveMap({
   useEffect(() => { setData('crew', crewToGeoJSON(crew)); }, [crew]);
   useEffect(() => { setData('self', pointsToGeoJSON(userLoc ? [userLoc] : [])); }, [userLoc]);
   useEffect(() => { setData('route', lineGeoJSON(route)); }, [route]);
+  useEffect(() => { setData('reports', reportsToGeoJSON(reports)); }, [reports]);
   // Animate a ripple each time `ripple.key` changes — radius grows, ring fades.
   useEffect(() => {
     const m = mapRef.current;
@@ -402,6 +425,20 @@ export function LiveMap({
 }
 
 const emptyFC = () => ({ type: 'FeatureCollection', features: [] });
+
+// Crowdsourced report pins → GeoJSON, carrying the catalog colour + status.
+function reportsToGeoJSON(reports = []) {
+  return {
+    type: 'FeatureCollection',
+    features: (reports || [])
+      .filter((r) => r && r.lat != null && r.lon != null)
+      .map((r) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [Number(r.lon), Number(r.lat)] },
+        properties: { id: r.id, status: r.status || 'reported', color: (MAP_REPORT_BY_KEY[r.kind] || {}).color || '#00f2ff' },
+      })),
+  };
+}
 
 // A single LineString from [[lng,lat],…] (the route to a chosen pin).
 function lineGeoJSON(coords) {

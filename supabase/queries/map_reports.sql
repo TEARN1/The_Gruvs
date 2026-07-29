@@ -1,0 +1,7 @@
+-- map_reports.sql — the crowdsourced "update the map yourself" layer.
+-- A user drops a typed pin (see src/constants/mapContributions.js — 50+ types);
+-- the community confirms/disputes it (Truth Protocol) and it auto-expires.
+-- Author is stamped from auth.uid(), TTL is clamped, votes are deduped — all
+-- server-side (report_map / verify_map_report SECURITY DEFINER), so nothing can
+-- be spoofed from the client. Applied live 2026-07-29 (verified: report → 3
+-- confirms → status 'confirmed'). See the applied migration 'map_reports'.

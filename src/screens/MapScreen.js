@@ -17,6 +17,9 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LiveMap, isMapSupported } from '../components/LiveMap';
 import { ZoneDrawTool } from '../components/ZoneDrawTool';
 import { MapEventPreview } from '../components/MapEventPreview';
+import { MapReportSheet } from '../components/MapReportSheet';
+import { MapReports } from '../services/mapReports';
+import { MAP_REPORT_BY_KEY } from '../constants/mapContributions';
 import { MapZones, ZONE_KINDS, ZONE_STATUS } from '../services/mapZones';
 import { supabase } from '../services/supabase';
 import { LocationService } from '../services/locationService';
@@ -68,6 +71,10 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [nudge, setNudge] = useState(null);
   const [showRoulette, setShowRoulette] = useState(false);
   const [showHomeSafe, setShowHomeSafe] = useState(false);
+  // Crowdsourced map reports (the "update the map yourself" layer).
+  const [reports, setReports] = useState([]);
+  const [reportSheet, setReportSheet] = useState(false);
+  const [activeReport, setActiveReport] = useState(null);
 
   // Phase 2: Fog of the City — your lit Touch Downs.
   const [showMine, setShowMine] = useState(false);
@@ -97,6 +104,34 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     const rows = await MapZones.near(c.lat, c.lng, { radiusM: 15000 });
     setZones(rows);
   }, []);
+
+  const loadReports = useCallback(async () => {
+    const c = centerRef.current;
+    setReports(await MapReports.near(c.lat, c.lng, { radiusM: 15000 }));
+  }, []);
+
+  // Drop a report at the map centre (where the user is looking).
+  const submitReport = useCallback(async (kind, note) => {
+    const c = centerRef.current;
+    if (!user) { onAuthRequired?.(); return; }
+    try {
+      await MapReports.create({ kind, lat: c.lat, lon: c.lng, note });
+      setReportSheet(false);
+      toast('Added to the map — thanks!', 'success');
+      loadReports();
+    } catch { toast('Could not add that. Try again.', 'error'); }
+  }, [user, onAuthRequired, toast, loadReports]);
+
+  const verifyReport = useCallback(async (vote) => {
+    if (!user) { onAuthRequired?.(); return; }
+    if (!activeReport) return;
+    try {
+      const updated = await MapReports.verify(activeReport.id, vote);
+      setActiveReport((r) => (r ? { ...r, ...updated } : r));
+      loadReports();
+      toast(vote === 'confirm' ? 'Confirmed — thanks!' : 'Flagged — thanks!', 'success');
+    } catch { toast('Could not submit.', 'error'); }
+  }, [user, onAuthRequired, activeReport, toast, loadReports]);
 
   const loadEvents = useCallback(async () => {
     try {
@@ -131,10 +166,11 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     let alive = true;
     (async () => {
       setLoading(true);
-      await Promise.all([loadEvents(), loadZones()]);
+      await Promise.all([loadEvents(), loadZones(), loadReports()]);
       if (alive) setLoading(false);
     })();
     const off = MapZones.subscribe(() => loadZones());
+    const offReports = MapReports.subscribe(() => loadReports());
 
     // The map breathes: live check-ins and new/updated events repaint the pins
     // without a manual refresh, so here-now counts and fresh gruvs appear as they
@@ -155,11 +191,11 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, bump)
       .subscribe();
 
-    return () => { alive = false; off?.(); clearTimeout(t); try { supabase.removeChannel(live); } catch {} };
-  }, [loadEvents, loadZones]);
+    return () => { alive = false; off?.(); offReports?.(); clearTimeout(t); try { supabase.removeChannel(live); } catch {} };
+  }, [loadEvents, loadZones, loadReports]);
 
-  // Re-pull zones when the map centre moves meaningfully.
-  useEffect(() => { loadZones(); }, [center, loadZones]);
+  // Re-pull zones + reports when the map centre moves meaningfully.
+  useEffect(() => { loadZones(); loadReports(); }, [center, loadZones, loadReports]);
 
   // ── The Concierge: a big closure near you + you're not into it → a real
   //    alternative. Cooldown'd so it never nags. ────────────────────────────
@@ -329,6 +365,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             <LiveMap
               events={shownEvents}
               zones={zones}
+              reports={reports}
+              onReportPress={(id) => { const r = reports.find((x) => x.id === id); if (r) { setPreviewId(null); setActiveZone(null); setActiveReport(r); } }}
               center={center}
               userLoc={userLoc}
               ripple={ripple}
@@ -355,6 +393,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           {/* Floating controls (only when the real map is up and not drawing) */}
           {isMapSupported() && !drawing && (
             <View style={cs.fabCol} pointerEvents="box-none">
+              <TouchableOpacity onPress={() => (user ? setReportSheet(true) : onAuthRequired?.())} style={[cs.fab, { backgroundColor: primary, borderColor: primary }]} accessibilityLabel="Add a report to the map">
+                <Feather name="plus" size={20} color="#000" />
+              </TouchableOpacity>
               <TouchableOpacity onPress={toggleMine} style={[cs.fab, { backgroundColor: showMine ? '#fbbf24' : bg, borderColor: showMine ? '#fbbf24' : `${primary}40` }]}>
                 <Feather name="star" size={18} color={showMine ? '#000' : '#fbbf24'} />
               </TouchableOpacity>
@@ -466,8 +507,58 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           onSelectEvent={(e) => { setShowRoulette(false); if (e?.id) onNavigateToEvent?.({ id: e.id }); }}
         />
         <GetHomeSafeModal visible={showHomeSafe} onClose={() => setShowHomeSafe(false)} />
+
+        {/* Add-a-report picker (the crowdsourced map layer) */}
+        <MapReportSheet visible={reportSheet} onClose={() => setReportSheet(false)} onSubmit={submitReport} />
+
+        {/* Report detail + Truth Protocol confirm/dispute */}
+        {activeReport && !drawing && (
+          <ReportDetail
+            report={activeReport} onClose={() => setActiveReport(null)} onVerify={verifyReport}
+            primary={primary} bg={bg} textColor={textColor} muted={muted}
+          />
+        )}
       </SafeAreaView>
     </ErrorBoundary>
+  );
+};
+
+// ── Report detail sheet — confirm / dispute a crowdsourced pin ─────────────────
+const ReportDetail = ({ report, onClose, onVerify, primary, bg, textColor, muted }) => {
+  const meta = MAP_REPORT_BY_KEY[report.kind] || { label: report.kind, color: primary, icon: 'map-pin' };
+  const mins = Math.max(0, Math.round((new Date(report.expires_at).getTime() - Date.now()) / 60000));
+  const fades = mins > 90 ? `${Math.round(mins / 60)}h` : `${mins}m`;
+  return (
+    <View style={[cs.sheet, { backgroundColor: bg, borderColor: `${meta.color}55` }]}>
+      <View style={cs.sheetHead}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+          <View style={[cs.kindDot, { backgroundColor: `${meta.color}22`, borderColor: meta.color }]}>
+            <Feather name={meta.icon} size={15} color={meta.color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[cs.sheetTitle, { color: textColor }]} numberOfLines={1}>{meta.label}</Text>
+            <Text style={{ color: muted, fontSize: 11 }}>
+              {report.status === 'confirmed' ? '✓ Confirmed by locals' : report.status === 'disputed' ? 'Disputed' : 'Just reported'} · fades in {fades}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Feather name="x" size={20} color={muted} />
+        </TouchableOpacity>
+      </View>
+      {report.note ? <Text style={{ color: muted, fontSize: 13, lineHeight: 18 }}>{report.note}</Text> : null}
+      <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>Is this still accurate?</Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <TouchableOpacity onPress={() => onVerify('confirm')} style={[cs.verifyBtn, { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+          <Feather name="check" size={14} color="#10b981" />
+          <Text style={{ color: '#10b981', fontWeight: '800', fontSize: 13 }}>Still true{report.confirm_count ? ` · ${report.confirm_count}` : ''}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => onVerify('dispute')} style={[cs.verifyBtn, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }]}>
+          <Feather name="x" size={14} color="#ef4444" />
+          <Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 13 }}>Gone{report.dispute_count ? ` · ${report.dispute_count}` : ''}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
