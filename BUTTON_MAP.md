@@ -776,8 +776,35 @@ the only real boundary is the RLS policy or RPC behind it. Hiding a button behin
 its guard *server-side*, and the client check is only UX.
 
 That rule is exactly what the three flag leaks below violate at the UX layer — and the reason
-they matter less than they look, provided the server-side half holds. **That's the thing to
-verify, and it's the top action item.**
+they matter less than they look, provided the server-side half holds.
+
+### ✅ Verified 2026-07-29: the gifting server-side half DOES hold
+
+Checked against the live database, not assumed. `process_gift` is `SECURITY DEFINER` with
+`search_path` pinned, and it independently enforces every invariant the client cannot be
+trusted with:
+
+| Guard | How |
+|---|---|
+| Sender cannot be spoofed | `IF auth.uid() IS NULL OR auth.uid() <> p_sender_id THEN RAISE` — the client-supplied id is *validated*, not trusted |
+| No double-spend | `pg_advisory_xact_lock('process_gift:' || sender)` serialises concurrent gifts from the same sender before the balance is read |
+| Diamonds can't be minted to an arbitrary account | The host is re-resolved server-side (`SELECT author_id FROM events`); the client's `p_host_id` is ignored entirely |
+| No self-gifting | Explicit check |
+| Balance enforced | Summed from `coin_ledger` *under the lock* |
+| Gifts can't buy Lineup heat | Credits `support_score`, deliberately separate from `vibe_count` — matches the product rule |
+
+And the ledgers cannot be written around the RPC. `coin_ledger`, `diamond_ledger`,
+`gift_logs`, `cashout_requests` and `gift_registry` all have RLS **enabled with SELECT-only
+policies and no INSERT/UPDATE/DELETE policies whatsoever**, scoped to `user_id = auth.uid()`.
+A `SECURITY DEFINER` function is the only thing that can write them.
+
+**Conclusion: the ungated Gift button is a product exposure, not a vulnerability.** Nobody can
+steal coins, mint diamonds, or overdraw a wallet through it. What they *can* do is transact in a
+gifting economy you intended to have parked — which is a regulatory/product problem worth
+closing, but not the security incident it first looked like.
+
+⚠️ Separately: **`redeem_gift_boost` does not exist on the live DB**, so `GiftBoostModal`'s
+redeem button would fail outright. Parked, so low priority — but it's live schema drift.
 
 ### Tiering the controls by blast radius
 
@@ -791,11 +818,13 @@ verify, and it's the top action item.**
 
 ### Action items, in priority order
 
-1. **Verify the server-side half of the three flag leaks.** The Gift button on an event page is
-   reachable today. Confirm the gifting RPCs independently reject when the feature is off — if
-   they only rely on the client flag, that's a live hole in a *regulated-fintech* surface. This
-   is the single highest-priority item on this page.
-2. **Add the missing `feature()` guards** anyway (defence in depth, ~3 lines).
+1. ~~**Verify the server-side half of the three flag leaks.**~~ ✅ **Done 2026-07-29 — it holds.**
+   See the verification box above. Gifting is server-authoritative and the ledgers are
+   RLS-locked. Severity drops from "possible live hole in a regulated surface" to "product
+   exposure". The remaining equivalent check is the **location** tier (Crossed Paths / Path Map)
+   — confirm those read through the safe RPC rather than querying `profiles` directly.
+2. **Add the missing `feature()` guards** (~3 lines each). Now a product/compliance fix rather
+   than a security one: it stops users transacting in a gifting economy you meant to park.
 3. **Escrow: decide, then act.** "Lock Funds in Escrow" implies custody that doesn't exist. It's
    a consumer-protection problem before it's a technical one. Either gate the buttons or relabel
    the flow as broker-only, per the existing money-services decision.
@@ -822,8 +851,12 @@ verify, and it's the top action item.**
 
    The same features *are* correctly gated elsewhere ([ProfilePage.js:2724](src/screens/ProfilePage.js#L2724)
    for gifting, [ProfilePage.js:2881](src/screens/ProfilePage.js#L2881) for Path Map), so the pattern
-   exists — these three just weren't wrapped. Gifting matters most: it's the regulated-fintech surface
-   the memory says to build last, and it's currently one tap from any event page.
+   exists — these three just weren't wrapped.
+
+   ✅ **Server side verified 2026-07-29 (gifting): it holds.** `process_gift` validates
+   `auth.uid()`, re-resolves the host, holds a per-sender advisory lock, and the ledgers are
+   RLS SELECT-only. So this is a **product** exposure — users can transact in a parked gifting
+   economy — not a security hole. Still worth the 3-line guards.
 
 2. **Hardcoded localhost URL** — "Launch Resident Map" points at `http://localhost:3000/dashboard`
    ([ProfilePage.js:2862](src/screens/ProfilePage.js#L2862)). Dead for every user who isn't you.
