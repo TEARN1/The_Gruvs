@@ -83,6 +83,7 @@ import { friendsGoing, friendsLabel } from '../services/socialProof';
 import { insertStartHeaders } from '../utils/startGroup';
 import { UnlockTeaserCard } from '../components/UnlockTeaserCard';
 import { NotificationNudge } from '../components/NotificationNudge';
+import { BirthDateNudge } from '../components/BirthDateNudge';
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
@@ -2615,6 +2616,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 snooze with Chats/Pings, so it never double-nags). */}
             {mode === 'drop' && (
               <NotificationNudge primary={primary} surface={surface} textColor={textColor} muted={muted} />
+            )}
+            {/* The age gate fails open on an unknown birthday, so the only thing
+                closing it is asking. Self-hides once a DOB exists. */}
+            {mode === 'drop' && (
+              <BirthDateNudge primary={primary} surface={surface} textColor={textColor} muted={muted} />
             )}
             {renderTrending()}
             {/* Reels on The Drop — video discovery starts in the feed */}
