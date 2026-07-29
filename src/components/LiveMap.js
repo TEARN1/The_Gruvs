@@ -81,6 +81,9 @@ export function LiveMap({
   showMine = false,
   crew = [],              // [{lat,lng,count}] — where your crew is heading tonight
   showCrew = false,
+  stays = [],             // [{lat,lng,...}] — accommodation from Resident Crew
+  showStays = false,
+  onStayPress,            // (stayId) => void
   reports = [],           // crowdsourced typed pins (map_reports)
   onReportPress,          // (reportId) => void
   drawMode = null,        // null | 'line' | 'polygon'
@@ -97,9 +100,11 @@ export function LiveMap({
   const heatRef = useRef(heat);
   const mineRef = useRef(showMine);
   const crewRef = useRef(showCrew);
+  const staysRef = useRef(showStays);
   useEffect(() => { heatRef.current = heat; toggleHeat(heat); });
   useEffect(() => { mineRef.current = showMine; toggleMine(showMine); });
   useEffect(() => { crewRef.current = showCrew; toggleCrew(showCrew); });
+  useEffect(() => { staysRef.current = showStays; toggleStays(showStays); });
 
   // ── init once ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -283,6 +288,25 @@ export function LiveMap({
         },
       });
 
+      // Stays — accommodation from Resident Crew (warm gold homes). A place to
+      // crash near an out-of-town event, pulled live from the Resident listings.
+      map.addSource('stays', { type: 'geojson', data: staysToGeoJSON(stays) });
+      map.addLayer({
+        id: 'stays-glow', type: 'circle', source: 'stays',
+        layout: { visibility: staysRef.current ? 'visible' : 'none' },
+        paint: { 'circle-radius': 15, 'circle-color': '#f59e0b', 'circle-opacity': 0.14, 'circle-blur': 0.6 },
+      });
+      map.addLayer({
+        id: 'stays-dot', type: 'circle', source: 'stays',
+        layout: { visibility: staysRef.current ? 'visible' : 'none' },
+        paint: { 'circle-radius': 8, 'circle-color': '#f59e0b', 'circle-stroke-color': '#1a1205', 'circle-stroke-width': 2 },
+      });
+      map.addLayer({
+        id: 'stays-icon', type: 'symbol', source: 'stays',
+        layout: { visibility: staysRef.current ? 'visible' : 'none',
+          'text-field': '🛏', 'text-size': 11, 'text-allow-overlap': true },
+      });
+
       map.addSource('ripple', { type: 'geojson', data: emptyFC() });
       map.addLayer({
         id: 'ripple-ring', type: 'circle', source: 'ripple',
@@ -320,6 +344,8 @@ export function LiveMap({
         if (hit && hit[0]) { onEventRef.current?.(hit[0].properties.id); return; }
         const rp = map.queryRenderedFeatures(ev.point, { layers: ['reports-dot', 'reports-halo'] });
         if (rp && rp[0]) { onReportRef.current?.(rp[0].properties.id); return; }
+        const stay = map.queryRenderedFeatures(ev.point, { layers: ['stays-dot', 'stays-icon'] });
+        if (stay && stay[0]) { onStayRef.current?.(stay[0].properties.id); return; }
         const z = map.queryRenderedFeatures(ev.point, { layers: ['zones-line', 'zones-fill'] });
         if (z && z[0]) onZoneRef.current?.(z[0].properties.id);
       });
@@ -336,8 +362,10 @@ export function LiveMap({
   const drawModeRef = useRef(drawMode); const onClickRef = useRef(onMapClick);
   const onEventRef = useRef(onEventPress); const onZoneRef = useRef(onZonePress);
   const onReportRef = useRef(onReportPress);
+  const onStayRef = useRef(onStayPress);
   useEffect(() => { drawModeRef.current = drawMode; onClickRef.current = onMapClick;
-    onEventRef.current = onEventPress; onZoneRef.current = onZonePress; onReportRef.current = onReportPress; });
+    onEventRef.current = onEventPress; onZoneRef.current = onZonePress;
+    onReportRef.current = onReportPress; onStayRef.current = onStayPress; });
 
   // ── update sources on data change ───────────────────────────────────────────
   useEffect(() => { const g = eventsToGeoJSON(events); setData('events', g); setData('eventsC', g); }, [events]);
