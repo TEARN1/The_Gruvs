@@ -10,6 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { APP_WEB_URL } from '../constants/appUrl';
 import { resilient } from '../utils/resilience';
+import { logError } from '../utils/logError';
 import { SecurityService } from '../services/securityService';
 import { track } from '../utils/analytics';
 import { useToast } from './ToastNotification';
@@ -294,8 +295,11 @@ export const AuthModal = ({ visible, onClose }) => {
         vibe_score: 0,
         is_discoverable: true,
         wants_email: wantsEmail,
-        email_confirmed: false,
-        confirm_later: true,
+        // NOTE: every key here must exist on `profiles`. PostgREST rejects the
+        // WHOLE row if one column is unknown, so a single stale field silently
+        // discards the entire signup. `email_confirmed` and `confirm_later` were
+        // exactly that — never migrated, read by nothing, and they cost every
+        // user their city, gender, interests and date of birth.
       };
       resilient(
         [
@@ -304,7 +308,16 @@ export const AuthModal = ({ visible, onClose }) => {
           () => supabase.rpc('create_user_profile', { p_payload: profilePayload }),
         ],
         { attemptsPerTier: 3, baseMs: 500, label: `AuthModal.createProfile:${data.user.id}`, fallbackValue: null }
-      ).then(() => {});
+      ).then((res) => {
+        // A signup that saves nothing must not look like a success. All three
+        // tiers returning the fallback means the profile is empty — the age gate
+        // has no date of birth to check, so this has to be visible, not swallowed.
+        if (res == null) {
+          logError('AuthModal.createProfile:allTiersFailed', new Error('profile payload rejected'), {
+            userId: data.user.id,
+          });
+        }
+      });
     }
 
     // Signing up should log you straight in. signUp only returns a session when
