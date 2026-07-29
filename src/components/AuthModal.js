@@ -334,51 +334,23 @@ export const AuthModal = ({ visible, onClose }) => {
 
     setSignupSuccessFx(Date.now());
 
-    // With a session we're already authenticated — drop the user straight into
-    // the app. Closing fast is the whole point: the auth-state change re-renders
-    // App into the main experience the instant the modal is gone.
+    // Drop the user STRAIGHT into the app the instant we have a session — no
+    // countdown, no waiting, no email round-trip. Closing the modal re-renders
+    // App into the main experience immediately.
+    //
+    // We deliberately do NOT fire our own signInWithOtp here anymore: Supabase
+    // rate-limits it (~1/min) and returns "you can only request this after N
+    // seconds" — which is exactly the countdown users were seeing. If the project
+    // enforces "Confirm email", Supabase already sent its OWN confirmation mail on
+    // signUp; we don't double-send.
     if (hasSession) {
       handleClose();
-      // With "Confirm email" disabled Supabase sends nothing on signup, so we
-      // send the verification link ourselves. But Supabase's built-in mailer is
-      // rate-limited (free tier is a few emails/hour), so this often bounces
-      // with "email rate limit exceeded". NEVER promise a verification email
-      // that didn't actually leave — when the send fails, just welcome them and
-      // stay silent about email. The account works either way; verification is
-      // optional convenience, not a gate.
-      supabase.auth
-        .signInWithOtp({
-          email: email.trim(),
-          options: { shouldCreateUser: false, emailRedirectTo: APP_WEB_URL },
-        })
-        .then(({ error }) => {
-          toast?.show(
-            error
-              ? 'Welcome to The Gruvs! 🎉'
-              : 'Welcome to The Gruvs! 🎉 We sent a verification email — confirm whenever you\'re ready.',
-            'success'
-          );
-        })
-        .catch(() => toast?.show('Welcome to The Gruvs! 🎉', 'success'));
+      toast?.show('Welcome to The Gruvs! 🎉', 'success');
     } else {
-      // No session means the project enforces "Confirm email". If our own mailer
-      // is out of quota the user would be stranded, so only tell them to check
-      // their inbox when the confirmation mail actually sent.
-      const { error: otpErr } = await supabase.auth
-        .signInWithOtp({
-          email: email.trim(),
-          options: { shouldCreateUser: false, emailRedirectTo: APP_WEB_URL },
-        })
-        .catch(() => ({ error: true }));
-      setTimeout(() => {
-        handleClose();
-        toast?.show(
-          otpErr
-            ? 'Account created! Sign in with your email and password.'
-            : 'Account created! 📧 Check your inbox and confirm your email to sign in.',
-          'info'
-        );
-      }, 1200);
+      // No session = the project enforces email confirmation. The account exists;
+      // they just need to confirm via the mail Supabase already sent, then sign in.
+      handleClose();
+      toast?.show('Account created! Check your email to confirm, then sign in.', 'info');
     }
   };
 
