@@ -21,6 +21,8 @@ import { PlayerProfileModal } from './PlayerProfileModal';
 import { TalentEngine } from '../services/talentEngine';
 import { EditEventModal } from './EditEventModal';
 import { UserManager, PresenceManager, AuraService, isOnline as checkOnline } from '../services/dataFlow';
+import { isCallSupported } from '../services/webrtcCall';
+import { useCall } from '../context/CallContext';
 import { ReelsObservers } from '../services/reelsDataFlow';
 import { useToast } from './ToastNotification';
 import { ReportModal } from './ReportModal';
@@ -171,6 +173,12 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const { currentTheme } = useTheme();
   const { user: currentUser } = useAuth();
   const toast = useToast();
+  const { startCall: startCallGlobal } = useCall();
+
+  const startCall = (video) => {
+    if (!profile) return;
+    startCallGlobal({ id: profile.id, username: profile.username, avatar_url: profile.avatar_url }, video);
+  };
 
   const [profile, setProfile] = useState(null);
   const [events, setEvents] = useState([]);
@@ -561,6 +569,24 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                     >
                       <Feather name="message-circle" size={16} color={primary} />
                     </TouchableOpacity>
+
+                    {/* Quick Call Buttons — one-tap access */}
+                    {!isOwnProfile && isCallSupported() && (
+                      <>
+                        <TouchableOpacity
+                          style={[s.msgBtn, { borderColor: '#10b98160', backgroundColor: '#10b98115' }]}
+                          onPress={() => startCall(false)}
+                        >
+                          <Feather name="phone" size={15} color="#10b981" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[s.msgBtn, { borderColor: `${primary}60`, backgroundColor: `${primary}15` }]}
+                          onPress={() => startCall(true)}
+                        >
+                          <Feather name="video" size={15} color={primary} />
+                        </TouchableOpacity>
+                      </>
+                    )}
 
                     <TouchableOpacity
                       style={[s.msgBtn, { borderColor: '#ef444460' }]}

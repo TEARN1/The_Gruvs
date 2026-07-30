@@ -161,4 +161,29 @@ export const SoundFX = {
   },
 };
 
+// ── Web autoplay unlock ──────────────────────────────────────────────────────
+// A browser silently drops Audio.play() until the user has interacted with the
+// page. That's why an INCOMING RINGTONE could be inaudible — the callee is just
+// staring at the screen, no gesture yet. So on the very first interaction we
+// "prime" playback (play → immediately pause a real clip), after which every
+// later play() — including the looping ringtone — is allowed for the session.
+let _unlocked = false;
+function primeAudio() {
+  if (_unlocked || !IS_WEB || typeof Audio === 'undefined') return;
+  _unlocked = true;
+  try {
+    const uri = uriFor('reaction'); // any cheap clip warms the pipeline
+    if (!uri) return;
+    const a = new Audio(uri);
+    a.volume = 0; // silent prime
+    const p = a.play();
+    if (p && p.then) p.then(() => { try { a.pause(); a.currentTime = 0; } catch {} }).catch(() => {});
+  } catch {}
+}
+if (IS_WEB && typeof window !== 'undefined' && window.addEventListener) {
+  const evs = ['pointerdown', 'touchstart', 'keydown', 'click'];
+  const onGesture = () => { primeAudio(); evs.forEach((e) => window.removeEventListener(e, onGesture)); };
+  evs.forEach((e) => window.addEventListener(e, onGesture, { passive: true }));
+}
+
 export default SoundFX;
