@@ -9,6 +9,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
+import { SecurityService } from '../services/securityService';
+import { hasResident, residentUrl } from '../constants/residentUrl';
 
 const pad = n => String(n).padStart(2, '0');
 const timeLabel = (iso) => {
@@ -86,11 +88,24 @@ const ResidentLiftCard = ({ lift, surface, textColor, muted }) => {
         )}
       </View>
 
-      {/* CTA */}
-      <TouchableOpacity style={rl.cta} activeOpacity={0.8}>
-        <Feather name="external-link" size={11} color={RESIDENT_GREEN} />
-        <Text style={[rl.ctaText, { color: RESIDENT_GREEN }]}>Book via The Resident app</Text>
-      </TouchableOpacity>
+      {/* CTA — had no onPress at all, so it looked like a hand-off and did
+          nothing. Only rendered when a Resident host is configured; without one
+          there is nowhere to hand off TO, and a dead button is worse than none. */}
+      {hasResident() && (
+        <TouchableOpacity
+          style={rl.cta}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Book this lift in The Resident app"
+          onPress={() => {
+            const url = residentUrl('lifts');
+            if (url) SecurityService.safeOpenURL(url);
+          }}
+        >
+          <Feather name="external-link" size={11} color={RESIDENT_GREEN} />
+          <Text style={[rl.ctaText, { color: RESIDENT_GREEN }]}>Book via The Resident app</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

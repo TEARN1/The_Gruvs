@@ -973,59 +973,70 @@ say `true`. Consolidating to one SELECT policy per table is the durable fix.
 
 ## Things worth fixing
 
-1. **The Focus Cut leaks in three places.** These buttons open surfaces the launch flags are
-   supposed to have parked, because they were never wrapped in a `feature()` check:
+### ✅ Fixed 2026-07-29
 
-   | Button | Location | Missing guard |
-   |---|---|---|
-   | **Gift** (on an organizer) | [EventDetailScreen.js:908](src/screens/EventDetailScreen.js#L908) | `feature('gifting')` |
-   | **Crossed** (profile quick-actions) | [ProfilePage.js:2928](src/screens/ProfilePage.js#L2928) | `feature('crossedPaths')` |
-   | **Path Map** (Drop header) | [LandingPage.js:2106](src/screens/LandingPage.js#L2106) | `feature('pathMap')` |
+1. ~~**The Focus Cut leaks in three places.**~~ **Guards added.** All three parked surfaces now
+   check their flag: **Gift** → `feature('gifting')`, **Crossed** → `feature('crossedPaths')`,
+   **Path Map** → `feature('pathMap')`. The server side was verified to hold independently
+   (see the security section), so this was a product exposure rather than a hole — but the
+   buttons are gated now too.
 
-   The same features *are* correctly gated elsewhere ([ProfilePage.js:2724](src/screens/ProfilePage.js#L2724)
-   for gifting, [ProfilePage.js:2881](src/screens/ProfilePage.js#L2881) for Path Map), so the pattern
-   exists — these three just weren't wrapped.
+2. ~~**Hardcoded localhost URL.**~~ **Replaced with a configured host.** Added
+   [residentUrl.js](src/constants/residentUrl.js) as the single source of truth, following the
+   `appUrl.js` pattern, and it is **deliberately empty by default** — `hasResident()` gates the
+   entry point so an unconfigured build hides the button instead of offering a link that cannot
+   work. Set `EXPO_PUBLIC_RESIDENT_URL` to light it up. Opens via `SecurityService.safeOpenURL`
+   rather than raw `Linking`.
 
-   ✅ **Server side verified 2026-07-29 (gifting): it holds.** `process_gift` validates
-   `auth.uid()`, re-resolves the host, holds a per-sender advisory lock, and the ledgers are
-   RLS SELECT-only. So this is a **product** exposure — users can transact in a parked gifting
-   economy — not a security hole. Still worth the 3-line guards.
+3. ~~**`ResidentLiftsSection`'s "Book via The Resident app" had no `onPress` at all**~~ — a
+   button that looked like a hand-off and did nothing. Now wired to the same configured host,
+   and hidden when there isn't one.
 
-2. **Hardcoded localhost URL** — "Launch Resident Map" points at `http://localhost:3000/dashboard`
-   ([ProfilePage.js:2862](src/screens/ProfilePage.js#L2862)). Dead for every user who isn't you.
-   It's the only `localhost` reference left in `src/`.
+4. ~~**Dead `@mention` styling in Reels captions.**~~ **Wired up.** `@handles` resolve the
+   username to a profile (punctuation-tolerant, so `@thabo,` works) and open it; an unmatched
+   handle now says so instead of failing silently.
 
-3. **Escrow buttons with no payment rail** — "Lock Funds in Escrow" / "Release Funds" / "Cash Out"
+5. ~~**Meal reporting was broken three ways and lied about it.**~~ The insert wrote `kind`
+   (not a column — it's `target_type`), omitted `reporter_id` (`NOT NULL`), and `'meal'` wasn't
+   in the `target_type` CHECK constraint. The `catch` then showed *"Reported."* on failure, so
+   every meal report silently vanished while looking successful. Client fixed; the constraint
+   needs [reports_meal_target.sql](supabase/queries/reports_meal_target.sql) applied —
+   **until that runs, meal reports still won't land.**
+
+6. ~~**`birthdaySpotlight` silently dead**~~ — see the location-tier box; moved to safe RPCs.
+
+7. ~~**Stale `vibeCardShare` test**~~ — asserted an `@` prefix the app deliberately dropped.
+   Suite is now **909/909 green**.
+
+### Still open
+
+8. **Escrow buttons with no payment rail** — "Lock Funds in Escrow" / "Release Funds" / "Cash Out"
    render real UI over a non-existent PSP. `EscrowService.lockFunds` just inserts a `service_bookings`
    row ([escrowService.js:28](src/services/escrowService.js#L28)) — no money moves. Either gate them
    behind a flag or relabel as broker-only, per the `project_money_services_verdict` decision.
 
-4. **Two Wallet buttons are inert.** **UPGRADE TIER** and **MINT DETAILS**
+9. **Two Wallet buttons are inert.** **UPGRADE TIER** and **MINT DETAILS**
    ([WalletScreen.js:246](src/screens/WalletScreen.js#L246), [:252](src/screens/WalletScreen.js#L252))
    look like actions but only fire a toast describing what the action *would* require. They read as
    broken rather than as "not yet available".
 
-5. **God View is a mock harness wearing a dashboard's clothes.** 5 of its 7 command buttons return
+10. **God View is a mock harness wearing a dashboard's clothes.** 5 of its 7 command buttons return
    hardcoded strings or do arithmetic on constants; "EXECUTE SUPREME AUDIT" sets the stat cards to
    literals (`1240`, `89.4`, `99.9`). The screen's own ⚠️ SIMULATED banner is honest and should stay,
    but the buttons invite decisions on fake numbers. Only the moderation queue does real work.
 
-6. **Dead `@mention` styling in Reels captions.** `@handles` are rendered in link-blue with no
-   handler ([ReelsScreen.js:584](src/screens/ReelsScreen.js#L584)) while `#hashtags` right beside
-   them are tappable. Users will tap them and nothing happens. One-line fix either way.
-
-7. **`birthdaySpotlight` is silently dead** (verified against the live DB). It reads `lat, lon`
-   off other users' profiles, which the coordinate lockdown blocks, so the Explore birthday cards
-   have been rendering nothing behind a `console.warn`. Fix requires a decision: drop the
-   distance sort, or route it through a safe RPC.
-   ([birthdaySpotlight.js:46](src/services/birthdaySpotlight.js#L46), [:84](src/services/birthdaySpotlight.js#L84))
-
-8. **`profiles` policy sprawl** — 5 duplicate `USING (true)` SELECT policies + 6 overlapping
-   write policies. Harmless today because `email`/`phone` are NULL for all 34 users, but it means
+11. **`profiles` policy sprawl** — 5 duplicate `USING (true)` SELECT policies + 6 overlapping
+   write policies. Harmless today because `email`/`phone` are NULL for all 35 users, but it means
    any future write of PII into `profiles` is immediately world-readable to signed-in users.
 
-9. **Zero `testID`s in 1,427 controls**, and the E2E suite is `continue-on-error`. See the
+12. **Zero `testID`s in 1,427 controls**, and the E2E suite is `continue-on-error`. See the
    [Automation plan](#automation-plan--making-these-1427-controls-testable).
 
-10. **`ProfilePage.js` is 3,847 lines / 129 controls** in one file. It holds the profile, the identity
+13. **`ProfilePage.js` is 3,847 lines / 129 controls** in one file. It holds the profile, the identity
    form, clubs, the gallery, find-me/find-them, and the edit modal. A split would pay for itself.
+
+14. **Two pending migrations gate fixes already shipped in the client:**
+    [reports_meal_target.sql](supabase/queries/reports_meal_target.sql) (meal reports can't land
+    without it) and the 11 files already in `DEPLOY_SQL_RUNBOOK.md`. Also unchecked:
+    `npm run audit:writes` skips **123 RPCs** without `SUPABASE_SERVICE_ROLE_KEY`, and the last
+    manual sweep found 48 of them missing — treat that as an open gap, not a clean result.

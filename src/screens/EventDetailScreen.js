@@ -904,7 +904,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               </TouchableOpacity>
             )}
 
-            {user && organizer?.id && user.id !== organizer.id && (
+            {/* Gifting is a regulated-fintech surface, parked by the Focus Cut.
+                This entry point was missing its flag check, so users could still
+                transact here. The server side holds regardless (process_gift is
+                auth.uid()-validated), but the flag must gate the button too. */}
+            {feature('gifting') && user && organizer?.id && user.id !== organizer.id && (
               <TouchableOpacity
                 style={[styles.messageOrganizerBtn, { borderColor: `${primary}50`, backgroundColor: `${primary}12`, marginLeft: 8 }]}
                 onPress={() => setGiftingOpen(true)}

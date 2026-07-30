@@ -37,6 +37,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { LAUNCH_MINIMAL, feature } from '../constants/launchConfig';
+import { hasResident, residentUrl } from '../constants/residentUrl';
 import { COMMUNITY_TAG_GROUPS, LANGUAGE_OPTIONS } from '../constants/AudienceTargeting';
 import { useToast } from '../components/ToastNotification';
 import { StreakBadge, useStreak } from '../components/StreakBadge';
@@ -2859,19 +2860,27 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     'Apprentice Surveyor'
                   }
                 </Text>
-                <TouchableOpacity
-                  onPress={() => Linking.openURL('http://localhost:3000/dashboard')}
-                  style={{
-                    backgroundColor: primary,
-                    borderRadius: 8,
-                    paddingVertical: 6,
-                    paddingHorizontal: 10,
-                    alignItems: 'center',
-                    marginTop: 4
-                  }}
-                >
-                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>Launch Resident Map</Text>
-                </TouchableOpacity>
+                {/* Only offered when a Resident host is actually configured.
+                    This button used to point at a hardcoded localhost:3000,
+                    which resolved for nobody but the developer. */}
+                {hasResident() && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      const url = residentUrl('dashboard');
+                      if (url) SecurityService.safeOpenURL(url);
+                    }}
+                    style={{
+                      backgroundColor: primary,
+                      borderRadius: 8,
+                      paddingVertical: 6,
+                      paddingHorizontal: 10,
+                      alignItems: 'center',
+                      marginTop: 4
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>Launch Resident Map</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </CollapsibleSection>
@@ -2925,13 +2934,17 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             <Feather name="clock" size={16} color={primary} />
             <Text style={[styles.findBtnText, { color: primary }]}>History</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={() => user ? setCrossedPathsVisible(true) : onAuthRequired()}
-          >
-            <Feather name="shuffle" size={16} color={primary} />
-            <Text style={[styles.findBtnText, { color: primary }]}>Crossed</Text>
-          </TouchableOpacity>
+          {/* Crossed Paths needs crowd density to feel alive — parked by the
+              Focus Cut. This entry point was missing its flag check. */}
+          {feature('crossedPaths') && (
+            <TouchableOpacity
+              style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+              onPress={() => user ? setCrossedPathsVisible(true) : onAuthRequired()}
+            >
+              <Feather name="shuffle" size={16} color={primary} />
+              <Text style={[styles.findBtnText, { color: primary }]}>Crossed</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.findRow}>

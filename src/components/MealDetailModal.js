@@ -11,12 +11,15 @@ import { DirectMessageModal } from './DirectMessageModal';
 import { supabase } from '../services/supabase';
 import { MealService, isMealLiveNow } from '../services/mealService';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
+import { logError } from '../utils/logError';
 
 const TYPE_LABEL = { menu: 'Menu', special: "Chef's Special", tasting: 'Tasting', fastfood: 'Fast Food' };
 
 export function MealDetailModal({ visible, meal, onClose }) {
   const { currentTheme } = useTheme();
+  const { user } = useAuth();
   const { show: showToast } = useToast();
   const primary = currentTheme?.primary || '#00f2ff';
   const bg = currentTheme?.background || '#0d1112';
@@ -52,11 +55,30 @@ export function MealDetailModal({ visible, meal, onClose }) {
     setDmOpen(true);
   };
 
+  // This insert was broken three ways and told the user it worked anyway:
+  //   1. it wrote `kind`, which is not a column on `reports` (it's target_type)
+  //   2. it omitted reporter_id, which is NOT NULL
+  //   3. 'meal' still isn't in the target_type CHECK constraint — see
+  //      supabase/queries/reports_meal_target.sql, which must be applied for
+  //      meal reports to land at all
+  // The catch said "Reported." on failure, so every meal report has silently
+  // vanished while looking successful. A moderation path that lies is worse
+  // than one that's missing.
   const report = async () => {
+    if (!user?.id) { showToast('Sign in to report this.', 'info'); return; }
     try {
-      await supabase.from('reports').insert({ kind: 'meal_post', target_id: meal.id, reason: 'user_report' });
+      const { error } = await supabase.from('reports').insert({
+        reporter_id: user.id,
+        target_id: meal.id,
+        target_type: 'meal',
+        reason: 'user_report',
+      });
+      if (error) throw error;
       showToast('Thanks — we\'ll take a look.', 'success');
-    } catch { showToast('Reported.', 'info'); }
+    } catch (e) {
+      logError('MealDetailModal.report', e, { mealId: meal?.id });
+      showToast("Couldn't send that report — please try again.", 'error');
+    }
   };
 
   if (!meal) return null;

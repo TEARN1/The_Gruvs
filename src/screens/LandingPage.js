@@ -2103,8 +2103,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               <Feather name="film" size={18} color={primary} />
             </TouchableOpacity>
           )}
-          {user && (
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setPathMapVisible(true)}>
+          {/* Path Map needs density to feel alive — parked by the Focus Cut.
+              This header button was missing its flag check, so the parked
+              surface stayed one tap away. */}
+          {user && feature('pathMap') && (
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => setPathMapVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="My Path Map"
+            >
               <Feather name="map" size={18} color={primary} />
             </TouchableOpacity>
           )}

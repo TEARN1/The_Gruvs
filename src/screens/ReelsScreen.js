@@ -19,6 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { logError } from '../utils/logError';
 import { supabase } from '../services/supabase';
+import { escapeLike } from '../utils/handleGuard';
 import { APP_WEB_URL } from '../constants/appUrl';
 import { resilient } from '../utils/resilience';
 import { haptics } from '../utils/haptics';
@@ -474,7 +475,7 @@ const cs = StyleSheet.create({
 });
 
 // ── Single Reel Item ──────────────────────────────────────────────────────────
-const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onManage, onOpenEvent, onBlocked, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
+const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onMention, onManage, onOpenEvent, onBlocked, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
   const videoRef = useRef(null);
   const lastTap = useRef(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
@@ -582,7 +583,17 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
       return <Text key={i} style={{ color: primary, fontWeight: '900' }} onPress={() => onHashtag?.(word)}>{word}</Text>;
     }
     if (word.startsWith('@')) {
-      return <Text key={i} style={{ color: "#60a5fa", fontWeight: '900' }}>{word}</Text>;
+      // These were styled link-blue with NO handler — they looked tappable and
+      // did nothing. Now they resolve the handle to a profile and open it.
+      return (
+        <Text
+          key={i}
+          style={{ color: "#60a5fa", fontWeight: '900' }}
+          onPress={() => onMention?.(word)}
+        >
+          {word}
+        </Text>
+      );
     }
     return <Text key={i} style={{ color: 'rgba(255,255,255,0.92)' }}>{word}</Text>;
   });
@@ -1464,6 +1475,30 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     flatRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, []);
 
+  // A caption mention gives us a handle, but ViberProfileModal needs a row with
+  // an id — so resolve it first. Punctuation is stripped because "@thabo!" and
+  // "@thabo," are how mentions actually get typed.
+  const onMention = useCallback(async (raw) => {
+    const handle = String(raw || '').replace(/^@/, '').replace(/[^a-zA-Z0-9_.]+$/, '');
+    if (!handle) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .ilike('username', escapeLike(handle))
+        .limit(1)
+        .maybeSingle();
+      if (data?.id) {
+        setProfileTarget(data);
+        setProfileVisible(true);
+      } else {
+        toast?.show?.(`No viber called @${handle}`, 'info');
+      }
+    } catch {
+      toast?.show?.('Could not open that profile.', 'error');
+    }
+  }, [toast]);
+
   // Auto scroll to next reel on playback complete
   const handleVideoFinish = useCallback(() => {
     if (reels.length > 0 && activeIndex < reels.length - 1) {
@@ -1489,6 +1524,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       onProfile={onProfile}
       onMessage={onDmMessage}
       onHashtag={onHashtag}
+      onMention={onMention}
       onManage={onManage}
       onOpenEvent={() => item.event_id && onNavigateToEvent?.({ id: item.event_id, title: item.event_title })}
       onBlocked={() => setReels(prev => prev.filter(r => r.user_id !== item.user_id))}
@@ -1498,7 +1534,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       reelW={REEL_W}
       reelH={REEL_H}
     />
-  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag, onManage, onNavigateToEvent, playerPref, handleVideoFinish, REEL_W, REEL_H]);
+  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag, onMention, onManage, onNavigateToEvent, playerPref, handleVideoFinish, REEL_W, REEL_H]);
 
   if (loading) {
     return (
