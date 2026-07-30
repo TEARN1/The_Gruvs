@@ -497,6 +497,20 @@ function pointsToGeoJSON(pts) {
   };
 }
 
+// Stays — accommodation pins (Resident Crew), each carrying its id for tap-open.
+function staysToGeoJSON(stays) {
+  return {
+    type: 'FeatureCollection',
+    features: (stays || [])
+      .filter((s) => s && s.lat != null && s.lng != null)
+      .map((s) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [Number(s.lng), Number(s.lat)] },
+        properties: { id: s.id },
+      })),
+  };
+}
+
 // Crew Convergence — one pin per event, carrying how many of your crew are going.
 function crewToGeoJSON(crew) {
   return {

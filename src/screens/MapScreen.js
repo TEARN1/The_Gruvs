@@ -30,6 +30,7 @@ import { VibeRouletteModal } from '../components/VibeRouletteModal';
 import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
 import { getMyFog } from '../services/fogMap';
 import { getCrewPlans } from '../services/crewMap';
+import { Accommodation } from '../services/accommodation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
@@ -83,6 +84,11 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   // Phase 2: Crew Convergence — where the people you follow are heading tonight.
   const [showCrew, setShowCrew] = useState(false);
   const [crewPlans, setCrewPlans] = useState([]);
+
+  // Stays via Resident Crew — accommodation near you, from the sister app.
+  const [showStays, setShowStays] = useState(false);
+  const [stays, setStays] = useState([]);
+  const [activeStay, setActiveStay] = useState(null);
 
   const centerRef = useRef(center);
   useEffect(() => { centerRef.current = center; }, [center]);
@@ -289,6 +295,19 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   };
 
+  // Stays via Resident Crew — pull accommodation around the map centre on demand.
+  const toggleStays = async () => {
+    const next = !showStays;
+    setShowStays(next);
+    if (next && stays.length === 0) {
+      const c = centerRef.current;
+      const rows = await Accommodation.near(c.lat, c.lng, { radiusM: 15000 });
+      setStays(rows);
+      if (rows.length === 0) toast('No Resident Crew stays near here yet.', 'info');
+    }
+  };
+  const openStay = (id) => { const s = stays.find((x) => x.id === id); if (s) setActiveStay(s); };
+
   // The biggest convergence (most of your crew on one spot) drives the summary.
   const topCrew = showCrew && crewPlans.length ? crewPlans[0] : null;
   const crewOut = crewPlans.reduce((set, p) => { p.people.forEach((x) => set.add(x.id)); return set; }, new Set()).size;
@@ -376,6 +395,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               showMine={showMine}
               crew={crewPlans}
               showCrew={showCrew}
+              stays={stays}
+              showStays={showStays}
+              onStayPress={(id) => { setPreviewId(null); setActiveZone(null); openStay(id); }}
               drawMode={drawing ? mode : null}
               drawPoints={points}
               onMapClick={onMapClick}
@@ -401,6 +423,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               </TouchableOpacity>
               <TouchableOpacity onPress={toggleCrew} style={[cs.fab, { backgroundColor: showCrew ? '#ec4899' : bg, borderColor: showCrew ? '#ec4899' : `${primary}40` }]}>
                 <Feather name="users" size={18} color={showCrew ? '#fff' : '#ec4899'} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={toggleStays} style={[cs.fab, { backgroundColor: showStays ? '#f59e0b' : bg, borderColor: showStays ? '#f59e0b' : `${primary}40` }]} accessibilityLabel="Places to stay from Resident Crew">
+                <Feather name="home" size={17} color={showStays ? '#000' : '#f59e0b'} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setHeat((h) => !h)} style={[cs.fab, { backgroundColor: heat ? primary : bg, borderColor: `${primary}40` }]}>
                 <Feather name="activity" size={18} color={heat ? '#000' : primary} />
