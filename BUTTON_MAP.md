@@ -1037,6 +1037,38 @@ say `true`. Consolidating to one SELECT policy per table is the durable fix.
 
 14. **Two pending migrations gate fixes already shipped in the client:**
     [reports_meal_target.sql](supabase/queries/reports_meal_target.sql) (meal reports can't land
-    without it) and the 11 files already in `DEPLOY_SQL_RUNBOOK.md`. Also unchecked:
-    `npm run audit:writes` skips **123 RPCs** without `SUPABASE_SERVICE_ROLE_KEY`, and the last
-    manual sweep found 48 of them missing — treat that as an open gap, not a clean result.
+    without it) and the 11 files already in `DEPLOY_SQL_RUNBOOK.md`.
+
+15. **61 of the 123 RPCs the client calls are defined nowhere in the repo's SQL.**
+    Measured with the new `npm run audit:rpc` ([scripts/rpc-audit.js](scripts/rpc-audit.js)),
+    which needs no database connection and now runs as part of `npm run preflight`. It exists
+    because `audit:writes` checks written *columns* but skips RPCs entirely without a
+    service-role key — the gap that let `create_user_profile` sit missing while every signup
+    silently lost its data.
+
+    Split by severity, because a missing tier-3 fallback is noise and a missing sole path is a
+    dead feature:
+
+    **🔴 16 sole-path** — no fallback, so absence means the feature doesn't work:
+    `get_safe_nearby_vibers` · `report_map` · `verify_map_report` · `create_crew` ·
+    `accept_crew_invite` · `count_path_crossings` · `suggested_follows` · `find_nearby_events` ·
+    `find_popular_spots` · `find_gruv_hotspots` · `get_or_create_playlist` ·
+    `record_daily_activity` · `apply_vibe_decay` · `distribute_to_war_chest` ·
+    `get_follower_integrity_aggregate` · `get_precision_economic_metrics`
+
+    **🟡 45 fallback-tier** — inside a `resilient([...])` cascade, so they degrade rather than
+    die (this is where `create_user_profile` sat).
+
+    ⚠️ **Two different failure modes, and the script cannot tell them apart.** Some of these are
+    genuinely absent from live. Others — `report_map`, `verify_map_report`,
+    `get_safe_nearby_vibers` — demonstrably *exist* on live but were applied without committing
+    the SQL, so they work today and vanish on a rebuild. Both are real problems.
+    Confirm against live with:
+    `select proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public';`
+
+16. **`map_reports.sql` is a comment-only stub** — the crowdsourced-map DDL
+    (`map_reports`, `map_report_votes`, `report_map`, `verify_map_report`) was applied straight
+    to live and never written back to the repo. A fresh build silently loses the whole feature,
+    and the RLS on a user-authored-content table can't be reviewed from source. The file now
+    documents exactly how to recover the definitions from live rather than hand-reconstructing
+    them (a reconstruction that drifts from live would be worse than the stub).

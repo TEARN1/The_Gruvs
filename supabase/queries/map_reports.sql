@@ -1,7 +1,48 @@
+-- ═══════════════════════════════════════════════════════════════════════════
 -- map_reports.sql — the crowdsourced "update the map yourself" layer.
--- A user drops a typed pin (see src/constants/mapContributions.js — 50+ types);
+--
+-- A user drops a typed pin (see src/constants/mapContributions.js — 58 types);
 -- the community confirms/disputes it (Truth Protocol) and it auto-expires.
 -- Author is stamped from auth.uid(), TTL is clamped, votes are deduped — all
 -- server-side (report_map / verify_map_report SECURITY DEFINER), so nothing can
--- be spoofed from the client. Applied live 2026-07-29 (verified: report → 3
--- confirms → status 'confirmed'). See the applied migration 'map_reports'.
+-- be spoofed from the client.
+--
+-- ⚠️  THIS FILE IS A STUB. THE DDL IS NOT HERE.
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- The migration was applied directly to the live project on 2026-07-29 (verified:
+-- report → 3 confirms → status 'confirmed') under the migration name
+-- 'map_reports', but the SQL was never written back into this file. That breaks
+-- the standing rule that every applied change lands in `supabase/queries/`, and
+-- it has two consequences:
+--
+--   1. A fresh database build does NOT get map_reports / map_report_votes /
+--      report_map / verify_map_report. The whole crowdsourced-map feature would
+--      be silently dead on a rebuild.
+--   2. Nobody can review the RLS or the SECURITY DEFINER bodies from the repo.
+--      For a table that accepts user-authored pins, that is the wrong thing to
+--      have to take on trust.
+--
+-- `npm run audit:rpc` flags report_map and verify_map_report as SOLE-PATH RPCs
+-- undefined in repo SQL, which is how this was caught.
+--
+-- ── TO RECOVER (do not hand-reconstruct — it will drift from live) ──────────
+--
+--   supabase db dump --schema public --data-only=false \
+--     | grep -A 200 'map_report'          # or:
+--   supabase migration list               # find the 'map_reports' migration
+--
+-- Or pull the definitions straight out of the live project and paste them below:
+--
+--   select pg_get_functiondef(p.oid)
+--     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+--    where n.nspname = 'public'
+--      and p.proname in ('report_map','verify_map_report');
+--
+--   select tablename, policyname, cmd,
+--          pg_get_expr(polqual, polrelid)      as using_expr,
+--          pg_get_expr(polwithcheck, polrelid) as with_check
+--     from pg_policies
+--    where tablename in ('map_reports','map_report_votes');
+--
+-- Until that is done, treat this feature as present-on-live-but-untracked.

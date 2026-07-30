@@ -8,7 +8,7 @@
  * map failure never takes the app down.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -31,6 +31,7 @@ import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
 import { getMyFog } from '../services/fogMap';
 import { getCrewPlans } from '../services/crewMap';
 import { Accommodation } from '../services/accommodation';
+import { residentUrl, hasResident } from '../constants/residentUrl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
@@ -385,7 +386,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               events={shownEvents}
               zones={zones}
               reports={reports}
-              onReportPress={(id) => { const r = reports.find((x) => x.id === id); if (r) { setPreviewId(null); setActiveZone(null); setActiveReport(r); } }}
+              onReportPress={(id) => { const r = reports.find((x) => x.id === id); if (r) { setPreviewId(null); setActiveZone(null); setActiveStay(null); setActiveReport(r); } }}
               center={center}
               userLoc={userLoc}
               ripple={ripple}
@@ -403,12 +404,12 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               onMapClick={onMapClick}
               onReady={(map) => { mapApiRef.current = map; }}
               onEventPress={(id) => {
-                setActiveZone(null); setPreviewId(id);
+                setActiveZone(null); setActiveStay(null); setPreviewId(id);
                 // Focus the tapped pin (A7) so it sits above the preview sheet.
                 const e = events.find((x) => x.id === id);
                 if (e) setCenter({ lat: e.lat ?? e.latitude, lng: e.lon ?? e.longitude });
               }}
-              onZonePress={(id) => { const z = zones.find((x) => x.id === id); if (z) { setPreviewId(null); setActiveZone(z); } }}
+              onZonePress={(id) => { const z = zones.find((x) => x.id === id); if (z) { setPreviewId(null); setActiveStay(null); setActiveZone(z); } }}
             />
           </ErrorBoundary>
 
@@ -543,6 +544,14 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             primary={primary} bg={bg} textColor={textColor} muted={muted}
           />
         )}
+
+        {/* Stay detail — accommodation from Resident Crew */}
+        {activeStay && !drawing && (
+          <StayDetail
+            stay={activeStay} onClose={() => setActiveStay(null)}
+            bg={bg} textColor={textColor} muted={muted}
+          />
+        )}
       </SafeAreaView>
     </ErrorBoundary>
   );
@@ -583,6 +592,63 @@ const ReportDetail = ({ report, onClose, onVerify, primary, bg, textColor, muted
           <Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 13 }}>Gone{report.dispute_count ? ` · ${report.dispute_count}` : ''}</Text>
         </TouchableOpacity>
       </View>
+    </View>
+  );
+};
+
+// ── Stay detail sheet — accommodation from Resident Crew ──────────────────────
+const StayDetail = ({ stay, onClose, bg, textColor, muted }) => {
+  const gold = '#f59e0b';
+  const price = stay.price != null ? `${stay.currency || 'ZAR'} ${stay.price}` : null;
+  const place = [stay.suburb, stay.city].filter(Boolean).join(', ');
+  const amenities = [
+    stay.wifi ? 'WiFi' : null,
+    stay.parking ? 'Parking' : null,
+    stay.bathroom ? `${stay.bathroom} bath` : null,
+    stay.livesHere ? 'Landlord on-site' : null,
+  ].filter(Boolean).join(' · ');
+  const link = residentUrl('dashboard'); // Resident's map/listings live under the dashboard
+  const open = () => { if (link) Linking.openURL(link).catch(() => {}); };
+
+  return (
+    <View style={[cs.sheet, { backgroundColor: bg, borderColor: `${gold}55` }]}>
+      <View style={cs.sheetHead}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+          {stay.image ? (
+            <Image source={{ uri: stay.image }} style={{ width: 46, height: 46, borderRadius: 10 }} />
+          ) : (
+            <View style={[cs.kindDot, { backgroundColor: `${gold}22`, borderColor: gold }]}>
+              <Feather name="home" size={15} color={gold} />
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={[cs.sheetTitle, { color: textColor }]} numberOfLines={1}>{stay.title}</Text>
+            <Text style={{ color: muted, fontSize: 11 }} numberOfLines={1}>
+              {price ? `${price}/mo` : 'Enquire'}{place ? ` · ${place}` : ''} · via Resident Crew
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Feather name="x" size={20} color={muted} />
+        </TouchableOpacity>
+      </View>
+
+      {amenities ? <Text style={{ color: muted, fontSize: 12 }}>{amenities}</Text> : null}
+      {stay.safety ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Feather name="shield" size={12} color={stay.safety === 'high' ? '#10b981' : stay.safety === 'low' ? '#ef4444' : gold} />
+          <Text style={{ color: muted, fontSize: 11, textTransform: 'capitalize' }}>{stay.safety} safety area</Text>
+        </View>
+      ) : null}
+
+      {hasResident() ? (
+        <TouchableOpacity onPress={open} style={[cs.verifyBtn, { borderColor: gold, backgroundColor: `${gold}1a` }]}>
+          <Feather name="external-link" size={14} color={gold} />
+          <Text style={{ color: gold, fontWeight: '800', fontSize: 13 }}>View on Resident Crew</Text>
+        </TouchableOpacity>
+      ) : (
+        <Text style={{ color: muted, fontSize: 11, fontStyle: 'italic' }}>Open The Resident to book this stay.</Text>
+      )}
     </View>
   );
 };

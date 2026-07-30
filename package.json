@@ -16,7 +16,7 @@
     "test:unit": "jest",
     "test:unit:watch": "jest --watch",
     "test:unit:coverage": "jest --coverage",
-    "preflight": "node scripts/pre-deploy-check.js && node scripts/audit-schema.mjs && node scripts/audit-writes.mjs",
+    "preflight": "node scripts/pre-deploy-check.js && node scripts/audit-schema.mjs && node scripts/audit-writes.mjs && node scripts/rpc-audit.js",
     "db:patch": "node scripts/apply-patch.js",
     "db:audit": "node scripts/db-audit.js",
     "deploy": "node scripts/pre-deploy-check.js && npm run build",
@@ -24,7 +24,8 @@
     "monitor": "node scripts/monitor-errors.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "audit:writes": "node scripts/audit-writes.mjs"
+    "audit:writes": "node scripts/audit-writes.mjs",
+    "audit:rpc": "node scripts/rpc-audit.js"
   },
   "jest": {
     "preset": "jest-expo",
