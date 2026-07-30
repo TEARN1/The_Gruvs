@@ -15,6 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { useBackClose } from '../hooks/useBackClose';
+import { LiveMap, isMapSupported } from './LiveMap';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const MAP_H = SH * 0.55;
@@ -337,14 +338,25 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-          {/* Self-built coordinate map */}
-          <MapGrid
-            events={geocodedEvents}
-            userCoords={userCoords}
-            primaryColor={primary}
-            onSelectEvent={handleSelect}
-            isRoute={isRoute}
-          />
+          {/* Map view: High-fidelity LiveMap if supported, else canvas fallback */}
+          {isMapSupported() ? (
+            <View style={{ height: MAP_H, width: MAP_W }}>
+              <LiveMap
+                events={geocodedEvents}
+                userLoc={userCoords}
+                primaryColor={primary}
+                onEventPress={handleSelect}
+              />
+            </View>
+          ) : (
+            <MapGrid
+              events={geocodedEvents}
+              userCoords={userCoords}
+              primaryColor={primary}
+              onSelectEvent={handleSelect}
+              isRoute={isRoute}
+            />
+          )}
 
           {/* Legend */}
           <View style={[s.legend, { borderColor: `${primary}15` }]}>

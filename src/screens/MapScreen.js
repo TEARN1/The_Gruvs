@@ -96,6 +96,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [activeStay, setActiveStay] = useState(null);
 
   const [followMe, setFollowMe] = useState(false);
+  const [mapStyle, setMapStyle] = useState('dark');
+  const [show3D, setShow3D] = useState(false);
+  const [showWeather, setShowWeather] = useState(false);
   const [searchQuery, setSearchBar] = useState('');
   const [searching, setSearchBusy] = useState(false);
 
@@ -409,6 +412,24 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     return list;
   }, [events, liveOnly, dayFilter]);
 
+  const communityPois = React.useMemo(() => {
+    const POI_TYPES = new Set(['police_nearby', 'atm', 'medical_point', 'station', 'taxi_rank', 'safe_spot']);
+    return reports
+      .filter(r => POI_TYPES.has(r.kind) && r.status === 'confirmed')
+      .map(r => ({
+        lat: r.lat, lng: r.lon,
+        icon: MAP_REPORT_BY_KEY[r.kind]?.icon === 'shield' ? '🛡️' :
+              MAP_REPORT_BY_KEY[r.kind]?.icon === 'plus-square' ? '🏥' :
+              MAP_REPORT_BY_KEY[r.kind]?.icon === 'dollar-sign' ? '💰' :
+              MAP_REPORT_BY_KEY[r.kind]?.icon === 'navigation' ? '🚕' : '📍'
+      }));
+  }, [reports]);
+
+  const cycleStyle = () => {
+    const next = mapStyle === 'dark' ? 'light' : mapStyle === 'light' ? 'liberty' : 'dark';
+    setMapStyle(next);
+  };
+
   return (
     <ErrorBoundary label="Map">
       <SafeAreaView style={[cs.screen, { backgroundColor: bg }]} edges={['top']}>
@@ -476,6 +497,11 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               nearby={nearbyVibers}
               showNearby={showNearby}
               stays={stays}
+              pois={communityPois}
+              mapStyle={mapStyle}
+              show3D={show3D}
+              showWeather={showWeather}
+              primaryColor={primary}
               showStays={showStays}
               onStayPress={(id) => { setPreviewId(null); setActiveZone(null); openStay(id); }}
               drawMode={drawing ? mode : null}
@@ -516,6 +542,15 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setLiveOnly((v) => !v)} style={[cs.fab, { backgroundColor: liveOnly ? '#10b981' : bg, borderColor: liveOnly ? '#10b981' : `${primary}40` }]}>
                 <Feather name="radio" size={17} color={liveOnly ? '#000' : '#10b981'} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={cycleStyle} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]} accessibilityLabel="Change map style">
+                <Feather name="layers" size={17} color={primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShow3D(!show3D)} style={[cs.fab, { backgroundColor: show3D ? primary : bg, borderColor: `${primary}40` }]} accessibilityLabel="Toggle 3D buildings">
+                <Text style={{ color: show3D ? '#000' : primary, fontWeight: '900', fontSize: 10 }}>3D</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowWeather(!showWeather)} style={[cs.fab, { backgroundColor: showWeather ? primary : bg, borderColor: `${primary}40` }]} accessibilityLabel="Toggle weather radar">
+                <Feather name="cloud" size={17} color={showWeather ? '#000' : primary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={fitAll} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
                 <Feather name="maximize" size={17} color={primary} />
@@ -581,6 +616,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#ef4444' }]} /><Text style={cs.legendText}>Road closed</Text></View>
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#10b981' }]} /><Text style={cs.legendText}>Route</Text></View>
               <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: primary, borderWidth: 1, borderColor: '#fff' }]} /><Text style={cs.legendText}>Vibers</Text></View>
+              <View style={cs.legendRow}><Text style={cs.legendText}>🛡️ Safety</Text></View>
               <View style={cs.legendRow}><Feather name="bell" size={9} color="#eab308" /><Text style={cs.legendText}>Resident alert</Text></View>
               {heat && <View style={cs.legendRow}><Feather name="activity" size={9} color="#f59e0b" /><Text style={cs.legendText}>Heat = verified Touch Downs</Text></View>}
             </View>
@@ -748,6 +784,30 @@ const StayDetail = ({ stay, onClose, bg, textColor, muted }) => {
 
 // ── Zone detail sheet ─────────────────────────────────────────────────────────
 const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textColor, muted }) => {
+  const [endpoints, setEndpoints] = useState({ start: '', end: '' });
+
+  useEffect(() => {
+    if (zone.geometry?.type === 'LineString' && zone.geometry.coordinates.length >= 2) {
+      const coords = zone.geometry.coordinates;
+      const start = coords[0];
+      const end = coords[coords.length - 1];
+
+      const reverseGeocode = async (lng, lat) => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=18`, {
+            headers: { 'User-Agent': 'TheGruvs/1.0' }
+          });
+          const data = await res.json();
+          return data.display_name?.split(',')[0] || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        } catch { return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
+      };
+
+      Promise.all([reverseGeocode(start[0], start[1]), reverseGeocode(end[0], end[1])])
+        .then(([s, e]) => setEndpoints({ start: s, end: e }))
+        .catch(() => {});
+    }
+  }, [zone.id]);
+
   const meta = ZONE_KINDS[zone.kind] || {};
   const st = ZONE_STATUS[zone.status] || { label: zone.status };
   const startsAt = new Date(zone.starts_at);
@@ -796,10 +856,18 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
 
       {/* Point A to Point B explanation (for lines) */}
       {zone.geometry?.type === 'LineString' && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12 }}>
-          <Feather name="info" size={13} color={primary} />
-          <Text style={{ color: muted, fontSize: 11, flex: 1 }}>
-            Affected from point A to B as traced on the map. Use the highlighted path for reference.
+        <View style={{ gap: 4, padding: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1, borderColor: `${primary}15` }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff', borderWidth: 2, borderColor: '#ef4444' }} />
+            <Text style={{ color: textColor, fontSize: 12, fontWeight: '800' }}>FROM: <Text style={{ color: muted, fontWeight: '600' }}>{endpoints.start || 'Point A'}</Text></Text>
+          </View>
+          <View style={{ width: 1, height: 10, backgroundColor: `${primary}30`, marginLeft: 3.5 }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff', borderWidth: 2, borderColor: '#ef4444' }} />
+            <Text style={{ color: textColor, fontSize: 12, fontWeight: '800' }}>TO: <Text style={{ color: muted, fontWeight: '600' }}>{endpoints.end || 'Point B'}</Text></Text>
+          </View>
+          <Text style={{ color: primary, fontSize: 10, fontWeight: '700', marginTop: 4, fontStyle: 'italic' }}>
+            {isFuture ? 'Strategically scheduled to minimize resident impact.' : 'Live impact area active now.'}
           </Text>
         </View>
       )}

@@ -45,6 +45,8 @@ export function ZoneDrawTool({
   const [activeHrs, setActiveHrs] = useState(4);
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
+  const [detourPoints, setDetourPoints] = useState([]);
+  const [drawingDetour, setDrawingDetour] = useState(false);
 
   // The events you host that you can attach a closure to (upcoming, recent-past ok).
   useEffect(() => {
@@ -177,6 +179,18 @@ export function ZoneDrawTool({
             style={[s.input, { color: textColor, borderColor: `${primary}30` }]}
           />
 
+          {kind === 'road_closed' && (
+            <TouchableOpacity
+              onPress={() => setDrawingDetour(!drawingDetour)}
+              style={[s.detourBtn, { borderColor: drawingDetour ? primary : `${primary}30`, backgroundColor: drawingDetour ? `${primary}18` : 'transparent' }]}
+            >
+              <Feather name="corner-up-right" size={14} color={primary} />
+              <Text style={{ color: primary, fontSize: 12, fontWeight: '800' }}>
+                {detourPoints.length > 0 ? `Detour set (${detourPoints.length} pts)` : drawingDetour ? 'Tap map to draw detour' : 'Add suggested detour'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity onPress={publish} disabled={!canPublish}
             style={[s.publish, { backgroundColor: canPublish ? primary : `${primary}35` }]}>
             {busy ? <ActivityIndicator color="#000" /> : (
@@ -203,4 +217,5 @@ const s = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, marginTop: 4 },
   publish: { borderRadius: 24, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
   publishText: { color: '#000', fontWeight: '900', fontSize: 15 },
+  detourBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, borderRadius: 12, borderWidth: 1, marginTop: 4 },
 });

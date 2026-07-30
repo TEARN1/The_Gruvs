@@ -26,7 +26,11 @@ if (Platform.OS === 'web') {
 // OpenFreeMap dark — keyless & free, and it matches the app's dark UI so the
 // neon pins, heat and closures pop instead of washing out on a light ground.
 // Same host as before, so the existing CSP (tiles.openfreemap.org) covers it.
-const MAP_STYLE = 'https://tiles.openfreemap.org/styles/dark';
+const MAP_STYLES = {
+  dark:  'https://tiles.openfreemap.org/styles/dark',
+  light: 'https://tiles.openfreemap.org/styles/bright',
+  liberty: 'https://tiles.openfreemap.org/styles/liberty',
+};
 const DEFAULT_CENTER = { lng: 28.0473, lat: -26.2041 }; // Johannesburg
 
 export function isMapSupported() {
@@ -54,20 +58,44 @@ const eventsToGeoJSON = (events = []) => ({
     .filter(Boolean),
 });
 
-const zonesToGeoJSON = (zones = []) => ({
-  type: 'FeatureCollection',
-  features: zones
-    .filter((z) => z.geometry)
-    .map((z) => ({
-      type: 'Feature',
-      geometry: z.geometry,
-      properties: {
-        id: z.id, kind: z.kind, status: z.status,
-        color: (ZONE_KINDS[z.kind] || {}).color || '#ef4444',
-        dashed: z.status === 'declared' ? 1 : 0,
-      },
-    })),
-});
+function zonesToGeoJSON(zones = []) {
+  return {
+    type: 'FeatureCollection',
+    features: zones
+      .filter((z) => z.geometry)
+      .map((z) => ({
+        type: 'Feature',
+        geometry: z.geometry,
+        properties: {
+          id: z.id, kind: z.kind, status: z.status,
+          color: (ZONE_KINDS[z.kind] || {}).color || '#ef4444',
+          dashed: z.status === 'declared' ? 1 : 0,
+        },
+      })),
+  };
+}
+
+function zonesToMarkersGeoJSON(zones = []) {
+  const features = [];
+  zones.forEach(z => {
+    if (z.kind === 'road_closed' && z.geometry?.type === 'LineString' && z.geometry.coordinates.length >= 2) {
+      const coords = z.geometry.coordinates;
+      const start = coords[0];
+      const end = coords[coords.length - 1];
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: start },
+        properties: { label: 'ENTRY' }
+      });
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: end },
+        properties: { label: 'EXIT' }
+      });
+    }
+  });
+  return { type: 'FeatureCollection', features };
+}
 
 export function LiveMap({
   events = [],
@@ -85,6 +113,8 @@ export function LiveMap({
   showNearby = false,
   stays = [],             // [{lat,lng,...}] — accommodation from Resident Crew
   showStays = false,
+  pois = [],              // [{lat,lng,icon}] — community POIs
+  showWeather = false,    // show RainViewer radar overlay
   onStayPress,            // (stayId) => void
   reports = [],           // crowdsourced typed pins (map_reports)
   onReportPress,          // (reportId) => void
@@ -94,7 +124,10 @@ export function LiveMap({
   onEventPress,           // (eventId) => void
   onZonePress,            // (zoneId) => void
   followUser = false,     // if true, auto-pans to userLoc
+  mapStyle = 'dark',      // 'dark' | 'light' | 'liberty'
+  show3D = false,         // show 3D buildings
   onReady,
+  primaryColor = '#00f2ff',
   style,
 }) {
   const containerRef = useRef(null);
@@ -103,7 +136,10 @@ export function LiveMap({
   const heatRef = useRef(heat);
   const mineRef = useRef(showMine);
   const crewRef = useRef(showCrew);
+  const nearbyRef = useRef(showNearby);
   const staysRef = useRef(showStays);
+  const show3DRef = useRef(show3D);
+  const weatherRef = useRef(showWeather);
 
   // Pan to user if following is active
   useEffect(() => {
@@ -117,6 +153,15 @@ export function LiveMap({
   useEffect(() => { crewRef.current = showCrew; toggleCrew(showCrew); });
   useEffect(() => { nearbyRef.current = showNearby; toggleNearby(showNearby); });
   useEffect(() => { staysRef.current = showStays; toggleStays(showStays); });
+  useEffect(() => { show3DRef.current = show3D; toggle3D(show3D); });
+  useEffect(() => { weatherRef.current = showWeather; toggleWeather(showWeather); });
+
+  // Update style if it changes
+  useEffect(() => {
+    if (mapRef.current && readyRef.current) {
+      mapRef.current.setStyle(MAP_STYLES[mapStyle] || MAP_STYLES.dark);
+    }
+  }, [mapStyle]);
 
   // ── init once ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -125,9 +170,10 @@ export function LiveMap({
     try {
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: MAP_STYLE,
+        style: MAP_STYLES[mapStyle] || MAP_STYLES.dark,
         center: [center?.lng ?? DEFAULT_CENTER.lng, center?.lat ?? DEFAULT_CENTER.lat],
         zoom: 12,
+        pitch: show3D ? 45 : 0,
         attributionControl: { compact: true },
       });
     } catch { return; }
@@ -154,6 +200,37 @@ export function LiveMap({
           'line-opacity': 0.9,
           'line-dasharray': [2, 1.5],
         },
+      });
+
+      // Zone markers (Entry/Exit for road closures)
+      map.addSource('zone-markers', { type: 'geojson', data: emptyFC() });
+      map.addLayer({
+        id: 'zone-markers-text', type: 'symbol', source: 'zone-markers',
+        layout: {
+          'text-field': ['get', 'label'],
+          'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
+          'text-size': 10,
+          'text-offset': [0, 0.6],
+          'text-anchor': 'top'
+        },
+        paint: { 'text-color': '#fff', 'text-halo-color': '#000', 'text-halo-width': 1 }
+      });
+      map.addLayer({
+        id: 'zone-markers-dot', type: 'circle', source: 'zone-markers',
+        paint: { 'circle-radius': 4, 'circle-color': '#fff', 'circle-stroke-width': 2, 'circle-stroke-color': '#ef4444' }
+      });
+
+      // Community POIs (ATM, Police, etc.)
+      // These are long-lived confirmed reports.
+      map.addSource('pois', { type: 'geojson', data: emptyFC() });
+      map.addLayer({
+        id: 'pois-icon', type: 'symbol', source: 'pois',
+        layout: {
+          'text-field': ['get', 'icon'],
+          'text-size': 14,
+          'text-allow-overlap': true,
+        },
+        paint: { 'text-halo-color': '#0d1112', 'text-halo-width': 1 }
       });
 
       // Events: glowing dots sized by verified presence.
@@ -205,6 +282,41 @@ export function LiveMap({
           'circle-color': '#00f2ff', 'circle-opacity': 0.18, 'circle-blur': 0.6,
         },
       });
+
+      // 3D Buildings layer (fill-extrusion)
+      // OpenFreeMap tiles often include building heights in 'render_height' or 'height'
+      map.addLayer({
+        'id': '3d-buildings',
+        'source': 'openmaptiles',
+        'source-layer': 'building',
+        'type': 'fill-extrusion',
+        'minzoom': 14,
+        'layout': { 'visibility': show3DRef.current ? 'visible' : 'none' },
+        'paint': {
+          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'render_height']],
+          'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'render_min_height']],
+          'fill-extrusion-opacity': 0.6
+        }
+      }, 'ev-glow'); // Place under event pins
+
+      // 3D Buildings layer (fill-extrusion)
+      // OpenFreeMap tiles often include building heights in 'render_height' or 'height'
+      map.addLayer({
+        'id': '3d-buildings',
+        'source': 'openmaptiles',
+        'source-layer': 'building',
+        'type': 'fill-extrusion',
+        'minzoom': 14,
+        'layout': { 'visibility': show3DRef.current ? 'visible' : 'none' },
+        'paint': {
+          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'render_height']],
+          'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'render_min_height']],
+          'fill-extrusion-opacity': 0.6
+        }
+      }, 'ev-glow'); // Place under event pins
+
       map.addLayer({
         id: 'ev-hot', type: 'circle', source: 'eventsC',
         filter: ['all', ['!', ['has', 'point_count']], ['>=', ['get', 'here'], 10]],
@@ -395,12 +507,16 @@ export function LiveMap({
 
   // ── update sources on data change ───────────────────────────────────────────
   useEffect(() => { const g = eventsToGeoJSON(events); setData('events', g); setData('eventsC', g); }, [events]);
-  useEffect(() => { setData('zones', zonesToGeoJSON(zones)); }, [zones]);
+  useEffect(() => {
+    setData('zones', zonesToGeoJSON(zones));
+    setData('zone-markers', zonesToMarkersGeoJSON(zones));
+  }, [zones]);
   useEffect(() => { setData('draw', drawGeoJSON(drawMode, drawPoints)); }, [drawMode, drawPoints]);
   useEffect(() => { setData('mine', pointsToGeoJSON(mine)); }, [mine]);
   useEffect(() => { setData('crew', crewToGeoJSON(crew)); }, [crew]);
   useEffect(() => { setData('nearby', nearbyToGeoJSON(nearby)); }, [nearby]);
   useEffect(() => { setData('stays', staysToGeoJSON(stays)); }, [stays]);
+  useEffect(() => { setData('pois', poisToGeoJSON(pois)); }, [pois]);
   useEffect(() => { setData('self', pointsToGeoJSON(userLoc ? [userLoc] : [])); }, [userLoc]);
   useEffect(() => { setData('route', lineGeoJSON(route)); }, [route]);
   useEffect(() => { setData('reports', reportsToGeoJSON(reports)); }, [reports]);
@@ -479,6 +595,27 @@ export function LiveMap({
     }
   }
 
+  async function toggleWeather(on) {
+    const m = mapRef.current;
+    if (!m || !readyRef.current) return;
+    if (!on) {
+      if (m.getLayer('weather-radar')) m.removeLayer('weather-radar');
+      if (m.getSource('weather-radar')) m.removeSource('weather-radar');
+      return;
+    }
+
+    try {
+      const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+      const data = await res.json();
+      const ts = data.radar.past[data.radar.past.length - 1].time;
+      const url = `https://tilecache.rainviewer.com/v2/radar/${ts}/256/{z}/{x}/{y}/2/1_1.png`;
+
+      if (m.getSource('weather-radar')) m.removeSource('weather-radar');
+      m.addSource('weather-radar', { type: 'raster', tiles: [url], tileSize: 256 });
+      m.addLayer({ id: 'weather-radar', type: 'raster', source: 'weather-radar', paint: { 'raster-opacity': 0.6 } }, 'ev-glow');
+    } catch { /* weather failed — silent */ }
+  }
+
   if (!isMapSupported()) {
     return (
       <View style={[cs.fallback, style]}>
@@ -542,6 +679,19 @@ function staysToGeoJSON(stays) {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [Number(s.lng), Number(s.lat)] },
         properties: { id: s.id },
+      })),
+  };
+}
+
+function poisToGeoJSON(pois) {
+  return {
+    type: 'FeatureCollection',
+    features: (pois || [])
+      .filter((p) => p && p.lat != null && p.lng != null)
+      .map((p) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [Number(p.lng), Number(p.lat)] },
+        properties: { icon: p.icon || '📍' },
       })),
   };
 }
