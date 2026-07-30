@@ -8,7 +8,7 @@
  * map failure never takes the app down.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -27,6 +27,8 @@ import { VibeRouletteModal } from '../components/VibeRouletteModal';
 import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
 import { getMyFog } from '../services/fogMap';
 import { getCrewPlans } from '../services/crewMap';
+import { Accommodation } from '../services/accommodation';
+import { residentUrl, hasResident } from '../constants/residentUrl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
@@ -71,6 +73,11 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   // Phase 2: Crew Convergence — where the people you follow are heading tonight.
   const [showCrew, setShowCrew] = useState(false);
   const [crewPlans, setCrewPlans] = useState([]);
+
+  // Stays via Resident Crew — accommodation near you, from the sister app.
+  const [showStays, setShowStays] = useState(false);
+  const [stays, setStays] = useState([]);
+  const [activeStay, setActiveStay] = useState(null);
 
   const centerRef = useRef(center);
   useEffect(() => { centerRef.current = center; }, [center]);
@@ -201,6 +208,19 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   };
 
+  // Stays via Resident Crew — pull accommodation around the map centre on demand.
+  const toggleStays = async () => {
+    const next = !showStays;
+    setShowStays(next);
+    if (next && stays.length === 0) {
+      const c = centerRef.current;
+      const rows = await Accommodation.near(c.lat, c.lng, { radiusM: 15000 });
+      setStays(rows);
+      if (rows.length === 0) toast('No Resident Crew stays near here yet.', 'info');
+    }
+  };
+  const openStay = (id) => { const s = stays.find((x) => x.id === id); if (s) setActiveStay(s); };
+
   // The biggest convergence (most of your crew on one spot) drives the summary.
   const topCrew = showCrew && crewPlans.length ? crewPlans[0] : null;
   const crewOut = crewPlans.reduce((set, p) => { p.people.forEach((x) => set.add(x.id)); return set; }, new Set()).size;
@@ -231,11 +251,14 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               showMine={showMine}
               crew={crewPlans}
               showCrew={showCrew}
+              stays={stays}
+              showStays={showStays}
+              onStayPress={(id) => { setPreviewId(null); setActiveZone(null); openStay(id); }}
               drawMode={drawing ? mode : null}
               drawPoints={points}
               onMapClick={onMapClick}
-              onEventPress={(id) => { setActiveZone(null); setPreviewId(id); }}
-              onZonePress={(id) => { const z = zones.find((x) => x.id === id); if (z) { setPreviewId(null); setActiveZone(z); } }}
+              onEventPress={(id) => { setActiveZone(null); setActiveStay(null); setPreviewId(id); }}
+              onZonePress={(id) => { const z = zones.find((x) => x.id === id); if (z) { setPreviewId(null); setActiveStay(null); setActiveZone(z); } }}
             />
           </ErrorBoundary>
 
@@ -247,6 +270,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               </TouchableOpacity>
               <TouchableOpacity onPress={toggleCrew} style={[cs.fab, { backgroundColor: showCrew ? '#ec4899' : bg, borderColor: showCrew ? '#ec4899' : `${primary}40` }]}>
                 <Feather name="users" size={18} color={showCrew ? '#fff' : '#ec4899'} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={toggleStays} style={[cs.fab, { backgroundColor: showStays ? '#f59e0b' : bg, borderColor: showStays ? '#f59e0b' : `${primary}40` }]} accessibilityLabel="Places to stay from Resident Crew">
+                <Feather name="home" size={17} color={showStays ? '#000' : '#f59e0b'} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setHeat((h) => !h)} style={[cs.fab, { backgroundColor: heat ? primary : bg, borderColor: `${primary}40` }]}>
                 <Feather name="activity" size={18} color={heat ? '#000' : primary} />
@@ -339,6 +365,14 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           />
         )}
 
+        {/* Stay detail — accommodation from Resident Crew */}
+        {activeStay && !drawing && (
+          <StayDetail
+            stay={activeStay} onClose={() => setActiveStay(null)}
+            bg={bg} textColor={textColor} muted={muted}
+          />
+        )}
+
         {/* Concierge destinations */}
         <VibeRouletteModal
           visible={showRoulette} onClose={() => setShowRoulette(false)}
@@ -348,6 +382,63 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         <GetHomeSafeModal visible={showHomeSafe} onClose={() => setShowHomeSafe(false)} />
       </SafeAreaView>
     </ErrorBoundary>
+  );
+};
+
+// ── Stay detail sheet — accommodation from Resident Crew ──────────────────────
+const StayDetail = ({ stay, onClose, bg, textColor, muted }) => {
+  const gold = '#f59e0b';
+  const price = stay.price != null ? `${stay.currency || 'ZAR'} ${stay.price}` : null;
+  const place = [stay.suburb, stay.city].filter(Boolean).join(', ');
+  const amenities = [
+    stay.wifi ? 'WiFi' : null,
+    stay.parking ? 'Parking' : null,
+    stay.bathroom ? `${stay.bathroom} bath` : null,
+    stay.livesHere ? 'Landlord on-site' : null,
+  ].filter(Boolean).join(' · ');
+  const link = residentUrl('dashboard'); // Resident's map/listings live under the dashboard
+  const open = () => { if (link) Linking.openURL(link).catch(() => {}); };
+
+  return (
+    <View style={[cs.sheet, { backgroundColor: bg, borderColor: `${gold}55` }]}>
+      <View style={cs.sheetHead}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+          {stay.image ? (
+            <Image source={{ uri: stay.image }} style={{ width: 46, height: 46, borderRadius: 10 }} />
+          ) : (
+            <View style={[cs.kindDot, { backgroundColor: `${gold}22`, borderColor: gold }]}>
+              <Feather name="home" size={15} color={gold} />
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={[cs.sheetTitle, { color: textColor }]} numberOfLines={1}>{stay.title}</Text>
+            <Text style={{ color: muted, fontSize: 11 }} numberOfLines={1}>
+              {price ? `${price}/mo` : 'Enquire'}{place ? ` · ${place}` : ''} · via Resident Crew
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Feather name="x" size={20} color={muted} />
+        </TouchableOpacity>
+      </View>
+
+      {amenities ? <Text style={{ color: muted, fontSize: 12 }}>{amenities}</Text> : null}
+      {stay.safety ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Feather name="shield" size={12} color={stay.safety === 'high' ? '#10b981' : stay.safety === 'low' ? '#ef4444' : gold} />
+          <Text style={{ color: muted, fontSize: 11, textTransform: 'capitalize' }}>{stay.safety} safety area</Text>
+        </View>
+      ) : null}
+
+      {hasResident() ? (
+        <TouchableOpacity onPress={open} style={[cs.verifyBtn, { borderColor: gold, backgroundColor: `${gold}1a` }]}>
+          <Feather name="external-link" size={14} color={gold} />
+          <Text style={{ color: gold, fontWeight: '800', fontSize: 13 }}>View on Resident Crew</Text>
+        </TouchableOpacity>
+      ) : (
+        <Text style={{ color: muted, fontSize: 11, fontStyle: 'italic' }}>Open The Resident to book this stay.</Text>
+      )}
+    </View>
   );
 };
 
