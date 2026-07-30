@@ -2061,6 +2061,25 @@ export const DiscoveryManager = {
     }
   },
 
+  async getEventAttendees(eventId, limit = 10) {
+    if (!isSupabaseEnabled) return [];
+    const cacheKey = `event_attendees:${eventId}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase
+        .from('event_rsvps')
+        .select('user_id, profiles(id, username, avatar_url, vibe_score)')
+        .eq('event_id', eventId)
+        .eq('status', 'going')
+        .limit(limit);
+
+      const attendees = (data || []).map(r => r.profiles).filter(Boolean);
+      cache.set(cacheKey, attendees, 120000); // 2 min cache
+      return attendees;
+    } catch { return []; }
+  },
+
   // "Rising Vibers" — people being followed RIGHT NOW (7-day follow velocity),
   // not all-time fame. This was the genuinely-missing trending-people model:
   // every "trending" people rail used to fall back to vibe_score DESC, which

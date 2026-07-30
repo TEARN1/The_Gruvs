@@ -16,11 +16,13 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder, Platf
 import { Feather } from '@expo/vector-icons';
 import { SmartImage } from './SmartImage';
 import { distanceKm } from '../utils/geo';
-import { FeedManager, RSVPManager, BookmarkManager, CheckInManager } from '../services/dataFlow';
+import { FeedManager, RSVPManager, BookmarkManager, CheckInManager, DiscoveryManager } from '../services/dataFlow';
+import { thumb } from '../utils/storageThumb';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
+import { ViberProfileModal } from './ViberProfileModal';
 
 // A closure within this many metres of the venue is "right next to it".
 const CLOSURE_NEAR_M = 450;
@@ -78,6 +80,22 @@ export function MapEventPreview({
   const base = events[index] || null;
   const [full, setFull] = useState(base);
   const [going, setGoing] = useState(false);
+  const [attendees, setAttendees] = useState([]);
+  const [viberId, setViberId] = useState(null);
+  const [viberVisible, setViberVisible] = useState(false);
+
+  useEffect(() => {
+    if (!full?.id) return;
+    DiscoveryManager.getEventAttendees(full.id).then(setAttendees).catch(() => {});
+  }, [full?.id]);
+
+  const openViber = (id) => {
+    setViberId(id);
+    setViberVisible(true);
+  };
+  const [attendees, setAttendees] = useState([]);
+  const [viberId, setViberId] = useState(null);
+  const [viberVisible, setViberVisible] = useState(false);
   const [saved, setSaved] = useState(false);
   const [goingCount, setGoingCount] = useState(base?.going || 0);
   const [attendees, setAttendees] = useState([]);   // live "here now"
@@ -262,15 +280,27 @@ export function MapEventPreview({
             <Text style={[cs.proofText, { color: primary }]}>{friends} you follow</Text>
           </View>
         )}
-        {/* Live attendee avatars */}
-        {attendees.slice(0, 4).map((a, i) => (
-          a?.avatar_url
-            ? <SmartImage key={a.id || i} source={a.avatar_url} style={[cs.av, { marginLeft: i ? -8 : 4, borderColor: bg }]} />
-            : <View key={a?.id || i} style={[cs.av, { marginLeft: i ? -8 : 4, borderColor: bg, backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
-                <Text style={{ color: text, fontSize: 10, fontWeight: '800' }}>{(a?.username || '?')[0]?.toUpperCase()}</Text>
-              </View>
+        {/* Live attendee avatars — tapping opens their networking profile */}
+        {attendees.slice(0, 5).map((a, i) => (
+          <TouchableOpacity key={a.id || i} onPress={() => openViber(a.id)}>
+            {a?.avatar_url
+              ? <SmartImage source={a.avatar_url} style={[cs.av, { marginLeft: i ? -8 : 4, borderColor: bg }]} />
+              : <View style={[cs.av, { marginLeft: i ? -8 : 4, borderColor: bg, backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
+                  <Text style={{ color: text, fontSize: 10, fontWeight: '800' }}>{(a?.username || '?')[0]?.toUpperCase()}</Text>
+                </View>
+            }
+          </TouchableOpacity>
         ))}
       </View>
+
+      {/* Networking Modal */}
+      {viberVisible && (
+        <ViberProfileModal
+          visible={viberVisible}
+          userId={viberId}
+          onClose={() => setViberVisible(false)}
+        />
+      )}
 
       {/* Truth Protocol — closure right by the venue */}
       {closure && (

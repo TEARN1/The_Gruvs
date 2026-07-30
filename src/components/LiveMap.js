@@ -52,6 +52,7 @@ const eventsToGeoJSON = (events = []) => ({
           // pins stay honest); only fall back to going when no live count exists.
           here: Number(e.here_count ?? e.going ?? 0),
           cat: e.category || '',
+          biz: !!(e.is_business || e.profiles?.is_business),
         },
       };
     })
@@ -111,11 +112,14 @@ export function LiveMap({
   showCrew = false,
   nearby = [],            // [{id, username, avatar_url, lat, lon}] — live vibers
   showNearby = false,
+  trails = [],            // [{from:{lat,lng}, to:{lat,lng}}] — flow trails
+  showTrails = false,
   stays = [],             // [{lat,lng,...}] — accommodation from Resident Crew
   showStays = false,
   pois = [],              // [{lat,lng,icon}] — community POIs
   showWeather = false,    // show RainViewer radar overlay
   onStayPress,            // (stayId) => void
+  onViberPress,           // (viberId) => void
   reports = [],           // crowdsourced typed pins (map_reports)
   onReportPress,          // (reportId) => void
   drawMode = null,        // null | 'line' | 'polygon'
@@ -137,6 +141,7 @@ export function LiveMap({
   const mineRef = useRef(showMine);
   const crewRef = useRef(showCrew);
   const nearbyRef = useRef(showNearby);
+  const trailsRef = useRef(showTrails);
   const staysRef = useRef(showStays);
   const show3DRef = useRef(show3D);
   const weatherRef = useRef(showWeather);
@@ -152,6 +157,7 @@ export function LiveMap({
   useEffect(() => { mineRef.current = showMine; toggleMine(showMine); });
   useEffect(() => { crewRef.current = showCrew; toggleCrew(showCrew); });
   useEffect(() => { nearbyRef.current = showNearby; toggleNearby(showNearby); });
+  useEffect(() => { trailsRef.current = showTrails; toggleTrails(showTrails); });
   useEffect(() => { staysRef.current = showStays; toggleStays(showStays); });
   useEffect(() => { show3DRef.current = show3D; toggle3D(show3D); });
   useEffect(() => { weatherRef.current = showWeather; toggleWeather(showWeather); });
@@ -283,6 +289,20 @@ export function LiveMap({
         },
       });
 
+      // Vibe Aura — a larger, pulsing ring for high-vibe venues (P2P signal)
+      // Businesses get a wider, brand-coloured aura (B2P signal)
+      map.addLayer({
+        id: 'ev-aura', type: 'circle', source: 'eventsC', filter: ['!', ['has', 'point_count']],
+        layout: { visibility: heatRef.current ? 'none' : 'visible' },
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 0, 0, 5, 20, 50, 45],
+          'circle-color': ['case', ['get', 'biz'], 'rgba(0,242,255,0.08)', 'rgba(0,242,255,0.04)'],
+          'circle-stroke-color': primaryColor,
+          'circle-stroke-width': ['case', ['get', 'biz'], 2, 1],
+          'circle-stroke-opacity': ['interpolate', ['linear'], ['get', 'here'], 0, 0, 10, 0.4],
+        }
+      }, 'ev-glow');
+
       // 3D Buildings layer (fill-extrusion)
       // OpenFreeMap tiles often include building heights in 'render_height' or 'height'
       map.addLayer({
@@ -409,6 +429,14 @@ export function LiveMap({
         paint: { 'line-color': '#00f2ff', 'line-width': 4, 'line-opacity': 0.8, 'line-dasharray': [1.5, 1.2] },
       });
 
+      // Vibe Trails — flow lines between venues (After-Event journey)
+      map.addSource('trails', { type: 'geojson', data: emptyFC() });
+      map.addLayer({
+        id: 'trails-line', type: 'line', source: 'trails',
+        layout: { visibility: trailsRef.current ? 'visible' : 'none', 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': primaryColor, 'line-width': 2, 'line-opacity': 0.4, 'line-dasharray': [2, 2] },
+      });
+
       // Touch-Down ripple — a one-shot expanding ring when someone checks in.
       // Crowdsourced reports — typed community pins (queues, water, unsafe…).
       map.addSource('reports', { type: 'geojson', data: reportsToGeoJSON(reports) });
@@ -480,6 +508,8 @@ export function LiveMap({
         }
         const hit = map.queryRenderedFeatures(ev.point, { layers: ['ev-dot', 'ev-glow', 'ev-hot'] });
         if (hit && hit[0]) { onEventRef.current?.(hit[0].properties.id); return; }
+        const viber = map.queryRenderedFeatures(ev.point, { layers: ['nearby-dot', 'nearby-glow'] });
+        if (viber && viber[0]) { onViberRef.current?.(viber[0].properties.id); return; }
         const rp = map.queryRenderedFeatures(ev.point, { layers: ['reports-dot', 'reports-halo'] });
         if (rp && rp[0]) { onReportRef.current?.(rp[0].properties.id); return; }
         const stay = map.queryRenderedFeatures(ev.point, { layers: ['stays-dot', 'stays-icon'] });
@@ -501,9 +531,11 @@ export function LiveMap({
   const onEventRef = useRef(onEventPress); const onZoneRef = useRef(onZonePress);
   const onReportRef = useRef(onReportPress);
   const onStayRef = useRef(onStayPress);
+  const onViberRef = useRef(onViberPress);
   useEffect(() => { drawModeRef.current = drawMode; onClickRef.current = onMapClick;
     onEventRef.current = onEventPress; onZoneRef.current = onZonePress;
-    onReportRef.current = onReportPress; onStayRef.current = onStayPress; });
+    onReportRef.current = onReportPress; onStayRef.current = onStayPress;
+    onViberRef.current = onViberPress; });
 
   // ── update sources on data change ───────────────────────────────────────────
   useEffect(() => { const g = eventsToGeoJSON(events); setData('events', g); setData('eventsC', g); }, [events]);
@@ -515,6 +547,7 @@ export function LiveMap({
   useEffect(() => { setData('mine', pointsToGeoJSON(mine)); }, [mine]);
   useEffect(() => { setData('crew', crewToGeoJSON(crew)); }, [crew]);
   useEffect(() => { setData('nearby', nearbyToGeoJSON(nearby)); }, [nearby]);
+  useEffect(() => { setData('trails', trailsToGeoJSON(trails)); }, [trails]);
   useEffect(() => { setData('stays', staysToGeoJSON(stays)); }, [stays]);
   useEffect(() => { setData('pois', poisToGeoJSON(pois)); }, [pois]);
   useEffect(() => { setData('self', pointsToGeoJSON(userLoc ? [userLoc] : [])); }, [userLoc]);
@@ -585,6 +618,12 @@ export function LiveMap({
     for (const id of ['nearby-glow', 'nearby-dot']) {
       if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
     }
+  }
+
+  function toggleTrails(on) {
+    const m = mapRef.current;
+    if (!m || !readyRef.current || !m.getLayer('trails-line')) return;
+    try { m.setLayoutProperty('trails-line', 'visibility', on ? 'visible' : 'none'); } catch {}
   }
 
   function toggleStays(on) {
@@ -720,6 +759,22 @@ function nearbyToGeoJSON(nearby) {
         geometry: { type: 'Point', coordinates: [Number(v.lon), Number(v.lat)] },
         properties: { id: v.id, username: v.username, avatar: v.avatar_url },
       })),
+  };
+}
+
+function trailsToGeoJSON(trails) {
+  return {
+    type: 'FeatureCollection',
+    features: (trails || [])
+      .filter(t => t.from?.lat != null && t.to?.lat != null)
+      .map(t => ({
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [[Number(t.from.lng), Number(t.from.lat)], [Number(t.to.lng), Number(t.to.lat)]]
+        },
+        properties: {}
+      }))
   };
 }
 

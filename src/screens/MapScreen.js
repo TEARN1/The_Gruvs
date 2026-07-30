@@ -95,6 +95,14 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [stays, setStays] = useState([]);
   const [activeStay, setActiveStay] = useState(null);
 
+  // Phase 2: Strategic Networking
+  const [showTrails, setShowTrails] = useState(false);
+  const [vibeTrails, setVibeTrails] = useState([]);
+  const [networkingMode, setNetworkingMode] = useState(false);
+  const [attendees, setAttendees] = useState([]);
+  const [viberModalVisible, setViberModalVisible] = useState(false);
+  const [selectedViberId, setSelectedViberId] = useState(null);
+
   const [followMe, setFollowMe] = useState(false);
   const [mapStyle, setMapStyle] = useState('dark');
   const [show3D, setShow3D] = useState(false);
@@ -372,6 +380,34 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       if (rows.length === 0) toast('No Resident Crew stays near here yet.', 'info');
     }
   };
+
+  const toggleTrails = () => {
+    const next = !showTrails;
+    setShowTrails(next);
+    if (next && vibeTrails.length === 0) {
+      // Simulate/derive flow trails from events (B2B/B2P insight)
+      const list = events.slice(0, 8);
+      const generated = [];
+      for (let i = 0; i < list.length - 1; i++) {
+        if (list[i].lat && list[i+1].lat) {
+          generated.push({ from: { lat: list[i].lat, lng: list[i].lon }, to: { lat: list[i+1].lat, lng: list[i+1].lon } });
+        }
+      }
+      setVibeTrails(generated);
+    }
+  };
+
+  const toggleNetworking = () => {
+    setNetworkingMode(!networkingMode);
+    if (!networkingMode) {
+      toast('Networking Mode: See who else is out tonight.', 'info');
+    }
+  };
+
+  const handleViberPress = (viberId) => {
+    setSelectedViberId(viberId);
+    setViberModalVisible(true);
+  };
   const openStay = (id) => { const s = stays.find((x) => x.id === id); if (s) setActiveStay(s); };
 
   // The biggest convergence (most of your crew on one spot) drives the summary.
@@ -495,15 +531,18 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               crew={crewPlans}
               showCrew={showCrew}
               nearby={nearbyVibers}
-              showNearby={showNearby}
+              showNearby={networkingMode}
               stays={stays}
               pois={communityPois}
+              trails={vibeTrails}
+              showTrails={showTrails}
               mapStyle={mapStyle}
               show3D={show3D}
               showWeather={showWeather}
               primaryColor={primary}
               showStays={showStays}
               onStayPress={(id) => { setPreviewId(null); setActiveZone(null); openStay(id); }}
+              onViberPress={handleViberPress}
               drawMode={drawing ? mode : null}
               drawPoints={points}
               followUser={followMe}
@@ -533,6 +572,12 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               </TouchableOpacity>
               <TouchableOpacity onPress={toggleNearby} style={[cs.fab, { backgroundColor: showNearby ? primary : bg, borderColor: showNearby ? primary : `${primary}40` }]} accessibilityLabel="Find vibers nearby">
                 <Feather name="user-check" size={18} color={showNearby ? '#000' : primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={toggleNetworking} style={[cs.fab, { backgroundColor: networkingMode ? primary : bg, borderColor: networkingMode ? primary : `${primary}40` }]} accessibilityLabel="Toggle networking mode">
+                <Feather name="message-square" size={18} color={networkingMode ? '#000' : primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={toggleTrails} style={[cs.fab, { backgroundColor: showTrails ? primary : bg, borderColor: showTrails ? primary : `${primary}40` }]} accessibilityLabel="Show flow trails">
+                <Feather name="trending-up" size={18} color={showTrails ? '#000' : primary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={toggleStays} style={[cs.fab, { backgroundColor: showStays ? '#f59e0b' : bg, borderColor: showStays ? '#f59e0b' : `${primary}40` }]} accessibilityLabel="Places to stay from Resident Crew">
                 <Feather name="home" size={17} color={showStays ? '#000' : '#f59e0b'} />
@@ -616,6 +661,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#ef4444' }]} /><Text style={cs.legendText}>Road closed</Text></View>
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#10b981' }]} /><Text style={cs.legendText}>Route</Text></View>
               <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: primary, borderWidth: 1, borderColor: '#fff' }]} /><Text style={cs.legendText}>Vibers</Text></View>
+              <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: '#ec4899' }]} /><Text style={cs.legendText}>Networking</Text></View>
               <View style={cs.legendRow}><Text style={cs.legendText}>🛡️ Safety</Text></View>
               <View style={cs.legendRow}><Feather name="bell" size={9} color="#eab308" /><Text style={cs.legendText}>Resident alert</Text></View>
               {heat && <View style={cs.legendRow}><Feather name="activity" size={9} color="#f59e0b" /><Text style={cs.legendText}>Heat = verified Touch Downs</Text></View>}
@@ -662,6 +708,15 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           onSelectEvent={(e) => { setShowRoulette(false); if (e?.id) onNavigateToEvent?.({ id: e.id }); }}
         />
         <GetHomeSafeModal visible={showHomeSafe} onClose={() => setShowHomeSafe(false)} />
+
+        {viberModalVisible && (
+          <ViberProfileModal
+            visible={viberModalVisible}
+            userId={selectedViberId}
+            onClose={() => setViberModalVisible(false)}
+            onNavigateToEvent={(ev) => { setViberModalVisible(false); onNavigateToEvent?.(ev); }}
+          />
+        )}
 
         {/* Add-a-report picker (the crowdsourced map layer) */}
         <MapReportSheet visible={reportSheet} onClose={() => setReportSheet(false)} onSubmit={submitReport} />
