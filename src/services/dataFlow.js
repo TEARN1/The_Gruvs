@@ -6,7 +6,7 @@
  */
 
 import { supabase, isSupabaseEnabled } from './supabase';
-import { resilient, resilientRead, isSchemaMiss } from '../utils/resilience';
+import { resilient, resilientRead, isSchemaMiss, withTimeout } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
 import { logError } from '../utils/logError';
 import { log } from '../utils/log';
@@ -2589,7 +2589,9 @@ export const MessageManager = {
     const stale = cache.getStale(cacheKey);
     const orFilter = `sender_id.eq.${userId},recipient_id.eq.${userId}`;
     try {
-      const { data, error } = await supabase
+      // Time-boxed: a stalled request must not hang the Chats tab forever — it
+      // rejects, we fall through to the lighter fallback / stale cache below.
+      const { data, error } = await withTimeout(supabase
         .from('messages')
         .select(`
           id, sender_id, recipient_id, body, created_at, read_at,
@@ -2600,7 +2602,7 @@ export const MessageManager = {
         .or(orFilter)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
-        .limit(500);
+        .limit(500), 12000, 'getConversations');
       if (error) throw error;
 
       const rows = data || [];
@@ -2629,12 +2631,12 @@ export const MessageManager = {
       // live table yet — which would make the WHOLE chats list vanish. Re-fetch
       // with only guaranteed columns and join partner profiles separately.
       try {
-        const { data, error } = await supabase
+        const { data, error } = await withTimeout(supabase
           .from('messages')
           .select('id, sender_id, recipient_id, body, created_at')
           .or(orFilter)
           .order('created_at', { ascending: false })
-          .limit(500);
+          .limit(500), 12000, 'getConversations.fallback');
         if (error) throw error;
         const rows = (data || []).filter(m => !m.deleted_at); // deleted_at may be absent → kept
         const seen = {};
@@ -2648,8 +2650,8 @@ export const MessageManager = {
           convos.push({ ...msg, partnerId });
         }
         if (partnerIds.length) {
-          const { data: profs } = await supabase
-            .from('profiles').select('id, username, avatar_url, is_online').in('id', partnerIds);
+          const { data: profs } = await withTimeout(supabase
+            .from('profiles').select('id, username, avatar_url, is_online').in('id', partnerIds), 12000, 'getConversations.profiles');
           const byId = Object.fromEntries((profs || []).map(p => [p.id, p]));
           for (const c of convos) c.partner = byId[c.partnerId] || null;
         }

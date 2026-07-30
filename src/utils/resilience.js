@@ -26,7 +26,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // a timeout so it rejects, retries, and ultimately falls back — the UI always
 // resolves to data, empty, or error, never an infinite spinner.
 const ATTEMPT_TIMEOUT_MS = 12000;
-function withTimeout(value, ms, label) {
+export function withTimeout(value, ms = ATTEMPT_TIMEOUT_MS, label = 'request') {
   let to;
   const timer = new Promise((_, reject) => { to = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms); });
   return Promise.race([Promise.resolve(value).finally(() => clearTimeout(to)), timer]);
