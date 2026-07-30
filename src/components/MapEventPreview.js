@@ -171,14 +171,11 @@ export function MapEventPreview({
 
   const takeMeThere = () => {
     if (lat == null) { toast('No location on this event.', 'info'); return; }
-    const label = encodeURIComponent(full.title || 'Event');
-    // Universal Google Maps directions link — opens the maps app on any device,
-    // no API key. Apple Maps on iOS if Google isn't installed handles it too.
-    const url = Platform.select({
-      ios: `https://maps.apple.com/?daddr=${lat},${lng}&q=${label}`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-    });
-    Linking.openURL(url).catch(() => toast('Could not open maps.', 'error'));
+    // Since we're already on the Map tab, "Take me there" just closes the
+    // preview so the user can follow the dotted route line already drawn
+    // on the main map.
+    onClose();
+    toast('Follow the dotted line on the map.', 'info');
   };
 
   const go = (delta) => {

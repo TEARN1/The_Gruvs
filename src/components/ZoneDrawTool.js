@@ -19,8 +19,13 @@ import { MapZones, ZONE_KINDS } from '../services/mapZones';
 import { buildGeometry } from './LiveMap';
 
 const DURATIONS = [
-  { label: '2 hrs', hrs: 2 }, { label: '4 hrs', hrs: 4 },
-  { label: '8 hrs', hrs: 8 }, { label: 'All day', hrs: 14 },
+  { label: 'Now', hrs: 0 }, { label: 'In 1h', hrs: 1 },
+  { label: 'In 2h', hrs: 2 }, { label: 'In 4h', hrs: 4 },
+];
+
+const ACTIVE_FOR = [
+  { label: '2h', hrs: 2 }, { label: '4h', hrs: 4 },
+  { label: '8h', hrs: 8 }, { label: '14h', hrs: 14 },
 ];
 
 // Which kinds are drawn as a line vs an area — sets the draw mode.
@@ -36,7 +41,8 @@ export function ZoneDrawTool({
   const [myEvents, setMyEvents] = useState([]);
   const [eventId, setEventId] = useState(null);
   const [kind, setKind] = useState('road_closed');
-  const [hrs, setHrs] = useState(4);
+  const [startHrs, setStartHrs] = useState(0);
+  const [activeHrs, setActiveHrs] = useState(4);
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -69,8 +75,8 @@ export function ZoneDrawTool({
     if (!geometry) { toast(`Tap at least ${minPoints} points on the map.`, 'error'); return; }
     setBusy(true);
     try {
-      const startsAt = new Date();
-      const endsAt = new Date(Date.now() + hrs * 3600 * 1000);
+      const startsAt = new Date(Date.now() + startHrs * 3600 * 1000);
+      const endsAt = new Date(startsAt.getTime() + activeHrs * 3600 * 1000);
       const zone = await MapZones.create({
         eventId, kind, geometry, startsAt, endsAt,
         label: label.trim() || ZONE_KINDS[kind]?.label,
@@ -139,14 +145,29 @@ export function ZoneDrawTool({
           </View>
 
           {/* Time window */}
-          <Text style={[s.lbl, { color: muted }]}>ACTIVE FOR</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {DURATIONS.map((d) => (
-              <TouchableOpacity key={d.hrs} onPress={() => setHrs(d.hrs)}
-                style={[s.durChip, { borderColor: hrs === d.hrs ? primary : `${primary}30`, backgroundColor: hrs === d.hrs ? `${primary}18` : 'transparent' }]}>
-                <Text style={{ color: hrs === d.hrs ? primary : textColor, fontSize: 12, fontWeight: '800' }}>{d.label}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={{ flexDirection: 'row', gap: 16 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.lbl, { color: muted }]}>STARTS</Text>
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                {DURATIONS.map((d) => (
+                  <TouchableOpacity key={d.hrs} onPress={() => setStartHrs(d.hrs)}
+                    style={[s.durChip, { flex: 1, borderColor: startHrs === d.hrs ? primary : `${primary}30`, backgroundColor: startHrs === d.hrs ? `${primary}18` : 'transparent' }]}>
+                    <Text style={{ color: startHrs === d.hrs ? primary : textColor, fontSize: 10, fontWeight: '800' }}>{d.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.lbl, { color: muted }]}>DURATION</Text>
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                {ACTIVE_FOR.map((d) => (
+                  <TouchableOpacity key={d.hrs} onPress={() => setActiveHrs(d.hrs)}
+                    style={[s.durChip, { flex: 1, borderColor: activeHrs === d.hrs ? primary : `${primary}30`, backgroundColor: activeHrs === d.hrs ? `${primary}18` : 'transparent' }]}>
+                    <Text style={{ color: activeHrs === d.hrs ? primary : textColor, fontSize: 10, fontWeight: '800' }}>{d.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
 
           {/* Optional label */}
@@ -178,7 +199,7 @@ const s = StyleSheet.create({
   kindChip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 7 },
   drawRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, padding: 10, marginTop: 6 },
   miniBtn: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)' },
-  durChip: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8 },
+  durChip: { borderWidth: 1, borderRadius: 14, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, marginTop: 4 },
   publish: { borderRadius: 24, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
   publishText: { color: '#000', fontWeight: '900', fontSize: 15 },

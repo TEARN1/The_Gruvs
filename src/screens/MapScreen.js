@@ -8,7 +8,7 @@
  * map failure never takes the app down.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -86,10 +86,18 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [showCrew, setShowCrew] = useState(false);
   const [crewPlans, setCrewPlans] = useState([]);
 
+  // Phase 2: Find Them — discoverable vibers near you.
+  const [showNearby, setShowNearby] = useState(false);
+  const [nearbyVibers, setNearbyVibers] = useState([]);
+
   // Stays via Resident Crew — accommodation near you, from the sister app.
   const [showStays, setShowStays] = useState(false);
   const [stays, setStays] = useState([]);
   const [activeStay, setActiveStay] = useState(null);
+
+  const [followMe, setFollowMe] = useState(false);
+  const [searchQuery, setSearchBar] = useState('');
+  const [searching, setSearchBusy] = useState(false);
 
   const centerRef = useRef(center);
   useEffect(() => { centerRef.current = center; }, [center]);
@@ -258,8 +266,49 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   };
 
   const recenter = async () => {
+    setFollowMe(false);
     const c = await LocationService.requestAndGet();
     if (c?.lat != null) { setCenter({ lat: c.lat, lng: c.lon }); setUserLoc({ lat: c.lat, lng: c.lon }); }
+  };
+
+  const zoomIn = () => {
+    if (mapApiRef.current) mapApiRef.current.zoomIn();
+  };
+
+  const zoomOut = () => {
+    if (mapApiRef.current) mapApiRef.current.zoomOut();
+  };
+
+  const toggleFollowMe = () => {
+    const next = !followMe;
+    setFollowMe(next);
+    if (next && userLoc) {
+      setCenter({ lat: userLoc.lat, lng: userLoc.lng });
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || searching) return;
+    setSearchBusy(true);
+    setFollowMe(false);
+    try {
+      const q = encodeURIComponent(searchQuery.trim());
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
+        headers: { 'User-Agent': 'TheGruvs/1.0' }
+      });
+      const data = await res.json();
+      if (data && data[0]) {
+        const { lat, lon } = data[0];
+        setCenter({ lat: parseFloat(lat), lng: parseFloat(lon) });
+        setSearchBar('');
+      } else {
+        toast('Location not found.', 'info');
+      }
+    } catch {
+      toast('Search failed.', 'error');
+    } finally {
+      setSearchBusy(false);
+    }
   };
 
   // Fit every pin in view — one tap to see the whole night at once.
@@ -293,6 +342,19 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       const plans = await getCrewPlans(user.id);
       setCrewPlans(plans);
       if (plans.length === 0) toast('None of your crew has marked a plan yet — follow more people.', 'info');
+    }
+  };
+
+  const toggleNearby = async () => {
+    if (!user) { onAuthRequired?.(); return; }
+    const next = !showNearby;
+    setShowNearby(next);
+    if (next && nearbyVibers.length === 0) {
+      try {
+        const data = await DiscoveryManager.findNearbyVibers(user.id, 10);
+        setNearbyVibers(data || []);
+        if ((data || []).length === 0) toast('No vibers found nearby — try again later.', 'info');
+      } catch { /* silent */ }
     }
   };
 
@@ -359,6 +421,21 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           </Text>
         </View>
 
+        {/* Search Bar */}
+        <View style={[cs.searchRow, { backgroundColor: `${primary}12`, borderColor: `${primary}30` }]}>
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchBar}
+            placeholder="Search city or area..."
+            placeholderTextColor={muted}
+            onSubmitEditing={handleSearch}
+            style={[cs.searchInput, { color: textColor }]}
+          />
+          <TouchableOpacity onPress={handleSearch} style={cs.searchBtn}>
+            {searching ? <ActivityIndicator size="small" color={primary} /> : <Feather name="search" size={18} color={primary} />}
+          </TouchableOpacity>
+        </View>
+
         {/* Time-scrubber — jump the map forward night by night */}
         {isMapSupported() && !drawing && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -396,11 +473,14 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               showMine={showMine}
               crew={crewPlans}
               showCrew={showCrew}
+              nearby={nearbyVibers}
+              showNearby={showNearby}
               stays={stays}
               showStays={showStays}
               onStayPress={(id) => { setPreviewId(null); setActiveZone(null); openStay(id); }}
               drawMode={drawing ? mode : null}
               drawPoints={points}
+              followUser={followMe}
               onMapClick={onMapClick}
               onReady={(map) => { mapApiRef.current = map; }}
               onEventPress={(id) => {
@@ -425,6 +505,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <TouchableOpacity onPress={toggleCrew} style={[cs.fab, { backgroundColor: showCrew ? '#ec4899' : bg, borderColor: showCrew ? '#ec4899' : `${primary}40` }]}>
                 <Feather name="users" size={18} color={showCrew ? '#fff' : '#ec4899'} />
               </TouchableOpacity>
+              <TouchableOpacity onPress={toggleNearby} style={[cs.fab, { backgroundColor: showNearby ? primary : bg, borderColor: showNearby ? primary : `${primary}40` }]} accessibilityLabel="Find vibers nearby">
+                <Feather name="user-check" size={18} color={showNearby ? '#000' : primary} />
+              </TouchableOpacity>
               <TouchableOpacity onPress={toggleStays} style={[cs.fab, { backgroundColor: showStays ? '#f59e0b' : bg, borderColor: showStays ? '#f59e0b' : `${primary}40` }]} accessibilityLabel="Places to stay from Resident Crew">
                 <Feather name="home" size={17} color={showStays ? '#000' : '#f59e0b'} />
               </TouchableOpacity>
@@ -436,6 +519,15 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               </TouchableOpacity>
               <TouchableOpacity onPress={fitAll} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
                 <Feather name="maximize" size={17} color={primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={zoomIn} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
+                <Feather name="plus-circle" size={18} color={primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={zoomOut} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
+                <Feather name="minus-circle" size={18} color={primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={toggleFollowMe} style={[cs.fab, { backgroundColor: followMe ? primary : bg, borderColor: followMe ? primary : `${primary}40` }]}>
+                <Feather name="navigation" size={18} color={followMe ? '#000' : primary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={recenter} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
                 <Feather name="crosshair" size={18} color={primary} />
@@ -488,6 +580,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: '#00f2ff' }]} /><Text style={cs.legendText}>Events</Text></View>
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#ef4444' }]} /><Text style={cs.legendText}>Road closed</Text></View>
               <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#10b981' }]} /><Text style={cs.legendText}>Route</Text></View>
+              <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: primary, borderWidth: 1, borderColor: '#fff' }]} /><Text style={cs.legendText}>Vibers</Text></View>
               <View style={cs.legendRow}><Feather name="bell" size={9} color="#eab308" /><Text style={cs.legendText}>Resident alert</Text></View>
               {heat && <View style={cs.legendRow}><Feather name="activity" size={9} color="#f59e0b" /><Text style={cs.legendText}>Heat = verified Touch Downs</Text></View>}
             </View>
@@ -657,8 +750,15 @@ const StayDetail = ({ stay, onClose, bg, textColor, muted }) => {
 const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textColor, muted }) => {
   const meta = ZONE_KINDS[zone.kind] || {};
   const st = ZONE_STATUS[zone.status] || { label: zone.status };
-  const endsIn = Math.max(0, Math.round((new Date(zone.ends_at).getTime() - Date.now()) / 60000));
+  const startsAt = new Date(zone.starts_at);
+  const endsAt = new Date(zone.ends_at);
+  const now = Date.now();
+  const isFuture = startsAt.getTime() > now;
+  const timeRange = `${startsAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${endsAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  const endsIn = Math.max(0, Math.round((endsAt.getTime() - now) / 60000));
   const endsLabel = endsIn > 90 ? `${Math.round(endsIn / 60)}h` : `${endsIn}m`;
+  const startsIn = Math.max(0, Math.round((startsAt.getTime() - now) / 60000));
+  const startsLabel = startsIn > 90 ? `${Math.round(startsIn / 60)}h` : `${startsIn}m`;
 
   return (
     <View style={[cs.sheet, { backgroundColor: bg, borderColor: `${meta.color || primary}40` }]}>
@@ -669,9 +769,13 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[cs.sheetTitle, { color: textColor }]} numberOfLines={1}>{zone.label || meta.label || 'Zone'}</Text>
-            <Text style={{ color: muted, fontSize: 11 }}>
-              {zone.source_app === 'resident' ? 'Community report · via The Resident' : meta.label} · clears in {endsLabel}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Feather name="clock" size={10} color={isFuture ? '#fbbf24' : muted} />
+              <Text style={{ color: isFuture ? '#fbbf24' : muted, fontSize: 11 }}>{timeRange}</Text>
+              <Text style={{ color: isFuture ? '#fbbf24' : primary, fontSize: 11, fontWeight: '700' }}>
+                · {isFuture ? `starts in ${startsLabel}` : `${endsLabel} left`}
+              </Text>
+            </View>
           </View>
         </View>
         <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -689,6 +793,16 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
       </View>
 
       {zone.note ? <Text style={{ color: muted, fontSize: 12, lineHeight: 17 }}>{zone.note}</Text> : null}
+
+      {/* Point A to Point B explanation (for lines) */}
+      {zone.geometry?.type === 'LineString' && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12 }}>
+          <Feather name="info" size={13} color={primary} />
+          <Text style={{ color: muted, fontSize: 11, flex: 1 }}>
+            Affected from point A to B as traced on the map. Use the highlighted path for reference.
+          </Text>
+        </View>
+      )}
 
       {/* Truth Protocol */}
       <Text style={{ color: muted, fontSize: 11, marginTop: 4 }}>Is this still accurate?</Text>
@@ -718,6 +832,9 @@ const cs = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8 },
   title: { fontSize: 22, fontWeight: '900', letterSpacing: 1 },
   sub: { fontSize: 12, fontWeight: '600', marginTop: 1 },
+  searchRow: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, borderRadius: 14, borderWidth: 1, paddingHorizontal: 12, alignItems: 'center' },
+  searchInput: { flex: 1, height: 44, fontSize: 14, fontWeight: '600' },
+  searchBtn: { padding: 8 },
   fabCol: { position: 'absolute', right: 14, bottom: 20, alignItems: 'flex-end', gap: 10 },
   fab: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   markBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 24 },

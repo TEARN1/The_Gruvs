@@ -18,13 +18,28 @@ import { supabase } from './supabase';
 import { requestMedia } from '../utils/permissions';
 import { createFilteredVideoTrack } from '../utils/videoFilters';
 
-const RTC = (typeof globalThis !== 'undefined' && globalThis.RTCPeerConnection) || null;
+// ── RTC Factory ───────────────────────────────────────────────────────────
+// Web uses standard APIs. Native requires react-native-webrtc.
+// Structure prepared for both platforms.
+let RTC = (typeof globalThis !== 'undefined' && globalThis.RTCPeerConnection) || null;
+let RTCMediaStream = (typeof globalThis !== 'undefined' && globalThis.MediaStream) || null;
+
+if (!RTC && Platform.OS !== 'web') {
+  try {
+    const WebRTC = require('react-native-webrtc');
+    RTC = WebRTC.RTCPeerConnection;
+    RTCMediaStream = WebRTC.MediaStream;
+  } catch { /* react-native-webrtc not installed */ }
+}
 
 export function isCallSupported() {
-  return !!RTC
-    && typeof navigator !== 'undefined'
-    && !!navigator.mediaDevices
-    && typeof navigator.mediaDevices.getUserMedia === 'function';
+  if (Platform.OS === 'web') {
+    return !!RTC
+      && typeof navigator !== 'undefined'
+      && !!navigator.mediaDevices
+      && typeof navigator.mediaDevices.getUserMedia === 'function';
+  }
+  return !!RTC; // Native support depends on the module presence
 }
 
 // Per-user "ring" channel. A caller broadcasts here so the callee is alerted no
@@ -212,6 +227,30 @@ export class PeerSession {
   toggleCamera() {
     const track = this.localStream?.getVideoTracks?.()[0];
     if (track) { track.enabled = !track.enabled; return !track.enabled; }
+    return false;
+  }
+
+  async switchCamera() {
+    if (!this.pc || !this.localStream || !navigator.mediaDevices?.getUserMedia) return false;
+    const currentTrack = this.localStream.getVideoTracks()[0];
+    if (!currentTrack) return false;
+
+    // Cycle facingMode. If it was 'user', ask for 'environment'; otherwise 'user'.
+    const settings = currentTrack.getSettings?.() || {};
+    const nextMode = settings.facingMode === 'user' ? 'environment' : 'user';
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: nextMode } });
+      const nextTrack = stream.getVideoTracks()[0];
+      const sender = this.pc.getSenders().find((s) => s.track?.kind === 'video');
+      if (sender && nextTrack) {
+        await sender.replaceTrack(nextTrack);
+        this.localStream.removeTrack(currentTrack);
+        this.localStream.addTrack(nextTrack);
+        currentTrack.stop();
+        return true;
+      }
+    } catch { /* switch failed — stay on current */ }
     return false;
   }
 

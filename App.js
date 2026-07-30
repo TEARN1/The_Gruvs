@@ -776,7 +776,7 @@ const MainNavigator = () => {
       case 'notifications':
         return <NotificationsScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'profile':
-        return <ProfilePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
+        return <ProfilePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} onNavigateToTab={handleTabChange} />;
       default:
         return null;
     }

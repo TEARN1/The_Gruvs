@@ -81,6 +81,8 @@ export function LiveMap({
   showMine = false,
   crew = [],              // [{lat,lng,count}] — where your crew is heading tonight
   showCrew = false,
+  nearby = [],            // [{id, username, avatar_url, lat, lon}] — live vibers
+  showNearby = false,
   stays = [],             // [{lat,lng,...}] — accommodation from Resident Crew
   showStays = false,
   onStayPress,            // (stayId) => void
@@ -91,6 +93,7 @@ export function LiveMap({
   onMapClick,             // (lngLat) => void  — used while drawing
   onEventPress,           // (eventId) => void
   onZonePress,            // (zoneId) => void
+  followUser = false,     // if true, auto-pans to userLoc
   onReady,
   style,
 }) {
@@ -101,9 +104,18 @@ export function LiveMap({
   const mineRef = useRef(showMine);
   const crewRef = useRef(showCrew);
   const staysRef = useRef(showStays);
+
+  // Pan to user if following is active
+  useEffect(() => {
+    if (followUser && userLoc && mapRef.current && readyRef.current) {
+      mapRef.current.easeTo({ center: [userLoc.lng, userLoc.lat], zoom: 15, duration: 1000 });
+    }
+  }, [followUser, userLoc?.lat, userLoc?.lng]);
+
   useEffect(() => { heatRef.current = heat; toggleHeat(heat); });
   useEffect(() => { mineRef.current = showMine; toggleMine(showMine); });
   useEffect(() => { crewRef.current = showCrew; toggleCrew(showCrew); });
+  useEffect(() => { nearbyRef.current = showNearby; toggleNearby(showNearby); });
   useEffect(() => { staysRef.current = showStays; toggleStays(showStays); });
 
   // ── init once ─────────────────────────────────────────────────────────────
@@ -251,6 +263,20 @@ export function LiveMap({
         paint: { 'text-color': '#fff' },
       });
 
+      // Nearby Vibers — ANY discoverable viber (primary color),
+      // shown when searching / discovering people.
+      map.addSource('nearby', { type: 'geojson', data: nearbyToGeoJSON(nearby) });
+      map.addLayer({
+        id: 'nearby-glow', type: 'circle', source: 'nearby',
+        layout: { visibility: nearbyRef.current ? 'visible' : 'none' },
+        paint: { 'circle-radius': 18, 'circle-color': primaryColor, 'circle-opacity': 0.12, 'circle-blur': 0.8 },
+      });
+      map.addLayer({
+        id: 'nearby-dot', type: 'circle', source: 'nearby',
+        layout: { visibility: nearbyRef.current ? 'visible' : 'none' },
+        paint: { 'circle-radius': 6, 'circle-color': primaryColor, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
+      });
+
       // You are here — a single bright dot so people orient instantly. Only ever
       // set from a real device fix (never the default city centre).
       map.addSource('self', { type: 'geojson', data: pointsToGeoJSON(userLoc ? [userLoc] : []) });
@@ -373,6 +399,7 @@ export function LiveMap({
   useEffect(() => { setData('draw', drawGeoJSON(drawMode, drawPoints)); }, [drawMode, drawPoints]);
   useEffect(() => { setData('mine', pointsToGeoJSON(mine)); }, [mine]);
   useEffect(() => { setData('crew', crewToGeoJSON(crew)); }, [crew]);
+  useEffect(() => { setData('nearby', nearbyToGeoJSON(nearby)); }, [nearby]);
   useEffect(() => { setData('stays', staysToGeoJSON(stays)); }, [stays]);
   useEffect(() => { setData('self', pointsToGeoJSON(userLoc ? [userLoc] : [])); }, [userLoc]);
   useEffect(() => { setData('route', lineGeoJSON(route)); }, [route]);
@@ -432,6 +459,14 @@ export function LiveMap({
     const m = mapRef.current;
     if (!m || !readyRef.current) return;
     for (const id of ['crew-ring', 'crew-dot', 'crew-count']) {
+      if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
+    }
+  }
+
+  function toggleNearby(on) {
+    const m = mapRef.current;
+    if (!m || !readyRef.current) return;
+    for (const id of ['nearby-glow', 'nearby-dot']) {
       if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
     }
   }
@@ -521,6 +556,19 @@ function crewToGeoJSON(crew) {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [Number(c.lng), Number(c.lat)] },
         properties: { count: c.count ?? (c.people ? c.people.length : 1), eventId: c.eventId ?? null },
+      })),
+  };
+}
+
+function nearbyToGeoJSON(nearby) {
+  return {
+    type: 'FeatureCollection',
+    features: (nearby || [])
+      .filter((v) => v && v.lat != null && v.lon != null)
+      .map((v) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [Number(v.lon), Number(v.lat)] },
+        properties: { id: v.id, username: v.username, avatar: v.avatar_url },
       })),
   };
 }

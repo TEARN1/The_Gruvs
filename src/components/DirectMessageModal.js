@@ -29,6 +29,7 @@ import { useDraft } from '../hooks/useDraft';
 import { transform } from '../utils/writingStyles';
 import { useToast } from '../components/ToastNotification';
 import { LocationService } from '../services/locationService';
+import { EventMapView } from './EventMapView';
 import { uploadToStorage } from '../services/storageService';
 import { useBackClose } from '../hooks/useBackClose';
 import { money, priceLabel } from '../constants/currencies';
@@ -321,6 +322,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedMsgIds, setSelectedMsgIds] = useState(new Set());
   const [showShareModal, setShowShareModal] = useState(false);
+  const [mapVisible, setMapVisible] = useState(false);
+  const [mapTarget, setMapTarget] = useState(null);
+  const [userCoords, setUserCoords] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [sharingLoading, setSharingLoading] = useState(false);
 
@@ -1009,12 +1013,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 {item.message_type === 'location' && item.latitude && item.longitude ? (
                   <TouchableOpacity
                     onPress={() => {
-                      const url = Platform.select({
-                        ios: `http://maps.apple.com/?ll=${item.latitude},${item.longitude}`,
-                        android: `geo:${item.latitude},${item.longitude}?q=${item.latitude},${item.longitude}`,
-                        default: `https://www.google.com/maps?q=${item.latitude},${item.longitude}`,
+                      setMapTarget({
+                        title: 'Shared Location',
+                        venue_name: `${recipient?.username || 'Viber'}'s location`,
+                        lat: item.latitude,
+                        lon: item.longitude,
+                        category: 'wellness'
                       });
-                      if (url) Linking.openURL(url);
+                      LocationService.requestAndGet().then(setUserCoords).catch(() => {});
+                      setMapVisible(true);
                     }}
                     style={dm.locationBubble}
                   >
@@ -1534,6 +1541,17 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           </View>
         </View>
       </Modal>
+
+      {/* Internal Map Modal */}
+      {mapVisible && (
+        <EventMapView
+          visible={mapVisible}
+          onClose={() => setMapVisible(false)}
+          events={mapTarget ? [mapTarget] : []}
+          userCoords={userCoords}
+          onSelectEvent={() => setMapVisible(false)}
+        />
+      )}
     </>
   );
 

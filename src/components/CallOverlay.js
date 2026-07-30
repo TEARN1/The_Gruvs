@@ -100,6 +100,7 @@ export const CallOverlay = ({
   onHangUp,
   onToggleMute,
   onToggleCamera,
+  onSwitchCamera,
   onToggleRecord,
   onToggleScreenShare,
 }) => {
@@ -107,6 +108,21 @@ export const CallOverlay = ({
 
   // Call duration — starts ticking once connected.
   const [secs, setSecs] = useState(0);
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (status === 'connecting' || status === 'incoming') {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulse, { toValue: 1.15, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      pulse.setValue(1);
+    }
+  }, [status, pulse]);
+
   useEffect(() => {
     if (status !== 'connected') { setSecs(0); return; }
     const id = setInterval(() => setSecs((s) => s + 1), 1000);
@@ -145,11 +161,13 @@ export const CallOverlay = ({
         <View style={StyleSheet.absoluteFill}><StreamVideo stream={remoteStream} /></View>
       ) : (
         <View style={cs.centerStage}>
-          {peer?.avatar_url
-            ? <SmartImage source={peer.avatar_url} style={cs.bigAvatar} />
-            : <View style={[cs.bigAvatar, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
-                <Feather name="user" size={54} color={primary} />
-              </View>}
+          <Animated.View style={{ transform: [{ scale: pulse }] }}>
+            {peer?.avatar_url
+              ? <SmartImage source={peer.avatar_url} style={cs.bigAvatar} />
+              : <View style={[cs.bigAvatar, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
+                  <Feather name="user" size={54} color={primary} />
+                </View>}
+          </Animated.View>
           <Text style={cs.name}>{peer?.username || 'Viber'}</Text>
           <Text style={cs.status}>{label}</Text>
         </View>
@@ -208,7 +226,12 @@ export const CallOverlay = ({
         ) : (
           <>
             <RoundBtn icon={muted ? 'mic-off' : 'mic'} active={muted} onPress={onToggleMute} />
-            {video ? <RoundBtn icon={camOff ? 'video-off' : 'video'} active={camOff} onPress={onToggleCamera} /> : null}
+            {video ? (
+              <>
+                <RoundBtn icon={camOff ? 'video-off' : 'video'} active={camOff} onPress={onToggleCamera} />
+                {!camOff && <RoundBtn icon="refresh-cw" onPress={onSwitchCamera} />}
+              </>
+            ) : null}
             {canShareScreen && status === 'connected'
               ? <RoundBtn icon="monitor" active={sharingScreen} onPress={onToggleScreenShare} />
               : null}

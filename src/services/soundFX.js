@@ -16,7 +16,7 @@ let Storage = null;
 try { Storage = require('@react-native-async-storage/async-storage').default; } catch {}
 let ExpoAudio = null; // lazy — native only
 const IS_WEB = Platform.OS === 'web';
-const VOLUME = 0.32;                 // subtle, never jarring
+const VOLUME = 0.55;                 // audible but not jarring
 const THROTTLE_MS = 120;             // same sound can't retrigger faster than this
 const STORE_KEY = 'gruvs_sound_enabled_v1';
 
@@ -64,17 +64,19 @@ export const SOUNDS = {
   // Incoming call — insistent two-tone ring. Deliberately longer and more
   // urgent than a ping; the caller loops it while the call is ringing.
   ringtone: R([
-    { type: 'sine', f0: HZ.E6, start: 0.00, dur: 0.32, gain: 0.55, decay: 0.10 },
-    { type: 'sine', f0: HZ.E6 * SHIM, start: 0.00, dur: 0.32, gain: 0.22, decay: 0.10 },
-    { type: 'sine', f0: HZ.C6, start: 0.36, dur: 0.34, gain: 0.55, decay: 0.12 },
-    { type: 'sine', f0: HZ.C6 * SHIM, start: 0.36, dur: 0.34, gain: 0.22, decay: 0.12 },
+    { type: 'sine', f0: HZ.E6, start: 0.00, dur: 0.4, gain: 0.6, decay: 0.15 },
+    { type: 'sine', f0: HZ.E6 * SHIM, start: 0.02, dur: 0.4, gain: 0.3, decay: 0.15 },
+    { type: 'triangle', f0: HZ.E5, start: 0.00, dur: 0.35, gain: 0.15, decay: 0.1 },
+    { type: 'sine', f0: HZ.C6, start: 0.45, dur: 0.45, gain: 0.6, decay: 0.15 },
+    { type: 'sine', f0: HZ.C6 * SHIM, start: 0.47, dur: 0.45, gain: 0.3, decay: 0.15 },
+    { type: 'triangle', f0: HZ.C5, start: 0.45, dur: 0.4, gain: 0.15, decay: 0.1 },
   ]),
   // Caller ringback — the "purr" YOU hear while waiting for them to pick up.
   // Deliberately softer, lower and more spaced than the incoming ringtone so the
   // two ends of the same call never sound alike.
   ringback: R([
-    { type: 'sine', f0: HZ.C5, start: 0.00, dur: 0.30, gain: 0.30, decay: 0.12 },
-    { type: 'sine', f0: HZ.G5, start: 0.30, dur: 0.34, gain: 0.28, decay: 0.14 },
+    { type: 'sine', f0: HZ.C5, start: 0.00, dur: 0.8, gain: 0.4, decay: 0.4 },
+    { type: 'sine', f0: HZ.C5 * 1.002, start: 0.02, dur: 0.8, gain: 0.2, decay: 0.4 },
   ]),
   // Soft error — a gentle low "donk", never harsh.
   error: R([

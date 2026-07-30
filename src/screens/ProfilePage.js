@@ -270,7 +270,7 @@ const pcard = StyleSheet.create({
 });
 
 // ── Find Me Sub-View ──────────────────────────────────────────────────────────
-const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => {
+const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onShowMap }) => {
   const [discoverable, setDiscoverable] = useState(profile?.is_discoverable ?? true);
   const [showOnline, setShowOnline] = useState(profile?.show_online ?? true);
   const [beaconActive, setBeaconActive] = useState(profile?.is_beacon_active ?? false);
@@ -304,7 +304,8 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         await PresenceManager.dropBeacon(user.id, { coords, minutes: 60 });
         setBeaconActive(true);
         haptics.success?.();
-        toast?.show?.("You're live — your people just got the 'pull up' ping. On for 1 hour.", 'success');
+        toast?.show?.("You're live — your people just got the 'pull up' ping. On for 1 hour. Opening map...", 'success');
+        setTimeout(() => onNavigateToTab?.('map'), 1500);
       }
     } catch (e) {
       toast?.show?.(e?.message || 'Could not update your beacon.', 'error');
@@ -894,6 +895,13 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
             Nearby vibers can see you live. Auto-stops after an hour.
           </Text>
         )}
+        <TouchableOpacity
+          style={[fm.outThereBtn, { marginTop: 10, borderColor: primary, borderStyle: 'dashed' }]}
+          onPress={onShowMap}
+        >
+          <Feather name="map" size={18} color={primary} />
+          <Text style={[fm.outThereText, { color: primary }]}>View Me on Map</Text>
+        </TouchableOpacity>
       </GlassView>
 
       {/* Preview Card */}
@@ -1058,7 +1066,7 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
 
 
 // ── Find Them Sub-View ────────────────────────────────────────────────────────
-const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, applyLocationPrivacy, initialDistance = 5 }) => {
+const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, applyLocationPrivacy, initialDistance = 5, onShowMap }) => {
   const [distance, setDistance] = useState(initialDistance);
   const [activeFilter, setActiveFilter] = useState(null);
   const [people, setPeople] = useState([]);
@@ -1139,6 +1147,18 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
               )
             }
           </TouchableOpacity>
+
+          {people.length > 0 && (
+            <TouchableOpacity
+              style={[ft.searchBtn, { backgroundColor: 'transparent', borderColor: primary, borderWidth: 1.5, marginTop: 10 }]}
+              onPress={onShowMap}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Feather name="map" size={16} color={primary} />
+                <Text style={[ft.searchText, { color: primary }]}>View {people.length} on Map</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </GlassView>
 
         <View style={{ paddingHorizontal: 16 }}>
@@ -1843,7 +1863,7 @@ const AppUpdatesSection = ({ primary, muted, textColor, surface }) => {
 };
 
 // ── Main Profile Page ─────────────────────────────────────────────────────────
-export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
+export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab }) => {
   const { currentTheme, gender, themeIndex, changeTheme } = useTheme();
   const { user, profile, signOut, refreshProfile } = useAuth();
   const toast = useToast();
@@ -2454,7 +2474,11 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <Text style={[styles.subTitle, { color: textColor }]}>Find Me</Text>
           <View style={{ width: 40 }} />
         </View>
-        <FindMePage primary={primary} muted={muted} textColor={textColor} bg={bg} user={user} profile={profile} toast={toast} />
+        <FindMePage
+          primary={primary} muted={muted} textColor={textColor} bg={bg}
+          user={user} profile={profile} toast={toast}
+          onShowMap={() => onNavigateToTab?.('map')}
+        />
       </View>
     );
   }
@@ -2474,6 +2498,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           user={user} onAuthRequired={onAuthRequired} toast={toast}
           applyLocationPrivacy={applyLocationPrivacy}
           initialDistance={discoverRadius}
+          onShowMap={() => onNavigateToTab?.('map')}
         />
       </View>
     );

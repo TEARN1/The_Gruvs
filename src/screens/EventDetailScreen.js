@@ -60,6 +60,7 @@ import { EventMomentsSection }    from '../components/EventMomentsSection';
 import { OrganizerDashboard }     from '../components/OrganizerDashboard';
 import { LiveEventBanner }        from '../components/LiveEventBanner';
 import { EventManagementPanel }   from '../components/EventManagementPanel';
+import { EventMapView }           from '../components/EventMapView';
 import { PosterInsightsPanel }     from '../components/PosterInsightsPanel';
 import { InviteByNameModal }      from '../components/InviteByNameModal';
 import { SportManagementPanel }   from '../components/SportManagementPanel';
@@ -83,6 +84,7 @@ import { getTurnout } from '../services/turnout';
 import { BroadcastModal } from '../components/BroadcastModal';
 import { getHostReliability } from '../services/hostStats';
 import { lifecycleState } from '../utils/eventLifecycle';
+import { eventInstant } from '../utils/tz';
 import { DoorCheckInModal } from '../components/DoorCheckInModal';
 import { checkinVerdict, movementPlausible } from '../utils/checkinGuard';
 
@@ -189,6 +191,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [reportVisible, setReportVisible] = useState(false);
   const [crossedVisible, setCrossedVisible] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
+  const [userCoords, setUserCoords] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(null);
   const [weather, setWeather] = useState(null);
@@ -198,6 +201,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [inviteVisible, setInviteVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
+  const [mapVisible, setMapVisible] = useState(false);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [guestListBusy, setGuestListBusy] = useState(false);
   // What will ACTUALLY be in the room — RSVPs weighted by each person's real
@@ -298,6 +302,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       setGuestLikes(s => ({ ...s, [guestId]: prev })); // roll back — don't fake a save
     }
   }, [user, guestLikes, event?.id, onAuthRequired]);
+
+  useEffect(() => {
+    if (mapVisible) {
+      LocationService.requestAndGet().then(setUserCoords).catch(() => {});
+    }
+  }, [mapVisible]);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -662,9 +672,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   };
 
   const openMaps = () => {
-    if (!event?.venue_name) return;
-    const query = encodeURIComponent(event.venue_address || event.venue_name);
-    SecurityService.safeOpenURL(`https://maps.google.com/?q=${query}`);
+    setMapVisible(true);
   };
 
   const openTickets = () => {
@@ -1942,6 +1950,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           onGiftSent={(gift) => {
             console.log('Gift sent successfully:', gift);
           }}
+        />
+      )}
+
+      {/* Internal Map Modal */}
+      {mapVisible && (
+        <EventMapView
+          visible={mapVisible}
+          onClose={() => setMapVisible(false)}
+          events={[event]}
+          userCoords={userCoords}
+          onSelectEvent={() => setMapVisible(false)}
         />
       )}
     </Modal>

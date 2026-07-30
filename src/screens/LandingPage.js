@@ -703,13 +703,13 @@ const EventCard = React.memo(({
               </View>
             </View>
 
-            {/* Venue / address — full-width row, truncates cleanly, taps to Maps */}
+            {/* Venue / address — full-width row, taps to internal Map */}
             {(event.venue_name || event.address) ? (
               <TouchableOpacity
                 style={[styles.venueRow, { borderColor: `${primary}22`, backgroundColor: `${primary}08` }]}
-                onPress={() => SecurityService.safeOpenURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
+                onPress={() => setSelectedEvent(event)}
                 accessibilityRole="button"
-                accessibilityLabel={`Open ${event.venue_name || event.address} in Maps`}
+                accessibilityLabel={`View ${event.venue_name || event.address} details`}
               >
                 <Feather name="map-pin" size={11} color={primary} />
                 <Text style={[styles.venueRowText, { color: primary }]} numberOfLines={1}>

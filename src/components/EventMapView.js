@@ -15,7 +15,6 @@ import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { useBackClose } from '../hooks/useBackClose';
-import { SecurityService } from '../services/securityService';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const MAP_H = SH * 0.55;
@@ -28,16 +27,6 @@ const CATEGORY_EMOJI = {
   outdoor: '🌿', film: '🎬',
 };
 const emoji = (cat) => CATEGORY_EMOJI[cat?.toLowerCase()] ?? '📍';
-
-const openDirections = (event) => {
-  const q = encodeURIComponent(event.venue_name || event.address || `${event.lat},${event.lon}`);
-  const url = Platform.OS === 'ios'
-    ? `maps://?q=${q}`
-    : `geo:0,0?q=${q}`;
-  SecurityService.safeOpenURL(url).catch(() =>
-    SecurityService.safeOpenURL(`https://www.google.com/maps/search/?api=1&query=${q}`)
-  );
-};
 
 // Map lat/lon → pixel x/y within the MAP_W × MAP_H canvas
 const project = (lat, lon, minLat, maxLat, minLon, maxLon) => {
@@ -211,17 +200,10 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = fa
             })()}
             <View style={grid.calloutActions}>
               <TouchableOpacity
-                style={[grid.calloutBtn, { backgroundColor: selected.category_color || primaryColor }]}
+                style={[grid.calloutBtn, { backgroundColor: selected.category_color || primaryColor, width: '100%' }]}
                 onPress={() => onSelectEvent(selected)}
               >
-                <Text style={grid.calloutBtnText}>View</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={grid.calloutDirBtn}
-                onPress={() => openDirections(selected)}
-              >
-                <Feather name="navigation" size={12} color="#9ca3af" />
-                <Text style={grid.calloutDirText}>Directions</Text>
+                <Text style={grid.calloutBtnText}>View Details</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -414,13 +396,9 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
                     )}
                   </View>
                 </View>
-                <TouchableOpacity
-                  style={s.dirBtn}
-                  onPress={() => openDirections(event)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Feather name="navigation" size={16} color={primary} />
-                </TouchableOpacity>
+                <View style={s.dirBtn}>
+                  <Feather name="chevron-right" size={20} color={primary} />
+                </View>
               </TouchableOpacity>
             );
           })}

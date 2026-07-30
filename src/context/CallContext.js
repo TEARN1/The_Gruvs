@@ -181,6 +181,10 @@ export function CallProvider({ children }) {
   const hangUp = useCallback(() => { callRef.current?.hangUp(); endCallLocal(); }, [endCallLocal]);
   const toggleCallMute = useCallback(() => setCallMuted(callRef.current?.toggleMute() ?? false), []);
   const toggleCallCam = useCallback(() => setCamOff(callRef.current?.toggleCamera() ?? false), []);
+  const switchCallCam = useCallback(async () => {
+    const ok = await callRef.current?.switchCamera();
+    if (ok) showToast('Camera switched.', 'info');
+  }, [showToast]);
 
   const sendCallReaction = useCallback((emoji) => {
     pushCallReaction(emoji, true);
@@ -308,6 +312,7 @@ export function CallProvider({ children }) {
           onHangUp={hangUp}
           onToggleMute={toggleCallMute}
           onToggleCamera={toggleCallCam}
+          onSwitchCamera={switchCallCam}
           onToggleRecord={toggleRecord}
           onToggleScreenShare={toggleScreenShare}
         />
