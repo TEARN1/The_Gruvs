@@ -233,8 +233,9 @@ export const AuthModal = ({ visible, onClose }) => {
     // per-event age_restriction still applies on top for e.g. 21+ events.
     let birthDateStr = null;
     if (isNaN(year) || isNaN(month) || isNaN(day)) {
-      setError('Please enter your birthday — day, month and year.');
+      setError('One quick thing — tap your birthday to finish (The Gruvs is 18+).');
       setSignupStep(2);
+      setDobPickerOpen(true); // open the picker right where they need it — no hunting
       return;
     }
     if (year < 1920 || year > currentYear - 18 || month < 1 || month > 12 || day < 1 || day > 31) {
@@ -704,10 +705,12 @@ export const AuthModal = ({ visible, onClose }) => {
               }
             </TouchableOpacity>
 
-            {/* Step 2 is fully optional — one tap finishes either way */}
+            {/* Honest framing: birthday is the ONE required field (18+ gate) —
+                the old "everything optional" copy is what made CREATE ACCOUNT
+                feel broken when it blocked on a missing birthday. */}
             {mode === 'signup' && signupStep === 2 && (
               <Text style={[styles.sublabel, { color: muted, textAlign: 'center', marginBottom: 12 }]}>
-                Everything on this step is optional — tap CREATE ACCOUNT whenever you're ready.
+                Just your birthday is needed (18+). Name & city are optional — tap CREATE ACCOUNT when ready.
               </Text>
             )}
 
