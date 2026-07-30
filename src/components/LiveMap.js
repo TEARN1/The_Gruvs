@@ -409,6 +409,19 @@ export function LiveMap({
         paint: { 'circle-radius': 6, 'circle-color': primaryColor, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
       });
 
+      // Nearby Vibers Text (Username)
+      map.addLayer({
+        id: 'nearby-text', type: 'symbol', source: 'nearby',
+        layout: {
+          visibility: nearbyRef.current ? 'visible' : 'none',
+          'text-field': ['get', 'username'],
+          'text-size': 10,
+          'text-offset': [0, 1.2],
+          'text-anchor': 'top',
+        },
+        paint: { 'text-color': '#fff', 'text-halo-color': '#000', 'text-halo-width': 1 }
+      });
+
       // You are here — a single bright dot so people orient instantly. Only ever
       // set from a real device fix (never the default city centre).
       map.addSource('self', { type: 'geojson', data: pointsToGeoJSON(userLoc ? [userLoc] : []) });
@@ -615,7 +628,7 @@ export function LiveMap({
   function toggleNearby(on) {
     const m = mapRef.current;
     if (!m || !readyRef.current) return;
-    for (const id of ['nearby-glow', 'nearby-dot']) {
+    for (const id of ['nearby-glow', 'nearby-dot', 'nearby-text']) {
       if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
     }
   }

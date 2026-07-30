@@ -83,6 +83,10 @@ export function MapEventPreview({
   const [attendees, setAttendees] = useState([]);
   const [viberId, setViberId] = useState(null);
   const [viberVisible, setViberVisible] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [goingCount, setGoingCount] = useState(base?.going || 0);
+  const [friends, setFriends] = useState(0);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!full?.id) return;
@@ -93,14 +97,6 @@ export function MapEventPreview({
     setViberId(id);
     setViberVisible(true);
   };
-  const [attendees, setAttendees] = useState([]);
-  const [viberId, setViberId] = useState(null);
-  const [viberVisible, setViberVisible] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [goingCount, setGoingCount] = useState(base?.going || 0);
-  const [attendees, setAttendees] = useState([]);   // live "here now"
-  const [friends, setFriends] = useState(0);
-  const [busy, setBusy] = useState(false);
 
   const slide = useRef(new Animated.Value(0)).current;
   useEffect(() => {
