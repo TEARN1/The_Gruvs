@@ -907,6 +907,25 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
         </Text>
       </View>
 
+      {/* Confidence meter — how much the crowd backs this, at a glance. */}
+      {(() => {
+        const c = zone.confirm_count || 0, d = zone.dispute_count || 0, total = c + d;
+        if (total === 0) return null;
+        const pct = Math.round((c / total) * 100);
+        const col = pct >= 66 ? '#10b981' : pct >= 33 ? '#f59e0b' : '#ef4444';
+        return (
+          <View style={{ gap: 4 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ color: muted, fontSize: 10, fontWeight: '700' }}>COMMUNITY CONFIDENCE</Text>
+              <Text style={{ color: col, fontSize: 10, fontWeight: '900' }}>{pct}%</Text>
+            </View>
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: `${muted}25`, overflow: 'hidden' }}>
+              <View style={{ width: `${pct}%`, height: '100%', backgroundColor: col }} />
+            </View>
+          </View>
+        );
+      })()}
+
       {zone.note ? <Text style={{ color: muted, fontSize: 12, lineHeight: 17 }}>{zone.note}</Text> : null}
 
       {/* Point A to Point B explanation (for lines) */}

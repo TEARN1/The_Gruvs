@@ -71,6 +71,8 @@ function zonesToGeoJSON(zones = []) {
           id: z.id, kind: z.kind, status: z.status,
           color: (ZONE_KINDS[z.kind] || {}).color || '#ef4444',
           dashed: z.status === 'declared' ? 1 : 0,
+          // Severity drives how loud the line reads (1 = minor, 3 = major).
+          severity: Math.max(1, Math.min(3, Number(z.severity) || 2)),
         },
       })),
   };
@@ -202,8 +204,10 @@ export function LiveMap({
         id: 'zones-line', type: 'line', source: 'zones',
         paint: {
           'line-color': ['get', 'color'],
-          'line-width': 5,
-          'line-opacity': 0.9,
+          // Width + opacity read severity: a major closure is visibly heavier
+          // than a minor one, so the map's danger is legible at a glance.
+          'line-width': ['interpolate', ['linear'], ['get', 'severity'], 1, 3, 2, 5, 3, 8],
+          'line-opacity': ['interpolate', ['linear'], ['get', 'severity'], 1, 0.7, 3, 1],
           'line-dasharray': [2, 1.5],
         },
       });
