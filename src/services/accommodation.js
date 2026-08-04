@@ -33,8 +33,13 @@ export const Accommodation = {
         .limit(200);
       if (error) throw error;
 
+      // res_listings has no client-written status (the Resident's listingToRow
+      // never sets one), so the value is a DB default or null. Be tolerant: show
+      // everything EXCEPT the clearly-unavailable states, rather than requiring a
+      // single exact value that may not match the deployed default.
+      const UNAVAILABLE = new Set(['rented', 'closed', 'hidden', 'removed', 'sold', 'archived', 'inactive', 'draft']);
       return (data || [])
-        .filter((r) => r.lat != null && r.lon != null && (r.status == null || r.status === 'active'))
+        .filter((r) => r.lat != null && r.lon != null && !UNAVAILABLE.has(String(r.status || '').toLowerCase()))
         .map((r) => ({
           id: r.id,
           title: r.title || 'Room to rent',
