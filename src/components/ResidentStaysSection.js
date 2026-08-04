@@ -139,8 +139,10 @@ export const ResidentStaysSection = ({ event, primary, surface, textColor, muted
 
     let q = supabase
       .from('res_listings')
-      .select('id, landlord_id, title, price, currency, location, suburb, city, lat, lon, images, bathroom, wifi, parking, safety_rating')
-      .eq('status', 'open');
+      .select('id, landlord_id, title, price, currency, location, suburb, city, lat, lon, images, bathroom, wifi, parking, safety_rating, status');
+    // NOTE: no `.eq('status','open')` — the Resident's listingToRow never writes a
+    // status, so requiring one exact value can hide every listing. We fetch all
+    // and drop only the explicitly-unavailable ones client-side (see UNAVAILABLE).
     // City is the indexed path; fall back to suburb when the event has no city.
     if (city) q = q.eq('city', city);
     else q = q.eq('suburb', suburb);
@@ -154,7 +156,9 @@ export const ResidentStaysSection = ({ event, primary, surface, textColor, muted
       return;
     }
 
-    const rows = data || [];
+    // Drop only clearly-unavailable listings; keep null/default/'open'/'active'.
+    const UNAVAILABLE = new Set(['rented', 'closed', 'hidden', 'removed', 'sold', 'archived', 'inactive', 'draft']);
+    const rows = (data || []).filter((r) => !UNAVAILABLE.has(String(r.status || '').toLowerCase()));
     setListings(rows);
 
     // Resolve host names/avatars in one round-trip (for the card + DM recipient).
