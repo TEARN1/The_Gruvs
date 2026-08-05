@@ -117,7 +117,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "The Gruvs uses your location to show nearby events and vibers."
+          "locationWhenInUsePermission": "The Gruvs uses your location to show nearby events and vibers.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
         }
       ],
       [
