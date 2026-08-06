@@ -897,14 +897,25 @@ const MainNavigator = () => {
               {renderScreen()}
             </Animated.View>
             {/* The Gruvs for Business — floating pill, one tap from any screen
-                (mobile has no global header). Above the tab bar. */}
+                (mobile has no global header). Above the tab bar.
+                'feed' and 'map' both already own the bottom-right corner
+                (Create FAB + scroll-to-top on feed; the FAB column + "Mark a
+                closure" on map) — this pill collided with both there, so on
+                those two tabs specifically it docks bottom-LEFT instead,
+                which is verified clear on both (feed's absolute-positioned
+                elements are card-relative, not screen-fixed; map's left-side
+                legend ends well above this pill's bottom offset). Every other
+                tab has no competing screen-level FAB, so right stays put. */}
             {feature('business') && (
               <TouchableOpacity
                 onPress={() => setBizHubVisible(true)}
                 activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel="The Gruvs for Business"
-                style={[styles.bizFab, { backgroundColor: primary, shadowColor: primary }]}
+                style={[
+                  (currentTab === 'feed' || currentTab === 'map') ? styles.bizFabLeft : styles.bizFab,
+                  { backgroundColor: primary, shadowColor: primary },
+                ]}
               >
                 <Feather name="briefcase" size={14} color="#000" />
                 <Text style={styles.bizFabText}>Business</Text>
@@ -1106,6 +1117,17 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   bizFab: {
     position: 'absolute', right: 14, bottom: 78, zIndex: 40,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 22,
+    shadowOpacity: 0.5, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
+  },
+  // Separate object, not a `right: undefined` patch on top of bizFab — RN Web's
+  // style-array flattening skips undefined-valued keys instead of clearing the
+  // earlier value, so patching left a `right: 14` from bizFab in place and the
+  // pill stretched full-width between both edges (found while testing this fix
+  // in a live browser preview, not guessed).
+  bizFabLeft: {
+    position: 'absolute', left: 14, bottom: 78, zIndex: 40,
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 22,
     shadowOpacity: 0.5, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
