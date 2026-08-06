@@ -38,7 +38,7 @@ begin
     from public.live_checkins;
 
   if to_regclass('public.path_crossings') is not null then
-    execute 'select extract(epoch from (now() - min(created_at))) / 86400 from public.path_crossings'
+    execute 'select extract(epoch from (now() - min(crossed_at))) / 86400 from public.path_crossings'
       into v_crossings_oldest_days;
   end if;
 
