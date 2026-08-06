@@ -246,8 +246,8 @@ export function MapEventPreview({
               <Text style={[cs.meta, { color: when === 'Live now' ? '#10b981' : muted, fontWeight: when === 'Live now' ? '800' : '600' }]}>{when}</Text>
             </View>
           )}
-          {full.venue ? (
-            <View style={cs.metaRow}><Feather name="map-pin" size={12} color={muted} /><Text numberOfLines={1} style={[cs.meta, { color: muted }]}>{full.venue}</Text></View>
+          {full.venue_name ? (
+            <View style={cs.metaRow}><Feather name="map-pin" size={12} color={muted} /><Text numberOfLines={1} style={[cs.meta, { color: muted }]}>{full.venue_name}</Text></View>
           ) : null}
           {km != null && (
             <View style={cs.metaRow}>

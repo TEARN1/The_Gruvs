@@ -165,7 +165,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       // Upcoming events with coordinates (either lat/lon or latitude/longitude).
       const { data } = await supabase
         .from('events')
-        .select('id, title, category, cover_url, venue, latitude, longitude, lat, lon, going, event_date')
+        .select('id, title, category, cover_url, venue_name, latitude, longitude, lat, lon, going, event_date')
         .gte('event_date', today)
         .is('deleted_at', null)
         .limit(300);
