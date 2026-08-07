@@ -3,7 +3,7 @@
  * Self-built canvas (no external map library). Shows checkin dots, dashed
  * paths between them, intersection highlights, crossings, and stats.
  */
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback, Suspense } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Animated, RefreshControl, Dimensions, Image, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -610,7 +610,9 @@ export const PathMapScreen = ({ visible, onClose }) => {
         {/* The live city map, nested — the merged Living Map experience. */}
         <Modal visible={showLiveMap} animationType="slide" onRequestClose={() => setShowLiveMap(false)} statusBarTranslucent>
           <View style={{ flex: 1, backgroundColor: bg }}>
-            <MapScreen onAuthRequired={() => {}} onNavigateToEvent={() => setShowLiveMap(false)} />
+            <Suspense fallback={null}>
+              <MapScreen onAuthRequired={() => {}} onNavigateToEvent={() => setShowLiveMap(false)} />
+            </Suspense>
             <TouchableOpacity
               onPress={() => setShowLiveMap(false)}
               style={[s.liveMapClose, { top: (insets.top || 0) + 10, backgroundColor: `${bg}e6`, borderColor: `${primary}40` }]}
