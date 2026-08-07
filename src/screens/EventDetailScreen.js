@@ -82,6 +82,7 @@ import { getTurnout } from '../services/turnout';
 import { BroadcastModal } from '../components/BroadcastModal';
 import { getHostReliability } from '../services/hostStats';
 import { lifecycleState } from '../utils/eventLifecycle';
+import { eventInstant } from '../utils/tz';
 import { DoorCheckInModal } from '../components/DoorCheckInModal';
 import { checkinVerdict, movementPlausible } from '../utils/checkinGuard';
 
