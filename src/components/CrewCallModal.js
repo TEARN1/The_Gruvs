@@ -19,11 +19,23 @@ import { GroupCall, MAX_CREW_CALL } from '../services/groupCall';
 import { isCallSupported } from '../services/webrtcCall';
 import { PermissionGuideModal } from './PermissionGuideModal';
 
+// Native video rendering needs react-native-webrtc's RTCView (a plain
+// MediaStream isn't a valid prop there, unlike web's <video>). Guarded — if
+// the module isn't linked into this build, it's just missing, not a crash.
+let NativeRTCView = null;
+if (Platform.OS !== 'web') {
+  try { NativeRTCView = require('react-native-webrtc').RTCView; } catch { /* not linked in this build */ }
+}
+
 const Tile = ({ stream, label, muted, mirror, primary }) => {
   const ref = useRef(null);
   useEffect(() => {
+    if (Platform.OS !== 'web') return;
     if (ref.current && stream && ref.current.srcObject !== stream) ref.current.srcObject = stream;
   }, [stream]);
+
+  const hasVideo = Platform.OS === 'web' ? !!stream : !!(stream && NativeRTCView);
+
   return (
     <View style={[s.tile, { borderColor: `${primary}30` }]}>
       {Platform.OS === 'web' && stream
@@ -34,6 +46,15 @@ const Tile = ({ stream, label, muted, mirror, primary }) => {
               transform: mirror ? 'scaleX(-1)' : 'none', background: '#000',
             },
           })
+        : hasVideo
+        ? (
+          <NativeRTCView
+            streamURL={stream.toURL()}
+            style={{ width: '100%', height: '100%' }}
+            objectFit="cover"
+            mirror={!!mirror}
+          />
+        )
         : (
           <View style={s.tilePlaceholder}>
             <Feather name="user" size={26} color={primary} />

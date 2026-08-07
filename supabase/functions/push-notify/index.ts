@@ -84,6 +84,7 @@ async function sendWebPush(notif: NotificationRow): Promise<number> {
 
 // Expo push priority by notification type
 const PRIORITY: Record<string, 'high' | 'normal' | 'default'> = {
+  call:        'high', // a call rings out in ~35s — this has to land immediately
   beacon:      'high', // "I'm out — pull up" is only useful RIGHT NOW
   message:     'high',
   echo:        'high',

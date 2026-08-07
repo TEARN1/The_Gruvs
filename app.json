@@ -132,7 +132,8 @@
         }
       ],
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "@config-plugins/react-native-webrtc"
     ],
     "extra": {
       "privacyPolicyUrl": "https://thegruvs.com/privacy.html",

@@ -1,9 +1,13 @@
 /**
  * CallOverlay — the full-screen UI for a 1:1 voice/video call.
  *
- * Rendering the actual media streams is a web concern (RTCPeerConnection gives
- * a MediaStream; on web we attach it to a real <video> element). On native the
- * call feature isn't offered, so the stream views simply don't render.
+ * Rendering the actual media stream is platform-specific: web attaches the
+ * MediaStream to a real <video> element; native renders it through
+ * react-native-webrtc's RTCView, which needs the stream's .toURL() (a plain
+ * MediaStream isn't a valid prop there). RTCView is a native view manager —
+ * if react-native-webrtc isn't linked into this build (Expo Go, or a build
+ * that predates the config plugin), requiring it throws, so that's caught and
+ * treated the same as "no native call support" rather than crashing the app.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated, ScrollView } from 'react-native';
@@ -11,27 +15,46 @@ import { Feather } from '@expo/vector-icons';
 import { SmartImage } from './SmartImage';
 import { VIDEO_FILTERS } from '../utils/videoFilters';
 
-// A live <video> bound to a MediaStream. Web only.
+let NativeRTCView = null;
+if (Platform.OS !== 'web') {
+  try { NativeRTCView = require('react-native-webrtc').RTCView; } catch { /* not linked in this build */ }
+}
+
+// A live view bound to a MediaStream, on whichever platform we're on.
 const StreamVideo = ({ stream, muted, mirror, radius = 0 }) => {
   const ref = useRef(null);
   useEffect(() => {
+    if (Platform.OS !== 'web') return;
     if (ref.current && stream && ref.current.srcObject !== stream) {
       ref.current.srcObject = stream;
     }
   }, [stream]);
-  if (Platform.OS !== 'web') return null;
-  return React.createElement('video', {
-    ref,
-    autoPlay: true,
-    playsInline: true,
-    muted: !!muted,
-    style: {
-      width: '100%', height: '100%', objectFit: 'cover',
-      borderRadius: radius,
-      transform: mirror ? 'scaleX(-1)' : 'none',
-      background: '#000',
-    },
-  });
+
+  if (Platform.OS === 'web') {
+    return React.createElement('video', {
+      ref,
+      autoPlay: true,
+      playsInline: true,
+      muted: !!muted,
+      style: {
+        width: '100%', height: '100%', objectFit: 'cover',
+        borderRadius: radius,
+        transform: mirror ? 'scaleX(-1)' : 'none',
+        background: '#000',
+      },
+    });
+  }
+
+  if (!NativeRTCView || !stream) return <View style={{ flex: 1, borderRadius: radius, backgroundColor: '#000' }} />;
+  return (
+    <NativeRTCView
+      streamURL={stream.toURL()}
+      style={{ flex: 1, borderRadius: radius, backgroundColor: '#000' }}
+      objectFit="cover"
+      mirror={!!mirror}
+      zOrder={mirror ? 1 : 0}
+    />
+  );
 };
 
 export const CALL_REACTIONS = ['❤️', '😂', '🔥', '😮', '👏', '🥂'];

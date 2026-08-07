@@ -1,35 +1,42 @@
 /**
- * webrtcCall.js — 1:1 voice/video calling with no paid infrastructure.
+ * webrtcCall.js — 1:1 voice/video calling with no paid infrastructure by
+ * default, on both web and native.
  *
  * Transport: a per-pair Supabase Realtime broadcast channel carries the WebRTC
- * signalling (offer / answer / ICE / end). Media: the browser's own
- * RTCPeerConnection, connected peer-to-peer using free public STUN servers —
- * so a normal call costs nothing. (Strict-NAT calls would need a TURN relay,
- * which is the one thing that would ever cost money; not included yet.)
+ * signalling (offer / answer / ICE / end). Media: RTCPeerConnection — the
+ * browser's built-in one on web, react-native-webrtc's on native (requires
+ * the config plugin in app.json + a custom dev/EAS build; it cannot run in
+ * plain Expo Go) — connected peer-to-peer using free public STUN servers, so
+ * a normal call costs nothing.
  *
- * WEB-FIRST: RTCPeerConnection + getUserMedia are browser APIs. On React
- * Native (no react-native-webrtc dev build) isCallSupported() returns false and
- * the UI offers calls only where they actually work, instead of pretending.
+ * NAT reality check: STUN alone fails outright on symmetric / carrier-grade
+ * NAT, which is common on mobile data — exactly how most native users will be
+ * calling from. See EXPO_PUBLIC_TURN_* below for the (optional, free-tier)
+ * fix; without it those calls just won't connect, silently, which is a real
+ * known gap, not a bug.
  *
  * This is deliberately self-contained and honest — it does not fake a
  * connection, and every failure path tears the session down cleanly.
  */
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { requestMedia } from '../utils/permissions';
 import { createFilteredVideoTrack } from '../utils/videoFilters';
+import { NotificationService } from './notificationService';
 
-// ── RTC Factory ───────────────────────────────────────────────────────────
-// Web uses standard APIs. Native requires react-native-webrtc.
-// Structure prepared for both platforms.
+// Web gets the browser's built-in RTCPeerConnection for free. Native has no
+// such global — it only exists once react-native-webrtc is actually linked
+// into the build, so requiring it can throw (Expo Go, or a build from before
+// the config plugin was added); that's caught and treated as "no native call
+// support" rather than crashing the app on import.
 let RTC = (typeof globalThis !== 'undefined' && globalThis.RTCPeerConnection) || null;
 let RTCMediaStream = (typeof globalThis !== 'undefined' && globalThis.MediaStream) || null;
-
 if (!RTC && Platform.OS !== 'web') {
   try {
     const WebRTC = require('react-native-webrtc');
     RTC = WebRTC.RTCPeerConnection;
     RTCMediaStream = WebRTC.MediaStream;
-  } catch { /* react-native-webrtc not installed */ }
+  } catch { /* not linked in this build */ }
 }
 
 export function isCallSupported() {
@@ -49,8 +56,26 @@ export const ringChannelName = (userId) => `rtc-ring:${userId}`;
 
 // Fire a ring at someone. Opens their ring channel just long enough to send,
 // then tears it down. Best-effort: a failed ring must never throw into the UI.
+//
+// The realtime broadcast only reaches a device that's actually got the app
+// open right now — if it's backgrounded or fully closed, nothing arrives and
+// the call just rings out with no signal to the callee at all. So this ALSO
+// writes a 'call' notification row, which the existing push-notify pipeline
+// (DB webhook -> Expo push / web push) delivers exactly like a DM or any
+// other notification, no new infra needed. Fired in parallel, never awaited
+// against the realtime ring — a slow/failed push must never delay or block
+// the in-app ring path, which is the fast, common case (both sides online).
 export async function ringUser({ fromId, toId, fromProfile, video }) {
   if (!fromId || !toId) return false;
+
+  NotificationService.send(toId, {
+    type: 'call',
+    title: `${fromProfile?.username ? '@' + fromProfile.username : 'Someone'} is calling you`,
+    body: video ? 'Incoming video call' : 'Incoming voice call',
+    actorId: fromId,
+    data: { video: !!video },
+  }).catch(() => {}); // best-effort — the realtime ring below is the primary path
+
   try {
     const ch = supabase.channel(ringChannelName(toId), { config: { broadcast: { self: false } } });
     await new Promise((resolve) => {
@@ -71,10 +96,20 @@ export async function ringUser({ fromId, toId, fromProfile, video }) {
   }
 }
 
+// TURN is opt-in: set EXPO_PUBLIC_TURN_URL / _USERNAME / _CREDENTIAL (e.g. from
+// the Open Relay Project's free tier — metered.ca/tools/openrelay, 20GB/month,
+// no card) to relay calls for users on symmetric/carrier-grade NAT, where
+// STUN alone can't connect them. Unset = STUN-only, which is what this
+// shipped with before and still works for the common case.
+const TURN_URL = process.env.EXPO_PUBLIC_TURN_URL;
+const TURN_USERNAME = process.env.EXPO_PUBLIC_TURN_USERNAME;
+const TURN_CREDENTIAL = process.env.EXPO_PUBLIC_TURN_CREDENTIAL;
+
 const ICE_CONFIG = {
   iceServers: [
     { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
     { urls: ['stun:stun2.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+    ...(TURN_URL ? [{ urls: [TURN_URL], username: TURN_USERNAME, credential: TURN_CREDENTIAL }] : []),
   ],
   // Gather candidates BEFORE the user hits call, so the handshake doesn't spend
   // its first second discovering the network — this is most of the "why does it

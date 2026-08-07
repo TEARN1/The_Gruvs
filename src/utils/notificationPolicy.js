@@ -7,8 +7,12 @@
 
 // High = worth waking someone for; Low = never interruptive (vanity).
 // 'beacon' is high by design: "I'm out — pull up" is only useful RIGHT NOW,
-// and nightlife's quiet hours are exactly when beacons drop.
-const HIGH = new Set(['message', 'event_day', 'crew_out', 'waitlist', 'sport_goal', 'sport_result', 'now_playing', 'beacon']);
+// and nightlife's quiet hours are exactly when beacons drop. 'call' has to be
+// high for the same reason and more so — an unanswered call isn't a missed
+// ping, it rings out and dies in ~35s (see CallContext's ringTimerRef), and
+// default quiet hours (22:00-08:00) are exactly when most calls on a
+// nightlife app will happen.
+const HIGH = new Set(['message', 'event_day', 'crew_out', 'waitlist', 'sport_goal', 'sport_result', 'now_playing', 'beacon', 'call']);
 const LOW  = new Set(['profile_view', 'view', 'reel_view']);
 
 export function notificationPriority(type) {

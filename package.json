@@ -46,6 +46,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@config-plugins/react-native-webrtc": "^10.0.0",
     "@expo/metro-runtime": "~4.0.1",
     "@expo/vector-icons": "~14.0.4",
     "@opentelemetry/api": "^1.9.1",
