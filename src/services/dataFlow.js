@@ -904,9 +904,18 @@ export const FeedManager = {
     if (cached) return cached;
 
     const today = new Date().toISOString().split('T')[0];
-    const pick = (data) => data?.length
-      ? [...data].sort((a, b) => ScoreEngine.eventScore(b, { userInterests, followedIds }) - ScoreEngine.eventScore(a, { userInterests, followedIds }))[0]
-      : null;
+    // The curator's OFFICIAL pick (is_featured) always wins; otherwise the
+    // highest-scoring upcoming event. `is_featured` is an honest editorial flag
+    // on a REAL event — it never fabricates likes/attendance (Truth Protocol).
+    const pick = (data) => {
+      if (!data?.length) return null;
+      return [...data].sort((a, b) => {
+        const fa = a.is_featured ? 1 : 0, fb = b.is_featured ? 1 : 0;
+        if (fa !== fb) return fb - fa;
+        return ScoreEngine.eventScore(b, { userInterests, followedIds })
+             - ScoreEngine.eventScore(a, { userInterests, followedIds });
+      })[0];
+    };
 
     const result = await resilientRead(
       // Tier 1: full join with profile data
@@ -923,7 +932,7 @@ export const FeedManager = {
       // Tier 2: no profile join — lighter
       async () => {
         const { data, error } = await supabase.from('events')
-          .select('id, title, description, media, vibe_count, going, event_date, event_time, venue_name, category, author_id, created_at')
+          .select('id, title, description, media, vibe_count, going, event_date, event_time, venue_name, category, author_id, created_at, is_featured')
           .gte('event_date', today).is('deleted_at', null).neq('status', 'cancelled')
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
