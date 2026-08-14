@@ -5,7 +5,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Video, ResizeMode, Audio } from 'expo-av';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { audioState } from '../utils/audioState';
 
 export const AutoPlayVideo = ({

@@ -4,7 +4,7 @@ import {
   TouchableOpacity, ScrollView, ActivityIndicator,
   KeyboardAvoidingView, Platform, Image, Dimensions,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';

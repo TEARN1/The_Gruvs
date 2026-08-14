@@ -9,7 +9,7 @@ import {
   KeyboardAvoidingView, Platform, Image, Modal, Animated, ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { ChatManager } from '../services/dataFlow';

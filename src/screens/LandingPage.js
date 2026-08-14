@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition, Suspense } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';

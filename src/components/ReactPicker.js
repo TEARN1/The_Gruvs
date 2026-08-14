@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Easing, Platform,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../context/ThemeContext';
 import { REACTION_LIST } from '../constants/CategoryConfig';
 import { ReactionFX, themeForReaction } from './ReactionFX';

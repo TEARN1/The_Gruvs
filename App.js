@@ -10,7 +10,7 @@ import { BREAKPOINT } from './src/constants/DesignTokens';
 import { HIDDEN_TABS, feature } from './src/constants/launchConfig';
 import { BusinessDashboardScreen } from './src/screens/BusinessDashboardScreen';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { setDriftReporter } from './src/utils/resilience';
 import { shouldEnterSafeMode, clearCrashLog } from './src/utils/bootGuard';
 import { logError } from './src/utils/logError';

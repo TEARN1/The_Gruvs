@@ -13,7 +13,7 @@
  */
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, ActivityIndicator, ScrollView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { TicketManager } from '../services/dataFlow';
 import { haptics } from '../utils/haptics';

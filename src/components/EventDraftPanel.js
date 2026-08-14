@@ -11,7 +11,8 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal,
   TextInput, ActivityIndicator,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { DraftManager } from '../services/dataFlow';

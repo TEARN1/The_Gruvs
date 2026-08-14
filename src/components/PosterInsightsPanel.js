@@ -6,7 +6,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Image, TouchableOpacity, Share, Platform } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { GlassView } from './GlassView';
 import { getPosterInsights } from '../services/posterInsights';
 

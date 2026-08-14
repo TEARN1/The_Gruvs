@@ -17,7 +17,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, TextInput,
   ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { SPORT_REGISTRY, TeamManager, MatchManager, TableManager, CommentaryManager } from '../services/sportsEngine';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';

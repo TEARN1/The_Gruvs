@@ -6,7 +6,8 @@ import {
   TouchableOpacity, ScrollView, ActivityIndicator,
   KeyboardAvoidingView, Platform, Image, Dimensions, Alert,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import * as Location from 'expo-location';
 import { LocationService } from '../services/locationService';

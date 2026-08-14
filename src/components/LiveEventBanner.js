@@ -19,7 +19,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   Animated, Easing, ScrollView,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 
 // ── Pulsing dot ────────────────────────────────────────────────────────────────

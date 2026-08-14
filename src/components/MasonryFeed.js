@@ -6,7 +6,7 @@
  */
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { SmartImage } from './SmartImage';
 import { packMasonry, eventImageUrl } from '../utils/masonry';
 import { thumb } from '../utils/storageThumb';

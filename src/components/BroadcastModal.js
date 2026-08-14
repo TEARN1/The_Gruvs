@@ -9,7 +9,7 @@
  */
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { broadcastToAttendees, BROADCAST_KINDS } from '../services/broadcast';
 

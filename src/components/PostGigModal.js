@@ -4,7 +4,7 @@ import {
   TouchableOpacity, ScrollView, ActivityIndicator,
   KeyboardAvoidingView, Platform
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';

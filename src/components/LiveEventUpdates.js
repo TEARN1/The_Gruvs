@@ -8,7 +8,7 @@ import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   StyleSheet, ActivityIndicator, Animated, Platform,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';

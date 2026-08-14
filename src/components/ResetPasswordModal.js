@@ -11,7 +11,7 @@ import React, { useState } from 'react';
 import {
   Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 

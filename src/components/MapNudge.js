@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 
 export function MapNudge({ move, onAct, onDismiss, primary = '#00f2ff', bg = '#0d1112', textColor = '#fff', muted = 'rgba(255,255,255,0.55)' }) {
   const slide = React.useRef(new Animated.Value(0)).current;

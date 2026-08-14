@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated, ScrollView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { SmartImage } from './SmartImage';
 import { VIDEO_FILTERS } from '../utils/videoFilters';
 
