@@ -11,6 +11,11 @@ import { resilient } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
 import { pick, PLAYER_EDITABLE } from '../utils/safeUpdate';
 
+// Sentinel for "every write tier failed". resilient() resolves with its
+// fallbackValue rather than rejecting, so a caller needs a value that cannot be
+// confused with a legitimate result in order to tell success from failure.
+const TOGGLE_FAILED = Symbol('toggleFollow:failed');
+
 const safe = async (fn, fallback) => {
   try { const v = await fn(); return v ?? fallback; } catch { return fallback; }
 };
@@ -85,17 +90,38 @@ export const TalentEngine = {
     }, false);
   },
 
+  /**
+   * Follow / unfollow a player. Returns the follow state that is ACTUALLY
+   * persisted, so a caller can trust it in both directions.
+   *
+   * Two bugs were fixed here, both of which made this report success no matter
+   * what — so the UI showed "Following" even when the write was denied:
+   *
+   *  1. resilient() RESOLVES with `fallbackValue` when every tier fails; it
+   *     never rejects. The old `.then(() => !isFollowing).catch(...)` therefore
+   *     ran the `.then` on total failure and the `.catch` was unreachable.
+   *  2. The tiers returned the supabase builder directly, but supabase resolves
+   *     `{ data, error }` instead of rejecting — so an RLS denial looked like a
+   *     successful tier. Each tier now throws on `error`, which is the pattern
+   *     the rest of the codebase uses (see RSVPConfirmModal).
+   */
   async toggleFollow(playerId, userId, isFollowing) {
-    if (!userId) return false;
-    return resilient(
+    if (!userId) return isFollowing; // not signed in — nothing changed
+    const step = (build) => async () => {
+      const { error } = await build();
+      if (error) throw error;
+      return true;
+    };
+    const res = await resilient(
       isFollowing
-        ? [() => supabase.from('player_followers').delete().eq('player_id', playerId).eq('follower_id', userId)]
+        ? [step(() => supabase.from('player_followers').delete().eq('player_id', playerId).eq('follower_id', userId))]
         : [
-            () => supabase.from('player_followers').upsert({ player_id: playerId, follower_id: userId }, { onConflict: 'player_id,follower_id', ignoreDuplicates: true }),
-            () => supabase.from('player_followers').insert({ player_id: playerId, follower_id: userId }),
+            step(() => supabase.from('player_followers').upsert({ player_id: playerId, follower_id: userId }, { onConflict: 'player_id,follower_id', ignoreDuplicates: true })),
+            step(() => supabase.from('player_followers').insert({ player_id: playerId, follower_id: userId })),
           ],
-      { attemptsPerTier: 2, baseMs: 300, label: 'TalentEngine.toggleFollow', fallbackValue: null }
-    ).then(() => !isFollowing).catch(() => isFollowing);
+      { attemptsPerTier: 2, baseMs: 300, label: 'TalentEngine.toggleFollow', fallbackValue: TOGGLE_FAILED }
+    );
+    return res === TOGGLE_FAILED ? isFollowing : !isFollowing;
   },
 
   // ── Rate a player for a match (0–10) ────────────────────────────────────

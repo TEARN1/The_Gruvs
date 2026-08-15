@@ -88,6 +88,13 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
     next ? haptics.success() : haptics.light();
     const result = await TalentEngine.toggleFollow(playerId, user.id, following);
     setFollowing(result);
+    // toggleFollow returns the state that actually persisted. If it came back
+    // unchanged the write was refused, so the optimistic count has to come back
+    // too — otherwise the button flips back but the follower total stays wrong.
+    if (result !== next) {
+      setPlayer(p => p ? { ...p, follower_count: Math.max(0, (p.follower_count || 0) + (next ? -1 : 1)) } : p);
+      toast.show('Could not save — check your connection.', 'error');
+    }
     setFollowBusy(false);
   };
 

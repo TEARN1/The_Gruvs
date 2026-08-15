@@ -6,9 +6,10 @@
  * Table: res_lift_clubs (event_id FK → public.events.id)
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Linking } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
+import { hasResident, residentUrl } from '../constants/residentUrl';
 
 const pad = n => String(n).padStart(2, '0');
 const timeLabel = (iso) => {
@@ -86,11 +87,29 @@ const ResidentLiftCard = ({ lift, surface, textColor, muted }) => {
         )}
       </View>
 
-      {/* CTA */}
-      <TouchableOpacity style={rl.cta} activeOpacity={0.8}>
-        <Feather name="external-link" size={11} color={RESIDENT_GREEN} />
-        <Text style={[rl.ctaText, { color: RESIDENT_GREEN }]}>Book via The Resident app</Text>
-      </TouchableOpacity>
+      {/* CTA — this button had NO onPress at all: it depressed on tap
+          (activeOpacity 0.8) and did nothing, which reads as "booked" to the
+          user. Now it follows the same contract as the Stays card in
+          MapScreen: a real link when a Resident host is configured, and an
+          honest line of text when it isn't — never a control that lies.
+          See constants/residentUrl.js on why the URL is unset by default. */}
+      {hasResident() ? (
+        <TouchableOpacity
+          style={rl.cta}
+          activeOpacity={0.8}
+          onPress={() => {
+            const link = residentUrl('dashboard'); // Resident's lifts live under the dashboard
+            if (link) Linking.openURL(link).catch(() => {});
+          }}
+        >
+          <Feather name="external-link" size={11} color={RESIDENT_GREEN} />
+          <Text style={[rl.ctaText, { color: RESIDENT_GREEN }]}>Book via The Resident app</Text>
+        </TouchableOpacity>
+      ) : (
+        <Text style={[rl.ctaText, { color: muted, fontStyle: 'italic', paddingVertical: 6 }]}>
+          Open The Resident to book this lift.
+        </Text>
+      )}
     </View>
   );
 };

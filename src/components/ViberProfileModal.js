@@ -387,6 +387,11 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
   const handleFollow = async () => {
     if (!currentUser) return;
+    // `disabled={followLoading}` guards the button, but that only takes effect
+    // after a re-render — an explicit in-flight check is what actually stops a
+    // fast double-tap firing follow and unfollow back to back. Both sibling
+    // follow buttons already do this (EventDetailScreen, PlayerProfileModal).
+    if (followLoading) return;
     setFollowLoading(true);
     const wasFollowing = isFollowing;
     setIsFollowing(!wasFollowing);
