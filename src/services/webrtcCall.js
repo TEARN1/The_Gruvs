@@ -14,6 +14,7 @@
  * This is deliberately self-contained and honest — it does not fake a
  * connection, and every failure path tears the session down cleanly.
  */
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { requestMedia } from '../utils/permissions';
 import { createFilteredVideoTrack } from '../utils/videoFilters';
