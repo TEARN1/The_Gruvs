@@ -533,8 +533,15 @@ export const ScoreEngine = {
   // Compute and persist a user's Vibe Score
   async computeVibeScore(userId) {
     try {
-      // Trigger Vibe Decay Protocol (Anti-Inflation)
-      await supabase.rpc('apply_vibe_decay');
+      // NOTE: this used to call rpc('apply_vibe_decay') here as an
+      // "Anti-Inflation" pass. That RPC has never existed on the database, so
+      // the decay has never run — but shipping it would not have worked either:
+      // this function RECOMPUTES vibe_score from raw activity counts below and
+      // overwrites the row, so a global decay write would be clobbered by the
+      // next recompute of that user. It was also a global mutation fired from a
+      // per-user read path. Anti-inflation belongs INSIDE the scoring formula
+      // (see logCompress, which already compresses outliers), not in a separate
+      // pass, so the dead call is removed rather than deployed.
       await VibeEconomyEngine.getGlobalEconomicHealth(); // Check economic health
 
       const [posts, vibes, rsvps, checkins, follows, bookings] = await Promise.all([

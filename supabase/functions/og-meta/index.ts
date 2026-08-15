@@ -232,8 +232,16 @@ async function handleEvent(id: string): Promise<OGProps & { redirect: string }> 
 async function handleProfile(username: string): Promise<OGProps & { redirect: string }> {
   const { data: profile } = await supabase
     .from('profiles')
+    // service_role bypasses RLS, so filter explicitly (same reason as handleEvent).
+    // Mirrors the live `profiles_hide_autohidden` policy as an anonymous viewer
+    // sees it — COALESCE(is_auto_hidden,false) = false — plus soft-deleted
+    // accounts, which must stop rendering the moment deletion is requested.
+    // Note the crawler user-agent gate is NOT a control here: `curl -A
+    // facebookexternalhit` reaches this path, so these filters are the control.
     .select('id, username, display_name, bio, avatar_url, followers_count, vibe_score, is_verified')
     .eq('username', username)
+    .or('is_auto_hidden.is.null,is_auto_hidden.eq.false')
+    .is('deleted_at', null)
     .single();
 
   if (!profile) {
@@ -277,6 +285,16 @@ async function handleReel(id: string): Promise<OGProps & { redirect: string }> {
     .select('id, caption, media_url, thumbnail_url, like_count, view_count, profiles(username, display_name)')
     .eq('id', id)
     .eq('is_deleted', false)    // don't leak deleted reels in share previews
+    // Mirrors the live reels policies for an anonymous viewer: deleted_at IS NULL
+    // (reels_select), COALESCE(visibility,'public') = 'public'
+    // (reels_select_visibility) and COALESCE(auto_hidden,false) = false
+    // (reels_hide_autohidden). Without the visibility filter a share card would
+    // hand out a PRIVATE reel's media_url, which the client deliberately hides
+    // (see reelsDataFlow.js). `is_deleted` is the flag the app actually writes;
+    // `deleted_at` is checked too so either soft-delete convention is honoured.
+    .is('deleted_at', null)
+    .or('visibility.is.null,visibility.eq.public')
+    .or('auto_hidden.is.null,auto_hidden.eq.false')
     .single();
 
   if (!reel) {

@@ -61,14 +61,29 @@ export const TrustLedger = {
       const { data: followerScores } = await supabase.rpc('get_follower_integrity_aggregate', { u_id: userId });
       const centralityScore = followerScores?.aggregate_score || (prof.followers_count * 0.1);
 
-      // NEW: Incorporate Real-World Social Proof from Path Crossings
-      const { count: crossingCount } = await supabase.from('path_crossings').select('id', { count: 'exact', head: true })
-        .or(`user_id_a.eq.${userId},user_id_b.eq.${userId}`)
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days
+      // Real-World Social Proof from Path Crossings.
+      // The columns are `user_id` / `other_user_id` / `crossed_at` — this query
+      // previously used user_id_a / user_id_b / created_at, none of which exist,
+      // so PostgREST 400'd and (because only `count` was destructured) the
+      // failure was invisible: this term was permanently 0. `error` is now
+      // destructured so it can never go silent again.
+      const { count: crossingCount, error: crossErr } = await supabase
+        .from('path_crossings')
+        .select('id', { count: 'exact', head: true })
+        .or(`user_id.eq.${userId},other_user_id.eq.${userId}`)
+        .gte('crossed_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days
+      if (crossErr) console.warn('[TrustLedger] path_crossings lookup failed:', crossErr.message);
       const realWorldSocialProof = (crossingCount || 0) * 0.5; // Each crossing adds 0.5 to SIS
 
       // 3. Synthesize High-Fidelity Score with 8-decimal precision
-      const base = prof.base_trust_index || 50;
+      // B (Base History) has no backing column — `prof.base_trust_index` was
+      // never selected and does not exist on `profiles`, so this silently
+      // evaluated to the neutral 50 for every user. Kept AT 50 deliberately:
+      // collapsing B into R would make the K blend a no-op and jump everyone's
+      // SIS (the verification gate is SIS >= 60), which is a product decision,
+      // not a bug fix. Storing a real per-user baseline needs a new column.
+      const NEUTRAL_BASE_TRUST = 50;
+      const base = NEUTRAL_BASE_TRUST;
       const current = prof.social_integrity_score || 50;
 
       const reputationStability = (base * this.K_STABILITY_FACTOR) + (current * (1 - this.K_STABILITY_FACTOR));
