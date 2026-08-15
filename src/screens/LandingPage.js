@@ -304,6 +304,7 @@ const EventCard = React.memo(({
   onShare,
   onToggleRoute,
   onToggleSection,
+  nowTick,
 }) => {
   const id = event.id;
   const isSample = event.is_sample === true;
@@ -327,12 +328,12 @@ const EventCard = React.memo(({
 
   // Real countdown: the old one ignored event_time (so it counted to midnight,
   // not to when the Gruv actually starts), and went blank the moment a night
-  // began instead of saying it was on. Ticks every minute while mounted.
-  const [, countdownTick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => countdownTick((n) => n + 1), 60000);
-    return () => clearInterval(t);
-  }, []);
+  // began instead of saying it was on. Recomputed once a minute via the
+  // shared `nowTick` prop (one interval for the whole feed, not one per
+  // card — see cardExtraData in the parent) — nowTick itself is unused
+  // here on purpose, its only job is to be a prop that changes so
+  // React.memo lets this re-render.
+  void nowTick;
   const cd = getCountdown(event);
   const countdown = cd.state === 'past' || cd.state === 'unknown' ? null : cd.label;
   const heat = heatLabel(event); // honest: verified presence first, null when no real signal
@@ -2373,11 +2374,21 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     </View>
   );
 
+  // One shared minute ticker for every card's countdown label — replaces a
+  // setInterval PER EventCard (up to 200 concurrently mounted on web, since
+  // virtualization is disabled there; see the FlatList props below). N timers
+  // running for the life of the feed vs. 1 is a real cost, not a style nit.
+  const [nowTick, setNowTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(n => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
+
   // Stable extraData bundle — FlatList only re-renders items when interaction state actually changes
   const cardExtraData = useMemo(() => ({
     myVibes, vibeCounts, reactions, savedEvents, openSection,
-    reactionFlash, routeEvents, crewRsvpMap, followingSet, highlightedId, eventCheckins,
-  }), [myVibes, vibeCounts, reactions, savedEvents, openSection, reactionFlash, routeEvents, crewRsvpMap, followingSet, highlightedId, eventCheckins]);
+    reactionFlash, routeEvents, crewRsvpMap, followingSet, highlightedId, eventCheckins, nowTick,
+  }), [myVibes, vibeCounts, reactions, savedEvents, openSection, reactionFlash, routeEvents, crewRsvpMap, followingSet, highlightedId, eventCheckins, nowTick]);
 
   // ── Mobile gesture helpers ────────────────────────────────────────────────────
   const getCardScale = useCallback((id) => {
@@ -2502,6 +2513,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         onShare={handleShare}
         onToggleRoute={handleToggleRoute}
         onToggleSection={toggleSection}
+        nowTick={nowTick}
       />
       </LazyCard>
     );
@@ -2510,7 +2522,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       onAuthRequired, onNavigateToServices, handleVibe, handleBookmark, handleReact, handleShare,
       handleToggleRoute, toggleSection, fetchReactors, fetchEventCheckins, openViberProfile,
       handleFollowFromFeed, handleImageTap, handleImageLongPress, onCardPressIn, onCardPressOut,
-      getCardScale, heartAnimRef, feedData]);
+      getCardScale, heartAnimRef, feedData, nowTick]);
 
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
