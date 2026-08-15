@@ -36,20 +36,11 @@ const aggregateTags = (texts) => {
     .slice(0, 20);
 };
 
-const fetchFromHashtagsTable = async () => {
-  const { data, error } = await supabase
-    .from('hashtags')
-    // NOTE: PostgREST parses a bare `count` in select() as the aggregate
-    // count(), not the column — `select('tag, count')` 400s with
-    // "must appear in the GROUP BY clause". Selecting * sidesteps the parser.
-    .select('*')
-    .order('count', { ascending: false })
-    .limit(20);
-
-  if (error) throw error;
-  return data;
-};
-
+// NOTE: there was a fetchFromHashtagsTable() here. It was never called by
+// anything, and it ordered by a `count` column that does not exist (the real
+// one is `use_count`), so it could only ever have thrown. The `hashtags` table
+// itself is real but empty, so mining tags out of live event/echo text is not a
+// fallback — it IS the source of truth. Removed rather than wired up.
 const fetchFallbackFromEvents = async () => {
   const { data: events, error: evErr } = await supabase
     .from('events')
@@ -92,7 +83,8 @@ export const HashtagStrip = ({ onTagSelect }) => {
   const loadTags = useCallback(async () => {
     setLoading(true);
     try {
-      // Skip the hashtags table (doesn't exist in DB) — extract from events/echoes directly
+      // The hashtags table exists but is unpopulated, so tags are extracted
+      // from live event/echo text instead.
       const data = await fetchFallbackFromEvents();
       setTags(data || []);
     } catch {

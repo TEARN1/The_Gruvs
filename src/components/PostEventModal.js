@@ -239,6 +239,12 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   const geocodeTimer = useRef(null);
   const [geocoding, setGeocoding] = useState(false);
 
+  // The debounce below is cleared on every keystroke, but that alone leaves it
+  // armed at unmount: closing the modal within 1.5s of typing an address still
+  // fires geocodeAddress and sets state on a component that is gone. (This is
+  // not theoretical — it surfaced as a jest "import after teardown" error.)
+  useEffect(() => () => clearTimeout(geocodeTimer.current), []);
+
   // Forward-geocode an address string -> { lat, lon } | null.
   // IMPORTANT: Location.geocodeAsync does NOT exist on web, so web must use
   // Nominatim. (The old code only hit Nominatim when permission was denied, so

@@ -36,6 +36,20 @@ describe('insertStartHeaders', () => {
     expect(out.filter(x => x._header).every(h => String(h.id).startsWith('hdr-'))).toBe(true);
   });
 
+  // Regression: a bucket that recurs non-contiguously (the list is not really
+  // date-ascending — collapseTourStops can park a later-dated tour card early)
+  // used to emit the SAME `hdr-*` id twice, producing duplicate React keys in
+  // the Upcoming VirtualizedList.
+  it('never emits the same header id twice when the list is not sorted', () => {
+    const unsorted = [ev('a', 20), ev('b', 5), ev('c', 21), ev('d', 6)]; // month, week, month, week
+    const out = insertStartHeaders(unsorted, NOW);
+    const headerIds = out.filter(x => x._header).map(x => x.id);
+    expect(headerIds).toEqual([...new Set(headerIds)]); // all unique
+    expect(headerIds.filter(id => id === 'hdr-month')).toHaveLength(1);
+    // every event still survives, in its original order
+    expect(out.filter(x => !x._header).map(x => x.id)).toEqual(['a', 'b', 'c', 'd']);
+  });
+
   it('skips headers for tiny lists and handles garbage', () => {
     expect(insertStartHeaders([ev('a', 0)], NOW)).toHaveLength(1);
     expect(insertStartHeaders(null, NOW)).toEqual([]);
