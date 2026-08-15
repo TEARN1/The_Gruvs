@@ -82,6 +82,7 @@ export function LiveMap({
   onEventPress,           // (eventId) => void
   onZonePress,            // (zoneId) => void
   onReady,
+  autoFit = false,        // frame the events once, when the caller has no better centre
   style,
 }) {
   const containerRef = useRef(null);
@@ -234,6 +235,15 @@ export function LiveMap({
         paint: { 'circle-radius': 5, 'circle-color': '#ff2d55', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
       });
 
+      // Every source above was seeded from the MOUNT-time props. Anything that
+      // arrived while the style was still downloading was buffered by setData()
+      // rather than applied, so replay it now that the sources exist. Without
+      // this the map renders an empty layer set whenever the data beats the
+      // style — which is most loads.
+      flushPending(map);
+      // …and if the data beat the style, frame it now that we can.
+      maybeAutoFit(map);
+
       // Taps: draw takes priority; else pin hit-test.
       map.on('click', (ev) => {
         if (drawModeRef.current) { onClickRef.current?.([ev.lngLat.lng, ev.lngLat.lat]); return; }
@@ -271,11 +281,94 @@ export function LiveMap({
     if (m && readyRef.current && center) m.easeTo({ center: [center.lng, center.lat], duration: 700 });
   }, [center]);
 
+  // Latest GeoJSON per source id, kept even while the style is still loading.
+  //
+  // THE BUG THIS FIXES: setData() bails when `readyRef` is false, and the init
+  // effect runs once with deps [] — so it seeds sources from the MOUNT-time
+  // props, which are empty. If the Supabase query resolves BEFORE MapLibre
+  // finishes downloading its style (the common case — a warm query beats a
+  // network style fetch), the [events] effect fires while readyRef is still
+  // false, setData drops the payload, and the effect never re-runs because
+  // `events` never changes again. Result: 61 events in state, zero on the map,
+  // permanently. Buffering the last value and flushing it on 'load' closes the
+  // race for events, zones, draw, mine, crew and stays alike.
+  const pendingRef = useRef({});
+
+  function flushPending(map) {
+    for (const [id, data] of Object.entries(pendingRef.current)) {
+      try {
+        const src = map.getSource(id);
+        if (src) src.setData(data);
+      } catch { /* source not on this style — ignore */ }
+    }
+  }
+
+  // ── Opening view ──────────────────────────────────────────────────────────
+  // The map used to open on a hardcoded Johannesburg centre at zoom 12 no matter
+  // where the data (or the user) was. With events spread from the Western Cape
+  // to Limpopo — median ~23km from that centre — only a handful ever landed in
+  // the first viewport, so a working map still looked empty. When the caller
+  // hasn't centred it on the user, frame the actual pins instead. Once only:
+  // re-fitting on every refresh would yank the map out from under someone who
+  // has panned away.
+  const didFitRef = useRef(false);
+
+  function fitToFeatures(map, fc) {
+    const feats = fc?.features || [];
+    if (!feats.length) return false;
+
+    const lngs = [], lats = [];
+    for (const f of feats) {
+      const [lng, lat] = f.geometry?.coordinates || [];
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+      lngs.push(lng); lats.push(lat);
+    }
+    if (!lngs.length) return false;
+    lngs.sort((a, b) => a - b); lats.sort((a, b) => a - b);
+
+    // Frame the BULK, not the extremes. Fitting the full bounding box lets a
+    // single event in another province drag the view out to national scale and
+    // park the centre on empty countryside — technically "all pins visible",
+    // useless in practice. The 10th–90th percentile box frames where the events
+    // actually are; the outliers stay one pan away. Below ~12 points there
+    // aren't enough to call anything an outlier, so use the full extent.
+    const q = (arr, p) => arr[Math.min(arr.length - 1, Math.max(0, Math.floor(arr.length * p)))];
+    const trim = lngs.length >= 12;
+    const minLng = trim ? q(lngs, 0.10) : lngs[0];
+    const maxLng = trim ? q(lngs, 0.90) : lngs[lngs.length - 1];
+    const minLat = trim ? q(lats, 0.10) : lats[0];
+    const maxLat = trim ? q(lats, 0.90) : lats[lats.length - 1];
+    if (!Number.isFinite(minLng) || !Number.isFinite(minLat)) return false;
+    try {
+      // A single pin (or several at one venue) gives a zero-area box, which
+      // fitBounds would zoom to absurd depth — centre it at a readable zoom.
+      if (maxLng - minLng < 1e-6 && maxLat - minLat < 1e-6) {
+        map.easeTo({ center: [minLng, minLat], zoom: 14, duration: 600 });
+      } else {
+        map.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
+          padding: 64,
+          maxZoom: 13,   // never punch past neighbourhood level on an auto-fit
+          duration: 600,
+        });
+      }
+      return true;
+    } catch { return false; }
+  }
+
+  function maybeAutoFit(map) {
+    if (!autoFit || didFitRef.current) return;
+    if (fitToFeatures(map, pendingRef.current.events)) didFitRef.current = true;
+  }
+
   function setData(id, data) {
+    pendingRef.current[id] = data; // record first, so a pre-ready write survives
     const m = mapRef.current;
     if (!m || !readyRef.current) return;
     const src = m.getSource(id);
     if (src) src.setData(data);
+    // Events usually arrive after the style is ready, so this — not the load
+    // handler — is where the first fit normally happens.
+    if (id === 'events') maybeAutoFit(m);
   }
 
   function toggleHeat(on) {

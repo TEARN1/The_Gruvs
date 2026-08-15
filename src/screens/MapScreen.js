@@ -29,6 +29,8 @@ import { getMyFog } from '../services/fogMap';
 import { getCrewPlans } from '../services/crewMap';
 import { Accommodation } from '../services/accommodation';
 import { residentUrl, hasResident } from '../constants/residentUrl';
+import { filterByViewerAge } from '../utils/contentAgeRating';
+import { loadViewerAge, viewerAgeSync } from '../utils/viewerAge';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
@@ -46,6 +48,10 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.55)';
 
   const [center, setCenter] = useState(JHB);
+  // True once we've centred on the user's real position. Until then the map is
+  // sitting on the hardcoded JHB default, which is a guess — so let LiveMap
+  // frame the actual pins instead of pretending the guess was right.
+  const [centredOnUser, setCentredOnUser] = useState(false);
   const [events, setEvents] = useState([]);
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -104,11 +110,22 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       // Upcoming events with coordinates (either lat/lon or latitude/longitude).
       const { data } = await supabase
         .from('events')
-        .select('id, title, latitude, longitude, lat, lon, going, event_date')
+        // `description` feeds the content age-rating below the same text signal
+        // the other surfaces get (a tame title can carry a mature description);
+        // it is not rendered on the map. `min_age` is the STORED floor and takes
+        // priority over text rating — without it the gate silently degraded to
+        // guessing from prose, which let 18+ listings through.
+        .select('id, title, description, min_age, latitude, longitude, lat, lon, going, event_date')
         .gte('event_date', today)
         .is('deleted_at', null)
         .limit(300);
-      setEvents((data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null));
+      const withCoords = (data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null);
+      // Silently hide mature listings from under-age viewers. The map was the
+      // ONLY discovery surface missing this — The Drop, Explore, Scout and Reels
+      // all apply it, so the same event was hidden in the feed but still pinned
+      // on the map. The hard legal gate (RSVP / Touch Down in EventDetailScreen)
+      // was never bypassed; this closes the content-visibility gap.
+      setEvents(filterByViewerAge(withCoords, viewerAgeSync(), e => `${e.title || ''} ${e.description || ''}`));
     } catch { setEvents([]); }
   }, []);
 
@@ -116,12 +133,28 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     let alive = true;
     (async () => {
       setLoading(true);
+      // Prime the viewer's age BEFORE loading events. viewerAgeSync() reads a
+      // module cache that only loadViewerAge() fills; without this it is always
+      // null here, so every viewer — including adults — was treated as
+      // unknown-age. LandingPage primes it the same way before its first load.
+      await loadViewerAge(user?.id).catch(() => {});
+      // Use a location we ALREADY have — getCached(), never requestAndGet() —
+      // so opening the map can't fire a permission prompt. If we know where
+      // they are, that beats framing the pins; the recenter FAB is the explicit
+      // ask. If we don't, autoFit frames the events instead.
+      try {
+        const c = LocationService.getCached?.();
+        if (alive && c?.lat != null) { setCenter({ lat: c.lat, lng: c.lon }); setCentredOnUser(true); }
+      } catch { /* no cached fix — fall through to autoFit */ }
       await Promise.all([loadEvents(), loadZones()]);
       if (alive) setLoading(false);
     })();
     const off = MapZones.subscribe(() => loadZones());
     return () => { alive = false; off?.(); };
-  }, [loadEvents, loadZones]);
+    // user?.id included so signing in/out re-primes the age and re-filters the
+    // pins — otherwise an adult who signs in keeps the signed-out (unknown-age)
+    // view until they navigate away and back.
+  }, [loadEvents, loadZones, user?.id]);
 
   // Re-pull zones when the map centre moves meaningfully.
   useEffect(() => { loadZones(); }, [center, loadZones]);
@@ -181,7 +214,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const recenter = async () => {
     const c = await LocationService.requestAndGet();
-    if (c?.lat != null) setCenter({ lat: c.lat, lng: c.lon });
+    if (c?.lat != null) { setCenter({ lat: c.lat, lng: c.lon }); setCentredOnUser(true); }
   };
 
   // Fog of the City — light up where you've actually been (lazy-loaded once).
@@ -246,6 +279,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               events={events}
               zones={zones}
               center={center}
+              autoFit={!centredOnUser}
               heat={heat}
               mine={myFog.points}
               showMine={showMine}
