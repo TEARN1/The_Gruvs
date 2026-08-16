@@ -71,6 +71,14 @@ const L_CREW_RING    = { 'circle-radius': ['interpolate', ['linear'], ['get', 'c
 const L_CREW_DOT     = { 'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 6, 6, 12], 'circle-color': '#ec4899', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 };
 const L_STAYS_GLOW   = { 'circle-radius': 15, 'circle-color': '#f59e0b', 'circle-opacity': 0.14, 'circle-blur': 0.6 };
 const L_STAYS_DOT    = { 'circle-radius': 8, 'circle-color': '#f59e0b', 'circle-stroke-color': '#1a1205', 'circle-stroke-width': 2 };
+// "You are here" — the blue dot. Deliberately NOT the app's neon cyan: cyan is
+// the event pin colour, and the one marker that must never be mistaken for a
+// pin is the one showing where the user is standing. Solid fill + a thick white
+// ring is the universally-read "me" marker (Google/Apple both use it), so it
+// stays legible against the light basemap and against every other layer here
+// (gold Touch Downs, magenta crew, amber stays, red closures).
+const L_ME_HALO      = { 'circle-radius': 24, 'circle-color': '#4285F4', 'circle-opacity': 0.18, 'circle-blur': 0.45 };
+const L_ME_DOT       = { 'circle-radius': 8, 'circle-color': '#4285F4', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 };
 const L_DRAW_LINE    = { 'line-color': '#ff2d55', 'line-width': 4, 'line-dasharray': [1, 1] };
 const L_DRAW_VERTS   = { 'circle-radius': 5, 'circle-color': '#ff2d55', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 };
 
@@ -126,6 +134,8 @@ export function LiveMap({
   onZonePress,            // (zoneId) => void
   onReady,
   autoFit = false,        // frame the events once, when the caller has no better centre
+  myLocation = null,      // {lat,lng} — "you are here" blue dot
+  focusZoom = null,       // when set, a `center` change also eases to this zoom
   style,
 }) {
   const containerRef = useRef(null);
@@ -242,6 +252,12 @@ export function LiveMap({
           'text-field': '🛏', 'text-size': 11, 'text-allow-overlap': true },
       });
 
+      // "You are here". Added LAST so the blue dot sits on top of every other
+      // layer — it is the one marker the user must always be able to find.
+      map.addSource('me', { type: 'geojson', data: pointsToGeoJSON(myLocation ? [myLocation] : []) });
+      map.addLayer({ id: 'me-halo', type: 'circle', source: 'me', paint: L_ME_HALO });
+      map.addLayer({ id: 'me-dot', type: 'circle', source: 'me', paint: L_ME_DOT });
+
       // In-progress draw geometry.
       map.addSource('draw', { type: 'geojson', data: emptyFC() });
       map.addLayer({
@@ -295,10 +311,17 @@ export function LiveMap({
   useEffect(() => { setData('mine', pointsToGeoJSON(mine)); }, [mine]);
   useEffect(() => { setData('crew', crewToGeoJSON(crew)); }, [crew]);
   useEffect(() => { setData('stays', staysToGeoJSON(stays)); }, [stays]);
+  useEffect(() => { setData('me', pointsToGeoJSON(myLocation ? [myLocation] : [])); }, [myLocation]);
   useEffect(() => {
     const m = mapRef.current;
-    if (m && readyRef.current && center) m.easeTo({ center: [center.lng, center.lat], duration: 700 });
-  }, [center]);
+    if (!m || !readyRef.current || !center) return;
+    // focusZoom lets "take me to my location" actually zoom IN, the way Google
+    // Maps does. Without it, recentring on a country-level view just slid the
+    // same useless zoom sideways and the user still couldn't see their street.
+    const opts = { center: [center.lng, center.lat], duration: 700 };
+    if (focusZoom != null) opts.zoom = focusZoom;
+    m.easeTo(opts);
+  }, [center, focusZoom]);
 
   // Latest GeoJSON per source id, kept even while the style is still loading.
   //
@@ -453,7 +476,11 @@ export function LiveMap({
           if (drawMode && e?.geometry?.coordinates) onMapClick?.(e.geometry.coordinates);
         }}
       >
-        <Camera centerCoordinate={camCenter} zoomLevel={centroid ? 9 : 12} animationDuration={600} />
+        <Camera
+          centerCoordinate={camCenter}
+          zoomLevel={focusZoom != null ? focusZoom : (centroid ? 9 : 12)}
+          animationDuration={600}
+        />
 
         <ShapeSource id="zones" shape={zonesToGeoJSON(zones)} onPress={(e) => onZonePress?.(featureId(e))}>
           <FillLayer id="zones-fill" filter={['==', ['geometry-type'], 'Polygon']} style={L_ZONES_FILL} />
@@ -491,6 +518,14 @@ export function LiveMap({
           <ShapeSource id="draw" shape={drawGeoJSON(drawMode, drawPoints)}>
             <LineLayer id="draw-line" style={L_DRAW_LINE} />
             <CircleLayer id="draw-verts" filter={['==', ['geometry-type'], 'Point']} style={L_DRAW_VERTS} />
+          </ShapeSource>
+        ) : null}
+
+        {/* "You are here" — last, so the blue dot draws on top of everything. */}
+        {myLocation ? (
+          <ShapeSource id="me" shape={pointsToGeoJSON([myLocation])}>
+            <CircleLayer id="me-halo" style={L_ME_HALO} />
+            <CircleLayer id="me-dot" style={L_ME_DOT} />
           </ShapeSource>
         ) : null}
       </MapView>

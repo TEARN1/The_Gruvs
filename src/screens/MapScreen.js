@@ -52,6 +52,13 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   // sitting on the hardcoded JHB default, which is a guess — so let LiveMap
   // frame the actual pins instead of pretending the guess was right.
   const [centredOnUser, setCentredOnUser] = useState(false);
+  // The blue "you are here" dot. Separate from `center`: the map can be panned
+  // anywhere, but the dot stays where the user actually is.
+  const [myLocation, setMyLocation] = useState(null);
+  // Street-level zoom applied when we deliberately jump to the user. Null the
+  // rest of the time so panning/auto-fit isn't forced back to this zoom.
+  const [focusZoom, setFocusZoom] = useState(null);
+  const [locating, setLocating] = useState(false);
   const [events, setEvents] = useState([]);
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -138,14 +145,21 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       // null here, so every viewer — including adults — was treated as
       // unknown-age. LandingPage primes it the same way before its first load.
       await loadViewerAge(user?.id).catch(() => {});
-      // Use a location we ALREADY have — getCached(), never requestAndGet() —
-      // so opening the map can't fire a permission prompt. If we know where
-      // they are, that beats framing the pins; the recenter FAB is the explicit
-      // ask. If we don't, autoFit frames the events instead.
+      // Opening the map takes you to where you ARE — the Google Maps contract.
+      // A cached fix is used instantly (no wait, no prompt); in parallel we ask
+      // for a live one, which is what triggers the permission prompt the first
+      // time. If permission is refused the map still works: autoFit frames the
+      // events instead, so a denial degrades rather than breaking anything.
       try {
-        const c = LocationService.getCached?.();
-        if (alive && c?.lat != null) { setCenter({ lat: c.lat, lng: c.lon }); setCentredOnUser(true); }
-      } catch { /* no cached fix — fall through to autoFit */ }
+        const cached = LocationService.getCached?.();
+        if (alive && cached?.lat != null) {
+          const here = { lat: cached.lat, lng: cached.lon };
+          setMyLocation(here); setCenter(here); setCentredOnUser(true); setFocusZoom(16);
+        }
+      } catch { /* no cached fix — the live request below is the real path */ }
+      // silent: opening the map should never throw an error toast at someone
+      // who simply hasn't granted location yet.
+      recenter({ silent: true });
       await Promise.all([loadEvents(), loadZones()]);
       if (alive) setLoading(false);
     })();
@@ -212,9 +226,31 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     } catch (e) { toast(e?.message || 'Could not submit.', 'error'); }
   };
 
-  const recenter = async () => {
-    const c = await LocationService.requestAndGet();
-    if (c?.lat != null) { setCenter({ lat: c.lat, lng: c.lon }); setCentredOnUser(true); }
+  // "Take me to where I am" — the crosshair button. Google-Maps behaviour:
+  // jump to the live position AND zoom to street level. Recentring without the
+  // zoom just slid a country-wide view sideways, which doesn't answer the
+  // question the user is asking when they tap it.
+  const recenter = async ({ silent = false } = {}) => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      const c = await LocationService.requestAndGet();
+      if (c?.lat != null) {
+        const here = { lat: c.lat, lng: c.lon };
+        setMyLocation(here);
+        setCenter(here);
+        setCentredOnUser(true);
+        // Nudge the zoom each time so a second tap still re-focuses even when
+        // the centre hasn't changed (same object value = no easeTo otherwise).
+        setFocusZoom((z) => (z === 16 ? 16.0001 : 16));
+      } else if (!silent) {
+        toast('Could not get your location. Check location permission.', 'error');
+      }
+    } catch {
+      if (!silent) toast('Could not get your location.', 'error');
+    } finally {
+      setLocating(false);
+    }
   };
 
   // Fog of the City — light up where you've actually been (lazy-loaded once).
@@ -280,6 +316,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               zones={zones}
               center={center}
               autoFit={!centredOnUser}
+              myLocation={myLocation}
+              focusZoom={focusZoom}
               heat={heat}
               mine={myFog.points}
               showMine={showMine}
@@ -311,8 +349,22 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <TouchableOpacity onPress={() => setHeat((h) => !h)} style={[cs.fab, { backgroundColor: heat ? primary : bg, borderColor: `${primary}40` }]}>
                 <Feather name="activity" size={18} color={heat ? '#000' : primary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={recenter} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
-                <Feather name="crosshair" size={18} color={primary} />
+              {/* Take me to my location. Lights up once we actually have a fix,
+                  so the control tells you whether the map knows where you are. */}
+              <TouchableOpacity
+                onPress={() => recenter()}
+                disabled={locating}
+                style={[cs.fab, {
+                  backgroundColor: myLocation ? primary : bg,
+                  borderColor: `${primary}40`,
+                  opacity: locating ? 0.6 : 1,
+                }]}
+                accessibilityRole="button"
+                accessibilityLabel={locating ? 'Finding your location' : 'Centre the map on my location'}
+              >
+                {locating
+                  ? <ActivityIndicator size="small" color={myLocation ? '#000' : primary} />
+                  : <Feather name="crosshair" size={18} color={myLocation ? '#000' : primary} />}
               </TouchableOpacity>
               <TouchableOpacity onPress={startDraw} style={[cs.markBtn, { backgroundColor: primary }]}>
                 <Feather name="edit-3" size={15} color="#000" />
