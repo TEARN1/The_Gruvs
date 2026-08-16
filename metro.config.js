@@ -30,6 +30,14 @@ config.resolver = {
       if (moduleName === 'react-native-qrcode-svg') {
         return { filePath: path.resolve(__dirname, 'src/shims/react-native-qrcode-svg-web.js'), type: 'sourceFile' };
       }
+      // MapLibre's React Native binding powers the map on native; web uses
+      // maplibre-gl directly. Its require in LiveMap sits behind a
+      // Platform.OS !== 'web' guard, but Metro resolves every require in the
+      // graph regardless of reachability, and this package does not resolve for
+      // web — which fails the ENTIRE bundle, not just the map.
+      if (moduleName === '@maplibre/maplibre-react-native') {
+        return { filePath: path.resolve(__dirname, 'src/shims/maplibre-react-native-web.js'), type: 'sourceFile' };
+      }
     }
     return context.resolveRequest(context, moduleName, platform);
   },

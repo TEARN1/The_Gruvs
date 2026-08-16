@@ -27,7 +27,9 @@
         "applinks:www.thegruvs.com"
       ],
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "The Gruvs uses your location to show nearby events and vibers.",
         "NSCameraUsageDescription": "The Gruvs needs camera access to scan tickets and post event photos.",
@@ -130,7 +132,8 @@
         }
       ],
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "@maplibre/maplibre-react-native"
     ],
     "extra": {
       "privacyPolicyUrl": "https://thegruvs.com/privacy.html",

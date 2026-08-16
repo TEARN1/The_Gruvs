@@ -27,9 +27,52 @@ if (Platform.OS === 'web') {
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 const DEFAULT_CENTER = { lng: 28.0473, lat: -26.2041 }; // Johannesburg
 
-export function isMapSupported() {
-  return Platform.OS === 'web' && !!maplibregl;
+// Native counterpart. Same engine, same style, same GeoJSON — a declarative
+// React binding instead of the imperative web one. Guarded the same way as the
+// web require above: Metro constant-folds Platform.OS, so this is dead-code
+// eliminated from the web bundle and the native module never reaches it.
+let MapLibreRN = null;
+if (Platform.OS !== 'web') {
+  try { MapLibreRN = require('@maplibre/maplibre-react-native'); } catch { MapLibreRN = null; }
 }
+
+export function isMapSupported() {
+  if (Platform.OS === 'web') return !!maplibregl;
+  return !!MapLibreRN;
+}
+
+// ── Layer styling, shared by BOTH platforms ────────────────────────────────
+// MapLibre GL JS and MapLibre React Native both consume the MapLibre style
+// spec, so one definition drives web and native. Kept here rather than inlined
+// twice: two copies of these numbers would drift the moment either side is
+// tweaked, and the map would quietly stop looking like itself on one platform.
+const L_ZONES_FILL   = { 'fill-color': ['get', 'color'], 'fill-opacity': 0.18 };
+const L_ZONES_LINE   = { 'line-color': ['get', 'color'], 'line-width': 5, 'line-opacity': 0.9, 'line-dasharray': [2, 1.5] };
+const L_EVENTS_HEAT  = {
+  'heatmap-weight': ['interpolate', ['linear'], ['get', 'here'], 0, 0.15, 50, 1],
+  'heatmap-intensity': 1.1,
+  'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 18, 15, 40],
+  'heatmap-opacity': 0.75,
+  'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
+    0, 'rgba(0,0,0,0)', 0.2, 'rgba(0,242,255,0.35)', 0.5, 'rgba(16,185,129,0.6)',
+    0.8, 'rgba(245,158,11,0.8)', 1, 'rgba(239,68,68,0.9)'],
+};
+const L_EVENTS_GLOW  = {
+  'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 0, 9, 50, 22],
+  'circle-color': '#00f2ff', 'circle-opacity': 0.18, 'circle-blur': 0.6,
+};
+const L_EVENTS_DOT   = {
+  'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 0, 5, 50, 9],
+  'circle-color': '#00f2ff', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5,
+};
+const L_MINE_GLOW    = { 'circle-radius': 16, 'circle-color': '#fbbf24', 'circle-opacity': 0.16, 'circle-blur': 0.7 };
+const L_MINE_DOT     = { 'circle-radius': 5, 'circle-color': '#fbbf24', 'circle-stroke-color': '#fff7ed', 'circle-stroke-width': 1.5 };
+const L_CREW_RING    = { 'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 12, 6, 30], 'circle-color': '#ec4899', 'circle-opacity': 0.14, 'circle-blur': 0.5 };
+const L_CREW_DOT     = { 'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 6, 6, 12], 'circle-color': '#ec4899', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 };
+const L_STAYS_GLOW   = { 'circle-radius': 15, 'circle-color': '#f59e0b', 'circle-opacity': 0.14, 'circle-blur': 0.6 };
+const L_STAYS_DOT    = { 'circle-radius': 8, 'circle-color': '#f59e0b', 'circle-stroke-color': '#1a1205', 'circle-stroke-width': 2 };
+const L_DRAW_LINE    = { 'line-color': '#ff2d55', 'line-width': 4, 'line-dasharray': [1, 1] };
+const L_DRAW_VERTS   = { 'circle-radius': 5, 'circle-color': '#ff2d55', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 };
 
 const eventsToGeoJSON = (events = []) => ({
   type: 'FeatureCollection',
@@ -99,6 +142,10 @@ export function LiveMap({
 
   // ── init once ─────────────────────────────────────────────────────────────
   useEffect(() => {
+    // Web only. Everything below this line is the imperative maplibre-gl API;
+    // native renders declaratively at the bottom of this component and shares
+    // nothing but the style constants and the GeoJSON builders.
+    if (Platform.OS !== 'web') return;
     if (!isMapSupported() || !containerRef.current || mapRef.current) return;
     let map;
     try {
@@ -119,16 +166,11 @@ export function LiveMap({
       map.addLayer({
         id: 'zones-fill', type: 'fill', source: 'zones',
         filter: ['==', ['geometry-type'], 'Polygon'],
-        paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.18 },
+        paint: L_ZONES_FILL,
       });
       map.addLayer({
         id: 'zones-line', type: 'line', source: 'zones',
-        paint: {
-          'line-color': ['get', 'color'],
-          'line-width': 5,
-          'line-opacity': 0.9,
-          'line-dasharray': [2, 1.5],
-        },
+        paint: L_ZONES_LINE,
       });
 
       // Events: glowing dots sized by verified presence.
@@ -137,32 +179,15 @@ export function LiveMap({
       map.addLayer({
         id: 'events-heat', type: 'heatmap', source: 'events',
         layout: { visibility: heatRef.current ? 'visible' : 'none' },
-        paint: {
-          'heatmap-weight': ['interpolate', ['linear'], ['get', 'here'], 0, 0.15, 50, 1],
-          'heatmap-intensity': 1.1,
-          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 18, 15, 40],
-          'heatmap-opacity': 0.75,
-          'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
-            0, 'rgba(0,0,0,0)', 0.2, 'rgba(0,242,255,0.35)', 0.5, 'rgba(16,185,129,0.6)',
-            0.8, 'rgba(245,158,11,0.8)', 1, 'rgba(239,68,68,0.9)'],
-        },
+        paint: L_EVENTS_HEAT,
       });
       map.addLayer({
         id: 'events-glow', type: 'circle', source: 'events',
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 0, 9, 50, 22],
-          'circle-color': '#00f2ff',
-          'circle-opacity': 0.18,
-          'circle-blur': 0.6,
-        },
+        paint: L_EVENTS_GLOW,
       });
       map.addLayer({
         id: 'events-dot', type: 'circle', source: 'events',
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 0, 5, 50, 9],
-          'circle-color': '#00f2ff',
-          'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5,
-        },
+        paint: L_EVENTS_DOT,
       });
 
       // Fog of the City — your lit Touch Downs (warm gold), your personal territory.
@@ -170,12 +195,12 @@ export function LiveMap({
       map.addLayer({
         id: 'mine-glow', type: 'circle', source: 'mine',
         layout: { visibility: mineRef.current ? 'visible' : 'none' },
-        paint: { 'circle-radius': 16, 'circle-color': '#fbbf24', 'circle-opacity': 0.16, 'circle-blur': 0.7 },
+        paint: L_MINE_GLOW,
       });
       map.addLayer({
         id: 'mine-dot', type: 'circle', source: 'mine',
         layout: { visibility: mineRef.current ? 'visible' : 'none' },
-        paint: { 'circle-radius': 5, 'circle-color': '#fbbf24', 'circle-stroke-color': '#fff7ed', 'circle-stroke-width': 1.5 },
+        paint: L_MINE_DOT,
       });
 
       // Crew Convergence — where the people you follow are heading (magenta),
@@ -184,18 +209,12 @@ export function LiveMap({
       map.addLayer({
         id: 'crew-ring', type: 'circle', source: 'crew',
         layout: { visibility: crewRef.current ? 'visible' : 'none' },
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 12, 6, 30],
-          'circle-color': '#ec4899', 'circle-opacity': 0.14, 'circle-blur': 0.5,
-        },
+        paint: L_CREW_RING,
       });
       map.addLayer({
         id: 'crew-dot', type: 'circle', source: 'crew',
         layout: { visibility: crewRef.current ? 'visible' : 'none' },
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 6, 6, 12],
-          'circle-color': '#ec4899', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5,
-        },
+        paint: L_CREW_DOT,
       });
       map.addLayer({
         id: 'crew-count', type: 'symbol', source: 'crew',
@@ -210,12 +229,12 @@ export function LiveMap({
       map.addLayer({
         id: 'stays-glow', type: 'circle', source: 'stays',
         layout: { visibility: staysRef.current ? 'visible' : 'none' },
-        paint: { 'circle-radius': 15, 'circle-color': '#f59e0b', 'circle-opacity': 0.14, 'circle-blur': 0.6 },
+        paint: L_STAYS_GLOW,
       });
       map.addLayer({
         id: 'stays-dot', type: 'circle', source: 'stays',
         layout: { visibility: staysRef.current ? 'visible' : 'none' },
-        paint: { 'circle-radius': 8, 'circle-color': '#f59e0b', 'circle-stroke-color': '#1a1205', 'circle-stroke-width': 2 },
+        paint: L_STAYS_DOT,
       });
       map.addLayer({
         id: 'stays-icon', type: 'symbol', source: 'stays',
@@ -227,12 +246,12 @@ export function LiveMap({
       map.addSource('draw', { type: 'geojson', data: emptyFC() });
       map.addLayer({
         id: 'draw-line', type: 'line', source: 'draw',
-        paint: { 'line-color': '#ff2d55', 'line-width': 4, 'line-dasharray': [1, 1] },
+        paint: L_DRAW_LINE,
       });
       map.addLayer({
         id: 'draw-verts', type: 'circle', source: 'draw',
         filter: ['==', ['geometry-type'], 'Point'],
-        paint: { 'circle-radius': 5, 'circle-color': '#ff2d55', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
+        paint: L_DRAW_VERTS,
       });
 
       // Every source above was seeded from the MOUNT-time props. Anything that
@@ -401,12 +420,90 @@ export function LiveMap({
     }
   }
 
+  // ── NATIVE ────────────────────────────────────────────────────────────────
+  // Same MapLibre engine, same OpenFreeMap style, same GeoJSON and the same
+  // layer constants as web — expressed declaratively instead of imperatively.
+  // Keyless by design: react-native-maps would have needed a Google Maps API
+  // key on a billing-enabled account, which this project deliberately avoids.
+  if (Platform.OS !== 'web' && MapLibreRN) {
+    // v10 API (MapView/ShapeSource/typed layers), NOT v11's Map/GeoJSONSource/
+    // generic Layer. Pinned to 10.x deliberately: v11's Expo config plugin
+    // imports `CodeGenerator` from @expo/config-plugins, which does not exist in
+    // the 9.x that Expo SDK 52 ships — registering it crashes `expo start`
+    // outright, taking the WEB dev server down with it. v10 declares
+    // @expo/config-plugins ">=7" and works. Revisit on the next SDK upgrade.
+    const { MapView, Camera, ShapeSource, CircleLayer, HeatmapLayer, FillLayer, LineLayer } = MapLibreRN;
+    const featureId = (e) => e?.features?.[0]?.properties?.id;
+
+    // Frame the pins when the caller has no better centre, mirroring the web
+    // auto-fit. Deliberately a centroid + fixed zoom rather than Camera bounds:
+    // the bounds option shape is untested on this device path, and a wrong
+    // guess would land the user somewhere arbitrary. Centroid is predictable.
+    const pts = eventsToGeoJSON(events).features.map(f => f.geometry.coordinates);
+    const centroid = (autoFit && pts.length)
+      ? [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length]
+      : null;
+    const camCenter = center ? [center.lng, center.lat] : (centroid || [DEFAULT_CENTER.lng, DEFAULT_CENTER.lat]);
+
+    return (
+      <MapView
+        style={[{ flex: 1 }, style]}
+        mapStyle={MAP_STYLE}
+        onPress={(e) => {
+          if (drawMode && e?.geometry?.coordinates) onMapClick?.(e.geometry.coordinates);
+        }}
+      >
+        <Camera centerCoordinate={camCenter} zoomLevel={centroid ? 9 : 12} animationDuration={600} />
+
+        <ShapeSource id="zones" shape={zonesToGeoJSON(zones)} onPress={(e) => onZonePress?.(featureId(e))}>
+          <FillLayer id="zones-fill" filter={['==', ['geometry-type'], 'Polygon']} style={L_ZONES_FILL} />
+          <LineLayer id="zones-line" style={L_ZONES_LINE} />
+        </ShapeSource>
+
+        <ShapeSource id="events" shape={eventsToGeoJSON(events)} onPress={(e) => onEventPress?.(featureId(e))}>
+          {heat ? <HeatmapLayer id="events-heat" style={L_EVENTS_HEAT} /> : null}
+          <CircleLayer id="events-glow" style={L_EVENTS_GLOW} />
+          <CircleLayer id="events-dot" style={L_EVENTS_DOT} />
+        </ShapeSource>
+
+        {showMine ? (
+          <ShapeSource id="mine" shape={pointsToGeoJSON(mine)}>
+            <CircleLayer id="mine-glow" style={L_MINE_GLOW} />
+            <CircleLayer id="mine-dot" style={L_MINE_DOT} />
+          </ShapeSource>
+        ) : null}
+
+        {showCrew ? (
+          <ShapeSource id="crew" shape={crewToGeoJSON(crew)}>
+            <CircleLayer id="crew-ring" style={L_CREW_RING} />
+            <CircleLayer id="crew-dot" style={L_CREW_DOT} />
+          </ShapeSource>
+        ) : null}
+
+        {showStays ? (
+          <ShapeSource id="stays" shape={staysToGeoJSON(stays)} onPress={(e) => onStayPress?.(featureId(e))}>
+            <CircleLayer id="stays-glow" style={L_STAYS_GLOW} />
+            <CircleLayer id="stays-dot" style={L_STAYS_DOT} />
+          </ShapeSource>
+        ) : null}
+
+        {drawMode ? (
+          <ShapeSource id="draw" shape={drawGeoJSON(drawMode, drawPoints)}>
+            <LineLayer id="draw-line" style={L_DRAW_LINE} />
+            <CircleLayer id="draw-verts" filter={['==', ['geometry-type'], 'Point']} style={L_DRAW_VERTS} />
+          </ShapeSource>
+        ) : null}
+      </MapView>
+    );
+  }
+
+  // Neither engine available (native module missing from this build).
   if (!isMapSupported()) {
     return (
       <View style={[cs.fallback, style]}>
         <Feather name="map" size={40} color="rgba(255,255,255,0.4)" />
-        <Text style={cs.fallbackText}>The live map runs in the browser for now.</Text>
-        <Text style={cs.fallbackSub}>Open The Gruvs on the web to see your city's map.</Text>
+        <Text style={cs.fallbackText}>The live map needs a newer build of the app.</Text>
+        <Text style={cs.fallbackSub}>Update The Gruvs, or open it on the web.</Text>
       </View>
     );
   }
