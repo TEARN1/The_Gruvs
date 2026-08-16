@@ -249,7 +249,7 @@ async function handleProfile(username: string): Promise<OGProps & { redirect: st
       title: `@${username} on ${APP_NAME}`,
       description: 'Check out their profile on The Gruvs.',
       image: DEFAULT_OG_IMAGE,
-      url: `${APP_URL}/share/profile/${username}`,
+      url: `${APP_URL}/share/profile/${encodeURIComponent(username)}`,
       redirect: `${APP_URL}`,
       type: 'profile',
     };
@@ -272,7 +272,7 @@ async function handleProfile(username: string): Promise<OGProps & { redirect: st
     imageWidth: 400,
     imageHeight: 400,
     imageAlt: `${displayName}'s profile picture`,
-    url: `${APP_URL}/share/profile/${username}`,
+    url: `${APP_URL}/share/profile/${encodeURIComponent(username)}`,
     redirect: `${APP_URL}/?profile=${profile.id}`,
     type: 'profile',
     twitterCard: 'summary',
@@ -337,16 +337,25 @@ Deno.serve(async (req: Request) => {
   const anchor = parts.indexOf('og-meta');
   const base = anchor >= 0 ? anchor + 1 : (parts[0] === 'functions' ? 3 : 0);
   const type = parts[base];      // 'event' | 'profile' | 'reel'
-  const slug = parts[base + 1];  // id or username
+  // Decode the slug: pathname keeps percent-encoding, so a username with a
+  // space arrived as "The%20Gruvs" and never matched the stored "The Gruvs" —
+  // every such profile's share preview silently fell back to the generic card.
+  // try/catch because a malformed sequence must not 500 the whole route.
+  const rawSlug = parts[base + 1];
+  let slug = rawSlug;
+  try { slug = rawSlug ? decodeURIComponent(rawSlug) : rawSlug; } catch { slug = rawSlug; }
 
   const ua = req.headers.get('user-agent') || '';
 
   // Non-crawlers: redirect immediately without hitting the DB
   if (!isCrawler(ua) && type && slug) {
+    // Re-encode: `slug` is now decoded, so interpolating it raw would put a
+    // literal space (or &, #, …) into the query string and break the link.
+    const q = encodeURIComponent(slug);
     const redirectMap: Record<string, string> = {
-      event:   `${APP_URL}/?event=${slug}`,
-      profile: `${APP_URL}/?profile=${slug}`,
-      reel:    `${APP_URL}/?reel=${slug}`,
+      event:   `${APP_URL}/?event=${q}`,
+      profile: `${APP_URL}/?profile=${q}`,
+      reel:    `${APP_URL}/?reel=${q}`,
     };
     const dest = redirectMap[type] || APP_URL;
     return Response.redirect(dest, 302);
