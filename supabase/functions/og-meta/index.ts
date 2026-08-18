@@ -65,6 +65,7 @@ interface OGProps {
   siteName?: string;
   twitterCard?: 'summary' | 'summary_large_image' | 'player';
   themeColor?: string;
+  jsonLd?: Record<string, unknown>;
 }
 
 function buildHtml(og: OGProps, redirectUrl: string): string {
@@ -72,7 +73,7 @@ function buildHtml(og: OGProps, redirectUrl: string): string {
     title, description, image, imageWidth = 1200, imageHeight = 630,
     imageAlt, url, type = 'website', videoUrl,
     siteName = APP_NAME, twitterCard = 'summary_large_image',
-    themeColor = '#0d1112',
+    themeColor = '#0d1112', jsonLd,
   } = og;
 
   const escapedTitle       = escapeHtml(title);
@@ -115,6 +116,8 @@ function buildHtml(og: OGProps, redirectUrl: string): string {
 
   <!-- WhatsApp / Telegram prefer og: tags — no extras needed -->
 
+  ${jsonLd ? `<script type="application/ld+json">${jsonLdScript(jsonLd)}</script>` : ''}
+
   <!-- Redirect real users instantly -->
   <meta http-equiv="refresh" content="0; url=${escapeHtml(redirectUrl)}" />
   <link rel="canonical" href="${escapeHtml(url)}" />
@@ -137,6 +140,14 @@ function buildHtml(og: OGProps, redirectUrl: string): string {
   </div>
 </body>
 </html>`;
+}
+
+// JSON-LD is user content underneath (event titles, bios) — a raw
+// `</script>` inside a string would close the tag early and let the rest be
+// parsed as HTML. `<` is the only character that matters inside a JSON
+// string for this purpose; escaping it as < is the standard safe form.
+function jsonLdScript(obj: Record<string, unknown>): string {
+  return JSON.stringify(obj).replace(/</g, '\\u003c');
 }
 
 function escapeHtml(str: string): string {
@@ -218,6 +229,36 @@ async function handleEvent(id: string): Promise<OGProps & { redirect: string }> 
   const soldOut = event.capacity > 0 && (event.going || 0) >= event.capacity;
   const parts = [date, where, deal, soldOut ? '🔴 Sold out' : vibes].filter(Boolean);
 
+  // schema.org/Event — real rich-snippet eligibility (date/venue/price stars
+  // in search results). startDate needs a real ISO datetime or Google drops
+  // the whole block; skip it rather than guess when either piece is missing.
+  const startDate = event.event_date
+    ? `${event.event_date}T${event.event_time || '00:00:00'}`
+    : null;
+  const jsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: event.title,
+    ...(startDate ? { startDate } : {}),
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    eventStatus: soldOut ? 'https://schema.org/EventScheduled' : 'https://schema.org/EventScheduled',
+    ...(event.venue_name || event.city ? {
+      location: {
+        '@type': 'Place',
+        name: event.venue_name || event.city,
+        address: event.city ? { '@type': 'PostalAddress', addressLocality: event.city } : undefined,
+      },
+    } : {}),
+    image: [event.cover_url || event.cover_image || DEFAULT_OG_IMAGE],
+    description: event.description || parts.join(' · ') || undefined,
+    offers: {
+      '@type': 'Offer',
+      price: deal === '🆓 Free entry' ? '0' : undefined,
+      availability: soldOut ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
+      url: `${APP_URL}/share/event/${id}`,
+    },
+  };
+
   return {
     title: event.title,
     description: parts.join(' · ') || 'An event on The Gruvs',
@@ -226,6 +267,7 @@ async function handleEvent(id: string): Promise<OGProps & { redirect: string }> 
     url: `${APP_URL}/share/event/${id}`,
     redirect: `${APP_URL}/?event=${id}`,
     type: 'article',
+    jsonLd,
   };
 }
 
@@ -265,6 +307,16 @@ async function handleProfile(username: string): Promise<OGProps & { redirect: st
   const vibes     = profile.vibe_score      ? `${profile.vibe_score} vibes`           : '';
   const stats     = [followers, vibes, badges].filter(Boolean).join(' · ');
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: displayName,
+    alternateName: profile.username,
+    image: profile.avatar_url || undefined,
+    description: profile.bio || undefined,
+    url: `${APP_URL}/share/profile/${encodeURIComponent(username)}`,
+  };
+
   return {
     title: `${displayName} (@${profile.username})`,
     description: profile.bio ? `${profile.bio}${stats ? ' · ' + stats : ''}` : stats || 'A vibe on The Gruvs.',
@@ -276,6 +328,7 @@ async function handleProfile(username: string): Promise<OGProps & { redirect: st
     redirect: `${APP_URL}/?profile=${profile.id}`,
     type: 'profile',
     twitterCard: 'summary',
+    jsonLd,
   };
 }
 
@@ -313,6 +366,23 @@ async function handleReel(id: string): Promise<OGProps & { redirect: string }> {
   const likes       = reel.like_count ? `${reel.like_count} likes` : '';
   const description = [reel.caption, `by ${creator}`, views, likes].filter(Boolean).join(' · ');
 
+  // VideoObject requires either uploadDate or duration for Google's rich
+  // result eligibility — reels has no reliable created_at selected here, so
+  // this stays best-effort: still valid schema without it, just fewer stars.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: reel.caption ? reel.caption.slice(0, 70) : `${creator}'s Reel`,
+    description: description || undefined,
+    thumbnailUrl: [reel.thumbnail_url || DEFAULT_OG_IMAGE],
+    contentUrl: reel.media_url || undefined,
+    interactionStatistic: reel.view_count ? {
+      '@type': 'InteractionCounter',
+      interactionType: 'https://schema.org/WatchAction',
+      userInteractionCount: reel.view_count,
+    } : undefined,
+  };
+
   return {
     title: reel.caption ? reel.caption.slice(0, 70) : `${creator}'s Reel`,
     description,
@@ -322,6 +392,7 @@ async function handleReel(id: string): Promise<OGProps & { redirect: string }> {
     type: 'video.other',
     videoUrl: reel.media_url || undefined,
     twitterCard: reel.media_url ? 'player' : 'summary_large_image',
+    jsonLd,
   };
 }
 

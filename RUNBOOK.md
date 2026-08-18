@@ -63,6 +63,27 @@ of reconstructing this from memory. Covers RISK_REGISTER.md items C1 and C9.
   a known, accepted risk (C1) — not something this runbook fixes, only
   documents so it isn't a surprise later.
 
+## Recurring manual chores (nothing auto-notifies you for these)
+
+- **New business invoice requests**: query `founder_alerts` in the Supabase
+  dashboard (Table Editor or SQL Editor — `select * from founder_alerts where
+  acknowledged = false order by created_at`). This table is RLS-locked to
+  service-role only by design, so it won't show up in the app; it's a
+  founder-only to-do list. Mark a row acknowledged once you've invoiced it.
+- **`spatial_ref_sys` RLS is still disabled** (Supabase advisor flags this
+  every scan) — it's owned by `supabase_admin`, so the SQL Editor role can't
+  `ALTER` it; the migration that tries this skips silently by design. Fix it
+  from the Dashboard directly: **Database → Tables → find `spatial_ref_sys`
+  → toggle "Enable RLS"**, then add a public-read policy (`USING (true)`) so
+  PostGIS geometry lookups keep working. It's non-sensitive SRID reference
+  data (~8500 rows), so a public-read policy is the correct fix, not a
+  restrictive one.
+- **`sec-probe.js` is manual** — `node scripts/sec-probe.js` from repo root.
+  Nothing runs it automatically; re-run it after any migration that touches
+  RLS, and periodically anyway since it can only prove a real leak on tables
+  that currently have rows (an empty table with an open policy looks
+  identical to a properly-guarded empty table in its output).
+
 ## Common "it looks broken but isn't"
 
 - **"No internet connection" banner while online** — known possible false
