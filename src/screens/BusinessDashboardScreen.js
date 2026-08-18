@@ -3,7 +3,7 @@
  * Tabs: Overview · Store · Campaigns · Audience · Analytics · Finance · Ecosystem
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Animated, TextInput, ActivityIndicator, RefreshControl, Dimensions, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Animated, TextInput, ActivityIndicator, RefreshControl, Dimensions, Modal, Linking } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
@@ -28,6 +28,11 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { money } from '../constants/currencies';
 
 const { width: SW } = Dimensions.get('window');
+
+// Matches the prices shown in the Upgrade Tier sheet below (ZAR, plain number —
+// see money() in constants/currencies.js for display formatting). Enterprise is
+// `null` ("Custom") — the founder quotes it directly per business.
+const TIER_PRICING = { pro: 299, royal: 799, enterprise: null };
 
 const TABS = [
   { key: 'overview', label: 'Intel', icon: 'grid' },
@@ -471,6 +476,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const [setupMode, setSetupMode] = useState(false);
   const [setupForm, setSetupForm] = useState({ business_name: '', business_type: '', tagline: '', description: '', website: '', phone: '' });
   const [upgradeVisible, setUpgradeVisible] = useState(false);
+  const [pendingInvoiceRequest, setPendingInvoiceRequest] = useState(null);
   const tabScrollRef = useRef(null);
   const headerAnim = useRef(new Animated.Value(0)).current;
 
@@ -492,7 +498,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       setBiz(bizData);
 
       // Parallel data fetch using centralized managers
-      const [campData, partData, segments, notifData] = await Promise.all([
+      const [campData, partData, segments, notifData, invoiceReq] = await Promise.all([
         CampaignManager.fetchForBusiness(bizData.id).catch(() => []),
         EcosystemManager.fetchPartners(bizData.id).catch(() => []),
         resilientRead(
@@ -511,12 +517,21 @@ export const BusinessDashboardScreen = ({ onClose }) => {
           'BusinessDashboard.segments'
         ),
         NotificationManager.fetch(user.id, 10).catch(() => []),
+        supabase.from('business_invoice_requests').select('*')
+          .eq('business_id', bizData.id)
+          .in('status', ['requested', 'invoiced'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+          .then(({ data }) => data)
+          .catch(() => null),
       ]);
 
       setCampaigns(campData);
       setPartners(partData);
       setSegments(segments || []);
       setNotifications(notifData);
+      setPendingInvoiceRequest(invoiceReq || null);
 
       // Build analytics summary from raw events
       const raw = (await CampaignManager.getPerformance(bizData.id)) || [];
@@ -637,6 +652,42 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       }
     } catch {
       showToast('Upgrade failed. Please try again.', 'error');
+    }
+  };
+
+  // Off-platform "brand_invoice" rail (see MonetizationRegistry.js): logs the
+  // request in business_invoice_requests, then hands off to email for the
+  // founder to invoice manually (EFT/PayPal) and flip the tier by hand. No
+  // PSP, no card data — deliberately manual at this stage.
+  const handleRequestInvoice = async () => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
+    if (!biz || !user) { showToast('No business profile found.', 'error'); return; }
+    if (pendingInvoiceRequest) {
+      showToast('You already have a request pending — check your email.', 'info');
+      return;
+    }
+    const nextTier = biz?.tier === 'pro' || biz?.tier === 'starter' ? 'royal' : 'enterprise';
+    const amount = TIER_PRICING[nextTier] ?? null; // null = "Custom" (Enterprise), founder quotes directly
+    const businessName = biz.business_name?.trim() || `Business ${biz.id?.slice(0, 8) || ''}`;
+    try {
+      const { data, error } = await supabase.from('business_invoice_requests').insert({
+        business_id: biz.id,
+        requested_by: user.id,
+        requested_tier: nextTier,
+        amount,
+        currency: 'ZAR',
+      }).select().single();
+      if (error) { showToast('Could not send request. Try again.', 'error'); return; }
+      setPendingInvoiceRequest(data);
+      showToast('Request sent — we\'ll email you an invoice.', 'success');
+      const subject = encodeURIComponent(`Invoice request: ${businessName} → ${nextTier.toUpperCase()}`);
+      const body = encodeURIComponent(
+        `Business: ${businessName}\nCurrent tier: ${biz.tier || 'starter'}\nRequested tier: ${nextTier}\n` +
+        (amount != null ? `Price: R${amount}/mo\n` : 'Price: Custom (quote directly)\n')
+      );
+      Linking.openURL(`mailto:asemahlenkwali@gmail.com?subject=${subject}&body=${body}`).catch(() => {});
+    } catch {
+      showToast('Request failed. Please try again.', 'error');
     }
   };
 
@@ -1109,8 +1160,20 @@ export const BusinessDashboardScreen = ({ onClose }) => {
 
           <GlassView style={[sc.infoCard, { borderColor: `${primary}15`, marginTop: 12 }]}>
             <Feather name="info" size={14} color={primary} />
-            <Text style={[sc.infoBody, { color: muted, marginLeft: 10 }]}>Payouts, invoices, and Stacks reports are available on Royal and Enterprise plans. Upgrade to unlock full Stacks management.</Text>
+            <Text style={[sc.infoBody, { color: muted, marginLeft: 10 }]}>Payouts, invoices, and Stacks reports are available on Royal and Enterprise plans.</Text>
           </GlassView>
+
+          {biz?.tier !== 'royal' && biz?.tier !== 'enterprise' && (
+            <TouchableOpacity
+              onPress={handleRequestInvoice}
+              disabled={!!pendingInvoiceRequest}
+              style={[sc.emptyBtn, { backgroundColor: pendingInvoiceRequest ? `${primary}40` : primary, marginTop: 12, alignSelf: 'flex-start' }]}
+            >
+              <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>
+                {pendingInvoiceRequest ? 'REQUEST PENDING — CHECK YOUR EMAIL' : 'REQUEST ROYAL/ENTERPRISE INVOICE'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       );
 

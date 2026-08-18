@@ -35,7 +35,10 @@ export const RAILS_CONNECTED = {
   admob: false,
   iap: false,            // RevenueCat / react-native-purchases
   affiliate: false,
-  brand_invoice: false,  // your invoicing (PayPal/EFT) for businesses & brands
+  // your invoicing (PayPal/EFT) for businesses & brands. Live as of the
+  // business_invoice_requests table + BusinessDashboardScreen's "Request
+  // Royal/Enterprise Invoice" action — manual fulfillment, no PSP.
+  brand_invoice: true,
   payout_provider: false,
   voucher_xp: false,
 };

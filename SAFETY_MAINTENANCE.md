@@ -47,6 +47,28 @@ Do these as a real user on production, ~15 minutes. Enforcement must be
 - [ ] Re-read `KNOWN-REMAINING` in the latest security audit memory/doc — has
       anything sat "known" for two quarters? Fix or accept it explicitly.
 
+## New geo/location feature checklist (RISK_REGISTER.md C4)
+
+Every location leak this app has ever had came from a new geo feature
+shipping without this. Run through it before merging anything that stores or
+displays a user's coordinates (Home-area, Path Map, or anything after them):
+
+- [ ] Precise lat/lon is written via a server-side RPC, never a direct
+      client `.insert()`/`.update()` on a table holding raw coordinates.
+- [ ] RLS on the table: can a signed-in user who is NOT the owner (and not an
+      explicit consenting party, e.g. a crossed-path match) SELECT the row?
+      Test it — don't assume the policy does what the comment says.
+- [ ] Run `node scripts/sec-probe.js` after the migration lands — it now
+      covers `live_checkins`/`path_crossings`; add any new geo table to
+      `PRIVATE_READ` in that script before shipping.
+- [ ] Aggregation (heatmaps, "how busy is it") uses counts/buckets, never
+      raw per-user points, at any zoom level a client can reach.
+- [ ] A minor's location follows the same age-gate the rest of the app uses
+      (`filterByViewerAge`/`canView`) — don't assume a new table inherits it.
+- [ ] Cached location on-device (`LocationService._cachedCoords`-style state)
+      has a clear invalidation point — don't let stale coordinates outlive
+      the session that captured them.
+
 ## What this plan does NOT cover (the other walls)
 
 - **RLS/enforcement drift** — 48/99 RPCs currently missing on live DB. Every

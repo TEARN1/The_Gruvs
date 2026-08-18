@@ -27,7 +27,7 @@ export const Accommodation = {
       const dLng = radiusM / (M_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180) || 1);
       const { data, error } = await supabase
         .from('res_listings')
-        .select('id, title, price, currency, suburb, city, lat, lon, images, wifi, parking, bathroom, safety_rating, landlord_lives_here, approach_photo_url, status')
+        .select('id, title, price, currency, suburb, city, lat, lon, images, wifi, parking, bathroom, safety_rating, landlord_lives_here, status')
         .gte('lat', lat - dLat).lte('lat', lat + dLat)
         .gte('lon', lng - dLng).lte('lon', lng + dLng)
         .limit(200);
@@ -49,7 +49,7 @@ export const Accommodation = {
           city: r.city || null,
           lat: Number(r.lat),
           lng: Number(r.lon),
-          image: r.approach_photo_url || (Array.isArray(r.images) ? r.images[0] : null) || null,
+          image: (Array.isArray(r.images) ? r.images[0] : null) || null,
           wifi: !!r.wifi,
           parking: !!r.parking,
           bathroom: r.bathroom || null,

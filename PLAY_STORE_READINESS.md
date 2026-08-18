@@ -53,6 +53,14 @@ migrating to the Android Photo Picker. `expo-image-picker` can use the system
 picker without broad media permissions — worth checking which mode is configured
 before filling in the declaration.
 
+### 3b. New: `business_invoice_requests` collects business + user IDs
+Added 2026-08-18 for the off-platform B2B invoicing flow (no PSP — see
+[RISK_REGISTER.md](RISK_REGISTER.md)). It stores `business_id`, `requested_by`
+(a user ID), a tier, and a ZAR amount. No payment card or bank data — but it
+is a new data-collection surface tied to a specific user, so the Data Safety
+form needs this table accounted for ("App functionality" / business use,
+shared with no one, not used for advertising) when that form is filled in.
+
 ### 4. Accessibility coverage is thin — **7%**
 1,176 `onPress` handlers, **94** `accessibilityLabel`s. TalkBack users hit a lot
 of unlabelled controls. Not a hard rejection, but it is a listing-quality and

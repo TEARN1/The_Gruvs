@@ -1283,6 +1283,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                     ]}
                     onPress={() => handleRsvp(opt.key)}
                     disabled={rsvpLoading}
+                    accessibilityRole="button"
+                    accessibilityLabel={`RSVP ${opt.label}`}
+                    accessibilityState={{ selected: active, disabled: rsvpLoading }}
                   >
                     <Feather name={opt.icon} size={16} color={active ? primary : textMuted} />
                     <Text style={[styles.rsvpBtnText, { color: active ? primary : textMuted }]}>{opt.label}</Text>
@@ -1488,6 +1491,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 onPress={checkedIn ? () => { if (feature('crossedPaths')) setCrossedVisible(true); } : handleCheckIn}
                 disabled={checkingIn}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={checkedIn ? 'View Crossed Paths' : 'Touch Down — confirm you are physically at this event'}
+                accessibilityState={{ disabled: checkingIn, busy: checkingIn }}
               >
                 <Feather name={checkedIn ? 'users' : 'map-pin'} size={16} color="#000" />
                 <Text style={styles.checkInBtnText}>

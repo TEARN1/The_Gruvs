@@ -29,6 +29,7 @@ const PRIVATE_READ = [
   'service_bookings', 'disputes', 'reel_reports', 'reports', 'muted_users',
   'user_blocks', 'security_logs', 'ai_user_memory', 'user_deep_profile',
   'event_rsvps', 'notifications', 'push_tokens', 'governance_votes',
+  'business_invoice_requests', 'touch_downs', 'live_checkins', 'path_crossings',
 ];
 
 // Public-ish tables — readable is fine, but check for leaked PII columns.
@@ -39,7 +40,7 @@ const PII_CHECK = {
 };
 
 // Tables an anonymous user must NOT be able to write.
-const WRITE_TABLES = ['profiles', 'events', 'event_rsvps', 'messages', 'wallet_transactions', 'reports', 'follows'];
+const WRITE_TABLES = ['profiles', 'events', 'event_rsvps', 'messages', 'wallet_transactions', 'reports', 'follows', 'business_invoice_requests'];
 
 const RLS_DENIED = new Set(['42501', 'PGRST301']); // permission denied / JWT required
 
