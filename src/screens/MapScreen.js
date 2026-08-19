@@ -7,14 +7,14 @@
  * disputes a closure (Truth Protocol). Everything is SafeSection-wrapped so a
  * map failure never takes the app down.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Image } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { LiveMap, isMapSupported } from '../components/LiveMap';
+import { LiveMap, isMapSupported, MAP_STYLES, DEFAULT_MAP_STYLE } from '../components/LiveMap';
 import { ZoneDrawTool } from '../components/ZoneDrawTool';
 import { MapEventPreview } from '../components/MapEventPreview';
 import { MapZones, ZONE_KINDS, ZONE_STATUS } from '../services/mapZones';
@@ -37,6 +37,36 @@ const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
 const NUDGE_COOLDOWN_MS = 2 * 3600 * 1000; // don't nag — at most every 2h
 
 const JHB = { lat: -26.2041, lng: 28.0473 };
+
+// Query a generously padded box, never the exact viewport. Opening on your own
+// location lands at street zoom, where the literal viewport is a few hundred
+// metres — a strict bbox query there returns nothing and the map looks broken.
+// The floor (~0.25° ≈ 27km) keeps a city's worth of context loaded, so panning
+// a few blocks never blanks the map.
+function padBounds(b, factor = 1.6, minSpanDeg = 0.25) {
+  const midLat = (b.minLat + b.maxLat) / 2;
+  const midLng = (b.minLng + b.maxLng) / 2;
+  const halfLat = Math.max((b.maxLat - b.minLat) * factor, minSpanDeg) / 2;
+  const halfLng = Math.max((b.maxLng - b.minLng) * factor, minSpanDeg) / 2;
+  return {
+    minLat: midLat - halfLat, maxLat: midLat + halfLat,
+    minLng: midLng - halfLng, maxLng: midLng + halfLng,
+  };
+}
+
+// Has the map moved far enough that the loaded data no longer covers the view?
+// Deliberately NOT "refetch on every moveend" — that would fire a query on each
+// frame of a drag. The map offers a button instead, the way every map app does.
+function boundsAreStale(loaded, next) {
+  if (!loaded || !next) return false;
+  const cLat = (next.minLat + next.maxLat) / 2;
+  const cLng = (next.minLng + next.maxLng) / 2;
+  // Centre wandered outside the area we actually queried.
+  if (cLat < loaded.minLat || cLat > loaded.maxLat || cLng < loaded.minLng || cLng > loaded.maxLng) return true;
+  // Or zoomed out far enough to be looking at meaningfully more ground.
+  const areaOf = (b) => Math.max(1e-9, (b.maxLat - b.minLat) * (b.maxLng - b.minLng));
+  return areaOf(next) > areaOf(loaded) * 1.8;
+}
 
 export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
@@ -62,6 +92,26 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [events, setEvents] = useState([]);
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // ── Viewport-driven loading ────────────────────────────────────────────────
+  // The map used to be a fixed snapshot: it loaded once around wherever it
+  // opened and never queried again, so panning to another city showed nothing
+  // and events were fetched with no geographic filter at all (300 arbitrary
+  // rows worldwide). LiveMap now reports its viewport, we query by bounding
+  // box, and moving far enough offers a "Search this area" button rather than
+  // refetching on every twitch of a drag.
+  const [areaDirty, setAreaDirty] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [firstBounds, setFirstBounds] = useState(null);
+  const viewportRef = useRef(null);      // latest {bounds, center, zoom}
+  const loadedBoundsRef = useRef(null);  // the area the loaded events came from
+
+  // ── Search + filters (client-side over the loaded set — instant, no round trip)
+  const [query, setQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [dateFilter, setDateFilter] = useState('all');   // all | tonight | week
+  const [catFilter, setCatFilter] = useState(null);
+  const [styleKey, setStyleKey] = useState(DEFAULT_MAP_STYLE);
 
   // Draw session
   const [drawing, setDrawing] = useState(false);
@@ -105,27 +155,42 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     })();
   }, []);
 
-  const loadZones = useCallback(async () => {
-    const c = centerRef.current;
+  // `at` lets the viewport drive the query; falls back to the tracked centre
+  // for the initial load and for the realtime-subscription refresh.
+  const loadZones = useCallback(async (at = null) => {
+    const c = at || viewportRef.current?.center || centerRef.current;
     const rows = await MapZones.near(c.lat, c.lng, { radiusM: 15000 });
     setZones(rows);
   }, []);
 
-  const loadEvents = useCallback(async () => {
+  // `bounds` narrows the query to what's actually on screen. Passing null keeps
+  // the old global behaviour, used only for the very first paint before the map
+  // has reported a viewport.
+  const loadEvents = useCallback(async (bounds = null) => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      // Upcoming events with coordinates (either lat/lon or latitude/longitude).
-      const { data } = await supabase
+      let q = supabase
         .from('events')
         // `description` feeds the content age-rating below the same text signal
         // the other surfaces get (a tame title can carry a mature description);
         // it is not rendered on the map. `min_age` is the STORED floor and takes
         // priority over text rating — without it the gate silently degraded to
         // guessing from prose, which let 18+ listings through.
-        .select('id, title, description, min_age, latitude, longitude, lat, lon, going, event_date')
+        // `venue_name`/`city` back the search box; `category` backs the filter.
+        .select('id, title, description, min_age, latitude, longitude, lat, lon, going, event_date, venue_name, city, category')
         .gte('event_date', today)
-        .is('deleted_at', null)
-        .limit(300);
+        .is('deleted_at', null);
+
+      // Bounding-box filter on lat/lon. Verified against the live DB: lat/lon is
+      // populated on every event row, while latitude/longitude is set on barely
+      // half and never alone — so lat/lon is the authoritative pair and it is
+      // safe to filter on directly.
+      if (bounds) {
+        q = q.gte('lat', bounds.minLat).lte('lat', bounds.maxLat)
+             .gte('lon', bounds.minLng).lte('lon', bounds.maxLng);
+      }
+
+      const { data } = await q.limit(500);
       const withCoords = (data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null);
       // Silently hide mature listings from under-age viewers. The map was the
       // ONLY discovery surface missing this — The Drop, Explore, Scout and Reels
@@ -135,6 +200,46 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       setEvents(filterByViewerAge(withCoords, viewerAgeSync(), e => `${e.title || ''} ${e.description || ''}`));
     } catch { setEvents([]); }
   }, []);
+
+  const handleViewport = useCallback((vp) => {
+    if (!vp?.bounds) return;
+    viewportRef.current = vp;
+    // First report also arms the one-time refine below.
+    setFirstBounds((prev) => prev || vp.bounds);
+    if (loadedBoundsRef.current) setAreaDirty(boundsAreStale(loadedBoundsRef.current, vp.bounds));
+  }, []);
+
+  // The very first fetch runs before the map has reported anything, so it's
+  // unbounded. The moment we learn where the map actually settled, narrow to
+  // that area — this is what makes "the map shows what's HERE" true instead of
+  // showing an arbitrary slice of every event in the database.
+  const refinedRef = useRef(false);
+  useEffect(() => {
+    if (!firstBounds || refinedRef.current) return;
+    refinedRef.current = true;
+    const padded = padBounds(firstBounds);
+    loadedBoundsRef.current = padded;
+    loadEvents(padded);
+  }, [firstBounds, loadEvents]);
+
+  // "Search this area" — reload events, zones and (if shown) stays for exactly
+  // what's on screen right now.
+  const searchThisArea = useCallback(async () => {
+    const vp = viewportRef.current;
+    if (!vp?.bounds || searching) return;
+    setSearching(true);
+    try {
+      const b = padBounds(vp.bounds);
+      await Promise.all([
+        loadEvents(b),
+        loadZones(vp.center),
+        showStays ? Accommodation.near(vp.center.lat, vp.center.lng, { radiusM: 15000 }).then(setStays) : Promise.resolve(),
+      ]);
+      loadedBoundsRef.current = b;
+      setAreaDirty(false);
+    } catch { toast('Could not load this area.', 'error'); }
+    finally { setSearching(false); }
+  }, [loadEvents, loadZones, searching, showStays, toast]);
 
   useEffect(() => {
     let alive = true;
@@ -281,14 +386,67 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const toggleStays = async () => {
     const next = !showStays;
     setShowStays(next);
-    if (next && stays.length === 0) {
-      const c = centerRef.current;
+    // Always refetch for wherever the map is NOW. The old `stays.length === 0`
+    // guard meant that once loaded, panning to another city and re-toggling
+    // still showed the first city's listings.
+    if (next) {
+      const c = viewportRef.current?.center || centerRef.current;
       const rows = await Accommodation.near(c.lat, c.lng, { radiusM: 15000 });
       setStays(rows);
       if (rows.length === 0) toast('No Resident Crew stays near here yet.', 'info');
     }
   };
   const openStay = (id) => { const s = stays.find((x) => x.id === id); if (s) setActiveStay(s); };
+
+  // ── Search + filters ───────────────────────────────────────────────────────
+  // Geography is the expensive dimension, so that's filtered server-side by
+  // bounding box. These three are instant and need no round trip, so they run
+  // client-side over whatever's loaded.
+  const categories = useMemo(() => {
+    const seen = new Map();
+    for (const e of events) {
+      const c = (e.category || '').trim();
+      if (c) seen.set(c, (seen.get(c) || 0) + 1);
+    }
+    return [...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([c]) => c);
+  }, [events]);
+
+  const visibleEvents = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const today = new Date().toISOString().split('T')[0];
+    const weekOut = new Date(Date.now() + 7 * 864e5).toISOString().split('T')[0];
+    return events.filter((e) => {
+      if (dateFilter === 'tonight' && e.event_date !== today) return false;
+      if (dateFilter === 'week' && !(e.event_date >= today && e.event_date <= weekOut)) return false;
+      if (catFilter && (e.category || '') !== catFilter) return false;
+      if (q) {
+        const hay = `${e.title || ''} ${e.venue_name || ''} ${e.city || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [events, query, dateFilter, catFilter]);
+
+  const filtersOn = dateFilter !== 'all' || !!catFilter || !!query.trim();
+
+  // Typing filters the pins instantly. Submitting when nothing matched treats
+  // the text as a PLACE instead and moves the map there — the two things people
+  // actually type into a map search box.
+  const submitSearch = async () => {
+    const q = query.trim();
+    if (!q || visibleEvents.length > 0) return;
+    try {
+      const hit = await LocationService.geocode(q);
+      if (hit?.lat != null) {
+        setCenter({ lat: hit.lat, lng: hit.lon });
+        setCentredOnUser(true);
+        setFocusZoom((z) => (z === 13 ? 13.0001 : 13));
+        toast('Moved there — tap "Search this area" to load events.', 'info');
+      } else {
+        toast('Nothing matched that name or place.', 'info');
+      }
+    } catch { toast('Could not look that place up.', 'error'); }
+  };
 
   // The biggest convergence (most of your crew on one spot) drives the summary.
   const topCrew = showCrew && crewPlans.length ? crewPlans[0] : null;
@@ -301,18 +459,80 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       <SafeAreaView style={[cs.screen, { backgroundColor: bg }]} edges={['top']}>
         {/* Header */}
         <View style={cs.header}>
-          <Text style={[cs.title, { color: primary }]}>THE MAP</Text>
-          <Text style={[cs.sub, { color: muted }]}>
-            {loading ? 'Reading your city…'
-              : `${events.length} events${activeClosures ? ` · ${activeClosures} live closure${activeClosures === 1 ? '' : 's'}` : ''}`}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={[cs.title, { color: primary }]}>THE MAP</Text>
+              <Text style={[cs.sub, { color: muted }]}>
+                {loading ? 'Reading your city…'
+                  : `${visibleEvents.length}${filtersOn ? ` of ${events.length}` : ''} event${visibleEvents.length === 1 ? '' : 's'}${activeClosures ? ` · ${activeClosures} live closure${activeClosures === 1 ? '' : 's'}` : ''}`}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => { setShowSearch((s) => !s); if (showSearch) setQuery(''); }}
+              style={[cs.headBtn, { borderColor: `${primary}40`, backgroundColor: showSearch ? primary : 'transparent' }]}
+              accessibilityRole="button"
+              accessibilityLabel={showSearch ? 'Close search' : 'Search events and places'}
+            >
+              <Feather name={showSearch ? 'x' : 'search'} size={17} color={showSearch ? '#000' : primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Search + filters */}
+          {showSearch && (
+            <View style={{ gap: 8, marginTop: 8 }}>
+              <View style={[cs.searchBox, { borderColor: `${primary}35` }]}>
+                <Feather name="search" size={14} color={muted} />
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  onSubmitEditing={submitSearch}
+                  returnKeyType="search"
+                  placeholder="Event, venue, city or a place…"
+                  placeholderTextColor={muted}
+                  style={[cs.searchInput, { color: textColor }]}
+                  accessibilityLabel="Search events, venues, or a place"
+                />
+                {!!query && (
+                  <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Feather name="x-circle" size={15} color={muted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7 }}>
+                {[
+                  { k: 'all', label: 'Any date' },
+                  { k: 'tonight', label: 'Tonight' },
+                  { k: 'week', label: 'This week' },
+                ].map((d) => (
+                  <Chip
+                    key={d.k} label={d.label} active={dateFilter === d.k}
+                    onPress={() => setDateFilter(d.k)} primary={primary} muted={muted}
+                  />
+                ))}
+                {categories.map((c) => (
+                  <Chip
+                    key={c} label={c} active={catFilter === c}
+                    onPress={() => setCatFilter((v) => (v === c ? null : c))}
+                    primary={primary} muted={muted}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </View>
 
         {/* The map fills the rest */}
         <View style={{ flex: 1 }}>
           <ErrorBoundary label="Live map" inline primary={primary}>
             <LiveMap
-              events={events}
+              // Remount on style change: switching basemap via setStyle wipes
+              // every custom source and layer, so a clean remount is both
+              // simpler and safer than reinstalling them all by hand.
+              key={styleKey}
+              mapStyle={styleKey}
+              onViewportChange={handleViewport}
+              events={visibleEvents}
               zones={zones}
               center={center}
               autoFit={!centredOnUser}
@@ -334,9 +554,38 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             />
           </ErrorBoundary>
 
+          {/* "Search this area" — appears once the map has been moved far enough
+              that the loaded data no longer covers what's on screen. */}
+          {areaDirty && !drawing && !activeZone && !previewId && (
+            <TouchableOpacity
+              onPress={searchThisArea}
+              disabled={searching}
+              activeOpacity={0.85}
+              style={[cs.areaBtn, { backgroundColor: primary, opacity: searching ? 0.7 : 1 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Search this area for events"
+            >
+              {searching
+                ? <ActivityIndicator size="small" color="#000" />
+                : <Feather name="refresh-cw" size={14} color="#000" />}
+              <Text style={cs.areaBtnText}>{searching ? 'Searching…' : 'Search this area'}</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Floating controls (only when the real map is up and not drawing) */}
           {isMapSupported() && !drawing && (
             <View style={cs.fabCol} pointerEvents="box-none">
+              <TouchableOpacity
+                onPress={() => {
+                  const keys = Object.keys(MAP_STYLES);
+                  setStyleKey((k) => keys[(keys.indexOf(k) + 1) % keys.length]);
+                }}
+                style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Map style: ${MAP_STYLES[styleKey]?.label}. Tap to change.`}
+              >
+                <Feather name="layers" size={17} color={primary} />
+              </TouchableOpacity>
               <TouchableOpacity onPress={toggleMine} style={[cs.fab, { backgroundColor: showMine ? '#fbbf24' : bg, borderColor: showMine ? '#fbbf24' : `${primary}40` }]}>
                 <Feather name="star" size={18} color={showMine ? '#000' : '#fbbf24'} />
               </TouchableOpacity>
@@ -440,7 +689,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         {/* Tapped-pin preview — RSVP, save, route, live here-now, swipe pins */}
         {previewId && !drawing && !activeZone && (
           <MapEventPreview
-            events={events}
+            events={visibleEvents}
             startId={previewId}
             userCoords={center}
             zones={zones}
@@ -462,7 +711,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         {/* Concierge destinations */}
         <VibeRouletteModal
           visible={showRoulette} onClose={() => setShowRoulette(false)}
-          events={events} primary={primary}
+          events={visibleEvents} primary={primary}
           onSelectEvent={(e) => { setShowRoulette(false); if (e?.id) onNavigateToEvent?.({ id: e.id }); }}
         />
         <GetHomeSafeModal visible={showHomeSafe} onClose={() => setShowHomeSafe(false)} />
@@ -470,6 +719,19 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     </ErrorBoundary>
   );
 };
+
+// ── Filter chip ───────────────────────────────────────────────────────────────
+const Chip = ({ label, active, onPress, primary, muted }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[cs.chip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? primary : 'transparent' }]}
+    accessibilityRole="button"
+    accessibilityState={{ selected: !!active }}
+    accessibilityLabel={`Filter: ${label}`}
+  >
+    <Text style={[cs.chipText, { color: active ? '#000' : muted }]} numberOfLines={1}>{label}</Text>
+  </TouchableOpacity>
+);
 
 // ── Stay detail sheet — accommodation from Resident Crew ──────────────────────
 const StayDetail = ({ stay, onClose, bg, textColor, muted }) => {
@@ -593,6 +855,17 @@ const cs = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8 },
   title: { fontSize: 22, fontWeight: '900', letterSpacing: 1 },
   sub: { fontSize: 12, fontWeight: '600', marginTop: 1 },
+  headBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8 },
+  searchInput: { flex: 1, fontSize: 14, fontWeight: '600', padding: 0 },
+  chip: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
+  chipText: { fontSize: 11, fontWeight: '800', textTransform: 'capitalize' },
+  areaBtn: {
+    position: 'absolute', top: 12, alignSelf: 'center', flexDirection: 'row', alignItems: 'center',
+    gap: 7, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22,
+    shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 4,
+  },
+  areaBtnText: { color: '#000', fontWeight: '900', fontSize: 12.5 },
   fabCol: { position: 'absolute', right: 14, bottom: 20, alignItems: 'flex-end', gap: 10 },
   fab: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   markBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 24 },

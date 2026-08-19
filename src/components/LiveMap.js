@@ -22,10 +22,23 @@ if (Platform.OS === 'web') {
   try { maplibregl = require('maplibre-gl').default || require('maplibre-gl'); } catch { maplibregl = null; }
 }
 
-// OpenFreeMap positron — a clean, free, keyless basemap. Neon pins/zones sit on
-// top and read beautifully against it. (A custom dark style is a later polish.)
-const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
+// OpenFreeMap basemaps — free, keyless, no billing account. All four verified
+// live. `dark` is the default: this is a nightlife map, usually opened at night
+// in a dim venue, and a white basemap is a flashbang in that context. The neon
+// pins also read far better against dark.
+export const MAP_STYLES = {
+  dark:     { id: 'dark',     label: 'Night',   url: 'https://tiles.openfreemap.org/styles/dark' },
+  positron: { id: 'positron', label: 'Light',   url: 'https://tiles.openfreemap.org/styles/positron' },
+  liberty:  { id: 'liberty',  label: 'Detail',  url: 'https://tiles.openfreemap.org/styles/liberty' },
+};
+export const DEFAULT_MAP_STYLE = 'dark';
+const styleUrl = (k) => (MAP_STYLES[k] || MAP_STYLES[DEFAULT_MAP_STYLE]).url;
 const DEFAULT_CENTER = { lng: 28.0473, lat: -26.2041 }; // Johannesburg
+
+// Clustering. Without it a dense city collapses into a single unreadable blob of
+// overlapping pins and a tap hits whichever happens to be on top.
+const CLUSTER_RADIUS = 45;
+const CLUSTER_MAX_ZOOM = 14;   // past this, always show individual pins
 
 // Native counterpart. Same engine, same style, same GeoJSON — a declarative
 // React binding instead of the imperative web one. Guarded the same way as the
@@ -64,6 +77,16 @@ const L_EVENTS_GLOW  = {
 const L_EVENTS_DOT   = {
   'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 0, 5, 50, 9],
   'circle-color': '#00f2ff', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5,
+};
+// Clusters: one puck standing in for N events, growing with the count.
+const L_EVENTS_CLUSTER = {
+  'circle-radius': ['interpolate', ['linear'], ['get', 'point_count'], 2, 15, 25, 26, 100, 36],
+  'circle-color': '#00f2ff', 'circle-opacity': 0.85,
+  'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2,
+};
+const L_EVENTS_CLUSTER_COUNT = {
+  'text-field': ['to-string', ['get', 'point_count_abbreviated']],
+  'text-size': 12, 'text-allow-overlap': true,
 };
 const L_MINE_GLOW    = { 'circle-radius': 16, 'circle-color': '#fbbf24', 'circle-opacity': 0.16, 'circle-blur': 0.7 };
 const L_MINE_DOT     = { 'circle-radius': 5, 'circle-color': '#fbbf24', 'circle-stroke-color': '#fff7ed', 'circle-stroke-width': 1.5 };
@@ -136,6 +159,9 @@ export function LiveMap({
   autoFit = false,        // frame the events once, when the caller has no better centre
   myLocation = null,      // {lat,lng} — "you are here" blue dot
   focusZoom = null,       // when set, a `center` change also eases to this zoom
+  mapStyle = DEFAULT_MAP_STYLE,   // key into MAP_STYLES
+  cluster = true,         // group overlapping pins (tap a cluster to zoom in)
+  onViewportChange,       // ({ bounds:{minLat,maxLat,minLng,maxLng}, center, zoom }) => void
   style,
 }) {
   const containerRef = useRef(null);
@@ -145,6 +171,14 @@ export function LiveMap({
   const mineRef = useRef(showMine);
   const crewRef = useRef(showCrew);
   const staysRef = useRef(showStays);
+  // Read once at init. Switching basemap style remounts the whole component
+  // (LiveMap is keyed on it by the caller) rather than calling setStyle, which
+  // would wipe every custom source and layer and need them all re-installed.
+  const mapStyleRef = useRef(mapStyle);
+  const clusterRef = useRef(cluster);
+  // Latest viewport callback, so the map's own listener never goes stale.
+  const onViewportRef = useRef(onViewportChange);
+  useEffect(() => { onViewportRef.current = onViewportChange; });
   useEffect(() => { heatRef.current = heat; toggleHeat(heat); });
   useEffect(() => { mineRef.current = showMine; toggleMine(showMine); });
   useEffect(() => { crewRef.current = showCrew; toggleCrew(showCrew); });
@@ -161,13 +195,38 @@ export function LiveMap({
     try {
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: MAP_STYLE,
+        style: styleUrl(mapStyleRef.current),
         center: [center?.lng ?? DEFAULT_CENTER.lng, center?.lat ?? DEFAULT_CENTER.lat],
         zoom: 12,
         attributionControl: { compact: true },
       });
     } catch { return; }
     mapRef.current = map;
+
+    // Zoom buttons + compass. Pinch-only excluded one-handed use entirely, and
+    // there was no way back to north once the map had been rotated.
+    try {
+      map.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: false }), 'top-right');
+      map.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'bottom-left');
+    } catch { /* controls are polish — never let one break the map */ }
+
+    // Tell the parent what the user is actually looking at. Without this the
+    // app had no idea the map had moved, so nothing could ever reload for the
+    // new area — the whole map was a fixed snapshot of wherever it opened.
+    const emitViewport = () => {
+      if (!onViewportRef.current) return;
+      try {
+        const b = map.getBounds();
+        const c = map.getCenter();
+        onViewportRef.current({
+          bounds: { minLng: b.getWest(), minLat: b.getSouth(), maxLng: b.getEast(), maxLat: b.getNorth() },
+          center: { lat: c.lat, lng: c.lng },
+          zoom: map.getZoom(),
+        });
+      } catch { /* getBounds throws pre-style-load */ }
+    };
+    map.on('moveend', emitViewport);
+    map.on('zoomend', emitViewport);
 
     map.on('load', () => {
       readyRef.current = true;
@@ -183,21 +242,42 @@ export function LiveMap({
         paint: L_ZONES_LINE,
       });
 
-      // Events: glowing dots sized by verified presence.
-      map.addSource('events', { type: 'geojson', data: eventsToGeoJSON(events) });
+      // Events: glowing dots sized by verified presence, grouped into clusters
+      // while zoomed out. `clusterProperties` sums each cluster's `here` count
+      // so the heat layer keeps working on clustered and single points alike.
+      map.addSource('events', {
+        type: 'geojson',
+        data: eventsToGeoJSON(events),
+        cluster: clusterRef.current,
+        clusterRadius: CLUSTER_RADIUS,
+        clusterMaxZoom: CLUSTER_MAX_ZOOM,
+        clusterProperties: { here: ['+', ['get', 'here']] },
+      });
       // Presence heat — where the crowd actually is (weighted by verified count).
       map.addLayer({
         id: 'events-heat', type: 'heatmap', source: 'events',
         layout: { visibility: heatRef.current ? 'visible' : 'none' },
         paint: L_EVENTS_HEAT,
       });
+      // Single pins only — clusters get their own puck below.
+      const SINGLE = ['!', ['has', 'point_count']];
       map.addLayer({
         id: 'events-glow', type: 'circle', source: 'events',
-        paint: L_EVENTS_GLOW,
+        filter: SINGLE, paint: L_EVENTS_GLOW,
       });
       map.addLayer({
         id: 'events-dot', type: 'circle', source: 'events',
-        paint: L_EVENTS_DOT,
+        filter: SINGLE, paint: L_EVENTS_DOT,
+      });
+      map.addLayer({
+        id: 'events-cluster', type: 'circle', source: 'events',
+        filter: ['has', 'point_count'], paint: L_EVENTS_CLUSTER,
+      });
+      map.addLayer({
+        id: 'events-cluster-count', type: 'symbol', source: 'events',
+        filter: ['has', 'point_count'],
+        layout: L_EVENTS_CLUSTER_COUNT,
+        paint: { 'text-color': '#00232b' },
       });
 
       // Fog of the City — your lit Touch Downs (warm gold), your personal territory.
@@ -282,6 +362,22 @@ export function LiveMap({
       // Taps: draw takes priority; else pin hit-test.
       map.on('click', (ev) => {
         if (drawModeRef.current) { onClickRef.current?.([ev.lngLat.lng, ev.lngLat.lat]); return; }
+        // A cluster is not a pin — tapping it means "show me what's in here",
+        // so expand to the zoom where it breaks apart.
+        const cl = map.queryRenderedFeatures(ev.point, { layers: ['events-cluster', 'events-cluster-count'] });
+        if (cl && cl[0]) {
+          const src = map.getSource('events');
+          const cid = cl[0].properties.cluster_id;
+          try {
+            src.getClusterExpansionZoom(cid).then((z) => {
+              map.easeTo({ center: cl[0].geometry.coordinates, zoom: z, duration: 500 });
+            }).catch(() => {});
+          } catch {
+            // older signature: callback form
+            try { src.getClusterExpansionZoom(cid, (e, z) => { if (!e) map.easeTo({ center: cl[0].geometry.coordinates, zoom: z, duration: 500 }); }); } catch {}
+          }
+          return;
+        }
         const hit = map.queryRenderedFeatures(ev.point, { layers: ['events-dot', 'events-glow'] });
         if (hit && hit[0]) { onEventRef.current?.(hit[0].properties.id); return; }
         const stay = map.queryRenderedFeatures(ev.point, { layers: ['stays-dot', 'stays-icon'] });
@@ -290,6 +386,9 @@ export function LiveMap({
         if (z && z[0]) onZoneRef.current?.(z[0].properties.id);
       });
       map.getCanvas().style.cursor = '';
+      // First report — the caller needs a viewport before the user touches
+      // anything, otherwise the initial load has no area to query.
+      emitViewport();
       onReady?.();
     });
 
@@ -471,9 +570,27 @@ export function LiveMap({
     return (
       <MapView
         style={[{ flex: 1 }, style]}
-        mapStyle={MAP_STYLE}
+        mapStyle={styleUrl(mapStyle)}
         onPress={(e) => {
           if (drawMode && e?.geometry?.coordinates) onMapClick?.(e.geometry.coordinates);
+        }}
+        onRegionDidChange={(f) => {
+          // Native's counterpart to web's moveend — same contract, so the
+          // caller's "reload for this area" logic is platform-agnostic.
+          if (!onViewportChange) return;
+          try {
+            const vb = f?.properties?.visibleBounds; // [[eLng,nLat],[wLng,sLat]]
+            const c = f?.geometry?.coordinates;
+            if (!vb || !c) return;
+            onViewportChange({
+              bounds: {
+                minLng: Math.min(vb[0][0], vb[1][0]), maxLng: Math.max(vb[0][0], vb[1][0]),
+                minLat: Math.min(vb[0][1], vb[1][1]), maxLat: Math.max(vb[0][1], vb[1][1]),
+              },
+              center: { lng: c[0], lat: c[1] },
+              zoom: f?.properties?.zoomLevel,
+            });
+          } catch { /* shape varies by version — never crash the map over it */ }
         }}
       >
         <Camera
@@ -487,10 +604,24 @@ export function LiveMap({
           <LineLayer id="zones-line" style={L_ZONES_LINE} />
         </ShapeSource>
 
-        <ShapeSource id="events" shape={eventsToGeoJSON(events)} onPress={(e) => onEventPress?.(featureId(e))}>
+        <ShapeSource
+          id="events"
+          shape={eventsToGeoJSON(events)}
+          cluster={cluster}
+          clusterRadius={CLUSTER_RADIUS}
+          clusterMaxZoomLevel={CLUSTER_MAX_ZOOM}
+          onPress={(e) => {
+            // Clusters have no event id — ignore the tap rather than opening a
+            // random pin. (Web zooms in; native's expansion API differs by
+            // version, so this stays a no-op until it's verified on a device.)
+            const id = featureId(e);
+            if (id) onEventPress?.(id);
+          }}
+        >
           {heat ? <HeatmapLayer id="events-heat" style={L_EVENTS_HEAT} /> : null}
-          <CircleLayer id="events-glow" style={L_EVENTS_GLOW} />
-          <CircleLayer id="events-dot" style={L_EVENTS_DOT} />
+          <CircleLayer id="events-glow" filter={['!', ['has', 'point_count']]} style={L_EVENTS_GLOW} />
+          <CircleLayer id="events-dot" filter={['!', ['has', 'point_count']]} style={L_EVENTS_DOT} />
+          <CircleLayer id="events-cluster" filter={['has', 'point_count']} style={L_EVENTS_CLUSTER} />
         </ShapeSource>
 
         {showMine ? (
