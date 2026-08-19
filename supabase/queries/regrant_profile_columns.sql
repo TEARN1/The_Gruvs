@@ -12,6 +12,12 @@
 --
 -- Idempotent: rebuilds the list from information_schema every run, so it also
 -- picks up any other column added since. Coordinates stay revoked.
+--
+-- ⚠️ 2026-08-14: this file used to exclude ONLY the 4 coordinate columns, which
+-- meant running it silently RE-GRANTED the hard-PII columns and undid
+-- lock_authenticated_pii.sql PART 2 (that is how the cross-user email/phone/
+-- push_token leak came back). The exclusion set below now matches
+-- lock_pii_regrant_combined.sql exactly — keep the two in step.
 
 do $$
 declare safe_cols text;
@@ -21,7 +27,9 @@ begin
   from information_schema.columns
   where table_schema = 'public'
     and table_name = 'profiles'
-    and column_name not in ('lat', 'lon', 'home_base_lat', 'home_base_lon');
+    and column_name not in ('lat', 'lon', 'home_base_lat', 'home_base_lon')
+    -- never legitimately read for ANOTHER user; own row comes via get_my_profile()
+    and column_name not in ('email', 'push_token', 'phone', 'emergency_contacts', 'siblings');
 
   execute 'revoke select on public.profiles from authenticated';
   execute format('grant select (%s) on public.profiles to authenticated', safe_cols);

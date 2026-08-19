@@ -115,6 +115,12 @@ comment on function public.events_near_home is
 
 -- home_area is a new column, so re-grant the safe column list — column-level
 -- grants do not auto-extend (see lock_profile_coordinates.sql).
+--
+-- ⚠️ 2026-08-14: the exclusion list here must also carry the hard-PII columns.
+-- It previously excluded only the coordinates, so running this file re-granted
+-- email/push_token/phone/emergency_contacts/siblings to every signed-in user and
+-- silently undid lock_authenticated_pii.sql PART 2. Kept in step with
+-- lock_pii_regrant_combined.sql.
 do $$
 declare safe_cols text;
 begin
@@ -122,7 +128,8 @@ begin
     into safe_cols
   from information_schema.columns
   where table_schema = 'public' and table_name = 'profiles'
-    and column_name not in ('lat', 'lon', 'home_base_lat', 'home_base_lon');
+    and column_name not in ('lat', 'lon', 'home_base_lat', 'home_base_lon')
+    and column_name not in ('email', 'push_token', 'phone', 'emergency_contacts', 'siblings');
   execute 'revoke select on public.profiles from authenticated';
   execute format('grant select (%s) on public.profiles to authenticated', safe_cols);
 end $$;
