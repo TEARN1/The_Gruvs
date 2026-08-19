@@ -467,6 +467,20 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                   : `${visibleEvents.length}${filtersOn ? ` of ${events.length}` : ''} event${visibleEvents.length === 1 ? '' : 's'}${activeClosures ? ` · ${activeClosures} live closure${activeClosures === 1 ? '' : 's'}` : ''}`}
               </Text>
             </View>
+            {/* Refresh in place. "Search this area" only appears once you've
+                MOVED, so without this there was no way to pull in events or
+                closures posted since the map opened. */}
+            <TouchableOpacity
+              onPress={searchThisArea}
+              disabled={searching || loading}
+              style={[cs.headBtn, { borderColor: `${primary}40`, marginRight: 8, opacity: searching || loading ? 0.5 : 1 }]}
+              accessibilityRole="button"
+              accessibilityLabel={searching ? 'Refreshing the map' : 'Refresh the map'}
+            >
+              {searching
+                ? <ActivityIndicator size="small" color={primary} />
+                : <Feather name="refresh-cw" size={16} color={primary} />}
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => { setShowSearch((s) => !s); if (showSearch) setQuery(''); }}
               style={[cs.headBtn, { borderColor: `${primary}40`, backgroundColor: showSearch ? primary : 'transparent' }]}
