@@ -196,6 +196,7 @@ REVOKE EXECUTE ON FUNCTION public.gate_event_chat_insert() FROM public, anon, au
 --    policy list isn't told a restriction exists where it doesn't.
 -- ─────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "chat_update_moderator" ON public.event_chat_messages;
+DROP POLICY IF EXISTS "chat_update_author_or_mod_cols_guarded" ON public.event_chat_messages;
 CREATE POLICY "chat_update_author_or_mod_cols_guarded"
   ON public.event_chat_messages FOR UPDATE
   USING (
