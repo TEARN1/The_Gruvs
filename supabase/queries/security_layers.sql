@@ -150,6 +150,30 @@ create policy media_auth_read on storage.objects
 
 
 -- ── LAYER 3: presence / social-graph scrape protection ──────────────────────
+-- check_ins (table) and checkins/followers/mutual_follows (views over it and
+-- follows) existed live but in zero tracked SQL files — found 2026-08-20 when
+-- db-schema-ci.yml's fresh rebuild died on the REVOKE below. Added verbatim
+-- from pg_get_constraintdef/pg_get_viewdef against production.
+CREATE TABLE IF NOT EXISTS public.check_ins (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id     uuid NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  user_id      uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at   timestamptz DEFAULT now(),
+  is_early_bird boolean DEFAULT false,
+  UNIQUE (event_id, user_id)
+);
+
+CREATE OR REPLACE VIEW public.checkins AS
+  SELECT id, event_id, user_id, created_at, is_early_bird FROM public.check_ins;
+
+CREATE OR REPLACE VIEW public.followers AS
+  SELECT follower_id, following_id, created_at FROM public.follows;
+
+CREATE OR REPLACE VIEW public.mutual_follows AS
+  SELECT a.follower_id AS user_a, a.following_id AS user_b
+  FROM public.follows a
+  JOIN public.follows b ON b.follower_id = a.following_id AND b.following_id = a.follower_id;
+
 revoke select on public.checkins from anon;
 revoke select on public.followers from anon;
 revoke select on public.mutual_follows from anon;
