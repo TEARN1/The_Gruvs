@@ -18,6 +18,14 @@
 -- helper instead. Behaviour is identical; only the recursion is removed.
 
 -- ── Helpers ────────────────────────────────────────────────────────────────
+-- is_crew_member: this comment calls it "existing", and it is — live — but
+-- in zero tracked SQL files. Same undocumented-drift class found throughout
+-- this CI batch. Added verbatim from pg_get_functiondef against production.
+create or replace function public.is_crew_member(p_crew uuid, p_user uuid)
+returns boolean language sql stable security definer set search_path to 'public' as $$
+  select exists (select 1 from public.crew_members where crew_id = p_crew and user_id = p_user);
+$$;
+
 create or replace function public.is_crew_owner(p_crew uuid, p_user uuid)
 returns boolean language sql stable security definer set search_path to 'public' as $$
   select exists (select 1 from public.crews where id = p_crew and owner_id = p_user);
