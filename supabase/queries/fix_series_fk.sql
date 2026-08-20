@@ -25,6 +25,9 @@ create table if not exists public.event_series (
   created_at         timestamptz default now()
 );
 
+-- events.series_id: same drift class — existed live, zero tracked files.
+alter table public.events add column if not exists series_id uuid;
+
 alter table public.events
   drop constraint if exists events_series_id_fkey;
 
