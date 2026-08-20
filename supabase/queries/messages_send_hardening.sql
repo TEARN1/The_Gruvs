@@ -35,6 +35,20 @@
 -- ─────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS client_key text;
 
+-- messages.text and 5 siblings: existed live but in zero tracked SQL files
+-- (hand-added at some point, never saved back) — found 2026-08-20 when
+-- db-schema-ci.yml's fresh rebuild died on the CHECK constraint below, then
+-- confirmed via a full live-vs-tracked diff which of the gaps are actually
+-- referenced by later files in this batch (messages_reactions_hardening.sql,
+-- messages_video_type.sql, event_chat_hardening.sql) so they'd break CI too.
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS text text;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS media jsonb;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS media_type text;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS reaction text;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS edited boolean DEFAULT false;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS edited_at timestamptz;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS room_id uuid;
+
 CREATE UNIQUE INDEX IF NOT EXISTS messages_sender_client_key_uniq
   ON public.messages (sender_id, client_key)
   WHERE client_key IS NOT NULL;
