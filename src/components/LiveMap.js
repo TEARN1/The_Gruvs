@@ -9,7 +9,7 @@
  *
  * No API keys, no billing — OpenFreeMap serves OSM vector tiles for free.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Platform, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ZONE_KINDS } from '../services/mapZones';
@@ -179,6 +179,11 @@ export function LiveMap({
   // Latest viewport callback, so the map's own listener never goes stale.
   const onViewportRef = useRef(onViewportChange);
   useEffect(() => { onViewportRef.current = onViewportChange; });
+  // Native-only: last known zoom (from onRegionDidChange) and a camera override
+  // used to expand a tapped cluster. Declared here because hooks must run before
+  // the platform branches below return.
+  const nativeZoomRef = useRef(null);
+  const [nativeCam, setNativeCam] = useState(null); // {center:[lng,lat], zoom}
   useEffect(() => { heatRef.current = heat; toggleHeat(heat); });
   useEffect(() => { mineRef.current = showMine; toggleMine(showMine); });
   useEffect(() => { crewRef.current = showCrew; toggleCrew(showCrew); });
@@ -578,25 +583,26 @@ export function LiveMap({
           // Native's counterpart to web's moveend — same contract, so the
           // caller's "reload for this area" logic is platform-agnostic.
           if (!onViewportChange) return;
-          try {
-            const vb = f?.properties?.visibleBounds; // [[eLng,nLat],[wLng,sLat]]
-            const c = f?.geometry?.coordinates;
-            if (!vb || !c) return;
-            onViewportChange({
-              bounds: {
-                minLng: Math.min(vb[0][0], vb[1][0]), maxLng: Math.max(vb[0][0], vb[1][0]),
-                minLat: Math.min(vb[0][1], vb[1][1]), maxLat: Math.max(vb[0][1], vb[1][1]),
-              },
-              center: { lng: c[0], lat: c[1] },
-              zoom: f?.properties?.zoomLevel,
-            });
-          } catch { /* shape varies by version — never crash the map over it */ }
+          const vp = parseNativeRegion(f);
+          if (!vp) {
+            // A swallowed failure here reintroduces exactly the bug this whole
+            // feature exists to kill: the map silently stops reloading and
+            // looks merely "empty". Say so loudly, once, so it surfaces in
+            // client_errors instead of dying quietly on a device we can't test.
+            warnOnce('native-region-shape',
+              '[LiveMap] onRegionDidChange payload not understood — the map will NOT reload on pan. ' +
+              'Check @maplibre/maplibre-react-native region event shape. Got keys: ' +
+              JSON.stringify({ props: Object.keys(f?.properties || {}), geom: f?.geometry?.type }));
+            return;
+          }
+          nativeZoomRef.current = vp.zoom ?? nativeZoomRef.current;
+          onViewportChange(vp);
         }}
       >
         <Camera
-          centerCoordinate={camCenter}
-          zoomLevel={focusZoom != null ? focusZoom : (centroid ? 9 : 12)}
-          animationDuration={600}
+          centerCoordinate={nativeCam?.center || camCenter}
+          zoomLevel={nativeCam?.zoom ?? (focusZoom != null ? focusZoom : (centroid ? 9 : 12))}
+          animationDuration={nativeCam ? 400 : 600}
         />
 
         <ShapeSource id="zones" shape={zonesToGeoJSON(zones)} onPress={(e) => onZonePress?.(featureId(e))}>
@@ -611,11 +617,20 @@ export function LiveMap({
           clusterRadius={CLUSTER_RADIUS}
           clusterMaxZoomLevel={CLUSTER_MAX_ZOOM}
           onPress={(e) => {
-            // Clusters have no event id — ignore the tap rather than opening a
-            // random pin. (Web zooms in; native's expansion API differs by
-            // version, so this stays a no-op until it's verified on a device.)
-            const id = featureId(e);
-            if (id) onEventPress?.(id);
+            const feat = e?.features?.[0];
+            const id = feat?.properties?.id;
+            if (id) { onEventPress?.(id); return; }
+            // A cluster (no id, has point_count). Web asks the source for the
+            // exact expansion zoom; that API's shape is unverified on native, so
+            // step in by a fixed amount instead — predictable, and a tap that
+            // zooms is far better than the tap doing nothing at all.
+            if (feat?.properties?.point_count) {
+              const coords = feat.geometry?.coordinates;
+              const base = nativeZoomRef.current ?? 10;
+              if (Array.isArray(coords)) {
+                setNativeCam({ center: coords, zoom: Math.min(base + 2, CLUSTER_MAX_ZOOM + 1) });
+              }
+            }
           }}
         >
           {heat ? <HeatmapLayer id="events-heat" style={L_EVENTS_HEAT} /> : null}
@@ -682,6 +697,51 @@ export function LiveMap({
 }
 
 const emptyFC = () => ({ type: 'FeatureCollection', features: [] });
+
+// One console.error per distinct problem — enough to reach client_errors via
+// the global handler without spamming it on every gesture.
+const _warned = new Set();
+function warnOnce(key, msg) {
+  if (_warned.has(key)) return;
+  _warned.add(key);
+  // eslint-disable-next-line no-console
+  console.error(msg);
+}
+
+/**
+ * Normalise MapLibre RN's region-change payload into the same shape web emits.
+ *
+ * The payload differs across versions — visibleBounds has appeared as
+ * [[east,north],[west,south]] and as [[west,south],[east,north]], and the zoom
+ * key has been both `zoomLevel` and `zoom`. Rather than assume one, take the
+ * min/max of whatever pair arrives (order-independent) and accept either zoom
+ * key. Returns null if the shape is genuinely unusable, so the caller can
+ * report it instead of silently never reloading.
+ */
+export function parseNativeRegion(f) {
+  const props = f?.properties || {};
+  const vb = props.visibleBounds;
+  const c = f?.geometry?.coordinates;
+  if (!Array.isArray(vb) || vb.length < 2) return null;
+  const [a, b] = vb;
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length < 2 || b.length < 2) return null;
+  const lngs = [Number(a[0]), Number(b[0])];
+  const lats = [Number(a[1]), Number(b[1])];
+  if (lngs.some((n) => !Number.isFinite(n)) || lats.some((n) => !Number.isFinite(n))) return null;
+
+  const bounds = {
+    minLng: Math.min(...lngs), maxLng: Math.max(...lngs),
+    minLat: Math.min(...lats), maxLat: Math.max(...lats),
+  };
+  // Centre from geometry when present, else the box centre — either is fine.
+  const center = (Array.isArray(c) && Number.isFinite(Number(c[0])) && Number.isFinite(Number(c[1])))
+    ? { lng: Number(c[0]), lat: Number(c[1]) }
+    : { lng: (bounds.minLng + bounds.maxLng) / 2, lat: (bounds.minLat + bounds.maxLat) / 2 };
+
+  const zoomRaw = props.zoomLevel ?? props.zoom;
+  const zoom = Number.isFinite(Number(zoomRaw)) ? Number(zoomRaw) : null;
+  return { bounds, center, zoom };
+}
 
 // Plain lat/lng points (Fog of the City — your lit Touch Downs).
 function pointsToGeoJSON(pts) {

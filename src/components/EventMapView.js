@@ -73,11 +73,11 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = fa
   const allLats = [
     ...withCoords.map(e => Number(e.lat)),
     userCoords?.lat,
-  ].filter(Boolean);
+  ].filter(Number.isFinite);
   const allLons = [
     ...withCoords.map(e => Number(e.lon)),
     userCoords?.lon,
-  ].filter(Boolean);
+  ].filter(Number.isFinite);
 
   const minLat = Math.min(...allLats);
   const maxLat = Math.max(...allLats);

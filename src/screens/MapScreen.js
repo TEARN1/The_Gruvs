@@ -103,6 +103,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [areaDirty, setAreaDirty] = useState(false);
   const [searching, setSearching] = useState(false);
   const [firstBounds, setFirstBounds] = useState(null);
+  const [truncated, setTruncated] = useState(false);
   const viewportRef = useRef(null);      // latest {bounds, center, zoom}
   const loadedBoundsRef = useRef(null);  // the area the loaded events came from
 
@@ -110,7 +111,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [query, setQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [dateFilter, setDateFilter] = useState('all');   // all | tonight | week
-  const [catFilter, setCatFilter] = useState(null);
+  const [catFilter, setCatFilter] = useState([]);   // multi-select
   const [styleKey, setStyleKey] = useState(DEFAULT_MAP_STYLE);
 
   // Draw session
@@ -190,7 +191,12 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
              .gte('lon', bounds.minLng).lte('lon', bounds.maxLng);
       }
 
-      const { data } = await q.limit(500);
+      const CAP = 500;
+      const { data } = await q.limit(CAP);
+      // Hitting the cap means the map is showing a silently truncated slice —
+      // the same class of bug as the old hard 300 limit, just a bigger number.
+      // Surface it instead of quietly lying about coverage.
+      setTruncated((data || []).length >= CAP);
       const withCoords = (data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null);
       // Silently hide mature listings from under-age viewers. The map was the
       // ONLY discovery surface missing this — The Drop, Explore, Scout and Reels
@@ -418,7 +424,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     return events.filter((e) => {
       if (dateFilter === 'tonight' && e.event_date !== today) return false;
       if (dateFilter === 'week' && !(e.event_date >= today && e.event_date <= weekOut)) return false;
-      if (catFilter && (e.category || '') !== catFilter) return false;
+      if (catFilter.length && !catFilter.includes(e.category || '')) return false;
       if (q) {
         const hay = `${e.title || ''} ${e.venue_name || ''} ${e.city || ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -427,7 +433,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     });
   }, [events, query, dateFilter, catFilter]);
 
-  const filtersOn = dateFilter !== 'all' || !!catFilter || !!query.trim();
+  const filtersOn = dateFilter !== 'all' || catFilter.length > 0 || !!query.trim();
 
   // Typing filters the pins instantly. Submitting when nothing matched treats
   // the text as a PLACE instead and moves the map there — the two things people
@@ -462,9 +468,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ flex: 1 }}>
               <Text style={[cs.title, { color: primary }]}>THE MAP</Text>
-              <Text style={[cs.sub, { color: muted }]}>
+              <Text style={[cs.sub, { color: truncated ? '#f59e0b' : muted }]}>
                 {loading ? 'Reading your city…'
-                  : `${visibleEvents.length}${filtersOn ? ` of ${events.length}` : ''} event${visibleEvents.length === 1 ? '' : 's'}${activeClosures ? ` · ${activeClosures} live closure${activeClosures === 1 ? '' : 's'}` : ''}`}
+                  : `${visibleEvents.length}${filtersOn ? ` of ${events.length}` : ''} event${visibleEvents.length === 1 ? '' : 's'}${truncated ? '+ (zoom in for all)' : ''}${activeClosures ? ` · ${activeClosures} live closure${activeClosures === 1 ? '' : 's'}` : ''}`}
               </Text>
             </View>
             {/* Refresh in place. "Search this area" only appears once you've
@@ -526,12 +532,23 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                 ))}
                 {categories.map((c) => (
                   <Chip
-                    key={c} label={c} active={catFilter === c}
-                    onPress={() => setCatFilter((v) => (v === c ? null : c))}
+                    key={c} label={c} active={catFilter.includes(c)}
+                    onPress={() => setCatFilter((v) => (v.includes(c) ? v.filter((x) => x !== c) : [...v, c]))}
                     primary={primary} muted={muted}
                   />
                 ))}
               </ScrollView>
+
+              {filtersOn && (
+                <TouchableOpacity
+                  onPress={() => { setQuery(''); setDateFilter('all'); setCatFilter([]); }}
+                  style={{ alignSelf: 'flex-start' }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear all filters"
+                >
+                  <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Clear filters</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -591,6 +608,18 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             <View style={cs.fabCol} pointerEvents="box-none">
               <TouchableOpacity
                 onPress={() => {
+                  // Changing style remounts the map, which would otherwise drop
+                  // you back at the default zoom. Pin the CURRENT viewport into
+                  // the props the fresh instance initialises from. Done here and
+                  // not on every moveend on purpose: `center`/`focusZoom` drive
+                  // an easeTo inside LiveMap, so writing them continuously would
+                  // feed the map its own movement in a loop.
+                  const vp = viewportRef.current;
+                  if (vp?.center) {
+                    setCenter(vp.center);
+                    setCentredOnUser(true);            // don't let autoFit re-frame after the swap
+                    if (Number.isFinite(vp.zoom)) setFocusZoom(vp.zoom);
+                  }
                   const keys = Object.keys(MAP_STYLES);
                   setStyleKey((k) => keys[(keys.indexOf(k) + 1) % keys.length]);
                 }}
