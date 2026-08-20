@@ -65,6 +65,14 @@ GRANT  EXECUTE ON FUNCTION public.ensure_res_profile() TO authenticated;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar text;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS verified boolean;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS verification_badge boolean;
+-- resident_trust_tier is genuinely defined in resident_trust_bridge.sql, but
+-- that file runs AFTER this one in db-schema-ci.yml's order, and this view
+-- selects it early. Pull the (idempotent, IF NOT EXISTS) definition forward
+-- rather than reordering 24 files — resident_trust_bridge.sql's own
+-- ADD COLUMN IF NOT EXISTS becomes a no-op when it runs later.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS resident_trust_tier TEXT
+  CHECK (resident_trust_tier IN ('trusted', 'verified'));
 
 -- ── 2. PII-safe cross-app identity view (whitelisted columns only) ──────────
 -- security_invoker: runs with the caller's rights + RLS, so it never leaks rows
