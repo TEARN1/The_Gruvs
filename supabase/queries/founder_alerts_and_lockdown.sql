@@ -52,6 +52,46 @@ CREATE TRIGGER trg_notify_founder_new_invoice
   FOR EACH ROW
   EXECUTE FUNCTION notify_founder_new_invoice_request();
 
+-- enforce_report_rate_limit() + its trigger: existed live but in ZERO
+-- tracked SQL files (hand-pasted at some point, never saved back) — found
+-- 2026-08-20 when db-schema-ci.yml's fresh rebuild died here with "function
+-- ... does not exist" on the REVOKE below. Added verbatim from
+-- pg_get_functiondef/pg_get_triggerdef against production.
+CREATE OR REPLACE FUNCTION public.enforce_report_rate_limit()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  recent_same_target INT;
+  recent_total INT;
+BEGIN
+  SELECT count(*) INTO recent_same_target
+  FROM reports
+  WHERE reporter_id = NEW.reporter_id
+    AND target_id = NEW.target_id
+    AND created_at > now() - interval '1 hour';
+  IF recent_same_target > 0 THEN
+    RAISE EXCEPTION 'You already reported this recently. Please wait before reporting it again.'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  SELECT count(*) INTO recent_total
+  FROM reports
+  WHERE reporter_id = NEW.reporter_id
+    AND created_at > now() - interval '24 hours';
+  IF recent_total >= 20 THEN
+    RAISE EXCEPTION 'You have submitted too many reports recently. Please try again later.'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_reports_rate_limit ON public.reports;
+CREATE TRIGGER trg_reports_rate_limit
+  BEFORE INSERT ON public.reports
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_report_rate_limit();
+
 REVOKE EXECUTE ON FUNCTION public.enforce_report_rate_limit() FROM anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.notify_business_invoice_paid() FROM anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.touch_business_invoice_requests() FROM anon, authenticated;
