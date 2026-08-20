@@ -64,9 +64,34 @@ migrated into them) so existing screens keep working while depth becomes univers
 ## 2. Phased execution — all 120 points mapped
 
 ### Phase 0 — Foundation (GATE, do first)
-- **118** Reconcile DB drift — run [supabase/queries/audit_db_state.sql](supabase/queries/audit_db_state.sql), apply the single reconciliation migration.
-- **119** Adopt CLI migrations + CI per [supabase/MIGRATIONS_SETUP.md](supabase/MIGRATIONS_SETUP.md); add a CI job that applies migrations to an **ephemeral Postgres** so bad migrations fail the PR, never prod.
-- **120** Backups/PITR on; Supabase **preview branch** for testing migrations before prod.
+- **118** Reconcile DB drift — ✅ **DONE 2026-08-18.** Ran
+  [audit_db_state.sql](supabase/queries/audit_db_state.sql) live. Findings: 31
+  RLS-enabled/no-policy tables — all confirmed **dead schema** (zero client
+  references) or deliberately-locked infra (`founder_alerts`,
+  `maintenance_runs`) via a real `src/` grep, not assumption. Zero missing
+  tables. The 3 "missing columns" on `campaign_analytics` were the audit
+  script itself being stale — the live design is an event-log
+  (`event_type` per row), already matched by both the writer
+  (`EventContextualAds.js`) and reader (`CampaignManager.getPerformance`).
+  Fixed the audit script, not the (correct) live schema. Re-ran: **zero real
+  drift.**
+- **119** Adopt CLI migrations + CI — 🟡 **partially done.**
+  [db-schema-ci.yml](.github/workflows/db-schema-ci.yml) already built a
+  fresh schema on throwaway Postgres, but had been frozen at
+  `schema_drift_fixes.sql` since 2026-07-13 — **49 files applied to
+  production since were never validated by CI**, meaning a green run had been
+  proving a schema that no longer matched reality (exactly the false
+  confidence this phase exists to remove). Added back `RUN_IN_SUPABASE.sql` +
+  `APPLY_LIVE_FIXES.sql` (both explicitly self-described "safe to run, and
+  safe to run again") and this session's 4 new files, all with idempotency
+  re-apply checks. **~35 files still not integrated** (`map_zones.sql`,
+  `messages_*.sql`, `resident_*.sql`, `security_layers.sql`, etc.) — each
+  needs a real read for ordering/dependencies, not a guess; tracked here so
+  it isn't lost. `supabase db pull` baseline (the CLI-migrations half of this
+  task) still needs `supabase login` — interactive, can't be done from this
+  environment.
+- **120** Backups/PITR on; Supabase **preview branch** for testing migrations
+  before prod. ⚪ **Still open — Supabase Dashboard only, needs you.**
 
 ### Phase 1 — The generic engine
 > Note (verified in code 2026-06-09): the soccer feature is deeper than first

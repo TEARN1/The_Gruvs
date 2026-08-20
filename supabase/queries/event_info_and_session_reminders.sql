@@ -106,11 +106,21 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 REVOKE EXECUTE ON FUNCTION dispatch_reminders() FROM anon, authenticated;
 
-SELECT cron.schedule(
-  'gruvs-session-reminders',
-  '*/5 * * * *',
-  $$SELECT dispatch_reminders();$$
-) WHERE NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'gruvs-session-reminders');
+-- Best-effort: pg_cron isn't installed on every Postgres (notably the throwaway
+-- CI database in db-schema-ci.yml, which proves this file replays cleanly but
+-- has no cron extension). Skip with a NOTICE instead of failing the whole
+-- script — same pattern as the spatial_ref_sys RLS attempt in
+-- advisor_hardening_2026-08-13.sql.
+DO $$
+BEGIN
+  IF to_regnamespace('cron') IS NOT NULL THEN
+    IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'gruvs-session-reminders') THEN
+      PERFORM cron.schedule('gruvs-session-reminders', '*/5 * * * *', $sql$SELECT dispatch_reminders();$sql$);
+    END IF;
+  ELSE
+    RAISE NOTICE 'pg_cron not installed — skipping gruvs-session-reminders schedule (expected on CI/local Postgres, fix from the Supabase Dashboard on real projects)';
+  END IF;
+END $$;
 
 -- 4) Check-in auto-welcome. Server-side trigger (not client code) so it fires
 --    regardless of which check-in path was used (QR scanner, door check-in,

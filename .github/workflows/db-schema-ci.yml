@@ -80,6 +80,37 @@ jobs:
       - name: Apply schema_drift_fixes (tickets, activity feed, crew FKs)
         run: $PSQL -f supabase/queries/schema_drift_fixes.sql
 
+      # ── The gap this closes (2026-08-18 Phase-0 pass) ──────────────────────
+      # This job had been frozen at schema_drift_fixes.sql since 2026-07-13.
+      # 49 more .sql files were applied to production since — meaning CI had
+      # been proving a schema that no longer matched what was actually live,
+      # exactly the false confidence Phase 0 exists to remove. Adding back the
+      # ones already confirmed idempotent and safe to replay: RUN_IN_SUPABASE
+      # (bundles the follow/stories, reels, and competition-engine fixes) and
+      # APPLY_LIVE_FIXES, both explicitly written "safe to run, and safe to run
+      # again." The remaining ~35 files (map_zones, messages_*, resident_*,
+      # security_layers, etc.) are NOT yet added here — each needs a real read
+      # for ordering/dependencies rather than a guess, tracked in ROADMAP.md.
+      - name: Apply RUN_IN_SUPABASE (follow/stories, reels, competition engine)
+        run: $PSQL -f supabase/queries/RUN_IN_SUPABASE.sql
+
+      - name: Apply APPLY_LIVE_FIXES
+        run: $PSQL -f supabase/queries/APPLY_LIVE_FIXES.sql
+
+      # This session's own migrations — written, applied, and verified live
+      # already (see RISK_REGISTER.md / commit history 2026-08-18).
+      - name: Apply business_invoice_requests
+        run: $PSQL -f supabase/queries/business_invoice_requests.sql
+
+      - name: Apply maintenance_l1_column_drift_fix
+        run: $PSQL -f supabase/queries/maintenance_l1_column_drift_fix.sql
+
+      - name: Apply founder_alerts_and_lockdown
+        run: $PSQL -f supabase/queries/founder_alerts_and_lockdown.sql
+
+      - name: Apply event_info_and_session_reminders
+        run: $PSQL -f supabase/queries/event_info_and_session_reminders.sql
+
       # Re-run part 4's idempotent patch tail to prove idempotency (safe re-run).
       - name: Re-apply schema_part_4 (idempotency check)
         run: $PSQL -f supabase/queries/schema_part_4.sql
@@ -87,6 +118,25 @@ jobs:
       # And prove the drift fixes are idempotent too.
       - name: Re-apply schema_drift_fixes (idempotency check)
         run: $PSQL -f supabase/queries/schema_drift_fixes.sql
+
+      # And the newly-added ones — all four claim to be safe to re-run.
+      - name: Re-apply RUN_IN_SUPABASE (idempotency check)
+        run: $PSQL -f supabase/queries/RUN_IN_SUPABASE.sql
+
+      - name: Re-apply APPLY_LIVE_FIXES (idempotency check)
+        run: $PSQL -f supabase/queries/APPLY_LIVE_FIXES.sql
+
+      - name: Re-apply business_invoice_requests (idempotency check)
+        run: $PSQL -f supabase/queries/business_invoice_requests.sql
+
+      - name: Re-apply maintenance_l1_column_drift_fix (idempotency check)
+        run: $PSQL -f supabase/queries/maintenance_l1_column_drift_fix.sql
+
+      - name: Re-apply founder_alerts_and_lockdown (idempotency check)
+        run: $PSQL -f supabase/queries/founder_alerts_and_lockdown.sql
+
+      - name: Re-apply event_info_and_session_reminders (idempotency check)
+        run: $PSQL -f supabase/queries/event_info_and_session_reminders.sql
 
       - name: Summary
         if: always()

@@ -59,8 +59,15 @@ missing_tables AS (
 --    (Only the columns we have seen diverge — extend as needed.)
 expected_cols(t, c) AS (
   VALUES
-    ('campaign_analytics','campaign_id'),('campaign_analytics','impressions'),
-    ('campaign_analytics','clicks'),('campaign_analytics','conversions'),
+    -- campaign_analytics.impressions/clicks/conversions were checked here
+    -- until 2026-08-18, when a Phase-0 pass confirmed they were a STALE
+    -- expectation, not real drift: the live design is an event-log table
+    -- (one row per event_type: 'impression'|'click'|'conversion'), and both
+    -- the writer (EventContextualAds.js) and reader
+    -- (CampaignManager.getPerformance in dataFlow.js) already use that shape.
+    -- Checking for columns that were deliberately never built produced 3
+    -- false positives on every run — removed rather than "fixed live."
+    ('campaign_analytics','campaign_id'),
     ('audience_segments','campaign_id'),
     ('path_stars','from_user_id'),('path_stars','to_user_id'),
     ('path_stars','event_id'),('path_stars','user_id'),
