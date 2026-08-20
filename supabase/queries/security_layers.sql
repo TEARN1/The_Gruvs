@@ -133,6 +133,7 @@ drop policy if exists gruvs_media_auth_write on storage.objects;
 -- chat_media: DM attachments must not be listable by the world.
 drop policy if exists chat_media_public_read on storage.objects;
 drop policy if exists gruvs_media_public_read on storage.objects;   -- umbrella incl. chat_media
+drop policy if exists chat_media_owner_read on storage.objects;
 create policy chat_media_owner_read on storage.objects
   for select to authenticated
   using (bucket_id = 'chat_media' and (storage.foldername(name))[1] = (auth.uid())::text);
@@ -144,6 +145,7 @@ drop policy if exists covers_public_read on storage.objects;
 drop policy if exists event_media_public_read on storage.objects;
 drop policy if exists moments_public_read on storage.objects;
 drop policy if exists reels_public_read on storage.objects;
+drop policy if exists media_auth_read on storage.objects;
 create policy media_auth_read on storage.objects
   for select to authenticated
   using (bucket_id in ('avatars', 'covers', 'event-media', 'moments', 'reels'));
