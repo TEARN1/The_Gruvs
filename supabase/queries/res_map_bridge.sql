@@ -57,6 +57,11 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.ensure_res_profile() FROM public, anon;
 GRANT  EXECUTE ON FUNCTION public.ensure_res_profile() TO authenticated;
 
+-- profiles.avatar: existed live but in zero tracked SQL files (hand-added at
+-- some point, never saved back) — found 2026-08-20 when db-schema-ci.yml's
+-- fresh rebuild died on the view below with "column avatar does not exist".
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar text;
+
 -- ── 2. PII-safe cross-app identity view (whitelisted columns only) ──────────
 -- security_invoker: runs with the caller's rights + RLS, so it never leaks rows
 -- the caller couldn't already see, and it exposes NO sensitive column at all.
