@@ -12,6 +12,19 @@
 -- Safe: verified 0 events currently carry a series_id, so nothing depends on
 -- the broken wiring.
 
+-- event_series (the "legacy" table tour_series.sql later enriches): existed
+-- live but in zero tracked SQL files — found 2026-08-20 when db-schema-ci's
+-- fresh rebuild died on the FK below. Base columns only (verbatim from
+-- information_schema against production); tour_series.sql's own ADD COLUMN
+-- IF NOT EXISTS calls add the tour-identity fields on top of this.
+create table if not exists public.event_series (
+  id                 uuid primary key default gen_random_uuid(),
+  creator_id         uuid not null references public.profiles(id) on delete cascade,
+  recurrence_pattern text,
+  metadata           jsonb default '{}'::jsonb,
+  created_at         timestamptz default now()
+);
+
 alter table public.events
   drop constraint if exists events_series_id_fkey;
 
