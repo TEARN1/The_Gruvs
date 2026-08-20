@@ -39,12 +39,17 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   // impact zones (road closures). map_zones schema is LIVE (map_zones.sql). ON
   // so the new Map tab shows; flip to false to hide the tab + entry points.
   liveMap: true,
+  // Pinned host notice (EventDetailScreen/EventAdminPanel) + per-session
+  // "My Agenda" (EventScheduleSection) + the real reminder dispatcher.
+  // event_info_and_session_reminders.sql is LIVE — ON.
+  eventInfoPanel: true,
 } : {
   reelsRail: true, business: true, gifting: true,
   pathMap: true, crossedPaths: true, stories: true,
   residentAlerts: true, // res_* schema live (2026-07-17)
   accommodation: true,  // res_* schema live (2026-07-17)
   liveMap: true,        // The Living Map — map_zones schema live
+  eventInfoPanel: true,
 };
 
 /** feature('business') → true when the surface is live. Unknown keys default on. */

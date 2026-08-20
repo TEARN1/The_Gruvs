@@ -8,8 +8,11 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
-import { QRCheckInScanner } from './QRCheckInScanner';
+import { QRCheckInScanner } from './QRCheckInScanner';
 import { useBackClose } from '../hooks/useBackClose';
+import { useToast } from './ToastNotification';
+import { broadcastToAttendees } from '../services/broadcast';
+import { feature } from '../constants/launchConfig';
 
 const buildCSV = (rsvps) => {
   const header = 'Username,Status,RSVP Date\n';
@@ -53,6 +56,7 @@ const TYPES = [
 
 const TABS = [
   { key: 'feed',    label: 'Live Feed', icon: 'activity' },
+  { key: 'info',    label: 'Event Info',icon: 'info' },
   { key: 'scan',    label: 'QR Scan',   icon: 'camera' },
   { key: 'checkin', label: 'Manual',    icon: 'user-check' },
   { key: 'rsvps',   label: 'Guest List',icon: 'list' },
@@ -69,6 +73,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
   const isAuthorized = !!(event?.author_id && userId && event.author_id === userId);
 
   const { currentTheme } = useTheme();
+  const toast = useToast();
   const primary = currentTheme?.primary || "#00f2ff";
   const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
@@ -85,6 +90,14 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
   const [checkInQuery, setCheckInQuery] = useState('');
   const [checkInResult, setCheckInResult] = useState(null);
   const [checkInLoading, setCheckInLoading] = useState(false);
+  // Event Info — the pinned host notice (see HostNoticeCard.js). Loaded fresh
+  // rather than trusted from the `event` prop, same reasoning as
+  // EventDetailScreen.js: whatever screen opened this panel may have fetched
+  // a curated column list that doesn't include a brand-new column.
+  const [noticeText, setNoticeText] = useState('');
+  const [noticeLoaded, setNoticeLoaded] = useState(false);
+  const [noticeSaving, setNoticeSaving] = useState(false);
+  const [notifyOnSave, setNotifyOnSave] = useState(false);
 
   const eventId = event?.id;
 
@@ -202,6 +215,42 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
     }
   }, [visible, eventId, loadData, loadCheckins, isAuthorized, onClose]);
 
+  useEffect(() => {
+    if (!visible || !eventId || !isAuthorized) { setNoticeLoaded(false); return; }
+    let alive = true;
+    supabase.from('events').select('host_notice').eq('id', eventId).maybeSingle()
+      .then(({ data }) => { if (alive) { setNoticeText(data?.host_notice || ''); setNoticeLoaded(true); } })
+      .catch(() => { if (alive) setNoticeLoaded(true); });
+    return () => { alive = false; };
+  }, [visible, eventId, isAuthorized]);
+
+  const saveNotice = async () => {
+    if (!isAuthorized) return;
+    setNoticeSaving(true);
+    try {
+      const text = noticeText.trim();
+      const { error } = await supabase.from('events')
+        .update({ host_notice: text || null, host_notice_updated_at: new Date().toISOString() })
+        .eq('id', eventId);
+      if (error) throw error;
+
+      if (notifyOnSave && text) {
+        const res = await broadcastToAttendees(event, text, 'update', userId);
+        if (!res.ok) {
+          toast.show(`Saved, but the notification didn't send: ${res.error || 'try again'}`, 'error');
+        } else {
+          toast.show(`Saved — notified ${res.sent} attendee${res.sent === 1 ? '' : 's'}.`, 'success');
+        }
+      } else {
+        toast.show('Saved.', 'success');
+      }
+    } catch (e) {
+      toast.show('Could not save — try again.', 'error');
+    } finally {
+      setNoticeSaving(false);
+    }
+  };
+
   // Real-time subscription
   useEffect(() => {
     if (!visible || !eventId) return;
@@ -287,7 +336,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
 
           {/* Tab bar */}
           <View style={[ad.tabBar, { borderBottomColor: `${primary}18` }]}>
-            {TABS.map(t => {
+            {TABS.filter(t => t.key !== 'info' || feature('eventInfoPanel')).map(t => {
               const isActive = activeTab === t.key;
               return (
                 <TouchableOpacity
@@ -339,6 +388,60 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                 <View style={{ height: 40 }} />
               </ScrollView>
             </>
+          )}
+
+          {/* Event Info tab — the pinned notice checked-in attendees see, and
+              which they're auto-welcomed with on Touch Down. */}
+          {activeTab === 'info' && (
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+              <Text style={[ad.sectionTitle, { color: muted }]}>PINNED NOTICE</Text>
+              <Text style={[ad.sectionSub, { color: muted }]}>
+                Logistics, welcome info, or anything an attendee should see. This
+                shows on the event page, and is what someone gets the moment they
+                Touch Down.
+              </Text>
+              {!noticeLoaded ? (
+                <ActivityIndicator color={primary} style={{ marginTop: 12 }} />
+              ) : (
+                <>
+                  <TextInput
+                    style={[ad.noticeInput, { color: textColor, borderColor: `${primary}40` }]}
+                    value={noticeText}
+                    onChangeText={setNoticeText}
+                    placeholder="e.g. Bring your badge to Hall B. Parking is at the north entrance."
+                    placeholderTextColor={muted}
+                    multiline
+                    maxLength={500}
+                  />
+                  <Text style={[ad.charCount, { color: muted }]}>{noticeText.length}/500</Text>
+
+                  <TouchableOpacity
+                    onPress={() => setNotifyOnSave((v) => !v)}
+                    style={ad.notifyRow}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: notifyOnSave }}
+                  >
+                    <View style={[ad.checkbox, { borderColor: primary, backgroundColor: notifyOnSave ? primary : 'transparent' }]}>
+                      {notifyOnSave && <Feather name="check" size={12} color="#000" />}
+                    </View>
+                    <Text style={{ color: textColor, fontSize: 12.5, flex: 1 }}>
+                      Also notify everyone RSVP'd or checked in right now (rate-limited to once every 5 min)
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[ad.saveBtn, { backgroundColor: primary, opacity: noticeSaving ? 0.6 : 1 }]}
+                    onPress={saveNotice}
+                    disabled={noticeSaving}
+                  >
+                    {noticeSaving
+                      ? <ActivityIndicator color="#000" size="small" />
+                      : <Text style={ad.saveBtnText}>SAVE NOTICE</Text>}
+                  </TouchableOpacity>
+                </>
+              )}
+              <View style={{ height: 40 }} />
+            </ScrollView>
           )}
 
           {/* QR Scan tab */}
@@ -523,4 +626,10 @@ const ad = StyleSheet.create({
   pendingText: { fontSize: 11, fontWeight: '700' },
   statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
   statusText: { fontSize: 9, fontWeight: '900' },
+  noticeInput: { borderWidth: 1.5, borderRadius: 14, padding: 14, fontSize: 14, minHeight: 110, textAlignVertical: 'top' },
+  charCount: { fontSize: 10, textAlign: 'right', marginTop: 4 },
+  notifyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
+  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  saveBtn: { marginTop: 18, paddingVertical: 14, borderRadius: 24, alignItems: 'center' },
+  saveBtnText: { color: '#000', fontWeight: '900', fontSize: 13, letterSpacing: 1 },
 });

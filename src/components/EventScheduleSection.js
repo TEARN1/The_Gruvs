@@ -8,8 +8,10 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from './ToastNotification';
+import { useToast } from './ToastNotification';
 import { useBackClose } from '../hooks/useBackClose';
+import { SessionReminders } from '../services/sessionReminders';
+import { feature } from '../constants/launchConfig';
 
 // ─── Poll creation modal ──────────────────────────────────────────────────────
 const CreatePollModal = ({ visible, onClose, eventId, scheduleSlot, primary, bg, textColor, muted }) => {
@@ -194,10 +196,24 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
   const [createPollVisible, setCreatePollVisible] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null); // slot the poll is attached to
   const [expandedSlot, setExpandedSlot] = useState(null);
+  // "My Agenda" — session_idx values the signed-in user has opted into.
+  const [myAgenda, setMyAgenda] = useState(new Set());
+  const [agendaOnly, setAgendaOnly] = useState(false);
 
   const schedule = event?.schedule || [];
   const _multiDay = new Set(schedule.map(x => x.day || 1)).size > 1 || (!!event?.end_date && event.end_date !== event?.event_date);
   const _dayDate = (n) => { if (!event?.event_date) return ''; const base = new Date(event.event_date); base.setDate(base.getDate() + (n - 1)); return base.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
+  // Absolute Date for a slot, mirroring _dayDate's day-offset math but keeping
+  // the time-of-day too — this is what gets stored as session_time so the
+  // server-side dispatcher can fire a reminder without parsing schedule JSON.
+  const _slotDateTime = (slot) => {
+    if (!event?.event_date) return null;
+    const base = new Date(event.event_date);
+    base.setDate(base.getDate() + ((slot.day || 1) - 1));
+    const [h, m] = String(slot.time || '').split(':').map(Number);
+    if (Number.isFinite(h)) base.setHours(h, Number.isFinite(m) ? m : 0, 0, 0);
+    return base;
+  };
   const scheduleByDay = (() => {
     let last = null;
     return schedule.map((x, i) => ({ slot: x, idx: i })).sort((a, b) => (a.slot.day || 1) - (b.slot.day || 1)).map(({ slot, idx }) => {
@@ -222,6 +238,32 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
   }, [eventId]);
 
   useEffect(() => { loadPolls(); }, [loadPolls]);
+
+  useEffect(() => {
+    if (!eventId || !user?.id || !feature('eventInfoPanel')) { setMyAgenda(new Set()); return; }
+    SessionReminders.getMySelections(user.id, eventId).then(setMyAgenda);
+  }, [eventId, user?.id]);
+
+  const toggleAgenda = async (slot, idx) => {
+    if (!user?.id) { toast.show('Sign in to build your agenda.', 'error'); return; }
+    const dt = _slotDateTime(slot);
+    const wasSelected = myAgenda.has(idx);
+    // Optimistic — the toggle should feel instant, same as the poll vote above.
+    setMyAgenda((prev) => {
+      const next = new Set(prev);
+      wasSelected ? next.delete(idx) : next.add(idx);
+      return next;
+    });
+    const nowSelected = await SessionReminders.toggle(user.id, eventId, idx, dt?.toISOString());
+    if (nowSelected !== !wasSelected) {
+      // Server disagreed with the optimistic flip (e.g. a network error) —
+      // resync from the DB rather than leave a wrong toggle showing.
+      SessionReminders.getMySelections(user.id, eventId).then(setMyAgenda);
+      toast.show('Could not update your agenda — try again.', 'error');
+    } else if (nowSelected) {
+      toast.show(dt ? "Added — we'll remind you 15 min before." : 'Added to your agenda.', 'success');
+    }
+  };
 
   // Real-time: reflect new polls and vote changes immediately
   useEffect(() => {
@@ -291,12 +333,29 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
         </TouchableOpacity>
       </View>
 
+      {/* My Agenda filter — only worth showing once the user has picked something */}
+      {schedule.length > 0 && myAgenda.size > 0 && (
+        <TouchableOpacity
+          onPress={() => setAgendaOnly((v) => !v)}
+          style={[ss.agendaChip, { borderColor: agendaOnly ? primary : `${primary}30`, backgroundColor: agendaOnly ? primary : 'transparent' }]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: agendaOnly }}
+          accessibilityLabel={agendaOnly ? 'Showing my agenda only — tap to show full schedule' : 'Show only my agenda'}
+        >
+          <Feather name="bookmark" size={12} color={agendaOnly ? '#000' : primary} />
+          <Text style={{ color: agendaOnly ? '#000' : primary, fontWeight: '800', fontSize: 11 }}>
+            My agenda ({myAgenda.size})
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {/* Schedule slots */}
       {schedule.length > 0 && (
         <View style={{ gap: 10, marginBottom: 16 }}>
-          {scheduleByDay.map(({ slot, idx, dayHeader }) => {
+          {scheduleByDay.filter(({ idx }) => !agendaOnly || myAgenda.has(idx)).map(({ slot, idx, dayHeader }) => {
             const slotPolls = pollsForSlot(slot.title);
             const isExpanded = expandedSlot === idx;
+            const inAgenda = myAgenda.has(idx);
             return (
               <React.Fragment key={idx}>
               {dayHeader && (
@@ -306,30 +365,53 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
                 </View>
               )}
               <View style={[ss.slotCard, { borderColor: `${primary}25`, backgroundColor: `${primary}06` }]}>
-                <TouchableOpacity
-                  style={ss.slotHeader}
-                  onPress={() => setExpandedSlot(isExpanded ? null : idx)}
-                  activeOpacity={0.75}
-                >
-                  <View style={[ss.timePill, { backgroundColor: `${primary}20` }]}>
-                    <Text style={[ss.timeText, { color: primary }]}>{slot.time || '—'}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[ss.slotTitle, { color: textColor }]}>{slot.title}</Text>
-                    {!!slot.performer && <Text style={[ss.slotPerformer, { color: muted }]}>{slot.performer}</Text>}
-                    {!!slot.notes && !isExpanded && (
-                      <Text style={[ss.slotNotes, { color: muted }]} numberOfLines={1}>{slot.notes}</Text>
-                    )}
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                    {slotPolls.length > 0 && (
-                      <View style={[ss.pollBadge, { backgroundColor: `${primary}25` }]}>
-                        <Text style={[ss.pollBadgeText, { color: primary }]}>{slotPolls.length} poll{slotPolls.length !== 1 ? 's' : ''}</Text>
-                      </View>
-                    )}
-                    <Feather name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={muted} />
-                  </View>
-                </TouchableOpacity>
+                {/* Plain View wrapper, not a touchable — the expand tap target
+                    and the agenda-toggle tap target must be SIBLINGS, not
+                    nested TouchableOpacitys. Nesting them fights the gesture
+                    responder on native and produces an invalid nested
+                    <button> on web (the exact class of bug already flagged
+                    elsewhere in this app). */}
+                <View style={ss.slotHeader}>
+                  <TouchableOpacity
+                    style={ss.slotHeaderTap}
+                    onPress={() => setExpandedSlot(isExpanded ? null : idx)}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[ss.timePill, { backgroundColor: `${primary}20` }]}>
+                      <Text style={[ss.timeText, { color: primary }]}>{slot.time || '—'}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[ss.slotTitle, { color: textColor }]}>{slot.title}</Text>
+                      {!!slot.performer && <Text style={[ss.slotPerformer, { color: muted }]}>{slot.performer}</Text>}
+                      {!!slot.notes && !isExpanded && (
+                        <Text style={[ss.slotNotes, { color: muted }]} numberOfLines={1}>{slot.notes}</Text>
+                      )}
+                    </View>
+                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                      {slotPolls.length > 0 && (
+                        <View style={[ss.pollBadge, { backgroundColor: `${primary}25` }]}>
+                          <Text style={[ss.pollBadgeText, { color: primary }]}>{slotPolls.length} poll{slotPolls.length !== 1 ? 's' : ''}</Text>
+                        </View>
+                      )}
+                      <Feather name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={muted} />
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Add to My Agenda — a sibling tap target, so picking a
+                      session doesn't also expand/collapse it. */}
+                  {feature('eventInfoPanel') && (
+                    <TouchableOpacity
+                      onPress={() => toggleAgenda(slot, idx)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={[ss.agendaBtn, { backgroundColor: inAgenda ? primary : `${primary}12`, borderColor: inAgenda ? primary : `${primary}30` }]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: inAgenda }}
+                      accessibilityLabel={inAgenda ? `Remove ${slot.title} from my agenda` : `Add ${slot.title} to my agenda — remind me 15 minutes before`}
+                    >
+                      <Feather name="bookmark" size={14} color={inAgenda ? '#000' : primary} />
+                    </TouchableOpacity>
+                  )}
+                </View>
 
                 {isExpanded && (
                   <View style={ss.slotBody}>
@@ -423,7 +505,10 @@ const ss = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '900', letterSpacing: 0.5 },
   createPollBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
   slotCard: { borderWidth: 1, borderRadius: 16, overflow: 'hidden' },
-  slotHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  slotHeader: { flexDirection: 'row', alignItems: 'center' },
+  slotHeaderTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  agendaBtn: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  agendaChip: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10 },
   timePill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, minWidth: 52, alignItems: 'center' },
   timeText: { fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
   slotTitle: { fontSize: 14, fontWeight: '800', lineHeight: 19 },

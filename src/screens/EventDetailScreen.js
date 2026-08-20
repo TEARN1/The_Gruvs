@@ -52,6 +52,7 @@ import { ResidentStaysSection }   from '../components/ResidentStaysSection';
 import { ResidentTrustBadge }     from '../components/ResidentTrustBadge';
 import { EventContextualAds }     from '../components/EventContextualAds';
 import { EventScheduleSection }   from '../components/EventScheduleSection';
+import { HostNoticeCard }         from '../components/HostNoticeCard';
 import { EventChatRoom }          from '../components/EventChatRoom';
 import { EventPollSection }       from '../components/EventPollSection';
 import { EventPlaylistSection }   from '../components/EventPlaylistSection';
@@ -160,6 +161,22 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [secretFx, setSecretFx] = useState(0);
   const prevRevealedRef = useRef(false);
   const [checkedIn, setCheckedIn] = useState(false);
+  // `event` arrives as a prop from whichever screen opened this one (feed
+  // card, deep link, map pin…) — most of those fetch a curated column list
+  // for their own purposes and won't include a brand-new column like
+  // host_notice. Fetch it directly rather than depending on every caller
+  // across the app being updated (a `select('*')` audit is out of scope here).
+  const [hostNotice, setHostNotice] = useState(event?.host_notice ?? null);
+  useEffect(() => {
+    setHostNotice(event?.host_notice ?? null);
+    if (!feature('eventInfoPanel')) return;
+    if (event?.host_notice !== undefined || !event?.id) return; // caller already had it (even if null)
+    let alive = true;
+    supabase.from('events').select('host_notice').eq('id', event.id).maybeSingle()
+      .then(({ data }) => { if (alive) setHostNotice(data?.host_notice ?? null); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [event?.id, event?.host_notice]);
   const [checkingIn, setCheckingIn] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -1544,6 +1561,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           )}
 
           <View style={styles.sectionDivider} />
+          {!!hostNotice && feature('eventInfoPanel') && (
+            <SafeSection label="Host notice" primary={primary}>
+              <HostNoticeCard event={{ host_notice: hostNotice }} primary={primary} textColor={textColor} muted={textMuted} bg={background} />
+            </SafeSection>
+          )}
           {event?.id && (
             <SafeSection label="Schedule" primary={primary}>
               <EventScheduleSection
