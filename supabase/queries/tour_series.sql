@@ -24,6 +24,22 @@ alter table public.event_series add column if not exists updated_at  timestamptz
 comment on table public.event_series is 'A tour: one identity that owns many dated/located event stops via events.series_id.';
 
 -- ── Followers: "Follow Tour" → every future stop auto-routes to them ─────────
+-- event_series_followers: same drift class as event_series in fix_series_fk.sql
+-- — "table already exists" was true live, false in zero tracked files. Added
+-- verbatim from information_schema/pg_get_constraintdef against production,
+-- INCLUDING its series_id FK pointing at events(id) rather than
+-- event_series(id) — that's a live, pre-existing bug of the same shape
+-- fix_series_fk.sql fixed for events.series_id, but out of scope here; this
+-- file only needs CI to match what's actually live. Flagged in RISK_REGISTER.md.
+create table if not exists public.event_series_followers (
+  id                   uuid primary key default gen_random_uuid(),
+  series_id            uuid not null references public.events(id) on delete cascade,
+  user_id              uuid not null references public.profiles(id) on delete cascade,
+  notify_before_hours  integer default 24,
+  created_at           timestamptz default now(),
+  unique (series_id, user_id)
+);
+
 -- Table already exists; guarantee the unique pair the followSeries upsert needs.
 create unique index if not exists uq_series_followers
   on public.event_series_followers (series_id, user_id);
