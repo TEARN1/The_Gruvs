@@ -75,7 +75,7 @@ migrated into them) so existing screens keep working while depth becomes univers
   (`EventContextualAds.js`) and reader (`CampaignManager.getPerformance`).
   Fixed the audit script, not the (correct) live schema. Re-ran: **zero real
   drift.**
-- **119** Adopt CLI migrations + CI — 🟡 **partially done, 2 batches in.**
+- **119** Adopt CLI migrations + CI — ✅ **DONE 2026-08-20, actually verified green.**
   [db-schema-ci.yml](.github/workflows/db-schema-ci.yml) had been frozen at
   `schema_drift_fixes.sql` since 2026-07-13 — 49 files applied to production
   since were never validated. Batch 1: `RUN_IN_SUPABASE.sql` +
@@ -131,6 +131,35 @@ migrated into them) so existing screens keep working while depth becomes univers
   that doesn't match production, the opposite of this job's purpose.
   `supabase db pull` baseline still needs `supabase login` — interactive,
   can't be done from this environment.
+
+  **2026-08-20 — CI actually turned green, not just wired.** The batch-2/3
+  claims above were premature: all 4 initial pushes failed at the very first
+  file (`RUN_IN_SUPABASE.sql`), meaning every file after it had genuinely
+  never been tested despite being "added to CI." Root-caused via
+  `gh run view --log`, not assumption. Two distinct bug classes surfaced,
+  both fixed file-by-file until the full 49-file apply + idempotency
+  re-apply passed clean from an empty Postgres:
+  - **Function/column/table drift** (18 fixes): things hand-added to
+    production over time that were never saved back to a tracked SQL file —
+    `follow_user`/`unfollow_user` and `generate_ticket_token` return-type
+    conflicts (2 functions), `enforce_report_rate_limit` +
+    `notify_business_invoice_paid` + `touch_business_invoice_requests` +
+    `is_crew_member` (4 functions), 19 `profiles` columns
+    (`avatar`/`verified`/`verification_badge`/`level`/`resident_trust_tier`/
+    `lat`/`lon`/`phone`/`name`/`banner`/`career_title`/`career_description`/
+    `looks_description`/`points`/`privacy`/`reputation`/`streak`/`tags`/
+    `wants_email`), 6 `messages` columns, and 6 whole tables/views
+    (`crews`, `crew_members`, `crew_invites`, `check_ins` +
+    `checkins`/`followers`/`mutual_follows` views, `event_series`,
+    `event_series_followers`). Found `event_series_followers.series_id`'s
+    FK points at the wrong table live (RISK_REGISTER.md C12, not fixed —
+    out of scope, needs a usage check first).
+  - **Idempotency bugs** (2 fixes): `CREATE POLICY` without a matching
+    `DROP POLICY IF EXISTS` for its own name — passes on a fresh DB, fails
+    on the second run. Wrote a script to statically simulate this + the
+    return-type check across the full build order; swept clean after.
+  - Final green run:
+    [32430200437](https://github.com/TEARN1/The_Gruvs/actions/runs/32430200437).
 - **120** Backups/PITR on; Supabase **preview branch** for testing migrations
   before prod. ⚪ **Still open — Supabase Dashboard only, needs you.**
 
