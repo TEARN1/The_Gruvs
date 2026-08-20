@@ -8,29 +8,35 @@
 
 ---
 
-## PART 0 — THE MIRROR (live DB snapshot, 2026-07-06)
+## PART 0 — THE MIRROR (live DB snapshot, 2026-08-18)
 
-| Metric | Reality | What it means |
-|---|---|---|
-| Registered users | **29** | Pre-launch. Essentially you + friends. |
-| Events (upcoming) | 33 | Looks healthy… |
-| **Distinct hosts** | **2** | …but it's just you. **No supply liquidity.** |
-| **Verified check-ins (all time)** | **2**, by **1 person** | **The moat has ~zero data.** (Check-in was BROKEN until 3 days ago.) |
-| Reels / follows / DMs / reactions | 9 / 48 / 23 / 9 | Seed-level. No organic loop yet. |
-| Song requests | 0 | New feature, no usage yet. |
-| **Backend tables / functions** | **216 / 1,071** | **Enormous surface area.** |
+| Metric | 2026-07-06 | 2026-08-18 | What it means |
+|---|---|---|---|
+| Registered users | 29 | **39** | +10 in 6 weeks. Still pre-launch. |
+| Events (upcoming) | 33 | **143** | Grew 4×. Supply of *listings* is not the bottleneck. |
+| **Distinct hosts** | 2 | **2** | **Unchanged.** Still just you. No supply liquidity, 6 weeks later. |
+| **Distinct people who ever Touched Down** | **1** | **1** | **Unchanged.** The moat still has ~zero real data. |
+| Total check-ins (all time) | 2 | 4 | +2, from the same 1 person. |
+| Reels / follows / messages | 9 / 48 / 23 | 10 / 63 / 71 | Modest organic growth in low-stakes actions (follow, message) — none in the one action that matters (Touch Down). |
+| Businesses on platform | — | 1 | New surface, first real user. |
 
-### The one insight that must drive everything
-**Built surface ÷ real usage is wildly inverted: 1,071 database functions serving
-2 check-ins.** The app has the backend of a scaled product and the traction of a
-weekend project. This isn't a criticism of the work — it's the single fact that
-determines whether the plan is *calibrated correctly*:
+### The one insight that must drive everything — STILL TRUE, MORE URGENT
+Six weeks of substantial engineering happened since the last version of this
+doc: a full map overhaul (viewport search, clustering, real controls), a
+host-attendee communication system with a real reminder dispatcher, security
+hardening across a dozen RLS gaps, monetization plumbing, SEO structured data.
+**All of it shipped. None of it moved the number that matters.** Distinct
+Touch-Down users: 1, then, and 1, now.
 
-> **The bottleneck is NOT features. It is proof that real humans show up.**
-> Every hour spent building instead of getting Touch Downs widens the gap.
+> **The bottleneck was never features. It still isn't.** Every week spent
+> building instead of getting a second real host and a second real attendee
+> widens the gap between what this app can technically do and what anyone has
+> actually experienced.
 
-The plan below is judged against that fact. Direction: correct. The correction
-the numbers force: **stop expanding surface; start manufacturing the loop.**
+This is not a criticism of the engineering — the work was real, verified, and
+needed (see [RISK_REGISTER.md](RISK_REGISTER.md) for what was actually broken
+and got fixed). It's a calibration check, and it says the same thing it said
+six weeks ago, louder: **stop expanding surface; go get a second host.**
 
 ---
 
@@ -120,17 +126,30 @@ it must drive the next 8 weeks.**
   paid APIs, no money-handling — by design.
 - **Hosting:** web live at thegruvs.com on a DigitalOcean droplet (nginx,
   Let's Encrypt); atomic deploys. Native: **not built** (parked on EXPO_TOKEN).
-- **The drift story (now solved):** the app's code was ahead of the live DB for
-  months → features "broken" that were really just un-migrated (check-in, DMs,
-  reels, song requests all hit this). **Supabase MCP is now connected** — I fix
-  the live DB directly via tested migrations. The whole "paste this SQL" era is
-  over. This is a *major* de-risking of the plan.
+- **The drift story (de-risked, not solved):** the "paste this SQL manually" era
+  is over — Supabase MCP applies tested migrations directly. But drift itself
+  still recurs: as recently as 2026-08-18, `accommodation.js` was silently
+  400ing on a nonexistent column and a maintenance cron had been failing every
+  night for 5+ days on a wrong column name, both caught only because someone
+  actually read the GitHub Guardian / Supabase advisor emails, not because a
+  process guarantees it. The CI schema-drift check (`scripts/audit-schema.mjs`,
+  runs in the Guardian workflow) is the real fix; it needs to be *read*, not
+  just running.
 - **Surface-area risk:** 216 tables / 1,071 functions is a maintenance liability
   for a solo dev. Not urgent, but: freeze new schema; consolidate opportunistically
   (e.g., the 3 date-of-birth columns); every new feature must justify its tables.
 - **Blind-spot risk:** ~100 empty `catch{}` blocks. First Stage-0 task is
   `client_errors` + `logError()` so failures surface. (Check-in failing silently
-  for weeks is exactly this risk realized.)
+  for weeks is exactly this risk realized.) — **partially closed**: `setDriftReporter`
+  is now wired (`App.js`) so schema-drift and degraded-path events land in
+  `client_errors` instead of a console nobody reads; the ~100 empty catches
+  elsewhere are unaudited.
+- **Operational memory now exists outside chat**: [RUNBOOK.md](RUNBOOK.md)
+  (outage/incident playbook, where secrets live, manual chores nothing
+  auto-notifies you for) and [RISK_REGISTER.md](RISK_REGISTER.md) (living,
+  prioritized risk tracking — replaces one-off chat lists that used to
+  evaporate). Both created 2026-08-18; check them before assuming something
+  here is still accurate.
 
 ---
 
@@ -174,6 +193,11 @@ native exists — they're the right "next builds," but native + BD come first.
 
 ## PART 7 — RISKS & GAPS (the honest holes)
 
+> This section is a snapshot from 2026-07-06, kept for history. The living,
+> continuously-updated version is [RISK_REGISTER.md](RISK_REGISTER.md) — check
+> there first; it has status tracking (open/mitigated/accepted) this static
+> list never will.
+
 **Quantified risks:**
 1. **Build/usage inversion (LIVE NOW):** 1,071 functions, 2 check-ins. The plan
    is right; the discipline to stop building is the actual battle.
@@ -214,15 +238,27 @@ Watch ONE number per stage; ignore vanity metrics.
 
 ## THE VERDICT
 
-**Direction: planned correctly.** The lifecycle framing, the structure-is-the-
-product moat, the density-gated sequencing, the lock-in doctrine, the honey-not-
-shame reciprocity, the monetization order — all coherent and mutually reinforcing.
+**Direction: still planned correctly.** The lifecycle framing, the structure-is-
+the-product moat, the density-gated sequencing, the lock-in doctrine, the
+honey-not-shame reciprocity, the monetization order — all still coherent.
 
-**Calibration: two corrections the numbers force.**
-1. **We are at Stage 0 with an unproven loop and 2 check-ins** — act like it.
-   The next work is *proof* (native + BD + instrumentation), not new surface.
-2. **Write the missing BD playbook.** It's the highest-leverage undocumented
-   piece and the thing most likely to actually determine success.
+**Calibration: the same two corrections, now six weeks overdue.**
+1. **We are still at Stage 0 with an unproven loop.** 1 distinct Touch-Down
+   user in July, 1 today. The next work is *proof* (native + BD +
+   instrumentation), not new surface — and six weeks of new surface got built
+   anyway. That's the actual finding of this update: **the discipline this doc
+   asked for in July did not hold.** Naming that plainly is more useful than
+   pretending otherwise.
+2. **The BD playbook still doesn't exist.** Still the single highest-leverage
+   undocumented piece. Every week without it is a week the "getting a second
+   host" problem stays unsolved by default, not by decision.
 
 **Everything is planned correctly except the part that was never a coding
-problem: getting the first real humans to show up. That is now the whole game.**
+problem: getting the first real humans to show up. That was the whole game in
+July. It is still the whole game now — and it's the one thing more
+engineering, however well-verified, cannot solve.**
+
+*Last honest reconciliation: 2026-08-18. If you're reading this later and the
+numbers above haven't been refreshed, that's itself a signal — pull a fresh
+snapshot (see the query pattern in Part 0) before trusting anything on this
+page.*
