@@ -1,5 +1,11 @@
 -- lock_profile_coordinates.sql
 --
+-- ⚠️  2026-08-18: the REVOKE/re-GRANT block below (part 1) is SUPERSEDED by
+-- ⚠️  profiles_grants_reconciled.sql — running this file's grant logic alone
+-- ⚠️  will forget lock_authenticated_pii.sql's PII deny-list. Run
+-- ⚠️  profiles_grants_reconciled.sql instead for the grant; the REASONING
+-- ⚠️  below and profiles_within_radius() (part 2) are still current.
+--
 -- WHY: `profiles` granted table-wide SELECT to `authenticated`, and the RLS
 -- policy `profiles_select` is USING (true). Combined, that means ANY signed-in
 -- user could read EVERY user's precise coordinates (lat, lon, home_base_lat,

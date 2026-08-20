@@ -1,6 +1,15 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- lock_authenticated_pii.sql — close the #1 remaining security hole.
 --
+-- ⚠️  2026-08-18: PART 2's REVOKE/re-GRANT block is SUPERSEDED by
+-- ⚠️  profiles_grants_reconciled.sql — this file's regrant doesn't exclude
+-- ⚠️  coordinates, so running it alone after lock_profile_coordinates.sql
+-- ⚠️  RE-EXPOSES lat/lon. This exact composition bug caused a real live PII
+-- ⚠️  leak (email/push_token/phone/emergency_contacts/siblings readable
+-- ⚠️  cross-user) found and fixed 2026-08-18 — see RISK_REGISTER.md. PART 1
+-- ⚠️  (get_my_profile) is still current and required; run
+-- ⚠️  profiles_grants_reconciled.sql for the grant, not PART 2 below.
+--
 -- Today: anon is fully walled off from profiles (2026-06 column allowlist), BUT
 -- any SIGNED-IN user can still `select email, push_token, phone, first_name,
 -- surname ...` on ANY other user's profile row. The between-users wall is down.

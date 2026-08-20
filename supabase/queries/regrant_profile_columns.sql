@@ -1,5 +1,13 @@
 -- regrant_profile_columns.sql — RE-RUN AFTER ADDING ANY `profiles` COLUMN.
 --
+-- ⚠️  2026-08-18: SUPERSEDED by profiles_grants_reconciled.sql, which is the
+-- ⚠️  same idea (rebuild the safe list from information_schema every run)
+-- ⚠️  but with the FULL deny-list (coordinates + PII). This file's narrower
+-- ⚠️  list is what silently re-exposed email/push_token/phone/
+-- ⚠️  emergency_contacts/siblings after lock_authenticated_pii.sql had
+-- ⚠️  closed them — see RISK_REGISTER.md. Use profiles_grants_reconciled.sql
+-- ⚠️  going forward, including for the next new column, not this file.
+--
 -- lock_profile_coordinates.sql revoked the table-level SELECT grant on
 -- `profiles` and re-granted an explicit safe column list (everything except
 -- lat / lon / home_base_lat / home_base_lon). That has a sharp edge documented
