@@ -207,8 +207,9 @@ native exists — they're the right "next builds," but native + BD come first.
 4. **Solo-dev surface area:** 216 tables to maintain alone.
 
 **Gaps NOT yet in any plan (worth naming so they're not surprises):**
-- **The BD playbook.** "Get 10–20 hosts" is stated, not designed. *This is the
-  highest-leverage unwritten doc.* How exactly do you recruit host #1?
+- ~~**The BD playbook.**~~ **WRITTEN** — see [BD_PLAYBOOK.md](BD_PLAYBOOK.md)
+  (2026-07-06). Complete framework; 7 `⟨YOU⟩` blanks still unfilled as of
+  2026-08-18. The gap moved from "undesigned" to "undecided."
 - **Moderation & trust at scale** (reports exist; ops process doesn't).
 - **Legal:** age-gating, user-generated content, the reciprocity/accountability
   layer, POPIA (SA privacy law) once you hold real attendance/location data.
@@ -249,9 +250,17 @@ honey-not-shame reciprocity, the monetization order — all still coherent.
    anyway. That's the actual finding of this update: **the discipline this doc
    asked for in July did not hold.** Naming that plainly is more useful than
    pretending otherwise.
-2. **The BD playbook still doesn't exist.** Still the single highest-leverage
-   undocumented piece. Every week without it is a week the "getting a second
-   host" problem stays unsolved by default, not by decision.
+2. **The BD playbook exists — it's the ⟨YOU⟩ blanks that don't.**
+   [BD_PLAYBOOK.md](BD_PLAYBOOK.md) was written 2026-07-06 and is a complete,
+   opinionated framework: pick one scene, recruit mid-tier promoters first,
+   here's the exact pitch script. It has **7 unfilled `⟨YOU⟩` markers** —
+   places only the founder's ground truth can complete. The most important is
+   the last line of the doc: *"Who is host #1, and when is their next event?"*
+
+   This reframes the task usefully. It was never "write a BD strategy" (done).
+   It's "**name one real person and one real date**" — a 20-minute task that
+   has stayed open for 6 weeks. That gap is not an information problem, and no
+   further doc will close it.
 
 **Everything is planned correctly except the part that was never a coding
 problem: getting the first real humans to show up. That was the whole game in
