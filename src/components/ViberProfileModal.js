@@ -25,7 +25,6 @@ import { ReelsObservers } from '../services/reelsDataFlow';
 import { useToast } from './ToastNotification';
 import { ReportModal } from './ReportModal';
 import { useBackClose } from '../hooks/useBackClose';
-import { isBirthdayToday } from '../utils/birthday';
 
 const RANK_LABELS = [
   { min: 0,     max: 100,    name: 'Viber',       color: "#94a3b8" },
@@ -299,11 +298,13 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         setProfile(propUser);
         setIsOnline(showOnlineRef.current && checkOnline(propUser));
       }
-      // Birthday — fetched separately so an un-migrated DB (no birth_date) can't break the load.
+      // Birthday — via RPC so another user's raw birth_date/year never reaches
+      // the client (profile_birthdays returns only a today/not-today flag).
+      // Falls back to false if the RPC isn't migrated yet.
       setBirthdayToday(false);
       setStamps([]);
-      supabase.from('profiles').select('birth_date').eq('id', uid).maybeSingle()
-        .then(({ data }) => setBirthdayToday(isBirthdayToday(data?.birth_date)), () => {});
+      supabase.rpc('profile_birthdays', { p_ids: [uid] })
+        .then(({ data }) => setBirthdayToday(!!data?.[0]?.is_birthday_today), () => {});
       supabase.from('event_stamps').select('*').eq('user_id', uid).order('created_at', { ascending: false })
         .then(({ data }) => setStamps(data || []), () => {});
       // Honour an explicit "Share events" opt-out — hide events from others when

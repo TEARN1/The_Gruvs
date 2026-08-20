@@ -49,8 +49,17 @@ EAS project: `3a2292ca-e3ad-4741-85ce-5b9b859b1fb6` · owner `tearn`
 | **App interactions** (views, RSVPs, check-ins, dwell) | Yes | No | Required | App functionality, **personalization** (ranking your feed) |
 | **Crash logs / diagnostics** | Yes | No | Required | Analytics (stability) |
 | **Date of birth** | Yes | No | Required | App functionality — **age gating (legal)** |
+| **Real name** (first name, surname) | Yes | No | Optional | App functionality (family-tree/invite-by-name search) |
+| **Home area** (fuzzed, ~1km, never exact) | Yes | No | Optional | App functionality (Home Area feature) |
+| **Emergency contacts** (name/phone/relationship — third-party data the user adds) | Yes | No | Optional | App functionality (in-app SOS — opens the user's own messaging app pre-addressed; never sent automatically) |
+| **Career / talent profile** | Yes | No | Optional | App functionality (talent/career profile feature) |
 
-\* **Shared = No** throughout: data goes to **Supabase** (backend service provider / processor) and **Expo Push** (notification delivery) — under Play's definition these are service providers, not third-party "sharing." **No ad networks, no data brokers, no data sold.**
+\* **Shared = No** throughout: data goes only to service providers acting on our
+behalf — **Supabase** (database/auth/storage), **DigitalOcean** (hosting),
+**Expo/EAS** (push delivery, builds), **Nominatim/OpenStreetMap** (geocoding
+venue text, no account PII), and **weserv.nl** (resizes public image URLs only)
+— under Play's definition these are service providers, not third-party
+"sharing." **No ad networks, no data brokers, no data sold.**
 
 ### Answers to expect
 - **Is data used for advertising or marketing?** → **No.**
@@ -60,7 +69,6 @@ EAS project: `3a2292ca-e3ad-4741-85ce-5b9b859b1fb6` · owner `tearn`
 ### Play declarations you'll also need
 - **Location permission declaration** — justify `ACCESS_FINE_LOCATION`: *"Precise location shows events near the user and verifies real-world attendance (Touch Down). It is user-initiated, foreground-only, and never used for ads."* (No background-location permission is requested — say so.)
 - **Photo/Video permissions** (`READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`) — *"Users select photos/videos to post as event media, reels and stories."*
-- **`RECEIVE_BOOT_COMPLETED`** — *"Re-registers local event reminders after device restart."*
 
 ---
 

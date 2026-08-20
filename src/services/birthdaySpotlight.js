@@ -1,7 +1,6 @@
 /**
  * birthdaySpotlight — make people feel celebrated on The Gruvs (zero cost, no
- * API, no AI). Three jobs, all driven by profiles.birth_date (month+day only,
- * year stays private — see src/utils/birthday.js):
+ * API, no AI). Three jobs:
  *
  *   1. peopleWithBirthdayToday(radiusKm)  — who near me has a birthday today, so
  *      the app can nudge friends/locals to wish them well.
@@ -10,12 +9,17 @@
  *   3. myBirthdayLeadUp()                 — fires from 40 days out: tells you
  *      your day is coming and surfaces good places/events to plan around it.
  *
- * Distance uses the same lat/lon already on profiles. Everything degrades
- * gracefully if a column/table isn't migrated yet.
+ * #1 and #2 read OTHER users' birthdays, so they go through the
+ * birthdays_nearby() / birthday_twins() RPCs (birthday_privacy.sql) — these
+ * return only a distance + a match, never another user's raw birth_date/year.
+ * #3 reads only the caller's own row, where birth_date is fine to read directly.
+ * Everything degrades gracefully (via isSchemaMiss) if the RPCs aren't migrated
+ * yet, so this ships safely ahead of or behind the DB migration.
  */
 
 import { supabase } from './supabase';
-import { daysUntilBirthday, isBirthdayToday } from '../utils/birthday';
+import { daysUntilBirthday } from '../utils/birthday';
+import { isSchemaMiss } from '../utils/resilience';
 
 export const BIRTHDAY_LEAD_DAYS = 40; // start the build-up this far ahead
 
@@ -28,84 +32,60 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// month/day of "today" (or an offset day), used to query the DB cheaply.
-function monthDay(offsetDays = 0) {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return { month: d.getMonth() + 1, day: d.getDate() };
-}
-
 /**
  * peopleWithBirthdayToday — discoverable users whose birthday is today, within
  * radiusKm of the given centre (defaults to the caller's profile location).
  * Returns lightweight profile rows the UI can render as "wish them well" cards.
+ * Server-side (birthdays_nearby RPC) — never fetches another user's raw
+ * birth_date to the client.
  */
 export async function peopleWithBirthdayToday({ centerLat, centerLon, radiusKm = 50, limit = 30 } = {}) {
-  const { month, day } = monthDay(0);
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username, display_name, avatar_url, city, lat, lon, birth_date')
-      .eq('is_discoverable', true)
-      .not('birth_date', 'is', null)
-      .limit(5000);
+    const { data, error } = await supabase.rpc('birthdays_nearby', {
+      p_lat: centerLat ?? null,
+      p_lon: centerLon ?? null,
+      p_radius_km: radiusKm,
+      p_limit: limit,
+    });
     if (error) throw error;
 
-    const todays = (data || []).filter((p) => isBirthdayToday(p.birth_date));
-    const withDist = todays.map((p) => {
-      const dist = (centerLat && centerLon && p.lat && p.lon)
-        ? haversineKm(centerLat, centerLon, p.lat, p.lon) : null;
-      return { ...p, _distanceKm: dist };
-    });
-    // If we have a centre, keep only those inside the radius; else keep all.
+    const rows = data || [];
     const inRange = (centerLat && centerLon)
-      ? withDist.filter((p) => p._distanceKm == null || p._distanceKm <= radiusKm)
-      : withDist;
-    return inRange
-      .sort((a, b) => (a._distanceKm ?? 1e9) - (b._distanceKm ?? 1e9))
-      .slice(0, limit);
+      ? rows.filter((p) => p.distance_km == null || p.distance_km <= radiusKm)
+      : rows;
+    return inRange.map((p) => ({ ...p, _distanceKm: p.distance_km }));
   } catch (e) {
-    console.warn('[birthdaySpotlight] peopleWithBirthdayToday failed:', e.message);
+    if (isSchemaMiss(e)) {
+      console.warn('[birthdaySpotlight] birthdays_nearby not migrated yet — degrading gracefully.');
+    } else {
+      console.warn('[birthdaySpotlight] peopleWithBirthdayToday failed:', e.message);
+    }
     return [];
   }
 }
 
 /**
  * myBirthdayTwins — other people who share the caller's birthday (same month+day).
- * The "people you share the day with" feature.
+ * The "people you share the day with" feature. Server-side (birthday_twins RPC)
+ * — never fetches another user's raw birth_date to the client.
  */
 export async function myBirthdayTwins(userId, { limit = 20 } = {}) {
   if (!userId) return [];
   try {
-    const { data: me } = await supabase
-      .from('profiles').select('birth_date, lat, lon').eq('id', userId).single();
-    if (!me?.birth_date) return [];
-
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, username, display_name, avatar_url, city, lat, lon, birth_date')
-      .eq('is_discoverable', true)
-      .neq('id', userId)
-      .not('birth_date', 'is', null);
-
-    return (data || [])
-      .filter((p) => sameDay(p.birth_date, me.birth_date))
-      .map((p) => ({
-        ...p,
-        _distanceKm: (me.lat && me.lon && p.lat && p.lon)
-          ? haversineKm(me.lat, me.lon, p.lat, p.lon) : null,
-      }))
-      .sort((a, b) => (a._distanceKm ?? 1e9) - (b._distanceKm ?? 1e9))
-      .slice(0, limit);
+    const { data, error } = await supabase.rpc('birthday_twins', {
+      p_user_id: userId,
+      p_limit: limit,
+    });
+    if (error) throw error;
+    return (data || []).map((p) => ({ ...p, _distanceKm: p.distance_km }));
   } catch (e) {
-    console.warn('[birthdaySpotlight] myBirthdayTwins failed:', e.message);
+    if (isSchemaMiss(e)) {
+      console.warn('[birthdaySpotlight] birthday_twins not migrated yet — degrading gracefully.');
+    } else {
+      console.warn('[birthdaySpotlight] myBirthdayTwins failed:', e.message);
+    }
     return [];
   }
-}
-
-function sameDay(a, b) {
-  if (!a || !b) return false;
-  return a.slice(5, 10) === b.slice(5, 10); // compare MM-DD
 }
 
 /**

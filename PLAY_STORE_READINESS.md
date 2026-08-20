@@ -35,10 +35,9 @@ a standard rejection for social apps.
 ## 🔴 3. Account deletion (in-app + a public web URL)
 Google requires account-based apps to let users **delete their account from inside the app** AND
 provide a **publicly reachable deletion URL** (no login required to find it), and to delete/anonymise
-associated data. The deletion pipeline is live in-DB — the gaps to close:
-- **Do:** confirm the in-app "Delete my account" entry point works end-to-end, and publish a
-  `https://thegruvs.com/delete-account` (or similar) page describing what's deleted/retained.
-  Put that URL in the Play Console "Data deletion" field.
+associated data. This is live: in-app Settings → Delete account, plus
+**https://thegruvs.com/account-deletion.html** — put that exact URL in the Play Console
+"Data deletion" field.
 
 ## 🟠 4. Privacy Policy + Data Safety form accuracy
 - **Have:** `privacyPolicyUrl = https://thegruvs.com/privacy.html`.
@@ -50,11 +49,10 @@ associated data. The deletion pipeline is live in-DB — the gaps to close:
 
 ## 🟠 5. Permissions — declare only what you use, justify the sensitive ones
 Currently declared: FINE/COARSE location, CAMERA, READ_MEDIA_IMAGES/VIDEO, RECORD_AUDIO,
-MODIFY_AUDIO_SETTINGS, VIBRATE, RECEIVE_BOOT_COMPLETED.
+MODIFY_AUDIO_SETTINGS, VIBRATE. (`RECEIVE_BOOT_COMPLETED` removed — it had no matching code, and
+an unused sensitive-ish permission draws scrutiny for nothing.)
 - **RECORD_AUDIO / CAMERA** — justified by calls + posting media; fine, but each needs a runtime
   rationale and a Data Safety entry.
-- **RECEIVE_BOOT_COMPLETED** — only defensible if used for scheduled notifications; if not used,
-  **remove it** (unused sensitive-ish permissions draw scrutiny).
 - **READ_MEDIA_VIDEO/IMAGES** — fine on Android 13+; ensure you're not also requesting legacy
   `READ_EXTERNAL_STORAGE`. Prefer the photo picker where possible.
 - **Rule:** every permission must map to a visible feature the reviewer can reach.
@@ -76,7 +74,7 @@ side-loading as the Play artifact; submit the **signed AAB from EAS**.
 - **Do:** build against a **current target SDK** (Google requires new apps/updates to target a
   recent API level — keep Expo SDK up to date so `targetSdkVersion` meets the current-year bar).
 - **Do:** use **Play App Signing**; keep the upload key safe. `versionCode` must increase each
-  upload (currently 3).
+  upload (currently 2 in app.json).
 
 ## 🟡 9. Reviewer access (login-walled app)
 The app requires login. Google reviewers will **reject if they can't get in**. Provide **test
@@ -104,7 +102,7 @@ shows real functionality.
 - [ ] 🔴 Report + Block reachable on every UGC surface; Terms/EULA linked in-app + listing.
 - [ ] 🔴 In-app account deletion works + public `/delete-account` URL set in Console.
 - [ ] 🟠 Privacy policy live + specific; Data Safety form matches the code.
-- [ ] 🟠 Remove any unused permission (esp. `RECEIVE_BOOT_COMPLETED` if unused).
+- [x] 🟠 Remove any unused permission — `RECEIVE_BOOT_COMPLETED` removed (was unused).
 - [ ] 🟠 Content rating completed honestly; audience = 18+.
 - [ ] 🟠 Upload the **signed EAS AAB** (native), not a web wrapper / side-load APK.
 - [ ] 🟡 Provide reviewer demo credentials in "App access".
