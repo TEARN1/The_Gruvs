@@ -92,6 +92,49 @@ CREATE TRIGGER trg_reports_rate_limit
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_report_rate_limit();
 
+-- notify_business_invoice_paid() / touch_business_invoice_requests(): same
+-- undocumented-drift class as enforce_report_rate_limit() above — existed
+-- live, zero tracked files, found the same way (CI died on the REVOKE
+-- below). Added verbatim from pg_get_functiondef/pg_get_triggerdef.
+CREATE OR REPLACE FUNCTION public.notify_business_invoice_paid()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.status = 'paid' AND (OLD.status IS DISTINCT FROM 'paid') THEN
+    INSERT INTO notifications (recipient_id, actor_id, type, title, body, data, read)
+    VALUES (
+      NEW.requested_by,
+      NEW.requested_by,
+      'business_invoice_paid',
+      'Invoice confirmed',
+      'Your ' || NEW.requested_tier || ' upgrade is confirmed — your business tier has been updated.',
+      jsonb_build_object('business_id', NEW.business_id, 'requested_tier', NEW.requested_tier, 'invoice_request_id', NEW.id),
+      false
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.touch_business_invoice_requests()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_business_invoice_paid ON public.business_invoice_requests;
+CREATE TRIGGER trg_business_invoice_paid
+  AFTER UPDATE ON public.business_invoice_requests
+  FOR EACH ROW
+  EXECUTE FUNCTION public.notify_business_invoice_paid();
+
+DROP TRIGGER IF EXISTS trg_business_invoice_requests_touch ON public.business_invoice_requests;
+CREATE TRIGGER trg_business_invoice_requests_touch
+  BEFORE UPDATE ON public.business_invoice_requests
+  FOR EACH ROW
+  EXECUTE FUNCTION public.touch_business_invoice_requests();
+
 REVOKE EXECUTE ON FUNCTION public.enforce_report_rate_limit() FROM anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.notify_business_invoice_paid() FROM anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.touch_business_invoice_requests() FROM anon, authenticated;
