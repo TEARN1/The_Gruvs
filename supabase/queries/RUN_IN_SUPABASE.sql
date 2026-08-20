@@ -365,41 +365,10 @@ GRANT EXECUTE ON FUNCTION public.cast_match_prediction TO authenticated;
 --  abused to follow/post on behalf of someone else.
 -- ════════════════════════════════════════════════════════════════════════════
 
--- ── follow_user ─────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.follow_user(p_follower_id uuid, p_following_id uuid)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF auth.uid() IS DISTINCT FROM p_follower_id THEN
-    RAISE EXCEPTION 'not authorized to follow on behalf of another user';
-  END IF;
-  IF p_follower_id = p_following_id THEN
-    RETURN; -- can't follow yourself; no-op
-  END IF;
-  INSERT INTO public.follows (follower_id, following_id)
-  VALUES (p_follower_id, p_following_id)
-  ON CONFLICT (follower_id, following_id) DO NOTHING;
-END;
-$$;
-
--- ── unfollow_user ───────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.unfollow_user(p_follower_id uuid, p_following_id uuid)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF auth.uid() IS DISTINCT FROM p_follower_id THEN
-    RAISE EXCEPTION 'not authorized to unfollow on behalf of another user';
-  END IF;
-  DELETE FROM public.follows
-  WHERE follower_id = p_follower_id AND following_id = p_following_id;
-END;
-$$;
+-- follow_user / unfollow_user REMOVED 2026-08-20 — see FIX_SOCIAL_RPCS.sql
+-- for the full explanation. Superseded by schema_part_4.sql's RETURNS jsonb
+-- versions, confirmed live via pg_get_functiondef; the client never reads
+-- the return value either way.
 
 -- ── create_story ────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.create_story(
@@ -441,8 +410,8 @@ END;
 $$;
 
 -- Let signed-in users call these (definer body enforces per-user authorization).
-GRANT EXECUTE ON FUNCTION public.follow_user(uuid, uuid)        TO authenticated;
-GRANT EXECUTE ON FUNCTION public.unfollow_user(uuid, uuid)      TO authenticated;
+-- follow_user/unfollow_user grants removed with their CREATE statements above
+-- — schema_part_4.sql already grants its (live) versions.
 GRANT EXECUTE ON FUNCTION public.create_story(uuid, text, text, timestamptz) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_stories_seen(uuid[], uuid) TO authenticated;
 

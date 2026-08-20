@@ -375,50 +375,17 @@ CREATE TABLE IF NOT EXISTS public.notification_preferences (
   updated_at            TIMESTAMPTZ DEFAULT now()
 );
 
--- ── generate_ticket_token RPC ─────────────────────────────────
-DROP FUNCTION IF EXISTS public.generate_ticket_token(uuid);
-CREATE OR REPLACE FUNCTION public.generate_ticket_token(p_rsvp_id UUID)
-RETURNS TABLE(token TEXT, qr_payload TEXT, expires_at TIMESTAMPTZ)
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_rsvp    public.event_rsvps%ROWTYPE;
-  v_token   TEXT;
-  v_payload TEXT;
-  v_expires TIMESTAMPTZ;
-BEGIN
-  SELECT * INTO v_rsvp FROM public.event_rsvps WHERE id = p_rsvp_id;
-  IF NOT FOUND THEN RAISE EXCEPTION 'RSVP not found'; END IF;
-  IF v_rsvp.user_id <> auth.uid() THEN RAISE EXCEPTION 'UNAUTHORIZED'; END IF;
-  IF v_rsvp.status NOT IN ('confirmed','going') THEN RAISE EXCEPTION 'RSVP not confirmed'; END IF;
-
-  -- Return existing valid token
-  SELECT tt.token, tt.qr_payload, tt.expires_at
-  INTO token, qr_payload, expires_at
-  FROM public.ticket_tokens tt
-  WHERE tt.rsvp_id = p_rsvp_id AND tt.expires_at > now() AND tt.used_at IS NULL
-  LIMIT 1;
-
-  IF FOUND THEN RETURN NEXT; RETURN; END IF;
-
-  v_token   := encode(gen_random_bytes(32), 'hex');
-  v_expires := now() + interval '48 hours';
-  v_payload := json_build_object(
-    'token',    v_token,
-    'event_id', v_rsvp.event_id,
-    'user_id',  v_rsvp.user_id,
-    'rsvp_id',  p_rsvp_id,
-    'exp',      extract(epoch from v_expires)::bigint
-  )::text;
-
-  INSERT INTO public.ticket_tokens (rsvp_id, user_id, event_id, token, qr_payload, expires_at)
-  VALUES (p_rsvp_id, v_rsvp.user_id, v_rsvp.event_id, v_token, v_payload, v_expires);
-
-  token      := v_token;
-  qr_payload := v_payload;
-  expires_at := v_expires;
-  RETURN NEXT;
-END;
-$$;
+-- ── generate_ticket_token RPC — REMOVED 2026-08-20 ─────────────
+-- This TABLE-returning version (writing into ticket_tokens) was superseded
+-- on production by schema_part_2.sql's stateless RETURNS text/HMAC version
+-- before this file ever ran against prod (confirmed live via
+-- pg_get_functiondef: prod runs the `text` version). Found while wiring
+-- Event Depth Engine Phase 0 CI: db-schema-ci.yml applies schema_part_2.sql
+-- BEFORE this file, so the DROP FUNCTION IF EXISTS + CREATE OR REPLACE below
+-- would silently flip a fresh rebuild onto this dead TABLE shape — which
+-- EventTicketModal.js:31 (`setPayload(data)`, expects a plain string) can't
+-- consume. Removed rather than fixed forward since prod's version already
+-- works and nothing depends on this one.
 
 -- ── send_event_day_notifications RPC (called by pg_cron) ──────
 CREATE OR REPLACE FUNCTION public.send_event_day_notifications()
