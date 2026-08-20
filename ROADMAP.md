@@ -75,21 +75,43 @@ migrated into them) so existing screens keep working while depth becomes univers
   (`EventContextualAds.js`) and reader (`CampaignManager.getPerformance`).
   Fixed the audit script, not the (correct) live schema. Re-ran: **zero real
   drift.**
-- **119** Adopt CLI migrations + CI — 🟡 **partially done.**
-  [db-schema-ci.yml](.github/workflows/db-schema-ci.yml) already built a
-  fresh schema on throwaway Postgres, but had been frozen at
-  `schema_drift_fixes.sql` since 2026-07-13 — **49 files applied to
-  production since were never validated by CI**, meaning a green run had been
-  proving a schema that no longer matched reality (exactly the false
-  confidence this phase exists to remove). Added back `RUN_IN_SUPABASE.sql` +
-  `APPLY_LIVE_FIXES.sql` (both explicitly self-described "safe to run, and
-  safe to run again") and this session's 4 new files, all with idempotency
-  re-apply checks. **~35 files still not integrated** (`map_zones.sql`,
-  `messages_*.sql`, `resident_*.sql`, `security_layers.sql`, etc.) — each
-  needs a real read for ordering/dependencies, not a guess; tracked here so
-  it isn't lost. `supabase db pull` baseline (the CLI-migrations half of this
-  task) still needs `supabase login` — interactive, can't be done from this
-  environment.
+- **119** Adopt CLI migrations + CI — 🟡 **partially done, 2 batches in.**
+  [db-schema-ci.yml](.github/workflows/db-schema-ci.yml) had been frozen at
+  `schema_drift_fixes.sql` since 2026-07-13 — 49 files applied to production
+  since were never validated. Batch 1: `RUN_IN_SUPABASE.sql` +
+  `APPLY_LIVE_FIXES.sql` + this session's 4 new files. Batch 2 (2026-08-18):
+  `map_zones.sql`, `resident_schema_v2.sql`, `res_map_bridge.sql`,
+  `resident_trust_bridge.sql`, `resident_marketplace_gate.sql`,
+  `resident_traffic_reports.sql`, `messages_send_hardening.sql`,
+  `messages_reactions_hardening.sql`, `messages_video_type.sql`,
+  `messages_block_gate.sql`, `event_chat_hardening.sql`, `event_drafts.sql`,
+  `event_draft_tasks.sql`, `security_layers.sql` — 14 files, dependency order
+  read from each file's own header, not guessed.
+
+  **Real bug caught in the process**: `map_zones.ext_source`/`ext_id` (plus a
+  partial unique index on them) existed live but in **zero tracked SQL
+  files** — added by hand at some point, never saved back. A fresh rebuild
+  from these files alone would have silently been missing them. Fixed in
+  `map_zones.sql` directly, verified column-for-column against
+  `information_schema.columns` first. This is exactly the failure mode Phase
+  0 exists to catch, and it's very unlikely to be the only instance — the
+  other 13 files in this batch were spot-checked (headers, idempotency,
+  one full table diff on `event_drafts`), not exhaustively diffed
+  column-by-column the way `map_zones` now has been.
+
+  **25 files still not integrated**: `advisor_hardening_2026-08-13.sql`,
+  `web_push.sql`, `vibe_equity_column.sql`, `verification_engine.sql`,
+  `username_skeleton.sql`, `tour_series.sql`, `sso_handoff.sql`,
+  `schema_v6_proposed.sql` (name suggests draft/unapplied — check before
+  including), `schema_v6_idempotent.sql`, `schema_drift_columns.sql`,
+  `regrant_profile_columns.sql`, `private_chat_media.sql`,
+  `pin_res_distance_m_search_path.sql`, `maintenance_status.sql`,
+  `maintenance_levels.sql`, `lock_profile_coordinates.sql`,
+  `lock_authenticated_pii.sql`, `home_area.sql`, `fix_series_fk.sql`,
+  `fix_crew_invite_rls_recursion.sql`, `definer_views_audit.sql`,
+  `data_retention.sql`, `checkin_verification.sql`, `boosted_slot.sql`,
+  `account_deletion.sql`. `supabase db pull` baseline still needs
+  `supabase login` — interactive, can't be done from this environment.
 - **120** Backups/PITR on; Supabase **preview branch** for testing migrations
   before prod. ⚪ **Still open — Supabase Dashboard only, needs you.**
 

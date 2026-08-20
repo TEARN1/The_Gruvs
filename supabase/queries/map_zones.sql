@@ -39,9 +39,24 @@ CREATE TABLE IF NOT EXISTS public.map_zones (
   CHECK (ends_at > starts_at)
 );
 
+-- ext_source/ext_id: dedupe key for a zone imported FROM another system (e.g.
+-- a Resident traffic report bridged in by res_map_bridge.sql — see
+-- v_src/NEW.id there). NULL for a zone created natively in Gruvs.
+--
+-- Found undocumented on the LIVE table during the 2026-08-18 Phase-0 drift
+-- reconciliation: it existed in production (added by a manual paste that was
+-- never saved back to this file) but nowhere in any tracked .sql file, so a
+-- fresh rebuild from these files alone would have been missing it — the
+-- schema files would have quietly stopped matching reality. Added here,
+-- verified column-for-column and index-for-index against
+-- information_schema.columns / pg_indexes on the live DB before writing.
+ALTER TABLE public.map_zones ADD COLUMN IF NOT EXISTS ext_source text;
+ALTER TABLE public.map_zones ADD COLUMN IF NOT EXISTS ext_id     uuid;
+
 CREATE INDEX IF NOT EXISTS map_zones_geom_gix  ON public.map_zones USING gist (geom);
 CREATE INDEX IF NOT EXISTS map_zones_time_idx  ON public.map_zones (ends_at) WHERE status NOT IN ('removed','expired');
 CREATE INDEX IF NOT EXISTS map_zones_event_idx ON public.map_zones (event_id);
+CREATE UNIQUE INDEX IF NOT EXISTS map_zones_ext_uk ON public.map_zones (ext_source, ext_id) WHERE ext_source IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS public.map_zone_votes (
   zone_id    uuid NOT NULL REFERENCES public.map_zones(id) ON DELETE CASCADE,

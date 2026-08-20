@@ -88,9 +88,7 @@ jobs:
       # ones already confirmed idempotent and safe to replay: RUN_IN_SUPABASE
       # (bundles the follow/stories, reels, and competition-engine fixes) and
       # APPLY_LIVE_FIXES, both explicitly written "safe to run, and safe to run
-      # again." The remaining ~35 files (map_zones, messages_*, resident_*,
-      # security_layers, etc.) are NOT yet added here — each needs a real read
-      # for ordering/dependencies rather than a guess, tracked in ROADMAP.md.
+      # again."
       - name: Apply RUN_IN_SUPABASE (follow/stories, reels, competition engine)
         run: $PSQL -f supabase/queries/RUN_IN_SUPABASE.sql
 
@@ -110,6 +108,60 @@ jobs:
 
       - name: Apply event_info_and_session_reminders
         run: $PSQL -f supabase/queries/event_info_and_session_reminders.sql
+
+      # ── Batch 2 (2026-08-18) — dependency order verified by reading each
+      # file's own header, not guessed. Idempotency spot-checked: every
+      # INSERT INTO in this batch is inside a function body (runtime, not
+      # file-replay time); every CREATE TABLE uses IF NOT EXISTS.
+      - name: Apply map_zones (Living Map spine)
+        run: $PSQL -f supabase/queries/map_zones.sql
+
+      - name: Apply resident_schema_v2 (Resident base schema — res_* tables)
+        run: $PSQL -f supabase/queries/resident_schema_v2.sql
+
+      # Depends on map_zones (inserts into it) + resident_schema_v2 (res_profiles).
+      - name: Apply res_map_bridge (Gruvs <-> Resident identity bridge)
+        run: $PSQL -f supabase/queries/res_map_bridge.sql
+
+      # Depends on resident_schema_v2's res_profiles.
+      - name: Apply resident_trust_bridge
+        run: $PSQL -f supabase/queries/resident_trust_bridge.sql
+
+      # Depends on resident_trust_bridge's res_sync_trust().
+      - name: Apply resident_marketplace_gate
+        run: $PSQL -f supabase/queries/resident_marketplace_gate.sql
+
+      - name: Apply resident_traffic_reports
+        run: $PSQL -f supabase/queries/resident_traffic_reports.sql
+
+      # messages_reactions_hardening + messages_video_type both reference
+      # objects (guard_message_update, send_message_v2) defined here.
+      - name: Apply messages_send_hardening
+        run: $PSQL -f supabase/queries/messages_send_hardening.sql
+
+      - name: Apply messages_reactions_hardening
+        run: $PSQL -f supabase/queries/messages_reactions_hardening.sql
+
+      - name: Apply messages_video_type
+        run: $PSQL -f supabase/queries/messages_video_type.sql
+
+      - name: Apply messages_block_gate
+        run: $PSQL -f supabase/queries/messages_block_gate.sql
+
+      - name: Apply event_chat_hardening
+        run: $PSQL -f supabase/queries/event_chat_hardening.sql
+
+      - name: Apply event_drafts
+        run: $PSQL -f supabase/queries/event_drafts.sql
+
+      # Depends on event_drafts' draft table.
+      - name: Apply event_draft_tasks
+        run: $PSQL -f supabase/queries/event_draft_tasks.sql
+
+      # Revokes/hardens against everything above — deliberately last in this
+      # batch so nothing it references is still undefined.
+      - name: Apply security_layers
+        run: $PSQL -f supabase/queries/security_layers.sql
 
       # Re-run part 4's idempotent patch tail to prove idempotency (safe re-run).
       - name: Re-apply schema_part_4 (idempotency check)
@@ -137,6 +189,48 @@ jobs:
 
       - name: Re-apply event_info_and_session_reminders (idempotency check)
         run: $PSQL -f supabase/queries/event_info_and_session_reminders.sql
+
+      - name: Re-apply map_zones (idempotency check)
+        run: $PSQL -f supabase/queries/map_zones.sql
+
+      - name: Re-apply resident_schema_v2 (idempotency check)
+        run: $PSQL -f supabase/queries/resident_schema_v2.sql
+
+      - name: Re-apply res_map_bridge (idempotency check)
+        run: $PSQL -f supabase/queries/res_map_bridge.sql
+
+      - name: Re-apply resident_trust_bridge (idempotency check)
+        run: $PSQL -f supabase/queries/resident_trust_bridge.sql
+
+      - name: Re-apply resident_marketplace_gate (idempotency check)
+        run: $PSQL -f supabase/queries/resident_marketplace_gate.sql
+
+      - name: Re-apply resident_traffic_reports (idempotency check)
+        run: $PSQL -f supabase/queries/resident_traffic_reports.sql
+
+      - name: Re-apply messages_send_hardening (idempotency check)
+        run: $PSQL -f supabase/queries/messages_send_hardening.sql
+
+      - name: Re-apply messages_reactions_hardening (idempotency check)
+        run: $PSQL -f supabase/queries/messages_reactions_hardening.sql
+
+      - name: Re-apply messages_video_type (idempotency check)
+        run: $PSQL -f supabase/queries/messages_video_type.sql
+
+      - name: Re-apply messages_block_gate (idempotency check)
+        run: $PSQL -f supabase/queries/messages_block_gate.sql
+
+      - name: Re-apply event_chat_hardening (idempotency check)
+        run: $PSQL -f supabase/queries/event_chat_hardening.sql
+
+      - name: Re-apply event_drafts (idempotency check)
+        run: $PSQL -f supabase/queries/event_drafts.sql
+
+      - name: Re-apply event_draft_tasks (idempotency check)
+        run: $PSQL -f supabase/queries/event_draft_tasks.sql
+
+      - name: Re-apply security_layers (idempotency check)
+        run: $PSQL -f supabase/queries/security_layers.sql
 
       - name: Summary
         if: always()
