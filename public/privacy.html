@@ -20,20 +20,29 @@
     <h1>Privacy Policy</h1>
     <p class="muted">The Gruvs · Last updated: <span id="d"></span></p>
 
-    <div class="note">Template policy — review with a legal professional and adapt to your jurisdiction (e.g. South Africa POPIA / EU GDPR) before launch.</div>
+    <p>The Gruvs ("we", "us") helps you discover events, connect with other vibers, and build your talent profile. This policy explains what we collect, why, who we share it with, and your choices. It is written to meet South Africa's POPIA, the EU/UK GDPR, and app-store data-safety requirements.</p>
 
-    <p>The Gruvs ("we", "us") helps you discover events, connect with other vibers, and build your talent profile. This policy explains what we collect, why, and your choices.</p>
+    <h2>Age requirement</h2>
+    <p>The Gruvs is an <strong>18+</strong> app and is <strong>not directed to children</strong>. We do not knowingly collect personal data from anyone under 13, and you must be 18 or older to create an account. We verify age at sign-up (client- and server-side) and remove accounts we learn belong to anyone under 18.</p>
 
     <h2>Information we collect</h2>
     <ul>
       <li><strong>Account</strong> — email, username, display name, and profile details you provide (bio, photos, interests).</li>
-      <li><strong>Date of birth / age</strong> — collected at sign-up to confirm you are 18 or older. The Gruvs is an 18+ nightlife app; we use your birth date only for age verification and birthday features.</li>
-      <li><strong>Location</strong> — with your permission, your approximate/precise location is used <em>only while the app is in use</em> to show nearby events and vibers. We do <strong>not</strong> track your location in the background. You can disable location in your device settings or use Ghost mode in-app.</li>
-      <li><strong>Camera &amp; microphone</strong> — accessed only when you choose to post media, scan a ticket, or make a voice/video call. We do not access them in the background.</li>
+      <li><strong>Real name</strong> — first name, surname, and any family/clan name you add, used only for the optional family-tree and invite-by-name features. Not required to use the app.</li>
+      <li><strong>Phone number</strong> — optional, used only for features you choose to enable (e.g. contact-based invites).</li>
+      <li><strong>Date of birth / age</strong> — collected at sign-up to confirm you are 18 or older. We use your birth date only for age verification and birthday features, and never expose your birth year or exact birth date to other users — only whether today is your birthday.</li>
+      <li><strong>Location</strong> — with your permission, your approximate/precise location is used <em>only while the app is in use</em> to show nearby events, vibers, and presence features (e.g. Touch Down). We do <strong>not</strong> track your location in the background. Stored coordinates for public features are fuzzed, not exact, and live footprints auto-expire. You can disable location in your device settings or use Ghost mode in-app.</li>
+      <li><strong>Home area</strong> — if you set one, we store a fuzzed ~1km area, never your exact address, and never show it to other users.</li>
+      <li><strong>Camera &amp; microphone</strong> — accessed only when you choose to post media, scan a ticket, use poster auto-fill, or make a voice/video call. We do not access them in the background. Where supported, we strip embedded GPS/EXIF data from uploaded photos.</li>
+      <li><strong>Emergency contacts</strong> — optional: a name, phone number, and relationship for people <em>you</em> choose to add for your own safety. This is third-party data you provide about someone else; it is never shared with other users, and our in-app SOS feature only opens your own messaging app pre-addressed to that contact — we do not send anything automatically or store call/message content from it.</li>
+      <li><strong>Career / talent profile</strong> — optional fields (career title, description, portfolio) if you choose to build a talent profile.</li>
       <li><strong>Messages &amp; content</strong> — direct messages and content you post (events, reels, stories, comments, check-ins) so the app can deliver them.</li>
-      <li><strong>Activity</strong> — events you RSVP to, vibes, reactions, follows, and how you use the app.</li>
-      <li><strong>Device</strong> — push notification token (if enabled) and basic technical data for reliability.</li>
+      <li><strong>Activity</strong> — events you RSVP to, vibes, reactions, follows, and how you use the app. Product-analytics events we record are pseudonymous (a per-session id, no name/email/coordinates) and scoped to app-improvement, never advertising.</li>
+      <li><strong>Device &amp; diagnostics</strong> — push notification token (if enabled), crash/technical logs, and server access-log IP addresses, for reliability and abuse prevention.</li>
     </ul>
+
+    <h2>Legal basis for processing</h2>
+    <p>We rely on <strong>contract</strong> (account, messages, content — needed to provide the service), <strong>consent</strong> (location, camera/microphone, marketing emails — each opted into separately), <strong>legitimate interest</strong> (safety, fraud prevention, reliability logs), and <strong>legal obligation</strong> where required. You can withdraw consent-based processing any time in Settings.</p>
 
     <h2>How we use it</h2>
     <ul>
@@ -41,23 +50,36 @@
       <li>Notifications you opt into (event reminders, messages, mentions).</li>
       <li>Safety, fraud prevention, and to enforce our Terms.</li>
     </ul>
+    <p>We do not use your data for third-party advertising, and we do not sell or share personal information for cross-context behavioural advertising.</p>
 
-    <h2>Sharing</h2>
-    <p>We do not sell your personal information. Data is processed by our infrastructure providers (e.g. Supabase for database/auth, hosting providers) solely to run the service. Public profile fields, posts, and event participation may be visible to other users by design.</p>
+    <h2>Sharing &amp; sub-processors</h2>
+    <p>We do not sell your personal information. Data is processed by these service providers solely to run the app, and none may use it for their own marketing:</p>
+    <ul>
+      <li><strong>Supabase</strong> — database, authentication, file storage (sees account data, content, messages).</li>
+      <li><strong>DigitalOcean</strong> — website &amp; backend hosting (sees request/IP data).</li>
+      <li><strong>Expo / EAS</strong> — push notifications, app builds (sees push tokens, device info).</li>
+      <li><strong>Nominatim (OpenStreetMap)</strong> — geocoding venue/city text (no account PII).</li>
+      <li><strong>weserv.nl</strong> — resizes publicly-served images for performance.</li>
+      <li><strong>jsDelivr</strong> — delivers the on-device OCR library for poster scanning; no data is sent to it.</li>
+    </ul>
+    <p>Public profile fields, posts, and event participation may be visible to other users by design. If you use cross-app one-click sign-in, a short-lived, single-use handoff code (not your password) authenticates you into our other app, Resident — no other personal data is transferred unless you separately create a profile there. We may also disclose data to legal authorities where required by law.</p>
+
+    <h2>Cookies &amp; tracking</h2>
+    <p>Our website does not use third-party advertising or cross-site tracking cookies. It may use strictly necessary cookies/local storage for login sessions. We do not currently run third-party analytics trackers on the website.</p>
 
     <h2>Your choices &amp; rights</h2>
     <ul>
       <li>Edit or hide profile details, and control discoverability and online status in-app.</li>
-      <li>Disable location and push notifications at any time.</li>
+      <li>Disable location and push notifications at any time; withdraw marketing-email consent in Settings.</li>
       <li><strong>Delete your account</strong> from Profile → Settings → Security; deletion is permanent and erases your data. See <a href="/account-deletion.html">how to delete your account</a>.</li>
-      <li>Request access to or correction of your data by contacting us.</li>
+      <li>Request access to, correction of, or portability of your data by contacting us. You may also lodge a complaint with South Africa's Information Regulator (inforegulator.org.za) or your local data protection authority.</li>
     </ul>
 
-    <h2>Data retention &amp; security</h2>
-    <p>We keep data while your account is active and remove it on deletion (subject to legal obligations). All data is <strong>encrypted in transit</strong> (HTTPS/TLS), and access is protected by authentication and database row-level security. We do not sell your personal information and do not share it with third parties for advertising.</p>
+    <h2>California users</h2>
+    <p>We do not sell or share personal information as defined by the CCPA. California residents may request to know or delete their personal information by contacting us.</p>
 
-    <h2>Age requirement</h2>
-    <p>The Gruvs is an <strong>18+</strong> app and is <strong>not directed to children</strong>. You must be 18 or older to create an account. We verify age at sign-up and remove accounts we learn belong to anyone under 18.</p>
+    <h2>Data retention &amp; security</h2>
+    <p>We keep data while your account is active and remove it on deletion (subject to legal obligations). Location history is kept only as long as needed for the feature it supports, not indefinitely. All data is <strong>encrypted in transit</strong> (HTTPS/TLS), and access is protected by authentication and database row-level security. If a breach occurs that risks your rights, we will notify South Africa's Information Regulator and affected users as soon as reasonably possible.</p>
 
     <h2>Contact</h2>
     <p>Questions or data requests: <a href="mailto:asemahlenkwali@gmail.com">asemahlenkwali@gmail.com</a></p>
