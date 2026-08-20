@@ -79,6 +79,7 @@ import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './lazyScreens';
 import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
+import { pickEventReason } from '../utils/eventReason';
 import { friendsGoing, friendsLabel } from '../services/socialProof';
 import { insertStartHeaders } from '../utils/startGroup';
 import { UnlockTeaserCard } from '../components/UnlockTeaserCard';
@@ -305,6 +306,7 @@ const EventCard = React.memo(({
   onToggleRoute,
   onToggleSection,
   nowTick,
+  userInterests,
 }) => {
   const id = event.id;
   const isSample = event.is_sample === true;
@@ -337,6 +339,12 @@ const EventCard = React.memo(({
   const cd = getCountdown(event);
   const countdown = cd.state === 'past' || cd.state === 'unknown' ? null : cd.label;
   const heat = heatLabel(event); // honest: verified presence first, null when no real signal
+  // "Why you're seeing this" — only when friendsGoingList (named crew, a
+  // stronger version of the same signal) isn't already showing. One legible
+  // reason per card beats none, never both at once.
+  const reason = !friendsGoingList?.length
+    ? pickEventReason(event, { userInterests, crewGoingCount: crewCount, now: Date.now() })
+    : null;
   const isWeb = Platform.OS === 'web';
   const cardDate = event.event_date
     ? new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -668,14 +676,21 @@ const EventCard = React.memo(({
                 {/* The strongest reason anyone ever leaves the house: someone
                     they know will be there. Names the person — an abstract count
                     is a statistic, a name is a reason. */}
-                {friendsGoingList?.length > 0 && (
+                {friendsGoingList?.length > 0 ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 }}>
                     <Feather name="users" size={11} color={primary} />
                     <Text style={{ color: primary, fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>
                       {friendsLabel(friendsGoingList)}
                     </Text>
                   </View>
-                )}
+                ) : reason ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 }}>
+                    <Feather name={reason.icon} size={11} color={muted} />
+                    <Text style={{ color: muted, fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>
+                      {reason.label}
+                    </Text>
+                  </View>
+                ) : null}
               </TouchableOpacity>
 
               {/* Right column: short, fixed-size chips only — never overlaps */}
@@ -2514,6 +2529,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         onToggleRoute={handleToggleRoute}
         onToggleSection={toggleSection}
         nowTick={nowTick}
+        userInterests={profile?.interests}
       />
       </LazyCard>
     );
@@ -2522,7 +2538,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       onAuthRequired, onNavigateToServices, handleVibe, handleBookmark, handleReact, handleShare,
       handleToggleRoute, toggleSection, fetchReactors, fetchEventCheckins, openViberProfile,
       handleFollowFromFeed, handleImageTap, handleImageLongPress, onCardPressIn, onCardPressOut,
-      getCardScale, heartAnimRef, feedData, nowTick]);
+      getCardScale, heartAnimRef, feedData, nowTick, profile?.interests]);
 
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
