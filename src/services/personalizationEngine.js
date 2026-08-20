@@ -634,7 +634,6 @@ export async function routeRecurringEvent(eventId, eventData, topN = 500) {
 // AUDIENCE TARGETING ROUTER  (hard filters — "deliver to exactly these people")
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CURRENT_YEAR = new Date().getFullYear();
 
 /**
  * routeTargetedEvent
@@ -697,7 +696,7 @@ export async function routeTargetedEvent(eventId, audience, eventGeo = {}, cap =
     // cheap. is_discoverable respects the user's own privacy switch.
     const { data: people } = await supabase
       .from('profiles')
-      .select('id, gender, birth_year, clan_name, surname, home_village, city, languages, community_tags, career_title, is_discoverable')
+      .select('id, gender, clan_name, surname, home_village, city, languages, community_tags, career_title, is_discoverable')
       .eq('is_discoverable', true)
       .limit(20000);
 
@@ -724,12 +723,22 @@ export async function routeTargetedEvent(eventId, audience, eventGeo = {}, cap =
       }
     }
 
+    // Age is resolved server-side too: birth years are not readable by
+    // clients (birthday_privacy migration). The RPC returns only the IDs in
+    // the range, and refuses ranges narrower than five years. Fail closed.
+    let inAge = null;
+    if (f.ageMin || f.ageMax) {
+      const { data: aged, error: ageErr } = await supabase.rpc('profiles_in_age_range', {
+        p_min: f.ageMin,
+        p_max: f.ageMax,
+        p_limit: 20000,
+      });
+      inAge = new Set(ageErr || !aged ? [] : aged.map((r) => r.id));
+    }
+
     const passes = (p) => {
       const checks = [];
-      if (f.ageMin || f.ageMax) {
-        const age = p.birth_year ? CURRENT_YEAR - p.birth_year : null;
-        checks.push(age != null && (!f.ageMin || age >= f.ageMin) && (!f.ageMax || age <= f.ageMax));
-      }
+      if (f.ageMin || f.ageMax) checks.push(!!inAge?.has(p.id));
       if (f.genders.length)  checks.push(f.genders.includes(lc(p.gender)));
       if (f.clans.length)    checks.push(f.clans.includes(lc(p.clan_name)));
       if (f.surnames.length) checks.push(f.surnames.includes(lc(p.surname)));

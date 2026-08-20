@@ -22,6 +22,7 @@
 
 import { supabase } from './supabase';
 import { daysUntilBirthday } from '../utils/birthday';
+import { ownBirthDetails } from './ownBirthDetails';
 
 export const BIRTHDAY_LEAD_DAYS = 40; // start the build-up this far ahead
 
@@ -81,9 +82,9 @@ export async function myBirthdayTwins({ limit = 20 } = {}) {
 export async function myBirthdayLeadUp(userId, { radiusKm = 60, limit = 12 } = {}) {
   if (!userId) return null;
   try {
-    // birth_date IS readable; lat/lon deliberately are not (see file header).
-    const { data: me } = await supabase
-      .from('profiles').select('birth_date').eq('id', userId).single();
+    // Own row through get_my_profile(): birth_date is not readable from
+    // profiles, and lat/lon deliberately are not either (see file header).
+    const me = await ownBirthDetails(userId);
     if (!me?.birth_date) return null;
 
     const daysUntil = daysUntilBirthday(me.birth_date);

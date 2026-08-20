@@ -11,7 +11,6 @@ import { useIdentity } from '../context/IdentityContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FadeInView } from '../components/FadeInView';
 import { HotBadge } from '../components/HotBadge';
-import { isBirthdayToday } from '../utils/birthday';
 import { thumb } from '../utils/storageThumb';
 import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 import { AuraEffect } from '../components/AuraEffect';
@@ -672,11 +671,15 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         UserManager.getFollowedIds(user.id).then(async (ids) => {
           if (!ids?.length) { setBirthdays([]); return; }
           try {
+            const idBatch = ids.slice(0, 500);
+            const { data: todayFlags } = await supabase.rpc('profile_birthdays', { p_ids: idBatch });
+            const todayIds = new Set((todayFlags || []).filter(f => f.is_birthday_today).map(f => f.id));
+            if (!todayIds.size) { setBirthdays([]); return; }
             const { data } = await supabase
               .from('profiles')
-              .select('id, username, display_name, avatar_url, birth_date')
-              .in('id', ids.slice(0, 500));
-            setBirthdays((data || []).filter(p => isBirthdayToday(p.birth_date)));
+              .select('id, username, display_name, avatar_url')
+              .in('id', [...todayIds]);
+            setBirthdays(data || []);
           } catch { setBirthdays([]); }
         }).catch(() => setBirthdays([]));
       }

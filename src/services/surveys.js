@@ -74,9 +74,9 @@ export async function getNextSurvey(userId, { ignoreCooldown = false } = {}) {
   try {
     const nowIso = new Date().toISOString();
     const [profileRes, surveysRes, answeredRes] = await Promise.all([
-      supabase.from('profiles')
-        .select('gender, birth_year, clan_name, surname, home_village, city, languages, community_tags')
-        .eq('id', userId).single(),
+      // Own row through get_my_profile(): birth_year is not readable from
+      // profiles (birthday_privacy migration).
+      supabase.rpc('get_my_profile').maybeSingle(),
       supabase.from('surveys')
         .select('id, author_id, title, question, answer_type, options, audience, reward_xp, expires_at')
         .eq('is_active', true)
