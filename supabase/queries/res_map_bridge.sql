@@ -65,6 +65,7 @@ GRANT  EXECUTE ON FUNCTION public.ensure_res_profile() TO authenticated;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar text;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS verified boolean;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS verification_badge boolean;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS level integer DEFAULT 1;
 -- resident_trust_tier is genuinely defined in resident_trust_bridge.sql, but
 -- that file runs AFTER this one in db-schema-ci.yml's order, and this view
 -- selects it early. Pull the (idempotent, IF NOT EXISTS) definition forward

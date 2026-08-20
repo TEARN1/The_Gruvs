@@ -9,6 +9,29 @@
 -- Idempotent. Safe to re-run.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ── 0. profiles columns that exist live but in zero tracked SQL files ───────
+-- Found 2026-08-20 while wiring Event Depth Engine Phase 0 CI: a fresh
+-- rebuild from tracked files alone hit "column X does not exist" in
+-- res_map_bridge.sql / resident_schema_v2.sql / lock_profile_coordinates.sql
+-- and others, one column at a time. Each was hand-added to production at
+-- some point and never saved back to a migration file. This file runs early
+-- (5th) so every later file that references these can find them. Types/
+-- defaults confirmed against live information_schema.
+alter table public.profiles add column if not exists lat double precision;
+alter table public.profiles add column if not exists lon double precision;
+alter table public.profiles add column if not exists phone text;
+alter table public.profiles add column if not exists name text;
+alter table public.profiles add column if not exists banner text;
+alter table public.profiles add column if not exists career_title text;
+alter table public.profiles add column if not exists career_description text;
+alter table public.profiles add column if not exists looks_description text;
+alter table public.profiles add column if not exists points integer default 0;
+alter table public.profiles add column if not exists privacy text default 'public';
+alter table public.profiles add column if not exists reputation integer default 100;
+alter table public.profiles add column if not exists streak integer default 0;
+alter table public.profiles add column if not exists tags text[] default '{}';
+alter table public.profiles add column if not exists wants_email boolean not null default true;
+
 -- ── 1. event_rsvps needs a primary key ──────────────────────────────────────
 -- The whole ticketing / QR check-in system is keyed on an RSVP id:
 --   EventTicketModal: `if (!rsvp?.id) return;`  → always bailed
