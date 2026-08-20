@@ -99,19 +99,38 @@ migrated into them) so existing screens keep working while depth becomes univers
   one full table diff on `event_drafts`), not exhaustively diffed
   column-by-column the way `map_zones` now has been.
 
-  **25 files still not integrated**: `advisor_hardening_2026-08-13.sql`,
-  `web_push.sql`, `vibe_equity_column.sql`, `verification_engine.sql`,
-  `username_skeleton.sql`, `tour_series.sql`, `sso_handoff.sql`,
-  `schema_v6_proposed.sql` (name suggests draft/unapplied — check before
-  including), `schema_v6_idempotent.sql`, `schema_drift_columns.sql`,
-  `regrant_profile_columns.sql`, `private_chat_media.sql`,
-  `pin_res_distance_m_search_path.sql`, `maintenance_status.sql`,
-  `maintenance_levels.sql`, `lock_profile_coordinates.sql`,
-  `lock_authenticated_pii.sql`, `home_area.sql`, `fix_series_fk.sql`,
-  `fix_crew_invite_rls_recursion.sql`, `definer_views_audit.sql`,
-  `data_retention.sql`, `checkin_verification.sql`, `boosted_slot.sql`,
-  `account_deletion.sql`. `supabase db pull` baseline still needs
-  `supabase login` — interactive, can't be done from this environment.
+  **Batch 3 (2026-08-18)**: 24 more files — `schema_drift_columns.sql`,
+  `fix_series_fk.sql`, `tour_series.sql`, `fix_crew_invite_rls_recursion.sql`,
+  `lock_profile_coordinates.sql`, `lock_authenticated_pii.sql`,
+  `regrant_profile_columns.sql`, `profiles_grants_reconciled.sql` (new —
+  see below), `home_area.sql`, `checkin_verification.sql`,
+  `verification_engine.sql`, `vibe_equity_column.sql`,
+  `username_skeleton.sql`, `sso_handoff.sql`, `web_push.sql`,
+  `private_chat_media.sql`, `boosted_slot.sql`, `data_retention.sql`,
+  `maintenance_levels.sql`, `maintenance_status.sql`,
+  `pin_res_distance_m_search_path.sql`, `definer_views_audit.sql`,
+  `advisor_hardening_2026-08-13.sql`, `account_deletion.sql`.
+
+  **Critical real bug caught in this batch**: `lock_profile_coordinates.sql`,
+  `lock_authenticated_pii.sql`, and `regrant_profile_columns.sql` each
+  independently REVOKE+re-GRANT `profiles` SELECT with a different safe-list
+  — the lists don't compose, and whichever ran last on production wins. Live
+  check found `email`/`push_token`/`phone`/`emergency_contacts`/`siblings`
+  readable by **any signed-in user on any other user's profile row** —
+  coordinates were correctly locked, PII wasn't. Fixed live (checked
+  preconditions first: `get_my_profile()` existed, client already RPC-first
+  with a self-only fallback in both `AuthContext.js` and `ProfilePage.js`).
+  Added `profiles_grants_reconciled.sql` as the one authoritative version
+  going forward; the 3 originals now carry loud warnings against being
+  replayed for their grant logic alone. Full writeup: RISK_REGISTER.md C11.
+
+  **All 54 tracked `.sql` files are now either in CI or deliberately
+  excluded.** `schema_v6_proposed.sql` / `schema_v6_idempotent.sql` are
+  excluded on purpose — the proposal file says outright "NOT applied to the
+  live database, do NOT run this as-is"; including them would build a schema
+  that doesn't match production, the opposite of this job's purpose.
+  `supabase db pull` baseline still needs `supabase login` — interactive,
+  can't be done from this environment.
 - **120** Backups/PITR on; Supabase **preview branch** for testing migrations
   before prod. ⚪ **Still open — Supabase Dashboard only, needs you.**
 

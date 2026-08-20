@@ -163,6 +163,98 @@ jobs:
       - name: Apply security_layers
         run: $PSQL -f supabase/queries/security_layers.sql
 
+      # ── Batch 3 (2026-08-18) ────────────────────────────────────────────────
+      # schema_v6_proposed.sql / schema_v6_idempotent.sql deliberately EXCLUDED:
+      # the proposal file says outright "NOT applied to the live database, do
+      # NOT run this as-is" — including it would build a schema that doesn't
+      # match production, the opposite of what this job proves.
+      - name: Apply schema_drift_columns
+        run: $PSQL -f supabase/queries/schema_drift_columns.sql
+
+      - name: Apply fix_series_fk
+        run: $PSQL -f supabase/queries/fix_series_fk.sql
+
+      - name: Apply tour_series
+        run: $PSQL -f supabase/queries/tour_series.sql
+
+      - name: Apply fix_crew_invite_rls_recursion
+        run: $PSQL -f supabase/queries/fix_crew_invite_rls_recursion.sql
+
+      # These three still create needed objects (profiles_within_radius,
+      # get_my_profile) — only their inline grant/regrant logic is superseded,
+      # by profiles_grants_reconciled.sql immediately after. Real security bug
+      # found and fixed here 2026-08-18: the three files' grant lists didn't
+      # compose, and had left email/push_token/phone/emergency_contacts/
+      # siblings readable cross-user in production. See RISK_REGISTER.md C11.
+      - name: Apply lock_profile_coordinates
+        run: $PSQL -f supabase/queries/lock_profile_coordinates.sql
+
+      - name: Apply lock_authenticated_pii
+        run: $PSQL -f supabase/queries/lock_authenticated_pii.sql
+
+      - name: Apply regrant_profile_columns
+        run: $PSQL -f supabase/queries/regrant_profile_columns.sql
+
+      - name: Apply profiles_grants_reconciled (authoritative final grant)
+        run: $PSQL -f supabase/queries/profiles_grants_reconciled.sql
+
+      - name: Apply home_area
+        run: $PSQL -f supabase/queries/home_area.sql
+
+      - name: Apply checkin_verification
+        run: $PSQL -f supabase/queries/checkin_verification.sql
+
+      # Depends on resident_trust_bridge (batch 2) for res_sync_trust().
+      - name: Apply verification_engine
+        run: $PSQL -f supabase/queries/verification_engine.sql
+
+      - name: Apply vibe_equity_column
+        run: $PSQL -f supabase/queries/vibe_equity_column.sql
+
+      - name: Apply username_skeleton
+        run: $PSQL -f supabase/queries/username_skeleton.sql
+
+      - name: Apply sso_handoff
+        run: $PSQL -f supabase/queries/sso_handoff.sql
+
+      - name: Apply web_push
+        run: $PSQL -f supabase/queries/web_push.sql
+
+      - name: Apply private_chat_media
+        run: $PSQL -f supabase/queries/private_chat_media.sql
+
+      - name: Apply boosted_slot
+        run: $PSQL -f supabase/queries/boosted_slot.sql
+
+      # maintenance_levels references data_retention's purge functions.
+      - name: Apply data_retention
+        run: $PSQL -f supabase/queries/data_retention.sql
+
+      - name: Apply maintenance_levels
+        run: $PSQL -f supabase/queries/maintenance_levels.sql
+
+      - name: Apply maintenance_status
+        run: $PSQL -f supabase/queries/maintenance_status.sql
+
+      # Self-contained (creates res_distance_m from scratch) — confirmed by
+      # reading the full file, not just its header, after an earlier grep
+      # mistake made it look undefined elsewhere.
+      - name: Apply pin_res_distance_m_search_path
+        run: $PSQL -f supabase/queries/pin_res_distance_m_search_path.sql
+
+      - name: Apply definer_views_audit
+        run: $PSQL -f supabase/queries/definer_views_audit.sql
+
+      # Already applied + verified live earlier this session — see
+      # RISK_REGISTER.md C2. Re-adding here so CI proves it too.
+      - name: Apply advisor_hardening_2026-08-13
+        run: $PSQL -f supabase/queries/advisor_hardening_2026-08-13.sql
+
+      # Broad purge across most feature tables — deliberately last in this
+      # batch, same reasoning as security_layers in batch 2.
+      - name: Apply account_deletion
+        run: $PSQL -f supabase/queries/account_deletion.sql
+
       # Re-run part 4's idempotent patch tail to prove idempotency (safe re-run).
       - name: Re-apply schema_part_4 (idempotency check)
         run: $PSQL -f supabase/queries/schema_part_4.sql
@@ -231,6 +323,78 @@ jobs:
 
       - name: Re-apply security_layers (idempotency check)
         run: $PSQL -f supabase/queries/security_layers.sql
+
+      - name: Re-apply schema_drift_columns (idempotency check)
+        run: $PSQL -f supabase/queries/schema_drift_columns.sql
+
+      - name: Re-apply fix_series_fk (idempotency check)
+        run: $PSQL -f supabase/queries/fix_series_fk.sql
+
+      - name: Re-apply tour_series (idempotency check)
+        run: $PSQL -f supabase/queries/tour_series.sql
+
+      - name: Re-apply fix_crew_invite_rls_recursion (idempotency check)
+        run: $PSQL -f supabase/queries/fix_crew_invite_rls_recursion.sql
+
+      - name: Re-apply lock_profile_coordinates (idempotency check)
+        run: $PSQL -f supabase/queries/lock_profile_coordinates.sql
+
+      - name: Re-apply lock_authenticated_pii (idempotency check)
+        run: $PSQL -f supabase/queries/lock_authenticated_pii.sql
+
+      - name: Re-apply regrant_profile_columns (idempotency check)
+        run: $PSQL -f supabase/queries/regrant_profile_columns.sql
+
+      - name: Re-apply profiles_grants_reconciled (idempotency check)
+        run: $PSQL -f supabase/queries/profiles_grants_reconciled.sql
+
+      - name: Re-apply home_area (idempotency check)
+        run: $PSQL -f supabase/queries/home_area.sql
+
+      - name: Re-apply checkin_verification (idempotency check)
+        run: $PSQL -f supabase/queries/checkin_verification.sql
+
+      - name: Re-apply verification_engine (idempotency check)
+        run: $PSQL -f supabase/queries/verification_engine.sql
+
+      - name: Re-apply vibe_equity_column (idempotency check)
+        run: $PSQL -f supabase/queries/vibe_equity_column.sql
+
+      - name: Re-apply username_skeleton (idempotency check)
+        run: $PSQL -f supabase/queries/username_skeleton.sql
+
+      - name: Re-apply sso_handoff (idempotency check)
+        run: $PSQL -f supabase/queries/sso_handoff.sql
+
+      - name: Re-apply web_push (idempotency check)
+        run: $PSQL -f supabase/queries/web_push.sql
+
+      - name: Re-apply private_chat_media (idempotency check)
+        run: $PSQL -f supabase/queries/private_chat_media.sql
+
+      - name: Re-apply boosted_slot (idempotency check)
+        run: $PSQL -f supabase/queries/boosted_slot.sql
+
+      - name: Re-apply data_retention (idempotency check)
+        run: $PSQL -f supabase/queries/data_retention.sql
+
+      - name: Re-apply maintenance_levels (idempotency check)
+        run: $PSQL -f supabase/queries/maintenance_levels.sql
+
+      - name: Re-apply maintenance_status (idempotency check)
+        run: $PSQL -f supabase/queries/maintenance_status.sql
+
+      - name: Re-apply pin_res_distance_m_search_path (idempotency check)
+        run: $PSQL -f supabase/queries/pin_res_distance_m_search_path.sql
+
+      - name: Re-apply definer_views_audit (idempotency check)
+        run: $PSQL -f supabase/queries/definer_views_audit.sql
+
+      - name: Re-apply advisor_hardening_2026-08-13 (idempotency check)
+        run: $PSQL -f supabase/queries/advisor_hardening_2026-08-13.sql
+
+      - name: Re-apply account_deletion (idempotency check)
+        run: $PSQL -f supabase/queries/account_deletion.sql
 
       - name: Summary
         if: always()
