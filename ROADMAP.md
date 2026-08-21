@@ -165,12 +165,25 @@ migrated into them) so existing screens keep working while depth becomes univers
 
 ### Phase 1 — The generic engine
 > Note (verified in code 2026-06-09): the soccer feature is deeper than first
-> assumed. Already built **app-layer** in `src/services/sportsEngine.js` /
-> `src/components/sports/LiveMatchLogger.js`: round-robin + knockout **fixture
-> generation** (`generateRoundRobin`/`generateKnockout`), **auto-advance** on
-> knockout, and **lineups + formations** (4-3-3/4-4-2/3-5-2, stored in
-> `match_data.lineups`). Phase 1 is therefore **lift these into the generic
-> engine**, not build from scratch.
+> assumed. Already built **app-layer** in `src/services/sportsEngine.js`
+> (1,292 lines — `src/components/sports/LiveMatchLogger.js` from an earlier
+> version of this note does not exist; corrected 2026-08-21, same class of
+> stale-doc error as the `BD_PLAYBOOK.md` one in MASTER_PLAN.md): round-robin
+> + knockout **fixture generation** (`generateRoundRobin`/`generateKnockout`),
+> **auto-advance** on knockout, and **lineups + formations** (4-3-3/4-4-2/
+> 3-5-2, stored in `match_data.lineups`). Phase 1 is therefore **lift these
+> into the generic engine**, not build from scratch.
+>
+> **Step 1 — ✅ DONE 2026-08-21.** The six generic tables themselves now
+> exist: `participants`, `program_slots`, `slot_lineups`, `live_timeline`,
+> `ranking_entries`, `honours`
+> ([event_depth_engine.sql](supabase/queries/event_depth_engine.sql)).
+> Purely additive — soccer still runs on `sport_teams`/`sport_athletes`/
+> `sport_matches` untouched. Applied live, wired into CI, verified green
+> ([run 32431178475](https://github.com/TEARN1/The_Gruvs/actions/runs/32431178475)).
+> **Not yet done**: nothing writes to these tables yet — no fixture
+> generator, no adapters, no soccer refactor. That's the rest of Phase 1/2
+> below.
 - **28 / canonical_identity** Unify participant identity (the structural fix — still ✗).
 - **16–18** Fixture/bracket generation + auto-advance — ✅ exists for soccer; generalise over `program_slots` so every type gets it.
 - **56** Lineups & formations — ✅ exists for soccer; generalise to `slot_lineups`.
