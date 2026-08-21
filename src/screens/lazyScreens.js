@@ -10,9 +10,16 @@
 // Dev never split, so it hid the bug entirely.
 //
 // Static requires put every screen in the one bundle that actually loads —
-// correctness over the ~0.7 MB the split saved. Revisiting code-splitting for
-// web means switching to `web.output: "static"` first, so the async-chunk
-// loader actually exists.
+// correctness over the ~0.7 MB the split saved.
+//
+// Revisited 2026-08-07: `web.output: "static"` is NOT a generic multi-chunk
+// SPA mode — in Expo SDK it specifically means Expo Router's static-site
+// generation, and requires expo-router as the app's entry point ("Unable to
+// resolve module expo-router/node/render.js" when tried). This app uses a
+// manual tab-switcher (App.js's screenFor/renderScreen), not expo-router, so
+// enabling it means adopting expo-router first — a real migration, not a flag
+// flip. Not attempting that here. If code-splitting web is revisited, start
+// there, not with this file.
 //
 // LandingPage / ChatsScreen / NotificationsScreen were never here: The Drop is
 // the first paint, and the other two export shell-level unread hooks that run

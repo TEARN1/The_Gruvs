@@ -229,7 +229,7 @@ begin
   select extract(epoch from (now() - min(checked_in_at))) / 86400
     into v_checkins_oldest_days from public.live_checkins;
   if to_regclass('public.path_crossings') is not null then
-    execute 'select extract(epoch from (now() - min(created_at))) / 86400 from public.path_crossings'
+    execute 'select extract(epoch from (now() - min(crossed_at))) / 86400 from public.path_crossings'
       into v_crossings_oldest_days;
   end if;
   if _col_exists('profiles', 'deletion_requested_at') then
