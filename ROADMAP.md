@@ -184,7 +184,16 @@ migrated into them) so existing screens keep working while depth becomes univers
 > **Not yet done**: nothing writes to these tables yet — no fixture
 > generator, no adapters, no soccer refactor. That's the rest of Phase 1/2
 > below.
-- **28 / canonical_identity** Unify participant identity (the structural fix — still ✗).
+- **28 / canonical_identity** Unify participant identity — ✅ **re-scoped 2026-08-21, mostly already solved.**
+  Checked live before writing any migration (per the C11/C12 lesson this session — verify before touching
+  identity/PII-shaped schema): `players`, `sport_athletes`, `sport_teams` all have **0 rows live**, so
+  there is no fragmented data to reconcile. The bridge already exists in schema:
+  `sport_athletes.player_id → players.id → players.user_id → profiles.id` (schema_part_3.sql).
+  `profiles.id` (backed by `auth.users`) is already the one canonical identity; `players` is the
+  sport-claim layer on top of it. Remaining gap is small: the new engine's `participants.person_id`
+  (event_depth_engine.sql) links straight to `profiles.id`, same root — no separate identity table
+  needed. Nothing to migrate; revisit only if/when the soccer-adapter refactor actually needs
+  `participants` and `players` rows to cross-reference each other.
 - **16–18** Fixture/bracket generation + auto-advance — ✅ exists for soccer; generalise over `program_slots` so every type gets it.
 - **56** Lineups & formations — ✅ exists for soccer; generalise to `slot_lineups`.
 - **74–84** Ranking engine generalised (full tiebreakers incl. H2H/away-goals, group qualification, H2H records, streaks, clean sheets — engine has only pts/GD/GF today).
