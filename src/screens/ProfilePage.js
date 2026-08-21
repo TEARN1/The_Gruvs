@@ -2571,7 +2571,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             </>
           }
           {user && (
-            <TouchableOpacity style={styles.coverEditBtn} onPress={handleCoverUpload}>
+            <TouchableOpacity style={styles.coverEditBtn} onPress={handleCoverUpload}
+              accessibilityRole="button" accessibilityLabel="Change cover photo">
               <Feather name="camera" size={14} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
           )}
@@ -2584,6 +2585,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             onPress={() => avatarUrl ? setImageViewerUri(avatarUrl) : (user && handleAvatarUpload())}
             onLongPress={() => user && handleAvatarUpload()}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={avatarUrl ? 'Profile photo' : (user ? 'Add profile photo' : 'Profile photo')}
           >
             {avatarUrl
               ? <SmartImage source={thumb.avatarLg(avatarUrl)} style={[styles.avatar, { borderColor: primary }]} />
@@ -2603,12 +2606,14 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <TouchableOpacity
                 style={[styles.actionBtn, { backgroundColor: primary }]}
                 onPress={() => setEditProfileVisible(true)}
+                accessibilityRole="button" accessibilityLabel="Edit profile"
               >
                 <Feather name="edit-2" size={13} color="#000" />
                 <Text style={styles.actionBtnText}>Edit Profile</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={[styles.actionBtnOutline, { borderColor: `${primary}50` }]} onPress={handleShareProfile}>
+            <TouchableOpacity style={[styles.actionBtnOutline, { borderColor: `${primary}50` }]} onPress={handleShareProfile}
+              accessibilityRole="button" accessibilityLabel="Share profile">
               <Feather name="share-2" size={14} color={primary} />
               <Text style={[styles.actionBtnOutlineText, { color: primary }]}>Share</Text>
             </TouchableOpacity>
@@ -2651,6 +2656,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               onPress={() => { setNewDisplayName(profile?.display_name || ''); setEditingDisplayName(true); }}
               activeOpacity={0.7}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              accessibilityRole="button" accessibilityLabel="Edit display name"
             >
               <Text style={[styles.profileName, { color: textColor }]}>
                 {profile?.display_name || username}
@@ -2678,7 +2684,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity onPress={() => { setNewUsername(username); setEditingUsername(true); }} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => { setNewUsername(username); setEditingUsername(true); }} activeOpacity={0.7}
+              accessibilityRole="button" accessibilityLabel="Edit username">
               <Text style={[styles.profileBio, { color: primary, fontWeight: '700', marginTop: 2 }]}>@{username} ✎</Text>
             </TouchableOpacity>
           )}
