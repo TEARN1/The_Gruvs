@@ -26,19 +26,27 @@ comment on table public.event_series is 'A tour: one identity that owns many dat
 -- ── Followers: "Follow Tour" → every future stop auto-routes to them ─────────
 -- event_series_followers: same drift class as event_series in fix_series_fk.sql
 -- — "table already exists" was true live, false in zero tracked files. Added
--- verbatim from information_schema/pg_get_constraintdef against production,
--- INCLUDING its series_id FK pointing at events(id) rather than
--- event_series(id) — that's a live, pre-existing bug of the same shape
--- fix_series_fk.sql fixed for events.series_id, but out of scope here; this
--- file only needs CI to match what's actually live. Flagged in RISK_REGISTER.md.
+-- verbatim from information_schema/pg_get_constraintdef against production.
 create table if not exists public.event_series_followers (
   id                   uuid primary key default gen_random_uuid(),
-  series_id            uuid not null references public.events(id) on delete cascade,
+  series_id            uuid not null references public.event_series(id) on delete cascade,
   user_id              uuid not null references public.profiles(id) on delete cascade,
   notify_before_hours  integer default 24,
   created_at           timestamptz default now(),
   unique (series_id, user_id)
 );
+
+-- RISK_REGISTER.md C12, fixed 2026-08-21: series_id's FK pointed at
+-- events(id) instead of event_series(id) (same bug shape fix_series_fk.sql
+-- already fixed for events.series_id). Confirmed 0 rows live in
+-- event_series / event_series_followers / events.series_id before touching
+-- it, so this was a pure schema fix with zero data to migrate. Idempotent —
+-- a no-op on any DB where the CREATE TABLE above already got it right.
+alter table public.event_series_followers
+  drop constraint if exists event_series_followers_series_id_fkey;
+alter table public.event_series_followers
+  add constraint event_series_followers_series_id_fkey
+  foreign key (series_id) references public.event_series(id) on delete cascade;
 
 -- Table already exists; guarantee the unique pair the followSeries upsert needs.
 create unique index if not exists uq_series_followers
