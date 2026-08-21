@@ -181,9 +181,15 @@ migrated into them) so existing screens keep working while depth becomes univers
 > Purely additive — soccer still runs on `sport_teams`/`sport_athletes`/
 > `sport_matches` untouched. Applied live, wired into CI, verified green
 > ([run 32431178475](https://github.com/TEARN1/The_Gruvs/actions/runs/32431178475)).
-> **Not yet done**: nothing writes to these tables yet — no fixture
-> generator, no adapters, no soccer refactor. That's the rest of Phase 1/2
-> below.
+> **Step 2 — ✅ DONE 2026-08-21.** Generic fixture generator
+> ([eventDepthEngine.js](src/services/eventDepthEngine.js)):
+> `generateRoundRobin`/`generateKnockout` lifted from `sportsEngine.js`'s
+> `MatchManager`, generalized to write `program_slots` instead of
+> `sport_matches`. Pure-logic verified (round-robin pairing, knockout
+> bracket, bye auto-advance). **Not wired to any UI yet** — no screen calls
+> this. Score submission / live timeline / ranking recompute for the
+> generic engine are still unbuilt (items 74–84, 54–65 below), and soccer
+> itself is still untouched on its own tables.
 - **28 / canonical_identity** Unify participant identity — ✅ **re-scoped 2026-08-21, mostly already solved.**
   Checked live before writing any migration (per the C11/C12 lesson this session — verify before touching
   identity/PII-shaped schema): `players`, `sport_athletes`, `sport_teams` all have **0 rows live**, so
