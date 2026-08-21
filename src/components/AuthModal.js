@@ -439,7 +439,8 @@ export const AuthModal = ({ visible, onClose }) => {
               <Text style={[styles.title, { color: primary }]}>
                 {mode === 'signin' ? '👑 Welcome back' : '⚡ Create your account'}
               </Text>
-              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button" accessibilityLabel="Close">
                 <Feather name="x" size={22} color={textColor} />
               </TouchableOpacity>
             </View>
@@ -454,6 +455,9 @@ export const AuthModal = ({ visible, onClose }) => {
                   key={m}
                   onPress={() => switchMode(m)}
                   style={[styles.tabBtn, mode === m && { backgroundColor: primary }]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: mode === m }}
+                  accessibilityLabel={m === 'signin' ? 'Sign In tab' : 'Sign Up tab'}
                 >
                   <Text style={[styles.tabText, { color: mode === m ? '#000' : textColor }]}>
                     {m === 'signin' ? 'Sign In' : 'Sign Up'}
@@ -515,7 +519,8 @@ export const AuthModal = ({ visible, onClose }) => {
             {/* ── SIGN-UP STEP 2: personalisation (skippable) ── */}
             {mode === 'signup' && signupStep === 2 && (
               <>
-                <TouchableOpacity onPress={() => setSignupStep(1)} style={styles.backRow}>
+                <TouchableOpacity onPress={() => setSignupStep(1)} style={styles.backRow}
+                  accessibilityRole="button" accessibilityLabel="Back to account details">
                   <Feather name="arrow-left" size={14} color={muted} />
                   <Text style={{ color: muted, fontSize: 12, fontWeight: '700' }}>Back to account details</Text>
                 </TouchableOpacity>
@@ -548,6 +553,10 @@ export const AuthModal = ({ visible, onClose }) => {
                 <TouchableOpacity
                   onPress={() => setDobPickerOpen(true)}
                   style={[styles.input, { borderColor: `${primary}40`, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={birthDay && birthMonth && birthYear
+                    ? `Birthday, ${birthDay.padStart(2, '0')}/${birthMonth.padStart(2, '0')}/${birthYear}`
+                    : 'Pick your birthday'}
                 >
                   <Text style={{ color: birthDay && birthMonth && birthYear ? textColor : muted, fontSize: 15 }}>
                     {birthDay && birthMonth && birthYear
@@ -564,6 +573,9 @@ export const AuthModal = ({ visible, onClose }) => {
                       key={g}
                       onPress={() => setGender(gender === g ? '' : g)}
                       style={[styles.genderBtn, { borderColor: gender === g ? primary : `${primary}30`, backgroundColor: gender === g ? `${primary}20` : 'transparent' }]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: gender === g }}
+                      accessibilityLabel={g}
                     >
                       <Text style={[styles.genderText, { color: gender === g ? primary : muted }]}>{g}</Text>
                     </TouchableOpacity>
@@ -580,6 +592,9 @@ export const AuthModal = ({ visible, onClose }) => {
                         key={label}
                         onPress={() => toggleInterest(label)}
                         style={[styles.interestPill, { borderColor: sel ? primary : `${primary}25`, backgroundColor: sel ? `${primary}20` : `${primary}06` }]}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: sel }}
+                        accessibilityLabel={label}
                       >
                         <MaterialCommunityIcons name={icon} size={15} color={sel ? primary : muted} />
                         <Text style={[styles.interestText, { color: sel ? primary : muted }]}>{label}</Text>
@@ -624,6 +639,8 @@ export const AuthModal = ({ visible, onClose }) => {
                     key={domain}
                     onPress={() => setEmail(email.trim() + domain)}
                     style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Complete email with ${domain}`}
                   >
                     <Text style={{ color: primary, fontSize: 11, fontWeight: '700' }}>{domain}</Text>
                   </TouchableOpacity>
@@ -654,13 +671,16 @@ export const AuthModal = ({ visible, onClose }) => {
                 autoComplete="password"
                 textContentType="password"
               />
-              <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
                 <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color={muted} />
               </TouchableOpacity>
             </View>
 
             {mode === 'signin' && (
-              <TouchableOpacity onPress={handleForgotPassword} style={{ alignSelf: 'flex-end', marginRight: HM, marginTop: -8, marginBottom: 12 }}>
+              <TouchableOpacity onPress={handleForgotPassword} style={{ alignSelf: 'flex-end', marginRight: HM, marginTop: -8, marginBottom: 12 }}
+                accessibilityRole="button" accessibilityLabel="Forgot password">
                 <Text style={{ color: primary, fontSize: 12, fontWeight: '700' }}>Forgot password?</Text>
               </TouchableOpacity>
             )}
@@ -695,6 +715,9 @@ export const AuthModal = ({ visible, onClose }) => {
                 <TouchableOpacity
                   style={styles.optInRow}
                   onPress={() => setWantsEmail(!wantsEmail)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: wantsEmail }}
+                  accessibilityLabel="Email me about new events and updates"
                 >
                   <View style={[styles.checkbox, wantsEmail ? { backgroundColor: primary, borderColor: primary } : { borderColor: `${primary}50` }]}>
                     {wantsEmail && <Feather name="check" size={14} color="#000" />}
@@ -710,6 +733,9 @@ export const AuthModal = ({ visible, onClose }) => {
               style={[styles.actionBtn, { backgroundColor: primary }, (loading || checkingName) && styles.disabled]}
               onPress={mode === 'signin' ? handleSignIn : signupStep === 1 ? handleContinue : handleSignUp}
               disabled={loading || checkingName}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: loading || checkingName, busy: loading || checkingName }}
+              accessibilityLabel={mode === 'signin' ? 'Sign in' : signupStep === 1 ? 'Continue' : 'Create account'}
             >
               {(loading || checkingName)
                 ? <ActivityIndicator color="#000" />
@@ -726,7 +752,9 @@ export const AuthModal = ({ visible, onClose }) => {
               </Text>
             )}
 
-            <TouchableOpacity onPress={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}>
+            <TouchableOpacity onPress={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
+              accessibilityRole="button"
+              accessibilityLabel={mode === 'signin' ? 'New here? Create an account' : 'Already have an account? Sign in'}>
               <Text style={[styles.footerLink, { color: primary }]}>
                 {mode === 'signin'
                   ? "New here? Create an account →"
