@@ -255,6 +255,12 @@ jobs:
       - name: Apply account_deletion
         run: $PSQL -f supabase/queries/account_deletion.sql
 
+      # Event Depth Engine Phase 1 step 1 — the generic engine tables
+      # (participants/program_slots/slot_lineups/live_timeline/
+      # ranking_entries/honours). Purely additive, so last is fine.
+      - name: Apply event_depth_engine
+        run: $PSQL -f supabase/queries/event_depth_engine.sql
+
       # Re-run part 4's idempotent patch tail to prove idempotency (safe re-run).
       - name: Re-apply schema_part_4 (idempotency check)
         run: $PSQL -f supabase/queries/schema_part_4.sql
@@ -395,6 +401,9 @@ jobs:
 
       - name: Re-apply account_deletion (idempotency check)
         run: $PSQL -f supabase/queries/account_deletion.sql
+
+      - name: Re-apply event_depth_engine (idempotency check)
+        run: $PSQL -f supabase/queries/event_depth_engine.sql
 
       - name: Summary
         if: always()
