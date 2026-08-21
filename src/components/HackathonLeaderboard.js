@@ -9,7 +9,7 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 

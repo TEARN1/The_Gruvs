@@ -2,7 +2,7 @@ import React, { createContext, useContext, useRef, useState, useCallback, useEff
 import { Animated, Text, StyleSheet, View, TouchableOpacity, Platform, PanResponder } from 'react-native';
 import { Z_INDEX, RADIUS } from '../constants/DesignTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 
 const ToastContext = createContext();

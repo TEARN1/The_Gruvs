@@ -4,7 +4,7 @@ import {
   Image, ActivityIndicator, RefreshControl, Platform, Share,
   TextInput,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';

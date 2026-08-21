@@ -5,7 +5,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { GlassView } from './GlassView';
 import { getOwnerAttendance } from '../services/attendanceAnalytics';
 

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { stripExifFromBlob } from '../utils/stripExif';
 
 const MIME_MAP = {
   jpg:  'image/jpeg',

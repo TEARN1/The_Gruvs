@@ -4,7 +4,7 @@ import {
   Modal, TouchableWithoutFeedback, Animated, ActivityIndicator,
   Platform,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';

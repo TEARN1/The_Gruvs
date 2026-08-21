@@ -11,7 +11,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Platform, StyleSheet } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { ZONE_KINDS } from '../services/mapZones';
 
 // Guarded so MapLibre (which touches window/document) never loads in the native

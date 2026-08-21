@@ -1,38 +1,65 @@
 /**
  * LazyCard — defer mounting a heavy feed card (and its full-res image) until it
- * is near the viewport. The Drop renders every event so the list is complete,
- * but loading all ~20 full images at once was ~6MB up front (the "app is slow").
+ * is near the viewport, and release it again once it's well past. The Drop
+ * renders every event so the list is complete (FlatList's own windowing is
+ * disabled on web — react-native-web's VirtualizedList gets permanently stuck
+ * at initialNumToRender when it's on, see 474bd28), but a card left mounted
+ * forever keeps its own countdown timer ticking and its shadowed DOM subtree
+ * alive indefinitely — on a long scroll session that's hundreds of live cards
+ * accumulating with nothing ever released (the "app gets slower the longer
+ * you scroll" complaint).
  *
- * Web: an IntersectionObserver mounts the real card ~600px before it scrolls
- * into view, so its image only downloads when you're about to see it. Until
- * then it's a cheap fixed-height placeholder (keeps scroll height sane).
+ * Web: a single IntersectionObserver with a generous rootMargin mounts the
+ * real card ~1000px before it scrolls into view and unmounts it back to a
+ * placeholder ~1000px after it scrolls past — hiding is debounced so a quick
+ * scroll-back-and-forth doesn't thrash images/timers off and on.
  * Native: FlatList already virtualizes, so we render immediately.
  *
- * `eager` (the first few cards) render straight away to avoid a first-paint flash.
+ * `eager` (the first few cards) render straight away and stay mounted — avoids
+ * a first-paint flash, and there are only ever a handful of them.
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Platform } from 'react-native';
 
 const IS_WEB = Platform.OS === 'web';
+const HIDE_DELAY_MS = 800; // debounce unmount — avoid thrash near the boundary
 
-export const LazyCard = ({ children, eager = false, estimatedHeight = 480 }) => {
-  const [shown, setShown] = useState(!IS_WEB || eager);
+const LazyCardWeb = ({ children, estimatedHeight }) => {
+  const [shown, setShown] = useState(false);
   const ref = useRef(null);
+  const hideTimerRef = useRef(null);
 
   useEffect(() => {
-    if (shown) return;
     const el = ref.current;
     if (!el || typeof IntersectionObserver === 'undefined') { setShown(true); return; }
     const io = new IntersectionObserver(
-      (entries) => { if (entries.some((e) => e.isIntersecting)) { setShown(true); io.disconnect(); } },
-      { rootMargin: '600px 0px' } // wake up just before it enters view
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (hideTimerRef.current) { clearTimeout(hideTimerRef.current); hideTimerRef.current = null; }
+          setShown(true);
+        } else if (!hideTimerRef.current) {
+          hideTimerRef.current = setTimeout(() => { hideTimerRef.current = null; setShown(false); }, HIDE_DELAY_MS);
+        }
+      },
+      { rootMargin: '1000px 0px' }
     );
     io.observe(el);
-    return () => io.disconnect();
-  }, [shown]);
+    return () => {
+      io.disconnect();
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, []);
 
-  if (shown) return children;
-  return <View ref={ref} style={{ height: estimatedHeight }} />;
+  return (
+    <View ref={ref}>
+      {shown ? children : <View style={{ height: estimatedHeight }} />}
+    </View>
+  );
+};
+
+export const LazyCard = ({ children, eager = false, estimatedHeight = 480 }) => {
+  if (!IS_WEB || eager) return children;
+  return <LazyCardWeb estimatedHeight={estimatedHeight}>{children}</LazyCardWeb>;
 };
 
 export default LazyCard;

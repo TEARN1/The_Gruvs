@@ -13,7 +13,7 @@
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder, Platform, Linking } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { SmartImage } from './SmartImage';
 import { distanceKm } from '../utils/geo';
 import { FeedManager, RSVPManager, BookmarkManager, CheckInManager } from '../services/dataFlow';

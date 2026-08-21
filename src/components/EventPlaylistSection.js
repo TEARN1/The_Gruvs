@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { safeOpenExternal } from '../utils/sanitize';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Image, ActivityIndicator, Modal, Animated, Alert } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MusicService } from '../services/musicService';

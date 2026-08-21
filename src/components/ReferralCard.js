@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Platform, Clipboard, Linking,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
 import { GlassView } from './GlassView';
