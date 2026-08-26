@@ -14,7 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { LiveMap, isMapSupported, isDrawSupported } from '../components/LiveMap';
+import { LiveMap, isMapSupported, mapCapabilities } from '../components/LiveMap';
 import { ZoneDrawTool } from '../components/ZoneDrawTool';
 import { MapEventPreview } from '../components/MapEventPreview';
 import { MapReportSheet } from '../components/MapReportSheet';
@@ -134,6 +134,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [showWeather, setShowWeather] = useState(false);
   const [searchQuery, setSearchBar] = useState('');
   const [searching, setSearchBusy] = useState(false);
+
+  // What the active renderer (web MapLibre GL vs native MapLibre) can do.
+  const caps = mapCapabilities();
 
   const centerRef = useRef(center);
   useEffect(() => { centerRef.current = center; }, [center]);
@@ -649,12 +652,19 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <TouchableOpacity onPress={cycleStyle} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]} accessibilityLabel="Change map style">
                 <Feather name="layers" size={17} color={primary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShow3D(!show3D)} style={[cs.fab, { backgroundColor: show3D ? primary : bg, borderColor: `${primary}40` }]} accessibilityLabel="Toggle 3D buildings">
-                <Text style={{ color: show3D ? '#000' : primary, fontWeight: '900', fontSize: 10 }}>3D</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowWeather(!showWeather)} style={[cs.fab, { backgroundColor: showWeather ? primary : bg, borderColor: `${primary}40` }]} accessibilityLabel="Toggle weather radar">
-                <Feather name="cloud" size={17} color={showWeather ? '#000' : primary} />
-              </TouchableOpacity>
+              {/* Only offered where the renderer actually implements them —
+                  see mapCapabilities(). A FAB that toggles nothing is worse
+                  than an absent one. */}
+              {caps.threeD && (
+                <TouchableOpacity onPress={() => setShow3D(!show3D)} style={[cs.fab, { backgroundColor: show3D ? primary : bg, borderColor: `${primary}40` }]} accessibilityLabel="Toggle 3D buildings">
+                  <Text style={{ color: show3D ? '#000' : primary, fontWeight: '900', fontSize: 10 }}>3D</Text>
+                </TouchableOpacity>
+              )}
+              {caps.weather && (
+                <TouchableOpacity onPress={() => setShowWeather(!showWeather)} style={[cs.fab, { backgroundColor: showWeather ? primary : bg, borderColor: `${primary}40` }]} accessibilityLabel="Toggle weather radar">
+                  <Feather name="cloud" size={17} color={showWeather ? '#000' : primary} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity onPress={fitAll} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
                 <Feather name="maximize" size={17} color={primary} />
               </TouchableOpacity>
@@ -672,7 +682,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               </TouchableOpacity>
               {/* Tracing a closure needs the web renderer's map-click; on native
                   the button would open a draw UI that never receives a point. */}
-              {isDrawSupported() && (
+              {caps.draw && (
                 <TouchableOpacity onPress={startDraw} style={[cs.markBtn, { backgroundColor: primary }]}>
                   <Feather name="edit-3" size={15} color="#000" />
                   <Text style={cs.markText}>Mark a closure</Text>

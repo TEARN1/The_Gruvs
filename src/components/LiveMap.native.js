@@ -46,12 +46,15 @@ export function isMapSupported() {
 }
 
 /**
- * Tracing a zone onto the road isn't ported to native yet, and a draw UI that
- * silently never receives a point is worse than no button. Hosts can still draw
- * on the web app; the native map shows the zones they drew.
+ * What this renderer can actually do — see the PORTED list above. Drawing, 3D
+ * buildings and the weather overlay aren't here yet, and a control that toggles
+ * nothing is worse than an absent one, so the screen hides them rather than
+ * offering a dead button. Hosts can still trace zones on the web app; this map
+ * shows the zones they drew.
  */
-export function isDrawSupported() {
-  return false;
+export function mapCapabilities() {
+  const on = isMapSupported();
+  return { draw: false, threeD: false, weather: false, styles: on };
 }
 
 const vis = (on) => ({ visibility: on ? 'visible' : 'none' });
@@ -80,6 +83,41 @@ export function LiveMap({
   onReady,
 }) {
   const cameraRef = useRef(null);
+  const mapViewRef = useRef(null);
+
+  /**
+   * The screen drives zoom and fit-all imperatively through whatever onReady
+   * hands it — on web that's the raw MapLibre GL map. Native has no such object,
+   * so this adapter presents the same three methods with the same signatures.
+   * Without it those buttons silently did nothing on a phone.
+   */
+  const buildMapApi = useCallback(() => ({
+    zoomIn: async () => {
+      try {
+        const z = await mapViewRef.current?.getZoom();
+        cameraRef.current?.zoomTo(Math.min((z ?? 12) + 1, 20), 300);
+      } catch { /* map not ready */ }
+    },
+    zoomOut: async () => {
+      try {
+        const z = await mapViewRef.current?.getZoom();
+        cameraRef.current?.zoomTo(Math.max((z ?? 12) - 1, 1), 300);
+      } catch { /* map not ready */ }
+    },
+    // Matches the web call: fitBounds([[minX,minY],[maxX,maxY]], { padding, duration })
+    fitBounds: ([[minX, minY], [maxX, maxY]], opts = {}) => {
+      try {
+        cameraRef.current?.setCamera({
+          bounds: { ne: [maxX, maxY], sw: [minX, minY] },
+          padding: {
+            paddingTop: opts.padding ?? 60, paddingBottom: opts.padding ?? 60,
+            paddingLeft: opts.padding ?? 60, paddingRight: opts.padding ?? 60,
+          },
+          animationDuration: opts.duration ?? 600,
+        });
+      } catch { /* map not ready */ }
+    },
+  }), []);
 
   // Converters are shared with the web renderer, so a change to what a pin
   // carries lands on both platforms at once.
@@ -119,10 +157,11 @@ export function LiveMap({
 
   return (
     <MapView
+      ref={mapViewRef}
       style={{ flex: 1 }}
       mapStyle={MAP_STYLES[mapStyle] || MAP_STYLES.dark}
       onRegionDidChange={handleRegionChange}
-      onDidFinishLoadingMap={() => onReady?.(null)}
+      onDidFinishLoadingMap={() => onReady?.(buildMapApi())}
       logoEnabled={false}
       attributionPosition={{ bottom: 8, right: 8 }}
     >

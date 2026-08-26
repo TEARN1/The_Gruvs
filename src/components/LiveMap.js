@@ -46,9 +46,14 @@ export function isMapSupported() {
   return Platform.OS === 'web' && !!maplibregl;
 }
 
-/** Host zone-tracing works wherever the web map does. */
-export function isDrawSupported() {
-  return isMapSupported();
+/**
+ * What this renderer can actually do. The screen reads this instead of assuming
+ * every control works everywhere — a FAB that toggles nothing is worse than an
+ * absent one, and once a native renderer existed the assumption stopped holding.
+ */
+export function mapCapabilities() {
+  const on = isMapSupported();
+  return { draw: on, threeD: on, weather: on, styles: on };
 }
 
 export function LiveMap({
