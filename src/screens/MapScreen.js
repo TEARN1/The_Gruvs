@@ -419,21 +419,27 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     return Accommodation.near(c.lat, c.lng, { radiusM: viewRadius() });
   }, [viewRadius]);
 
-  // ⚠️ NOT REAL DATA. This draws a line from each event to the next one in the
-  // array — an arbitrary order, not an observed movement. It is presented as a
-  // "flow trail" insight, which is exactly the promoter-spin the Truth Protocol
-  // exists to replace. Kept as-is to avoid silently removing a visible feature,
-  // but it should either be derived from consecutive live_checkins by the same
-  // users (a real flow) or cut.
+  // Where crowds ACTUALLY move between venues: the same person Touched Down at
+  // one venue and then another. This used to draw lines between consecutive
+  // events in array order — a decoration shaped like an insight. The server
+  // aggregates it and only returns a hop 3+ distinct people made, so no single
+  // person's night is legible on the map.
   const fetchTrails = useCallback(async () => {
-    const list = eventsRef.current.slice(0, 8);
-    const generated = [];
-    for (let i = 0; i < list.length - 1; i++) {
-      if (list[i].lat && list[i + 1].lat) {
-        generated.push({ from: { lat: list[i].lat, lng: list[i].lon }, to: { lat: list[i + 1].lat, lng: list[i + 1].lon } });
-      }
+    const bbox = fetchedBboxRef.current;
+    if (!bbox) return [];
+    const { data, error } = await supabase.rpc('venue_flows_in_bbox', {
+      p_west: bbox.west, p_south: bbox.south, p_east: bbox.east, p_north: bbox.north,
+    });
+    if (error) {
+      // No fabricated fallback: an empty layer is honest, an invented one isn't.
+      logError('map:venue_flows_in_bbox', error, { code: error.code || null });
+      return [];
     }
-    return generated;
+    return (data || []).map((f) => ({
+      from: { lat: f.from_lat, lng: f.from_lon },
+      to: { lat: f.to_lat, lng: f.to_lon },
+      people: Number(f.people || 0),
+    }));
   }, []);
 
   const staysLayer = useMapLayer({
@@ -444,7 +450,11 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const stays = staysLayer.data;
   const showStays = staysLayer.on;
 
-  const trailsLayer = useMapLayer({ fetch: fetchTrails });
+  const trailsLayer = useMapLayer({
+    fetch: fetchTrails,
+    emptyMessage: 'No crowd movement between these venues yet — it appears once people Touch Down at more than one.',
+    toast,
+  });
   const vibeTrails = trailsLayer.data;
   const showTrails = trailsLayer.on;
 
@@ -480,15 +490,12 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     return out;
   }, []);
 
-  // A line from you to the pin you're previewing — "here's the way there".
-  const routeLine = React.useMemo(() => {
-    if (!userLoc || !previewId) return null;
-    const e = events.find((x) => x.id === previewId);
-    if (!e) return null;
-    const lat = e.lat ?? e.latitude, lng = e.lon ?? e.longitude;
-    if (lat == null) return null;
-    return [[userLoc.lng, userLoc.lat], [lng, lat]];
-  }, [userLoc, previewId, events]);
+  // There is deliberately no "route" line here any more. It drew a straight
+  // segment from you to the venue and called it the way there — through
+  // buildings, over the M1, across the Jukskei — and "Take me there" told you to
+  // follow it. A route that isn't a route is the same class of thing as a
+  // promoter's inflated door count, which is what this app exists to replace.
+  // Directions now hand off to the phone's own nav app (utils/directions).
 
   // "Live now" filters to venues with verified people there; the scrubber filters
   // to a chosen night; otherwise everything upcoming shows.
@@ -576,7 +583,6 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               onViewportChange={onViewportChange}
               userLoc={userLoc}
               ripple={ripple}
-              route={routeLine}
               heat={heat}
               mine={myFog.points}
               showMine={showMine}

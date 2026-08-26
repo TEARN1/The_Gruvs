@@ -1,6 +1,6 @@
 import {
   emptyFC, eventsToGeoJSON, zonesToGeoJSON, zonesToMarkersGeoJSON,
-  pointsToGeoJSON, crewToGeoJSON, lineGeoJSON, buildGeometry, drawGeoJSON,
+  pointsToGeoJSON, crewToGeoJSON, lineGeoJSON, buildGeometry, drawGeoJSON, trailsToGeoJSON,
 } from '../src/utils/mapGeoJSON';
 
 describe('mapGeoJSON — shared by the web and native renderers', () => {
@@ -88,6 +88,15 @@ describe('mapGeoJSON — shared by the web and native renderers', () => {
     expect(fc.features.filter((f) => f.geometry.type === 'Point')).toHaveLength(2);
     expect(fc.features.filter((f) => f.geometry.type === 'LineString')).toHaveLength(1);
     expect(drawGeoJSON(null, [[0, 0]])).toEqual(emptyFC());
+  });
+
+  it('carries how many people made a flow, so line weight can be honest', () => {
+    const fc = trailsToGeoJSON([
+      { from: { lat: 1, lng: 2 }, to: { lat: 3, lng: 4 }, people: 12 },
+      { from: { lat: 1, lng: 2 }, to: { lat: 3, lng: 4 } }, // unknown -> 0, not a guess
+    ]);
+    expect(fc.features[0].properties.people).toBe(12);
+    expect(fc.features[1].properties.people).toBe(0);
   });
 
   it('is null-safe across the board', () => {

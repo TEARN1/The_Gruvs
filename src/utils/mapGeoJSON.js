@@ -168,7 +168,9 @@ export function trailsToGeoJSON(trails) {
           type: 'LineString',
           coordinates: [[Number(t.from.lng), Number(t.from.lat)], [Number(t.to.lng), Number(t.to.lat)]],
         },
-        properties: {},
+        // How many people actually made this hop — drives line weight, so a
+        // well-worn route between two venues reads heavier than a rare one.
+        properties: { people: Number(t.people) || 0 },
       })),
   };
 }

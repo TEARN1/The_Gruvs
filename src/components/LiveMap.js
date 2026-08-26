@@ -14,7 +14,7 @@ import { View, Text, Platform, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import {
   emptyFC, eventsToGeoJSON, zonesToGeoJSON, zonesToMarkersGeoJSON, reportsToGeoJSON,
-  lineGeoJSON, pointsToGeoJSON, staysToGeoJSON, poisToGeoJSON, crewToGeoJSON,
+  pointsToGeoJSON, staysToGeoJSON, poisToGeoJSON, crewToGeoJSON,
   nearbyToGeoJSON, trailsToGeoJSON, drawGeoJSON,
 } from '../utils/mapGeoJSON';
 import { toBbox } from '../utils/mapViewport';
@@ -57,7 +57,6 @@ export function LiveMap({
   center = null,
   userLoc = null,         // { lat, lng } — a real device fix → "you are here" dot
   ripple = null,          // { lng, lat, key } — pulse a ring when someone checks in
-  route = null,           // [[lng,lat],[lng,lat]] — a line from you to a chosen pin
   heat = false,           // show the presence-heat layer
   mine = [],              // [{lat,lng}] — your lit Touch Downs ("Fog of the City")
   showMine = false,
@@ -390,20 +389,18 @@ export function LiveMap({
         paint: { 'circle-radius': 7, 'circle-color': '#3b82f6', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2.5 },
       });
 
-      // Route line — a dashed path from you to the pin you're eyeing.
-      map.addSource('route', { type: 'geojson', data: lineGeoJSON(route) });
-      map.addLayer({
-        id: 'route-line', type: 'line', source: 'route',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#00f2ff', 'line-width': 4, 'line-opacity': 0.8, 'line-dasharray': [1.5, 1.2] },
-      });
-
       // Vibe Trails — flow lines between venues (After-Event journey)
       map.addSource('trails', { type: 'geojson', data: emptyFC() });
       map.addLayer({
         id: 'trails-line', type: 'line', source: 'trails',
         layout: { visibility: trailsRef.current ? 'visible' : 'none', 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': primaryColor, 'line-width': 2, 'line-opacity': 0.4, 'line-dasharray': [2, 2] },
+        paint: {
+          'line-color': primaryColor,
+          // Weight reads how many people actually made this hop.
+          'line-width': ['interpolate', ['linear'], ['get', 'people'], 3, 1.5, 50, 7],
+          'line-opacity': ['interpolate', ['linear'], ['get', 'people'], 3, 0.35, 50, 0.85],
+          'line-dasharray': [2, 2],
+        },
       });
 
       // Touch-Down ripple — a one-shot expanding ring when someone checks in.
@@ -541,7 +538,6 @@ export function LiveMap({
   useEffect(() => { setData('stays', staysToGeoJSON(stays)); }, [stays]);
   useEffect(() => { setData('pois', poisToGeoJSON(pois)); }, [pois]);
   useEffect(() => { setData('self', pointsToGeoJSON(userLoc ? [userLoc] : [])); }, [userLoc]);
-  useEffect(() => { setData('route', lineGeoJSON(route)); }, [route]);
   useEffect(() => { setData('reports', reportsToGeoJSON(reports)); }, [reports]);
   // Animate a ripple each time `ripple.key` changes — radius grows, ring fades.
   useEffect(() => {

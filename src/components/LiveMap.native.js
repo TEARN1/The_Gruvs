@@ -14,7 +14,7 @@
  * GeoJSON converters instead of drifting apart.
  *
  * PORTED: basemap, event pins (clustered) + heat, zones, reports, fog, crew,
- * nearby vibers, stays, route line, user location, viewport reporting, taps.
+ * nearby vibers, stays, user location, viewport reporting, taps.
  * NOT YET PORTED (web-only for now, and deliberately not faked here): the host
  * draw tool, the weather radar overlay, 3D buildings, and the check-in ripple.
  * Those degrade by simply not rendering rather than by breaking the map.
@@ -24,7 +24,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import {
   eventsToGeoJSON, zonesToGeoJSON, zonesToMarkersGeoJSON, reportsToGeoJSON,
-  lineGeoJSON, pointsToGeoJSON, staysToGeoJSON, poisToGeoJSON, crewToGeoJSON,
+  pointsToGeoJSON, staysToGeoJSON, poisToGeoJSON, crewToGeoJSON,
   nearbyToGeoJSON, trailsToGeoJSON,
 } from '../utils/mapGeoJSON';
 
@@ -61,7 +61,6 @@ export function LiveMap({
   zones = [],
   center = null,
   userLoc = null,
-  route = null,
   heat = false,
   mine = [], showMine = false,
   crew = [], showCrew = false,
@@ -94,7 +93,6 @@ export function LiveMap({
   const staysFC = useMemo(() => staysToGeoJSON(stays), [stays]);
   const poisFC = useMemo(() => poisToGeoJSON(pois), [pois]);
   const trailsFC = useMemo(() => trailsToGeoJSON(trails), [trails]);
-  const routeFC = useMemo(() => lineGeoJSON(route), [route]);
 
   // Same contract as web: report the settled viewport so the screen loads the
   // area actually on screen. Native gives us the bounds in the region payload.
@@ -165,11 +163,16 @@ export function LiveMap({
       </ShapeSource>
 
       <ShapeSource id="trails" shape={trailsFC}>
-        <LineLayer id="trails-line" style={{ lineColor: '#00f2ff', lineWidth: 2, lineOpacity: 0.5, ...vis(showTrails) }} />
-      </ShapeSource>
-
-      <ShapeSource id="route" shape={routeFC}>
-        <LineLayer id="route-line" style={{ lineColor: '#00f2ff', lineWidth: 4, lineOpacity: 0.85, lineCap: 'round' }} />
+        <LineLayer
+          id="trails-line"
+          style={{
+            lineColor: '#00f2ff',
+            // Weight reads how many people actually made this hop.
+            lineWidth: ['interpolate', ['linear'], ['get', 'people'], 3, 1.5, 50, 7],
+            lineOpacity: ['interpolate', ['linear'], ['get', 'people'], 3, 0.35, 50, 0.85],
+            ...vis(showTrails),
+          }}
+        />
       </ShapeSource>
 
       {/* Fog of the City — your own lit Touch Downs, gold. */}
