@@ -11,16 +11,36 @@
  * which keeps this inside the zero-recurring-cost constraint). On native there's
  * no printer, so we share the link instead — hosts print from a laptop anyway.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Share } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { doorUrl } from '../utils/doorCode';
 
-const PRINT_ROOT_ID = 'gruvs-door-poster';
-
 export const DoorPosterModal = ({ visible, onClose, event, hostRefCode, primary = '#00f2ff' }) => {
   const url = useMemo(() => doorUrl(event, hostRefCode), [event, hostRefCode]);
+
+  // Print rules go straight into the document head rather than being rendered as
+  // a <style> child: react-native-web's Modal portals its children, and a raw
+  // DOM element smuggled through it is not something RN guarantees will render.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !visible || typeof document === 'undefined') return;
+    const el = document.createElement('style');
+    el.setAttribute('data-gruvs', 'door-poster-print');
+    el.textContent = `
+      @media print {
+        body * { visibility: hidden !important; }
+        [data-door-sheet], [data-door-sheet] * { visibility: visible !important; }
+        [data-door-sheet] {
+          position: absolute !important; left: 0; top: 0;
+          width: 100% !important; border: none !important; box-shadow: none !important;
+        }
+        @page { margin: 12mm; }
+      }
+    `;
+    document.head.appendChild(el);
+    return () => { try { el.remove(); } catch { /* already detached */ } };
+  }, [visible]);
 
   const print = async () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -52,7 +72,7 @@ export const DoorPosterModal = ({ visible, onClose, event, hostRefCode, primary 
 
         <ScrollView contentContainerStyle={dp.scroll}>
           {/* The sheet itself — white, high contrast, readable across a dark room. */}
-          <View style={dp.sheet} {...(Platform.OS === 'web' ? { nativeID: PRINT_ROOT_ID } : {})}>
+          <View style={dp.sheet} {...(Platform.OS === 'web' ? { dataSet: { doorSheet: 'true' } } : {})}>
             <Text style={dp.kicker}>ON THE GRUVS</Text>
             <Text style={dp.title} numberOfLines={3}>{event.title}</Text>
             {event.venue_name ? <Text style={dp.venue}>{event.venue_name}</Text> : null}
@@ -72,20 +92,6 @@ export const DoorPosterModal = ({ visible, onClose, event, hostRefCode, primary 
           </Text>
         </ScrollView>
       </View>
-
-      {/* Print styling: strip the app chrome so the sheet prints alone, edge to edge. */}
-      {Platform.OS === 'web' ? (
-        <style dangerouslySetInnerHTML={{ __html: `
-          @media print {
-            body * { visibility: hidden !important; }
-            #${PRINT_ROOT_ID}, #${PRINT_ROOT_ID} * { visibility: visible !important; }
-            #${PRINT_ROOT_ID} {
-              position: absolute !important; left: 0; top: 0;
-              width: 100% !important; border: none !important; box-shadow: none !important;
-            }
-          }
-        ` }} />
-      ) : null}
     </Modal>
   );
 };
