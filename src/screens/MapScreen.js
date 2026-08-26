@@ -29,6 +29,7 @@ import { useMapLayer } from '../hooks/useMapLayer';
 import { logError } from '../utils/logError';
 import { shouldRefetch, padBbox, bboxRadiusM, bboxCenter } from '../utils/mapViewport';
 import { LocationService } from '../services/locationService';
+import { searchPlaces } from '../services/geocoding';
 import { useToast } from '../components/ToastNotification';
 import { pickConciergeMove } from '../services/concierge';
 import { MapNudge } from '../components/MapNudge';
@@ -386,14 +387,20 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     setSearchBusy(true);
     setFollowMe(false);
     try {
-      const q = encodeURIComponent(searchQuery.trim());
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
-        headers: { 'User-Agent': 'TheGruvs/1.0' }
+      // Goes through the shared geocoder rather than calling Nominatim raw.
+      // geocoding.js exists precisely so map search resolves places the same way
+      // event posting does: a serial ≥1.1s queue (Nominatim's policy is ~1 req/s
+      // and this screen has a button you can hammer), a result cache, and the
+      // on-device geocoder first on native. The raw call here also set a
+      // User-Agent header, which browsers silently drop — so it was claiming an
+      // identity Nominatim never saw.
+      const near = bboxCenter(fetchedBboxRef.current) || centerRef.current;
+      const [place] = await searchPlaces(searchQuery, {
+        limit: 1,
+        near: near ? { lat: near.lat, lon: near.lng } : undefined,
       });
-      const data = await res.json();
-      if (data && data[0]) {
-        const { lat, lon } = data[0];
-        setCenter({ lat: parseFloat(lat), lng: parseFloat(lon) });
+      if (place && Number.isFinite(place.lat) && Number.isFinite(place.lon)) {
+        setCenter({ lat: place.lat, lng: place.lon });
         setSearchBar('');
       } else {
         toast('Location not found.', 'info');
