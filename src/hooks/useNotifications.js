@@ -32,8 +32,11 @@ export const useNotifications = ({ onNavigate } = {}) => {
     NotificationService.registerForPush(user.id).then(setExpoPushToken);
     // Send event-day notifications once per session, after push is registered
     NotificationService.sendEventDayNotifications(user.id);
-    // Replay any Touch Downs that were queued while offline (#248).
+    // Replay any Touch Downs that were queued while offline (#248) — now, and
+    // again the moment the network returns (a check-in queued at a venue door
+    // otherwise waits for the next app restart, which may never come).
     CheckinSync.drain().catch(() => {});
+    CheckinSync.startAutoDrain();
     return NotificationService.watchTokenRefresh(user.id);
   }, [user?.id]);
 

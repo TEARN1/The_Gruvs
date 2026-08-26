@@ -1796,7 +1796,10 @@ export const NotificationManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const CheckInManager = {
   async touchDown(eventId, userId, coords = {}, opts = {}) {
-    if (SecurityService.isThrottled(`touchdown_${eventId}_${userId}`, 5000)) return true;
+    // A replay from the offline queue must never be swallowed by the throttle:
+    // it would report success without inserting, and the queue would then drop
+    // the record — losing the exact Touch Down the queue exists to protect.
+    if (!opts.replay && SecurityService.isThrottled(`touchdown_${eventId}_${userId}`, 5000)) return true;
     if (!isSupabaseEnabled) {
       FeedManager.invalidate(eventId);
       return true;
@@ -1811,7 +1814,10 @@ export const CheckInManager = {
         event_id: eventId,
         lat: coords.lat ?? null,
         lon: coords.lon ?? null,
-        checked_in_at: new Date().toISOString(),
+        // A queued check-in replays with the time it actually happened, not the
+        // time the network came back — otherwise a Touch Down at 11pm in a dead
+        // zone lands at 9am the next morning and the presence record is a lie.
+        checked_in_at: opts.checkedInAt || new Date().toISOString(),
       };
       const full = { ...core };
       if (opts.expiresAt) full.expires_at = opts.expiresAt;

@@ -12,7 +12,17 @@ export async function enqueueCheckin(store, item) {
   try {
     const cur = JSON.parse((await store.getItem(KEY)) || '[]');
     if (cur.some((c) => c.eventId === item.eventId && c.userId === item.userId)) return true; // dedupe
-    cur.push({ eventId: item.eventId, userId: item.userId, coords: item.coords || null, queuedAt: Date.now() });
+    // identityMode + expiresAt ride along: a ghost check-in that replays without
+    // its identity mode would come back PUBLIC, silently outing someone who
+    // chose to be invisible. expiresAt keeps the replayed footprint honest too.
+    cur.push({
+      eventId: item.eventId,
+      userId: item.userId,
+      coords: item.coords || null,
+      identityMode: item.identityMode || null,
+      expiresAt: item.expiresAt || null,
+      queuedAt: Date.now(),
+    });
     await store.setItem(KEY, JSON.stringify(cur.slice(-CAP)));
     return true;
   } catch { return false; }
@@ -33,8 +43,13 @@ export async function removeCheckin(store, eventId, userId) {
   } catch { return []; }
 }
 
-// Offline only when we can positively tell (browser/RN NetInfo set navigator.onLine).
-// Unknown (undefined) = assume online, so we never wrongly swallow a real server error.
-export function isOffline() {
-  try { return typeof navigator !== 'undefined' && navigator.onLine === false; } catch { return false; }
+// A queued Touch Down is only worth replaying while it still describes a real
+// night. Past this, the event is over and a retry that keeps failing (a rejected
+// write, not a dead network) would otherwise sit in the queue forever.
+const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+export function isStale(item, now = Date.now()) {
+  const at = Number(item?.queuedAt);
+  if (!Number.isFinite(at)) return false; // unknown age — keep it, don't destroy data
+  return now - at > MAX_AGE_MS;
 }

@@ -742,16 +742,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         // Reveal who you keep crossing paths with — but only where there's enough
         // density for it to be magic (parked at launch; see launchConfig).
         if (feature('crossedPaths')) setCrossedVisible(true);
-      } else if (await CheckinSync.queueIfOffline(event.id, user.id, privateCoords)) {
+      } else if (await CheckinSync.queueFailed(event.id, user.id, privateCoords, { expiresAt: checkinExpiry, identityMode })) {
         setCheckedIn(true);
-        showToast("You're offline — we'll log your Touch Down the moment you're back. 📍", 'info');
+        showToast("Bad signal — we'll log your Touch Down the moment you're back. 📍", 'info');
       } else {
         showToast('Touch Down failed. Try again.', 'error');
       }
     } catch {
-      if (await CheckinSync.queueIfOffline(event.id, user.id, {})) {
+      if (await CheckinSync.queueFailed(event.id, user.id, {}, { identityMode })) {
         setCheckedIn(true);
-        showToast("You're offline — we'll log your Touch Down the moment you're back. 📍", 'info');
+        showToast("Bad signal — we'll log your Touch Down the moment you're back. 📍", 'info');
       } else {
         showToast('Touch Down failed. Try again.', 'error');
       }
