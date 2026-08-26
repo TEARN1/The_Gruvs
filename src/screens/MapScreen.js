@@ -46,6 +46,10 @@ const NUDGE_COOLDOWN_MS = 2 * 3600 * 1000; // don't nag — at most every 2h
 
 const JHB = { lat: -26.2041, lng: 28.0473 };
 
+// How long to wait for the map's first viewport before assuming it will never
+// come and loading unbounded instead.
+const VIEWPORT_WAIT_MS = 4000;
+
 export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
@@ -269,13 +273,24 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   useEffect(() => {
     let alive = true;
+    let loadFallbackTimer = null;
     (async () => {
       setLoading(true);
       // When there's a real map, its first 'moveend' tells us what to load —
       // loading here too would fetch the wrong area and then immediately refetch.
       // Without a map (native, or MapLibre unavailable) nothing will ever emit a
       // viewport, so the list view still needs its one unbounded load.
-      if (isMapSupported()) return;
+      if (isMapSupported()) {
+        // Safety net: isMapSupported() only says the library loaded. If the map
+        // itself fails to construct, no viewport ever arrives and the spinner
+        // would run forever. Give up waiting and load unbounded instead.
+        loadFallbackTimer = setTimeout(() => {
+          if (!alive || fetchedBboxRef.current) return;
+          Promise.all([loadEvents(), loadZones(), loadReports()])
+            .finally(() => { if (alive) setLoading(false); });
+        }, VIEWPORT_WAIT_MS);
+        return;
+      }
       await Promise.all([loadEvents(), loadZones(), loadReports()]);
       if (alive) setLoading(false);
     })();
@@ -287,25 +302,55 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     // happen. Debounced so a burst of arrivals is one repaint, not fifty.
     let t = null;
     const bump = () => { clearTimeout(t); t = setTimeout(() => { if (alive) loadEvents(); }, 1200); };
+    // postgres_changes can't filter by geography, so every client is woken by
+    // every check-in on earth. Reloading on all of them would mean the busier
+    // the platform gets, the more pointless refetches each map does. So only
+    // react to a change that affects what THIS map is currently showing.
+    const affectsOurMap = (eventId) => !!eventId && eventsRef.current.some((x) => x.id === eventId);
+    const inView = (lat, lon) => {
+      const b = fetchedBboxRef.current;
+      if (!b || !Number.isFinite(lat) || !Number.isFinite(lon)) return true; // unknown → don't suppress
+      return lat >= b.south && lat <= b.north && lon >= b.west && lon <= b.east;
+    };
+
     // A new check-in: ripple at that venue if it's on the map, then refresh counts.
     const onCheckin = (p) => {
       const evId = p?.new?.event_id;
       const e = evId && eventsRef.current.find((x) => x.id === evId);
-      if (e) { const lat = e.lat ?? e.latitude, lng = e.lon ?? e.longitude; if (lat != null) setRipple({ lat, lng, key: Date.now() }); }
+      if (!e) return; // someone checked in somewhere we aren't looking
+      const lat = e.lat ?? e.latitude, lng = e.lon ?? e.longitude;
+      if (lat != null) setRipple({ lat, lng, key: Date.now() });
       bump();
     };
+    const onCheckout = (p) => { if (affectsOurMap(p?.old?.event_id)) bump(); };
+    const onNewEvent = (p) => {
+      const lat = Number(p?.new?.lat ?? p?.new?.latitude);
+      const lon = Number(p?.new?.lon ?? p?.new?.longitude);
+      if (inView(lat, lon)) bump();
+    };
+
     const live = supabase
       .channel(`map_live_${Math.random().toString(36).slice(2, 8)}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_checkins' }, onCheckin)
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_checkins' }, bump)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, bump)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_checkins' }, onCheckout)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, onNewEvent)
       .subscribe();
 
-    return () => { alive = false; off?.(); offReports?.(); clearTimeout(t); try { supabase.removeChannel(live); } catch {} };
+    return () => {
+      alive = false; off?.(); offReports?.();
+      clearTimeout(t); clearTimeout(loadFallbackTimer);
+      try { supabase.removeChannel(live); } catch {}
+    };
   }, [loadEvents, loadZones, loadReports]);
 
-  // Re-pull zones + reports when the map centre moves meaningfully.
-  useEffect(() => { loadZones(); loadReports(); }, [center, loadZones, loadReports]);
+  // Re-pull zones + reports when the centre moves — but ONLY where nothing else
+  // will. With a real map, easeTo → moveend → onViewportChange already handles
+  // it, and that path is guarded by shouldRefetch; running this too would fetch
+  // again unconditionally on every centre change, bypassing the guard.
+  useEffect(() => {
+    if (isMapSupported()) return;
+    loadZones(); loadReports();
+  }, [center, loadZones, loadReports]);
 
   // ── The Concierge: a big closure near you + you're not into it → a real
   //    alternative. Cooldown'd so it never nags. ────────────────────────────
