@@ -16,6 +16,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder, Platf
 import { Feather } from '@expo/vector-icons';
 import { SmartImage } from './SmartImage';
 import { distanceKm } from '../utils/geo';
+import { directionsUrl, directionsFallbackUrl } from '../utils/directions';
 import { FeedManager, RSVPManager, BookmarkManager, CheckInManager, DiscoveryManager } from '../services/dataFlow';
 import { thumb } from '../utils/storageThumb';
 import { supabase } from '../services/supabase';
@@ -183,13 +184,24 @@ export function MapEventPreview({
     catch { setSaved(!next); toast('Could not save.', 'error'); }
   };
 
-  const takeMeThere = () => {
+  const takeMeThere = async () => {
     if (lat == null) { toast('No location on this event.', 'info'); return; }
-    // Since we're already on the Map tab, "Take me there" just closes the
-    // preview so the user can follow the dotted route line already drawn
-    // on the main map.
-    onClose();
-    toast('Follow the dotted line on the map.', 'info');
+    // This used to close the sheet and say "follow the dotted line" — a straight
+    // segment through buildings. Hand off to the phone's own navigation app
+    // instead: real roads, live traffic, no API key, and it's already installed.
+    const dest = { lat, lng, label: full?.title || full?.venue_name || 'Gruv' };
+    const url = directionsUrl(dest, userCoords, Platform.OS);
+    if (!url) { toast('No location on this event.', 'info'); return; }
+    try {
+      await Linking.openURL(url);
+      onClose();
+    } catch {
+      // Android's geo: scheme resolves to nothing when no maps app is installed.
+      try {
+        await Linking.openURL(directionsFallbackUrl(dest, userCoords));
+        onClose();
+      } catch { toast('Could not open directions.', 'error'); }
+    }
   };
 
   const go = (delta) => {
@@ -317,7 +329,12 @@ export function MapEventPreview({
         <TouchableOpacity onPress={toggleSave} style={[cs.iconBtn, { borderColor: `${primary}30`, backgroundColor: saved ? `${primary}18` : 'transparent' }]}>
           <Feather name="bookmark" size={16} color={saved ? primary : muted} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={takeMeThere} style={[cs.iconBtn, { borderColor: `${primary}30` }]}>
+        <TouchableOpacity
+          onPress={takeMeThere}
+          style={[cs.iconBtn, { borderColor: `${primary}30` }]}
+          accessibilityRole="button"
+          accessibilityLabel="Get directions to this Gruv"
+        >
           <Feather name="navigation-2" size={16} color={primary} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => onOpenEvent?.(full.id)} style={[cs.detailsBtn, { borderColor: `${primary}30` }]}>

@@ -1,7 +1,9 @@
 /**
  * EventMapView — 100% self-built, zero cost, zero API keys.
  * Renders event coordinates as positioned pins on a canvas-style View.
- * Uses Linking to open directions in the device's native maps app (free).
+ * Note: this view does NOT offer directions — the header used to claim it opened
+ * the device's maps app, but no such code existed. Directions live on the map
+ * pin preview (MapEventPreview → utils/directions).
  * No react-native-maps. No Google Maps API. No billing.
  */
 import React, { useState, useMemo, useEffect, useRef } from 'react';
