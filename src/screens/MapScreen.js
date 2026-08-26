@@ -22,6 +22,8 @@ import { MapReports } from '../services/mapReports';
 import { MAP_REPORT_BY_KEY } from '../constants/mapContributions';
 import { MapZones, ZONE_KINDS, ZONE_STATUS } from '../services/mapZones';
 import { supabase } from '../services/supabase';
+import { logError } from '../utils/logError';
+import { shouldRefetch, padBbox, bboxRadiusM, bboxCenter } from '../utils/mapViewport';
 import { LocationService } from '../services/locationService';
 import { useToast } from '../components/ToastNotification';
 import { pickConciergeMove } from '../services/concierge';
@@ -125,16 +127,29 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     })();
   }, []);
 
-  const loadZones = useCallback(async () => {
-    const c = centerRef.current;
-    const rows = await MapZones.near(c.lat, c.lng, { radiusM: 15000 });
-    setZones(rows);
+  // What the map is looking at, and what we last fetched FOR. These drive every
+  // loader below: a fixed 15km around wherever you happened to open the map is
+  // wrong the moment you pan.
+  const [viewBbox, setViewBbox] = useState(null);
+  const fetchedBboxRef = useRef(null);
+
+  // Radius loaders follow the viewport too, with a floor so a deep zoom-in
+  // doesn't ask for a 50m circle and show an empty map.
+  const viewRadius = useCallback(() => {
+    const b = fetchedBboxRef.current;
+    return b ? Math.max(2000, bboxRadiusM(b)) : 15000;
   }, []);
 
+  const loadZones = useCallback(async () => {
+    const c = bboxCenter(fetchedBboxRef.current) || centerRef.current;
+    const rows = await MapZones.near(c.lat, c.lng, { radiusM: viewRadius() });
+    setZones(rows);
+  }, [viewRadius]);
+
   const loadReports = useCallback(async () => {
-    const c = centerRef.current;
-    setReports(await MapReports.near(c.lat, c.lng, { radiusM: 15000 }));
-  }, []);
+    const c = bboxCenter(fetchedBboxRef.current) || centerRef.current;
+    setReports(await MapReports.near(c.lat, c.lng, { radiusM: viewRadius() }));
+  }, [viewRadius]);
 
   // Drop a report at the map centre (where the user is looking).
   const submitReport = useCallback(async (kind, note) => {
@@ -160,22 +175,46 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   }, [user, onAuthRequired, activeReport, toast, loadReports]);
 
   const loadEvents = useCallback(async () => {
+    const bbox = fetchedBboxRef.current;
     try {
+      // Tier 1 — the server does the geography AND the counting in one pass.
+      if (bbox) {
+        const { data, error } = await supabase.rpc('events_in_bbox', {
+          p_west: bbox.west, p_south: bbox.south, p_east: bbox.east, p_north: bbox.north, p_limit: 300,
+        });
+        if (!error && Array.isArray(data)) {
+          setEvents(data.map((e) => ({ ...e, here_count: Number(e.here_count || 0) })));
+          return;
+        }
+        // RPC missing (map_viewport.sql not applied) or it errored — fall to
+        // tier 2, but make the drift visible rather than silently slower.
+        logError('map:events_in_bbox', error || new Error('no rows'), { code: error?.code || null });
+      }
+
+      // Tier 2 — RPC not deployed yet. Same query client-side, still bounded by
+      // the viewport so panning works even before map_viewport.sql is applied.
       const today = new Date().toISOString().split('T')[0];
-      // Upcoming events with coordinates (either lat/lon or latitude/longitude).
-      const { data } = await supabase
+      let q = supabase
         .from('events')
         .select('id, title, category, cover_url, venue_name, latitude, longitude, lat, lon, going, event_date')
         .gte('event_date', today)
         .is('deleted_at', null)
         .limit(300);
+      if (bbox) {
+        // Filters the canonical lat/lon pair (what PostEventModal writes). The
+        // legacy latitude/longitude columns are read fallbacks only; tier 1
+        // COALESCEs both, so anything old still shows once the RPC is deployed.
+        q = q.gte('lat', bbox.south).lte('lat', bbox.north).gte('lon', bbox.west).lte('lon', bbox.east);
+      }
+      const { data } = await q;
       const rows = (data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null);
 
-      // Real "here now" = a live tally of verified Touch-Downs (live_checkins is
-      // the same source getLiveAttendees trusts), so the heat/hot pins are truth,
-      // not the static going count. One extra query, counted client-side.
+      // Real "here now" = a live tally of verified Touch-Downs. Counting these
+      // client-side means fetching every check-in row for every pin, which gets
+      // slower the better the product does — so it's capped, and the RPC above
+      // is the path that should actually run in production.
       try {
-        const ids = rows.map((e) => e.id);
+        const ids = rows.slice(0, 100).map((e) => e.id);
         if (ids.length) {
           const { data: ci } = await supabase.from('live_checkins').select('event_id').in('event_id', ids);
           const tally = new Map();
@@ -188,10 +227,27 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     } catch { setEvents([]); }
   }, []);
 
+  /**
+   * The map settled somewhere. Load that area — but only if it isn't already
+   * covered by what we hold, so a nudge of the map costs nothing.
+   */
+  const onViewportChange = useCallback((bbox) => {
+    if (!bbox) return;
+    setViewBbox(bbox);
+    if (!shouldRefetch(fetchedBboxRef.current, bbox)) { setLoading(false); return; }
+    fetchedBboxRef.current = padBbox(bbox, 0.5);
+    Promise.all([loadEvents(), loadZones(), loadReports()]).finally(() => setLoading(false));
+  }, [loadEvents, loadZones, loadReports]);
+
   useEffect(() => {
     let alive = true;
     (async () => {
       setLoading(true);
+      // When there's a real map, its first 'moveend' tells us what to load —
+      // loading here too would fetch the wrong area and then immediately refetch.
+      // Without a map (native, or MapLibre unavailable) nothing will ever emit a
+      // viewport, so the list view still needs its one unbounded load.
+      if (isMapSupported()) return;
       await Promise.all([loadEvents(), loadZones(), loadReports()]);
       if (alive) setLoading(false);
     })();
@@ -522,6 +578,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               reports={reports}
               onReportPress={(id) => { const r = reports.find((x) => x.id === id); if (r) { setPreviewId(null); setActiveZone(null); setActiveStay(null); setActiveReport(r); } }}
               center={center}
+              onViewportChange={onViewportChange}
               userLoc={userLoc}
               ripple={ripple}
               route={routeLine}

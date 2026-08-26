@@ -14,6 +14,11 @@ import { View, Text, Platform, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ZONE_KINDS } from '../services/mapZones';
 import { MAP_REPORT_BY_KEY } from '../constants/mapContributions';
+import { toBbox } from '../utils/mapViewport';
+
+// A pan fires 'moveend' once, but a flick that settles can fire several. Wait
+// for the map to actually stop before asking the server for anything.
+const VIEWPORT_DEBOUNCE_MS = 400;
 
 // Guarded so MapLibre (which touches window/document) never loads in the native
 // bundle. Metro constant-folds Platform.OS per platform, so this require is
@@ -129,6 +134,7 @@ export function LiveMap({
   onMapClick,             // (lngLat) => void  — used while drawing
   onEventPress,           // (eventId) => void
   onZonePress,            // (zoneId) => void
+  onViewportChange,       // (bbox, zoom) => void — fires on settle, drives loading
   followUser = false,     // if true, auto-pans to userLoc
   mapStyle = 'dark',      // 'dark' | 'light' | 'liberty'
   show3D = false,         // show 3D buildings
@@ -534,12 +540,31 @@ export function LiveMap({
         const z = map.queryRenderedFeatures(ev.point, { layers: ['zones-line', 'zones-fill'] });
         if (z && z[0]) onZoneRef.current?.(z[0].properties.id);
       });
+      // Tell the screen where we're looking, so it can load THIS area rather
+      // than whatever was on screen at mount. Debounced: a pan fires moveend
+      // once, but a flick-and-settle can fire several in quick succession.
+      const emitViewport = () => {
+        clearTimeout(viewportTimerRef.current);
+        viewportTimerRef.current = setTimeout(() => {
+          try {
+            onViewportRef.current?.(toBbox(map.getBounds()), map.getZoom());
+          } catch { /* bounds unavailable mid-transition */ }
+        }, VIEWPORT_DEBOUNCE_MS);
+      };
+      map.on('moveend', emitViewport);
+      map.on('zoomend', emitViewport);
+      emitViewport(); // first load: report the opening view
+
       map.getCanvas().style.cursor = '';
       onReady?.(map);
      } catch (e) { /* one bad layer must never blank the whole map */ }
     });
 
-    return () => { try { map.remove(); } catch {} mapRef.current = null; readyRef.current = false; };
+    return () => {
+      clearTimeout(viewportTimerRef.current);
+      try { map.remove(); } catch {}
+      mapRef.current = null; readyRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -549,10 +574,12 @@ export function LiveMap({
   const onReportRef = useRef(onReportPress);
   const onStayRef = useRef(onStayPress);
   const onViberRef = useRef(onViberPress);
+  const onViewportRef = useRef(onViewportChange);
+  const viewportTimerRef = useRef(null);
   useEffect(() => { drawModeRef.current = drawMode; onClickRef.current = onMapClick;
     onEventRef.current = onEventPress; onZoneRef.current = onZonePress;
     onReportRef.current = onReportPress; onStayRef.current = onStayPress;
-    onViberRef.current = onViberPress; });
+    onViberRef.current = onViberPress; onViewportRef.current = onViewportChange; });
 
   // ── update sources on data change ───────────────────────────────────────────
   useEffect(() => { const g = eventsToGeoJSON(events); setData('events', g); setData('eventsC', g); }, [events]);
