@@ -15,6 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import { ZONE_KINDS } from '../services/mapZones';
 import { MAP_REPORT_BY_KEY } from '../constants/mapContributions';
 import { toBbox } from '../utils/mapViewport';
+import { applyGroupVisibility } from '../constants/mapLayers';
 
 // A pan fires 'moveend' once, but a flick that settles can fire several. Wait
 // for the map to actually stop before asking the server for anything.
@@ -161,12 +162,12 @@ export function LiveMap({
     }
   }, [followUser, userLoc?.lat, userLoc?.lng]);
 
-  useEffect(() => { heatRef.current = heat; toggleHeat(heat); });
-  useEffect(() => { mineRef.current = showMine; toggleMine(showMine); });
-  useEffect(() => { crewRef.current = showCrew; toggleCrew(showCrew); });
-  useEffect(() => { nearbyRef.current = showNearby; toggleNearby(showNearby); });
-  useEffect(() => { trailsRef.current = showTrails; toggleTrails(showTrails); });
-  useEffect(() => { staysRef.current = showStays; toggleStays(showStays); });
+  useEffect(() => { heatRef.current = heat; setGroup('heat', heat); });
+  useEffect(() => { mineRef.current = showMine; setGroup('mine', showMine); });
+  useEffect(() => { crewRef.current = showCrew; setGroup('crew', showCrew); });
+  useEffect(() => { nearbyRef.current = showNearby; setGroup('nearby', showNearby); });
+  useEffect(() => { trailsRef.current = showTrails; setGroup('trails', showTrails); });
+  useEffect(() => { staysRef.current = showStays; setGroup('stays', showStays); });
   useEffect(() => { show3DRef.current = show3D; toggle3D(show3D); });
   useEffect(() => { weatherRef.current = showWeather; toggleWeather(showWeather); });
 
@@ -629,53 +630,12 @@ export function LiveMap({
     if (src) src.setData(data);
   }
 
-  function toggleHeat(on) {
-    const m = mapRef.current;
-    if (!m || !readyRef.current || !m.getLayer('events-heat')) return;
-    // Heat and clustered pins are two readings of the same data — show one or the
-    // other so the map never double-renders the crowd.
-    try { m.setLayoutProperty('events-heat', 'visibility', on ? 'visible' : 'none'); } catch {}
-    for (const id of ['ev-cluster', 'ev-cluster-count', 'ev-glow', 'ev-hot', 'ev-dot']) {
-      if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible'); } catch {}
-    }
-  }
-
-  function toggleMine(on) {
+  // One toggle for all of them — the per-group layer ids live in mapLayers.js,
+  // where a typo is a test failure instead of a layer that silently never shows.
+  function setGroup(group, on) {
     const m = mapRef.current;
     if (!m || !readyRef.current) return;
-    for (const id of ['mine-glow', 'mine-dot']) {
-      if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
-    }
-  }
-
-  function toggleCrew(on) {
-    const m = mapRef.current;
-    if (!m || !readyRef.current) return;
-    for (const id of ['crew-ring', 'crew-dot', 'crew-count']) {
-      if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
-    }
-  }
-
-  function toggleNearby(on) {
-    const m = mapRef.current;
-    if (!m || !readyRef.current) return;
-    for (const id of ['nearby-glow', 'nearby-dot', 'nearby-text']) {
-      if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
-    }
-  }
-
-  function toggleTrails(on) {
-    const m = mapRef.current;
-    if (!m || !readyRef.current || !m.getLayer('trails-line')) return;
-    try { m.setLayoutProperty('trails-line', 'visibility', on ? 'visible' : 'none'); } catch {}
-  }
-
-  function toggleStays(on) {
-    const m = mapRef.current;
-    if (!m || !readyRef.current) return;
-    for (const id of ['stays-glow', 'stays-dot', 'stays-icon']) {
-      if (m.getLayer(id)) try { m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch {}
-    }
+    applyGroupVisibility(m, group, on);
   }
 
   async function toggleWeather(on) {

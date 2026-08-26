@@ -22,6 +22,10 @@ import { MapReports } from '../services/mapReports';
 import { MAP_REPORT_BY_KEY } from '../constants/mapContributions';
 import { MapZones, ZONE_KINDS, ZONE_STATUS } from '../services/mapZones';
 import { supabase } from '../services/supabase';
+// Nearby vibers used DiscoveryManager without ever importing it — the FAB threw
+// a ReferenceError into a silent catch, so that layer has never once worked.
+import { DiscoveryManager } from '../services/dataFlow';
+import { useMapLayer } from '../hooks/useMapLayer';
 import { logError } from '../utils/logError';
 import { shouldRefetch, padBbox, bboxRadiusM, bboxCenter } from '../utils/mapViewport';
 import { LocationService } from '../services/locationService';
@@ -81,25 +85,44 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [activeReport, setActiveReport] = useState(null);
 
   // Phase 2: Fog of the City — your lit Touch Downs.
-  const [showMine, setShowMine] = useState(false);
-  const [myFog, setMyFog] = useState({ points: [], passport: null });
+  // Optional layers: each is (is it on, its data, load it once on first ask).
+  // These were five hand-written copies of the same toggle; see useMapLayer.
+  const mineLayer = useMapLayer({
+    fetch: useCallback(() => getMyFog(user?.id), [user?.id]),
+    requiresAuth: true, user, onAuthRequired,
+    initial: { points: [], passport: null },
+    isEmpty: (f) => !f?.points?.length,
+    emptyMessage: 'Touch Down at events to light up your map.',
+    toast,
+  });
+  const myFog = mineLayer.data;
+  const showMine = mineLayer.on;
 
-  // Phase 2: Crew Convergence — where the people you follow are heading tonight.
-  const [showCrew, setShowCrew] = useState(false);
-  const [crewPlans, setCrewPlans] = useState([]);
+  // Phase 2: Crew Convergence — your follows' tonight-intent, magenta pins.
+  const crewLayer = useMapLayer({
+    fetch: useCallback(() => getCrewPlans(user?.id), [user?.id]),
+    requiresAuth: true, user, onAuthRequired,
+    emptyMessage: 'None of your crew has marked a plan yet — follow more people.',
+    toast,
+  });
+  const crewPlans = crewLayer.data;
+  const showCrew = crewLayer.on;
 
   // Phase 2: Find Them — discoverable vibers near you.
-  const [showNearby, setShowNearby] = useState(false);
-  const [nearbyVibers, setNearbyVibers] = useState([]);
+  const nearbyLayer = useMapLayer({
+    fetch: useCallback(() => DiscoveryManager.findNearbyVibers(user?.id, 10), [user?.id]),
+    requiresAuth: true, user, onAuthRequired,
+    emptyMessage: 'No vibers found nearby — try again later.',
+    toast,
+  });
+  const nearbyVibers = nearbyLayer.data;
+  const showNearby = nearbyLayer.on;
 
-  // Stays via Resident Crew — accommodation near you, from the sister app.
-  const [showStays, setShowStays] = useState(false);
-  const [stays, setStays] = useState([]);
+  // Stays via Resident Crew — the layer itself is declared lower down, next to
+  // its fetcher, which needs the viewport refs.
   const [activeStay, setActiveStay] = useState(null);
 
   // Phase 2: Strategic Networking
-  const [showTrails, setShowTrails] = useState(false);
-  const [vibeTrails, setVibeTrails] = useState([]);
   const [networkingMode, setNetworkingMode] = useState(false);
   const [attendees, setAttendees] = useState([]);
   const [viberModalVisible, setViberModalVisible] = useState(false);
@@ -130,7 +153,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   // What the map is looking at, and what we last fetched FOR. These drive every
   // loader below: a fixed 15km around wherever you happened to open the map is
   // wrong the moment you pan.
-  const [viewBbox, setViewBbox] = useState(null);
+  // A ref, not state: the viewport changes on every pan and nothing renders from
+  // it directly, so holding it in state would re-render this whole screen for
+  // no visible change.
   const fetchedBboxRef = useRef(null);
 
   // Radius loaders follow the viewport too, with a floor so a deep zoom-in
@@ -233,7 +258,6 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
    */
   const onViewportChange = useCallback((bbox) => {
     if (!bbox) return;
-    setViewBbox(bbox);
     if (!shouldRefetch(fetchedBboxRef.current, bbox)) { setLoading(false); return; }
     fetchedBboxRef.current = padBbox(bbox, 0.5);
     Promise.all([loadEvents(), loadZones(), loadReports()]).finally(() => setLoading(false));
@@ -389,69 +413,40 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   };
 
   // Fog of the City — light up where you've actually been (lazy-loaded once).
-  const toggleMine = async () => {
-    if (!user) { onAuthRequired?.(); return; }
-    const next = !showMine;
-    setShowMine(next);
-    if (next && myFog.points.length === 0) {
-      const fog = await getMyFog(user.id);
-      setMyFog(fog);
-      if (fog.points.length === 0) toast("Touch Down at events to light up your map.", 'info');
-    }
-  };
+  // Stays via Resident Crew — accommodation around whatever you're looking at.
+  const fetchStays = useCallback(async () => {
+    const c = bboxCenter(fetchedBboxRef.current) || centerRef.current;
+    return Accommodation.near(c.lat, c.lng, { radiusM: viewRadius() });
+  }, [viewRadius]);
 
-  // Crew Convergence — pull your follows' tonight-intent, lit as magenta pins.
-  const toggleCrew = async () => {
-    if (!user) { onAuthRequired?.(); return; }
-    const next = !showCrew;
-    setShowCrew(next);
-    if (next && crewPlans.length === 0) {
-      const plans = await getCrewPlans(user.id);
-      setCrewPlans(plans);
-      if (plans.length === 0) toast('None of your crew has marked a plan yet — follow more people.', 'info');
-    }
-  };
-
-  const toggleNearby = async () => {
-    if (!user) { onAuthRequired?.(); return; }
-    const next = !showNearby;
-    setShowNearby(next);
-    if (next && nearbyVibers.length === 0) {
-      try {
-        const data = await DiscoveryManager.findNearbyVibers(user.id, 10);
-        setNearbyVibers(data || []);
-        if ((data || []).length === 0) toast('No vibers found nearby — try again later.', 'info');
-      } catch { /* silent */ }
-    }
-  };
-
-  // Stays via Resident Crew — pull accommodation around the map centre on demand.
-  const toggleStays = async () => {
-    const next = !showStays;
-    setShowStays(next);
-    if (next && stays.length === 0) {
-      const c = centerRef.current;
-      const rows = await Accommodation.near(c.lat, c.lng, { radiusM: 15000 });
-      setStays(rows);
-      if (rows.length === 0) toast('No Resident Crew stays near here yet.', 'info');
-    }
-  };
-
-  const toggleTrails = () => {
-    const next = !showTrails;
-    setShowTrails(next);
-    if (next && vibeTrails.length === 0) {
-      // Simulate/derive flow trails from events (B2B/B2P insight)
-      const list = events.slice(0, 8);
-      const generated = [];
-      for (let i = 0; i < list.length - 1; i++) {
-        if (list[i].lat && list[i+1].lat) {
-          generated.push({ from: { lat: list[i].lat, lng: list[i].lon }, to: { lat: list[i+1].lat, lng: list[i+1].lon } });
-        }
+  // ⚠️ NOT REAL DATA. This draws a line from each event to the next one in the
+  // array — an arbitrary order, not an observed movement. It is presented as a
+  // "flow trail" insight, which is exactly the promoter-spin the Truth Protocol
+  // exists to replace. Kept as-is to avoid silently removing a visible feature,
+  // but it should either be derived from consecutive live_checkins by the same
+  // users (a real flow) or cut.
+  const fetchTrails = useCallback(async () => {
+    const list = eventsRef.current.slice(0, 8);
+    const generated = [];
+    for (let i = 0; i < list.length - 1; i++) {
+      if (list[i].lat && list[i + 1].lat) {
+        generated.push({ from: { lat: list[i].lat, lng: list[i].lon }, to: { lat: list[i + 1].lat, lng: list[i + 1].lon } });
       }
-      setVibeTrails(generated);
     }
-  };
+    return generated;
+  }, []);
+
+  const staysLayer = useMapLayer({
+    fetch: fetchStays,
+    emptyMessage: 'No Resident Crew stays near here yet.',
+    toast,
+  });
+  const stays = staysLayer.data;
+  const showStays = staysLayer.on;
+
+  const trailsLayer = useMapLayer({ fetch: fetchTrails });
+  const vibeTrails = trailsLayer.data;
+  const showTrails = trailsLayer.on;
 
   const toggleNetworking = () => {
     setNetworkingMode(!networkingMode);
@@ -621,22 +616,22 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <TouchableOpacity onPress={() => (user ? setReportSheet(true) : onAuthRequired?.())} style={[cs.fab, { backgroundColor: primary, borderColor: primary }]} accessibilityLabel="Add a report to the map">
                 <Feather name="plus" size={20} color="#000" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={toggleMine} style={[cs.fab, { backgroundColor: showMine ? '#fbbf24' : bg, borderColor: showMine ? '#fbbf24' : `${primary}40` }]}>
+              <TouchableOpacity onPress={mineLayer.toggle} style={[cs.fab, { backgroundColor: showMine ? '#fbbf24' : bg, borderColor: showMine ? '#fbbf24' : `${primary}40` }]}>
                 <Feather name="star" size={18} color={showMine ? '#000' : '#fbbf24'} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={toggleCrew} style={[cs.fab, { backgroundColor: showCrew ? '#ec4899' : bg, borderColor: showCrew ? '#ec4899' : `${primary}40` }]}>
+              <TouchableOpacity onPress={crewLayer.toggle} style={[cs.fab, { backgroundColor: showCrew ? '#ec4899' : bg, borderColor: showCrew ? '#ec4899' : `${primary}40` }]}>
                 <Feather name="users" size={18} color={showCrew ? '#fff' : '#ec4899'} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={toggleNearby} style={[cs.fab, { backgroundColor: showNearby ? primary : bg, borderColor: showNearby ? primary : `${primary}40` }]} accessibilityLabel="Find vibers nearby">
+              <TouchableOpacity onPress={nearbyLayer.toggle} style={[cs.fab, { backgroundColor: showNearby ? primary : bg, borderColor: showNearby ? primary : `${primary}40` }]} accessibilityLabel="Find vibers nearby">
                 <Feather name="user-check" size={18} color={showNearby ? '#000' : primary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={toggleNetworking} style={[cs.fab, { backgroundColor: networkingMode ? primary : bg, borderColor: networkingMode ? primary : `${primary}40` }]} accessibilityLabel="Toggle networking mode">
                 <Feather name="message-square" size={18} color={networkingMode ? '#000' : primary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={toggleTrails} style={[cs.fab, { backgroundColor: showTrails ? primary : bg, borderColor: showTrails ? primary : `${primary}40` }]} accessibilityLabel="Show flow trails">
+              <TouchableOpacity onPress={trailsLayer.toggle} style={[cs.fab, { backgroundColor: showTrails ? primary : bg, borderColor: showTrails ? primary : `${primary}40` }]} accessibilityLabel="Show flow trails">
                 <Feather name="trending-up" size={18} color={showTrails ? '#000' : primary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={toggleStays} style={[cs.fab, { backgroundColor: showStays ? '#f59e0b' : bg, borderColor: showStays ? '#f59e0b' : `${primary}40` }]} accessibilityLabel="Places to stay from Resident Crew">
+              <TouchableOpacity onPress={staysLayer.toggle} style={[cs.fab, { backgroundColor: showStays ? '#f59e0b' : bg, borderColor: showStays ? '#f59e0b' : `${primary}40` }]} accessibilityLabel="Places to stay from Resident Crew">
                 <Feather name="home" size={17} color={showStays ? '#000' : '#f59e0b'} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setHeat((h) => !h)} style={[cs.fab, { backgroundColor: heat ? primary : bg, borderColor: `${primary}40` }]}>
