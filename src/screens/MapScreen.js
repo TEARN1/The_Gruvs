@@ -14,7 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { LiveMap, isMapSupported } from '../components/LiveMap';
+import { LiveMap, isMapSupported, isDrawSupported } from '../components/LiveMap';
 import { ZoneDrawTool } from '../components/ZoneDrawTool';
 import { MapEventPreview } from '../components/MapEventPreview';
 import { MapReportSheet } from '../components/MapReportSheet';
@@ -664,10 +664,14 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <TouchableOpacity onPress={recenter} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
                 <Feather name="crosshair" size={18} color={primary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={startDraw} style={[cs.markBtn, { backgroundColor: primary }]}>
-                <Feather name="edit-3" size={15} color="#000" />
-                <Text style={cs.markText}>Mark a closure</Text>
-              </TouchableOpacity>
+              {/* Tracing a closure needs the web renderer's map-click; on native
+                  the button would open a draw UI that never receives a point. */}
+              {isDrawSupported() && (
+                <TouchableOpacity onPress={startDraw} style={[cs.markBtn, { backgroundColor: primary }]}>
+                  <Feather name="edit-3" size={15} color="#000" />
+                  <Text style={cs.markText}>Mark a closure</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 

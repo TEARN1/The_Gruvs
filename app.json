@@ -133,7 +133,8 @@
       ],
       "expo-font",
       "expo-secure-store",
-      "@config-plugins/react-native-webrtc"
+      "@config-plugins/react-native-webrtc",
+      "@maplibre/maplibre-react-native"
     ],
     "extra": {
       "privacyPolicyUrl": "https://thegruvs.com/privacy.html",

@@ -16,7 +16,7 @@ import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { MapZones, ZONE_KINDS } from '../services/mapZones';
-import { buildGeometry } from './LiveMap';
+import { buildGeometry } from '../utils/mapGeoJSON';
 
 const DURATIONS = [
   { label: 'Now', hrs: 0 }, { label: 'In 1h', hrs: 1 },
