@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { setDriftReporter } from './src/utils/resilience';
 import { shouldEnterSafeMode, clearCrashLog } from './src/utils/bootGuard';
 import { logError } from './src/utils/logError';
+import { captureRef } from './src/services/referral';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { EntitlementProvider } from './src/context/EntitlementContext';
@@ -62,6 +63,11 @@ installWebErrorHandler({
   logSecurityEvent: (userId, type, details) => SecurityService.logSecurityEvent(userId, type, details),
 });
 validateEnv();
+
+// Read ?ref= off the URL we LANDED on, before any navigation rewrites it. The
+// person scanning a door-sign QR isn't signed up yet, so the code is held until
+// their profile exists and then claimed (see services/referral).
+captureRef();
 
 // Schema drift, and paths that only work via a fallback tier, now land in
 // client_errors instead of a console nobody reads in production. That blind

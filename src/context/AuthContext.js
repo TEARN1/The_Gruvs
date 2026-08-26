@@ -3,9 +3,10 @@ import { Platform } from 'react-native';
 import { supabase } from '../services/supabase';
 import { UserManager, clearAllCache, PresenceManager } from '../services/dataFlow';
 import { SecurityService } from '../services/securityService';
+import { claimPendingRef } from '../services/referral';
 
 // Explicit field list — never use select('*') to avoid leaking private columns
-const PROFILE_FIELDS = 'id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, is_discoverable, push_token, interests, location, career_title, career_description, looks_description, profile_gallery, share_events, show_online, gender';
+const PROFILE_FIELDS = 'id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, is_discoverable, push_token, interests, location, career_title, career_description, looks_description, profile_gallery, share_events, show_online, gender, referral_code';
 
 const AuthContext = createContext();
 
@@ -75,7 +76,12 @@ export const AuthProvider = ({ children }) => {
         // Only re-fetch profile when the user ID actually changes
         if (newUserId !== prevUserId) {
           fetchProfile(newUserId, true);
-          UserManager.ensureProfile(newUserId).catch(() => {});
+          // Attribution has to wait for the profile row to exist, so it chains
+          // off ensureProfile rather than racing it. Best-effort by design: a
+          // failed claim must never block someone getting into the app.
+          UserManager.ensureProfile(newUserId)
+            .then(() => claimPendingRef())
+            .catch(() => {});
           PresenceManager.goOnline(newUserId).catch(() => {});
         }
       } else {

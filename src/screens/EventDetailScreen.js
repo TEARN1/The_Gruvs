@@ -56,6 +56,7 @@ import { EventChatRoom }          from '../components/EventChatRoom';
 import { EventPollSection }       from '../components/EventPollSection';
 import { EventPlaylistSection }   from '../components/EventPlaylistSection';
 import { EventRoleManager }       from '../components/EventRoleManager';
+import { DoorPosterModal }        from '../components/DoorPosterModal';
 import { EventMomentsSection }    from '../components/EventMomentsSection';
 import { OrganizerDashboard }     from '../components/OrganizerDashboard';
 import { LiveEventBanner }        from '../components/LiveEventBanner';
@@ -198,6 +199,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [calendarAdded, setCalendarAdded] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
   const [roleManagerVisible, setRoleManagerVisible] = useState(false);
+  const [doorPosterVisible, setDoorPosterVisible] = useState(false);
   const [inviteVisible, setInviteVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
@@ -1688,6 +1690,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               )}
               <TouchableOpacity
                 style={[styles.mgmtBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}10` }]}
+                onPress={() => setDoorPosterVisible(true)}
+              >
+                <Feather name="printer" size={14} color={primary} />
+                <Text style={[styles.mgmtBtnText, { color: primary }]}>Door Sign</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.mgmtBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}10` }]}
                 onPress={() => setChatVisible(true)}
               >
                 <Feather name="message-square" size={14} color={primary} />
@@ -1842,6 +1851,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               organiserId={event.author_id ?? event.profiles?.id}
             />
           </SafeSection>
+        )}
+
+        {(isOrganiser || isCoHost) && event?.id && (
+          <DoorPosterModal
+            visible={doorPosterVisible}
+            onClose={() => setDoorPosterVisible(false)}
+            event={event}
+            hostRefCode={profile?.referral_code}
+            primary={primary}
+          />
         )}
 
         {isOrganiser && event?.id && (

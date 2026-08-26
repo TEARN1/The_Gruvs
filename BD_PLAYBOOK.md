@@ -15,6 +15,8 @@
 | Last updated | 2026-08-26 |
 | Week of the run | **not started** |
 | Users / hosts / Touch Downs | 29 / 2 / 2 *(as of 2026-07-06 — re-pull, see §7)* |
+| Scene | **JHB / PTA weekend nightlife** (locked 2026-08-26) |
+| Budget | ~15h/week · ~R3,000 barter-first for 8 weeks (§6) |
 | Host #1 booked? | ⟨YOU⟩ |
 
 Goal: **10 real hosts, 100 real attendees, 50 real Touch Downs in ONE scene
@@ -70,9 +72,13 @@ it has sharp edges you must know before you're standing there:
       is precisely the §1 goal. Check the free-tier ceilings you'd hit on your
       *best* night: realtime connections, row reads, storage for the night's
       photos. A success-shaped outage is still an outage.
-- [ ] **"Who's here now" feels live.** `CrowdMeter` has no realtime subscription.
-      Stand in a room, have someone check in, and count the seconds until you see
-      it. If it reads as a list rather than a pulse, that's the magic gone.
+- [ ] **"Who's here now" feels live.** ✅ *Fixed 2026-08-26:* `CrowdMeter` loaded
+      once and then sat there under a live dot; it now subscribes to realtime
+      with a 60s poll behind it (the table may not be in the publication) which
+      also ages votes out of the 45-min window. Still stand in a room and count
+      the seconds — if it reads as a list rather than a pulse, that's the magic gone.
+- [ ] **Run `referral_lineage.sql`** before printing any door sign, or the QR's
+      `?ref=` has no column to land in and every door scan attributes to nobody.
 - [ ] **Guardian is armed for the night.** You'll be at the door, not watching
       logs. Alarm on check-in failures during venue hours.
 - [ ] **A support channel exists.** When someone's check-in fails, where do they
@@ -102,8 +108,17 @@ lights up nothing. You need *concentration*, not coverage.
 periods and big competing events will make or break individual weekends. Map all
 8 weeks now so you don't read a dead public holiday as a dead product.
 
-⟨YOU⟩ Name the ONE scene: __________________
-⟨YOU⟩ Weeks 1–8 dates, and which are compromised: __________________
+**THE SCENE (locked 2026-08-26): Joburg / Pretoria weekend nightlife.**
+Chosen for frequency — every weekend is a feedback loop — and because it has no
+exam-season cliff. This is now fixed for all 8 weeks; §9 forbids adding a second
+scene, and that includes quietly drifting into the campus one.
+
+⟨YOU⟩ Narrow it once more, because "JHB/PTA" is still too big to create density:
+name the **area** (e.g. Braamfontein / Fourways / Hatfield) and the **night**
+(Fri or Sat): ______________________
+
+⟨YOU⟩ Weeks 1–8 dates, and which are compromised by holidays or big competing
+events: __________________
 
 ---
 
@@ -179,10 +194,10 @@ For the first ~10 hosts, **you** do the work, in person / over WhatsApp:
 4. **Give them an asset kit.** Their WhatsApp broadcast is the real growth
    channel, not yours — so hand them a ready-to-post share card, a caption, and
    a story frame. Zero friction between "yes" and them posting it.
-5. **Print the door code.** ⟨YOU⟩ A per-event QR/link on an A5 sign at the door.
-   *(Gap: nothing generates a printable per-event door code yet — until it does,
-   use the event share link in a QR generator, but keep it event-specific or you
-   lose all attribution.)*
+5. **Print the door code.** ✅ *Built 2026-08-26:* on the event, as host, tap
+   **Door Sign** → an A5 sheet with a QR that opens *this* event and carries your
+   referral code. Print from a laptop (browser print dialog); on phone it shares
+   the link instead. Requires `referral_lineage.sql` to be applied first.
 6. **On the night: you show up.** You get 5–10 people to physically Touch Down
    (you demo it at the door). This is the single most important action in the
    entire plan — the first real check-ins.
@@ -217,10 +232,13 @@ Touch Down is your moat but people won't do it unprompted. Manufacture it:
   the promoter's — bigger rooms have exclusivity contracts.
 - **The DJ shoutout**: "request your song on The Gruvs" from the booth = instant
   installs + song requests + a reason to keep the app open (the 3 hours).
-- **Onboard under the host's invite.** You have invite lineage built — this
-  hand-to-hand motion is exactly what it's for. Every door signup lands under
-  host #1's invite so growth is attributable and the trust tree seeds itself. If
-  you skip this you get 100 users and no idea where any of them came from.
+- **Onboard under the host's invite.** ✅ *Fixed 2026-08-26:* invite lineage was
+  advertised but not wired — `?ref=` links had been going out for a while and
+  **nothing read the parameter**, and `profiles` had no `referred_by` column, so
+  every invite and every scan attributed to nobody. Now the landing page captures
+  the code, `claim_referral` attaches it once the profile exists, and the door QR
+  carries the host's code. Without this you get 100 users and no idea which night
+  produced them.
 
 ---
 
@@ -233,12 +251,27 @@ Touch Down is your moat but people won't do it unprompted. Manufacture it:
 - **Sun:** post the Wrapped/recap. Ask attendees the two questions (§8).
   *(Host reports go out on the night — §4.7 — not here.)*
 
-**⟨YOU⟩ Budget it, both kinds, or it won't survive week 3.**
-- **Time:** you cannot do 7 days of BD *and* be the solo dev. Name the hours/week
-  this takes and name what dev work is suspended to pay for it. Hours: ____
-- **Money:** 8 weekends of venue entry, transport, printed signage and door
-  incentives is real cash against a hard no-recurring-cost constraint. Budget it
-  or state explicitly which parts are bartered with hosts. Amount: ____
+**Budget — both kinds, or this won't survive week 3.**
+
+**Time: ~15h/week.** Fri + Sat at venues (~8h), Mon debrief + scoreboard (~2h),
+Wed load-in and host asset kits (~3h), plus ~2h of slack for the host you're
+chasing. This is the *minimum* that makes the §6 loop real rather than
+aspirational — below it, host recruiting is always the thing that slips, and
+recruiting is the whole plan. It deliberately leaves weekdays for dev, because
+the §9 carve-out means door-loop blockers must get fixed inside the same week
+they appear. Do **not** go near full-time on BD: you're the only person who can
+fix the app, and a broken check-in costs more than an extra host.
+
+**Money: barter-first, with a ~R3,000 ceiling for the 8 weeks.** The posture is
+that the host covers your entry and honours the door incentive — this is fair
+(you're promoting their night for free) and it's the only version that respects
+the no-recurring-cost constraint. But budget real cash for the things you can't
+barter and that fail badly when missing: **printing** (~R400 for A5 door signs
+across 10 events), **transport** (~R1,800 — late-night rides home you should
+never skip on, see §11), and a **~R800 incentive reserve** for the night a host
+won't cover it and you don't want to lose the demo. If you're spending more than
+R3,000 to prove ten nights, the problem isn't budget — it's that the value isn't
+landing, and §7's kill criteria should be catching it.
 
 ---
 
