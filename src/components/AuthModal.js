@@ -172,6 +172,29 @@ export const AuthModal = ({ visible, onClose }) => {
     );
   };
 
+  // Google/Facebook — same Supabase Auth project as email sign-in, so a user
+  // who arrives this way lands on the exact account UserManager.ensureProfile
+  // already auto-creates for every new auth.uid() (AuthContext.js), and
+  // BirthDateNudge already handles the "no DOB yet" case post-signin. No
+  // separate signup path needed; this is purely an alternate front door.
+  const handleOAuth = async (provider) => {
+    if (Platform.OS !== 'web') {
+      setError('Google/Facebook sign-in is available on thegruvs.com for now — use email above on the app.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      const redirectTo = typeof window !== 'undefined' ? window.location.origin : APP_WEB_URL;
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
+      if (oauthError) { setError(oauthError.message); setLoading(false); }
+      // On success the browser navigates away to the provider — nothing else to do.
+    } catch (e) {
+      setError(e?.message || 'Could not start sign-in — try again.');
+      setLoading(false);
+    }
+  };
+
   const handleSignIn = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password.trim()) {
@@ -447,6 +470,29 @@ export const AuthModal = ({ visible, onClose }) => {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Social sign-in — same account as email (one Supabase Auth project),
+                so this is just an alternate front door, not a separate flow. */}
+            {(mode === 'signin' || signupStep === 1) && (
+              <>
+                <View style={{ flexDirection: 'row', marginHorizontal: HM, marginBottom: 16 }}>
+                  {/* Google temporarily pulled — Supabase provider isn't configured yet. */}
+                  <TouchableOpacity
+                    onPress={() => handleOAuth('facebook')}
+                    disabled={loading || checkingName}
+                    style={[styles.oauthBtn, { borderColor: `${primary}30` }]}
+                  >
+                    <MaterialCommunityIcons name="facebook" size={16} color={textColor} />
+                    <Text style={[styles.oauthText, { color: textColor }]}>Facebook</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: HM, marginBottom: 16, gap: 10 }}>
+                  <View style={{ flex: 1, height: 1, backgroundColor: `${primary}20` }} />
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: muted, letterSpacing: 1 }}>OR</Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: `${primary}20` }} />
+                </View>
+              </>
+            )}
 
             {/* Signup progress dots */}
             {mode === 'signup' && (
@@ -805,4 +851,6 @@ const styles = StyleSheet.create({
   stepDotActive: { width: 28 },
   stepText: { fontSize: 11, fontWeight: '700', marginLeft: 6 },
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: HM, marginBottom: 14 },
+  oauthBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
+  oauthText: { fontSize: 13, fontWeight: '700' },
 });
