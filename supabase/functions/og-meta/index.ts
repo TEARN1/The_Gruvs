@@ -22,7 +22,19 @@ const APP_URL             = Deno.env.get('APP_URL')                  || 'https:/
 const APP_NAME            = 'The Gruvs';
 const DEFAULT_OG_IMAGE    = `${APP_URL}/og-default.jpg`;
 
+// ⚠️ This client uses the service_role key, which BYPASSES RLS entirely — including
+// the RESTRICTIVE `*_hide_autohidden` policies in schema_part_4.sql that take
+// reported content out of public view. This function is unauthenticated and public,
+// so every query below MUST re-apply those visibility rules by hand. Anything you
+// forget to filter here is served to the open internet, and to social crawlers that
+// cache and redistribute it.
+//
+// Mirror the policy's own semantics: COALESCE(<flag>, false) = false, i.e. NULL
+// counts as "not hidden".
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+/** PostgREST spelling of `COALESCE(<col>, false) = false`. */
+const notHidden = (col: string) => `${col}.is.null,${col}.eq.false`;
 
 // ─── Bot / crawler detection ──────────────────────────────────────────────────
 const CRAWLER_PATTERNS = [
@@ -190,8 +202,9 @@ async function handleEvent(id: string): Promise<OGProps & { redirect: string }> 
     .from('events')
     .select('id, title, description, venue_name, city, cover_url, cover_image, event_date, event_time, category, price, capacity, going, vibe_count')
     .eq('id', id)
-    .eq('is_published', true)   // never leak drafts/unpublished in share previews
-    .is('deleted_at', null)     // service_role bypasses RLS, so filter explicitly
+    .eq('is_published', true)         // never leak drafts/unpublished in share previews
+    .is('deleted_at', null)           // service_role bypasses RLS, so filter explicitly
+    .or(notHidden('auto_hidden'))     // …including the report-driven auto-hide
     .single();
 
   if (!event) {
@@ -234,6 +247,9 @@ async function handleProfile(username: string): Promise<OGProps & { redirect: st
     .from('profiles')
     .select('id, username, display_name, bio, avatar_url, followers_count, vibe_score, is_verified')
     .eq('username', username)
+    // A profile auto-hidden by the moderation trigger (~3 trusted reports) must
+    // not keep rendering a rich share card into WhatsApp / X / Facebook.
+    .or(notHidden('is_auto_hidden'))
     .single();
 
   if (!profile) {
@@ -276,7 +292,8 @@ async function handleReel(id: string): Promise<OGProps & { redirect: string }> {
     .from('reels')
     .select('id, caption, media_url, thumbnail_url, like_count, view_count, profiles(username, display_name)')
     .eq('id', id)
-    .eq('is_deleted', false)    // don't leak deleted reels in share previews
+    .eq('is_deleted', false)          // don't leak deleted reels in share previews
+    .or(notHidden('auto_hidden'))     // nor ones the moderation trigger hid
     .single();
 
   if (!reel) {

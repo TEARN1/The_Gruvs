@@ -229,6 +229,8 @@ being fixed; the verification command is given with each.
 | 17 | 🟡 LOW | `push-notify` compared the service key with non-constant-time `!==` | ✅ `timingSafeEqual` |
 | 18 | 🟡 LOW | `spotify-token` echoed internal/upstream error text to callers | ✅ Logged server-side only |
 | 19 | 🐛 BUG | `isSpotifyConfigured()` threw `ReferenceError` (fallout of the #8 fix) | ✅ Fixed |
+| 20 | 🔴 HIGH | `og-meta` share links bypassed the **auto-hide moderation system** entirely | ✅ Fixed + regression test |
+| 21 | 🟠 MEDIUM | CI's `service_role` lacked `BYPASSRLS`, so it modelled the opposite of production | ✅ Fixed |
 
 ## 11. 🔴 HIGH — the secret scanner never actually ran
 
@@ -354,6 +356,70 @@ isSpotifyConfigured: () => !!(SPOTIFY_ID && SPOTIFY_SECRET),   // ReferenceError
 `ReferenceError: SPOTIFY_SECRET is not defined` every time it mounted. Reproduced
 directly. **Fixed:** the check is now `SPOTIFY_ID && isSupabaseEnabled`, which is
 what "configured" actually means once the token comes from the Edge Function.
+
+## 20. 🔴 HIGH — share links bypassed the entire auto-hide moderation system
+
+`og-meta` is public (no JWT) and reads with the **service_role** key. service_role
+is `BYPASSRLS`, so it skips the four RESTRICTIVE policies in `schema_part_4.sql`
+that take reported content out of public view once ~3 trusted reports land
+(`events.auto_hidden`, `reels.auto_hidden`, `echoes.auto_hidden`,
+`profiles.is_auto_hidden`).
+
+None of the three handlers re-applied that rule:
+
+| Handler | Filtered | Missing |
+|---|---|---|
+| `handleEvent` | `is_published`, `deleted_at` | `auto_hidden` |
+| `handleReel` | `is_deleted` | `auto_hidden` |
+| `handleProfile` | *(nothing at all)* | `is_auto_hidden` |
+
+So the content most likely to be reported — an abusive profile, a harmful event,
+a reported reel — kept serving a full rich preview (name, bio, avatar, cover
+image, stats) from `/functions/v1/og-meta/...` to anyone with the link, and to
+WhatsApp / X / Facebook / Telegram crawlers, which then **cache and redistribute**
+it. Moderating the content in-app did nothing to the share card.
+
+`handleEvent` even carries the comment *"service_role bypasses RLS, so filter
+explicitly"* — the reasoning was right there, applied to two flags and not to the
+one that matters most for abuse.
+
+**Reproduced on a local Postgres** modelling the live roles:
+
+```
+anon         → cleanuser
+service_role → cleanuser, reporteduser     ← the auto-hidden profile
+```
+
+**Fixed:** all three handlers now apply `COALESCE(<flag>, false) = false` (the
+policy's own semantics, so a NULL flag still counts as visible), via a shared
+`notHidden()` helper, with a header comment on the client explaining why every
+query in that file has to do this by hand.
+
+**Regression test added** — `supabase/test/rls_autohide_test.sql`, wired into
+DB Schema CI. It asserts each policy still exists, is still `RESTRICTIVE` (a
+PERMISSIVE one would be worse than none — permissive policies are OR'd, so it
+would *widen* access), and still gates on the right column; then proves the
+behaviour end-to-end on a throwaway table. It refuses to pass vacuously if the
+tables are missing. Verified it fails on each real breakage:
+
+| Broken control | Result |
+|---|---|
+| a policy dropped | ✅ fails |
+| policy recreated PERMISSIVE | ✅ fails |
+| `service_role` loses BYPASSRLS | ✅ fails |
+| all restored | ✅ passes |
+
+## 21. 🟠 MEDIUM — CI modelled `service_role` incorrectly
+
+`supabase/test/bootstrap.sql` created `service_role` as plain `NOLOGIN`. In
+production Supabase it is `NOLOGIN BYPASSRLS`. CI therefore modelled a
+service_role that RLS still applies to — the **opposite** of live behaviour — so
+an RLS test there could pass while the real Edge Functions sail straight through
+the same policy. That is precisely the gap that let #20 exist unnoticed.
+
+**Fixed:** `CREATE ROLE service_role NOLOGIN BYPASSRLS`, plus an idempotent
+`ALTER ROLE` for pre-existing roles. Finding #20's test asserts this and fails
+loudly if the environment stops modelling production.
 
 ## Still open (server-side / owner action)
 

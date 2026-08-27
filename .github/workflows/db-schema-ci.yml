@@ -20,10 +20,17 @@ name: DB Schema CI
 on:
   push:
     branches: ["**"]
-    paths: ["supabase/queries/**", "supabase/test/**", ".github/workflows/db-schema-ci.yml"]
+    paths:
+      - "supabase/queries/**"
+      - "supabase/test/**"
+      - "supabase/functions/**"   # these read with service_role — see rls_autohide_test.sql
+      - ".github/workflows/db-schema-ci.yml"
   pull_request:
     branches: [main]
-    paths: ["supabase/queries/**", "supabase/test/**"]
+    paths:
+      - "supabase/queries/**"
+      - "supabase/test/**"
+      - "supabase/functions/**"
 
 jobs:
   build-schema:
@@ -87,6 +94,13 @@ jobs:
       # And prove the drift fixes are idempotent too.
       - name: Re-apply schema_drift_fixes (idempotency check)
         run: $PSQL -f supabase/queries/schema_drift_fixes.sql
+
+      # Security control, not a shape check: proves the report-driven auto-hide
+      # policies still exist, are still RESTRICTIVE, and still gate on the right
+      # column — and pins down that service_role (BYPASSRLS) skips them, which is
+      # why every Edge Function reading these tables must re-filter by hand.
+      - name: Verify auto-hide moderation policies (RLS)
+        run: $PSQL -f supabase/test/rls_autohide_test.sql
 
       - name: Summary
         if: always()
