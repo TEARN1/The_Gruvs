@@ -5,9 +5,12 @@
  * YouTube: YouTube Data API v3, API key only.
  *
  * Set these in your .env:
- *   EXPO_PUBLIC_SPOTIFY_CLIENT_ID
- *   EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET
- *   EXPO_PUBLIC_YOUTUBE_API_KEY
+ *   EXPO_PUBLIC_SPOTIFY_CLIENT_ID   (public — safe in the bundle)
+ *   EXPO_PUBLIC_YOUTUBE_API_KEY     (bundled — restrict by referrer/package + quota)
+ *
+ * The Spotify CLIENT SECRET is deliberately absent: it lives only as a Supabase
+ * Edge Function secret (SPOTIFY_CLIENT_SECRET on 'spotify-token'). Never add it
+ * as an EXPO_PUBLIC_* var — those are inlined into the public web/app bundle.
  */
 
 import { supabase, isSupabaseEnabled } from './supabase';
@@ -133,7 +136,10 @@ export const MusicService = {
     }
   },
 
-  isSpotifyConfigured: () => !!(SPOTIFY_ID && SPOTIFY_SECRET),
+  // The client never holds the Spotify secret — the token comes from the
+  // 'spotify-token' Edge Function, which needs a Supabase session. So "configured"
+  // means: we have the public client ID and Supabase is reachable.
+  isSpotifyConfigured: () => !!(SPOTIFY_ID && isSupabaseEnabled),
   isYouTubeConfigured: () => !!YOUTUBE_KEY,
 
   getOpenUrl(track) {

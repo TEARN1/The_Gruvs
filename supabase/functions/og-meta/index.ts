@@ -14,7 +14,7 @@
  * Deploy: supabase functions deploy og-meta
  */
 
-import { createClient } from 'npm:@supabase/supabase-js';
+import { createClient } from 'npm:@supabase/supabase-js@2.58.0';
 
 const SUPABASE_URL        = Deno.env.get('SUPABASE_URL')             || '';
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';

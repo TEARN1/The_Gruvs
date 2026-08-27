@@ -209,3 +209,162 @@ SCADA/OT, or datacenter of yours** to attack, so whole categories don't apply.
 | DDoS (network/amplification) | N/A to app code | Vercel + Supabase absorb at the edge |
 | Malware / ransomware / rootkits / LotL | N/A | No server/endpoint you operate |
 | Kerberos/AD, K8s, cloud-IAM, SCADA/OT, hardware/IoT, BGP/DNS infra | N/A | No such infrastructure in this stack |
+
+---
+
+# Round 2 — build-pipeline & server-side review (2026-08-27)
+
+Scope: CI/CD workflows, Supabase Edge Functions, nginx config, and the client
+code paths the round-1 fixes touched. Every finding below was reproduced before
+being fixed; the verification command is given with each.
+
+| # | Severity | Issue | Status |
+|---|----------|-------|--------|
+| 11 | 🔴 HIGH | Secret scanning **had never run** — wrong gitleaks subcommand, silently swallowed | ✅ Fixed + now blocking |
+| 12 | 🟠 MEDIUM | Spotify **client secret** injected into every build as an `EXPO_PUBLIC_*` var | ✅ Removed from all 6 workflows |
+| 13 | 🟠 MEDIUM | `spotify-token` built its auth client with the **service_role** key | ✅ Now anon key + explicit JWT |
+| 14 | 🟠 MEDIUM | `.mcp.json` tracked in git with a **Supabase PAT** slot; `.gitignore` was inert | ✅ Untracked, `.example` added |
+| 15 | 🟠 MEDIUM | nginx `/thegruvs.apk` dropped **every** security header | ✅ Headers restated |
+| 16 | 🟡 LOW | Edge Functions pinned to a **floating** `npm:@supabase/supabase-js` | ✅ Pinned to `@2.58.0` |
+| 17 | 🟡 LOW | `push-notify` compared the service key with non-constant-time `!==` | ✅ `timingSafeEqual` |
+| 18 | 🟡 LOW | `spotify-token` echoed internal/upstream error text to callers | ✅ Logged server-side only |
+| 19 | 🐛 BUG | `isSpotifyConfigured()` threw `ReferenceError` (fallout of the #8 fix) | ✅ Fixed |
+
+## 11. 🔴 HIGH — the secret scanner never actually ran
+
+`.github/workflows/security.yml` invoked `gitleaks dir . --config ...`. The
+`dir` subcommand does not exist in gitleaks **8.18.4** (the version the workflow
+pins) — it was added in a later release. So every run did this:
+
+```
+Error: unknown command "dir" for "gitleaks"
+```
+
+…and the trailing `|| true` swallowed the failure, after which the job printed
+"Secret scan complete" and went green. The repo has had secret scanning in name
+only since it was added — a real committed credential would not have been caught.
+
+**Fixed:** use the subcommand that exists in 8.18.4 (`detect --no-git --source .`),
+drop `|| true`, and set `--exit-code 1` so a finding fails the build. Also runs on
+all branches now, not just `main`.
+
+Verified both directions on this tree:
+
+```
+# clean tree
+$ gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 1
+INF no leaks found                                    → exit 0
+
+# with a service_role-shaped JWT planted in a source file
+$ gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 1
+WRN leaks found: 1                                    → exit 1
+```
+
+The two findings on the real tree were both public-by-design and are now
+allowlisted in `.gitleaks.toml`: the **VAPID public key** (`src/constants/webPush.js`
+— it is handed to `PushManager.subscribe()`, so it is meant to be in the client)
+and the token-shaped **fixtures in `__tests__/log.test.js`** (that test asserts the
+logger *scrubs* tokens, so it has to contain token-shaped strings). The VAPID
+**private** key is deliberately not allowlisted.
+
+## 12. 🟠 MEDIUM — Spotify client secret plumbed through every build
+
+Six workflows passed `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` into the build env
+(`ci.yml`, `web-deploy.yml`, `deploy.yml`, `eas-preview.yml`, `eas-production.yml`,
+`eas-update.yml` — 8 references). `.env.example` in this very repo says never to
+do that, because every `EXPO_PUBLIC_*` var is inlined into the public bundle.
+
+**Measured, so the record is accurate:** a canary build with
+`EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=CANARY_…` set showed the value does **not**
+reach `dist/` today — Metro only inlines a var some source file actually
+references, and the last reference was removed in `92f2959`. So this was a
+**latent footgun, not an active leak**: one `process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET`
+added back anywhere in `src/` would have silently shipped a live credential to
+production. The real secret belongs only on the `spotify-token` Edge Function.
+
+**Fixed:** removed from all six workflows; `.github/CICD_SETUP.md` now states the
+rule and marks the remaining vars as public-by-design. **Action for the owner:**
+delete `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` from the repo's Actions secrets and
+rotate the secret in the Spotify dashboard.
+
+## 13. 🟠 MEDIUM — `spotify-token` verified callers with a service_role client
+
+```ts
+const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {   // service_role!
+  global: { headers: { Authorization: authHeader } },        // caller-controlled
+});
+const { data: { user } } = await supabase.auth.getUser();    // no explicit JWT
+```
+
+Pairing the **service_role** key with a caller-supplied `Authorization` header is
+a privilege-escalation footgun. It happens to verify correctly on current
+supabase-js (which honours a custom auth header), but the failure mode is
+maximally bad: any refactor, or a change in how that fallback works, turns a
+failed verification into a fully privileged client. `delete-account` already got
+this right — it uses the anon key.
+
+**Fixed:** anon key for the verification client, and the JWT is passed explicitly
+to `getUser(jwt)` so a missing/invalid token fails closed. Also now rejects
+non-POST, returns generic errors (#18), and returns only `access_token` /
+`expires_in` rather than the whole upstream payload.
+
+## 14. 🟠 MEDIUM — `.mcp.json` tracked despite being in `.gitignore`
+
+`.gitignore` lists `.mcp.json`, but the file was already tracked (`92f2959`) —
+and `.gitignore` has no effect on an already-tracked file. The file is the
+designated slot for a **Supabase Personal Access Token**, which is a
+full-account credential, far stronger than the service_role key.
+
+History is clean: every committed revision holds only the
+`YOUR_SUPABASE_PAT_HERE` placeholder, so **nothing leaked**. But the ignore rule
+gave false confidence — filling the token in locally and running `git add -A`
+would have committed it.
+
+**Fixed:** `git rm --cached .mcp.json` (file kept on disk), with
+`.mcp.json.example` committed as the template. Finding #11 is the backstop:
+gitleaks would now actually catch such a token.
+
+## 15. 🟠 MEDIUM — nginx served the APK with no security headers
+
+nginx inherits `add_header` from an outer block **only when the current block
+defines none**. `location = /thegruvs.apk` defines `Content-Disposition`, so all
+seven server-level headers (CSP, HSTS, `nosniff`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, `X-XSS-Protection`) were dropped for the
+APK download. The config's own comment states this exact invariant — the asset
+locations were written to respect it, and this one location broke it.
+
+**Fixed:** the security headers are restated inside that location, with a
+`default-src 'none'` CSP (nothing is rendered from a binary download).
+
+Also strengthened HSTS at the server level: `max-age=31536000` →
+`max-age=63072000; includeSubDomains`. Without `includeSubDomains` a subdomain
+can still be MITM'd over plain HTTP and set a cookie the apex origin reads; two
+years is also the minimum the HSTS preload list requires.
+
+## 19. 🐛 `isSpotifyConfigured()` threw on every call
+
+Commit `92f2959` removed `const SPOTIFY_SECRET = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET`
+(the correct fix for #8) but left the identifier referenced:
+
+```js
+isSpotifyConfigured: () => !!(SPOTIFY_ID && SPOTIFY_SECRET),   // ReferenceError
+```
+
+`EventPlaylistSection.js:31` calls it during render, so the event-playlist UI hit
+`ReferenceError: SPOTIFY_SECRET is not defined` every time it mounted. Reproduced
+directly. **Fixed:** the check is now `SPOTIFY_ID && isSupabaseEnabled`, which is
+what "configured" actually means once the token comes from the Edge Function.
+
+## Still open (server-side / owner action)
+
+These need the Supabase dashboard or a SQL run — they cannot be fixed in this repo:
+
+- **Findings #1–#5, #7** from round 1 — run `scripts/security-rls-fixes.sql`.
+  The GPS exposure on `live_checkins` (#1) is still the highest-severity item.
+- **Rotate the Spotify client secret** and remove
+  `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` from the repo's Actions secrets (#12).
+- **Dependency vulnerabilities**: `npm audit` reports 29 (1 critical, 23 high),
+  effectively all in the Expo/Metro **build toolchain** (`tar`, `cacache`,
+  `metro`, `@expo/cli`) rather than in shipped app code. Clearing them means an
+  Expo SDK 52 → 57 major upgrade, which is a separate, breaking piece of work —
+  deliberately not attempted here. Dependabot PRs #25/#26 cover part of it.

@@ -15,7 +15,7 @@
  *           HTTP Headers: Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>
  */
 
-import { createClient } from 'npm:@supabase/supabase-js';
+import { createClient } from 'npm:@supabase/supabase-js@2.58.0';
 import webpush from 'npm:web-push@3.6.7';
 
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL')              || '';
@@ -34,6 +34,22 @@ if (VAPID_PRIVATE) {
 }
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
+/**
+ * Constant-time string compare. `!==` on a secret returns as soon as it hits a
+ * differing byte, so how long the check takes leaks how much of the prefix the
+ * caller guessed right. Always compares the full width.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  // Fold the length difference in rather than returning early on it.
+  let diff = ab.length ^ bb.length;
+  const n = Math.max(ab.length, bb.length);
+  for (let i = 0; i < n; i++) diff |= (ab[i] ?? 0) ^ (bb[i] ?? 0);
+  return diff === 0;
+}
 
 /**
  * Deliver Web Push to every browser subscription the recipient has.
@@ -133,8 +149,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // Only the DB webhook (which holds the service_role key) may trigger pushes.
   // Without this, anyone reaching the URL could push arbitrary notifications to
   // any user. Deploy with `--no-verify-jwt` so this header check is the gate.
-  const authHeader = req.headers.get('Authorization');
-  if (!SERVICE_KEY || authHeader !== `Bearer ${SERVICE_KEY}`) {
+  const authHeader = req.headers.get('Authorization') || '';
+  if (!SERVICE_KEY || !timingSafeEqual(authHeader, `Bearer ${SERVICE_KEY}`)) {
     return new Response('Unauthorized', { status: 401 });
   }
 

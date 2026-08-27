@@ -13,14 +13,22 @@ useDefault = true   # all the built-in secret rules (AWS, GCP, private keys, tok
 [allowlist]
 description = "Public-by-design values and where they legitimately live"
 paths = [
-  '''eas\.json''',              # public anon key in build env (intended)
-  '''\.env\.example''',         # template, no real secrets
-  '''\.github/workflows/.*''',  # anon key placeholders in CI env
-  '''supabase/queries/.*''',    # SQL migrations reference the public project ref
+  '''eas\.json''',                 # public anon key in build env (intended)
+  '''\.env\.example''',            # template, no real secrets
+  '''\.github/workflows/.*''',     # anon key placeholders in CI env
+  '''supabase/queries/.*''',       # SQL migrations reference the public project ref
+  # Asserts that the logger SCRUBS tokens, so it necessarily contains
+  # token-shaped literals. They are invented and match no real system.
+  '''__tests__/log\.test\.js''',
 ]
 regexes = [
   # The Supabase ANON JWT (issuer "supabase", role "anon") — public by design.
   '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS[A-Za-z0-9_.-]+''',
   # The public project ref / URL (also client-side, safe).
   '''feevvddvrjmfbhffccbf''',
+  # The Web Push VAPID *public* application-server key — handed to
+  # PushManager.subscribe() in the browser, so public by design. The matching
+  # PRIVATE key is a Supabase function secret and is deliberately NOT
+  # allowlisted, so leaking that one still trips the scan.
+  '''BFcGNc-yn3m7MgqI1y2e4uAfywbTL3pnkP6CtPTOBz247ddaL2MVZqUe_zBoybkaiiCeRa8uifTnc2zZfJ1VLZU''',
 ]
