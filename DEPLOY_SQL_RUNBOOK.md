@@ -10,6 +10,24 @@ Total time: ~15 minutes.
 
 ---
 
+## ⭐ RUN THIS FIRST — `RUN_NEXT_map_referral.sql` (one paste, ~1 min)
+
+The client code for all three of these is **already live on thegruvs.com** (merged
+2026-08-27). They're combined into a single idempotent file with verification
+queries at the bottom.
+
+| Inside it | What switches on | Without it |
+|---|---|---|
+| `referral_lineage.sql` | **The one that matters.** `profiles.referred_by` + `claim_referral()`. Makes every invite link and every door-sign QR attribute to whoever sent it. | `?ref=` has nowhere to land — every invite and door scan attributes to **nobody**. The door sign is decoration. |
+| `map_viewport.sql` | `events_in_bbox()` — viewport geography + check-in counts in one server-side pass. | Map still works (client-side fallback) but tallies check-ins in the browser, getting slower as attendance grows. |
+| `venue_flows.sql` | `venue_flows_in_bbox()` — real venue-to-venue crowd movement, aggregates only, 3+ people per hop. | Flow-trails layer renders **empty by design** (there is deliberately no fabricated fallback). |
+
+✅ **Check after:** the three `select` statements at the bottom of the file should
+all return without error. `flows_found = 0` is expected and correct until people
+have checked in at more than one venue.
+
+---
+
 ## Part 1 — Independent (any order, run all)
 
 | # | File | What switches on | ✅ Check after |
