@@ -1838,8 +1838,13 @@ END $$;
 -- vibe_score / vibe_equity / wallet_balance the same way is a good next step, but
 -- first route their few remaining direct client updates through the existing
 -- SECURITY DEFINER RPCs — e.g. CheckInManager.touchDown's vibe_score fallback.)
+-- SECURITY INVOKER is load-bearing. Under SECURITY DEFINER, `current_user` is the
+-- function OWNER (postgres), never 'authenticated' — so the guard below is always
+-- true, the function returns NEW unmodified, and the trigger pins nothing at all.
+-- That is how it shipped, and it made role='admin' self-assignable. The body only
+-- reassigns fields on NEW and touches no tables, so it needs no elevated rights.
 CREATE OR REPLACE FUNCTION public.protect_profile_trust_columns()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = public AS $$
 BEGIN
   IF current_user NOT IN ('authenticated', 'anon') THEN
     RETURN NEW; -- trusted server path (definer RPCs / admin) — allow

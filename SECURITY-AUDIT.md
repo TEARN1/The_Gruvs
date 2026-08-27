@@ -231,6 +231,8 @@ being fixed; the verification command is given with each.
 | 19 | 🐛 BUG | `isSpotifyConfigured()` threw `ReferenceError` (fallout of the #8 fix) | ✅ Fixed |
 | 20 | 🔴 HIGH | `og-meta` share links bypassed the **auto-hide moderation system** entirely | ✅ Fixed + regression test |
 | 21 | 🟠 MEDIUM | CI's `service_role` lacked `BYPASSRLS`, so it modelled the opposite of production | ✅ Fixed |
+| 22 | 🔴 CRITICAL | Four `SECURITY DEFINER` RPCs granted to all users with **no caller check** — mint money, delete any row | ✅ Fixed + test |
+| 23 | 🔴 CRITICAL | The anti-escalation trigger **never fired** — `role='admin'` was self-assignable | ✅ Fixed + test |
 
 ## 11. 🔴 HIGH — the secret scanner never actually ran
 
@@ -421,10 +423,123 @@ the same policy. That is precisely the gap that let #20 exist unnoticed.
 `ALTER ROLE` for pre-existing roles. Finding #20's test asserts this and fails
 loudly if the environment stops modelling production.
 
+## 22. 🔴 CRITICAL — four SECURITY DEFINER RPCs granted to every signed-in user
+
+`SECURITY DEFINER` runs as the function owner and bypasses RLS. Four such
+functions were `GRANT EXECUTE ... TO authenticated` while taking a target-user or
+target-row argument and **never consulting `auth.uid()`**:
+
+| Function | What any signed-in user could do |
+|---|---|
+| `increment_wallet_balance(p_user_id, p_amount)` | Mint themselves unlimited money; drain anyone else's wallet with a negative amount |
+| `update_sis_score(p_user_id, p_delta)` | Move anyone's trust score — also defeating the trigger that pins that exact column |
+| `soft_delete(p_table, p_id)` | `UPDATE public.<any table> SET deleted_at = now()` — delete anyone's event, reel, booking, message |
+| `restore_deleted(p_table, p_id)` | Un-delete anything, including content its owner deliberately deleted |
+
+Row ids are visible throughout the app, so every one of these is a single API
+call. (The dynamic SQL uses `format('%I')`, so the table name is correctly
+quoted — there is no injection. The flaw is purely the missing authorization.)
+
+**Reproduced on a local Postgres**, as one ordinary `authenticated` session:
+
+```
+before:  attacker 0        victim 500 / sis 50    event: live
+         → increment_wallet_balance(attacker, 1000000)
+         → increment_wallet_balance(victim,   -500)
+         → update_sis_score(victim, -100)
+         → soft_delete('events', <someone else's event>)
+after:   attacker 1000000  victim 0   / sis 0     event: deleted
+```
+
+**Client-caller survey before fixing:** `soft_delete` 0 callers, `restore_deleted`
+0 callers, `update_sis_score` 1 caller (already broken — it passes
+`user_id`/`check_in_reliable`… to a function whose parameters are
+`p_user_id`/`p_delta`, so PostgREST never resolves it), `increment_wallet_balance`
+1 caller (same arg-name mismatch). So revoking all four from `authenticated`
+breaks nothing that currently works.
+
+**Fixed** in `supabase/queries/definer_rpc_hardening.sql`: all four revoked from
+`public, anon, authenticated`. They still work for `service_role` and for other
+DEFINER functions, which execute as their owner.
+
+**Escrow replaced properly.** The escrow release was doubly broken: tier 1 (the
+RPC) never resolved, and tier 2 fell back to
+`profiles.update({ wallet_balance })` on the *provider's* row — which
+`profiles_update_own` (`id = auth.uid()`) blocks, since the payer is the one
+releasing. Net effect: bookings flipped to `completed` and providers were never
+paid. New `release_escrow_to_provider(p_booking_id)` checks `auth.uid()` is the
+client who paid, requires `status = 'escrow_held'`, and settles under
+`FOR UPDATE`. Verified: provider self-pay refused, third party refused, payer
+succeeds (R250.00 credited), double-release refused.
+
+## 23. 🔴 CRITICAL — the anti-privilege-escalation trigger never fired
+
+`schema_part_4.sql` added `protect_profile_trust_columns()` for one stated
+purpose — stopping "a signed-in user could `update({ role:'admin',
+is_verified:true })` on their OWN row and become an admin". Its guard:
+
+```sql
+IF current_user NOT IN ('authenticated', 'anon') THEN
+  RETURN NEW;   -- trusted server path — allow
+END IF;
+```
+
+The function is declared **`SECURITY DEFINER`**, and inside a `SECURITY DEFINER`
+function `current_user` is the function **owner**, not the caller — it returns
+`postgres`. The condition is therefore **always true**, the function always
+returns `NEW` unmodified, and the trigger has never pinned a single column.
+
+Confirmed by probe (`current_user=postgres session_user=postgres` inside the
+trigger), then exploited against the trigger exactly as shipped:
+
+```
+UPDATE profiles SET role='admin', is_verified=true, social_integrity_score=100
+ WHERE id = <their own id>;
+
+  username | role  | is_verified | social_integrity_score
+  attacker | admin | t           | 100
+```
+
+`profiles_update_own` lets a user update their own row, `is_admin()` reads
+`profiles.role = 'admin'`, and the admin RLS policies across
+`schema_part_1/3/4` plus the God View gate all key off it. **This is full admin
+takeover from any account**, plus a self-granted verified badge and a maxed trust
+score.
+
+**Fixed:** declared `SECURITY INVOKER`, so `current_user` is the real caller. The
+body only reassigns fields on `NEW` and touches no tables, so it needs no
+elevated privileges. A legitimate DEFINER RPC still passes through, because
+inside one `current_user` is that RPC's owner. Corrected in all three places the
+function is defined (`schema_part_4.sql`, `vibe_equity_column.sql`, and the new
+hardening migration) so a fresh build is never vulnerable.
+
+`wallet_balance` is now also pinned — `schema_part_4`'s own comment said that was
+the next step "but first route their few remaining direct client updates through
+the existing SECURITY DEFINER RPCs", and finding #22 did exactly that.
+`vibe_score` / `vibe_coins` / `vibe_equity` are deliberately **not** pinned yet:
+they still have live direct client writers (`dataFlow.js`, `vibeEquityLedger.js`),
+and pinning them first would make every mint silently no-op.
+
+Verified after the fix: the escalation is fully reverted, the escrow RPC still
+credits the provider, and ordinary profile edits still work.
+
+**Regression test:** `supabase/test/definer_privilege_test.sql`, wired into DB
+Schema CI, guards both classes — no client-executable DEFINER writer may skip
+the caller check, and no trigger guard that reads `current_user` may be
+`SECURITY DEFINER`. Verified each class fails independently and both pass after
+the fix.
+
 ## Still open (server-side / owner action)
 
 These need the Supabase dashboard or a SQL run — they cannot be fixed in this repo:
 
+- **Findings #22 and #23 are the priority** — run
+  `supabase/queries/definer_rpc_hardening.sql` against the live database. Until
+  it is applied, any signed-in account can make itself an admin and mint
+  currency. Everything in this repo is only the fix *staged*; the live DB is
+  unchanged until you run it. Afterwards, audit `profiles` for accounts whose
+  `role`, `is_verified`, `wallet_balance` or `social_integrity_score` you did not
+  set yourself.
 - **Findings #1–#5, #7** from round 1 — run `scripts/security-rls-fixes.sql`.
   The GPS exposure on `live_checkins` (#1) is still the highest-severity item.
 - **Rotate the Spotify client secret** and remove

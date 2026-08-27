@@ -95,12 +95,23 @@ jobs:
       - name: Re-apply schema_drift_fixes (idempotency check)
         run: $PSQL -f supabase/queries/schema_drift_fixes.sql
 
+      # Privilege hardening, applied on top of the base schema the same way it is
+      # in production — so the two security tests below check the real end state.
+      - name: Apply definer_rpc_hardening (privilege fixes)
+        run: $PSQL -f supabase/queries/definer_rpc_hardening.sql
+
       # Security control, not a shape check: proves the report-driven auto-hide
       # policies still exist, are still RESTRICTIVE, and still gate on the right
       # column — and pins down that service_role (BYPASSRLS) skips them, which is
       # why every Edge Function reading these tables must re-filter by hand.
       - name: Verify auto-hide moderation policies (RLS)
         run: $PSQL -f supabase/test/rls_autohide_test.sql
+
+      # Two privilege bugs that both shipped silently: SECURITY DEFINER writers
+      # granted to clients with no auth.uid() check, and SECURITY DEFINER trigger
+      # guards testing current_user (which is the owner there, so they never fire).
+      - name: Verify SECURITY DEFINER privilege guards
+        run: $PSQL -f supabase/test/definer_privilege_test.sql
 
       - name: Summary
         if: always()
