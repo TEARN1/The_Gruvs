@@ -32,7 +32,14 @@ const URL = env('SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_URL');
 const KEY = env('SUPABASE_ANON_KEY', 'EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
 if (!URL || !KEY) {
-  console.log('::notice::Supabase URL/key not available — skipping schema audit.');
+  // In CI, missing credentials is a BROKEN SENSOR, not a clean run. A watchdog
+  // that reports healthy while blindfolded is worse than no watchdog — this
+  // exact skip is how drift could sit in production behind a green Guardian.
+  if (process.env.CI) {
+    console.error('::error::Supabase URL/key missing — the schema sensor cannot see the database.');
+    process.exit(1);
+  }
+  console.log('Supabase URL/key not available — skipping schema audit (local run).');
   process.exit(0);
 }
 const REST = `${URL.replace(/\/$/, '')}/rest/v1`;

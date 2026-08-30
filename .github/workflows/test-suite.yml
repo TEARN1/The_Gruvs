@@ -1,8 +1,11 @@
 name: Test Suite Automation
 
 on:
+  # Every branch, not just main/dev. Work sits on a feature branch for days
+  # before it merges; gating tests on main only means the branch is unverified
+  # right up until the moment it BECOMES production.
   push:
-    branches: [ main, master, dev ]
+    branches: [ "**" ]
   pull_request:
     branches: [ main, master, dev ]
 

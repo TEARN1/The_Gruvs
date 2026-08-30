@@ -66,6 +66,22 @@ jobs:
           SUPABASE_URL:      ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
 
+  client-errors:
+    name: Client errors (is the app secretly running on fallbacks?)
+    runs-on: ubuntu-latest
+    # Schedule-only: this reads what real devices reported over the last 24h,
+    # which has nothing to do with any individual commit.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with: { node-version: 20 }
+      - name: Audit degraded paths + schema drift reported by clients
+        run: node scripts/audit-client-errors.mjs
+        env:
+          SUPABASE_URL:      ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
   health:
     name: Health (does the live site actually work?)
     runs-on: ubuntu-latest
@@ -94,7 +110,7 @@ jobs:
   all-clear:
     name: Stand down the alarm
     runs-on: ubuntu-latest
-    needs: [schema-drift, maintenance, health]
+    needs: [schema-drift, maintenance, client-errors, health]
     if: success() && github.event_name == 'schedule'
     steps:
       - name: Close any open Guardian issue
@@ -121,7 +137,7 @@ jobs:
   raise-the-alarm:
     name: Raise an issue
     runs-on: ubuntu-latest
-    needs: [schema-drift, maintenance, health]
+    needs: [schema-drift, maintenance, client-errors, health]
     if: failure() && github.event_name == 'schedule'
     steps:
       - name: Open (or update) an issue
