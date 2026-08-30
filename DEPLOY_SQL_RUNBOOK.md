@@ -22,6 +22,20 @@ queries at the bottom.
 | `map_viewport.sql` | `events_in_bbox()` — viewport geography + check-in counts in one server-side pass. | Map still works (client-side fallback) but tallies check-ins in the browser, getting slower as attendance grows. |
 | `venue_flows.sql` | `venue_flows_in_bbox()` — real venue-to-venue crowd movement, aggregates only, 3+ people per hop. | Flow-trails layer renders **empty by design** (there is deliberately no fabricated fallback). |
 
+### Also pending: `client_error_status.sql` (1 min, run any time)
+
+Read side for the Guardian client-error sensor (`scripts/audit-client-errors.mjs`).
+`reportDegraded()` has been writing "a fallback tier won, so the primary is dead"
+into `client_errors` this whole time and **nothing has ever read that table**.
+Until this runs, the sensor reports "not deployed yet" and stays advisory.
+
+Aggregates only — counts and code-path labels, never user ids, messages or
+context — which is why it's safe to grant to `anon` like `maintenance_status()`.
+
+✅ **Check after:** `select public.client_error_status(24);` returns JSON.
+
+---
+
 ✅ **Check after:** the three `select` statements at the bottom of the file should
 all return without error. `flows_found = 0` is expected and correct until people
 have checked in at more than one venue.
