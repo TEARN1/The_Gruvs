@@ -8,6 +8,18 @@ import { CheckinSync } from '../services/checkinSync';
 import { SoundFX } from '../services/soundFX';
 import { supabase } from '../services/supabase';
 
+// notifications.type -> SoundFX channel. Real values seen in dataFlow.js's
+// _notify()/​_notifyEventAuthor() call sites: follow, vibe, rsvp, checkin,
+// event_invite, message, beacon, level_up. Anything not listed here falls
+// through to the reaction-regex check, then the generic 'notification' ping.
+const NOTIFICATION_TYPE_TO_CHANNEL = {
+  follow: 'follow',
+  message: 'dm',
+  checkin: 'hostAlert',   // someone Touched Down at YOUR event
+  beacon: 'hostAlert',    // a nearby "I'm here" — same "something's happening near you" shape
+  level_up: 'levelUp',
+};
+
 export const useNotifications = ({ onNavigate } = {}) => {
   const { user } = useAuth();
   const { show: showToast } = useToast();
@@ -55,8 +67,14 @@ export const useNotifications = ({ onNavigate } = {}) => {
         },
         (payload) => {
           const { title, body, data, type } = payload.new;
-          // Distinct sound per kind — a follow chimes, a like pops, else a ping.
-          SoundFX.play(type === 'follow' ? 'follow' : /like|reaction|vibe/i.test(type || '') ? 'reaction' : 'notification');
+          // Distinct tone per kind, routed through the channel system so a
+          // user's tone choice (Settings) and any future tone pack apply here
+          // too — this used to be an inline ternary that had no 'level_up'
+          // case at all, so a level-up notification silently played the
+          // generic ping instead of the levelUp fanfare that exists for it.
+          SoundFX.playChannel(NOTIFICATION_TYPE_TO_CHANNEL[type] || (
+            /like|reaction|vibe/i.test(type || '') ? 'reaction' : 'notification'
+          ));
           showToast(body || title || 'New notification');
           // On web, also surface a real browser notification (if enabled).
           NotificationService.showBrowserNotification(title, body, data);

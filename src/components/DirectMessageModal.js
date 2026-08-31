@@ -500,7 +500,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         setRequestStatus('accepted');
         supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', payload.new.id).catch(() => {});
         try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
-        SoundFX.play('messageReceived');
+        SoundFX.playChannel('dm'); // routes through the user's tone choice
       })
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'messages',

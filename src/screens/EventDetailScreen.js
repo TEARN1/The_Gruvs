@@ -738,7 +738,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         setCheckedIn(true);
         setCheckinFx(Date.now());
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
-        SoundFX.play('touchDown'); // the hero sound — the signature moment
+        SoundFX.playChannel('touchDown'); // the hero sound — the signature moment, tone-pickable
         track('touch_down', { eventId: event.id, category: event.category });
         showToast("Touched Down! Your footprint is lit. 🔥", 'success');
         // Reveal who you keep crossing paths with — but only where there's enough
