@@ -305,14 +305,20 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
         setBeaconActive(true);
         haptics.success?.();
         toast?.show?.("You're live — your people just got the 'pull up' ping. On for 1 hour. Opening map...", 'success');
-        setTimeout(() => onNavigateToTab?.('map'), 1500);
+        // Was `onNavigateToTab` — never a prop on FindMePage (that name only
+        // exists on the outer ProfilePage, which passed onShowMap in here for
+        // exactly this). Referencing an identifier that was never declared
+        // ANYWHERE in scope throws a ReferenceError even through `?.` — this
+        // fired on every single successful "go live", ~1.5s after the toast,
+        // outside the try/catch above by the time it threw.
+        setTimeout(() => onShowMap?.(), 1500);
       }
     } catch (e) {
       toast?.show?.(e?.message || 'Could not update your beacon.', 'error');
     } finally {
       setBeaconBusy(false);
     }
-  }, [user, beaconActive, beaconBusy, toast]);
+  }, [user, beaconActive, beaconBusy, toast, onShowMap]);
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
