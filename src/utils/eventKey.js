@@ -20,6 +20,18 @@ const VENUE_NOISE = /\b(the|at|club|lounge|bar|pub|venue|hall|centre|center|roof
 const deaccent = (s) =>
   String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
 
+// The venue text an event actually carries. Was `event.address || event.venue`
+// in every caller below — `venue` (bare, no `_name`) is never a persisted event
+// column, so venue_name (the field shown everywhere else in the app) was
+// silently invisible to duplicate detection, and a poster-mode event with no
+// address entered carries the literal placeholder 'See poster' — which must
+// never be treated as a real, matchable venue.
+const PLACEHOLDER_ADDRESS = 'See poster';
+const venueText = (event) => {
+  const address = event?.address && event.address !== PLACEHOLDER_ADDRESS ? event.address : null;
+  return event?.venue_name || address;
+};
+
 /**
  * A stable key for a venue. Lowercase, de-accented, noise-words and punctuation
  * removed, tokens sorted — so word order can't create a second venue.
@@ -63,7 +75,7 @@ export function titleKey(title) {
 export function eventFingerprint(event) {
   if (!event) return '';
   const d = String(event.event_date || '').slice(0, 10);
-  const v = venueKey(event.address || event.venue, event.city);
+  const v = venueKey(venueText(event), event.city);
   const t = titleKey(event.title);
   if (!d || (!v && !t)) return '';
   return `${d}|${v}|${t}`;
@@ -103,8 +115,8 @@ export function isSameEvent(candidate, existing) {
     return { duplicate: true, confidence: 1, reason: 'same title, venue and date' };
   }
 
-  const vSim = overlap(venueKey(candidate.address || candidate.venue, candidate.city),
-                       venueKey(existing.address || existing.venue, existing.city));
+  const vSim = overlap(venueKey(venueText(candidate), candidate.city),
+                       venueKey(venueText(existing), existing.city));
   const tSim = overlap(titleKey(candidate.title), titleKey(existing.title));
 
   // Same venue + a recognisable title → almost certainly a repost.

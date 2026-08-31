@@ -80,4 +80,32 @@ describe('findDuplicate', () => {
     const e = { id: '1', title: 'X', address: 'Y', event_date: '2026-08-15' };
     expect(findDuplicate(e, [e])).toBeNull();
   });
+
+  // Was event.address || event.venue — `venue` (bare) is never a real event
+  // column, so venue_name was invisible to duplicate detection and a repost
+  // carrying only venue_name (no address) could never be caught.
+  it('catches a repost identified only by venue_name, not address', () => {
+    const existing = [
+      { id: '1', title: 'Amapiano Sunset', venue_name: 'Konka', city: 'Soweto', event_date: '2026-08-15' },
+    ];
+    const hit = findDuplicate(
+      { title: 'AMAPIANO SUNSET', venue_name: 'Konka Soweto', event_date: '2026-08-15' },
+      existing,
+    );
+    expect(hit?.event.id).toBe('1');
+  });
+
+  // PostEventModal writes the literal placeholder 'See poster' into `address`
+  // for a poster-mode event with no address entered — that must never be
+  // treated as a real, matchable venue between two unrelated events.
+  it('never treats the poster-mode placeholder address as a real venue match', () => {
+    const existing = [
+      { id: '1', title: 'Rock Night', address: 'See poster', event_date: '2026-08-15' },
+    ];
+    const hit = findDuplicate(
+      { title: 'Totally Different Party', address: 'See poster', event_date: '2026-08-15' },
+      existing,
+    );
+    expect(hit).toBeNull();
+  });
 });
