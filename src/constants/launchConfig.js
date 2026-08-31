@@ -25,6 +25,12 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   reelsRail:    false, // the Reels strip on The Drop (Reels tab already hidden)
   business:     true,  // Business dashboard + Store builder + campaigns — un-parked (founder wants it visible)
   gifting:      false, // creator gifting economy (regulated fintech — build last)
+  // Cashing out earned diamonds to ZAR. Separate from `gifting` on purpose:
+  // sending a gift is an internal XP transfer (safe); cashing out is a real
+  // fiat promise with no funded payout rail behind it yet. Do NOT fold this
+  // into `gifting` — flipping that on to allow normal gift-sending must not
+  // silently re-enable an unfunded cashout. False in BOTH branches below.
+  cashout:      false,
   pathMap:      false, // Path Map — needs crowd density to feel alive
   crossedPaths: false, // Crossed Paths — needs density
   stories:      true,  // kept — cheap, familiar, low-risk
@@ -41,7 +47,7 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   // removes the standalone tab + its mount; the map lives on inside Path Map.
   liveMap: false,
 } : {
-  reelsRail: true, business: true, gifting: true,
+  reelsRail: true, business: true, gifting: true, cashout: false, // still no payout rail — see the comment above
   pathMap: true, crossedPaths: true, stories: true,
   residentAlerts: true, // res_* schema live (2026-07-17)
   accommodation: true,  // res_* schema live (2026-07-17)

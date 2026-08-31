@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
 import { supabase } from '../services/supabase';
 import { APP_WEB_URL } from '../constants/appUrl';
+import { feature } from '../constants/launchConfig';
 import { resilientRead } from '../utils/resilience';
 import { TrustLedger } from '../services/trustLedger';
 import { EscrowService } from '../services/escrowService';
@@ -404,9 +405,19 @@ export const WalletScreen = ({ visible, onClose }) => {
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={[s.giftingActionBtn, { backgroundColor: '#ff00a0', opacity: diamonds > 0 ? 1 : 0.5 }]}
-                  disabled={diamonds <= 0}
-                  onPress={() => setCashoutModalOpen(true)}
+                  style={[s.giftingActionBtn, { backgroundColor: '#ff00a0', opacity: (feature('cashout') && diamonds > 0) ? 1 : 0.5 }]}
+                  disabled={!feature('cashout') || diamonds <= 0}
+                  onPress={() => {
+                    // Coins are earned, never purchased — there is no funded
+                    // payout rail behind this yet (creator_monetization_plan.md
+                    // §7.9). request_cashout() is server-safe (atomic ledger
+                    // debit, no double-spend), but a "pending" cashout is a real
+                    // ZAR promise with nobody committed to paying it out. Parked
+                    // behind its own `cashout` flag (separate from `gifting`,
+                    // see launchConfig.js) until a payout rail exists.
+                    if (!feature('cashout')) { toast.show('Cash out is coming soon.', 'info'); return; }
+                    setCashoutModalOpen(true);
+                  }}
                 >
                   <Text style={[s.giftingActionBtnText, { color: '#fff' }]}>CASH OUT</Text>
                 </TouchableOpacity>
@@ -509,6 +520,9 @@ export const WalletScreen = ({ visible, onClose }) => {
             <TouchableOpacity
               style={[s.submitBtn, { backgroundColor: primary, opacity: cashingOut ? 0.7 : 1 }]}
               onPress={async () => {
+                // Defense in depth — the button above is already gated, but the
+                // submit path itself must refuse too, not just be unreachable.
+                if (!feature('cashout')) { toast.show('Cash out is coming soon.', 'info'); return; }
                 const amt = parseFloat(cashoutAmount);
                 if (isNaN(amt) || amt < 100) {
                   toast.show('Minimum cash out is 100 diamonds.', 'warning');
