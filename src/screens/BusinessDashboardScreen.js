@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { SecurityService } from '../services/securityService';
 import { resilientRead, resilient } from '../utils/resilience';
 import { GlassView } from '../components/GlassView';
 import { LiquidBackground } from '../components/LiquidBackground';
@@ -644,22 +645,50 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     setShowCampaignBuilder(true);
   };
 
+  // Was a bare client-side update({tier: newTier}) — any business owner could
+  // grant themselves Enterprise for free; business_profiles has row-level RLS
+  // (owner can write their own row) but no column-level protection, so the
+  // R299/R799 prices were decorative. tier is now UPDATE-revoked on the
+  // column (see lock_business_tier.sql); this inserts a pending request an
+  // admin approves via admin_resolve_tier_request(), which is the only path
+  // left that can actually move a business's tier.
   const upgradeTierAction = async (newTier) => {
-    if (!biz) return;
+    if (!biz || !user) return;
     setUpgradeVisible(false);
     try {
-      const { error } = await supabase
-        .from('business_profiles')
-        .update({ tier: newTier })
-        .eq('id', biz.id);
-      if (!error) {
-        showToast(`Upgraded to ${newTier.toUpperCase()} 🎉`, 'success');
-        loadAll();
-      } else {
-        showToast(error.message || 'Could not upgrade tier.', 'error');
-      }
+      // Not a security boundary (only the admin RPC can ever move a tier) —
+      // just keeps a re-tapped button from filling the request inbox with
+      // duplicates for the same pending ask.
+      const { data: existing } = await supabase
+        .from('business_tier_requests')
+        .select('id')
+        .eq('business_id', biz.id)
+        .eq('requested_tier', newTier)
+        .eq('status', 'pending')
+        .maybeSingle();
+      if (existing) { showToast("Already requested — we'll be in touch.", 'info'); return; }
+
+      const { error } = await supabase.from('business_tier_requests').insert({
+        business_id: biz.id,
+        requested_by: user.id,
+        requested_tier: newTier,
+      });
+      if (error) { showToast(error.message || 'Could not send request.', 'error'); return; }
+
+      showToast(`Upgrade to ${newTier.toUpperCase()} requested — we'll confirm and invoice you.`, 'success');
+
+      // No admin dashboard for these yet — a solo founder needs to actually see
+      // the request, not just have a row sit in a table nobody opens.
+      try {
+        SecurityService.safeOpenURL(
+          `mailto:asemahlenkwali@gmail.com?subject=${encodeURIComponent(`Tier upgrade request — ${biz.business_name || biz.id}`)}` +
+          `&body=${encodeURIComponent(`Business: ${biz.business_name || biz.id}
+Requested tier: ${newTier}
+Requested by: ${user.email || user.id}`)}`
+        );
+      } catch { /* the DB request already landed; email is a convenience, not the record */ }
     } catch {
-      showToast('Upgrade failed. Please try again.', 'error');
+      showToast('Could not send request. Please try again.', 'error');
     }
   };
 
@@ -1364,7 +1393,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>Upgrade Your Plan</Text>
+              <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>Request an Upgrade</Text>
               <TouchableOpacity onPress={() => setUpgradeVisible(false)}>
                 <Feather name="x" size={22} color={muted} />
               </TouchableOpacity>
@@ -1385,6 +1414,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
                   <Text style={{ color: t.color, fontSize: 13, fontWeight: '700' }}>{t.price}</Text>
                 </View>
                 <Text style={{ color: muted, fontSize: 11 }}>{t.perks}</Text>
+                <Text style={{ color: muted, fontSize: 10, marginTop: 6, fontStyle: 'italic' }}>Tap to request — we confirm and invoice you, no card needed here.</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity onPress={() => setUpgradeVisible(false)} style={{ marginTop: 4, alignItems: 'center', paddingVertical: 12 }}>

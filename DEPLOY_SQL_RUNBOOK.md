@@ -42,6 +42,27 @@ have checked in at more than one venue.
 
 ---
 
+## ⭐ RUN THIS TOO — `lock_business_tier.sql` (money-safety, ~1 min)
+
+Closes a live bug: any business owner could set their own `business_profiles.tier`
+to `enterprise` for free (bare client-side `update()`, no server check — the
+R299/R799 prices in the upgrade sheet were decorative). Client code already
+shipped the fix (a request-and-invoice flow) — this is the SQL half.
+
+- Revokes client UPDATE on the `tier` column specifically (every other column an
+  owner edits keeps working).
+- Adds `business_tier_requests` (pending-request table, same shape as the
+  existing `business_partnerships` pattern) + RLS.
+- Adds `admin_set_business_tier()` and `admin_resolve_tier_request()` — the only
+  two paths left that can move a tier, both gated on `profiles.role = 'admin'`.
+
+✅ **Check after:** as the business owner, `update business_profiles set tier =
+'enterprise'` should be REFUSED (column privilege revoked). As an admin,
+`select public.admin_set_business_tier('<a business id>', 'pro');` should return
+`true` and actually move the tier.
+
+---
+
 ## Part 1 — Independent (any order, run all)
 
 | # | File | What switches on | ✅ Check after |
