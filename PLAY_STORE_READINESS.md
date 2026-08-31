@@ -9,6 +9,21 @@ moderation**, and **account deletion**. Get those right and most of the rest is 
 
 ---
 
+## 🔴 0. Android developer verification — hard deadline Sep 30, 2026 (NEW, found 2026-08-31)
+Google emailed a **"[Final reminder]"** on 2026-08-31: every Play app's package name + signing
+key must be registered to a **verified developer identity** by **September 30, 2026**, or the
+app is **removed from Google Play globally**. This is a platform-wide policy (not specific to
+The Gruvs) and wasn't in this doc's 2026-08-05 pass because it's a new requirement.
+- Google says >99% of apps were auto-registered, and identity verification already succeeded
+  for this account (a separate "Your identity has been verified" email, 2026-08-11) — but
+  **auto-registration and app-registration are two different steps**. Confirm the actual app is
+  registered, not just the developer identity.
+- **Do (user-only — needs Play Console login):** open **Play Console → Android developer
+  verification** and confirm The Gruvs' package name (`com.thegruvs.app`) shows as
+  **Registered**, not a draft or unregistered status. If any signing key is used to sign builds
+  outside of Play (e.g. a local upload key for side-loaded APKs), register that key too.
+  This cannot be checked or fixed from the codebase — it's an account-level Play Console action.
+
 ## 🔴 1. Background location permission
 `app.json` configures `expo-location` with `locationAlwaysAndWhenInUsePermission` ("Always").
 That wording can make the plugin request **ACCESS_BACKGROUND_LOCATION**. Google treats background
