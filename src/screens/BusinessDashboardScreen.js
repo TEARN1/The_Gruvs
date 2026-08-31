@@ -595,7 +595,13 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     if (!setupForm.business_name.trim()) { showToast('Please enter a business name.', 'error'); return; }
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     try {
-      const payload = { user_id: user?.id, ...setupForm, tier: 'starter' };
+      // tier is deliberately NOT in this payload — the column has no client
+      // UPDATE grant at all (lock_business_tier.sql) and a NEW row gets it from
+      // the column DEFAULT 'starter'. Writing it here would make this upsert's
+      // ON CONFLICT DO UPDATE include tier in its SET list, which fails outright
+      // (Postgres rejects the whole statement, not just that column) the moment
+      // this same "setup" submit is ever used to edit an EXISTING profile.
+      const payload = { user_id: user?.id, ...setupForm };
       const result = await resilient(
         [
           async () => {

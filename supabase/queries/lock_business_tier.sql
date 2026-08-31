@@ -12,11 +12,24 @@
 -- row already sitting at 'royal') but no ALTER TABLE for it appears anywhere
 -- in supabase/queries/. This file both formalizes the column AND locks it.
 --
--- Fix: revoke UPDATE on the tier column specifically (row-level RLS still lets
--- an owner update their OTHER columns — name, logo, etc), and move tier
--- changes to an admin-only SECURITY DEFINER RPC. The client's update() call
--- keeps running (other columns still succeed); only `tier` silently stops
--- moving until an admin approves a paid upgrade.
+-- Fix: switch business_profiles from table-wide UPDATE to an explicit column
+-- allowlist that excludes `tier` (see the real Postgres semantics note below —
+-- a naive column-level REVOKE does NOT work here), and move tier changes to an
+-- admin-only SECURITY DEFINER RPC. The client's update()/upsert() calls keep
+-- running for every column an owner legitimately edits; only `tier` (and a
+-- few other sensitive columns found along the way) stop moving until an admin
+-- approves a paid upgrade.
+--
+-- ⚠️ REAL POSTGRES SEMANTICS, learned the hard way (verified live, not assumed):
+-- table-level and column-level ACLs are INDEPENDENT and UNIONED, not table
+-- restricted-by-column. `REVOKE UPDATE (tier) ON t FROM authenticated` when
+-- `authenticated` ALREADY has table-level UPDATE (Supabase's project-default
+-- grant) is a genuine NO-OP — verified with a throwaway table (attacl stayed
+-- NULL, has_column_privilege stayed true). A column REVOKE can only remove a
+-- privilege that was granted AT THE COLUMN LEVEL; it cannot narrow a
+-- table-level grant. The only way to actually restrict one column is:
+-- REVOKE the table-level privilege entirely, then GRANT UPDATE back on every
+-- column that SHOULD remain writable. That's what this does.
 --
 -- Idempotent.
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -33,11 +46,21 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
--- The column-level lock. Table-level UPDATE stays granted (via Supabase's
--- project-default GRANT ALL to authenticated) so every other column an owner
--- edits — business_name, logo_url, tagline, website — keeps working exactly as
--- before. Only `tier` is pulled out of that grant.
-REVOKE UPDATE (tier) ON public.business_profiles FROM authenticated, anon;
+-- Revoke ALL table-level UPDATE, then re-grant only the columns a business
+-- owner legitimately writes (audited against every business_profiles
+-- .update()/.upsert() call site in src/ on 2026-08-31: BusinessDashboardScreen's
+-- setup form + BusinessStoreBuilder's storefront toggle — nothing else touches
+-- this table from the client). Everything left out — tier, verified (an
+-- admin-controlled trust flag with the exact same self-grant risk as tier),
+-- user_id (rewriting it would let an owner hijack/orphan a business profile),
+-- id, total_revenue, follower_count, created_at, logo_url, cover_url,
+-- primary_color, accent_color, store_config, email, location, updated_at — is
+-- simply not wired to any client write path today. Narrower now is safer than
+-- guessing which of those a future feature will need; add one GRANT UPDATE(col)
+-- when that day comes.
+REVOKE UPDATE ON public.business_profiles FROM authenticated, anon;
+GRANT UPDATE (business_name, business_type, tagline, description, website, phone, store_enabled, store_slug)
+  ON public.business_profiles TO authenticated;
 
 -- ── admin_set_business_tier ─────────────────────────────────────────────────
 -- The only path left that can move a business's tier. Re-checks admin status
