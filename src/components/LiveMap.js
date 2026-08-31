@@ -584,6 +584,18 @@ export function LiveMap({
     applyGroupVisibility(m, group, on);
   }
 
+  // Was called (useEffect at "show3DRef.current = show3D; toggle3D(show3D);")
+  // but never defined ANYWHERE in this file's history — a pre-existing
+  // ReferenceError that threw on every single render, invisible only because
+  // the map was unreachable (LAUNCH_MINIMAL parked it) until liveMap: true.
+  // pitch is otherwise set once, at map construction (`pitch: show3D ? 45 : 0`);
+  // this is the missing runtime handler for toggling it after the map exists.
+  function toggle3D(on) {
+    const m = mapRef.current;
+    if (!m || !readyRef.current) return;
+    try { m.easeTo({ pitch: on ? 45 : 0, duration: 400 }); } catch { /* mid-transition */ }
+  }
+
   async function toggleWeather(on) {
     const m = mapRef.current;
     if (!m || !readyRef.current) return;

@@ -88,7 +88,14 @@ export function ZoneDrawTool({
     } catch (e) {
       toast(e?.message || 'Could not publish that.', 'error');
     } finally { setBusy(false); }
-  }, [eventId, mode, points, hrs, kind, label, minPoints, toast, onPublished]);
+  // Was `hrs` — a variable that has never existed in this file (the real
+  // state is startHrs/activeHrs). A dependency array is EVALUATED, so this
+  // threw a ReferenceError the instant the component rendered — invisible
+  // while the map was parked, and the first thing real users hit the moment
+  // it wasn't. It also made `publish` stale forever: neither duration chip
+  // was ever in the deps, so a host picking "In 2h" would still publish
+  // whatever startHrs/activeHrs held at first render.
+  }, [eventId, mode, points, startHrs, activeHrs, kind, label, minPoints, toast, onPublished]);
 
   return (
     <View style={[s.sheet, { backgroundColor: bg, borderColor: `${primary}30` }]}>
