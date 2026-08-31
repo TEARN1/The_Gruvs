@@ -20,7 +20,10 @@ describe('DoorPosterModal — the sign that goes on the venue door', () => {
       <DoorPosterModal visible onClose={() => {}} event={event} hostRefCode="HOST123" />,
     );
     const encoded = getByTestId('qr').props.children;
-    expect(encoded).toContain('/e/amapiano-sunset-soweto-8f3c1a9e');
+    // slug.js used to read event.venue (never a real column) instead of
+    // venue_name, so this assertion previously described the BUG (venue_name
+    // silently missing from the URL) rather than correct behavior.
+    expect(encoded).toContain('/e/amapiano-sunset-konka-soweto-8f3c1a9e');
     expect(encoded).toContain('ref=HOST123');
     expect(encoded).toContain('src=door');
   });

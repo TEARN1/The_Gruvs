@@ -26,10 +26,22 @@ export function slugify(text, maxLen = 60) {
 /**
  * The canonical path for an event. Falls back gracefully: an event with no
  * title still gets a valid, unique URL rather than a broken one.
+ *
+ * Was `event.address || event.venue` — `venue` (bare) is never a persisted
+ * event column (it only exists client-side on tour-stop drafts in
+ * PostEventModal), so every URL silently lost the venue and fell straight to
+ * `address`. Two real consequences: `venue_name` (the field actually shown
+ * everywhere — EventDetailScreen, MapEventPreview) never made it into a URL at
+ * all, and poster-mode events write the literal placeholder string
+ * `'See poster'` into `address` when no address is entered — which was
+ * leaking into event URLs as `/e/some-title-see-poster-8f3c1a9e`.
  */
+const PLACEHOLDER_ADDRESS = 'See poster';
+
 export function eventPath(event) {
   if (!event?.id) return '/';
-  const parts = [event.title, event.address || event.venue, event.city].filter(Boolean).join(' ');
+  const address = event.address && event.address !== PLACEHOLDER_ADDRESS ? event.address : null;
+  const parts = [event.title, event.venue_name || address, event.city].filter(Boolean).join(' ');
   const words = slugify(parts);
   const short = String(event.id).replace(/-/g, '').slice(0, 8);
   return words ? `/e/${words}-${short}` : `/e/${short}`;
