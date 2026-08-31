@@ -41,11 +41,16 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   // live; the section still self-disables on any missing-table response, so
   // this is safe even before listings are seeded (renders nothing until then).
   accommodation: true,
-  // The Living Map — NO LONGER its own nav tab. It's been MERGED into Path Map
-  // (opened via the map icon on The Drop): Path Map hosts both "My Path" (your
-  // footprint) and "Live City Map" (the real street map). Keeping this false
-  // removes the standalone tab + its mount; the map lives on inside Path Map.
-  liveMap: false,
+  // The Living Map — a real street map (MapLibre, native + web, viewport-
+  // loaded), event pins, live crowd-flow layers, host-drawn impact zones.
+  // Un-parked 2026-08-30: the map was the app's most differentiated surface
+  // and was completely unreachable — this flag is its ONLY entry point
+  // (App.js's standalone 'map' tab is gated on nothing else). The comment
+  // this replaced claimed the tab was "merged into Path Map" — that was
+  // stale; App.js has always kept both the standalone tab (gated on this
+  // flag) and the separate Path Map modal (gated on `pathMap`, still off
+  // below — that one genuinely does need crowd density to feel alive).
+  liveMap: true,
 } : {
   reelsRail: true, business: true, gifting: true, cashout: false, // still no payout rail — see the comment above
   pathMap: true, crossedPaths: true, stories: true,
