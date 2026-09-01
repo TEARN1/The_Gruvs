@@ -23,7 +23,7 @@ queries at the bottom.
 | `venue_flows.sql` | `venue_flows_in_bbox()` — real venue-to-venue crowd movement, aggregates only, 3+ people per hop. | Flow-trails layer renders **empty by design** (there is deliberately no fabricated fallback). |
 
 ### Already applied 2026-08-31 via the Supabase MCP: `lock_business_tier.sql`,
-`RUN_NEXT_map_referral.sql`, `client_error_status.sql`, `beacon_intent.sql` —
+`RUN_NEXT_map_referral.sql`, `client_error_status.sql`, `beacon_intent.sql`, `people_interest.sql` —
 all verified live (grants, constraints, and RPC behaviour checked directly
 against the database, not assumed). Nothing left pending as of this pass.
 

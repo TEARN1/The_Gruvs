@@ -2131,6 +2131,39 @@ export const DiscoveryManager = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PEOPLE INTEREST — mutual interest, private + mutual only (people_interest.sql)
+//
+// All the actual logic — the anti-abuse checks, the mutual detection, the
+// privacy guarantee that a one-sided interest is never revealed to the other
+// person — lives entirely in express_interest() on the server. This is
+// deliberately a thin wrapper: the client never sees, and could not derive,
+// anything about someone else's hidden interest even by inspecting this code.
+// ─────────────────────────────────────────────────────────────────────────────
+export const PeopleInterestManager = {
+  /**
+   * @returns {'matched'|'recorded'|'refused'|'error'} — 'error' is this
+   * wrapper's own addition for a network/RPC failure; the RPC itself never
+   * distinguishes WHY a refusal happened (blocked, under-18, rate limit,
+   * self) in a way a caller could use to infer anything about the other
+   * person's account.
+   */
+  async expressInterest(toUserId, eventId = null) {
+    if (!toUserId) return 'refused';
+    try {
+      const { data, error } = await supabase.rpc('express_interest', {
+        p_to_user: toUserId,
+        p_event_id: eventId,
+      });
+      if (error) { logError('PeopleInterest.expressInterest', error, { code: error.code }); return 'error'; }
+      return data || 'refused';
+    } catch (e) {
+      logError('PeopleInterest.expressInterest', e);
+      return 'error';
+    }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ANALYTICS MANAGER
 // ─────────────────────────────────────────────────────────────────────────────
 export const AnalyticsManager = {

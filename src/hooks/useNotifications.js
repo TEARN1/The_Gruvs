@@ -18,6 +18,7 @@ const NOTIFICATION_TYPE_TO_CHANNEL = {
   checkin: 'hostAlert',   // someone Touched Down at YOUR event
   beacon: 'hostAlert',    // a nearby "I'm here" — same "something's happening near you" shape
   level_up: 'levelUp',
+  match: 'match',
 };
 
 export const useNotifications = ({ onNavigate } = {}) => {
