@@ -37,6 +37,7 @@ import { VibeRouletteModal } from '../components/VibeRouletteModal';
 import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
 import { getMyFog } from '../services/fogMap';
 import { getCrewPlans } from '../services/crewMap';
+import { rankPeople } from '../services/peopleScore';
 import { Accommodation } from '../services/accommodation';
 import { residentUrl, hasResident } from '../constants/residentUrl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -113,9 +114,41 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const crewPlans = crewLayer.data;
   const showCrew = crewLayer.on;
 
-  // Phase 2: Find Them — discoverable vibers near you.
+  // Phase 2: Find Them — discoverable vibers near you, ranked by relevance
+  // rather than returned in whatever order the GPS-radius RPC happens to give
+  // them. get_safe_nearby_vibers() is a pure distance scan with zero notion of
+  // "who's actually worth walking over to" — this is that ranking.
+  const fetchNearbyVibers = useCallback(async () => {
+    const raw = await DiscoveryManager.findNearbyVibers(user?.id, 10);
+    if (!user?.id || raw.length === 0) return raw;
+
+    // "Here, right now" beats "two blocks away" (peopleScore's sameEventNow) —
+    // find what event the viewer is currently checked into, then which of the
+    // nearby candidates share it. Best-effort: a failure here just means
+    // everyone ranks on proximity/vibe alone, never a broken screen.
+    let sameEventIds = new Set();
+    try {
+      const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+      const { data: mine } = await supabase
+        .from('live_checkins').select('event_id')
+        .eq('user_id', user.id).gte('checked_in_at', since)
+        .order('checked_in_at', { ascending: false }).limit(1).maybeSingle();
+      if (mine?.event_id) {
+        const { data: shared } = await supabase
+          .from('live_checkins').select('user_id')
+          .eq('event_id', mine.event_id).gte('checked_in_at', since)
+          .in('user_id', raw.map((v) => v.id));
+        sameEventIds = new Set((shared || []).map((r) => r.user_id));
+      }
+    } catch { /* ranking degrades to proximity-only */ }
+
+    const viewer = { id: user.id, lat: userLoc?.lat, lon: userLoc?.lng };
+    const extras = Object.fromEntries(raw.map((v) => [v.id, { sameEventNow: sameEventIds.has(v.id) }]));
+    return rankPeople(viewer, raw, extras);
+  }, [user?.id, userLoc?.lat, userLoc?.lng]);
+
   const nearbyLayer = useMapLayer({
-    fetch: useCallback(() => DiscoveryManager.findNearbyVibers(user?.id, 10), [user?.id]),
+    fetch: fetchNearbyVibers,
     requiresAuth: true, user, onAuthRequired,
     emptyMessage: 'No vibers found nearby — try again later.',
     toast,

@@ -65,15 +65,23 @@ export function recencySignal(candidate, now = Date.now()) {
  *                    vibe_score, is_verified, resident_trust_tier,
  *                    is_online, last_seen }
  * @param extras    { coPresenceCount, mutualCount, followsViewer,
- *                    isFollowedByViewer, now }
+ *                    isFollowedByViewer, sameEventNow, now }
  */
 export function personScore(viewer = {}, candidate = {}, {
   coPresenceCount = 0,     // events you both physically attended — the real world
   mutualCount = 0,         // mutual follows
   followsViewer = false,   // they follow you (reciprocity pull)
   isFollowedByViewer = false,
+  sameEventNow = false,    // checked in at the SAME event as you, right now
   now = Date.now(),
 } = {}) {
+  // 0. Here, right now, dominates everything below it — including proximity.
+  // "Two blocks away" and "in this room with you" are not the same claim, and
+  // conflating them is exactly the gap Find Them had: a GPS radius scan with
+  // no ranking, so someone at your table and someone across the neighbourhood
+  // came back in arbitrary order.
+  const hereNow = sameEventNow ? 40 : 0;
+
   // 1. Real-world co-presence DOMINATES — you keep ending up in the same rooms.
   const coPresence = Math.log1p(Math.max(0, coPresenceCount)) * 13;      // ~31 at 10 shared nights
 
@@ -100,7 +108,7 @@ export function personScore(viewer = {}, candidate = {}, {
   //    the ranking (that was the bug this engine replaces).
   const contribution = Math.min(8, Math.log10(1 + Math.max(0, Number(candidate.vibe_score) || 0)) * 2);
 
-  const raw = coPresence + affinity + mutuals + reciprocity + familiarity
+  const raw = hereNow + coPresence + affinity + mutuals + reciprocity + familiarity
     + proximity + recency + verified + residentTier + contribution;
 
   // 8. Behaviour trust scales the bundle (bounded, like eventScore's 0.8–1.4).
@@ -115,7 +123,7 @@ export function personScore(viewer = {}, candidate = {}, {
 /**
  * rankPeople(viewer, candidates, extrasById) → candidates sorted by relevance,
  * each stamped with `_personScore`. extrasById: Map/obj of candidate.id →
- * { coPresenceCount, mutualCount, followsViewer, isFollowedByViewer }.
+ * { coPresenceCount, mutualCount, followsViewer, isFollowedByViewer, sameEventNow }.
  */
 export function rankPeople(viewer, candidates = [], extrasById = {}, now = Date.now()) {
   const get = (id) => (extrasById instanceof Map ? extrasById.get(id) : extrasById?.[id]) || {};
