@@ -22,6 +22,11 @@ queries at the bottom.
 | `map_viewport.sql` | `events_in_bbox()` — viewport geography + check-in counts in one server-side pass. | Map still works (client-side fallback) but tallies check-ins in the browser, getting slower as attendance grows. |
 | `venue_flows.sql` | `venue_flows_in_bbox()` — real venue-to-venue crowd movement, aggregates only, 3+ people per hop. | Flow-trails layer renders **empty by design** (there is deliberately no fabricated fallback). |
 
+### Already applied 2026-08-31 via the Supabase MCP: `lock_business_tier.sql`,
+`RUN_NEXT_map_referral.sql`, `client_error_status.sql`, `beacon_intent.sql` —
+all verified live (grants, constraints, and RPC behaviour checked directly
+against the database, not assumed). Nothing left pending as of this pass.
+
 ### Also pending: `client_error_status.sql` (1 min, run any time)
 
 Read side for the Guardian client-error sensor (`scripts/audit-client-errors.mjs`).

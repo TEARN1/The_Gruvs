@@ -270,11 +270,36 @@ const pcard = StyleSheet.create({
 });
 
 // ── Find Me Sub-View ──────────────────────────────────────────────────────────
+const BEACON_INTENTS = [
+  { key: 'open',  label: 'Open to meeting people', emoji: '👋' },
+  { key: 'crew',  label: 'With my crew',           emoji: '👥' },
+  { key: 'music', label: 'Here for the music',     emoji: '🎧' },
+];
+
+/** Minutes remaining until an ISO timestamp, floored at 0. Null-safe. */
+function minutesUntil(isoString) {
+  if (!isoString) return null;
+  const ms = new Date(isoString).getTime() - Date.now();
+  return Math.max(0, Math.round(ms / 60000));
+}
+
 const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onShowMap }) => {
   const [discoverable, setDiscoverable] = useState(profile?.is_discoverable ?? true);
   const [showOnline, setShowOnline] = useState(profile?.show_online ?? true);
   const [beaconActive, setBeaconActive] = useState(profile?.is_beacon_active ?? false);
   const [beaconBusy, setBeaconBusy] = useState(false);
+  // Not an access-control gate (see beacon_intent.sql) — purely what a viber
+  // sees before deciding whether to walk over.
+  const [beaconIntent, setBeaconIntentState] = useState(profile?.beacon_intent || 'open');
+  const [beaconExpiresAt, setBeaconExpiresAt] = useState(profile?.beacon_expires_at || null);
+  // Ticks once a minute so the countdown text below actually counts down,
+  // without needing a full profile refetch just to redraw a label.
+  const [, setCountdownTick] = useState(0);
+  useEffect(() => {
+    if (!beaconActive) return;
+    const id = setInterval(() => setCountdownTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, [beaconActive]);
   const [looksDescription, setLooksDescription] = useState('');
   const [careerTitle, setCareerTitle] = useState('');
   const [careerDescription, setCareerDescription] = useState('');
@@ -289,6 +314,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
       if (beaconActive) {
         await PresenceManager.deactivateBeacon(user.id);
         setBeaconActive(false);
+        setBeaconExpiresAt(null);
         toast?.show?.('You went off the radar.', 'success');
       } else {
         let coords = {};
@@ -301,8 +327,9 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
         } catch { /* beacon still works without a fresh fix */ }
         // A3 — the Beacon PRODUCT: going live also pings your mutuals
         // ("X is out — pull up 📍"), not just a silent flag flip.
-        await PresenceManager.dropBeacon(user.id, { coords, minutes: 60 });
+        const expires = await PresenceManager.dropBeacon(user.id, { coords, minutes: 60, intent: beaconIntent });
         setBeaconActive(true);
+        setBeaconExpiresAt(expires);
         haptics.success?.();
         toast?.show?.("You're live — your people just got the 'pull up' ping. On for 1 hour. Opening map...", 'success');
         // Was `onNavigateToTab` — never a prop on FindMePage (that name only
@@ -318,7 +345,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
     } finally {
       setBeaconBusy(false);
     }
-  }, [user, beaconActive, beaconBusy, toast, onShowMap]);
+  }, [user, beaconActive, beaconBusy, toast, onShowMap, beaconIntent]);
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
@@ -878,6 +905,28 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
           </Text>
         </TouchableOpacity>
 
+        {/* Intent — what going live MEANS, not just that you are. Chosen before
+            going live; not editable mid-beacon (simpler mental model — change
+            it by stopping and going live again). */}
+        {!beaconActive && (
+          <View style={{ flexDirection: 'row', gap: 6, marginTop: 12, marginBottom: 4 }}>
+            {BEACON_INTENTS.map((i) => {
+              const active = beaconIntent === i.key;
+              return (
+                <TouchableOpacity
+                  key={i.key}
+                  onPress={() => setBeaconIntentState(i.key)}
+                  style={[fm.intentChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}18` : 'transparent' }]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 15 }}>{i.emoji}</Text>
+                  <Text style={{ color: active ? primary : muted, fontSize: 10, fontWeight: '800', marginTop: 2, textAlign: 'center' }}>{i.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
         {/* "I'm here" — live presence beacon, broadcasts you're active now for 1 hour */}
         <TouchableOpacity
           style={[fm.outThereBtn, { marginTop: 10 }, beaconActive
@@ -896,11 +945,16 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
             {beaconActive ? "I'm here — live now (tap to stop)" : "I'm here — go live"}
           </Text>
         </TouchableOpacity>
-        {beaconActive && (
-          <Text style={{ color: muted, fontSize: 11, marginTop: 8, textAlign: 'center' }}>
-            Nearby vibers can see you live. Auto-stops after an hour.
-          </Text>
-        )}
+        {beaconActive && (() => {
+          const mins = minutesUntil(beaconExpiresAt);
+          const chosen = BEACON_INTENTS.find((i) => i.key === beaconIntent);
+          return (
+            <Text style={{ color: muted, fontSize: 11, marginTop: 8, textAlign: 'center' }}>
+              {chosen ? `${chosen.emoji} ${chosen.label} · ` : ''}
+              {mins == null ? 'Nearby vibers can see you live.' : mins <= 0 ? 'Wrapping up…' : `Live for ${mins} more min`}
+            </Text>
+          );
+        })()}
         <TouchableOpacity
           style={[fm.outThereBtn, { marginTop: 10, borderColor: primary, borderStyle: 'dashed' }]}
           onPress={onShowMap}
@@ -969,6 +1023,7 @@ const fm = StyleSheet.create({
   qrHandle: { fontSize: 16, fontWeight: '900', marginBottom: 4 },
   qrSub: { fontSize: 11 },
   outThereBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 15, borderRadius: 30, borderWidth: 1.5 },
+  intentChip: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 12, borderWidth: 1 },
   outThereText: { fontWeight: '900', fontSize: 14, letterSpacing: 0.3 },
   previewCard: { flexDirection: 'row', borderWidth: 1, borderRadius: 16, padding: 14 },
   previewAvatar: { width: 56, height: 56, borderRadius: 28, borderWidth: 2 },
