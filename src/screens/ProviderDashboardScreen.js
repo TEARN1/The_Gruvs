@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Dimensions, Platform, Animated } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
@@ -13,7 +13,8 @@ import { TrustLedger } from '../services/trustLedger';
 import { ProviderSetupModal } from '../components/ProviderSetupModal';
 import { supabase } from '../services/supabase';
 import { useToast } from '../components/ToastNotification';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+
 import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW } = Dimensions.get('window');

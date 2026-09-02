@@ -8,7 +8,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Animated, ActivityIndicator, Dimensions, Platform
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useIsAdmin } from '../hooks/useIsAdmin';
 import { getModerationQueue, moderateContent } from '../services/moderationQueue';

@@ -1,7 +1,7 @@
 import { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
 import { supabase } from '../services/supabase';
-import { UserManager, clearAllCache, PresenceManager } from '../services/dataFlow';
+import { UserManager, clearAllCache, PresenceManager, hydrateCacheFromDisk } from '../services/dataFlow';
 import { SecurityService } from '../services/securityService';
 import { claimPendingRef } from '../services/referral';
 
@@ -51,7 +51,18 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      if (!mounted) return;
+      // Warm the data cache from disk BEFORE releasing the user to the tree.
+      // Screens load their data the moment `user` is set, so hydrating after
+      // that point loses the race and the cold open stays cold. Raced against a
+      // short timeout for the same reason the safe-mode gate in App.js is: a
+      // storage read must never be able to hang sign-in. Losing the race just
+      // means a normal cold load — the behaviour we had before this existed.
+      await Promise.race([
+        hydrateCacheFromDisk(s?.user?.id ?? null),
+        new Promise((r) => setTimeout(r, 300)),
+      ]).catch(() => {});
       if (!mounted) return;
       setSession(s);
       setUser(s?.user ?? null);

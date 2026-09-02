@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity, Share, Animated, Dimensions,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
 import { buildWrappedShareText } from '../utils/nightlifeWrapped';

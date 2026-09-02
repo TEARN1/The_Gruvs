@@ -13,7 +13,7 @@
  */
 import React, { useMemo, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Share } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import QRCode from 'react-native-qrcode-svg';
 import { doorUrl } from '../utils/doorCode';
 

@@ -14,7 +14,7 @@ import { VibeCardBubble } from './VibeCardBubble';
 import { Video } from 'expo-av';
 import { useCall } from '../context/CallContext';
 import { SignedImage } from './SignedImage';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';

@@ -7,11 +7,12 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from './ToastNotification';
+import { useToast } from './ToastNotification';
+
 import { money } from '../constants/currencies';
 
 const TIER_ICONS = {

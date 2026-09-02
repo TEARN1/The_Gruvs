@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { SmartImage } from './SmartImage';
 import { DirectMessageModal } from './DirectMessageModal';
 import { supabase } from '../services/supabase';

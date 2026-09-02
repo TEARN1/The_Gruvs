@@ -19,7 +19,7 @@ import {
   Platform, RefreshControl,
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { ClubManager, MembershipManager, AwardManager } from '../services/clubEngine';

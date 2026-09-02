@@ -11,7 +11,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Platform, StyleSheet } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import {
   emptyFC, eventsToGeoJSON, zonesToGeoJSON, zonesToMarkersGeoJSON, reportsToGeoJSON,
   pointsToGeoJSON, staysToGeoJSON, poisToGeoJSON, crewToGeoJSON,

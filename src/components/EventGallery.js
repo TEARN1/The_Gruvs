@@ -4,7 +4,7 @@ import {
   FlatList, Modal, Dimensions, ActivityIndicator, Platform,
 } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';

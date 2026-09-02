@@ -9,7 +9,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
   ActivityIndicator, Image, Platform, Vibration,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 

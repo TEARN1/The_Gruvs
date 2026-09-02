@@ -13,7 +13,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import {
   queryPermission, requestMedia, requestLocation, requestNotifications,
   permissionHint, PERMISSION_COPY,

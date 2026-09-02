@@ -26,6 +26,11 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // a timeout so it rejects, retries, and ultimately falls back — the UI always
 // resolves to data, empty, or error, never an infinite spinner.
 const ATTEMPT_TIMEOUT_MS = 12000;
+
+// Ceiling on a whole read cascade (all tiers + escalation), not one attempt.
+// See the overallDeadlineMs note in resilient() for why reads get this and
+// writes deliberately do not.
+const READ_DEADLINE_MS = 15000;
 export function withTimeout(value, ms = ATTEMPT_TIMEOUT_MS, label = 'request') {
   let to;
   const timer = new Promise((_, reject) => { to = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms); });
@@ -290,6 +295,7 @@ export async function resilient(tiers, opts = {}) {
     onExhausted     = null,
     fallbackValue   = null,
     idempotencyKey  = null,
+    overallDeadlineMs = null,
   } = opts;
 
   if (circuitIsOpen(label)) {
@@ -299,40 +305,79 @@ export async function resilient(tiers, opts = {}) {
 
   const tierNames = ['primary', 'secondary', 'tertiary', 'quaternary', 'quinary'];
 
-  let firstError = null;
+  const runCascade = async () => {
+    let firstError = null;
 
-  for (let t = 0; t < tiers.length; t++) {
-    const result = await runTier(tiers[t], attemptsPerTier, baseMs, `${label}:${tierNames[t] ?? `tier${t + 1}`}`, idempotencyKey);
-    if (result.ok) {
-      recordCircuitSuccess(label);
-      // Succeeded on a FALLBACK tier: the intended path is broken. Say so.
-      if (t > 0) reportDegraded(label, t, firstError);
-      return result.value;
+    for (let t = 0; t < tiers.length; t++) {
+      const result = await runTier(tiers[t], attemptsPerTier, baseMs, `${label}:${tierNames[t] ?? `tier${t + 1}`}`, idempotencyKey);
+      if (result.ok) {
+        recordCircuitSuccess(label);
+        // Succeeded on a FALLBACK tier: the intended path is broken. Say so.
+        if (t > 0) reportDegraded(label, t, firstError);
+        return result.value;
+      }
+      if (t === 0) firstError = result.error;
+      // If transient, the next tier may succeed with a simpler strategy
+      // If fatal, skip remaining tiers — wrong input, not a connectivity issue
+      if (result.error && isFatal(result.error)) {
+        if (onExhausted) break; // skip to escalation
+        return fallbackValue;
+      }
     }
-    if (t === 0) firstError = result.error;
-    // If transient, the next tier may succeed with a simpler strategy
-    // If fatal, skip remaining tiers — wrong input, not a connectivity issue
-    if (result.error && isFatal(result.error)) {
-      if (onExhausted) break; // skip to escalation
-      return fallbackValue;
+
+    // ── ALL TIERS EXHAUSTED: call the "mother" escalation ───────────────────
+    if (onExhausted) {
+      try {
+        // Mother itself is resilient — give it its own retry budget
+        const value = await attemptWithBackoff(onExhausted, attemptsPerTier, baseMs * 2, `${label}:mother`, idempotencyKey);
+        recordCircuitSuccess(label);
+        return value;
+      } catch {
+        recordCircuitFailure(label);
+        return fallbackValue;
+      }
     }
+
+    recordCircuitFailure(label);
+    return fallbackValue;
+  };
+
+  if (!overallDeadlineMs || overallDeadlineMs <= 0) return runCascade();
+
+  // Per-ATTEMPT timeouts alone leave the CASCADE unbounded: each tier can burn
+  // 3 × 12 s plus backoff (~38 s), so three tiers plus the mother escalation is
+  // ~153 s before the user is shown even an empty state. Nobody waits that long;
+  // they conclude the app is broken and leave.
+  //
+  // This is strictly a CEILING on how long a caller waits. It never shortens a
+  // successful path, so nothing that works today gets slower — it only converts
+  // a two-and-a-half-minute spinner into a timely fallback.
+  //
+  // Deliberately opt-in rather than defaulted, because it is only safe for
+  // READS. Abandoning a WRITE does not cancel it: the server may still commit,
+  // so returning fallbackValue would report failure on a write that actually
+  // succeeded and invite a duplicate on retry. Writes keep waiting for a real
+  // answer (see resilientWrite, which does not pass this).
+  let deadlineTimer = null;
+  const clearDeadline = () => { if (deadlineTimer) { clearTimeout(deadlineTimer); deadlineTimer = null; } };
+  const DEADLINE = Symbol('deadline'); // sentinel: can't collide with a real value
+  const deadline = new Promise((resolve) => {
+    deadlineTimer = setTimeout(() => resolve(DEADLINE), overallDeadlineMs);
+  });
+
+  const outcome = await Promise.race([
+    runCascade().finally(clearDeadline),
+    deadline,
+  ]);
+
+  if (outcome === DEADLINE) {
+    // A backend too slow to answer within the ceiling is a failure signal — let
+    // the circuit breaker see it so subsequent calls fail fast instead of each
+    // paying the full deadline over again.
+    recordCircuitFailure(label);
+    return fallbackValue;
   }
-
-  // ── ALL TIERS EXHAUSTED: call the "mother" escalation ─────────────────────
-  if (onExhausted) {
-    try {
-      // Mother itself is resilient — give it its own retry budget
-      const value = await attemptWithBackoff(onExhausted, attemptsPerTier, baseMs * 2, `${label}:mother`, idempotencyKey);
-      recordCircuitSuccess(label);
-      return value;
-    } catch {
-      recordCircuitFailure(label);
-      return fallbackValue;
-    }
-  }
-
-  recordCircuitFailure(label);
-  return fallbackValue;
+  return outcome;
 }
 
 // ─── Pre-built strategy factories ─────────────────────────────────────────────
@@ -425,6 +470,11 @@ export async function resilientRead(fetchFull, fetchSimple, fromCache, emptyResu
       label,
       onExhausted: () => emptyResult,
       fallbackValue: emptyResult,
+      // Reads are safe to abandon: nothing is committed, and the caller already
+      // has a meaningful answer to fall back on (emptyResult). 15 s is well past
+      // any healthy response — the primary tier alone times out at 12 s — so a
+      // read that hits this ceiling was never going to arrive usefully anyway.
+      overallDeadlineMs: READ_DEADLINE_MS,
     }
   );
 }

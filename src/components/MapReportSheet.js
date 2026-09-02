@@ -7,7 +7,7 @@
  */
 import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { MAP_REPORT_GROUPS, MAP_REPORT_BY_KEY } from '../constants/mapContributions';
 import { useTheme } from '../context/ThemeContext';
 

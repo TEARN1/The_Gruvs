@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Text, StyleSheet, Animated, Platform } from 'react-native';
 import { Z_INDEX } from '../constants/DesignTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 
 // Use Supabase health endpoint — same origin we already talk to, no CORS issues
 const pingSupabase = async () => {

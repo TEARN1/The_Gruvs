@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition, Suspense } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -1616,8 +1617,29 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       .catch(() => {});
   }, [user?.id, eventIdsKey]);
 
-  // Resolve the viewer's age once so the feed can hide mature listings from minors.
-  useEffect(() => { loadViewerAge(user?.id).then(() => loadData(true)).catch(() => {}); }, [user?.id]);
+  // Resolve the viewer's age so the feed can hide mature listings from minors.
+  //
+  // These run in PARALLEL, not in sequence. Chaining them put a whole extra
+  // round trip in front of the very first thing the user sees, for no reason:
+  // the age is never awaited by the feed — it is read synchronously via
+  // viewerAgeSync() at filter time (see loadData).
+  //
+  // What sequencing did buy was ordering: the age was always known before the
+  // filter ran. Losing that is safe in the conservative direction, because an
+  // unknown age already means "general content only" (viewerAge's documented
+  // fail-safe) — the same thing that happens on any cold load today. But it
+  // would leave an adult viewer over-filtered until their next load, so when a
+  // real age lands late we re-run the filter. That second pass reads the feed
+  // cache populated moments earlier, so it costs no additional network trip.
+  useEffect(() => {
+    let alive = true;
+    const ageWasKnown = viewerAgeSync() != null;
+    loadData(true);
+    loadViewerAge(user?.id)
+      .then((age) => { if (alive && age != null && !ageWasKnown) loadData(true); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [user?.id]);
 
   // Load birthday spotlight data
   useEffect(() => {

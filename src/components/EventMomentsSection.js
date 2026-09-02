@@ -9,7 +9,7 @@ import {
   Modal, Pressable, Animated, TextInput, ActivityIndicator,
   Dimensions, Platform,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { Video, ResizeMode } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../services/supabase';

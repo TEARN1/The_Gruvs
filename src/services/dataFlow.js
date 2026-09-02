@@ -6,6 +6,7 @@
  */
 
 import { supabase, isSupabaseEnabled } from './supabase';
+import { loadSnapshot, configurePersistence, schedulePersist, wipeSnapshot } from './persistentCache';
 import { resilient, resilientRead, isSchemaMiss, withTimeout } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
 import { logError } from '../utils/logError';
@@ -232,6 +233,9 @@ const CACHE_MAX_AGE = 1800000; // 30 min hard cap — stale entries evicted rega
 const cache = {
   set(key, value, ttl = CACHE_TTL) {
     CACHE[key] = { value, ts: Date.now(), ttl };
+    // Mirror to disk (debounced, allowlisted, fire-and-forget) so the NEXT cold
+    // open paints from the last known feed instead of waiting on the network.
+    schedulePersist();
   },
   get(key) {
     const entry = CACHE[key];
@@ -262,6 +266,32 @@ const cache = {
 
 // Run sweep every 10 minutes — harmless background cleanup
 if (typeof setInterval !== 'undefined' && process.env.NODE_ENV !== 'test') setInterval(() => cache.sweep(), 600000);
+
+/**
+ * Warm the in-memory cache from disk. Call once, as early as the signed-in user
+ * is known (see AuthContext) — that identity is what makes a personalized feed
+ * snapshot safe to reuse.
+ *
+ * Entries already in memory always win: a value fetched this session is by
+ * definition fresher than one restored from disk, so hydration must never
+ * clobber it. Restored entries keep their ORIGINAL timestamp, which means the
+ * existing TTL rules apply unchanged — `get()` still refuses anything stale and
+ * `getStale()` still enforces the 30-minute cap. A day-old snapshot therefore
+ * can't paint; it simply misses, exactly as today.
+ */
+export async function hydrateCacheFromDisk(userId = null) {
+  configurePersistence(userId, () => CACHE);
+  const entries = await loadSnapshot(userId);
+  if (!entries) return 0;
+  let restored = 0;
+  for (const [k, entry] of Object.entries(entries)) {
+    if (CACHE[k]) continue;
+    if (!entry || typeof entry.ts !== 'number') continue;
+    CACHE[k] = entry;
+    restored++;
+  }
+  return restored;
+}
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3476,6 +3506,9 @@ export const FollowingFeedManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const clearAllCache = () => {
   cache.clear();
+  // Sign-out must clear the DISK copy too, not just memory — otherwise the next
+  // account on this device could be handed the previous user's cached feed.
+  wipeSnapshot();
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
