@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Get The Gruvs — Install the App</title>
+  <meta name="description" content="Install The Gruvs — free, no app store needed. Discover events, nightlife and your crew near you." />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icon-512.png" />
+  <meta name="theme-color" content="#0d1112" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="The Gruvs" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <!-- Social share preview -->
+  <meta property="og:title" content="Get The Gruvs — Install the App" />
+  <meta property="og:description" content="Install The Gruvs free — no app store needed. Events & nightlife near you." />
+  <meta property="og:image" content="/logo.png" />
+  <meta property="og:url" content="https://thegruvs.com/get" />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:#0d1112; color:#e8eef0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.55;
+           min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .card { width:100%; max-width:440px; text-align:center; }
+    .logo { width:88px; height:88px; border-radius:22px; margin:0 auto 18px; display:block; box-shadow:0 8px 30px rgba(0,242,255,.25); }
+    h1 { font-size:30px; margin:0 0 6px; letter-spacing:.5px; }
+    .tag { color:#8aa0a4; font-size:15px; margin:0 0 26px; }
+    .cta { display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
+           background:#00f2ff; color:#001; font-weight:900; font-size:17px; border:none; border-radius:16px;
+           padding:16px; cursor:pointer; text-decoration:none; }
+    .cta:active { transform:scale(.98); }
+    .ghost { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:12px;
+             background:transparent; color:#00f2ff; font-weight:800; font-size:14px; border:1px solid #00f2ff55;
+             border-radius:14px; padding:13px; cursor:pointer; text-decoration:none; }
+    .steps { text-align:left; margin:22px 0 0; padding:18px; background:rgba(0,242,255,.05); border:1px solid rgba(0,242,255,.22); border-radius:16px; }
+    .steps h3 { margin:0 0 12px; font-size:13px; letter-spacing:1px; text-transform:uppercase; color:#00f2ff; }
+    .step { display:flex; gap:12px; align-items:flex-start; margin:12px 0; }
+    .num { flex:0 0 auto; width:24px; height:24px; border-radius:12px; background:#00f2ff; color:#001; font-weight:900; font-size:13px; display:flex; align-items:center; justify-content:center; }
+    .warn { display:flex; gap:10px; text-align:left; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.35); color:#f5c97a; border-radius:14px; padding:13px 15px; font-size:13.5px; margin-bottom:16px; }
+    .muted { color:#6f8286; font-size:12px; margin-top:22px; }
+    a.link { color:#00f2ff; }
+    .hidden { display:none; }
+    .feat { display:flex; gap:16px; justify-content:center; color:#8aa0a4; font-size:12px; margin-top:20px; flex-wrap:wrap; }
+    .feat span::before { content:"● "; color:#00f2ff; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="/icon-512.png" alt="The Gruvs" class="logo" />
+    <h1>The Gruvs</h1>
+    <p class="tag">Install the app — <strong>free, no store needed.</strong></p>
+
+    <!-- In-app browser warning (WhatsApp/FB/IG/TikTok) -->
+    <div id="warn" class="warn hidden">
+      <span>⚠️</span>
+      <span>You opened this inside another app. Tap <strong>Open in browser</strong> below, then tap Install.</span>
+    </div>
+
+    <!-- ANDROID: the real native app (.apk). Shown only when the file exists. -->
+    <a id="apkBtn" class="cta hidden" href="/thegruvs.apk" download>
+      <span>🤖</span><span>Download the App (Android)</span>
+    </a>
+    <div id="apkNote" class="steps hidden">
+      <h3>Installing the Android app</h3>
+      <div class="step"><div class="num">1</div><div>Tap <strong>Download</strong> above, then open the file.</div></div>
+      <div class="step"><div class="num">2</div><div>If Android asks, allow <strong>“Install unknown apps”</strong> for Chrome.</div></div>
+      <div class="step"><div class="num">3</div><div>If you see a Play Protect warning, tap <strong>“Install anyway”</strong> — it's our app, just not from the Play Store yet.</div></div>
+    </div>
+
+    <!-- Primary action (label/behaviour set by JS) -->
+    <button id="cta" class="cta">
+      <span id="ctaIcon">⬇️</span><span id="ctaLabel">Install the App</span>
+    </button>
+    <a id="openApp" class="ghost" href="/">Open The Gruvs in browser →</a>
+    <button id="copyBtn" class="ghost hidden">🔗 Copy link</button>
+
+    <!-- iOS steps -->
+    <div id="iosSteps" class="steps hidden">
+      <h3>Install on iPhone</h3>
+      <div class="step"><div class="num">1</div><div>Tap the <strong>Share</strong> icon at the bottom of Safari.</div></div>
+      <div class="step"><div class="num">2</div><div>Scroll and tap <strong>“Add to Home Screen”</strong>.</div></div>
+      <div class="step"><div class="num">3</div><div>Tap <strong>“Add”</strong> — done. It's on your home screen.</div></div>
+    </div>
+
+    <!-- Android manual steps (fallback if no prompt) -->
+    <div id="androidSteps" class="steps hidden">
+      <h3>Install on Android</h3>
+      <div class="step"><div class="num">1</div><div>Tap the <strong>⋮</strong> menu (top-right of Chrome).</div></div>
+      <div class="step"><div class="num">2</div><div>Tap <strong>“Install app”</strong> or <strong>“Add to Home screen”</strong>.</div></div>
+      <div class="step"><div class="num">3</div><div>Confirm — it lands on your home screen.</div></div>
+    </div>
+
+    <!-- Desktop -->
+    <div id="desktopSteps" class="steps hidden">
+      <h3>Install on Desktop</h3>
+      <div style="text-align:center;margin:6px 0 16px"><img id="qrImg" src="data:image/png;base64,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" alt="Scan to install on your phone" style="width:200px;height:200px;border-radius:14px;background:#fff" /><div style="color:#8aa0a4;font-size:12px;margin-top:10px">📱 Scan with your phone camera to install The Gruvs there.</div></div>
+      <div class="step"><div class="num">1</div><div>Click the <strong>install</strong> icon in your browser's address bar.</div></div>
+      <div class="step"><div class="num">2</div><div>Or open <strong>thegruvs.com/get</strong> on your phone to install there.</div></div>
+    </div>
+
+    <div class="feat">
+      <span>Events near you</span><span>Reels</span><span>Your Crew</span>
+    </div>
+    <p class="muted"><a class="link" href="/privacy.html">Privacy</a> · <a class="link" href="/terms.html">Terms</a></p>
+  </div>
+
+  <script>
+    (function () {
+      var ua = navigator.userAgent || '';
+      var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+      var isAndroid = /Android/i.test(ua);
+      var inApp = /(FBAN|FBAV|Instagram|Line|Twitter|WhatsApp|WeChat|TikTok|Snapchat|Pinterest)/i.test(ua);
+      var isDesktop = !isIOS && !isAndroid;
+      var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+
+      var cta = document.getElementById('cta');
+      var ctaLabel = document.getElementById('ctaLabel');
+      var ctaIcon = document.getElementById('ctaIcon');
+      var openApp = document.getElementById('openApp');
+      var copyBtn = document.getElementById('copyBtn');
+      function show(id){ document.getElementById(id).classList.remove('hidden'); }
+      function hide(el){ el.classList.add('hidden'); }
+
+      // Register the service worker so the browser marks the site installable.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+      }
+
+      if (standalone) { ctaLabel.textContent = 'Open The Gruvs'; ctaIcon.textContent = '🚀'; cta.onclick = function(){ location.href = '/'; }; hide(openApp); return; }
+
+      var deferred = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault(); deferred = e;
+        ctaLabel.textContent = 'Install the App'; ctaIcon.textContent = '⬇️';
+      });
+      window.addEventListener('appinstalled', function(){ ctaLabel.textContent = 'Installed ✓'; });
+
+      if (inApp) {
+        show('warn');
+        ctaLabel.textContent = 'Open in browser'; ctaIcon.textContent = '↗️';
+        copyBtn.classList.remove('hidden');
+        cta.onclick = function () { try { window.open('https://thegruvs.com/get', '_blank'); } catch(e){} try { location.href = 'https://thegruvs.com/get'; } catch(e){} };
+        copyBtn.onclick = function () { navigator.clipboard && navigator.clipboard.writeText('https://thegruvs.com/get').then(function(){ copyBtn.textContent = '✓ Link copied'; setTimeout(function(){ copyBtn.textContent = '🔗 Copy link'; }, 1800); }); };
+        return;
+      }
+
+      // Primary click: use the captured prompt if available; else reveal the
+      // right manual steps for the platform.
+      cta.onclick = function () {
+        if (deferred) { deferred.prompt(); deferred.userChoice.finally && deferred.userChoice.finally(function(){ deferred = null; }); return; }
+        if (isIOS) show('iosSteps');
+        else if (isAndroid) show('androidSteps');
+        else show('desktopSteps');
+      };
+
+      // Proactively show steps so users aren't guessing — the manual menu path
+      // works even when Chrome never fires the auto-install prompt.
+      if (isIOS) show('iosSteps');
+      else if (isAndroid) show('androidSteps');
+      else show('desktopSteps');
+
+      // ANDROID: if we're hosting the real native APK, make THAT the headline
+      // action and demote the web install to a secondary option. (iPhone can't
+      // sideload — Apple forbids it — so this is Android-only by design.)
+      if (isAndroid && !inApp) {
+        fetch('/thegruvs.apk', { method: 'HEAD' })
+          .then(function (r) {
+            if (!r.ok) return;
+            show('apkBtn');
+            show('apkNote');
+            // Web install becomes the fallback, not the main event.
+            cta.classList.add('ghost');
+            cta.classList.remove('cta');
+            ctaLabel.textContent = 'Or install the web app instead';
+            ctaIcon.textContent = '🌐';
+            document.getElementById('androidSteps').classList.add('hidden');
+          })
+          .catch(function () { /* no APK hosted yet — web install stays primary */ });
+      }
+    })();
+  </script>
+</body>
+</html>

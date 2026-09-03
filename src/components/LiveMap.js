@@ -9,7 +9,7 @@
  *
  * No API keys, no billing — OpenFreeMap serves OSM vector tiles for free.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Platform, StyleSheet } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import {
@@ -24,12 +24,63 @@ import { applyGroupVisibility } from '../constants/mapLayers';
 // for the map to actually stop before asking the server for anything.
 const VIEWPORT_DEBOUNCE_MS = 400;
 
-// Guarded so MapLibre (which touches window/document) never loads in the native
-// bundle. Metro constant-folds Platform.OS per platform, so this require is
-// dead-code-eliminated on native.
+// MapLibre is 784 KB — the single largest package in the web bundle — and the
+// `Platform.OS === 'web'` guard that used to wrap this require is ALWAYS true on
+// web. So every visitor downloaded and parsed the entire map engine before
+// anything rendered, whether or not they ever opened the Map tab.
+//
+// It now loads from jsdelivr on first map mount instead. A plain <script> tag is
+// deliberate: Metro's chunk runtime is what produced the "Requiring unknown
+// module N" production outage, and `web.output: "single"` means dynamic import()
+// gets inlined back into the one bundle anyway rather than splitting. A script
+// tag has nothing to do with the module system, so it cannot reproduce that.
+//
+// The version is pinned to the installed one — package.json's ^4.7.1 must not
+// silently become a different engine on the CDN than the one tested here.
+// CSP already allows cdn.jsdelivr.net under script-src.
+//
+// No stylesheet is loaded, because none ever was: maplibre-gl.css is not
+// imported anywhere in this codebase today. Fetching it now would change how the
+// map looks and would need a CSP style-src change, so this keeps parity.
+const MAPLIBRE_VERSION = '4.7.1';
+const MAPLIBRE_CDN = `https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
+
 let maplibregl = null;
-if (Platform.OS === 'web') {
-  try { maplibregl = require('maplibre-gl').default || require('maplibre-gl'); } catch { maplibregl = null; }
+let maplibreLoad = null;
+
+/**
+ * Load the engine once per page. Concurrent callers share the one promise, and
+ * a failure is remembered as "unavailable" rather than retried forever — the
+ * component degrades to the same calm message it already shows.
+ */
+function loadMapLibre() {
+  if (Platform.OS !== 'web') return Promise.resolve(null);
+  if (maplibregl) return Promise.resolve(maplibregl);
+  if (maplibreLoad) return maplibreLoad;
+
+  maplibreLoad = new Promise((resolve) => {
+    try {
+      if (typeof document === 'undefined') { resolve(null); return; }
+      // Already present (a second mount, or a warm bfcache restore).
+      if (window.maplibregl) { maplibregl = window.maplibregl; resolve(maplibregl); return; }
+
+      const existing = document.querySelector(`script[data-maplibre="${MAPLIBRE_VERSION}"]`);
+      const script = existing || document.createElement('script');
+      const done = () => { maplibregl = window.maplibregl || null; resolve(maplibregl); };
+      script.addEventListener('load', done);
+      script.addEventListener('error', () => resolve(null));
+      if (!existing) {
+        script.src = MAPLIBRE_CDN;
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.setAttribute('data-maplibre', MAPLIBRE_VERSION);
+        document.head.appendChild(script);
+      }
+    } catch {
+      resolve(null); // never let a script tag throw into a render path
+    }
+  });
+  return maplibreLoad;
 }
 
 // OpenFreeMap dark — keyless & free, and it matches the app's dark UI so the
@@ -42,8 +93,21 @@ const MAP_STYLES = {
 };
 const DEFAULT_CENTER = { lng: 28.0473, lat: -26.2041 }; // Johannesburg
 
+/**
+ * Can this platform show the interactive map?
+ *
+ * This asks about the PLATFORM, not about whether the engine happens to be in
+ * memory yet. It has to: callers use it synchronously at render time to choose
+ * between the real map and a fallback (EventMapView) or to decide which controls
+ * exist (MapScreen). Now that the engine loads asynchronously, answering "no"
+ * during those first few hundred milliseconds would render the fallback and,
+ * with nothing to trigger a re-render, leave it there permanently.
+ *
+ * If the engine ultimately fails to load, LiveMap itself shows the calm message
+ * below rather than the caller having to know about it.
+ */
 export function isMapSupported() {
-  return Platform.OS === 'web' && !!maplibregl;
+  return Platform.OS === 'web';
 }
 
 /**
@@ -127,12 +191,28 @@ export function LiveMap({
     }
   }, [mapStyle]);
 
+  // ── fetch the engine (once per page), then init ───────────────────────────
+  // `engine` starts as whatever is already loaded, so a second mount — swiping
+  // between an event map and the Map tab — initialises synchronously with no
+  // flash. Only the very first map on a page waits for the network.
+  const [engine, setEngine] = useState(maplibregl);
+  const [engineFailed, setEngineFailed] = useState(false);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || engine) return;
+    let alive = true;
+    loadMapLibre().then((lib) => {
+      if (!alive) return;
+      if (lib) setEngine(lib); else setEngineFailed(true);
+    });
+    return () => { alive = false; };
+  }, [engine]);
+
   // ── init once ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isMapSupported() || !containerRef.current || mapRef.current) return;
+    if (!isMapSupported() || !engine || !containerRef.current || mapRef.current) return;
     let map;
     try {
-      map = new maplibregl.Map({
+      map = new engine.Map({
         container: containerRef.current,
         style: MAP_STYLES[mapStyle] || MAP_STYLES.dark,
         center: [center?.lng ?? DEFAULT_CENTER.lng, center?.lat ?? DEFAULT_CENTER.lat],
@@ -513,8 +593,10 @@ export function LiveMap({
       try { map.remove(); } catch {}
       mapRef.current = null; readyRef.current = false;
     };
+    // Re-runs once when the engine arrives; the mapRef guard above keeps it to
+    // a single real initialisation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [engine]);
 
   // Keep the latest callbacks/mode in refs so the single 'click' handler sees them.
   const drawModeRef = useRef(drawMode); const onClickRef = useRef(onMapClick);
@@ -627,7 +709,23 @@ export function LiveMap({
     );
   }
 
+  // The engine is fetched rather than bundled, so it can fail where it never
+  // could before — an offline visitor, or a network that blocks the CDN. Say so
+  // plainly instead of leaving an empty dark rectangle that reads as a bug.
+  if (engineFailed) {
+    return (
+      <View style={[cs.fallback, style]}>
+        <Feather name="wifi-off" size={40} color="rgba(255,255,255,0.4)" />
+        <Text style={cs.fallbackText}>Couldn't load the map</Text>
+        <Text style={cs.fallbackSub}>Check your connection and reload — everything else still works.</Text>
+      </View>
+    );
+  }
+
   // Web: a real DOM node for MapLibre. react-native-web renders 'div' to the DOM.
+  // Rendered while the engine is still in flight too, so the container exists
+  // the moment it arrives — and it is the same dark ground the map paints over,
+  // so there is no flash between the two.
   return React.createElement('div', {
     ref: containerRef,
     style: { position: 'absolute', inset: 0, width: '100%', height: '100%', background: '#0d1112' },

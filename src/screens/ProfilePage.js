@@ -75,6 +75,9 @@ import { BusinessDashboardScreen } from './BusinessDashboardScreen';
 import { FollowListModal } from '../components/FollowListModal';
 import { WalletScreen }            from './lazyScreens';
 import { MonetizationService }     from '../services/monetizationService';
+// RoyalCouncilPage reads the mint params from here. It was using `projectDNA`
+// without importing it, so opening the Royal Council threw a ReferenceError.
+import projectDNA                  from '../services/projectDNA.json';
 import { ProviderDashboardScreen } from './ProviderDashboardScreen';
 import { TutorialCenter }          from '../components/TutorialCenter';
 import { WhoWasThereModal }        from '../components/WhoWasThereModal';
@@ -379,11 +382,6 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
         setHomeArea(h.label || '');
         setHomeAreaPinned(h.lat != null && h.lon != null);
       }, () => {});
-      
-      // Fetch monetization balances
-      MonetizationService.getCoinBalance(user.id).then(setCoins).catch(() => {});
-      MonetizationService.getDiamondBalance(user.id).then(setDiamonds).catch(() => {});
-
       if (data) {
         setBio(data.bio || '');
         setLocation(data.location || '');
@@ -1995,6 +1993,23 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const draftDecidedRef = useRef(false);
   const serverSnapRef = useRef(null);
   const profileSnap = () => ({ bio, location, website, interests, looksDescription, careerTitle, careerDescription });
+  // Gifting wallet balances. These used to be fetched inside FindMePage, which
+  // has no coins/diamonds state — so `.then(setCoins)` threw a ReferenceError
+  // while evaluating its own argument (the trailing .catch cannot help with
+  // that, since it happens before the chain is even built). The state and the
+  // card that renders it both live here, so the fetch belongs here too, behind
+  // the same feature('gifting') flag as the card — no point spending two
+  // requests on a surface the Focus Cut has parked.
+  useEffect(() => {
+    if (!user?.id || !feature('gifting')) return undefined;
+    let alive = true;
+    MonetizationService.getCoinBalance(user.id)
+      .then((v) => { if (alive) setCoins(v || 0); }).catch(() => {});
+    MonetizationService.getDiamondBalance(user.id)
+      .then((v) => { if (alive) setDiamonds(v || 0); }).catch(() => {});
+    return () => { alive = false; };
+  }, [user?.id]);
+
   useEffect(() => {
     if (!PROFILE_DRAFT_KEY) return undefined;
     let alive = true;
@@ -3534,7 +3549,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           <ClubScreen
             clubId={activeClubId}
             onClose={() => setActiveClubId(null)}
-            navigation={navigation}
           />
         </Modal>
       )}

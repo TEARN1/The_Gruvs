@@ -351,13 +351,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       const shareText = `🔒 Shared messages from chat with ${recipient.username}:\n${formattedLines}`;
 
       await MessageManager.send(user.id, targetPartner.id, shareText);
-      toast?.show(`Shared selected messages to ${targetPartner.username}!`, 'success');
+      // `toast?.show(...)` threw here: optional chaining guards a null property,
+      // not an undeclared binding. The hook is destructured as showToast (L250).
+      showToast(`Shared selected messages to ${targetPartner.username}!`, 'success');
       
       setIsMultiSelectMode(false);
       setSelectedMsgIds(new Set());
       setShowShareModal(false);
     } catch (e) {
-      toast?.show('Failed to share messages: ' + (e?.message || 'Unknown error'), 'error');
+      showToast('Failed to share messages: ' + (e?.message || 'Unknown error'), 'error');
     } finally {
       setSharingLoading(false);
     }

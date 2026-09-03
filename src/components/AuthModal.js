@@ -314,7 +314,15 @@ export const AuthModal = ({ visible, onClose }) => {
         display_name: displayName.trim() || username.trim(),
         city: city.trim() || null,
         gender: gender || null,
-        birth_year: (anyBirth && !isNaN(year)) ? year : null,
+        // `year` is guaranteed a valid number here: every path above returns
+        // early if the birthday is missing, unparseable, not a real date, or
+        // under 18. This used to read `anyBirth && !isNaN(year)`, left over from
+        // when the birthday was optional — but `anyBirth` no longer existed, so
+        // building this payload threw a ReferenceError on EVERY signup, before
+        // resilient() could run. The auth user was created, the profile row
+        // never was, and the user was never signed in. That is why no account
+        // has a birth_date.
+        birth_year: year,
         birth_date: birthDateStr,
         interests: selectedInterests,
         vibe_score: 0,
@@ -381,9 +389,17 @@ export const AuthModal = ({ visible, onClose }) => {
 
   const reset = () => {
     setEmail(''); setPassword(''); setUsername(''); setDisplayName('');
-    setCity(''); setGender(''); setBirthYear(''); setSelectedInterests([]);
+    setCity(''); setGender(''); setSelectedInterests([]);
     setError(''); setSuccess(''); setMode('signin'); setShowPassword(false);
-    setConfirmLater(true); setSignupStep(1);
+    // Clear the whole birthday, not just the year: leaving the day and month
+    // behind put a previous person's partial DOB into the next signup on a
+    // shared device.
+    setBirthYear(''); setBirthMonth(''); setBirthDay('');
+    // `setConfirmLater(true)` used to sit here. The confirm_later state went away
+    // with the stale column of the same name (see the payload note above), but
+    // this call did not — so reset() threw a ReferenceError, and reset() runs
+    // from handleClose(), i.e. every time this modal closes.
+    setSignupStep(1);
   };
 
   const handleClose = () => { reset(); onClose(); };

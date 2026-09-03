@@ -37,6 +37,16 @@ jobs:
       - name: Audit render-boundary + Suspense contract
         run: node scripts/audit-resilience.mjs
 
+      # ── Undefined identifiers (no-undef) ────────────────────────────────
+      # Metro compiles an undeclared name happily and it throws a
+      # ReferenceError only when that line runs — so these reached production
+      # on screens nobody had clicked recently. The first sweep found 11,
+      # including a signup that threw before writing the profile row and a
+      # photo-upload path that fell back to uploading GPS EXIF intact.
+      # Seconds to run, and it fails the build rather than the user.
+      - name: Lint (undefined identifiers)
+        run: npm run lint
+
       # ── Primary check: Metro web bundle ─────────────────────────────────
       # This is the real validator. If a duplicate export, bad import, or
       # syntax error exists, Metro will throw here — before anything deploys.

@@ -708,7 +708,7 @@ const EventCard = React.memo(({
             {(event.venue_name || event.address) ? (
               <TouchableOpacity
                 style={[styles.venueRow, { borderColor: `${primary}22`, backgroundColor: `${primary}08` }]}
-                onPress={() => setSelectedEvent(event)}
+                onPress={() => onSelectEvent(event)}
                 accessibilityRole="button"
                 accessibilityLabel={`View ${event.venue_name || event.address} details`}
               >
