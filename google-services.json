@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "the-gruvs-app",
-    "storage_bucket": "the-gruvs-app.appspot.com"
+    "project_number": "472652045270",
+    "project_id": "the-groovist",
+    "storage_bucket": "the-groovist.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:472652045270:android:74f10ab567ffc352e62277",
         "android_client_info": {
-          "package_name": "com.thegruvs.app"
+          "package_name": "com.thegruvs_tearn"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "472652045270-5oqscjqo04jumucu4243tqg93oshmobj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "placeholder-replace-with-real-firebase-key"
+          "current_key": "AIzaSyDfjFzqmxalgBVvoOTwlUoQeJUSqy4nHBg"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "472652045270-5oqscjqo04jumucu4243tqg93oshmobj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
