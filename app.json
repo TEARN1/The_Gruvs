@@ -27,7 +27,9 @@
         "applinks:www.thegruvs.com"
       ],
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "The Gruvs uses your location to show nearby events and vibers.",
         "NSCameraUsageDescription": "The Gruvs needs camera access to scan tickets and post event photos.",
@@ -52,8 +54,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0d1112"
       },
-      "package": "com.thegruvs.app",
-      "versionCode": 2,
+      "package": "com.thegruvs_tearn",
+      "versionCode": 3,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
