@@ -113,6 +113,12 @@ jobs:
       - name: Verify SECURITY DEFINER privilege guards
         run: $PSQL -f supabase/test/definer_privilege_test.sql
 
+      # View options are NOT inherited through CREATE OR REPLACE, so a later
+      # redefinition silently resets them. definer_views_audit.sql found that
+      # regression and left it unsolved; this makes the intent enforceable.
+      - name: Verify view visibility modes (security_invoker)
+        run: $PSQL -f supabase/test/view_security_test.sql
+
       - name: Summary
         if: always()
         run: |

@@ -233,6 +233,7 @@ being fixed; the verification command is given with each.
 | 21 | 🟠 MEDIUM | CI's `service_role` lacked `BYPASSRLS`, so it modelled the opposite of production | ✅ Fixed |
 | 22 | 🔴 CRITICAL | Four `SECURITY DEFINER` RPCs granted to all users with **no caller check** — mint money, delete any row | ✅ Fixed + test |
 | 23 | 🔴 CRITICAL | The anti-escalation trigger **never fired** — `role='admin'` was self-assignable | ✅ Fixed + test |
+| 24 | 🟠 MEDIUM | An `ALTER VIEW … security_invoker` that hard-errors guest browsing, defused only by accident | ✅ Fixed + test |
 
 ## 11. 🔴 HIGH — the secret scanner never actually ran
 
@@ -528,6 +529,81 @@ Schema CI, guards both classes — no client-executable DEFINER writer may skip
 the caller check, and no trigger guard that reads `current_user` may be
 `SECURITY DEFINER`. Verified each class fails independently and both pass after
 the fix.
+
+## 24. 🟠 MEDIUM — a "hardening" ALTER that breaks guest browsing, defused only by accident
+
+`schema_part_3.sql` carried:
+
+```sql
+-- Run the view with the querying user's privileges (respects profiles RLS)
+ALTER VIEW public.public_profiles SET (security_invoker = true);
+```
+
+That reads like hardening and is the opposite. `anon` has **no SELECT policy on
+`public.profiles`** — being walled off from that table is the whole reason the
+curated `public_profiles` projection exists. Running the view as the caller
+therefore fails outright for signed-out visitors.
+
+**Verified on a local Postgres** modelling the live grants:
+
+```
+DEFINER  (as it actually runs today) → ntando, sipho
+INVOKER  (what part_3 asks for)      → ERROR: permission denied for table profiles
+```
+
+Note this is worse than `definer_views_audit.sql` predicted — it does not return
+zero rows, it **hard-errors on every signed-out page load**.
+
+It has never fired because `schema_part_4.sql` and `schema_part_1.sql` both
+`CREATE OR REPLACE` the view afterwards (fresh-build order 2→3→4→1), and a
+`CREATE OR REPLACE` **drops the option**. Guest browsing works by accident.
+Reorder the build, or remove either redefinition, and the site breaks for every
+logged-out visitor.
+
+The repo already reached the right conclusion in `definer_views_audit.sql`
+("public_profiles stays DEFINER on purpose… Do NOT set security_invoker — it
+returns 0 rows to guests and breaks guest browsing") but recorded it only as a
+comment, and left the contradicting ALTER in the schema.
+
+**Fixed:** `schema_part_3.sql` now sets `security_invoker = false` with the
+reasoning inline, and `schema_part_1.sql` — the last file in the build order to
+touch the view, and therefore the authoritative one — asserts the same
+explicitly. Intent is now stated rather than inherited from an accident.
+
+**Regression test:** `supabase/test/view_security_test.sql`, wired into DB Schema
+CI. It pins each view's intended mode and fails in *both* directions — a view
+that should be invoker flipping to definer (RLS bypass, data leak) and
+`public_profiles` flipping to invoker (guests locked out). It also warns on any
+*new* anon-readable definer view so they get triaged instead of accumulating.
+This closes what `definer_views_audit.sql` §STEP 4 explicitly left open:
+
+> schema_part_4.sql:363 recreates public_profiles and drops its options… Left as
+> a note rather than an edit.
+
+Verified: fails when the view is invoker, passes when definer, still passes after
+a `CREATE OR REPLACE` drops the option, and warns (without failing) when a new
+anon-readable definer view appears.
+
+## Reviewed and found sound
+
+Not every surface had a problem. Recording these so they are not re-audited from
+scratch:
+
+- **Storage bucket policies** (`schema_part_1.sql`) — correct. Every INSERT
+  policy requires `(storage.foldername(name))[1] = auth.uid()::text`, and
+  DELETE/UPDATE use the same predicate, so a user cannot write into or delete
+  from another user's folder. (An omitted `WITH CHECK` on the UPDATE policy is
+  fine: Postgres reuses `USING` for the check when `WITH CHECK` is absent.)
+- **PostgREST `.or()` filter injection** — `sanitizeSearch()` strips the
+  structural characters, and every search-fed `.or()` goes through it. The
+  id-interpolated `.or()` calls in `escrowService` / `trustLedger` are
+  defence-in-depth only; RLS is the real boundary there and it is correct
+  (`service_bookings_manage USING (client_id = auth.uid() OR provider_id = auth.uid())`).
+- **`sso-redeem`** — sound. Codes are 244 bits of entropy, single-use via an
+  atomic claim, 60-second TTL, audience-bound, capped at 5 live per user, and
+  the table is default-deny with `REVOKE ALL`.
+- **Client-side XSS sinks** — none. No `dangerouslySetInnerHTML`, `eval`,
+  `new Function`, or `WebView`; React Native `<Text>` cannot execute links.
 
 ## Still open (server-side / owner action)
 

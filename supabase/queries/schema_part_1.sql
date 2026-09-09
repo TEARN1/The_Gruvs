@@ -61,6 +61,16 @@ FROM public.profiles p;
 
 GRANT SELECT ON public.public_profiles TO anon, authenticated;
 
+-- Options are NOT inherited through CREATE OR REPLACE, so re-assert them here —
+-- this is the last file in the fresh-build order (2→3→4→1) to touch this view,
+-- which makes this the authoritative setting.
+--
+-- DEFINER is deliberate: `anon` has no SELECT policy on public.profiles, so an
+-- invoker view errors with "permission denied for table profiles" for every
+-- signed-out visitor. The curated column list above is the security control.
+-- supabase/test/view_security_test.sql pins this and fails if it flips.
+ALTER VIEW public.public_profiles SET (security_invoker = false);
+
 -- ── Security definer wrapper for profile upsert ───────────────
 -- Prevents users from escalating their own role/sis_score
 CREATE OR REPLACE FUNCTION public.upsert_own_profile(
