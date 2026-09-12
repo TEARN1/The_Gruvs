@@ -16,6 +16,7 @@ google-service-account.json
 .mcp.json
 *.keystore
 *.jks
+credentials.json
 *.log
 *.sst
 
