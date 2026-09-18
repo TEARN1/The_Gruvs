@@ -61,7 +61,14 @@ export function setProductionReporter(reportFn) {
  * never sees.
  */
 export function installWebErrorHandler({ logError, logSecurityEvent } = {}) {
-  if (typeof window === 'undefined') return;
+  // `typeof window === 'undefined'` alone isn't a reliable web check — on
+  // native, react-native-url-polyfill (among others) defines a partial
+  // `window` global, so that check passes and this proceeds to call
+  // window.addEventListener, which isn't a function there. That threw
+  // "TypeError: undefined is not a function" at bootstrap, before any UI
+  // mounted, crashing the app on every native launch. Feature-detect the
+  // actual method instead of trusting the global's mere existence.
+  if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
 
   window.addEventListener('error', (evt) => {
     const raw = evt?.error?.message || evt?.message || 'window.onerror';
