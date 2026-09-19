@@ -37,6 +37,13 @@ jobs:
       - name: Audit render-boundary + Suspense contract
         run: node scripts/audit-resilience.mjs
 
+      # ── Index hygiene (static, fast) ────────────────────────────────────
+      # Catches two things IF NOT EXISTS hides: the same index name defined
+      # differently in two files the build applies (whichever runs first wins,
+      # silently), and exact duplicates that cost write amplification forever.
+      - name: Audit index definitions
+        run: node scripts/audit-indexes.mjs
+
       # ── Primary check: Metro web bundle ─────────────────────────────────
       # This is the real validator. If a duplicate export, bad import, or
       # syntax error exists, Metro will throw here — before anything deploys.
