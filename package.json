@@ -26,7 +26,8 @@
     "ios": "expo run:ios",
     "audit:writes": "node scripts/audit-writes.mjs",
     "audit:indexes": "node scripts/audit-indexes.mjs",
-    "audit:bounds": "node scripts/audit-query-bounds.mjs"
+    "audit:bounds": "node scripts/audit-query-bounds.mjs",
+    "audit:contract": "node scripts/gen-db-contract.mjs"
   },
   "jest": {
     "preset": "jest-expo",
