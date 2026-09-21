@@ -10,6 +10,9 @@ import { useAuth } from '../context/AuthContext';
 import { DirectMessageModal } from './DirectMessageModal';
 
 const REFRESH_MS = 120000; // 2 min — was 30s, reduced DB load 4×
+// "Online" means active in the last 5 minutes — the is_online boolean goes
+// stale because users rarely get marked offline.
+const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
 const ViberRow = React.memo(({ item, primary, surface, textColor, muted, onMessage }) => (
   <View style={[ss.viberRow, { borderBottomColor: `${primary}12` }]}>
@@ -70,15 +73,27 @@ export const CommunityStatsBar = () => {
   // Cache mutual IDs — only re-fetch when user changes, not on every poll
   const mutualIdsCache = useRef({ ids: null, userId: null });
 
-  const getMutualIds = async () => {
+  // Mutual follows are a self-join on `follows`. Doing it server-side is the
+  // whole point: the previous version fetched BOTH full follow lists —
+  // .eq('follower_id', uid) and .eq('following_id', uid), neither with a LIMIT —
+  // and intersected them in JavaScript, then issued a third query with the
+  // result as an `.in(...)` list. For an account with 40k followers that is
+  // ~40,800 rows pulled to the phone, on a 2-minute poll, to render one number.
+  // Measured against that graph: the RPC returns 50 rows instead of 40,800 and
+  // produces an identical answer.
+  const RPC_MINUTES = Math.round(ONLINE_WINDOW_MS / 60000);
+
+  // Pre-RPC fallback, kept so this ships safely before the migration lands
+  // (same pattern as AuthContext's get_my_profile). Bounded now — the old code
+  // had no cap at all.
+  const getMutualIdsFallback = async () => {
     if (!user) return [];
-    // Return cached mutual IDs — avoids 2 follows queries on every 2-min poll
     if (mutualIdsCache.current.userId === user.id && mutualIdsCache.current.ids !== null) {
       return mutualIdsCache.current.ids;
     }
     const [{ data: following }, { data: followers }] = await Promise.all([
-      supabase.from('follows').select('following_id').eq('follower_id', user.id),
-      supabase.from('follows').select('follower_id').eq('following_id', user.id),
+      supabase.from('follows').select('following_id').eq('follower_id', user.id).limit(2000),
+      supabase.from('follows').select('follower_id').eq('following_id', user.id).limit(5000),
     ]);
     const followingIds = new Set((following || []).map(r => r.following_id));
     const ids = (followers || []).map(r => r.follower_id).filter(id => followingIds.has(id));
@@ -89,7 +104,10 @@ export const CommunityStatsBar = () => {
   const fetchMutualOnline = async () => {
     if (!user) { setOnlineCount(0); return; }
     try {
-      const mutualIds = await getMutualIds();
+      const { data, error } = await supabase.rpc('mutual_online_count', { p_minutes: RPC_MINUTES });
+      if (!error && typeof data === 'number') { setOnlineCount(data); return; }
+
+      const mutualIds = await getMutualIdsFallback();
       if (!mutualIds.length) { setOnlineCount(0); return; }
       const { count } = await supabase
         .from('profiles')
@@ -97,7 +115,7 @@ export const CommunityStatsBar = () => {
         .in('id', mutualIds)
         // Truly online = active in the last 5 min. The is_online boolean goes
         // stale (users rarely get marked offline), so trust last_seen instead.
-        .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString());
+        .gte('last_seen', new Date(Date.now() - ONLINE_WINDOW_MS).toISOString());
       setOnlineCount(count || 0);
     } catch {}
   };
@@ -105,15 +123,22 @@ export const CommunityStatsBar = () => {
   const fetchOnlineVibers = async () => {
     setLoadingVibers(true);
     try {
-      const mutualIds = await getMutualIds();
+      const { data, error } = await supabase.rpc('get_mutual_online', {
+        p_minutes: RPC_MINUTES,
+        p_limit: 50,
+      });
+      if (!error && Array.isArray(data)) { setOnlineVibers(data); return; }
+
+      const mutualIds = await getMutualIdsFallback();
       if (!mutualIds.length) { setOnlineVibers([]); return; }
-      const { data } = await supabase
+      const { data: rows } = await supabase
         .from('profiles')
         .select('id, username, avatar_url, bio, vibe_score, last_seen')
         .in('id', mutualIds)
-        .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString())
-        .order('vibe_score', { ascending: false });
-      setOnlineVibers(data || []);
+        .gte('last_seen', new Date(Date.now() - ONLINE_WINDOW_MS).toISOString())
+        .order('vibe_score', { ascending: false })
+        .limit(50);
+      setOnlineVibers(rows || []);
     } catch {} finally {
       setLoadingVibers(false);
     }

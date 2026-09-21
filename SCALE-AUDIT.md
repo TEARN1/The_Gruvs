@@ -108,34 +108,105 @@ ambiguous names.
 
 ---
 
-## Still open — client-side data volume
+## Client-side data volume — partly fixed
 
-The largest remaining exposure, and the one that needs product judgement rather
-than a migration.
+### Correction to the first pass of this audit
 
-**102 reads are scoped to a user but have no `.limit()`.** They are correct
-today and get slower every year, because they pull a whole result set to the
-phone:
+The first version of this document said **102** user-scoped reads had no limit.
+That number was wrong, and overstated by about 19%.
 
-| table | sites | grows with |
+The scanner matched only the chain starting at `.from()`. But a query is often
+built into a variable and limited afterwards:
+
+```js
+const q = supabase.from('follows').select(...).eq('following_id', userId);
+const { data } = await q.order('created_at', { ascending: false }).limit(200);
+```
+
+`FollowListModal` does exactly this and is correctly capped at 200 — the audit
+flagged it anyway. `scripts/audit-query-bounds.mjs` now scans the enclosing
+block before reporting, and excludes 33 such cases.
+
+**Corrected figures** (`npm run audit:bounds`):
+
+| | count | meaning |
 |---|---|---|
-| `profiles` | 10 | discovery result size |
-| `event_rsvps` | 9 | every RSVP a user has ever made |
-| `follows` | 9 | a popular account's entire follower list, in one response |
-| `user_blocks` | 4 | lifetime blocks |
-| `event_stamps`, `saved_events`, `paths`, `event_checkins` | 9 | lifetime, per user |
+| unscoped | **2** | both are `insert().select()` returning the rows just written — benign |
+| user-scoped | **74** | grows with one user's lifetime activity — the ones to watch |
+| scope-bounded | **57** | one event/match/room — bounded by nature |
 
-`follows` is the one to look at first: an account with 50,000 followers returns
-50,000 rows to a phone on mobile data.
+### 🔴 Fixed: the mutual-follows fan-out
 
-**Also:** 109 reads use `select('*')`. Beyond bandwidth, `*` silently picks up
-every column added later — which is how a private column reaches a client
-nobody intended. `AuthContext` already avoids this with an explicit
-`PROFILE_FIELDS` list; that pattern should spread.
+`CommunityStatsBar` renders "N mutuals online right now". To get that one
+number it ran, on a 2-minute poll:
 
-Neither is fixed here. Both change what the UI receives, so they want pagination
-decisions per screen rather than a blind `.limit()` — that is a product call,
-not a mechanical one.
+```js
+const [{ data: following }, { data: followers }] = await Promise.all([
+  supabase.from('follows').select('following_id').eq('follower_id', uid),
+  supabase.from('follows').select('follower_id').eq('following_id', uid),
+]);
+const followingIds = new Set(following.map(r => r.following_id));
+const ids = followers.map(r => r.follower_id).filter(id => followingIds.has(id));
+```
+
+Neither query had a LIMIT. The second is **every follower the account has**. It
+then issued a third query with the intersection as an `.in(...)` list.
+
+A mutual follow is a self-join on `follows`. Doing it in the database returns
+only the handful of people actually online.
+
+**Measured** against a 50,000-profile graph where one account has 40,000
+followers and follows 800 back:
+
+| | before | after |
+|---|---|---|
+| rows crossing the network | **40,800** | **50** |
+| queries | 3 | 1 |
+| result | 80 online mutuals | 80 online mutuals — identical |
+
+Server time is roughly unchanged (~5–8 ms either way). **The win is the payload,
+not the CPU** — 40,800 rows over mobile data every two minutes was the problem.
+
+I also tried forcing a `MATERIALIZED` CTE to reshape the join, on the theory
+that driving from the user's (bounded) following list would beat driving from
+the online-profiles set. Measured at **37.7 ms vs 4.9 ms** — clearly worse, so
+it was discarded. The plain join ships.
+
+Added in `supabase/queries/mutual_follows_rpc.sql`:
+`get_mutual_online()` and `mutual_online_count()` (both `SECURITY INVOKER`, so
+RLS still applies; both read `auth.uid()` and take no target-user argument, so
+one user cannot inspect another's graph), plus the two indexes the join needs —
+`follows (following_id, follower_id)` widened from single-column, and
+`profiles (last_seen)` which had **no index at all**.
+
+The client falls back to the old path when the RPC is absent, so it ships safely
+before the migration lands — but the fallback is now capped, where the original
+had no ceiling.
+
+### Also capped
+
+`StoriesRow` and `SuggestedFollows` pulled the user's entire following list with
+no limit. Both now cap at 2000, matching the ceiling `CrewOutCard` already used.
+The tradeoff is documented at each call site: past 2000, `SuggestedFollows` may
+suggest someone you already follow, and `StoriesRow` may miss a story from the
+tail. Both are better failures than a multi-megabyte response on mobile data.
+
+**No unlimited `follows` read remains in the codebase.**
+
+### Still open
+
+The remaining **74** user-scoped reads are correct today and get slower each
+year — `event_rsvps` (7 sites, every RSVP a user has made), `profiles`,
+`saved_events`, `paths`, `event_stamps`, `event_checkins`.
+
+Also **109** reads use `select('*')`. Beyond bandwidth, `*` silently picks up
+every column added later — which is how a private column reaches a client nobody
+intended. `AuthContext` already avoids this with an explicit `PROFILE_FIELDS`
+list; that pattern should spread.
+
+These are left deliberately. Each changes what a screen receives, so they want a
+pagination decision per screen rather than a blind `.limit()` — a product call.
+`npm run audit:bounds` tracks the number so it does not drift upward unnoticed.
 
 ## Depends on a setting nobody can see from the code
 
