@@ -92,6 +92,80 @@ to a booking, predates the fix.
 
 ---
 
+## Step 1b — make the two accounts admin
+
+**Run `definer_rpc_hardening.sql` first.** Until it is applied, `role` is
+self-assignable by any signed-in account, so granting admin is meaningless —
+everyone already has it.
+
+`supabase/queries/admin_grants.sql` has four parts:
+
+| Part | |
+|---|---|
+| **1 DISCOVER** | read-only; lists every account with its login provider, and a Google-only list, so you can identify the Google user |
+| **2 HARDEN** | constrains `role` (see below) |
+| **3 GRANT** | one email list to edit; idempotent and logged to `security_logs` |
+| **4 VERIFY** | who is admin now, plus anyone holding privilege you did not grant |
+
+`asemahlenkwali@gmail.com` is already in the list. Run **Part 1** first, find the
+Google account in the "Google accounts only" output, and put its email where the
+placeholder is. The block refuses to act while the placeholder is still there.
+
+**The guard does not lock you out.** The fixed trigger pins `role` only when
+`current_user` is `authenticated` or `anon`. The SQL editor runs as `postgres`,
+so grants from there work while self-promotion stays blocked. Verified both
+directions on a local Postgres.
+
+### Why Part 2 exists
+
+`profiles.role` is bare `TEXT DEFAULT 'user'` with **no constraint**, and
+`is_admin()` tests `role = 'admin'` exactly. So `'Admin'`, `' admin'` or
+`'adminn'` all store without error and grant **nothing** — you would believe the
+grant worked. Part 2 adds a CHECK for
+`('user','admin','moderator','organizer','business')`, `NOT VALID` so it guards
+every future write without failing on a value already in the table. Verified:
+`role='Admin'` and `role='superadmin'` are now rejected; `'moderator'` is
+accepted.
+
+Part 1 also lists any existing role value outside that set — if it finds one,
+that account's privilege is not doing what someone intended.
+
+---
+
+## Step 1c — index the foreign keys that cascade
+
+`supabase/queries/fk_indexes.sql`
+
+Postgres indexes a PRIMARY KEY automatically. It does **not** index a FOREIGN
+KEY. So deleting a parent row means finding every `ON DELETE CASCADE` child —
+and with no index on the referencing column, that is a full sequential scan of
+the child table. **109 cascading foreign keys here have no supporting index.**
+
+Measured on one child table with 1.5M rows:
+
+| | per parent delete |
+|---|---|
+| no index | **156 ms** |
+| indexed | **0.4 ms** |
+
+It barely shows at small scale — the same test at 100k rows measured 84 ms vs
+47 ms, because the table still fits in cache. The cost is linear in child-table
+size, so it stays invisible until it is severe.
+
+**This is why it is urgent:** `delete-account` calls `purge_user_data` and then
+`auth.admin.deleteUser()`, which cascades across every table referencing the
+user. At 109 unindexed paths and 156 ms each, that is roughly **17 seconds** for
+one deletion, and Edge Functions have an execution limit. Permanent account
+deletion is an Apple 5.1.1(v) and Google Play requirement, so a deletion that
+times out is a store problem, not just a slow query.
+
+Only cascading FKs are indexed — those are the delete paths. Non-cascading ones
+would also benefit on joins, but every index costs write throughput, so they are
+left out rather than added speculatively. The file ends with a query that lists
+any cascading FK still unindexed; it should return zero rows.
+
+---
+
 ## Step 2 — whatever section 1 of the report lists as missing
 
 The app calls 118 RPCs. These repo files define the ones most likely absent:
@@ -164,6 +238,8 @@ the RPC and falls back, the same pattern `AuthContext` uses for
  0.  APP_DB_CONTRACT_CHECK.sql        ← read-only, tells you what you need
  1.  definer_rpc_hardening.sql        ← 🔴 admin escalation + currency minting
  2.  scripts/security-rls-fixes.sql   ← 🔴 GPS exposure
+ 2b. admin_grants.sql                 ← your two admins (run Part 1 first)
+ 2c. fk_indexes.sql                   ← makes account deletion finish in time
  3.  <whatever section 1 flagged>
  4.  account_deletion.sql             ← store compliance
  5.  maintenance_levels.sql + data_retention.sql + maintenance_status.sql
