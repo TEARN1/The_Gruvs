@@ -92,6 +92,35 @@ to a booking, predates the fix.
 
 ---
 
+## Step 1a — stop two fresh accounts from hiding anyone
+
+`supabase/queries/report_brigading_fix.sql`
+
+`apply_report_autohide()` divides the reporter's trust score by 50 and caps the
+result at 2.0. The divisor says it was written for a baseline of 50 — and all
+the surrounding code agrees. But the column is `DEFAULT 100`. So every account
+computes 2.0 and sits at the cap:
+
+| account | weight |
+|---|---|
+| 3-year-old venue, perfect standing | 2.0 |
+| sock puppet created 30 seconds ago | 2.0 |
+
+Two fresh accounts sum to 4.0 against a 3.0 threshold. Signup logs you straight
+in without email confirmation, so hiding a competitor's venue is two minutes of
+work. Reproduced on a local Postgres against the trigger as shipped.
+
+After the fix: an established account weighs 1.0 (three needed, as designed) and
+a day-old account weighs 0.2 — so brigading needs **15** accounts instead of 2.
+Regression-checked that three established reporters still trigger it.
+
+It also creates `UNIQUE (reporter_id, target_id, target_type)`, which
+`ReportModal.js` has always assumed: its upsert tier names those exact columns
+in `onConflict`, and without the index that call fails outright.
+
+
+---
+
 ## Step 1b — make the two accounts admin
 
 **Run `definer_rpc_hardening.sql` first.** Until it is applied, `role` is
@@ -238,6 +267,7 @@ the RPC and falls back, the same pattern `AuthContext` uses for
  0.  APP_DB_CONTRACT_CHECK.sql        ← read-only, tells you what you need
  1.  definer_rpc_hardening.sql        ← 🔴 admin escalation + currency minting
  2.  scripts/security-rls-fixes.sql   ← 🔴 GPS exposure
+ 2a. report_brigading_fix.sql         ← 2 fresh accounts can hide anyone
  2b. admin_grants.sql                 ← your two admins (run Part 1 first)
  2c. fk_indexes.sql                   ← makes account deletion finish in time
  3.  <whatever section 1 flagged>

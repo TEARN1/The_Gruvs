@@ -234,6 +234,7 @@ being fixed; the verification command is given with each.
 | 22 | 🔴 CRITICAL | Four `SECURITY DEFINER` RPCs granted to all users with **no caller check** — mint money, delete any row | ✅ Fixed + test |
 | 23 | 🔴 CRITICAL | The anti-escalation trigger **never fired** — `role='admin'` was self-assignable | ✅ Fixed + test |
 | 24 | 🟠 MEDIUM | An `ALTER VIEW … security_invoker` that hard-errors guest browsing, defused only by accident | ✅ Fixed + test |
+| 25 | 🔴 HIGH | **Two fresh accounts could auto-hide anyone** — trust weighting was inert (every account at the cap) | ✅ Fixed |
 
 ## 11. 🔴 HIGH — the secret scanner never actually ran
 
@@ -584,6 +585,79 @@ Verified: fails when the view is invoker, passes when definer, still passes afte
 a `CREATE OR REPLACE` drops the option, and warns (without failing) when a new
 anon-readable definer view appears.
 
+## 25. 🔴 HIGH — two fresh accounts could hide anyone
+
+`apply_report_autohide()` weights each distinct reporter and auto-hides the
+target once the weights sum to 3.0:
+
+```sql
+GREATEST(0, LEAST(2.0, COALESCE(MAX(p.social_integrity_score), 50) / 50.0))
+```
+
+The divisor of 50 says the formula was written for a baseline score of 50, and
+every other place in the codebase agrees — `trustLedger.js` uses `|| 50` twice,
+`update_sis_score` uses `COALESCE(social_integrity_score, 50)`, and this very
+function COALESCEs NULL to 50.
+
+But the column is declared **`social_integrity_score INTEGER DEFAULT 100`**
+(four declarations, all 100).
+
+So every real account computes `100/50.0 = 2.0` and is clamped at the 2.0 cap:
+
+| account | score | weight |
+|---|---|---|
+| 3-year-old venue, perfect standing | 100 | **2.0** |
+| sock puppet created 30 seconds ago | 100 | **2.0** |
+
+Two consequences:
+
+1. **Two brand-new accounts sum to 4.0 and clear the 3.0 threshold.** Signup
+   logs you straight in without email confirmation, so that is two minutes of
+   work to hide any user, event, reel or echo — including a competitor's venue.
+2. **The trust gradient does not exist.** The weighting the design depends on is
+   inert; every account sits at the ceiling.
+
+**Reproduced** on a local Postgres against the trigger exactly as shipped: two
+accounts created seconds earlier set `is_auto_hidden` on a 3-year-old profile.
+
+**Fixed** in `supabase/queries/report_brigading_fix.sql`:
+
+- **Rebased the divisor** to the real default, so a normal account weighs 1.0 and
+  three are needed — what "~3 trusted reports" was meant to mean. Score now only
+  ever *reduces* weight (100 → 1.0, 50 → 0.5, 0 → 0.0).
+- **Added an establishment factor.** A report is worth what the account behind it
+  is worth: under 24h → ×0.2, under 7d → ×0.5, under 30d → ×0.8. Account age is
+  the one input a brigade cannot manufacture on demand.
+- **Added `UNIQUE (reporter_id, target_id, target_type)`.**
+
+Measured after the fix:
+
+| | before | after |
+|---|---|---|
+| established account weight | 2.0 | **1.0** |
+| fresh account weight | 2.0 | **0.20** |
+| fresh accounts needed to hide someone | **2** | **15** |
+| established reporters needed | 2 | **3** (as designed) |
+
+Regression-checked: three established reporters still trigger the auto-hide, so
+genuine moderation is unchanged.
+
+### The unique index was already expected by the client
+
+`ReportModal.js:62-64` is a `resilient()` chain whose second tier is:
+
+```js
+supabase.from('reports').upsert(payload,
+  { onConflict: 'reporter_id,target_id,target_type', ignoreDuplicates: true })
+```
+
+That names exactly the constraint this file creates — the client was written
+expecting it. Without it, tier 2 fails with *"there is no unique or exclusion
+constraint matching the ON CONFLICT specification"* (verified), and tier 3 calls
+`submit_report`, one of the RPCs defined nowhere in the repo. So reporting has
+been running on tier 1 alone, accumulating duplicate rows. Creating the index
+repairs the path the client always intended to use.
+
 ## Reviewed and found sound
 
 Not every surface had a problem. Recording these so they are not re-audited from
@@ -602,7 +676,14 @@ scratch:
 - **`sso-redeem`** — sound. Codes are 244 bits of entropy, single-use via an
   atomic claim, 60-second TTL, audience-bound, capped at 5 live per user, and
   the table is default-deny with `REVOKE ALL`.
-- **Client-side XSS sinks** — none. No `dangerouslySetInnerHTML`, `eval`,
+- **Client-side XSS sinks** — none.
+- **Realtime subscriptions** — clean. 55 `.channel()` sites against 56 cleanups,
+  and spot-checks confirm `return () => supabase.removeChannel(...)` inside the
+  effect. No leaked channels.
+- **Timers** — 14 `setInterval` against 14 `clearInterval`.
+- **`select('*')` on PII tables** — only 9 sites, all RLS-scoped to the owner, and
+  `profiles` is not among them (`AuthContext` already uses an explicit
+  `PROFILE_FIELDS` list). Bandwidth cost, not leakage. No `dangerouslySetInnerHTML`, `eval`,
   `new Function`, or `WebView`; React Native `<Text>` cannot execute links.
 
 ## Still open (server-side / owner action)
