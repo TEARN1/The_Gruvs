@@ -607,8 +607,8 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
         </View>
 
         {/* Search bar */}
-        <View style={[calS.searchWrap, { backgroundColor: surface, borderColor: `${primary}20` }]}>
-          <Feather name="search" size={14} color={muted} />
+        <GlassView style={[calS.searchWrap, { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: searchQuery ? primary : `${primary}25` }]}>
+          <Feather name="search" size={15} color={searchQuery ? primary : muted} />
           <TextInput
             style={[calS.searchInput, { color: textColor }]}
             placeholder="Search all gruvs — title, venue, city…"
@@ -619,11 +619,11 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
           />
           {searching ? <ActivityIndicator size="small" color={primary} /> : null}
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
               <Feather name="x" size={14} color={muted} />
             </TouchableOpacity>
           )}
-        </View>
+        </GlassView>
 
         {/* Filter pills */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 8 }}>

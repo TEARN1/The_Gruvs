@@ -15,6 +15,7 @@ import { isBirthdayToday } from '../utils/birthday';
 import { thumb } from '../utils/storageThumb';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
+import { GlassView } from '../components/GlassView';
 import { TalentLeaderboardModal } from '../components/TalentLeaderboardModal';
 import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
@@ -1067,23 +1068,34 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <View style={styles.brandRow}>
             <BrandLogo size={34} />
             <View style={{ marginLeft: 10 }}>
-              <Text style={[styles.headerTitle, { color: primary }]}>Explore</Text>
-              <Text style={[styles.headerSub, { color: muted }]}>Discover your next Gruv</Text>
+              <Text style={[styles.headerTitle, { color: textColor }]}>Explore</Text>
+              <Text style={[styles.headerSub, { color: primary }]}>DISCOVER YOUR NEXT GRUV</Text>
             </View>
           </View>
           <TouchableOpacity
             onPress={() => setScoutOpen(true)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, borderWidth: 1, borderColor: `${primary}50`, backgroundColor: `${primary}12` }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 20,
+              borderWidth: 1.2,
+              borderColor: `${primary}45`,
+              backgroundColor: `${primary}15`,
+              ...(Platform.OS === 'web' ? { boxShadow: `0 0 14px ${primary}25` } : {}),
+            }}
             activeOpacity={0.85}
             accessibilityLabel="Open Talent Scout leaderboard"
           >
             <Feather name="award" size={14} color={primary} />
-            <Text style={{ color: primary, fontWeight: '900', fontSize: 12 }}>Scout</Text>
+            <Text style={{ color: primary, fontWeight: '900', fontSize: 12, letterSpacing: 0.5 }}>Scout</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Search bar */}
-        <View style={[styles.searchWrap, { borderColor: `${primary}25` }]}>
+        {/* Search bar — neo-glass capsule */}
+        <GlassView glow={isSearching} style={[styles.searchWrap, { borderColor: isSearching ? primary : `${primary}25`, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
           <Feather name="search" size={17} color={isSearching ? primary : muted} />
           <TextInput
             style={[styles.searchInput, { color: textColor }]}
@@ -1095,11 +1107,11 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             accessibilityHint="Results appear below as you type"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')}>
-              <Feather name="x" size={16} color={muted} />
+            <TouchableOpacity onPress={() => setQuery('')} style={{ padding: 6, marginRight: 2 }}>
+              <Feather name="x" size={15} color={muted} />
             </TouchableOpacity>
           )}
-        </View>
+        </GlassView>
 
         {/* ── SEARCH MODE ─────────────────────────────────────────────────── */}
         {isSearching ? (
