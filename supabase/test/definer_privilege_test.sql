@@ -57,7 +57,22 @@ BEGIN
       JOIN pg_namespace n ON n.oid = p.pronamespace
      WHERE n.nspname = 'public'
        AND p.prosecdef                                   -- SECURITY DEFINER
-       AND p.prosrc !~ 'auth\.uid'                       -- never checks the caller
+       -- Never checks the caller — directly OR by delegating to a guard.
+       -- A function can be perfectly safe while containing no literal
+       -- auth.uid(): set_user_role() does `PERFORM public.assert_admin()`, and
+       -- assert_admin() is where the auth.uid() check lives. Flagging that as
+       -- a hole is how a test earns a reputation for crying wolf and gets
+       -- switched off, so follow one level of delegation.
+       AND p.prosrc !~ 'auth\.uid'
+       AND NOT EXISTS (
+         SELECT 1
+           FROM pg_proc g
+           JOIN pg_namespace gn ON gn.oid = g.pronamespace
+          WHERE gn.nspname = 'public'
+            AND g.prosrc ~ 'auth\.uid'                  -- g is a guard
+            AND g.oid <> p.oid
+            AND p.prosrc ~ ('\m' || g.proname || '\M')  -- and p calls it
+       )
        AND p.prosrc ~* '\m(update|insert|delete)\M'      -- and writes something
        -- takes an argument naming someone/something other than the caller
        AND pg_get_function_identity_arguments(p.oid) ~*

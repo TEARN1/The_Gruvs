@@ -210,3 +210,70 @@ DROP TRIGGER IF EXISTS protect_profile_trust_columns_trigger ON public.profiles;
 CREATE TRIGGER protect_profile_trust_columns_trigger
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.protect_profile_trust_columns();
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 5. Vibe forgery — found by definer_privilege_test.sql in CI, not by hand.
+--
+--    public.increment_vibe_count(p_event_id uuid, p_user_id uuid)
+--    public.decrement_vibe_count(p_event_id uuid, p_user_id uuid)
+--
+-- Both are SECURITY DEFINER with no caller check, and they write event_vibes
+-- using the p_user_id they are handed. event_vibes has RLS that says exactly
+-- what should be allowed:
+--
+--   no_self_vibe       INSERT WITH CHECK (user_id = auth.uid()
+--                        AND user_id != (SELECT author_id FROM events WHERE id = event_id))
+--   event_vibes_delete DELETE USING (user_id = auth.uid())
+--
+-- SECURITY DEFINER bypasses RLS, so these two functions are a hole straight
+-- through both policies. A signed-in user can:
+--   • vibe as SOMEONE ELSE (forged engagement on any event)
+--   • vibe their OWN event, which no_self_vibe exists to prevent
+--   • DELETE anyone else's vibe from any event
+--
+-- Vibe counts feed trending, the leaderboard and the Royal tier, so this is
+-- score fraud, not a cosmetic bug.
+--
+-- Fix: keep the signature (dataFlow.js:1341/1366 pass p_user_id), but refuse
+-- any value that is not the caller, and re-apply the no-self-vibe rule the
+-- policy already states. SECURITY INVOKER would also work and is simpler, but
+-- would change behaviour for any server-side caller, so the assertion is the
+-- conservative choice.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.increment_vibe_count(p_event_id uuid, p_user_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000';
+  END IF;
+  IF p_user_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'can only vibe as yourself' USING ERRCODE = '42501';
+  END IF;
+  -- Mirrors the no_self_vibe policy, which this function would otherwise bypass.
+  IF EXISTS (SELECT 1 FROM public.events e
+              WHERE e.id = p_event_id AND e.author_id = p_user_id) THEN
+    RAISE EXCEPTION 'cannot vibe your own event' USING ERRCODE = '42501';
+  END IF;
+
+  INSERT INTO public.event_vibes(event_id, user_id)
+  VALUES (p_event_id, p_user_id)
+  ON CONFLICT DO NOTHING;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.decrement_vibe_count(p_event_id uuid, p_user_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000';
+  END IF;
+  IF p_user_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'can only remove your own vibe' USING ERRCODE = '42501';
+  END IF;
+
+  DELETE FROM public.event_vibes
+   WHERE event_id = p_event_id AND user_id = p_user_id;
+END;
+$$;
