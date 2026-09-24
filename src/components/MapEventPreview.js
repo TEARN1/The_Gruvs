@@ -25,6 +25,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
 import { SHADOW, GLASS } from '../constants/DesignTokens';
 import { ViberProfileModal } from './ViberProfileModal';
+import { optimisticEngine } from '../services/optimisticEngine';
 
 // A closure within this many metres of the venue is "right next to it".
 const CLOSURE_NEAR_M = 450;
@@ -169,8 +170,14 @@ export function MapEventPreview({
     const next = !going;
     setGoing(next); setGoingCount((c) => Math.max(0, c + (next ? 1 : -1)));
     try {
-      if (next) await RSVPManager.upsert(full.id, user.id, 'going');
-      else await RSVPManager.remove(full.id, user.id);
+      await optimisticEngine.toggleRsvp({
+        eventId: full.id,
+        isGoing: going,
+        serverCall: async (nextStatus) => {
+          if (nextStatus === 'going') await RSVPManager.upsert(full.id, user.id, 'going');
+          else await RSVPManager.remove(full.id, user.id);
+        }
+      });
     } catch {
       setGoing(!next); setGoingCount((c) => Math.max(0, c + (next ? -1 : 1)));
       toast('Could not update RSVP.', 'error');
@@ -181,8 +188,18 @@ export function MapEventPreview({
     if (requireAuth()) return;
     const next = !saved;
     setSaved(next);
-    try { await BookmarkManager.toggle(full.id, user.id, saved); }
-    catch { setSaved(!next); toast('Could not save.', 'error'); }
+    try {
+      await optimisticEngine.toggleLike({
+        targetId: `save_${full.id}`,
+        isLiked: saved,
+        serverCall: async () => {
+          await BookmarkManager.toggle(full.id, user.id, saved);
+        }
+      });
+    } catch {
+      setSaved(!next);
+      toast('Could not save.', 'error');
+    }
   };
 
   const takeMeThere = async () => {
@@ -294,6 +311,24 @@ export function MapEventPreview({
             <Text style={[cs.proofText, { color: primary }]}>{friends} you follow</Text>
           </View>
         )}
+        {/* Door Fluidity & Queue Barometer */}
+        <View style={[cs.proofChip, {
+          backgroundColor: here > 30 ? 'rgba(239,68,68,0.15)' : here > 10 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: here > 30 ? '#ef444450' : here > 10 ? '#f59e0b50' : '#10b98150',
+        }]}>
+          <Feather
+            name={here > 30 ? 'clock' : here > 10 ? 'activity' : 'zap'}
+            size={11}
+            color={here > 30 ? '#ef4444' : here > 10 ? '#f59e0b' : '#10b981'}
+          />
+          <Text style={[cs.proofText, { color: here > 30 ? '#ef4444' : here > 10 ? '#f59e0b' : '#10b981', fontSize: 11 }]}>
+            {here > 40 ? 'Door: Capacity Peak' : here > 20 ? 'Door: ~25 min wait' : here > 8 ? 'Door: Fast Line < 10m' : 'Door: Walk In (No Line)'}
+          </Text>
+        </View>
         {/* Live attendee avatars — tapping opens their networking profile */}
         {attendees.slice(0, 5).map((a, i) => (
           <TouchableOpacity key={a.id || i} onPress={() => openViber(a.id)}>

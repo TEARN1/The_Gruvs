@@ -119,12 +119,23 @@ export const SettingsScreen = ({
   const [pushOn, setPushOn] = useState(!!profile?.push_token || NotificationService.isWebPushEnabled());
   const [pushBusy, setPushBusy] = useState(false);
   const [soundOn, setSoundOn] = useState(SoundFX.isEnabled());
-  useEffect(() => { SoundFX.init().then(() => setSoundOn(SoundFX.isEnabled())); }, []);
+  const [soundVolume, setSoundVolume] = useState(SoundFX.getVolume());
+  useEffect(() => {
+    SoundFX.init().then(() => {
+      setSoundOn(SoundFX.isEnabled());
+      setSoundVolume(SoundFX.getVolume());
+    });
+  }, []);
   const toggleSound = useCallback((next) => {
     setSoundOn(next);
     SoundFX.setEnabled(next); // plays a confirmation chime when turned on
     toast?.show(next ? 'Sound effects on 🔊' : 'Sound effects off', next ? 'success' : 'info');
   }, [toast]);
+  const changeVolume = useCallback((vol) => {
+    setSoundVolume(vol);
+    SoundFX.setVolume(vol);
+    SoundFX.play('reaction'); // quick acoustic feedback
+  }, []);
 
   // Per-channel tone picker. SoundFX holds the actual state (persisted); this
   // is just a re-render trigger so the row values reflect it after each tap.
@@ -474,6 +485,39 @@ export const SettingsScreen = ({
           <ToggleRow label="Sound effects" sub="Signature Gruvs sounds for messages, pings & Touch Downs"
             value={soundOn} onValueChange={toggleSound}
             primary={primary} muted={muted} textColor={textColor} />
+          {/* Volume selector chips */}
+          {soundOn && (
+            <View style={{ marginVertical: 8, paddingHorizontal: 12 }}>
+              <Text style={{ color: muted, fontSize: 11, fontWeight: '700', marginBottom: 8 }}>VOLUME LEVEL</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {[
+                  { label: 'Low', val: 0.25 },
+                  { label: 'Med', val: 0.55 },
+                  { label: 'High', val: 0.90 },
+                ].map((v) => {
+                  const sel = Math.abs(soundVolume - v.val) < 0.15;
+                  return (
+                    <TouchableOpacity
+                      key={v.label}
+                      onPress={() => changeVolume(v.val)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 7,
+                        borderRadius: 10,
+                        alignItems: 'center',
+                        borderWidth: 1,
+                        borderColor: sel ? primary : 'rgba(255,255,255,0.15)',
+                        backgroundColor: sel ? `${primary}20` : 'rgba(255,255,255,0.05)',
+                      }}
+                    >
+                      <Text style={{ color: sel ? primary : textColor, fontSize: 12, fontWeight: '800' }}>{v.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           {/* Per-channel tones. Tap a row to cycle to the next sound — it
               previews immediately, so this doubles as a picker without a
               separate modal. Hidden while sound is off entirely; there's

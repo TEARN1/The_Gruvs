@@ -14,7 +14,7 @@
  * startCall is a friendly no-op.
  */
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated, PanResponder, Dimensions } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { PeerSession, isCallSupported, ringChannelName, ringUser } from '../services/webrtcCall';
@@ -89,6 +89,36 @@ export function CallProvider({ children }) {
     const timer = setInterval(() => setCallDuration((s) => s + 1), 1000);
     return () => clearInterval(timer);
   }, [call?.status]);
+
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5,
+      onPanResponderGrant: () => {
+        pan.setOffset({
+          x: pan.x._value,
+          y: pan.y._value,
+        });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
+      onPanResponderRelease: (_, gesture) => {
+        pan.flattenOffset();
+        // Snap horizontally to nearest screen edge (left or right)
+        const screenWidth = Dimensions.get('window').width;
+        const currentX = pan.x._value;
+        const targetX = currentX > -(screenWidth / 2) ? 0 : -(screenWidth - 240);
+        Animated.spring(pan.x, {
+          toValue: targetX,
+          useNativeDriver: false,
+          friction: 6,
+          tension: 40,
+        }).start();
+      },
+    })
+  ).current;
 
   const toggleMinimize = useCallback(() => {
     setIsMinimized((m) => !m);
@@ -198,6 +228,19 @@ export function CallProvider({ children }) {
   }, [call?.video, endCallLocal]);
 
   const rejectCall = useCallback(() => { callRef.current?.reject(); endCallLocal(); }, [endCallLocal]);
+
+  const declineWithMessage = useCallback(async (msgText) => {
+    const targetPeer = peerRef.current;
+    callRef.current?.reject();
+    endCallLocal();
+    if (user?.id && targetPeer?.id && msgText) {
+      try {
+        await MessageManager.send(user.id, targetPeer.id, `📞 Decline reply: "${msgText}"`);
+        showToast('Message sent to caller.', 'info');
+      } catch (_) {}
+    }
+  }, [user?.id, endCallLocal, showToast]);
+
   const hangUp = useCallback(() => { callRef.current?.hangUp(); endCallLocal(); }, [endCallLocal]);
   const toggleCallMute = useCallback(() => setCallMuted(callRef.current?.toggleMute() ?? false), []);
   const toggleCallCam = useCallback(() => setCamOff(callRef.current?.toggleCamera() ?? false), []);
@@ -330,6 +373,7 @@ export function CallProvider({ children }) {
           onMinimize={toggleMinimize}
           onAccept={acceptCall}
           onReject={rejectCall}
+          onDeclineWithMessage={declineWithMessage}
           onHangUp={hangUp}
           onToggleMute={toggleCallMute}
           onToggleCamera={toggleCallCam}
@@ -339,29 +383,38 @@ export function CallProvider({ children }) {
         />
       )}
 
-      {/* Floating Call PiP Bubble when minimized */}
+      {/* Floating Call PiP Bubble when minimized with Drag Physics */}
       {call && isMinimized && (
-        <TouchableOpacity
-          onPress={toggleMinimize}
-          activeOpacity={0.9}
-          style={[pipS.bubble, { borderColor: `${primary}50` }]}
+        <Animated.View
+          style={[
+            pipS.bubble,
+            { borderColor: `${primary}50` },
+            pan.getLayout(),
+          ]}
+          {...panResponder.panHandlers}
         >
-          <View style={[pipS.pulseRing, { backgroundColor: `${primary}20` }]} />
-          <Feather name={call.video ? 'video' : 'phone'} size={16} color={primary} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={pipS.name} numberOfLines={1}>{peer?.username || 'Call'}</Text>
-            <Text style={[pipS.status, { color: primary }]}>
-              {`${Math.floor(callDuration / 60)}:${String(callDuration % 60).padStart(2, '0')}`} · Tap to expand
-            </Text>
-          </View>
           <TouchableOpacity
-            onPress={(e) => { e.stopPropagation(); hangUp(); }}
-            style={pipS.endBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={toggleMinimize}
+            activeOpacity={0.9}
+            style={pipS.innerRow}
           >
-            <Feather name="phone-off" size={14} color="#fff" />
+            <View style={[pipS.pulseRing, { backgroundColor: `${primary}20` }]} />
+            <Feather name={call.video ? 'video' : 'phone'} size={16} color={primary} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={pipS.name} numberOfLines={1}>{peer?.username || 'Call'}</Text>
+              <Text style={[pipS.status, { color: primary }]}>
+                {`${Math.floor(callDuration / 60)}:${String(callDuration % 60).padStart(2, '0')}`} · Tap to expand
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation(); hangUp(); }}
+              style={pipS.endBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather name="phone-off" size={14} color="#fff" />
+            </TouchableOpacity>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </Animated.View>
       )}
 
       <PermissionGuideModal
@@ -386,13 +439,20 @@ const pipS = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 0,
     borderRadius: 24,
     borderWidth: 1.5,
     backgroundColor: 'rgba(10,13,14,0.92)',
     zIndex: 9999,
     ...SHADOW?.lift,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
+  },
+  innerRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
   },
   pulseRing: {
     position: 'absolute',

@@ -85,6 +85,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [liveOnly, setLiveOnly] = useState(false); // show only venues with verified people there now
   const [ripple, setRipple] = useState(null);      // {lng,lat,key} — pulse on a live check-in
   const [dayFilter, setDayFilter] = useState(null); // 'YYYY-MM-DD' | null(all) — the time-scrubber
+  const [hourFilter, setHourFilter] = useState(null); // 20 (8PM) to 4 (4AM) | null (all hours)
   const [nudge, setNudge] = useState(null);
   const [showRoulette, setShowRoulette] = useState(false);
   const [showHomeSafe, setShowHomeSafe] = useState(false);
@@ -595,6 +596,15 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     let list = events;
     if (liveOnly) list = list.filter((e) => (e.here_count || 0) > 0);
     if (dayFilter) list = list.filter((e) => String(e.event_date || '').slice(0, 10) === dayFilter);
+    if (hourFilter !== null) {
+      list = list.filter((e) => {
+        if (!e.event_date) return true;
+        const evHour = new Date(e.event_date).getHours();
+        // Match events within +/- 2 hours of selected nightlife timeline
+        const diff = Math.abs(evHour - hourFilter);
+        return diff <= 2 || diff >= 22;
+      });
+    }
     const q = (searchQuery || '').trim().toLowerCase();
     if (q) {
       list = list.filter((e) =>
@@ -605,7 +615,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       );
     }
     return list;
-  }, [events, liveOnly, dayFilter, searchQuery]);
+  }, [events, liveOnly, dayFilter, hourFilter, searchQuery]);
 
   const communityPois = React.useMemo(() => {
     const POI_TYPES = new Set(['police_nearby', 'atm', 'medical_point', 'station', 'taxi_rank', 'safe_spot']);
@@ -717,12 +727,28 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                 style={[cs.quickPill, { borderColor: !dayFilter ? primary : `${muted}35`, backgroundColor: !dayFilter ? `${primary}22` : `${bg}dd` }]}>
                 <Text style={[cs.quickPillText, { color: !dayFilter ? primary : muted }]}>All Nights</Text>
               </TouchableOpacity>
-              {days.slice(0, 3).map((d) => {
-                const on = dayFilter === d.key;
+              {/* Nightlife 8 PM - 4 AM Time-Scrubber Pills */}
+              {[
+                { hour: null, label: 'Anytime' },
+                { hour: 20, label: '8 PM (Warmup)' },
+                { hour: 23, label: '11 PM (Peak)' },
+                { hour: 2, label: '2 AM (Afters)' },
+              ].map((slot, i) => {
+                const active = hourFilter === slot.hour;
                 return (
-                  <TouchableOpacity key={d.key} onPress={() => setDayFilter(on ? null : d.key)}
-                    style={[cs.quickPill, { borderColor: on ? primary : `${muted}35`, backgroundColor: on ? `${primary}22` : `${bg}dd` }]}>
-                    <Text style={[cs.quickPillText, { color: on ? primary : muted }]}>{d.label}</Text>
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => setHourFilter(active ? null : slot.hour)}
+                    style={[
+                      cs.quickPill,
+                      {
+                        borderColor: active ? '#00f2ff' : `${muted}35`,
+                        backgroundColor: active ? 'rgba(0,242,255,0.22)' : `${bg}dd`,
+                      }
+                    ]}
+                  >
+                    <Feather name="clock" size={11} color={active ? '#00f2ff' : muted} />
+                    <Text style={[cs.quickPillText, { color: active ? '#00f2ff' : textColor }]}>{slot.label}</Text>
                   </TouchableOpacity>
                 );
               })}

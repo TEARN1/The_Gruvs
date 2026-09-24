@@ -33,6 +33,7 @@ import { resilient, resilientRead } from '../utils/resilience';
 import { LocationService } from '../services/locationService';
 import { setHomeArea as setHomeAreaRpc, getMyHomeArea } from '../services/homeArea';
 import { SecurityService } from '../services/securityService';
+import { PartnerService } from '../services/partnerService';
 import { buildSosMessage, whatsappLink, smsLink } from '../utils/sosMessage';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
@@ -2966,12 +2967,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 <TouchableOpacity
                   onPress={() => {
                     const url = residentUrl('dashboard') || 'https://theresidentcrew.com';
-                    SecurityService.safeOpenURL(url);
+                    PartnerService.logClickAndOpen('theresidentcrew', url, 'profile_powers');
                   }}
                   style={{
                     backgroundColor: `${primary}15`,
                     borderRadius: 10,
-                    paddingVertical: 8,
+                    paddingVertical: 10,
                     paddingHorizontal: 12,
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -2982,20 +2983,25 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                   }}
                   activeOpacity={0.85}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Feather name="home" size={14} color={primary} />
-                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 12 }}>The Resident Crew</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="home" size={14} color={primary} />
+                    </View>
+                    <View>
+                      <Text style={{ color: textColor, fontWeight: '800', fontSize: 12 }}>The Resident Crew</Text>
+                      <Text style={{ color: muted, fontSize: 10 }}>Verified Artist Stays & Crew Living</Text>
+                    </View>
                   </View>
                   <Feather name="external-link" size={13} color={primary} />
                 </TouchableOpacity>
 
                 {/* TEARN's Excellence Innovation Hub */}
                 <TouchableOpacity
-                  onPress={() => SecurityService.safeOpenURL('https://github.com/TEARN1/TEARNs-Excellence')}
+                  onPress={() => PartnerService.logClickAndOpen('tearns-excellence', 'https://github.com/TEARN1/TEARNs-Excellence', 'profile_powers')}
                   style={{
                     backgroundColor: 'rgba(0,242,255,0.08)',
                     borderRadius: 10,
-                    paddingVertical: 8,
+                    paddingVertical: 10,
                     paddingHorizontal: 12,
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -3006,9 +3012,14 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                   }}
                   activeOpacity={0.85}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Feather name="cpu" size={14} color="#00f2ff" />
-                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 12 }}>TEARN's Excellence</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,242,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="cpu" size={14} color="#00f2ff" />
+                    </View>
+                    <View>
+                      <Text style={{ color: textColor, fontWeight: '800', fontSize: 12 }}>TEARN's Excellence</Text>
+                      <Text style={{ color: '#00f2ff', fontSize: 10, fontWeight: '600' }}>Engineered Architecture ✦ Open Source</Text>
+                    </View>
                   </View>
                   <Feather name="arrow-up-right" size={13} color="#00f2ff" />
                 </TouchableOpacity>

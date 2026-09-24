@@ -10,7 +10,7 @@
  * treated the same as "no native call support" rather than crashing the app.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated, ScrollView, Modal } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { SmartImage } from './SmartImage';
 import { VIDEO_FILTERS } from '../utils/videoFilters';
@@ -121,6 +121,7 @@ export const CallOverlay = ({
   onMinimize,
   onAccept,
   onReject,
+  onDeclineWithMessage,
   onHangUp,
   onToggleMute,
   onToggleCamera,
@@ -129,6 +130,7 @@ export const CallOverlay = ({
   onToggleScreenShare,
 }) => {
   const isIncoming = status === 'incoming';
+  const [showQuickDecline, setShowQuickDecline] = useState(false);
 
   // Call duration — starts ticking once connected.
   const [secs, setSecs] = useState(0);
@@ -257,6 +259,7 @@ export const CallOverlay = ({
         {isIncoming ? (
           <>
             <RoundBtn icon="phone-off" danger onPress={onReject} />
+            <RoundBtn icon="message-square" onPress={() => setShowQuickDecline(true)} color="#3b82f6" />
             <RoundBtn icon="phone" onPress={onAccept} color="#10b981" />
           </>
         ) : (
@@ -278,6 +281,49 @@ export const CallOverlay = ({
           </>
         )}
       </View>
+
+      {/* Quick Decline Message Sheet Modal */}
+      <Modal
+        visible={showQuickDecline}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowQuickDecline(false)}
+      >
+        <TouchableOpacity
+          style={cs.quickModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowQuickDecline(false)}
+        >
+          <View style={cs.quickModalCard}>
+            <View style={cs.quickModalHandle} />
+            <Text style={cs.quickModalTitle}>Decline & Send Message</Text>
+            {[
+              "In a loud club, text me here!",
+              "On my way, give me 10 mins.",
+              "Can't talk right now, what's up?",
+              "Call you back later tonight!",
+            ].map((msg, i) => (
+              <TouchableOpacity
+                key={i}
+                style={cs.quickModalOption}
+                onPress={() => {
+                  setShowQuickDecline(false);
+                  onDeclineWithMessage?.(msg);
+                }}
+              >
+                <Feather name="send" size={14} color={primary} />
+                <Text style={cs.quickModalOptionText}>{msg}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={cs.quickModalCancel}
+              onPress={() => setShowQuickDecline(false)}
+            >
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontWeight: '700' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -300,4 +346,11 @@ const cs = StyleSheet.create({
   filterStrip: { position: 'absolute', bottom: 178, left: 0, right: 0, maxHeight: 40 },
   filterChip: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', borderRadius: 16, paddingVertical: 7, paddingHorizontal: 13, backgroundColor: 'rgba(0,0,0,0.35)' },
   recText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  quickModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
+  quickModalCard: { backgroundColor: '#13191b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 36, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  quickModalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)', alignSelf: 'center', marginBottom: 16 },
+  quickModalTitle: { color: '#fff', fontSize: 16, fontWeight: '800', textAlign: 'center', marginBottom: 16 },
+  quickModalOption: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', marginBottom: 10 },
+  quickModalOptionText: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1 },
+  quickModalCancel: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
 });

@@ -16,9 +16,10 @@ let Storage = null;
 try { Storage = require('@react-native-async-storage/async-storage').default; } catch {}
 let ExpoAudio = null; // lazy — native only
 const IS_WEB = Platform.OS === 'web';
-const VOLUME = 0.55;                 // audible but not jarring
+let currentVolume = 0.55;            // configurable master volume (0.0 to 1.0)
 const THROTTLE_MS = 120;             // same sound can't retrigger faster than this
 const STORE_KEY = 'gruvs_sound_enabled_v1';
+const VOLUME_STORE_KEY = 'gruvs_sound_volume_v1';
 
 // ── The sound language ─────────────────────────────────────────────────────
 // v = voice: { type, f0, f1?(sweep), start, dur, gain, decay?, attack? }
@@ -156,6 +157,10 @@ async function ensureLoaded() {
     if (v === '0') enabled = false;
   } catch {}
   try {
+    const vol = Storage ? await Storage.getItem(VOLUME_STORE_KEY) : null;
+    if (vol !== null) currentVolume = Math.max(0, Math.min(1, parseFloat(vol)));
+  } catch {}
+  try {
     const raw = Storage ? await Storage.getItem(CHANNEL_STORE_KEY) : null;
     channelPrefs = raw ? JSON.parse(raw) : {};
   } catch { channelPrefs = {}; }
@@ -174,6 +179,13 @@ export const SoundFX = {
   async init() { await ensureLoaded(); },
 
   isEnabled() { return enabled; },
+
+  getVolume() { return currentVolume; },
+
+  async setVolume(vol) {
+    currentVolume = Math.max(0, Math.min(1, vol));
+    try { if (Storage) await Storage.setItem(VOLUME_STORE_KEY, String(currentVolume)); } catch {}
+  },
 
   async setEnabled(on) {
     enabled = !!on;
@@ -236,13 +248,13 @@ export const SoundFX = {
       if (IS_WEB) {
         if (typeof Audio === 'undefined') return;
         const a = new Audio(uri);
-        a.volume = VOLUME;
+        a.volume = currentVolume;
         // play() rejects before the first user gesture (autoplay policy) — ignore.
         const p = a.play();
         if (p && p.catch) p.catch(() => {});
       } else {
         if (!ExpoAudio) { try { ExpoAudio = require('expo-av').Audio; } catch { return; } }
-        ExpoAudio.Sound.createAsync({ uri }, { volume: VOLUME, shouldPlay: true })
+        ExpoAudio.Sound.createAsync({ uri }, { volume: currentVolume, shouldPlay: true })
           .then(({ sound }) => {
             sound.setOnPlaybackStatusUpdate((s) => {
               if (s && s.didJustFinish) sound.unloadAsync().catch(() => {});

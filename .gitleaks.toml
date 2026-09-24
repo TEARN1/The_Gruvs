@@ -34,11 +34,17 @@ regexes = [
   '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlZXZ2ZGR2cmptZmJoZmZjY2JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2OTEwNTAsImV4cCI6MjA4ODI2NzA1MH0.CvZRz05orvSEeaawwponcjpZypX3CePBny6zsgmc4bU''',
   # The public project ref / URL (also client-side, safe).
   '''feevvddvrjmfbhffccbf''',
-  # A localStorage key NAME, not a credential. `const KEY = 'gruvs_pending_ref_v1'`
-  # trips the generic-api-key rule purely because the variable is called KEY.
-  # Matched exactly rather than allowlisting the file, so a real secret in
-  # referral.js would still trip the scan.
-  '''gruvs_pending_ref_v1''',
+  # Local-storage key NAMES, not credentials. The app names them
+  # `gruvs_<thing>_v<n>` and assigns them to constants called *_KEY, which is
+  # exactly what generic-api-key looks for — so every new one would otherwise
+  # fail the build on unrelated work. There are 10 of them today
+  # (gruvs_sound_volume_v1, gruvs_pending_ref_v1, gruvs_region_v1, …).
+  #
+  # Allowlisting the CONVENTION rather than each value: lowercase words with a
+  # version suffix. No real credential — a JWT, an AWS key, a private key —
+  # takes that shape, so this cannot hide one. Verified a planted service_role
+  # key is still caught with this in place.
+  '''gruvs_[a-z0-9_]+_v[0-9]+''',
   # The Web Push VAPID *public* application-server key — handed to
   # PushManager.subscribe() in the browser, so public by design. The matching
   # PRIVATE key is a Supabase function secret and is deliberately NOT
