@@ -32,7 +32,18 @@ const URL = env('SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_URL');
 const KEY = env('SUPABASE_ANON_KEY', 'EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
 if (!URL || !KEY) {
-  console.log('::notice::Supabase URL/key not available — skipping schema audit.');
+  // A skip is the right call locally. On Guardian's unattended schedule it is
+  // not: the job reports green while checking nothing, which is how a monitor
+  // rots without anyone noticing. It also means Guardian never touches the
+  // database — and those 6-hourly requests are the activity that keeps a
+  // free-tier project from pausing.
+  const strict = process.env.GUARDIAN_STRICT === '1' || process.env.GITHUB_EVENT_NAME === 'schedule';
+  const msg = 'Supabase URL/key not available — the schema audit checked NOTHING.';
+  if (strict) {
+    console.log(`::error::${msg} Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY as repository secrets.`);
+    process.exit(1);
+  }
+  console.log(`::notice::${msg}`);
   process.exit(0);
 }
 const REST = `${URL.replace(/\/$/, '')}/rest/v1`;

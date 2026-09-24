@@ -31,9 +31,31 @@ permissions:
   issues: write
 
 jobs:
+  # Runs FIRST and gates the rest. When the Supabase project is paused, every
+  # data call from the live site fails, so the health job reports "JS errors"
+  # and "failing requests" — an alarm that sends you into the app code looking
+  # for a bug that is not there. This names the actual cause instead.
+  #
+  # It is also a keep-warm ping: a real request is activity, and activity is
+  # what stops a free-tier project pausing after ~7 days.
+  database:
+    name: Database (is it actually there?)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with: { node-version: 20 }
+      - name: Probe the database and classify the result
+        run: node scripts/db-reachability.mjs
+        env:
+          SUPABASE_URL:      ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+
   schema-drift:
     name: Schema drift (does the code still match the database?)
     runs-on: ubuntu-latest
+    needs: database
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
@@ -54,6 +76,7 @@ jobs:
   maintenance:
     name: Maintenance (is the platform still cleaning up after itself?)
     runs-on: ubuntu-latest
+    needs: database
     # Schedule-only: retention windows move in days, not commits.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
@@ -68,7 +91,10 @@ jobs:
 
   health:
     name: Health (does the live site actually work?)
+    # Gated on the database: a paused project makes every client call fail, and
+    # reporting that as a client error is a misleading alarm.
     runs-on: ubuntu-latest
+    needs: database
     # Only meaningful against production — skip on PRs, and on pushes too. A
     # branch push says nothing about whether the LIVE site boots, and the new
     # push trigger would otherwise run a full browser check on every commit.
@@ -94,7 +120,7 @@ jobs:
   all-clear:
     name: Stand down the alarm
     runs-on: ubuntu-latest
-    needs: [schema-drift, maintenance, health]
+    needs: [database, schema-drift, maintenance, health]
     if: success() && github.event_name == 'schedule'
     steps:
       - name: Close any open Guardian issue
@@ -121,7 +147,7 @@ jobs:
   raise-the-alarm:
     name: Raise an issue
     runs-on: ubuntu-latest
-    needs: [schema-drift, maintenance, health]
+    needs: [database, schema-drift, maintenance, health]
     if: failure() && github.event_name == 'schedule'
     steps:
       - name: Open (or update) an issue
@@ -134,7 +160,14 @@ jobs:
               '',
               `**Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               '',
-              'One of these is true:',
+              '**Check the Database job first.** If it failed, that is the whole story —',
+              'a paused or unreachable project makes every data call fail, and the other',
+              'jobs are only reporting the symptoms. A free-tier project pauses after',
+              '~7 days without activity; the data is retained and you restore it from the',
+              'Supabase dashboard.',
+              '',
+              'Otherwise, one of these is true:',
+              '- **Database** — paused, unreachable, or the anon key was rotated. The job names which.',
               '- **Schema drift** — a query no longer matches the database, so a feature is silently dead (this is how RSVP, Crews, polls and tickets broke without anyone noticing).',
               '- **Health** — thegruvs.com does not boot, is throwing errors, or is no longer installable as an app.',
               '',

@@ -27,7 +27,8 @@
     "audit:writes": "node scripts/audit-writes.mjs",
     "audit:indexes": "node scripts/audit-indexes.mjs",
     "audit:bounds": "node scripts/audit-query-bounds.mjs",
-    "audit:contract": "node scripts/gen-db-contract.mjs"
+    "audit:contract": "node scripts/gen-db-contract.mjs",
+    "db:ping": "node scripts/db-reachability.mjs"
   },
   "jest": {
     "preset": "jest-expo",
