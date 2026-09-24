@@ -6,7 +6,7 @@ import {
   StatusBar, Animated, Platform, useWindowDimensions, BackHandler, ActivityIndicator, Linking, PanResponder,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { BREAKPOINT } from './src/constants/DesignTokens';
+import { BREAKPOINT, SHADOW } from './src/constants/DesignTokens';
 import { HIDDEN_TABS, feature } from './src/constants/launchConfig';
 import { BusinessDashboardScreen } from './src/screens/BusinessDashboardScreen';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -154,56 +154,81 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
   }), [scrubToX]);
 
   return (
-    <View
-      style={[styles.tabBar, { borderTopColor: `${primary}25`, paddingBottom: insets.bottom || 6, backgroundColor: bg || 'rgba(13,17,18,0.97)' }]}
-      {...panResponder.panHandlers}
-    >
-      {/* Grabber — signals the bar is draggable */}
-      <View style={[styles.tabGrabber, { backgroundColor: `${primary}40` }]} pointerEvents="none" />
-      <Animated.View
+    <View style={[styles.tabBarContainer, { paddingBottom: Math.max(insets.bottom, 10) }]} pointerEvents="box-none">
+      <View
         style={[
-          styles.indicator,
-          { backgroundColor: `${primary}28`, transform: [{ translateX: indicatorAnim }] },
+          styles.tabBar,
+          {
+            borderColor: `${primary}30`,
+            backgroundColor: bg ? `${bg}f0` : 'rgba(13,17,18,0.92)',
+          }
         ]}
-      />
-      {TABS.map(tab => {
-        const isActive = currentTab === tab.key;
-        return (
-          // Items 31-32: accessibilityRole="tab", label, and selected state
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.tab}
-            onPress={() => onTabChange(tab.key)}
-            activeOpacity={0.75}
-            accessibilityRole="tab"
-            accessibilityLabel={tab.label}
-            accessibilityState={{ selected: isActive }}
-          >
-            <View style={{ position: 'relative' }}>
-              <Feather name={tab.icon} size={20} color={isActive ? primary : `${muted}`} style={{ opacity: isActive ? 1 : 0.5 }} />
-              {/* Item 38: accessible unread badge labels */}
-              {tab.key === 'notifications' && unreadCount > 0 && (
-                <View
-                  style={[styles.unreadBadge, { backgroundColor: '#ef4444' }]}
-                  accessibilityLabel={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`}
-                >
-                  <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              )}
-              {tab.key === 'chats' && unreadDMCount > 0 && (
-                <View
-                  style={[styles.unreadBadge, { backgroundColor: primary }]}
-                  accessibilityLabel={`${unreadDMCount} unread message${unreadDMCount !== 1 ? 's' : ''}`}
-                >
-                  <Text style={[styles.unreadBadgeText, { color: '#000' }]}>{unreadDMCount > 9 ? '9+' : unreadDMCount}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={[styles.tabLabel, { color: isActive ? primary : muted }]}>{tab.label}</Text>
-            {isActive && <View style={[styles.tabDot, { backgroundColor: primary }]} />}
-          </TouchableOpacity>
-        );
-      })}
+        {...panResponder.panHandlers}
+      >
+        <Animated.View
+          style={[
+            styles.indicator,
+            {
+              backgroundColor: `${primary}20`,
+              borderColor: `${primary}50`,
+              width: tabWidth - 12,
+              transform: [{ translateX: indicatorAnim }],
+            },
+          ]}
+        />
+        {TABS.map((tab, idx) => {
+          const isActive = currentTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.tab}
+              onPress={() => onTabChange(tab.key)}
+              activeOpacity={0.75}
+              accessibilityRole="tab"
+              accessibilityLabel={tab.label}
+              accessibilityState={{ selected: isActive }}
+            >
+              <View style={styles.tabIconWrap}>
+                <Feather
+                  name={tab.icon}
+                  size={isActive ? 20 : 18}
+                  color={isActive ? primary : muted}
+                  style={{ opacity: isActive ? 1 : 0.65 }}
+                />
+                {tab.key === 'notifications' && unreadCount > 0 && (
+                  <View
+                    style={[styles.unreadBadge, { backgroundColor: '#ef4444' }]}
+                    accessibilityLabel={`${unreadCount} unread notifications`}
+                  >
+                    <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                )}
+                {tab.key === 'chats' && unreadDMCount > 0 && (
+                  <View
+                    style={[styles.unreadBadge, { backgroundColor: primary }]}
+                    accessibilityLabel={`${unreadDMCount} unread messages`}
+                  >
+                    <Text style={[styles.unreadBadgeText, { color: '#000' }]}>{unreadDMCount > 9 ? '9+' : unreadDMCount}</Text>
+                  </View>
+                )}
+              </View>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  {
+                    color: isActive ? primary : muted,
+                    fontWeight: isActive ? '900' : '600',
+                    opacity: isActive ? 1 : 0.7,
+                  }
+                ]}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 };
@@ -1118,42 +1143,52 @@ const styles = StyleSheet.create({
   screenHidden: { display: 'none' },
   screenSkeleton: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  // Bottom tab bar — height expands to cover bottom inset (home indicator / nav bar)
+  // Bottom tab bar — modern floating glass dock
+  tabBarContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    zIndex: 100,
+  },
   tabBar: {
     flexDirection: 'row',
-    minHeight: 62,
-    borderTopWidth: 1,
-    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    width: '94%',
+    maxWidth: 520,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1.5,
     position: 'relative',
+    paddingHorizontal: 6,
+    ...SHADOW?.lift,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
   },
   indicator: {
     position: 'absolute',
     top: 6,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  tabGrabber: {
-    position: 'absolute',
-    top: 3,
-    left: '50%',
-    marginLeft: -18,
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    zIndex: 5,
+    bottom: 6,
+    borderRadius: 24,
+    borderWidth: 1,
   },
   tab: {
     flex: 1,
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 6,
     gap: 3,
+    zIndex: 2,
   },
-  tabLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
-  tabDot: { width: 4, height: 4, borderRadius: 2, marginTop: 1 },
-  unreadBadge: { position: 'absolute', top: -4, right: -6, minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
-  unreadBadgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
+  tabIconWrap: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabLabel: { fontSize: 10, letterSpacing: 0.2 },
+  unreadBadge: { position: 'absolute', top: -4, right: -8, minWidth: 15, height: 15, borderRadius: 7.5, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  unreadBadgeText: { color: '#fff', fontSize: 9, fontWeight: '900' },
 
   // Item 37: visually hidden ARIA live region
   srOnly: {

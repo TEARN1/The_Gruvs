@@ -2099,57 +2099,49 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           </View>
         </View>
 
-        <GlassView style={styles.compactSearch}>
-          <Feather name="search" size={14} color={muted} style={{ marginLeft: 10 }} />
+        <GlassView style={[styles.compactSearch, { borderColor: `${primary}30` }]}>
+          <Feather name="search" size={15} color={primary} style={{ marginLeft: 12, marginRight: 6 }} />
           <TextInput
             style={[styles.searchInput, { color: textColor }]}
-            placeholder="Search..."
+            placeholder="Search events, scenes, venues..."
             placeholderTextColor={muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={() => { if (searchQuery.trim()) saveSearch(searchQuery.trim()); }}
             returnKeyType="search"
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 6, marginRight: 6 }}>
+              <Feather name="x" size={13} color={muted} />
+            </TouchableOpacity>
+          )}
         </GlassView>
 
         <View style={styles.headerActions}>
-          {/* Reels — opt-in entry while it's demoted from the tab bar (auto-hides if restored) */}
+          {/* Reels — opt-in entry while it's demoted from the tab bar */}
           {onNavigateToReels && HIDDEN_TABS.includes('reels') && (
             <TouchableOpacity
-              style={styles.iconBtn}
+              style={[styles.iconBtn, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}
               onPress={onNavigateToReels}
               accessibilityRole="button"
               accessibilityLabel="Reels"
             >
-              <Feather name="film" size={18} color={primary} />
-            </TouchableOpacity>
-          )}
-          {/* Path Map needs density to feel alive — parked by the Focus Cut.
-              This header button was missing its flag check, so the parked
-              surface stayed one tap away. */}
-          {user && feature('pathMap') && (
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => setPathMapVisible(true)}
-              accessibilityRole="button"
-              accessibilityLabel="My Path Map"
-            >
-              <Feather name="map" size={18} color={primary} />
+              <Feather name="film" size={16} color={primary} />
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={styles.iconBtn}
+            style={[styles.iconBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.1)' }]}
             onPress={() => setRouletteVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Vibe Roulette"
           >
-            <Feather name="compass" size={18} color={primary} />
+            <Feather name="compass" size={16} color={textColor} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.postIconBtn, { backgroundColor: `${primary}15`, borderColor: primary }]}
+            style={[styles.postIconBtn, { backgroundColor: primary, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
           >
-            <Feather name="plus" size={18} color={primary} />
+            <Feather name="plus" size={18} color="#000" />
           </TouchableOpacity>
         </View>
       </View>
@@ -2996,9 +2988,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
 
 
-      {/* ── Create event FAB (bottom right, above nav bar) ───────────────── */}
+      {/* ── Create event FAB (bottom right, above floating dock) ───────────────── */}
       <TouchableOpacity
-        style={[styles.createFab, { backgroundColor: primary, bottom: (insets.bottom || 0) + 20 }]}
+        style={[styles.createFab, { backgroundColor: primary, bottom: Math.max((insets.bottom || 0) + 76, 86) }]}
         onPress={() => {
           safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
           user ? setPostModalVisible(true) : onAuthRequired();
@@ -3123,8 +3115,8 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 12, paddingLeft: 6, height: '100%' },
 
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  iconBtn: { padding: 8, borderRadius: 20 },
-  postIconBtn: { padding: 6, borderRadius: 12, borderWidth: 1 },
+  iconBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  postIconBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#00f2ff', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   bellDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: '#000' },
 
   // Categories
