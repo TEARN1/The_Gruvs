@@ -8,7 +8,7 @@ import {
   TouchableOpacity, Text, View, StyleSheet, Modal,
   Switch, Platform, ActivityIndicator,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';

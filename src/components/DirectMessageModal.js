@@ -14,7 +14,7 @@ import { VibeCardBubble } from './VibeCardBubble';
 import { Video } from 'expo-av';
 import { useCall } from '../context/CallContext';
 import { SignedImage } from './SignedImage';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
@@ -29,6 +29,7 @@ import { useDraft } from '../hooks/useDraft';
 import { transform } from '../utils/writingStyles';
 import { useToast } from '../components/ToastNotification';
 import { LocationService } from '../services/locationService';
+import { EventMapView } from './EventMapView';
 import { uploadToStorage } from '../services/storageService';
 import { useBackClose } from '../hooks/useBackClose';
 import { money, priceLabel } from '../constants/currencies';
@@ -113,7 +114,7 @@ const RequestBanner = ({ sender, onAccept, onDecline, primary, textColor, muted 
         <Feather name="user" size={22} color={primary} />
       </View>
     }
-    <Text style={[rb.name, { color: textColor }]}>@{sender?.username || 'Viber'} wants to link up</Text>
+    <Text style={[rb.name, { color: textColor }]}>{sender?.username || 'Viber'} wants to link up</Text>
     <Text style={[rb.sub, { color: muted }]}>Accept to reply and start the conversation.</Text>
     <View style={rb.actions}>
       <TouchableOpacity onPress={onDecline} style={[rb.btn, rb.declineBtn]}>
@@ -321,6 +322,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedMsgIds, setSelectedMsgIds] = useState(new Set());
   const [showShareModal, setShowShareModal] = useState(false);
+  const [mapVisible, setMapVisible] = useState(false);
+  const [mapTarget, setMapTarget] = useState(null);
+  const [userCoords, setUserCoords] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [sharingLoading, setSharingLoading] = useState(false);
 
@@ -340,20 +344,22 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     try {
       const selectedMsgs = messages.filter(m => selectedMsgIds.has(m.id));
       const formattedLines = selectedMsgs.map(m => {
-        const senderName = m.sender_id === user.id ? 'You' : `@${recipient.username}`;
+        const senderName = m.sender_id === user.id ? 'You' : `${recipient.username}`;
         return `> **${senderName}**: ${m.body || '[Media/Shared Event]'}`;
       }).join('\n');
 
-      const shareText = `🔒 Shared messages from chat with @${recipient.username}:\n${formattedLines}`;
+      const shareText = `🔒 Shared messages from chat with ${recipient.username}:\n${formattedLines}`;
 
       await MessageManager.send(user.id, targetPartner.id, shareText);
-      toast?.show(`Shared selected messages to @${targetPartner.username}!`, 'success');
+      // `toast?.show(...)` threw here: optional chaining guards a null property,
+      // not an undeclared binding. The hook is destructured as showToast (L250).
+      showToast(`Shared selected messages to ${targetPartner.username}!`, 'success');
       
       setIsMultiSelectMode(false);
       setSelectedMsgIds(new Set());
       setShowShareModal(false);
     } catch (e) {
-      toast?.show('Failed to share messages: ' + (e?.message || 'Unknown error'), 'error');
+      showToast('Failed to share messages: ' + (e?.message || 'Unknown error'), 'error');
     } finally {
       setSharingLoading(false);
     }
@@ -496,7 +502,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         setRequestStatus('accepted');
         supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', payload.new.id).catch(() => {});
         try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { }
-        SoundFX.play('messageReceived');
+        SoundFX.playChannel('dm'); // routes through the user's tone choice
       })
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'messages',
@@ -830,7 +836,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const handleDecline = () => {
     Alert.alert(
       'Decline & Block',
-      `Block messages from @${recipient?.username}? They won't know you blocked them.`,
+      `Block messages from ${recipient?.username}? They won't know you blocked them.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -1009,12 +1015,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 {item.message_type === 'location' && item.latitude && item.longitude ? (
                   <TouchableOpacity
                     onPress={() => {
-                      const url = Platform.select({
-                        ios: `http://maps.apple.com/?ll=${item.latitude},${item.longitude}`,
-                        android: `geo:${item.latitude},${item.longitude}?q=${item.latitude},${item.longitude}`,
-                        default: `https://www.google.com/maps?q=${item.latitude},${item.longitude}`,
+                      setMapTarget({
+                        title: 'Shared Location',
+                        venue_name: `${recipient?.username || 'Viber'}'s location`,
+                        lat: item.latitude,
+                        lon: item.longitude,
+                        category: 'wellness'
                       });
-                      if (url) Linking.openURL(url);
+                      LocationService.requestAndGet().then(setUserCoords).catch(() => {});
+                      setMapVisible(true);
                     }}
                     style={dm.locationBubble}
                   >
@@ -1161,7 +1170,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
               </View>
             }
             <View>
-              <Text style={[dm.headerName, { color: textColor }]}>@{recipient?.username || 'Viber'}</Text>
+              <Text style={[dm.headerName, { color: textColor }]}>{recipient?.username || 'Viber'}</Text>
               {isTyping
                 ? <Text style={[dm.headerSub, { color: primary }]}>typing...</Text>
                 : checkOnline(recipient)
@@ -1526,7 +1535,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                     <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${primary}15`, alignItems: 'center', justifyContent: 'center' }}>
                       <Feather name="user" size={16} color={primary} />
                     </View>
-                    <Text style={{ color: textColor, fontWeight: '800' }}>@{item.partner?.username}</Text>
+                    <Text style={{ color: textColor, fontWeight: '800' }}>{item.partner?.username}</Text>
                   </TouchableOpacity>
                 )}
               />
@@ -1534,6 +1543,17 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           </View>
         </View>
       </Modal>
+
+      {/* Internal Map Modal */}
+      {mapVisible && (
+        <EventMapView
+          visible={mapVisible}
+          onClose={() => setMapVisible(false)}
+          events={mapTarget ? [mapTarget] : []}
+          userCoords={userCoords}
+          onSelectEvent={() => setMapVisible(false)}
+        />
+      )}
     </>
   );
 

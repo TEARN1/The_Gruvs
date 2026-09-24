@@ -9,7 +9,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
   ActivityIndicator, Image, Platform, Vibration,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 
@@ -64,7 +64,7 @@ const ResultCard = ({ result, primary, onDismiss }) => {
       ) : null}
 
       <Text style={[rs.username, { color }]}>
-        {result.username ? `@${result.username}` : (ok ? 'Checked In' : 'Denied')}
+        {result.username ? `${result.username}` : (ok ? 'Checked In' : 'Denied')}
       </Text>
       <Text style={[rs.msg, { color: ok ? "#10b981" : "#ef4444" }]}>{result.msg}</Text>
 

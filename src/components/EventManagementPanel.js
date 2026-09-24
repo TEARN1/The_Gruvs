@@ -17,7 +17,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Alert, Platform, KeyboardAvoidingView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { getEventMgmtConfig, LineupManager, StageManager, SessionManager, VendorManager, HackTeamManager, LiveUpdatesManager } from '../services/eventManagementEngine';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';

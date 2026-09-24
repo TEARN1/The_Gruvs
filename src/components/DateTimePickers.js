@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, Platform,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useBackClose } from '../hooks/useBackClose';
 
 const SCREEN_W = Dimensions.get('window').width;

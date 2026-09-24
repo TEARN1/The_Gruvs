@@ -7,7 +7,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Animated, Platform,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 
 // ---------------------------------------------------------------------------
 // Tier config

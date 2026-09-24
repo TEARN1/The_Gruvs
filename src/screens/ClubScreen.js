@@ -19,7 +19,7 @@ import {
   Platform, RefreshControl,
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { ClubManager, MembershipManager, AwardManager } from '../services/clubEngine';
@@ -390,7 +390,7 @@ export const ClubScreen = ({ route, navigation, clubId: propClubId, onClose }) =
                 }
                 <View>
                   <Text style={[s.resultName, { color: textColor }]}>{u.display_name || u.username}</Text>
-                  <Text style={[s.resultUsername, { color: muted }]}>@{u.username}</Text>
+                  <Text style={[s.resultUsername, { color: muted }]}>{u.username}</Text>
                 </View>
                 <Feather name="user-plus" size={16} color={primary} style={{ marginLeft: 'auto' }} />
               </TouchableOpacity>

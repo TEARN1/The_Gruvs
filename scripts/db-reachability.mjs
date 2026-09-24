@@ -28,7 +28,10 @@
 const env = (...names) => { for (const n of names) if (process.env[n]) return process.env[n]; return null; };
 const URL_  = env('SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_URL');
 const KEY   = env('SUPABASE_ANON_KEY', 'EXPO_PUBLIC_SUPABASE_ANON_KEY');
-const STRICT = process.env.GUARDIAN_STRICT === '1' || process.env.GITHUB_EVENT_NAME === 'schedule';
+// Matches the convention main already uses in audit-schema.mjs: CI is set on
+// every GitHub Actions run, so a blindfolded sensor fails there and only skips
+// quietly for a local run. GUARDIAN_STRICT is kept for testing it by hand.
+const STRICT = process.env.CI === 'true' || process.env.CI === '1' || process.env.GUARDIAN_STRICT === '1';
 
 function fail(state, message, remedy) {
   console.log(`\n🔴 DATABASE ${state}\n`);

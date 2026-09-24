@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, Animated, KeyboardAvoidingView,
@@ -10,6 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { APP_WEB_URL } from '../constants/appUrl';
 import { resilient } from '../utils/resilience';
+import { logError } from '../utils/logError';
 import { SecurityService } from '../services/securityService';
 import { track } from '../utils/analytics';
 import { useToast } from './ToastNotification';
@@ -231,6 +233,29 @@ export const AuthModal = ({ visible, onClose }) => {
     );
   };
 
+  // Google/Facebook — same Supabase Auth project as email sign-in, so a user
+  // who arrives this way lands on the exact account UserManager.ensureProfile
+  // already auto-creates for every new auth.uid() (AuthContext.js), and
+  // BirthDateNudge already handles the "no DOB yet" case post-signin. No
+  // separate signup path needed; this is purely an alternate front door.
+  const handleOAuth = async (provider) => {
+    if (Platform.OS !== 'web') {
+      setError('Google/Facebook sign-in is available on thegruvs.com for now — use email above on the app.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      const redirectTo = typeof window !== 'undefined' ? window.location.origin : APP_WEB_URL;
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
+      if (oauthError) { setError(oauthError.message); setLoading(false); }
+      // On success the browser navigates away to the provider — nothing else to do.
+    } catch (e) {
+      setError(e?.message || 'Could not start sign-in — try again.');
+      setLoading(false);
+    }
+  };
+
   const handleSignIn = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password.trim()) {
@@ -315,8 +340,9 @@ export const AuthModal = ({ visible, onClose }) => {
     // per-event age_restriction still applies on top for e.g. 21+ events.
     let birthDateStr = null;
     if (isNaN(year) || isNaN(month) || isNaN(day)) {
-      setError('Please enter your birthday — day, month and year.');
+      setError('One quick thing — tap your birthday to finish (The Gruvs is 18+).');
       setSignupStep(2);
+      setDobPickerOpen(true); // open the picker right where they need it — no hunting
       return;
     }
     if (year < 1920 || year > currentYear - 18 || month < 1 || month > 12 || day < 1 || day > 31) {
@@ -377,22 +403,41 @@ export const AuthModal = ({ visible, onClose }) => {
     }
     if (!data) return;
     if (data.user) {
-      SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_SUCCESS');
-      track('signup', { hasCity: !!city.trim(), interests: selectedInterests.length });
+      // NOTE ON ORDERING — this is the bug that hid a 49-day outage.
+      // AUTH_SIGNUP_SUCCESS and track('signup') used to fire HERE, before the
+      // profile write below. When building the payload threw a ReferenceError
+      // (2026-07-17 → 2026-09-04), every one of those failed signups was still
+      // recorded as a SUCCESS in both the security log and analytics. The
+      // dashboards said the funnel was healthy the entire time it was dead.
+      //
+      // A success event must never be emitted before the work it claims to
+      // describe has actually completed. Both now fire only after the profile
+      // row is confirmed written — see the .then() below.
       const profilePayload = {
         id: data.user.id,
         username: username.trim(),
         display_name: displayName.trim() || username.trim(),
         city: city.trim() || null,
         gender: gender || null,
-        birth_year: (anyBirth && !isNaN(year)) ? year : null,
+        // `year` is guaranteed a valid number here: every path above returns
+        // early if the birthday is missing, unparseable, not a real date, or
+        // under 18. This used to read `anyBirth && !isNaN(year)`, left over from
+        // when the birthday was optional — but `anyBirth` no longer existed, so
+        // building this payload threw a ReferenceError on EVERY signup, before
+        // resilient() could run. The auth user was created, the profile row
+        // never was, and the user was never signed in. That is why no account
+        // has a birth_date.
+        birth_year: year,
         birth_date: birthDateStr,
         interests: selectedInterests,
         vibe_score: 0,
         is_discoverable: true,
         wants_email: wantsEmail,
-        email_confirmed: false,
-        confirm_later: true,
+        // NOTE: every key here must exist on `profiles`. PostgREST rejects the
+        // WHOLE row if one column is unknown, so a single stale field silently
+        // discards the entire signup. `email_confirmed` and `confirm_later` were
+        // exactly that — never migrated, read by nothing, and they cost every
+        // user their city, gender, interests and date of birth.
       };
       resilient(
         [
@@ -401,7 +446,26 @@ export const AuthModal = ({ visible, onClose }) => {
           () => supabase.rpc('create_user_profile', { p_payload: profilePayload }),
         ],
         { attemptsPerTier: 3, baseMs: 500, label: `AuthModal.createProfile:${data.user.id}`, fallbackValue: null }
-      ).then(() => {});
+      ).then((res) => {
+        // A signup that saves nothing must not look like a success. All three
+        // tiers returning the fallback means the profile is empty — the age gate
+        // has no date of birth to check, so this has to be visible, not swallowed.
+        if (res == null) {
+          logError('AuthModal.createProfile:allTiersFailed', new Error('profile payload rejected'), {
+            userId: data.user.id,
+          });
+          SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_PROFILE_FAILED');
+          return;
+        }
+        // Only now is the account actually usable, so only now is it a success.
+        SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_SUCCESS');
+        track('signup', { hasCity: !!city.trim(), interests: selectedInterests.length });
+      }).catch((e) => {
+        // A throw between here and the write (the exact 2026-07-17 failure mode)
+        // must be recorded as a failure, not silently produce no event at all.
+        logError('AuthModal.createProfile:threw', e, { userId: data.user.id });
+        SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_PROFILE_FAILED');
+      });
     }
 
     // Signing up should log you straight in. signUp only returns a session when
@@ -418,60 +482,40 @@ export const AuthModal = ({ visible, onClose }) => {
 
     setSignupSuccessFx(Date.now());
 
-    // With a session we're already authenticated — drop the user straight into
-    // the app. Closing fast is the whole point: the auth-state change re-renders
-    // App into the main experience the instant the modal is gone.
+    // Drop the user STRAIGHT into the app the instant we have a session — no
+    // countdown, no waiting, no email round-trip. Closing the modal re-renders
+    // App into the main experience immediately.
+    //
+    // We deliberately do NOT fire our own signInWithOtp here anymore: Supabase
+    // rate-limits it (~1/min) and returns "you can only request this after N
+    // seconds" — which is exactly the countdown users were seeing. If the project
+    // enforces "Confirm email", Supabase already sent its OWN confirmation mail on
+    // signUp; we don't double-send.
     if (hasSession) {
       handleClose();
-      // With "Confirm email" disabled Supabase sends nothing on signup, so we
-      // send the verification link ourselves. But Supabase's built-in mailer is
-      // rate-limited (free tier is a few emails/hour), so this often bounces
-      // with "email rate limit exceeded". NEVER promise a verification email
-      // that didn't actually leave — when the send fails, just welcome them and
-      // stay silent about email. The account works either way; verification is
-      // optional convenience, not a gate.
-      supabase.auth
-        .signInWithOtp({
-          email: email.trim(),
-          options: { shouldCreateUser: false, emailRedirectTo: APP_WEB_URL },
-        })
-        .then(({ error }) => {
-          toast?.show(
-            error
-              ? 'Welcome to The Gruvs! 🎉'
-              : 'Welcome to The Gruvs! 🎉 We sent a verification email — confirm whenever you\'re ready.',
-            'success'
-          );
-        })
-        .catch(() => toast?.show('Welcome to The Gruvs! 🎉', 'success'));
+      toast?.show('Welcome to The Gruvs! 🎉', 'success');
     } else {
-      // No session means the project enforces "Confirm email". If our own mailer
-      // is out of quota the user would be stranded, so only tell them to check
-      // their inbox when the confirmation mail actually sent.
-      const { error: otpErr } = await supabase.auth
-        .signInWithOtp({
-          email: email.trim(),
-          options: { shouldCreateUser: false, emailRedirectTo: APP_WEB_URL },
-        })
-        .catch(() => ({ error: true }));
-      setTimeout(() => {
-        handleClose();
-        toast?.show(
-          otpErr
-            ? 'Account created! Sign in with your email and password.'
-            : 'Account created! 📧 Check your inbox and confirm your email to sign in.',
-          'info'
-        );
-      }, 1200);
+      // No session = the project enforces email confirmation. The account exists;
+      // they just need to confirm via the mail Supabase already sent, then sign in.
+      handleClose();
+      toast?.show('Account created! Check your email to confirm, then sign in.', 'info');
     }
   };
 
   const reset = () => {
     setEmail(''); setPassword(''); setUsername(''); setDisplayName('');
-    setCity(''); setGender(''); setBirthYear(''); setSelectedInterests([]);
+    setCity(''); setGender(''); setSelectedInterests([]);
     setError(''); setSuccess(''); setMode('signin'); setShowPassword(false);
+    // Clear the whole birthday, not just the year: leaving the day and month
+    // behind put a previous person's partial DOB into the next signup on a
+    // shared device.
+    setBirthYear(''); setBirthMonth(''); setBirthDay('');
+    // `setConfirmLater(true)` used to sit here. The confirm_later state went away
+    // with the stale column of the same name (see the payload note above), but
+    // this call did not — so reset() threw a ReferenceError, and reset() runs
+    // from handleClose(), i.e. every time this modal closes.
+    setSignupStep(1);
     setUnconfirmedEmail(''); setResending(false);
-    setConfirmLater(true); setSignupStep(1);
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -559,6 +603,29 @@ export const AuthModal = ({ visible, onClose }) => {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Social sign-in — same account as email (one Supabase Auth project),
+                so this is just an alternate front door, not a separate flow. */}
+            {(mode === 'signin' || signupStep === 1) && (
+              <>
+                <View style={{ flexDirection: 'row', marginHorizontal: HM, marginBottom: 16 }}>
+                  {/* Google temporarily pulled — Supabase provider isn't configured yet. */}
+                  <TouchableOpacity
+                    onPress={() => handleOAuth('facebook')}
+                    disabled={loading || checkingName}
+                    style={[styles.oauthBtn, { borderColor: `${primary}30` }]}
+                  >
+                    <MaterialCommunityIcons name="facebook" size={16} color={textColor} />
+                    <Text style={[styles.oauthText, { color: textColor }]}>Facebook</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: HM, marginBottom: 16, gap: 10 }}>
+                  <View style={{ flex: 1, height: 1, backgroundColor: `${primary}20` }} />
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: muted, letterSpacing: 1 }}>OR</Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: `${primary}20` }} />
+                </View>
+              </>
+            )}
 
             {/* Signup progress dots */}
             {mode === 'signup' && (
@@ -835,10 +902,12 @@ export const AuthModal = ({ visible, onClose }) => {
               }
             </TouchableOpacity>
 
-            {/* Step 2 is fully optional — one tap finishes either way */}
+            {/* Honest framing: birthday is the ONE required field (18+ gate) —
+                the old "everything optional" copy is what made CREATE ACCOUNT
+                feel broken when it blocked on a missing birthday. */}
             {mode === 'signup' && signupStep === 2 && (
               <Text style={[styles.sublabel, { color: muted, textAlign: 'center', marginBottom: 12 }]}>
-                Everything on this step is optional — tap CREATE ACCOUNT whenever you're ready.
+                Just your birthday is needed (18+). Name & city are optional — tap CREATE ACCOUNT when ready.
               </Text>
             )}
 
@@ -938,4 +1007,6 @@ const styles = StyleSheet.create({
   stepDotActive: { width: 28 },
   stepText: { fontSize: 11, fontWeight: '700', marginLeft: 6 },
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: HM, marginBottom: 14 },
+  oauthBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
+  oauthText: { fontSize: 13, fontWeight: '700' },
 });

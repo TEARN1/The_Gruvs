@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { SecurityService } from '../services/securityService';
 import { logError } from '../utils/logError';
 import { classify, RECOVERY_FOR_KIND, Recovery, FailureKind } from '../utils/failureClassifier';

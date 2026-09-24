@@ -5,7 +5,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { useBackClose } from '../hooks/useBackClose';
@@ -92,7 +92,7 @@ export const FollowListModal = ({ visible, onClose, userId, mode = 'followers', 
                         </View>
                       )}
                     </View>
-                    <Text style={[fl.handle, { color: muted }]} numberOfLines={1}>@{p.username || 'viber'}</Text>
+                    <Text style={[fl.handle, { color: muted }]} numberOfLines={1}>{p.username || 'viber'}</Text>
                   </View>
                   {Number(p.vibe_score) > 0 && (
                     <Text style={[fl.vibe, { color: primary }]}>⚡ {p.vibe_score}</Text>

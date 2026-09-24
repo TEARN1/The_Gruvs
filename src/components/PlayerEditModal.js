@@ -10,7 +10,7 @@ import {
   View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity,
   TextInput, Platform, KeyboardAvoidingView,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
 import { haptics } from '../utils/haptics';

@@ -12,7 +12,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { suggestNextStops, resolveClashes } from '../services/nightPlanner';

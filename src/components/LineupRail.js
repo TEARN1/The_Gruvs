@@ -6,7 +6,7 @@
  */
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from './GlassView';
 import { StatusDot } from './StatusDot';

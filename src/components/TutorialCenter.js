@@ -8,7 +8,7 @@ import {
   Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Animated, TextInput, Dimensions, Platform,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
 import { useTutorial, TUTORIALS, TUTORIAL_CATEGORIES } from '../context/TutorialContext';
 import { useTheme } from '../context/ThemeContext';

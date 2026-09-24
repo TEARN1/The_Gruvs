@@ -4,11 +4,12 @@ import {
   Image, ActivityIndicator, RefreshControl, Platform, Share,
   TextInput,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
-import { QRCheckInScanner } from './QRCheckInScanner';
+import { QRCheckInScanner } from './QRCheckInScanner';
+
 import { useBackClose } from '../hooks/useBackClose';
 
 const buildCSV = (rsvps) => {
@@ -172,11 +173,11 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
         return;
       }
       if (rsvp.status !== 'going') {
-        setCheckInResult({ ok: false, msg: `@${rsvp.profiles?.username} RSVP'd as "${rsvp.status}" — not confirmed going.` });
+        setCheckInResult({ ok: false, msg: `${rsvp.profiles?.username} RSVP'd as "${rsvp.status}" — not confirmed going.` });
         return;
       }
       if (checkedIn[rsvp.user_id]) {
-        setCheckInResult({ ok: false, msg: `@${rsvp.profiles?.username} is already checked in.`, username: rsvp.profiles?.username, avatar: rsvp.profiles?.avatar_url });
+        setCheckInResult({ ok: false, msg: `${rsvp.profiles?.username} is already checked in.`, username: rsvp.profiles?.username, avatar: rsvp.profiles?.avatar_url });
         return;
       }
       await resilient(
@@ -188,7 +189,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
         { attemptsPerTier: 2, baseMs: 300, label: `EventAdminPanel.checkIn:${rsvp.user_id}`, fallbackValue: null }
       );
       setCheckedIn(prev => ({ ...prev, [rsvp.user_id]: true }));
-      setCheckInResult({ ok: true, msg: `@${rsvp.profiles?.username} checked in!`, username: rsvp.profiles?.username, avatar: rsvp.profiles?.avatar_url });
+      setCheckInResult({ ok: true, msg: `${rsvp.profiles?.username} checked in!`, username: rsvp.profiles?.username, avatar: rsvp.profiles?.avatar_url });
       setCheckInQuery('');
     } finally {
       setCheckInLoading(false);
@@ -241,7 +242,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
         </View>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={[ad.nameText, { color: textColor }]}>
-            <Text style={{ color: primary }}>@{name}</Text>{' '}{message}
+            <Text style={{ color: primary }}>{name}</Text>{' '}{message}
           </Text>
           <Text style={[ad.timeText, { color: muted }]}>{formatAge(item.created_at)}</Text>
         </View>
@@ -418,7 +419,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                       </View>
                   }
                   <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={[ad.guestName, { color: textColor }]}>@{r.profiles?.username}</Text>
+                    <Text style={[ad.guestName, { color: textColor }]}>{r.profiles?.username}</Text>
                     <Text style={[ad.guestRef, { color: muted }]}>Ref: {(r.user_id || '').slice(0, 8).toUpperCase()}</Text>
                   </View>
                   {checkedIn[r.user_id]
@@ -455,7 +456,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                       </View>
                   }
                   <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={[ad.guestName, { color: textColor }]}>@{r.profiles?.username}</Text>
+                    <Text style={[ad.guestName, { color: textColor }]}>{r.profiles?.username}</Text>
                     <Text style={[ad.guestRef, { color: muted }]}>{formatAge(r.created_at)}</Text>
                   </View>
                   <View style={[ad.statusPill, {

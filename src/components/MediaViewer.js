@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Text, FlatList, TouchableOpacity, Dimensions, Animated, Platform } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { AutoPlayVideo } from './AutoPlayVideo';
 import { SmartImage } from './SmartImage';
 import { useAuth } from '../context/AuthContext';

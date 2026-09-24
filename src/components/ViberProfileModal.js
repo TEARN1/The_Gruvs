@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SmartImage } from './SmartImage';
 import { AvatarViewerModal } from './AvatarViewerModal';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
@@ -20,7 +20,11 @@ import { DirectMessageModal } from './DirectMessageModal';
 import { PlayerProfileModal } from './PlayerProfileModal';
 import { TalentEngine } from '../services/talentEngine';
 import { EditEventModal } from './EditEventModal';
-import { UserManager, PresenceManager, AuraService, isOnline as checkOnline } from '../services/dataFlow';
+import { UserManager, PresenceManager, AuraService, PeopleInterestManager, isOnline as checkOnline } from '../services/dataFlow';
+import { SoundFX } from '../services/soundFX';
+import * as Haptics from 'expo-haptics';
+import { isCallSupported } from '../services/webrtcCall';
+import { useCall } from '../context/CallContext';
 import { ReelsObservers } from '../services/reelsDataFlow';
 import { useToast } from './ToastNotification';
 import { ReportModal } from './ReportModal';
@@ -119,7 +123,7 @@ const UserListModal = ({ visible: v, onClose: oc, title, users, bg, primary, mut
                     </View>
                 }
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>@{u.username}</Text>
+                  <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>{u.username}</Text>
                   <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>{u.vibe_score || 0} pts</Text>
                 </View>
               </View>
@@ -171,6 +175,12 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const { currentTheme } = useTheme();
   const { user: currentUser } = useAuth();
   const toast = useToast();
+  const { startCall: startCallGlobal } = useCall();
+
+  const startCall = (video) => {
+    if (!profile) return;
+    startCallGlobal({ id: profile.id, username: profile.username, avatar_url: profile.avatar_url }, video);
+  };
 
   const [profile, setProfile] = useState(null);
   const [events, setEvents] = useState([]);
@@ -186,6 +196,10 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showAllGallery, setShowAllGallery] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
+  // Private + mutual only (people_interest.sql) — 'sent' just means WE sent
+  // it; it never reveals whether the other person already has too. Only
+  // 'matched' does, and at that point it's true for both people equally.
+  const [interestState, setInterestState] = useState(null); // null | 'sending' | 'sent' | 'matched'
   const [reportOpen, setReportOpen] = useState(false);
   const [playerId, setPlayerId] = useState(null);
   const [playerCardOpen, setPlayerCardOpen] = useState(false);
@@ -368,13 +382,13 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
           { blocker_id: currentUser.id, blocked_id: targetId },
           { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
         );
-        toast?.show(`@${profile?.username || 'user'} blocked — you won't see their content`, 'info');
+        toast?.show(`${profile?.username || 'user'} blocked — you won't see their content`, 'info');
         onClose?.();
       } catch {
         toast?.show('Could not block. Try again.', 'error');
       }
     };
-    const msg = `Block @${profile?.username || 'this user'}? You won't see each other's content and they can't message you.`;
+    const msg = `Block ${profile?.username || 'this user'}? You won't see each other's content and they can't message you.`;
     if (Platform.OS === 'web') {
       if (typeof window !== 'undefined' && window.confirm(msg)) doBlock();
     } else {
@@ -416,12 +430,41 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     }
   };
 
+  const handleExpressInterest = async () => {
+    if (!currentUser || interestState) return; // one tap, ever — see below
+    setInterestState('sending');
+    try {
+      const result = await PeopleInterestManager.expressInterest(targetId);
+      if (result === 'matched') {
+        setInterestState('matched');
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+        SoundFX.playChannel('match');
+        toast?.show("It's a match! Say hi 👋", 'success');
+      } else if (result === 'recorded') {
+        setInterestState('sent');
+        // Deliberately the SAME message whether or not this happens to
+        // complete a match on the other end — the caller finding out only
+        // via the 'matched' branch above is the whole privacy design.
+        toast?.show("Sent — you'll know if it's mutual.", 'info');
+      } else {
+        // 'refused' or 'error' look identical here on purpose: this must
+        // never let someone infer WHY (blocked, under-18, already sent,
+        // rate-limited) from the outside.
+        setInterestState(null);
+        toast?.show('Could not send that right now.', 'error');
+      }
+    } catch {
+      setInterestState(null);
+      toast?.show('Could not send that right now.', 'error');
+    }
+  };
+
   const handleShare = async () => {
     if (!profile) return;
     try {
       await Share.share({
-        message: `Check out @${profile.username || 'viber'}'s profile on The Gruvs!`,
-        title: `@${profile.username}'s Profile`,
+        message: `Check out ${profile.username || 'viber'}'s profile on The Gruvs!`,
+        title: `${profile.username}'s Profile`,
       });
     } catch (e) {
       console.warn('Share error:', e);
@@ -562,6 +605,47 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                       <Feather name="message-circle" size={16} color={primary} />
                     </TouchableOpacity>
 
+                    {/* Private + mutual only — see people_interest.sql. The
+                        button's own state only ever reflects what THIS
+                        viewer did; it can never reveal the other person's
+                        hidden state. */}
+                    <TouchableOpacity
+                      style={[s.msgBtn, {
+                        borderColor: interestState === 'matched' ? '#f5c518' : `${primary}40`,
+                        backgroundColor: interestState === 'matched' ? '#f5c51822' : 'transparent',
+                      }]}
+                      onPress={handleExpressInterest}
+                      disabled={interestState === 'sending' || interestState === 'sent' || interestState === 'matched'}
+                      accessibilityLabel={interestState === 'matched' ? "It's a match" : 'Express interest'}
+                    >
+                      {interestState === 'sending'
+                        ? <ActivityIndicator size="small" color={primary} />
+                        : <Feather
+                            name={interestState === 'matched' ? 'star' : interestState === 'sent' ? 'check' : 'heart'}
+                            size={16}
+                            color={interestState === 'matched' ? '#f5c518' : primary}
+                          />
+                      }
+                    </TouchableOpacity>
+
+                    {/* Quick Call Buttons — one-tap access */}
+                    {!isOwnProfile && isCallSupported() && (
+                      <>
+                        <TouchableOpacity
+                          style={[s.msgBtn, { borderColor: '#10b98160', backgroundColor: '#10b98115' }]}
+                          onPress={() => startCall(false)}
+                        >
+                          <Feather name="phone" size={15} color="#10b981" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[s.msgBtn, { borderColor: `${primary}60`, backgroundColor: `${primary}15` }]}
+                          onPress={() => startCall(true)}
+                        >
+                          <Feather name="video" size={15} color={primary} />
+                        </TouchableOpacity>
+                      </>
+                    )}
+
                     <TouchableOpacity
                       style={[s.msgBtn, { borderColor: '#ef444460' }]}
                       onPress={() => setReportOpen(true)}
@@ -581,7 +665,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
               {/* Name + rank */}
               <View style={s.nameSection}>
-                <Text style={[s.username, { color: textColor }]}>@{profile.username || 'viber'}</Text>
+                <Text style={[s.username, { color: textColor }]}>{profile.username || 'viber'}</Text>
                 {profile.display_name ? (
                   <Text style={[s.displayName, { color: muted }]}>{profile.display_name}</Text>
                 ) : null}

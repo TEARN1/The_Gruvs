@@ -6,7 +6,8 @@
  */
 
 import { supabase, isSupabaseEnabled } from './supabase';
-import { resilient, resilientRead, isSchemaMiss } from '../utils/resilience';
+import { loadSnapshot, configurePersistence, schedulePersist, wipeSnapshot } from './persistentCache';
+import { resilient, resilientRead, isSchemaMiss, withTimeout } from '../utils/resilience';
 import { sanitizeSearch } from '../utils/sanitize';
 import { logError } from '../utils/logError';
 import { log } from '../utils/log';
@@ -232,6 +233,9 @@ const CACHE_MAX_AGE = 1800000; // 30 min hard cap — stale entries evicted rega
 const cache = {
   set(key, value, ttl = CACHE_TTL) {
     CACHE[key] = { value, ts: Date.now(), ttl };
+    // Mirror to disk (debounced, allowlisted, fire-and-forget) so the NEXT cold
+    // open paints from the last known feed instead of waiting on the network.
+    schedulePersist();
   },
   get(key) {
     const entry = CACHE[key];
@@ -263,6 +267,32 @@ const cache = {
 // Run sweep every 10 minutes — harmless background cleanup
 if (typeof setInterval !== 'undefined' && process.env.NODE_ENV !== 'test') setInterval(() => cache.sweep(), 600000);
 
+/**
+ * Warm the in-memory cache from disk. Call once, as early as the signed-in user
+ * is known (see AuthContext) — that identity is what makes a personalized feed
+ * snapshot safe to reuse.
+ *
+ * Entries already in memory always win: a value fetched this session is by
+ * definition fresher than one restored from disk, so hydration must never
+ * clobber it. Restored entries keep their ORIGINAL timestamp, which means the
+ * existing TTL rules apply unchanged — `get()` still refuses anything stale and
+ * `getStale()` still enforces the 30-minute cap. A day-old snapshot therefore
+ * can't paint; it simply misses, exactly as today.
+ */
+export async function hydrateCacheFromDisk(userId = null) {
+  configurePersistence(userId, () => CACHE);
+  const entries = await loadSnapshot(userId);
+  if (!entries) return 0;
+  let restored = 0;
+  for (const [k, entry] of Object.entries(entries)) {
+    if (CACHE[k]) continue;
+    if (!entry || typeof entry.ts !== 'number') continue;
+    CACHE[k] = entry;
+    restored++;
+  }
+  return restored;
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REQUEST DEDUPLICATION  (in-flight promise sharing)
@@ -282,23 +312,17 @@ function dedupe(key, fn) {
 // ONLINE STATUS UTILS
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Consider a user "online" if last_seen within 5 minutes OR is_online flag is true.
-// This handles stale flags gracefully — if someone closed the app, last_seen decays.
+// last_seen is the SINGLE source of truth for "online". The is_online flag alone
+// can't be trusted: it's a boolean that only flips off if the app cleanly runs
+// its teardown, so a crash/closed-tab/lost-network leaves it stuck true forever —
+// which is exactly the "shows online when they're not" bug. So: no recent
+// heartbeat → offline, no matter what the flag says. The flag only widens the
+// freshness window slightly (a live app heartbeats every few minutes).
 export const isOnline = (profile) => {
-  if (!profile) return false;
-  if (profile.is_online === true) {
-    // Verify the flag isn't stale: if last_seen > 10 min ago despite flag, treat as offline
-    if (profile.last_seen) {
-      const minsAgo = (Date.now() - new Date(profile.last_seen).getTime()) / 60000;
-      if (minsAgo > 10) return false;
-    }
-    return true;
-  }
-  if (profile.last_seen) {
-    const minsAgo = (Date.now() - new Date(profile.last_seen).getTime()) / 60000;
-    return minsAgo <= 5;
-  }
-  return false;
+  if (!profile || !profile.last_seen) return false;
+  const minsAgo = (Date.now() - new Date(profile.last_seen).getTime()) / 60000;
+  if (!Number.isFinite(minsAgo) || minsAgo < 0) return false;
+  return profile.is_online === true ? minsAgo <= 5 : minsAgo <= 3;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1802,7 +1826,10 @@ export const NotificationManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const CheckInManager = {
   async touchDown(eventId, userId, coords = {}, opts = {}) {
-    if (SecurityService.isThrottled(`touchdown_${eventId}_${userId}`, 5000)) return true;
+    // A replay from the offline queue must never be swallowed by the throttle:
+    // it would report success without inserting, and the queue would then drop
+    // the record — losing the exact Touch Down the queue exists to protect.
+    if (!opts.replay && SecurityService.isThrottled(`touchdown_${eventId}_${userId}`, 5000)) return true;
     if (!isSupabaseEnabled) {
       FeedManager.invalidate(eventId);
       return true;
@@ -1817,7 +1844,10 @@ export const CheckInManager = {
         event_id: eventId,
         lat: coords.lat ?? null,
         lon: coords.lon ?? null,
-        checked_in_at: new Date().toISOString(),
+        // A queued check-in replays with the time it actually happened, not the
+        // time the network came back — otherwise a Touch Down at 11pm in a dead
+        // zone lands at 9am the next morning and the presence record is a lie.
+        checked_in_at: opts.checkedInAt || new Date().toISOString(),
       };
       const full = { ...core };
       if (opts.expiresAt) full.expires_at = opts.expiresAt;
@@ -2076,6 +2106,25 @@ export const DiscoveryManager = {
     }
   },
 
+  async getEventAttendees(eventId, limit = 10) {
+    if (!isSupabaseEnabled) return [];
+    const cacheKey = `event_attendees:${eventId}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const { data } = await supabase
+        .from('event_rsvps')
+        .select('user_id, profiles(id, username, avatar_url, vibe_score)')
+        .eq('event_id', eventId)
+        .eq('status', 'going')
+        .limit(limit);
+
+      const attendees = (data || []).map(r => r.profiles).filter(Boolean);
+      cache.set(cacheKey, attendees, 120000); // 2 min cache
+      return attendees;
+    } catch { return []; }
+  },
+
   // "Rising Vibers" — people being followed RIGHT NOW (7-day follow velocity),
   // not all-time fame. This was the genuinely-missing trending-people model:
   // every "trending" people rail used to fall back to vibe_score DESC, which
@@ -2108,6 +2157,39 @@ export const DiscoveryManager = {
       cache.set(cacheKey, ranked, 300000); // 5 min — it's a "this week" signal
       return ranked;
     } catch { return []; }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PEOPLE INTEREST — mutual interest, private + mutual only (people_interest.sql)
+//
+// All the actual logic — the anti-abuse checks, the mutual detection, the
+// privacy guarantee that a one-sided interest is never revealed to the other
+// person — lives entirely in express_interest() on the server. This is
+// deliberately a thin wrapper: the client never sees, and could not derive,
+// anything about someone else's hidden interest even by inspecting this code.
+// ─────────────────────────────────────────────────────────────────────────────
+export const PeopleInterestManager = {
+  /**
+   * @returns {'matched'|'recorded'|'refused'|'error'} — 'error' is this
+   * wrapper's own addition for a network/RPC failure; the RPC itself never
+   * distinguishes WHY a refusal happened (blocked, under-18, rate limit,
+   * self) in a way a caller could use to infer anything about the other
+   * person's account.
+   */
+  async expressInterest(toUserId, eventId = null) {
+    if (!toUserId) return 'refused';
+    try {
+      const { data, error } = await supabase.rpc('express_interest', {
+        p_to_user: toUserId,
+        p_event_id: eventId,
+      });
+      if (error) { logError('PeopleInterest.expressInterest', error, { code: error.code }); return 'error'; }
+      return data || 'refused';
+    } catch (e) {
+      logError('PeopleInterest.expressInterest', e);
+      return 'error';
+    }
   },
 };
 
@@ -2604,7 +2686,9 @@ export const MessageManager = {
     const stale = cache.getStale(cacheKey);
     const orFilter = `sender_id.eq.${userId},recipient_id.eq.${userId}`;
     try {
-      const { data, error } = await supabase
+      // Time-boxed: a stalled request must not hang the Chats tab forever — it
+      // rejects, we fall through to the lighter fallback / stale cache below.
+      const { data, error } = await withTimeout(supabase
         .from('messages')
         .select(`
           id, sender_id, recipient_id, body, created_at, read_at,
@@ -2615,7 +2699,7 @@ export const MessageManager = {
         .or(orFilter)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
-        .limit(500);
+        .limit(500), 12000, 'getConversations');
       if (error) throw error;
 
       const rows = data || [];
@@ -2644,12 +2728,12 @@ export const MessageManager = {
       // live table yet — which would make the WHOLE chats list vanish. Re-fetch
       // with only guaranteed columns and join partner profiles separately.
       try {
-        const { data, error } = await supabase
+        const { data, error } = await withTimeout(supabase
           .from('messages')
           .select('id, sender_id, recipient_id, body, created_at')
           .or(orFilter)
           .order('created_at', { ascending: false })
-          .limit(500);
+          .limit(500), 12000, 'getConversations.fallback');
         if (error) throw error;
         const rows = (data || []).filter(m => !m.deleted_at); // deleted_at may be absent → kept
         const seen = {};
@@ -2663,8 +2747,8 @@ export const MessageManager = {
           convos.push({ ...msg, partnerId });
         }
         if (partnerIds.length) {
-          const { data: profs } = await supabase
-            .from('profiles').select('id, username, avatar_url, is_online').in('id', partnerIds);
+          const { data: profs } = await withTimeout(supabase
+            .from('profiles').select('id, username, avatar_url, is_online').in('id', partnerIds), 12000, 'getConversations.profiles');
           const byId = Object.fromEntries((profs || []).map(p => [p.id, p]));
           for (const c of convos) c.partner = byId[c.partnerId] || null;
         }
@@ -3206,7 +3290,10 @@ export const PresenceManager = {
   // ── "I'm here" live presence beacon ──────────────────────────────────────
   // Broadcasts that the user is active RIGHT NOW at their location for a window
   // of time (default 60 min) so nearby vibers see them live. Auto-expires.
-  async activateBeacon(userId, coords = {}, minutes = 60) {
+  // `intent` — 'open' | 'crew' | 'music' | null. Purely informational (see
+  // beacon_intent.sql): what someone means by going live, not just that they
+  // are. Not an access-control gate; visibility is unchanged.
+  async activateBeacon(userId, coords = {}, minutes = 60, intent = null) {
     if (!userId) throw new Error('Sign in to go live.');
     const expires = new Date(Date.now() + minutes * 60 * 1000).toISOString();
     const payload = {
@@ -3215,12 +3302,15 @@ export const PresenceManager = {
       last_seen: new Date().toISOString(),
       beacon_expires_at: expires,
     };
+    if (intent) payload.beacon_intent = intent;
     if (coords?.lat != null && coords?.lon != null) { payload.lat = coords.lat; payload.lon = coords.lon; }
     const res = await resilient(
       [
         async () => { const { error } = await supabase.from('profiles').update(payload).eq('id', userId); if (error) throw error; return true; },
+        // Fallback for DBs without beacon_intent yet.
+        async () => { const { beacon_intent: _i, ...noIntent } = payload; const { error } = await supabase.from('profiles').update(noIntent).eq('id', userId); if (error) throw error; return true; },
         // Fallback for DBs without beacon_expires_at yet — still flips the beacon on.
-        async () => { const { beacon_expires_at: _x, ...core } = payload; const { error } = await supabase.from('profiles').update(core).eq('id', userId); if (error) throw error; return true; },
+        async () => { const { beacon_expires_at: _x, beacon_intent: _i2, ...core } = payload; const { error } = await supabase.from('profiles').update(core).eq('id', userId); if (error) throw error; return true; },
       ],
       { attemptsPerTier: 2, baseMs: 300, label: 'PresenceManager.activateBeacon', fallbackValue: null }
     );
@@ -3232,7 +3322,7 @@ export const PresenceManager = {
   async deactivateBeacon(userId) {
     if (!userId) return;
     try {
-      await supabase.from('profiles').update({ is_beacon_active: false, beacon_expires_at: null }).eq('id', userId);
+      await supabase.from('profiles').update({ is_beacon_active: false, beacon_expires_at: null, beacon_intent: null }).eq('id', userId);
     } catch {
       try { await supabase.from('profiles').update({ is_beacon_active: false }).eq('id', userId); } catch (e) { logError('Beacon.deactivate', e, { userId }); }
     }
@@ -3244,8 +3334,8 @@ export const PresenceManager = {
   // going live pings your MUTUALS (people you follow who follow you back —
   // a deliberate audience, never ambient broadcast) with where to pull up.
   // Truth Protocol: fires only on a real, user-initiated "go live".
-  async dropBeacon(userId, { coords = {}, minutes = 60, placeLabel = null } = {}) {
-    const expires = await this.activateBeacon(userId, coords, minutes);
+  async dropBeacon(userId, { coords = {}, minutes = 60, placeLabel = null, intent = null } = {}) {
+    const expires = await this.activateBeacon(userId, coords, minutes, intent);
 
     // Fan out to mutuals — bounded, best-effort, never blocks going live.
     (async () => {
@@ -3416,6 +3506,9 @@ export const FollowingFeedManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const clearAllCache = () => {
   cache.clear();
+  // Sign-out must clear the DISK copy too, not just memory — otherwise the next
+  // account on this device could be handed the previous user's cached feed.
+  wipeSnapshot();
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

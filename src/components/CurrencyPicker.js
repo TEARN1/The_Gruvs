@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useCurrency } from '../context/CurrencyContext';
 import { CURRENCIES } from '../constants/currencies';
 

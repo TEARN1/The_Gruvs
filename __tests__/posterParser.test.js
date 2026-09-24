@@ -124,6 +124,18 @@ A massive Halaal food market`;
     expect(r.title).toBe('');
     expect(Object.keys(r.fields).length).toBe(0);
   });
+
+  it('rejects AI/prose garbage as a title or venue (never auto-fills a sentence)', () => {
+    const junk = 'Based on the official tour poster and official ticketing parameters, here is the operation\n' +
+                 'the center, supported by a full live band';
+    const r = parsePosterText(junk, NOW);
+    expect(r.title).toBe('');
+    expect(r.venue).toBe('');
+    expect(r.address).toBe('');
+    expect(r.fields.title).toBeUndefined();
+    // A normal short title is still accepted.
+    expect(parsePosterText('Amapiano Sunset\nKonka, Soweto', NOW).title).toBeTruthy();
+  });
 });
 
 describe('load-shedding power', () => {

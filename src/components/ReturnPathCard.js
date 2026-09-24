@@ -8,7 +8,7 @@ import {
   Image, Share, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 
 // ---------------------------------------------------------------------------
 // Helpers

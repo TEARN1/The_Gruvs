@@ -7,6 +7,7 @@
     "start": "expo start",
     "web": "expo start --web",
     "prebuild": "node scripts/check-bundle-health.js",
+    "lint": "eslint .",
     "build": "npx expo export --platform web && npm run postbuild",
     "postbuild": "node -e \"const fs=require('fs'),path=require('path');const src=path.join(__dirname,'public','.well-known');const dst=path.join(__dirname,'dist','.well-known');if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});fs.readdirSync(src).forEach(f=>fs.copyFileSync(path.join(src,f),path.join(dst,f)));console.log('Copied .well-known to dist/');}\" && node scripts/inject-pwa.js && node scripts/gen-sitemap.js",
     "test": "playwright test",
@@ -16,7 +17,7 @@
     "test:unit": "jest",
     "test:unit:watch": "jest --watch",
     "test:unit:coverage": "jest --coverage",
-    "preflight": "node scripts/pre-deploy-check.js && node scripts/audit-schema.mjs && node scripts/audit-writes.mjs && node scripts/audit-indexes.mjs",
+    "preflight": "node scripts/pre-deploy-check.js && node scripts/audit-schema.mjs && node scripts/audit-writes.mjs && node scripts/rpc-audit.js && node scripts/audit-indexes.mjs",
     "db:patch": "node scripts/apply-patch.js",
     "db:audit": "node scripts/db-audit.js",
     "deploy": "node scripts/pre-deploy-check.js && npm run build",
@@ -25,6 +26,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "audit:writes": "node scripts/audit-writes.mjs",
+    "audit:rpc": "node scripts/rpc-audit.js",
     "audit:indexes": "node scripts/audit-indexes.mjs",
     "audit:bounds": "node scripts/audit-query-bounds.mjs",
     "audit:contract": "node scripts/gen-db-contract.mjs",
@@ -49,8 +51,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@config-plugins/react-native-webrtc": "^10.0.0",
     "@expo/metro-runtime": "~4.0.1",
     "@expo/vector-icons": "~14.0.4",
+    "@maplibre/maplibre-react-native": "^10.4.2",
     "@opentelemetry/api": "^1.9.1",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@supabase/supabase-js": "^2.110.0",
@@ -85,11 +89,15 @@
     "react-native-svg": "15.8.0",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.19.10",
+    "react-native-webrtc": "^124.0.0",
     "typescript": "~5.3.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "@testing-library/react-native": "^13.3.3",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
     "pg": "^8.11.3",
     "react-test-renderer": "^18.2.0"
   }

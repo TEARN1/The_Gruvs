@@ -61,6 +61,7 @@ const head = `
     <meta name="apple-mobile-web-app-title" content="The Gruvs" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="The Gruvs" />
+    <meta name="google-site-verification" content="bPRhAOVtjTVgWbL5K-p0Y9L4qwQtw8Ja9y4enHRp_QA" />
     <link rel="canonical" href="${SITE}/" />
 
     <!-- Open Graph — the card shown when the link is shared on WhatsApp / IG / FB -->

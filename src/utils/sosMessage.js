@@ -4,13 +4,19 @@
 // device's own messaging apps. Honest scope: this OPENS your messaging app
 // pre-addressed and pre-typed (assisted), it does not send silently. Pure.
 
-export function buildSosMessage({ fromName, lat, lon } = {}) {
+export function buildSosMessage({ fromName, lat, lon, venueName, batteryPct } = {}) {
   const who = fromName ? `${fromName} needs help` : 'I need help';
   const lines = [`🆘 ${who}.`];
-  if (Number.isFinite(lat) && Number.isFinite(lon)) {
-    lines.push(`📍 My location: https://maps.google.com/?q=${lat},${lon}`);
+  if (venueName) {
+    lines.push(`📍 Near/At: ${venueName}`);
   }
-  lines.push('Sent from The Gruvs.');
+  if (Number.isFinite(lat) && Number.isFinite(lon)) {
+    lines.push(`🗺️ Coordinates: https://maps.google.com/?q=${lat},${lon}`);
+  }
+  if (typeof batteryPct === 'number') {
+    lines.push(`🔋 Battery: ${Math.round(batteryPct)}%`);
+  }
+  lines.push('Sent via The Gruvs Emergency Safety Dispatch.');
   return lines.join('\n');
 }
 

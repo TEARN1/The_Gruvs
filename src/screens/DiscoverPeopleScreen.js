@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, RefreshControl, ScrollView, Animated, PanResponder, Dimensions } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
@@ -159,7 +159,7 @@ function ViberRow({ viber, primary, textColor, muted, bg, onPress, onMessage, is
       {/* Info */}
       <View style={{ flex: 1, gap: 2 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text style={[s.username, { color: textColor }]} numberOfLines={1}>@{viber.username}</Text>
+          <Text style={[s.username, { color: textColor }]} numberOfLines={1}>{viber.username}</Text>
           {viber.is_verified && <Feather name="check-circle" size={12} color={primary} />}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -433,7 +433,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
         { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
       );
       setBlockedIds(prev => new Set([...prev, viber.id]));
-      showToast(`@${viber.username} blocked`, 'info');
+      showToast(`${viber.username} blocked`, 'info');
     } catch {
       showToast('Could not block user. Try again.', 'error');
     }
@@ -628,7 +628,7 @@ export function DiscoverPeopleScreen({ onClose, onAuthRequired }) {
                               <Text style={{ color: '#fff', fontWeight: '900', fontSize: 15 }}>{(v.username || 'V')[0].toUpperCase()}</Text>
                             </View>
                         }
-                        <Text style={[s.suggestName, { color: textColor }]} numberOfLines={1}>@{v.username}</Text>
+                        <Text style={[s.suggestName, { color: textColor }]} numberOfLines={1}>{v.username}</Text>
                         <Text style={[s.suggestMutual, { color: muted }]}>{v.mutual_count} mutual{v.mutual_count !== 1 ? 's' : ''}</Text>
                         <TouchableOpacity
                           style={[s.suggestFollowBtn, { backgroundColor: followedIds.has(v.id) ? `${primary}20` : primary }]}

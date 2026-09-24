@@ -5,12 +5,9 @@
  * YouTube: YouTube Data API v3, API key only.
  *
  * Set these in your .env:
- *   EXPO_PUBLIC_SPOTIFY_CLIENT_ID   (public — safe in the bundle)
- *   EXPO_PUBLIC_YOUTUBE_API_KEY     (bundled — restrict by referrer/package + quota)
- *
- * The Spotify CLIENT SECRET is deliberately absent: it lives only as a Supabase
- * Edge Function secret (SPOTIFY_CLIENT_SECRET on 'spotify-token'). Never add it
- * as an EXPO_PUBLIC_* var — those are inlined into the public web/app bundle.
+ *   EXPO_PUBLIC_SPOTIFY_CLIENT_ID
+ *   EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET
+ *   EXPO_PUBLIC_YOUTUBE_API_KEY
  */
 
 import { supabase, isSupabaseEnabled } from './supabase';
@@ -19,7 +16,10 @@ import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 const SPOTIFY_SEARCH_URL = 'https://api.spotify.com/v1/search';
 const YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search';
 
-const SPOTIFY_ID     = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID     || '';
+// No SPOTIFY_ID here on purpose: the client id lives with the secret inside the
+// 'spotify-token' Edge Function, so nothing on the client needs it. It used to
+// be read from EXPO_PUBLIC_SPOTIFY_CLIENT_ID and referenced only by the broken
+// isSpotifyConfigured check below.
 const YOUTUBE_KEY    = process.env.EXPO_PUBLIC_YOUTUBE_API_KEY       || '';
 
 let _spotifyToken  = null;
@@ -136,10 +136,14 @@ export const MusicService = {
     }
   },
 
-  // The client never holds the Spotify secret — the token comes from the
-  // 'spotify-token' Edge Function, which needs a Supabase session. So "configured"
-  // means: we have the public client ID and Supabase is reachable.
-  isSpotifyConfigured: () => !!(SPOTIFY_ID && isSupabaseEnabled),
+  // Spotify is usable when the 'spotify-token' Edge Function can be reached —
+  // that function holds the client id AND secret server-side, and is the only
+  // path to a token (see getSpotifyToken).
+  //
+  // This used to read `SPOTIFY_ID && SPOTIFY_SECRET`, but SPOTIFY_SECRET was
+  // deliberately deleted by the security fix above, so calling this threw a
+  // ReferenceError — and EventPlaylistSection calls it on render.
+  isSpotifyConfigured: () => isSupabaseEnabled,
   isYouTubeConfigured: () => !!YOUTUBE_KEY,
 
   getOpenUrl(track) {

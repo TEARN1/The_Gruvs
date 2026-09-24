@@ -11,7 +11,7 @@ import {
   Animated, ActivityIndicator, Share, Alert, RefreshControl, AppState,
   useWindowDimensions, BackHandler, PanResponder,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode, Audio } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';
@@ -19,9 +19,11 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { logError } from '../utils/logError';
 import { supabase } from '../services/supabase';
+import { escapeLike } from '../utils/handleGuard';
 import { APP_WEB_URL } from '../constants/appUrl';
 import { resilient } from '../utils/resilience';
 import { haptics } from '../utils/haptics';
+import { VideoCache } from '../services/videoCache';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { CreateReelModal } from '../components/CreateReelModal';
@@ -418,7 +420,7 @@ const CommentsSheet = ({ visible, onClose, reel, primary, bg, textColor, muted, 
                         </View>
                     }
                     <View style={{ flex: 1 }}>
-                      <Text style={[cs.commentUser, { color: primary }]}>@{c.profiles?.username || 'Viber'}</Text>
+                      <Text style={[cs.commentUser, { color: primary }]}>{c.profiles?.username || 'Viber'}</Text>
                       <Text style={[cs.commentBody, { color: textColor }]}>{c.body}</Text>
                     </View>
                     {user && (
@@ -474,7 +476,7 @@ const cs = StyleSheet.create({
 });
 
 // ── Single Reel Item ──────────────────────────────────────────────────────────
-const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onManage, onOpenEvent, onBlocked, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
+const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onMention, onManage, onOpenEvent, onBlocked, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
   const videoRef = useRef(null);
   const lastTap = useRef(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
@@ -582,7 +584,17 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
       return <Text key={i} style={{ color: primary, fontWeight: '900' }} onPress={() => onHashtag?.(word)}>{word}</Text>;
     }
     if (word.startsWith('@')) {
-      return <Text key={i} style={{ color: "#60a5fa", fontWeight: '900' }}>{word}</Text>;
+      // These were styled link-blue with NO handler — they looked tappable and
+      // did nothing. Now they resolve the handle to a profile and open it.
+      return (
+        <Text
+          key={i}
+          style={{ color: "#60a5fa", fontWeight: '900' }}
+          onPress={() => onMention?.(word)}
+        >
+          {word}
+        </Text>
+      );
     }
     return <Text key={i} style={{ color: 'rgba(255,255,255,0.92)' }}>{word}</Text>;
   });
@@ -613,7 +625,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
       { text: 'Spam', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'spam' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
       { text: 'Inappropriate', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'inappropriate' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
       { text: 'Misleading', onPress: async () => { try { await supabase.from('reel_reports').upsert({ reel_id: reel.id, reporter_id: user?.id, reason: 'misleading' }, { onConflict: 'reel_id,reporter_id' }); Alert.alert('Thanks', 'Report submitted.'); } catch { Alert.alert('Error', 'Could not submit report. Try again.'); } } },
-      { text: `Block @${reel.profiles?.username || 'user'}`, style: 'destructive', onPress: async () => { try { await supabase.from('user_blocks').upsert({ blocker_id: user?.id, blocked_id: reel.user_id }, { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }); Alert.alert('Blocked', 'You will no longer see their content.'); onBlocked?.(); } catch { Alert.alert('Error', 'Could not block. Try again.'); } } },
+      { text: `Block ${reel.profiles?.username || 'user'}`, style: 'destructive', onPress: async () => { try { await supabase.from('user_blocks').upsert({ blocker_id: user?.id, blocked_id: reel.user_id }, { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }); Alert.alert('Blocked', 'You will no longer see their content.'); onBlocked?.(); } catch { Alert.alert('Error', 'Could not block. Try again.'); } } },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -682,7 +694,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
   const handleShare = async () => {
     const url = `${APP_WEB_URL}/?reel=${reel.id}`;
     try {
-      await Share.share({ message: `Check out @${reel.profiles?.username}'s reel on The Gruvs! ${url}`, url });
+      await Share.share({ message: `Check out ${reel.profiles?.username}'s reel on The Gruvs! ${url}`, url });
     } catch (err) {
       console.warn('Share error:', err);
     }
@@ -964,7 +976,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
         {!playerPref.cleanView && (
           <View style={ri.bottom}>
             <TouchableOpacity onPress={() => onProfile(author)} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={ri.username}>@{author.username || 'Viber'}</Text>
+              <Text style={ri.username}>{author.username || 'Viber'}</Text>
               {author.is_verified && <Feather name="check-circle" size={13} color={primary} />}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setCaptionExpanded(e => !e)} activeOpacity={0.9}>
@@ -980,7 +992,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
             <View style={ri.audioPill}>
               <Feather name="music" size={10} color="rgba(255,255,255,0.7)" />
               <Text style={ri.audioPillText} numberOfLines={1}>
-                {reel.sound_name || `original sound · @${author.username || 'Viber'}`}
+                {reel.sound_name || `original sound · ${author.username || 'Viber'}`}
               </Text>
             </View>
           </View>
@@ -1367,6 +1379,8 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
       setReels(data);
       setError(null);
+      // Pre-warm the top 3 clips immediately
+      VideoCache.prefetchBatch(data.slice(0, 3).map((r) => r.media_url));
 
       if (initialReelId && data.length) {
         const idx = data.findIndex(r => r.id === initialReelId);
@@ -1421,7 +1435,16 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   }, []);
 
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index ?? 0);
+    if (viewableItems.length > 0) {
+      const idx = viewableItems[0].index ?? 0;
+      setActiveIndex(idx);
+      // Pre-warm the next 2 videos in feed
+      const nextUrls = [
+        reelsRef.current?.[idx + 1]?.media_url,
+        reelsRef.current?.[idx + 2]?.media_url,
+      ].filter(Boolean);
+      VideoCache.prefetchBatch(nextUrls);
+    }
   }).current;
 
   const viewConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
@@ -1464,6 +1487,30 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     flatRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, []);
 
+  // A caption mention gives us a handle, but ViberProfileModal needs a row with
+  // an id — so resolve it first. Punctuation is stripped because "@thabo!" and
+  // "@thabo," are how mentions actually get typed.
+  const onMention = useCallback(async (raw) => {
+    const handle = String(raw || '').replace(/^@/, '').replace(/[^a-zA-Z0-9_.]+$/, '');
+    if (!handle) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .ilike('username', escapeLike(handle))
+        .limit(1)
+        .maybeSingle();
+      if (data?.id) {
+        setProfileTarget(data);
+        setProfileVisible(true);
+      } else {
+        toast?.show?.(`No viber called @${handle}`, 'info');
+      }
+    } catch {
+      toast?.show?.('Could not open that profile.', 'error');
+    }
+  }, [toast]);
+
   // Auto scroll to next reel on playback complete
   const handleVideoFinish = useCallback(() => {
     if (reels.length > 0 && activeIndex < reels.length - 1) {
@@ -1489,6 +1536,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       onProfile={onProfile}
       onMessage={onDmMessage}
       onHashtag={onHashtag}
+      onMention={onMention}
       onManage={onManage}
       onOpenEvent={() => item.event_id && onNavigateToEvent?.({ id: item.event_id, title: item.event_title })}
       onBlocked={() => setReels(prev => prev.filter(r => r.user_id !== item.user_id))}
@@ -1498,7 +1546,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       reelW={REEL_W}
       reelH={REEL_H}
     />
-  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag, onManage, onNavigateToEvent, playerPref, handleVideoFinish, REEL_W, REEL_H]);
+  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag, onMention, onManage, onNavigateToEvent, playerPref, handleVideoFinish, REEL_W, REEL_H]);
 
   if (loading) {
     return (

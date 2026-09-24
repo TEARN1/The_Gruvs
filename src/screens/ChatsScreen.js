@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, TextInput, BackHandler, Platform, Animated, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MessageManager, isOnline as checkOnline } from '../services/dataFlow';
@@ -41,7 +41,7 @@ const ConvoRow = React.memo(({ item, userId, primary, textColor, muted, surface,
   const unreadLabel = isUnread ? ', unread' : '';
   const previewLabel = isPending ? 'wants to link up' : (item.sender_id === userId ? `You: ${lastMsg}` : lastMsg);
   const timeLabel = item.created_at ? `, ${fmtAge(item.created_at)}` : '';
-  const rowLabel = `@${partner?.username || 'Unknown'}${unreadLabel}, ${previewLabel}${timeLabel}`;
+  const rowLabel = `${partner?.username || 'Unknown'}${unreadLabel}, ${previewLabel}${timeLabel}`;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;

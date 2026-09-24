@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, Platform, TextInput, ScrollView } from 'react-native';
 import { SmartImage } from './SmartImage';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
 import { isOnline as checkOnline, BlockManager } from '../services/dataFlow';
@@ -458,7 +458,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={[s.username, { color: textColor }]} numberOfLines={1}>@{item.username}</Text>
+                        <Text style={[s.username, { color: textColor }]} numberOfLines={1}>{item.username}</Text>
                         {item.is_verified && <Feather name="check-circle" size={11} color={primary} />}
                       </View>
                       {item.venue_name

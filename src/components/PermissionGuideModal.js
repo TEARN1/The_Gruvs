@@ -11,7 +11,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useBackClose } from '../hooks/useBackClose';
 import {

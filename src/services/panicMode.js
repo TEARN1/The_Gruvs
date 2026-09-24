@@ -23,6 +23,15 @@ export const PanicMode = {
     } catch { ok = false; }
     // Wipe live presence so they leave every "here now" list immediately.
     try { await supabase.from('live_checkins').delete().eq('user_id', userId); } catch { /* best-effort */ }
+    // Deep cache flush — remove stored location trails and recent sessions from local disk
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const sensitiveKeys = [
+        'gruvs_last_lat', 'gruvs_last_lng', 'gruvs_recent_places',
+        'gruvs_location_trail', 'gruvs_draft_post', 'gruvs_map_nudge_ts'
+      ];
+      await AsyncStorage.multiRemove(sensitiveKeys);
+    } catch (_) {}
     return { ok };
   },
 

@@ -9,7 +9,7 @@ import {
   Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet,
   TextInput, ActivityIndicator, Alert,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';

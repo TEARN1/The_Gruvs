@@ -19,7 +19,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   Animated, Easing, ScrollView,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 
 // ── Pulsing dot ────────────────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ const AvatarChip = ({ profile, color }) => {
             </Text>
           </View>
       }
-      <Text style={[lb.chipName, { color }]} numberOfLines={1}>@{profile?.username || '...'}</Text>
+      <Text style={[lb.chipName, { color }]} numberOfLines={1}>{profile?.username || '...'}</Text>
     </View>
   );
 };

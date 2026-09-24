@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Dimensions, Platform, Animated } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { GlassView } from '../components/GlassView';
@@ -13,7 +13,8 @@ import { TrustLedger } from '../services/trustLedger';
 import { ProviderSetupModal } from '../components/ProviderSetupModal';
 import { supabase } from '../services/supabase';
 import { useToast } from '../components/ToastNotification';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+
 import { useBackClose } from '../hooks/useBackClose';
 
 const { width: SW } = Dimensions.get('window');
@@ -221,7 +222,7 @@ export const ProviderDashboardScreen = ({ visible, onClose }) => {
               stats?.recentReviews.map((rev, i) => (
                 <GlassView key={i} style={s.reviewCard}>
                   <View style={s.reviewHeader}>
-                    <Text style={[s.reviewer, { color: primary }]}>@{rev.reviewer?.username}</Text>
+                    <Text style={[s.reviewer, { color: primary }]}>{rev.reviewer?.username}</Text>
                     <View style={s.starRating}>
                       {[1,2,3,4,5].map(n => (
                         <Feather key={n} name="star" size={10} color={n <= rev.rating ? "#FFD700" : muted} fill={n <= rev.rating ? "#FFD700" : "transparent"} />

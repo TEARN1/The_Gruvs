@@ -1,4 +1,4 @@
-import { enqueueCheckin, readCheckinQueue, removeCheckin } from '../src/utils/checkinQueue';
+import { enqueueCheckin, readCheckinQueue, removeCheckin, isStale } from '../src/utils/checkinQueue';
 
 const makeStore = () => {
   let m = {};
@@ -28,6 +28,25 @@ describe('checkinQueue — never lose a Touch Down offline', () => {
     await enqueueCheckin(s, { eventId: 'e2', userId: 'u1' });
     const left = await removeCheckin(s, 'e1', 'u1');
     expect(left.map((c) => c.eventId)).toEqual(['e2']);
+  });
+
+  it('carries identityMode + expiresAt so a ghost replays as a ghost', async () => {
+    const s = makeStore();
+    await enqueueCheckin(s, {
+      eventId: 'e1', userId: 'u1',
+      identityMode: 'ghost', expiresAt: '2026-09-01T23:59:59.000Z',
+    });
+    const [q] = await readCheckinQueue(s);
+    expect(q.identityMode).toBe('ghost');
+    expect(q.expiresAt).toBe('2026-09-01T23:59:59.000Z');
+  });
+
+  it('marks a check-in stale once the night is long over', () => {
+    const now = Date.now();
+    expect(isStale({ queuedAt: now - 60_000 }, now)).toBe(false);
+    expect(isStale({ queuedAt: now - 25 * 60 * 60 * 1000 }, now)).toBe(true);
+    // unknown age must never be discarded — that would destroy real presence data
+    expect(isStale({}, now)).toBe(false);
   });
 
   it('rejects garbage + is null-safe', async () => {

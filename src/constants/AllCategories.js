@@ -512,6 +512,38 @@ export const ALL_CATEGORIES = [
   cat('minecraft',      'Minecraft',        C.green,   'pickaxe', 'Gaming'),
   cat('cosplay_gaming', 'Gaming Cosplay',   C.fuchsia, 'drama-masks', 'Gaming'),
   cat('streamer',       'Streamer Meet',    C.purple,  'video', 'Gaming'),
+  // ── Game genres ──
+  cat('fps',            'FPS / Shooter',    C.red,     'pistol', 'Gaming'),
+  cat('moba',           'MOBA',             C.blue,    'sword-cross', 'Gaming'),
+  cat('battle_royale',  'Battle Royale',    C.orange,  'parachute', 'Gaming'),
+  cat('fighting_games', 'Fighting Games',   C.red,     'boxing-glove', 'Gaming'),
+  cat('racing_games',   'Racing / Sim',     C.cyan,    'car-sports', 'Gaming'),
+  cat('rpg_games',      'RPG',              C.violet,  'sword', 'Gaming'),
+  cat('mmo',            'MMO',              C.indigo,  'earth', 'Gaming'),
+  cat('sports_games',   'Sports Games',     C.green,   'soccer', 'Gaming'),
+  cat('strategy_games', 'Strategy / RTS',   C.amber,   'chess-king', 'Gaming'),
+  cat('auto_battler',   'Auto-Battler',     C.teal,    'robot', 'Gaming'),
+  cat('survival_games', 'Survival',         C.stone,   'campfire', 'Gaming'),
+  cat('sandbox_games',  'Sandbox',          C.lime,    'cube-outline', 'Gaming'),
+  cat('platformer',     'Platformer',       C.pink,    'run-fast', 'Gaming'),
+  // ── Popular titles ──
+  cat('ea_fc',          'EA FC / FIFA',     C.green,   'soccer', 'Gaming'),
+  cat('call_of_duty',   'Call of Duty',     C.slate,   'pistol', 'Gaming'),
+  cat('fortnite',       'Fortnite',         C.purple,  'parachute', 'Gaming'),
+  cat('valorant',       'Valorant',         C.red,     'pistol', 'Gaming'),
+  cat('apex',           'Apex Legends',     C.red,     'pistol', 'Gaming'),
+  cat('pubg',           'PUBG',             C.amber,   'parachute', 'Gaming'),
+  cat('dota2',          'Dota 2',           C.red,     'sword-cross', 'Gaming'),
+  cat('lol',            'League of Legends',C.blue,    'sword-cross', 'Gaming'),
+  cat('cs2',            'CS2',              C.orange,  'pistol', 'Gaming'),
+  cat('overwatch',      'Overwatch',        C.orange,  'pistol', 'Gaming'),
+  cat('rocket_league',  'Rocket League',    C.sky,     'car-sports', 'Gaming'),
+  cat('tekken',         'Tekken',           C.violet,  'boxing-glove', 'Gaming'),
+  cat('street_fighter', 'Street Fighter',   C.red,     'boxing-glove', 'Gaming'),
+  cat('mortal_kombat',  'Mortal Kombat',    C.amber,   'boxing-glove', 'Gaming'),
+  cat('gta_online',     'GTA Online',       C.green,   'car', 'Gaming'),
+  cat('mobile_legends', 'Mobile Legends',   C.blue,    'cellphone', 'Gaming'),
+  cat('free_fire',      'Free Fire',        C.orange,  'parachute', 'Gaming'),
 
   // ── SOCIAL & COMMUNITY ──────────────────────────────────────────────────────
   cat('social',         'Social',           C.pink,    'account-group', 'Social'),
@@ -741,6 +773,13 @@ export const ALL_CATEGORIES_MAP = Object.fromEntries(
 
 // Unique group names
 export const CATEGORY_GROUPS = [...new Set(ALL_CATEGORIES.map(c => c.group))];
+
+// Every category key in the Gaming group — the single source of truth for
+// "is this a game?" so scoreboard gating (EventDetailScreen._isSportCat) and the
+// esports sport_type default can't drift from the registry as titles are added.
+export const GAMING_KEYS = new Set(
+  ALL_CATEGORIES.filter(c => c.group === 'Gaming').map(c => c.key)
+);
 
 export const searchCategories = (query) => {
   if (!query.trim()) return ALL_CATEGORIES;

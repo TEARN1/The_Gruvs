@@ -22,9 +22,15 @@ export const HIDDEN_TABS = LAUNCH_MINIMAL ? ['reels'] : [];
 // only their entry points are hidden. Flip any flag to true to bring it back
 // instantly (or set LAUNCH_MINIMAL = false to restore the whole app).
 export const FEATURES = LAUNCH_MINIMAL ? {
-  reelsRail:    false, // the Reels strip on The Drop (Reels tab already hidden)
+  reelsRail:    true,  // the Reels strip on The Drop — video discovery live
   business:     true,  // Business dashboard + Store builder + campaigns — un-parked (founder wants it visible)
   gifting:      false, // creator gifting economy (regulated fintech — build last)
+  // Cashing out earned diamonds to ZAR. Separate from `gifting` on purpose:
+  // sending a gift is an internal XP transfer (safe); cashing out is a real
+  // fiat promise with no funded payout rail behind it yet. Do NOT fold this
+  // into `gifting` — flipping that on to allow normal gift-sending must not
+  // silently re-enable an unfunded cashout. False in BOTH branches below.
+  cashout:      false,
   pathMap:      false, // Path Map — needs crowd density to feel alive
   crossedPaths: false, // Crossed Paths — needs density
   stories:      true,  // kept — cheap, familiar, low-risk
@@ -35,12 +41,18 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   // live; the section still self-disables on any missing-table response, so
   // this is safe even before listings are seeded (renders nothing until then).
   accommodation: true,
-  // The Living Map (Phase 1) — a real street map with event pins and host-drawn
-  // impact zones (road closures). map_zones schema is LIVE (map_zones.sql). ON
-  // so the new Map tab shows; flip to false to hide the tab + entry points.
+  // The Living Map — a real street map (MapLibre, native + web, viewport-
+  // loaded), event pins, live crowd-flow layers, host-drawn impact zones.
+  // Un-parked 2026-08-30: the map was the app's most differentiated surface
+  // and was completely unreachable — this flag is its ONLY entry point
+  // (App.js's standalone 'map' tab is gated on nothing else). The comment
+  // this replaced claimed the tab was "merged into Path Map" — that was
+  // stale; App.js has always kept both the standalone tab (gated on this
+  // flag) and the separate Path Map modal (gated on `pathMap`, still off
+  // below — that one genuinely does need crowd density to feel alive).
   liveMap: true,
 } : {
-  reelsRail: true, business: true, gifting: true,
+  reelsRail: true, business: true, gifting: true, cashout: false, // still no payout rail — see the comment above
   pathMap: true, crossedPaths: true, stories: true,
   residentAlerts: true, // res_* schema live (2026-07-17)
   accommodation: true,  // res_* schema live (2026-07-17)

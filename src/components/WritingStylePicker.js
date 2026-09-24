@@ -7,7 +7,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { transform, stylesForGender } from '../utils/writingStyles';
 import { haptics } from '../utils/haptics';

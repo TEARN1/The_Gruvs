@@ -4,10 +4,11 @@ import {
   TouchableOpacity, ScrollView, ActivityIndicator,
   KeyboardAvoidingView, Platform, Switch
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../services/supabase';
+import { supabase } from '../services/supabase';
+
 import { useBackClose } from '../hooks/useBackClose';
 
 const SERVICE_TYPES = ['Bakkie', 'Muscle', 'Packing', 'Full Move', 'Photography', 'DJ', 'Equipment'];

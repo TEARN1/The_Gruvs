@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -23,6 +23,7 @@ import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityMana
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
 import { affiliateUrl } from '../utils/affiliate';
+import { directionsUrl } from '../utils/directions';
 import { checkEventAge } from '../utils/ageGate';
 import { DeviceCalendar, RichHaptics } from '../services/smartphoneFeatures';
 import { DirectMessageModal } from '../components/DirectMessageModal';
@@ -56,13 +57,16 @@ import { EventChatRoom }          from '../components/EventChatRoom';
 import { EventPollSection }       from '../components/EventPollSection';
 import { EventPlaylistSection }   from '../components/EventPlaylistSection';
 import { EventRoleManager }       from '../components/EventRoleManager';
+import { DoorPosterModal }        from '../components/DoorPosterModal';
 import { EventMomentsSection }    from '../components/EventMomentsSection';
 import { OrganizerDashboard }     from '../components/OrganizerDashboard';
 import { LiveEventBanner }        from '../components/LiveEventBanner';
 import { EventManagementPanel }   from '../components/EventManagementPanel';
+import { EventMapView }           from '../components/EventMapView';
 import { PosterInsightsPanel }     from '../components/PosterInsightsPanel';
 import { InviteByNameModal }      from '../components/InviteByNameModal';
 import { SportManagementPanel }   from '../components/SportManagementPanel';
+import { GAMING_KEYS }            from '../constants/AllCategories';
 import { EventGuestsModal }       from '../components/EventGuestsModal';
 import { ViberProfileModal }      from '../components/ViberProfileModal';
 import { CrossedPathsModal }      from '../components/CrossedPathsModal';
@@ -82,12 +86,19 @@ import { getTurnout } from '../services/turnout';
 import { BroadcastModal } from '../components/BroadcastModal';
 import { getHostReliability } from '../services/hostStats';
 import { lifecycleState } from '../utils/eventLifecycle';
+import { eventInstant } from '../utils/tz';
 import { DoorCheckInModal } from '../components/DoorCheckInModal';
 import { checkinVerdict, movementPlausible } from '../utils/checkinGuard';
 
+// Gaming events get a scoreboard too (esports engine), EXCEPT the purely social
+// gaming categories where a league table makes no sense.
+const _NON_SCORE_GAMING = new Set(['streamer', 'cosplay_gaming']);
 const _isSportCat = (cat) => {
   const SPORT_CATS = new Set(['sport','football','soccer','basketball','rugby','cricket','tennis','boxing','mma','athletics','swimming','cycling','golf','volleyball','netball','marathon','triathlon','crossfit','weightlifting','gymnastics','parkour','skateboarding','surfing','esports_sport','sportsday','charity_run','fun_run','judo','karate','taekwondo','bjj','muaythai','kickboxing']);
-  return SPORT_CATS.has(cat?.toLowerCase());
+  const c = cat?.toLowerCase();
+  if (!c) return false;
+  if (SPORT_CATS.has(c)) return true;
+  return GAMING_KEYS.has(c) && !_NON_SCORE_GAMING.has(c);
 };
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -182,15 +193,18 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [reportVisible, setReportVisible] = useState(false);
   const [crossedVisible, setCrossedVisible] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
+  const [userCoords, setUserCoords] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(null);
   const [weather, setWeather] = useState(null);
   const [calendarAdded, setCalendarAdded] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
   const [roleManagerVisible, setRoleManagerVisible] = useState(false);
+  const [doorPosterVisible, setDoorPosterVisible] = useState(false);
   const [inviteVisible, setInviteVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
+  const [mapVisible, setMapVisible] = useState(false);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [guestListBusy, setGuestListBusy] = useState(false);
   // What will ACTUALLY be in the room — RSVPs weighted by each person's real
@@ -291,6 +305,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       setGuestLikes(s => ({ ...s, [guestId]: prev })); // roll back — don't fake a save
     }
   }, [user, guestLikes, event?.id, onAuthRequired]);
+
+  useEffect(() => {
+    if (mapVisible) {
+      LocationService.requestAndGet().then(setUserCoords).catch(() => {});
+    }
+  }, [mapVisible]);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -655,9 +675,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   };
 
   const openMaps = () => {
-    if (!event?.venue_name) return;
-    const query = encodeURIComponent(event.venue_address || event.venue_name);
-    SecurityService.safeOpenURL(`https://maps.google.com/?q=${query}`);
+    const lat = event?.lat ?? event?.latitude;
+    const lon = event?.lon ?? event?.longitude;
+    if (lat != null && lon != null) {
+      const url = directionsUrl({ lat, lon, label: event.venue_name || event.title }, userCoords, Platform.OS);
+      if (url) {
+        Linking.openURL(url).catch(() => setMapVisible(true));
+        return;
+      }
+    }
+    setMapVisible(true);
   };
 
   const openTickets = () => {
@@ -721,22 +748,22 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         setCheckedIn(true);
         setCheckinFx(Date.now());
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
-        SoundFX.play('touchDown'); // the hero sound — the signature moment
+        SoundFX.playChannel('touchDown'); // the hero sound — the signature moment, tone-pickable
         track('touch_down', { eventId: event.id, category: event.category });
         showToast("Touched Down! Your footprint is lit. 🔥", 'success');
         // Reveal who you keep crossing paths with — but only where there's enough
         // density for it to be magic (parked at launch; see launchConfig).
         if (feature('crossedPaths')) setCrossedVisible(true);
-      } else if (await CheckinSync.queueIfOffline(event.id, user.id, privateCoords)) {
+      } else if (await CheckinSync.queueFailed(event.id, user.id, privateCoords, { expiresAt: checkinExpiry, identityMode })) {
         setCheckedIn(true);
-        showToast("You're offline — we'll log your Touch Down the moment you're back. 📍", 'info');
+        showToast("Bad signal — we'll log your Touch Down the moment you're back. 📍", 'info');
       } else {
         showToast('Touch Down failed. Try again.', 'error');
       }
     } catch {
-      if (await CheckinSync.queueIfOffline(event.id, user.id, {})) {
+      if (await CheckinSync.queueFailed(event.id, user.id, {}, { identityMode })) {
         setCheckedIn(true);
-        showToast("You're offline — we'll log your Touch Down the moment you're back. 📍", 'info');
+        showToast("Bad signal — we'll log your Touch Down the moment you're back. 📍", 'info');
       } else {
         showToast('Touch Down failed. Try again.', 'error');
       }
@@ -897,7 +924,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               </TouchableOpacity>
             )}
 
-            {user && organizer?.id && user.id !== organizer.id && (
+            {/* Gifting is a regulated-fintech surface, parked by the Focus Cut.
+                This entry point was missing its flag check, so users could still
+                transact here. The server side holds regardless (process_gift is
+                auth.uid()-validated), but the flag must gate the button too. */}
+            {feature('gifting') && user && organizer?.id && user.id !== organizer.id && (
               <TouchableOpacity
                 style={[styles.messageOrganizerBtn, { borderColor: `${primary}50`, backgroundColor: `${primary}12`, marginLeft: 8 }]}
                 onPress={() => setGiftingOpen(true)}
@@ -1199,7 +1230,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 ))}
               </View>
               <Text style={{ color: textMuted, fontSize: 12, fontWeight: '700', flex: 1 }}>
-                {attendeePreview[0]?.username && `@${attendeePreview[0].username}`}
+                {attendeePreview[0]?.username && `${attendeePreview[0].username}`}
                 {attendeePreview.length > 1 && ` and ${goingCount - 1} others locked in`}
               </Text>
               <Feather name="chevron-right" size={14} color={primary} />
@@ -1560,8 +1591,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </SafeSection>
           )}
 
-          {/* Hackathon leaderboard — hackathon / competition events */}
-          {event?.id && ['hackathon', 'competition', 'dance', 'talent', 'gaming', 'esports'].includes(event?.category?.toLowerCase()) && (
+          {/* Submission-style leaderboard — hackathon / talent / dance events.
+              Gaming & esports are intentionally excluded: they use the sports
+              scoreboard (fixtures + league table via SportManagementPanel), so
+              showing a second, disconnected leaderboard here would confuse. */}
+          {event?.id && ['hackathon', 'competition', 'dance', 'talent'].includes(event?.category?.toLowerCase()) && (
             <SafeSection label="Leaderboard" primary={primary}>
               <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', paddingHorizontal: 16, marginBottom: 12 }}>
                 Leaderboard
@@ -1664,6 +1698,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <Text style={[styles.mgmtBtnText, { color: primary }]}>Invite My People</Text>
                 </TouchableOpacity>
               )}
+              <TouchableOpacity
+                style={[styles.mgmtBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}10` }]}
+                onPress={() => setDoorPosterVisible(true)}
+              >
+                <Feather name="printer" size={14} color={primary} />
+                <Text style={[styles.mgmtBtnText, { color: primary }]}>Door Sign</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.mgmtBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}10` }]}
                 onPress={() => setChatVisible(true)}
@@ -1822,6 +1863,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           </SafeSection>
         )}
 
+        {(isOrganiser || isCoHost) && event?.id && (
+          <DoorPosterModal
+            visible={doorPosterVisible}
+            onClose={() => setDoorPosterVisible(false)}
+            event={event}
+            hostRefCode={profile?.referral_code}
+            primary={primary}
+          />
+        )}
+
         {isOrganiser && event?.id && (
           <InviteByNameModal
             visible={inviteVisible}
@@ -1895,7 +1946,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                       </View>
                     }
                     <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={[{ color: textColor, fontWeight: '700', fontSize: 14 }]}>@{p.username}</Text>
+                      <Text style={[{ color: textColor, fontWeight: '700', fontSize: 14 }]}>{p.username}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
                         <Text style={[{ color: primary, fontSize: 11, fontWeight: '600' }]}>⚡ {p.vibe_score || 0} pts</Text>
                         {p.social_integrity_score != null && (
@@ -1928,6 +1979,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           onGiftSent={(gift) => {
             console.log('Gift sent successfully:', gift);
           }}
+        />
+      )}
+
+      {/* Internal Map Modal */}
+      {mapVisible && (
+        <EventMapView
+          visible={mapVisible}
+          onClose={() => setMapVisible(false)}
+          events={[event]}
+          userCoords={userCoords}
+          onSelectEvent={() => setMapVisible(false)}
         />
       )}
     </Modal>

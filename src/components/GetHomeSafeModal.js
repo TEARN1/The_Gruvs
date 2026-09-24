@@ -15,7 +15,7 @@ import {
   Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
@@ -178,7 +178,7 @@ export function GetHomeSafeModal({ visible, onClose }) {
                         {p.avatar_url
                           ? <SmartImage source={p.avatar_url} style={s.personAvatar} />
                           : <View style={[s.personAvatar, { backgroundColor: `${primary}22` }]} />}
-                        <Text style={[s.personName, { color: on ? primary : textColor }]} numberOfLines={1}>@{p.username}</Text>
+                        <Text style={[s.personName, { color: on ? primary : textColor }]} numberOfLines={1}>{p.username}</Text>
                         {on && <Feather name="check" size={13} color={primary} />}
                       </TouchableOpacity>
                     );

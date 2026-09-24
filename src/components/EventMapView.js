@@ -1,7 +1,9 @@
 /**
  * EventMapView — 100% self-built, zero cost, zero API keys.
  * Renders event coordinates as positioned pins on a canvas-style View.
- * Uses Linking to open directions in the device's native maps app (free).
+ * Note: this view does NOT offer directions — the header used to claim it opened
+ * the device's maps app, but no such code existed. Directions live on the map
+ * pin preview (MapEventPreview → utils/directions).
  * No react-native-maps. No Google Maps API. No billing.
  */
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -11,11 +13,11 @@ import {
 } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { useBackClose } from '../hooks/useBackClose';
-import { SecurityService } from '../services/securityService';
+import { LiveMap, isMapSupported } from './LiveMap';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const MAP_H = SH * 0.55;
@@ -28,16 +30,6 @@ const CATEGORY_EMOJI = {
   outdoor: '🌿', film: '🎬',
 };
 const emoji = (cat) => CATEGORY_EMOJI[cat?.toLowerCase()] ?? '📍';
-
-const openDirections = (event) => {
-  const q = encodeURIComponent(event.venue_name || event.address || `${event.lat},${event.lon}`);
-  const url = Platform.OS === 'ios'
-    ? `maps://?q=${q}`
-    : `geo:0,0?q=${q}`;
-  SecurityService.safeOpenURL(url).catch(() =>
-    SecurityService.safeOpenURL(`https://www.google.com/maps/search/?api=1&query=${q}`)
-  );
-};
 
 // Map lat/lon → pixel x/y within the MAP_W × MAP_H canvas
 const project = (lat, lon, minLat, maxLat, minLon, maxLon) => {
@@ -211,17 +203,10 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = fa
             })()}
             <View style={grid.calloutActions}>
               <TouchableOpacity
-                style={[grid.calloutBtn, { backgroundColor: selected.category_color || primaryColor }]}
+                style={[grid.calloutBtn, { backgroundColor: selected.category_color || primaryColor, width: '100%' }]}
                 onPress={() => onSelectEvent(selected)}
               >
-                <Text style={grid.calloutBtnText}>View</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={grid.calloutDirBtn}
-                onPress={() => openDirections(selected)}
-              >
-                <Feather name="navigation" size={12} color="#9ca3af" />
-                <Text style={grid.calloutDirText}>Directions</Text>
+                <Text style={grid.calloutBtnText}>View Details</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -355,14 +340,25 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-          {/* Self-built coordinate map */}
-          <MapGrid
-            events={geocodedEvents}
-            userCoords={userCoords}
-            primaryColor={primary}
-            onSelectEvent={handleSelect}
-            isRoute={isRoute}
-          />
+          {/* Map view: High-fidelity LiveMap if supported, else canvas fallback */}
+          {isMapSupported() ? (
+            <View style={{ height: MAP_H, width: MAP_W }}>
+              <LiveMap
+                events={geocodedEvents}
+                userLoc={userCoords}
+                primaryColor={primary}
+                onEventPress={handleSelect}
+              />
+            </View>
+          ) : (
+            <MapGrid
+              events={geocodedEvents}
+              userCoords={userCoords}
+              primaryColor={primary}
+              onSelectEvent={handleSelect}
+              isRoute={isRoute}
+            />
+          )}
 
           {/* Legend */}
           <View style={[s.legend, { borderColor: `${primary}15` }]}>
@@ -414,13 +410,9 @@ export const EventMapView = ({ events = [], userCoords, onSelectEvent, visible, 
                     )}
                   </View>
                 </View>
-                <TouchableOpacity
-                  style={s.dirBtn}
-                  onPress={() => openDirections(event)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Feather name="navigation" size={16} color={primary} />
-                </TouchableOpacity>
+                <View style={s.dirBtn}>
+                  <Feather name="chevron-right" size={20} color={primary} />
+                </View>
               </TouchableOpacity>
             );
           })}

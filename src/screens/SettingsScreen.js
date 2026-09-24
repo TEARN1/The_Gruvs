@@ -18,7 +18,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch,
   Platform, Linking, Alert, ActivityIndicator, TextInput,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
@@ -125,6 +125,18 @@ export const SettingsScreen = ({
     SoundFX.setEnabled(next); // plays a confirmation chime when turned on
     toast?.show(next ? 'Sound effects on 🔊' : 'Sound effects off', next ? 'success' : 'info');
   }, [toast]);
+
+  // Per-channel tone picker. SoundFX holds the actual state (persisted); this
+  // is just a re-render trigger so the row values reflect it after each tap.
+  const [toneTick, setToneTick] = useState(0);
+  useEffect(() => { SoundFX.init().then(() => setToneTick((t) => t + 1)); }, []);
+  const cycleChannelTone = useCallback(async (channelKey) => {
+    const names = SoundFX.availableSounds();
+    const current = SoundFX.getChannelSound(channelKey);
+    const next = names[(names.indexOf(current) + 1) % names.length];
+    await SoundFX.setChannelSound(channelKey, next); // also previews it
+    setToneTick((t) => t + 1);
+  }, []);
 
   // `wants_email` is NOT in AuthContext.PROFILE_FIELDS, so profile?.wants_email is
   // always undefined — the toggle showed "on" again after every reopen, which
@@ -364,7 +376,7 @@ export const SettingsScreen = ({
             <LinkRow icon="mail" label="Email" value={profile?.email || user?.email} primary={primary} muted={muted} textColor={textColor} />
           )}
           {!!profile?.username && (
-            <LinkRow icon="at-sign" label="Username" value={`@${profile.username}`} primary={primary} muted={muted} textColor={textColor} />
+            <LinkRow icon="at-sign" label="Username" value={`${profile.username}`} primary={primary} muted={muted} textColor={textColor} />
           )}
         </SectionCard>
 
@@ -462,6 +474,23 @@ export const SettingsScreen = ({
           <ToggleRow label="Sound effects" sub="Signature Gruvs sounds for messages, pings & Touch Downs"
             value={soundOn} onValueChange={toggleSound}
             primary={primary} muted={muted} textColor={textColor} />
+          {/* Per-channel tones. Tap a row to cycle to the next sound — it
+              previews immediately, so this doubles as a picker without a
+              separate modal. Hidden while sound is off entirely; there's
+              nothing to preview. */}
+          {soundOn && (
+            <View key={toneTick} style={{ marginTop: 4 }}>
+              {SoundFX.listChannels().map((c) => (
+                <LinkRow
+                  key={c.key}
+                  label={c.label}
+                  value={SoundFX.soundLabel(c.sound)}
+                  onPress={() => cycleChannelTone(c.key)}
+                  primary={primary} muted={muted} textColor={textColor}
+                />
+              ))}
+            </View>
+          )}
           {/* Consent to marketing email must be WITHDRAWABLE, not just opt-in at
               signup (POPIA s.11(2)). This is that off-switch. */}
           <ToggleRow label="Email me about new events & updates" sub="Marketing email — turn off any time"
@@ -551,8 +580,10 @@ export const SettingsScreen = ({
           </View>
         </SectionCard>
 
-        {/* ABOUT */}
-        <SectionCard icon="info" title="About & Support" primary={primary} muted={muted} textColor={textColor}>
+        {/* ABOUT & ECOSYSTEM */}
+        <SectionCard icon="info" title="About & Partners" primary={primary} muted={muted} textColor={textColor}>
+          <LinkRow icon="home" label="The Resident Crew" sub="Verified stays & accommodation" onPress={() => openUrl('https://theresidentcrew.com')} primary={primary} muted={muted} textColor={textColor} />
+          <LinkRow icon="cpu" label="TEARN's Excellence" sub="Engineering & Software Architecture" onPress={() => openUrl('https://github.com/TEARN1/TEARNs-Excellence')} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="file-text" label="Privacy policy" onPress={() => openUrl(PRIVACY_URL)} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="book-open" label="Terms of service" onPress={() => openUrl(TERMS_URL)} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="tag" label="Version" value={APP_VERSION} primary={primary} muted={muted} textColor={textColor} />

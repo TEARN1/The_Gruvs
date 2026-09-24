@@ -11,16 +11,21 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { MapZones, ZONE_KINDS } from '../services/mapZones';
-import { buildGeometry } from './LiveMap';
+import { buildGeometry } from '../utils/mapGeoJSON';
 
 const DURATIONS = [
-  { label: '2 hrs', hrs: 2 }, { label: '4 hrs', hrs: 4 },
-  { label: '8 hrs', hrs: 8 }, { label: 'All day', hrs: 14 },
+  { label: 'Now', hrs: 0 }, { label: 'In 1h', hrs: 1 },
+  { label: 'In 2h', hrs: 2 }, { label: 'In 4h', hrs: 4 },
+];
+
+const ACTIVE_FOR = [
+  { label: '2h', hrs: 2 }, { label: '4h', hrs: 4 },
+  { label: '8h', hrs: 8 }, { label: '14h', hrs: 14 },
 ];
 
 // Which kinds are drawn as a line vs an area — sets the draw mode.
@@ -36,9 +41,12 @@ export function ZoneDrawTool({
   const [myEvents, setMyEvents] = useState([]);
   const [eventId, setEventId] = useState(null);
   const [kind, setKind] = useState('road_closed');
-  const [hrs, setHrs] = useState(4);
+  const [startHrs, setStartHrs] = useState(0);
+  const [activeHrs, setActiveHrs] = useState(4);
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
+  const [detourPoints, setDetourPoints] = useState([]);
+  const [drawingDetour, setDrawingDetour] = useState(false);
 
   // The events you host that you can attach a closure to (upcoming, recent-past ok).
   useEffect(() => {
@@ -69,8 +77,8 @@ export function ZoneDrawTool({
     if (!geometry) { toast(`Tap at least ${minPoints} points on the map.`, 'error'); return; }
     setBusy(true);
     try {
-      const startsAt = new Date();
-      const endsAt = new Date(Date.now() + hrs * 3600 * 1000);
+      const startsAt = new Date(Date.now() + startHrs * 3600 * 1000);
+      const endsAt = new Date(startsAt.getTime() + activeHrs * 3600 * 1000);
       const zone = await MapZones.create({
         eventId, kind, geometry, startsAt, endsAt,
         label: label.trim() || ZONE_KINDS[kind]?.label,
@@ -80,7 +88,14 @@ export function ZoneDrawTool({
     } catch (e) {
       toast(e?.message || 'Could not publish that.', 'error');
     } finally { setBusy(false); }
-  }, [eventId, mode, points, hrs, kind, label, minPoints, toast, onPublished]);
+  // Was `hrs` — a variable that has never existed in this file (the real
+  // state is startHrs/activeHrs). A dependency array is EVALUATED, so this
+  // threw a ReferenceError the instant the component rendered — invisible
+  // while the map was parked, and the first thing real users hit the moment
+  // it wasn't. It also made `publish` stale forever: neither duration chip
+  // was ever in the deps, so a host picking "In 2h" would still publish
+  // whatever startHrs/activeHrs held at first render.
+  }, [eventId, mode, points, startHrs, activeHrs, kind, label, minPoints, toast, onPublished]);
 
   return (
     <View style={[s.sheet, { backgroundColor: bg, borderColor: `${primary}30` }]}>
@@ -139,14 +154,29 @@ export function ZoneDrawTool({
           </View>
 
           {/* Time window */}
-          <Text style={[s.lbl, { color: muted }]}>ACTIVE FOR</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {DURATIONS.map((d) => (
-              <TouchableOpacity key={d.hrs} onPress={() => setHrs(d.hrs)}
-                style={[s.durChip, { borderColor: hrs === d.hrs ? primary : `${primary}30`, backgroundColor: hrs === d.hrs ? `${primary}18` : 'transparent' }]}>
-                <Text style={{ color: hrs === d.hrs ? primary : textColor, fontSize: 12, fontWeight: '800' }}>{d.label}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={{ flexDirection: 'row', gap: 16 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.lbl, { color: muted }]}>STARTS</Text>
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                {DURATIONS.map((d) => (
+                  <TouchableOpacity key={d.hrs} onPress={() => setStartHrs(d.hrs)}
+                    style={[s.durChip, { flex: 1, borderColor: startHrs === d.hrs ? primary : `${primary}30`, backgroundColor: startHrs === d.hrs ? `${primary}18` : 'transparent' }]}>
+                    <Text style={{ color: startHrs === d.hrs ? primary : textColor, fontSize: 10, fontWeight: '800' }}>{d.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.lbl, { color: muted }]}>DURATION</Text>
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                {ACTIVE_FOR.map((d) => (
+                  <TouchableOpacity key={d.hrs} onPress={() => setActiveHrs(d.hrs)}
+                    style={[s.durChip, { flex: 1, borderColor: activeHrs === d.hrs ? primary : `${primary}30`, backgroundColor: activeHrs === d.hrs ? `${primary}18` : 'transparent' }]}>
+                    <Text style={{ color: activeHrs === d.hrs ? primary : textColor, fontSize: 10, fontWeight: '800' }}>{d.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
 
           {/* Optional label */}
@@ -155,6 +185,18 @@ export function ZoneDrawTool({
             placeholder="Add a note (optional) — e.g. 'stage build-down'" placeholderTextColor={muted}
             style={[s.input, { color: textColor, borderColor: `${primary}30` }]}
           />
+
+          {kind === 'road_closed' && (
+            <TouchableOpacity
+              onPress={() => setDrawingDetour(!drawingDetour)}
+              style={[s.detourBtn, { borderColor: drawingDetour ? primary : `${primary}30`, backgroundColor: drawingDetour ? `${primary}18` : 'transparent' }]}
+            >
+              <Feather name="corner-up-right" size={14} color={primary} />
+              <Text style={{ color: primary, fontSize: 12, fontWeight: '800' }}>
+                {detourPoints.length > 0 ? `Detour set (${detourPoints.length} pts)` : drawingDetour ? 'Tap map to draw detour' : 'Add suggested detour'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity onPress={publish} disabled={!canPublish}
             style={[s.publish, { backgroundColor: canPublish ? primary : `${primary}35` }]}>
@@ -178,8 +220,9 @@ const s = StyleSheet.create({
   kindChip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 7 },
   drawRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, padding: 10, marginTop: 6 },
   miniBtn: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)' },
-  durChip: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8 },
+  durChip: { borderWidth: 1, borderRadius: 14, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, marginTop: 4 },
   publish: { borderRadius: 24, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
   publishText: { color: '#000', fontWeight: '900', fontSize: 15 },
+  detourBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, borderRadius: 12, borderWidth: 1, marginTop: 4 },
 });

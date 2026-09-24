@@ -7,11 +7,12 @@ import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, ActivityIndicator, Platform, KeyboardAvoidingView
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
-import { TrustLedger } from '../services/trustLedger';
+import { TrustLedger } from '../services/trustLedger';
+
 import { useBackClose } from '../hooks/useBackClose';
 
 export const ReviewModal = ({ visible, onClose, booking, onReviewSubmitted }) => {

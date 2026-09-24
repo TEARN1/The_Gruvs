@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from './GlassView';

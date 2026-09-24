@@ -3,7 +3,9 @@ import { buildVibeCardShareText } from '../src/utils/vibeCardShare';
 describe('buildVibeCardShareText — the flex that markets the app', () => {
   it('leads with the handle + earned level, not followers', () => {
     const msg = buildVibeCardShareText({ username: 'lindi', vibe_score: 750, followers_count: 40, is_verified: true });
-    expect(msg).toMatch(/^🎫 @lindi on The Gruvs/);
+    // No '@' prefix: handles are rendered bare across the app (a deliberate
+    // change — the share text follows the same convention).
+    expect(msg).toMatch(/^🎫 lindi on The Gruvs/);
     expect(msg).toMatch(/· 750 vibe pts/);
     expect(msg).toMatch(/40 in their crew/);
     expect(msg).toMatch(/✓ Verified/);

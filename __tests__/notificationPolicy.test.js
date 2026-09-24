@@ -33,6 +33,11 @@ describe('notificationPolicy — signal over noise', () => {
     expect(shouldInterrupt('vibe', at(3))).toBe(false);      // normal → hush till morning
   });
 
+  it('an incoming call always interrupts, even during quiet hours', () => {
+    expect(notificationPriority('call')).toBe('high');
+    expect(shouldInterrupt('call', at(3))).toBe(true);
+  });
+
   it('normal hours: normal + high interrupt', () => {
     expect(shouldInterrupt('vibe', at(13))).toBe(true);
     expect(shouldInterrupt('message', at(13))).toBe(true);

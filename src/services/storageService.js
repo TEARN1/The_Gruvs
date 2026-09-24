@@ -1,4 +1,9 @@
 import { supabase } from './supabase';
+// The native path below calls this to strip GPS out of photo bytes. It was
+// never imported, so on native (no canvas) the call threw a ReferenceError,
+// the enclosing `catch { return blob; }` swallowed it, and the ORIGINAL image
+// uploaded with its EXIF GPS intact — the exact leak this code exists to stop.
+import { stripExifFromBlob } from '../utils/stripExif';
 
 const MIME_MAP = {
   jpg:  'image/jpeg',

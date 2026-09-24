@@ -67,6 +67,39 @@ describe('rankPeople', () => {
   });
 });
 
+describe('sameEventNow — Find Them presence weighting', () => {
+  it('outranks even close geographic proximity', () => {
+    // "Two blocks away" and "in this room with you" are not the same claim.
+    // A far-but-same-event candidate must still beat a near-but-elsewhere one.
+    const nearby = { id: 'nearby', lat: -26.201, lon: 28.041 };   // ~150m from viewer
+    const hereNow = { id: 'here', lat: -26.5, lon: 28.3 };        // ~35km away
+    const nearbyScore = personScore(viewer, nearby, {});
+    const hereNowScore = personScore(viewer, hereNow, { sameEventNow: true });
+    expect(hereNowScore).toBeGreaterThan(nearbyScore);
+  });
+
+  it('is additive with, not a replacement for, co-presence history', () => {
+    const both = personScore(viewer, {}, { sameEventNow: true, coPresenceCount: 5 });
+    const eventOnly = personScore(viewer, {}, { sameEventNow: true });
+    const historyOnly = personScore(viewer, {}, { coPresenceCount: 5 });
+    expect(both).toBeGreaterThan(eventOnly);
+    expect(both).toBeGreaterThan(historyOnly);
+  });
+
+  it('defaults to false — ranking someone with no event context is unaffected', () => {
+    const a = personScore(viewer, { id: 'a' }, {});
+    const b = personScore(viewer, { id: 'a' }, { sameEventNow: false });
+    expect(a).toBe(b);
+  });
+
+  it('rankPeople surfaces a same-event candidate above a merely-nearby one', () => {
+    const nearby = { id: 'nearby', lat: -26.201, lon: 28.041 };
+    const hereNow = { id: 'here', lat: -26.5, lon: 28.3 };
+    const ranked = rankPeople(viewer, [nearby, hereNow], { here: { sameEventNow: true } });
+    expect(ranked[0].id).toBe('here');
+  });
+});
+
 describe('signal helpers', () => {
   it('interestOverlap weighs first interests highest and caps', () => {
     expect(interestOverlap(['Music'], ['Music'])).toBeGreaterThan(interestOverlap(['Art', 'Music'], ['Art2', 'Music']));

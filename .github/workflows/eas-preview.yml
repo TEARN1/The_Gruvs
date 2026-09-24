@@ -10,8 +10,10 @@
 name: EAS Preview Build
 
 on:
-  # Manual-only: EAS preview builds need the EXPO_TOKEN secret. Re-enable the
-  # push/paths triggers below once EXPO_TOKEN is set in repo secrets.
+  # Manual-only by choice: native builds burn EAS minutes, so they're triggered
+  # deliberately rather than on every push. (EXPO_TOKEN HAS been set since
+  # 2026-05; the old note here claimed otherwise and kept this switched off for
+  # months. The real blocker was eas-cli needing Node >= 22 — see below.)
   workflow_dispatch:
   # push:
   #   branches: [main, "feature/**", "fix/**", "release/**"]
@@ -27,7 +29,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies

@@ -12,7 +12,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { SmartImage } from './SmartImage';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckInManager, isOnline as checkOnline } from '../services/dataFlow';
 import { useTheme } from '../context/ThemeContext';
@@ -157,7 +157,7 @@ export function CrossedPathsModal({ visible, onClose, userId, onAuthRequired }) 
                 <View style={{ flex: 1, gap: 2 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={[s.username, { color: textColor }]} numberOfLines={1}>
-                      {item.display_name || `@${item.username}`}
+                      {item.display_name || `${item.username}`}
                     </Text>
                     {item.is_verified && <Feather name="check-circle" size={11} color={primary} />}
                   </View>

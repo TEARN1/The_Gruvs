@@ -1,11 +1,12 @@
 import { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
 import { supabase } from '../services/supabase';
-import { UserManager, clearAllCache, PresenceManager } from '../services/dataFlow';
+import { UserManager, clearAllCache, PresenceManager, hydrateCacheFromDisk } from '../services/dataFlow';
 import { SecurityService } from '../services/securityService';
+import { claimPendingRef } from '../services/referral';
 
 // Explicit field list — never use select('*') to avoid leaking private columns
-const PROFILE_FIELDS = 'id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, is_discoverable, push_token, interests, location, career_title, career_description, looks_description, profile_gallery, share_events, show_online, gender';
+const PROFILE_FIELDS = 'id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, beacon_expires_at, beacon_intent, is_discoverable, push_token, interests, location, career_title, career_description, looks_description, profile_gallery, share_events, show_online, gender, referral_code';
 
 const AuthContext = createContext();
 
@@ -50,7 +51,18 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      if (!mounted) return;
+      // Warm the data cache from disk BEFORE releasing the user to the tree.
+      // Screens load their data the moment `user` is set, so hydrating after
+      // that point loses the race and the cold open stays cold. Raced against a
+      // short timeout for the same reason the safe-mode gate in App.js is: a
+      // storage read must never be able to hang sign-in. Losing the race just
+      // means a normal cold load — the behaviour we had before this existed.
+      await Promise.race([
+        hydrateCacheFromDisk(s?.user?.id ?? null),
+        new Promise((r) => setTimeout(r, 300)),
+      ]).catch(() => {});
       if (!mounted) return;
       setSession(s);
       setUser(s?.user ?? null);
@@ -75,7 +87,12 @@ export const AuthProvider = ({ children }) => {
         // Only re-fetch profile when the user ID actually changes
         if (newUserId !== prevUserId) {
           fetchProfile(newUserId, true);
-          UserManager.ensureProfile(newUserId).catch(() => {});
+          // Attribution has to wait for the profile row to exist, so it chains
+          // off ensureProfile rather than racing it. Best-effort by design: a
+          // failed claim must never block someone getting into the app.
+          UserManager.ensureProfile(newUserId)
+            .then(() => claimPendingRef())
+            .catch(() => {});
           PresenceManager.goOnline(newUserId).catch(() => {});
         }
       } else {

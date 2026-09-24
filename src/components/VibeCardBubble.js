@@ -10,7 +10,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { SmartImage } from './SmartImage';
 import { getVibeLevel } from '../utils/vibeLevel';
@@ -49,7 +49,7 @@ export function VibeCardBubble({ userId, primary, textColor, muted, onPress }) {
     );
   }
 
-  const handle = p?.username ? `@${p.username}` : (p?.display_name || 'A Viber');
+  const handle = p?.username ? `${p.username}` : (p?.display_name || 'A Viber');
   const score = Number(p?.vibe_score) || 0;
   const level = getVibeLevel(score);
   const crew = Number(p?.followers_count) || 0;

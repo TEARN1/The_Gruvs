@@ -22,10 +22,23 @@ paths = [
   '''__tests__/log\.test\.js''',
 ]
 regexes = [
-  # The Supabase ANON JWT (issuer "supabase", role "anon") — public by design.
-  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS[A-Za-z0-9_.-]+''',
+  # The Supabase ANON key — public by design (it ships in every client bundle;
+  # RLS is what protects the data, not the key's secrecy).
+  #
+  # Pinned to the EXACT value on purpose. This used to be the pattern
+  #   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS[A-Za-z0-9_.-]+
+  # which reads as "the anon key" but matches ANY Supabase-issued JWT — including
+  # the SERVICE_ROLE key. Committing that would have passed the scan silently,
+  # which is the one thing this scanner exists to prevent. Verified: the old
+  # pattern matched a service_role token; this does not.
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlZXZ2ZGR2cmptZmJoZmZjY2JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2OTEwNTAsImV4cCI6MjA4ODI2NzA1MH0.CvZRz05orvSEeaawwponcjpZypX3CePBny6zsgmc4bU''',
   # The public project ref / URL (also client-side, safe).
   '''feevvddvrjmfbhffccbf''',
+  # A localStorage key NAME, not a credential. `const KEY = 'gruvs_pending_ref_v1'`
+  # trips the generic-api-key rule purely because the variable is called KEY.
+  # Matched exactly rather than allowlisting the file, so a real secret in
+  # referral.js would still trip the scan.
+  '''gruvs_pending_ref_v1''',
   # The Web Push VAPID *public* application-server key — handed to
   # PushManager.subscribe() in the browser, so public by design. The matching
   # PRIVATE key is a Supabase function secret and is deliberately NOT

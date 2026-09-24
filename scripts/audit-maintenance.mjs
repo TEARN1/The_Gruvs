@@ -38,18 +38,13 @@ const URL = env('SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_URL');
 const KEY = env('SUPABASE_ANON_KEY', 'EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
 if (!URL || !KEY) {
-  // A skip is the right call locally. On Guardian's unattended schedule it is
-  // not: the job reports green while checking nothing, which is how a monitor
-  // rots without anyone noticing. It also means Guardian never touches the
-  // database — and those 6-hourly requests are the activity that keeps a
-  // free-tier project from pausing.
-  const strict = process.env.GUARDIAN_STRICT === '1' || process.env.GITHUB_EVENT_NAME === 'schedule';
-  const msg = 'Supabase URL/key not available — the maintenance audit checked NOTHING.';
-  if (strict) {
-    console.log(`::error::${msg} Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY as repository secrets.`);
+  // See audit-schema.mjs: green-while-blind is the failure mode this guard
+  // exists to prevent, so in CI a missing key fails instead of passing.
+  if (process.env.CI) {
+    console.error('::error::Supabase URL/key missing — the maintenance sensor cannot see the database.');
     process.exit(1);
   }
-  console.log(`::notice::${msg}`);
+  console.log('Supabase URL/key not available — skipping maintenance audit (local run).');
   process.exit(0);
 }
 

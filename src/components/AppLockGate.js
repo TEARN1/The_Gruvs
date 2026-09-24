@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, AppState, Platform } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { Biometric } from '../services/biometric';
 import { useTheme } from '../context/ThemeContext';
 import { haptics } from '../utils/haptics';

@@ -8,7 +8,7 @@ import {
   Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView,
   ActivityIndicator, Image,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { InviteManager } from '../services/dataFlow';

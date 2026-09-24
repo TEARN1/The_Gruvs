@@ -4,17 +4,21 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Animated, TextInput, ActivityIndicator, RefreshControl, Dimensions, Modal } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { SecurityService } from '../services/securityService';
 import { resilientRead, resilient } from '../utils/resilience';
 import { GlassView } from '../components/GlassView';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { can, tierFor, missionQuota } from '../services/businessEntitlements';
+import { MealService } from '../services/mealService';
+import { MealComposeModal } from '../components/MealComposeModal';
+import { SoundFX } from '../services/soundFX';
 import { BusinessTrendPanel } from '../components/BusinessTrendPanel';
 import { CampaignBuilderModal } from '../components/CampaignBuilderModal';
 import { StagePlaybookModal } from '../components/StagePlaybookModal';
@@ -298,10 +302,10 @@ const BUSINESS_TYPES = [
 ];
 
 const TIERS = {
-  starter: { label: 'Starter', color: "#94a3b8", perks: ['5 Missions/mo', 'Basic Reads', '500 Crowd targets/Mission'] },
-  pro: { label: 'Pro', color: "#06b6d4", perks: ['Unlimited Missions', 'Advanced Reads', '10K Crowd targets/Mission', 'Storefront builder'] },
-  royal: { label: 'Royal', color: "#8b5cf6", perks: ['Everything in Pro', 'API access', 'Backing Marketplace', 'Priority support', 'Custom domain'] },
-  enterprise: { label: 'Enterprise', color: "#f59e0b", perks: ['Everything in Royal', 'Dedicated Gruv manager', 'Custom Connects', 'White-label Storefront', 'Bulk Mission tools'] },
+  starter: { label: 'Starter', color: "#94a3b8", perks: ['5 Missions/mo', 'Basic Reads', '500 Crowd targets/Mission', '1 Meal boost · 2 in rotation'] },
+  pro: { label: 'Pro', color: "#06b6d4", perks: ['Unlimited Missions', 'Advanced Reads', '10K Crowd targets/Mission', 'Storefront builder', '5 Meal boosts · unlimited rotation'] },
+  royal: { label: 'Royal', color: "#8b5cf6", perks: ['Everything in Pro', 'API access', 'Backing Marketplace', 'Priority support', 'Custom domain', '20 Meal boosts'] },
+  enterprise: { label: 'Enterprise', color: "#f59e0b", perks: ['Everything in Royal', 'Dedicated Gruv manager', 'Custom Connects', 'White-label Storefront', 'Bulk Mission tools', 'Unlimited Meal boosts'] },
 };
 
 // ── Stat Card ────────────────────────────────────────────────────────────────
@@ -471,6 +475,25 @@ export const BusinessDashboardScreen = ({ onClose }) => {
   const [setupMode, setSetupMode] = useState(false);
   const [setupForm, setSetupForm] = useState({ business_name: '', business_type: '', tagline: '', description: '', website: '', phone: '' });
   const [upgradeVisible, setUpgradeVisible] = useState(false);
+  const [mealComposeOpen, setMealComposeOpen] = useState(false);
+  const [myMeals, setMyMeals] = useState([]);
+
+  const loadMyMeals = useCallback(async (businessId) => {
+    if (!businessId) return;
+    try { setMyMeals(await MealService.myMeals(businessId)); } catch { /* meals are optional */ }
+  }, []);
+
+  const boostMyMeal = useCallback(async (mealId) => {
+    try {
+      await MealService.boostMeal(mealId, 24);
+      SoundFX.play?.('levelUp');
+      showToast('Boosted for 24h — now reaching more diners.', 'success');
+      if (biz?.id) loadMyMeals(biz.id);
+    } catch (e) {
+      if (e?.code === 'over_limit') showToast('You\'ve used your free boost — upgrade for more reach.', 'error');
+      else showToast('Could not boost. Try again.', 'error');
+    }
+  }, [biz?.id, loadMyMeals, showToast]);
   const tabScrollRef = useRef(null);
   const headerAnim = useRef(new Animated.Value(0)).current;
 
@@ -490,6 +513,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
       }
       if (!bizData) { setSetupMode(true); return; }
       setBiz(bizData);
+      loadMyMeals(bizData.id);
 
       // Parallel data fetch using centralized managers
       const [campData, partData, segments, notifData] = await Promise.all([
@@ -571,7 +595,13 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     if (!setupForm.business_name.trim()) { showToast('Please enter a business name.', 'error'); return; }
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
     try {
-      const payload = { user_id: user?.id, ...setupForm, tier: 'starter' };
+      // tier is deliberately NOT in this payload — the column has no client
+      // UPDATE grant at all (lock_business_tier.sql) and a NEW row gets it from
+      // the column DEFAULT 'starter'. Writing it here would make this upsert's
+      // ON CONFLICT DO UPDATE include tier in its SET list, which fails outright
+      // (Postgres rejects the whole statement, not just that column) the moment
+      // this same "setup" submit is ever used to edit an EXISTING profile.
+      const payload = { user_id: user?.id, ...setupForm };
       const result = await resilient(
         [
           async () => {
@@ -621,22 +651,50 @@ export const BusinessDashboardScreen = ({ onClose }) => {
     setShowCampaignBuilder(true);
   };
 
+  // Was a bare client-side update({tier: newTier}) — any business owner could
+  // grant themselves Enterprise for free; business_profiles has row-level RLS
+  // (owner can write their own row) but no column-level protection, so the
+  // R299/R799 prices were decorative. tier is now UPDATE-revoked on the
+  // column (see lock_business_tier.sql); this inserts a pending request an
+  // admin approves via admin_resolve_tier_request(), which is the only path
+  // left that can actually move a business's tier.
   const upgradeTierAction = async (newTier) => {
-    if (!biz) return;
+    if (!biz || !user) return;
     setUpgradeVisible(false);
     try {
-      const { error } = await supabase
-        .from('business_profiles')
-        .update({ tier: newTier })
-        .eq('id', biz.id);
-      if (!error) {
-        showToast(`Upgraded to ${newTier.toUpperCase()} 🎉`, 'success');
-        loadAll();
-      } else {
-        showToast(error.message || 'Could not upgrade tier.', 'error');
-      }
+      // Not a security boundary (only the admin RPC can ever move a tier) —
+      // just keeps a re-tapped button from filling the request inbox with
+      // duplicates for the same pending ask.
+      const { data: existing } = await supabase
+        .from('business_tier_requests')
+        .select('id')
+        .eq('business_id', biz.id)
+        .eq('requested_tier', newTier)
+        .eq('status', 'pending')
+        .maybeSingle();
+      if (existing) { showToast("Already requested — we'll be in touch.", 'info'); return; }
+
+      const { error } = await supabase.from('business_tier_requests').insert({
+        business_id: biz.id,
+        requested_by: user.id,
+        requested_tier: newTier,
+      });
+      if (error) { showToast(error.message || 'Could not send request.', 'error'); return; }
+
+      showToast(`Upgrade to ${newTier.toUpperCase()} requested — we'll confirm and invoice you.`, 'success');
+
+      // No admin dashboard for these yet — a solo founder needs to actually see
+      // the request, not just have a row sit in a table nobody opens.
+      try {
+        SecurityService.safeOpenURL(
+          `mailto:asemahlenkwali@gmail.com?subject=${encodeURIComponent(`Tier upgrade request — ${biz.business_name || biz.id}`)}` +
+          `&body=${encodeURIComponent(`Business: ${biz.business_name || biz.id}
+Requested tier: ${newTier}
+Requested by: ${user.email || user.id}`)}`
+        );
+      } catch { /* the DB request already landed; email is a convenience, not the record */ }
     } catch {
-      showToast('Upgrade failed. Please try again.', 'error');
+      showToast('Could not send request. Please try again.', 'error');
     }
   };
 
@@ -826,6 +884,36 @@ export const BusinessDashboardScreen = ({ onClose }) => {
                 <Text style={[sc.perkText, { color: muted }]}>{p}</Text>
               </View>
             ))}
+          </GlassView>
+
+          {/* The Meal — post dishes/specials that surface in Explore & near diners */}
+          <GlassView style={[sc.tierCard, { borderColor: `${primary}30`, marginTop: 14 }]}>
+            <View style={sc.tierHeader}>
+              <Text style={[sc.tierCardTitle, { color: primary }]}>🍽️ The Meal</Text>
+              <TouchableOpacity onPress={() => setMealComposeOpen(true)} style={[sc.upgradeBtn, { borderColor: primary }]}>
+                <Text style={[sc.upgradeBtnText, { color: primary }]}>+ POST DISH</Text>
+              </TouchableOpacity>
+            </View>
+            {myMeals.length === 0 ? (
+              <Text style={[sc.perkText, { color: muted, paddingVertical: 6 }]}>
+                Post your menu, specials or a tasting — they appear in Explore, and a boost puts them in front of diners nearby.
+              </Text>
+            ) : myMeals.map(m => {
+              const live = m.is_boosted && (!m.boosted_until || new Date(m.boosted_until) > new Date());
+              return (
+                <View key={m.id} style={sc.perkRow}>
+                  <Feather name={live ? 'zap' : 'coffee'} size={13} color={live ? '#f97316' : muted} />
+                  <Text style={[sc.perkText, { color: textColor, flex: 1 }]} numberOfLines={1}>
+                    {m.title}{m.price != null ? ` · ${m.currency || 'R'}${m.price}` : ''}
+                  </Text>
+                  <TouchableOpacity onPress={() => boostMyMeal(m.id)} disabled={live}>
+                    <Text style={{ color: live ? muted : '#f97316', fontSize: 11, fontWeight: '900' }}>
+                      {live ? 'Boosted' : 'Boost'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
           </GlassView>
         </ScrollView>
       );
@@ -1277,6 +1365,13 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         bg={bg}
       />
 
+      <MealComposeModal
+        visible={mealComposeOpen}
+        business={biz}
+        onClose={() => setMealComposeOpen(false)}
+        onPosted={() => { setMealComposeOpen(false); if (biz?.id) loadMyMeals(biz.id); }}
+      />
+
       {/* Stage Playbook — fast pre/during/post offers */}
       <StagePlaybookModal
         visible={showStagePlaybook}
@@ -1304,7 +1399,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>Upgrade Your Plan</Text>
+              <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>Request an Upgrade</Text>
               <TouchableOpacity onPress={() => setUpgradeVisible(false)}>
                 <Feather name="x" size={22} color={muted} />
               </TouchableOpacity>
@@ -1325,6 +1420,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
                   <Text style={{ color: t.color, fontSize: 13, fontWeight: '700' }}>{t.price}</Text>
                 </View>
                 <Text style={{ color: muted, fontSize: 11 }}>{t.perks}</Text>
+                <Text style={{ color: muted, fontSize: 10, marginTop: 6, fontStyle: 'italic' }}>Tap to request — we confirm and invoice you, no card needed here.</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity onPress={() => setUpgradeVisible(false)} style={{ marginTop: 4, alignItems: 'center', paddingVertical: 12 }}>

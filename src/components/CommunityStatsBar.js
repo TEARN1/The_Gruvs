@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, Animated, TouchableOpacity,
   Modal, FlatList, Image, ActivityIndicator,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';

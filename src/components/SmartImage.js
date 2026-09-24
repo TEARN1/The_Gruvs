@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 
 export const SmartImage = ({
   source,

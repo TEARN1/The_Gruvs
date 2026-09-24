@@ -3,7 +3,8 @@ import {
   Modal, View, Text, StyleSheet, TouchableOpacity, TextInput,
   FlatList, ScrollView, Platform,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../context/ThemeContext';
 import { ALL_CATEGORIES, CATEGORY_GROUPS, searchCategories } from '../constants/AllCategories';
 import { useBackClose } from '../hooks/useBackClose';

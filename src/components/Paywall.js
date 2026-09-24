@@ -9,7 +9,7 @@
  */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
 import { useEntitlement } from '../context/EntitlementContext';

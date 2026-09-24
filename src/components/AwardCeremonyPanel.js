@@ -11,7 +11,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, TextInput,
   ActivityIndicator, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { AwardManager } from '../services/clubEngine';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -263,7 +263,7 @@ export const AwardCeremonyPanel = ({ event }) => {
                 <TouchableOpacity key={p.id} style={[ss.resultRow, { borderColor: `${primary}15` }]} onPress={() => selectRecipient(p)}>
                   <Feather name="user" size={14} color={primary} />
                   <Text style={[ss.resultName, { color: textColor }]}>{p.display_name || p.username}</Text>
-                  <Text style={[ss.resultUser, { color: muted }]}>@{p.username}</Text>
+                  <Text style={[ss.resultUser, { color: muted }]}>{p.username}</Text>
                   {form.recipient_user_id === p.id && <Feather name="check" size={14} color={primary} style={{ marginLeft: 'auto' }} />}
                 </TouchableOpacity>
               ))}

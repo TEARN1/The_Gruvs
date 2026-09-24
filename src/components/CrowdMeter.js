@@ -6,13 +6,20 @@
  * head over. Zero cost — just Supabase. Degrades silently if the
  * event_crowd_votes table isn't migrated yet.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { haptics } from '../utils/haptics';
 
 const WINDOW_MS = 45 * 60 * 1000; // votes count for 45 min
+// Safety net behind realtime: if event_crowd_votes isn't in the realtime
+// publication, the meter must still move — and it also ages votes out of the
+// 45-min window when nobody new is voting. Cheap: one small query a minute.
+const POLL_MS = 60 * 1000;
+// Realtime fires once per vote; 50 people voting at a door shouldn't mean 50
+// refetches, so collapse a burst into a single reload.
+const REFETCH_DEBOUNCE_MS = 1200;
 const LEVELS = [
   { v: 1, label: 'Chilled', color: '#38bdf8', emoji: '😌' },
   { v: 2, label: 'Busy',    color: '#fbbf24', emoji: '🔥' },
@@ -44,6 +51,41 @@ export const CrowdMeter = ({ eventId, primary = '#00f2ff', textColor = '#fff', m
   }, [eventId, user]);
 
   useEffect(() => { load(); }, [load]);
+
+  // "Crowd right now" has a live dot on it, so it has to actually be live — it
+  // loaded once and then sat there. Realtime for the instant move, poll as the
+  // fallback (the table may not be in the publication) and to expire old votes.
+  const loadRef = useRef(load);
+  useEffect(() => { loadRef.current = load; }, [load]);
+
+  useEffect(() => {
+    if (!eventId) return;
+    let debounce = null;
+    const refetch = () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => { loadRef.current?.(); }, REFETCH_DEBOUNCE_MS);
+    };
+
+    let channel = null;
+    try {
+      channel = supabase
+        .channel(`crowd_votes:${eventId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'event_crowd_votes', filter: `event_id=eq.${eventId}` },
+          refetch,
+        )
+        .subscribe();
+    } catch { /* realtime unavailable — the poll below still carries it */ }
+
+    const poll = setInterval(() => { loadRef.current?.(); }, POLL_MS);
+
+    return () => {
+      clearTimeout(debounce);
+      clearInterval(poll);
+      try { if (channel) supabase.removeChannel(channel); } catch { /* already gone */ }
+    };
+  }, [eventId]);
 
   const vote = async (lvl) => {
     if (!user) { onAuthRequired?.(); return; }

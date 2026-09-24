@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { safeOpenExternal } from '../utils/sanitize';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Image, ActivityIndicator, Modal, Animated, Alert } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MusicService } from '../services/musicService';
@@ -200,7 +200,7 @@ const TrackRow = memo(({ track, rank, voted, onVote, onRemove, canRemove, canMod
         <Text style={[tr.title, { color: textColor }]} numberOfLines={1}>{track.title}</Text>
         <Text style={[tr.artist, { color: muted }]} numberOfLines={1}>
           {track.artist}
-          {track.profiles?.username ? `  ·  req. @${track.profiles.username}` : ''}
+          {track.profiles?.username ? `  ·  req. ${track.profiles.username}` : ''}
         </Text>
         {track.dedication ? (
           <Text style={[tr.dedication, { color: primary }]} numberOfLines={2}>💬 “{track.dedication}”</Text>

@@ -10,6 +10,64 @@ Total time: ~15 minutes.
 
 ---
 
+## ⭐ RUN THIS FIRST — `RUN_NEXT_map_referral.sql` (one paste, ~1 min)
+
+The client code for all three of these is **already live on thegruvs.com** (merged
+2026-08-27). They're combined into a single idempotent file with verification
+queries at the bottom.
+
+| Inside it | What switches on | Without it |
+|---|---|---|
+| `referral_lineage.sql` | **The one that matters.** `profiles.referred_by` + `claim_referral()`. Makes every invite link and every door-sign QR attribute to whoever sent it. | `?ref=` has nowhere to land — every invite and door scan attributes to **nobody**. The door sign is decoration. |
+| `map_viewport.sql` | `events_in_bbox()` — viewport geography + check-in counts in one server-side pass. | Map still works (client-side fallback) but tallies check-ins in the browser, getting slower as attendance grows. |
+| `venue_flows.sql` | `venue_flows_in_bbox()` — real venue-to-venue crowd movement, aggregates only, 3+ people per hop. | Flow-trails layer renders **empty by design** (there is deliberately no fabricated fallback). |
+
+### Already applied 2026-08-31 via the Supabase MCP: `lock_business_tier.sql`,
+`RUN_NEXT_map_referral.sql`, `client_error_status.sql`, `beacon_intent.sql`, `people_interest.sql` —
+all verified live (grants, constraints, and RPC behaviour checked directly
+against the database, not assumed). Nothing left pending as of this pass.
+
+### Also pending: `client_error_status.sql` (1 min, run any time)
+
+Read side for the Guardian client-error sensor (`scripts/audit-client-errors.mjs`).
+`reportDegraded()` has been writing "a fallback tier won, so the primary is dead"
+into `client_errors` this whole time and **nothing has ever read that table**.
+Until this runs, the sensor reports "not deployed yet" and stays advisory.
+
+Aggregates only — counts and code-path labels, never user ids, messages or
+context — which is why it's safe to grant to `anon` like `maintenance_status()`.
+
+✅ **Check after:** `select public.client_error_status(24);` returns JSON.
+
+---
+
+✅ **Check after:** the three `select` statements at the bottom of the file should
+all return without error. `flows_found = 0` is expected and correct until people
+have checked in at more than one venue.
+
+---
+
+## ⭐ RUN THIS TOO — `lock_business_tier.sql` (money-safety, ~1 min)
+
+Closes a live bug: any business owner could set their own `business_profiles.tier`
+to `enterprise` for free (bare client-side `update()`, no server check — the
+R299/R799 prices in the upgrade sheet were decorative). Client code already
+shipped the fix (a request-and-invoice flow) — this is the SQL half.
+
+- Revokes client UPDATE on the `tier` column specifically (every other column an
+  owner edits keeps working).
+- Adds `business_tier_requests` (pending-request table, same shape as the
+  existing `business_partnerships` pattern) + RLS.
+- Adds `admin_set_business_tier()` and `admin_resolve_tier_request()` — the only
+  two paths left that can move a tier, both gated on `profiles.role = 'admin'`.
+
+✅ **Check after:** as the business owner, `update business_profiles set tier =
+'enterprise'` should be REFUSED (column privilege revoked). As an admin,
+`select public.admin_set_business_tier('<a business id>', 'pro');` should return
+`true` and actually move the tier.
+
+---
+
 ## Part 1 — Independent (any order, run all)
 
 | # | File | What switches on | ✅ Check after |

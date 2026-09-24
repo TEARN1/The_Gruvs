@@ -1,37 +1,60 @@
 /**
  * CallOverlay — the full-screen UI for a 1:1 voice/video call.
  *
- * Rendering the actual media streams is a web concern (RTCPeerConnection gives
- * a MediaStream; on web we attach it to a real <video> element). On native the
- * call feature isn't offered, so the stream views simply don't render.
+ * Rendering the actual media stream is platform-specific: web attaches the
+ * MediaStream to a real <video> element; native renders it through
+ * react-native-webrtc's RTCView, which needs the stream's .toURL() (a plain
+ * MediaStream isn't a valid prop there). RTCView is a native view manager —
+ * if react-native-webrtc isn't linked into this build (Expo Go, or a build
+ * that predates the config plugin), requiring it throws, so that's caught and
+ * treated the same as "no native call support" rather than crashing the app.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated, ScrollView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { SmartImage } from './SmartImage';
 import { VIDEO_FILTERS } from '../utils/videoFilters';
 
-// A live <video> bound to a MediaStream. Web only.
+let NativeRTCView = null;
+if (Platform.OS !== 'web') {
+  try { NativeRTCView = require('react-native-webrtc').RTCView; } catch { /* not linked in this build */ }
+}
+
+// A live view bound to a MediaStream, on whichever platform we're on.
 const StreamVideo = ({ stream, muted, mirror, radius = 0 }) => {
   const ref = useRef(null);
   useEffect(() => {
+    if (Platform.OS !== 'web') return;
     if (ref.current && stream && ref.current.srcObject !== stream) {
       ref.current.srcObject = stream;
     }
   }, [stream]);
-  if (Platform.OS !== 'web') return null;
-  return React.createElement('video', {
-    ref,
-    autoPlay: true,
-    playsInline: true,
-    muted: !!muted,
-    style: {
-      width: '100%', height: '100%', objectFit: 'cover',
-      borderRadius: radius,
-      transform: mirror ? 'scaleX(-1)' : 'none',
-      background: '#000',
-    },
-  });
+
+  if (Platform.OS === 'web') {
+    return React.createElement('video', {
+      ref,
+      autoPlay: true,
+      playsInline: true,
+      muted: !!muted,
+      style: {
+        width: '100%', height: '100%', objectFit: 'cover',
+        borderRadius: radius,
+        transform: mirror ? 'scaleX(-1)' : 'none',
+        background: '#000',
+      },
+    });
+  }
+
+  if (!NativeRTCView || !stream) return <View style={{ flex: 1, borderRadius: radius, backgroundColor: '#000' }} />;
+  return (
+    <NativeRTCView
+      streamURL={stream.toURL()}
+      style={{ flex: 1, borderRadius: radius, backgroundColor: '#000' }}
+      objectFit="cover"
+      mirror={!!mirror}
+      zOrder={mirror ? 1 : 0}
+    />
+  );
 };
 
 export const CALL_REACTIONS = ['❤️', '😂', '🔥', '😮', '👏', '🥂'];
@@ -95,11 +118,13 @@ export const CallOverlay = ({
   reactions,        // [{ id, emoji, mine }]
   onSendReaction,
   primary = '#00f2ff',
+  onMinimize,
   onAccept,
   onReject,
   onHangUp,
   onToggleMute,
   onToggleCamera,
+  onSwitchCamera,
   onToggleRecord,
   onToggleScreenShare,
 }) => {
@@ -107,6 +132,21 @@ export const CallOverlay = ({
 
   // Call duration — starts ticking once connected.
   const [secs, setSecs] = useState(0);
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (status === 'connecting' || status === 'incoming') {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulse, { toValue: 1.15, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      pulse.setValue(1);
+    }
+  }, [status, pulse]);
+
   useEffect(() => {
     if (status !== 'connected') { setSecs(0); return; }
     const id = setInterval(() => setSecs((s) => s + 1), 1000);
@@ -120,6 +160,18 @@ export const CallOverlay = ({
 
   return (
     <View style={cs.root}>
+      {/* Minimize to Floating Bubble Button */}
+      {status === 'connected' && onMinimize && (
+        <TouchableOpacity
+          onPress={onMinimize}
+          style={cs.minimizeBtn}
+          accessibilityLabel="Minimize call"
+          accessibilityRole="button"
+        >
+          <Feather name="chevron-down" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
+
       {/* Recording banner — always visible to BOTH parties (consent) */}
       {(recording || peerRecording) && (
         <View style={cs.recBanner}>
@@ -127,7 +179,7 @@ export const CallOverlay = ({
           <Text style={cs.recText}>
             {recording && peerRecording ? 'Both recording'
               : recording ? 'You are recording'
-              : `@${peer?.username || 'They'} is recording`}
+              : `${peer?.username || 'They'} is recording`}
           </Text>
         </View>
       )}
@@ -136,7 +188,7 @@ export const CallOverlay = ({
       {peerSharingScreen && status === 'connected' && (
         <View style={[cs.recBanner, { top: (recording || peerRecording) ? 56 : 20, backgroundColor: 'rgba(0,242,255,0.15)', borderColor: primary }]}>
           <Feather name="monitor" size={12} color={primary} />
-          <Text style={cs.recText}>@{peer?.username || 'They'} is sharing their screen</Text>
+          <Text style={cs.recText}>{peer?.username || 'They'} is sharing their screen</Text>
         </View>
       )}
 
@@ -145,12 +197,14 @@ export const CallOverlay = ({
         <View style={StyleSheet.absoluteFill}><StreamVideo stream={remoteStream} /></View>
       ) : (
         <View style={cs.centerStage}>
-          {peer?.avatar_url
-            ? <SmartImage source={peer.avatar_url} style={cs.bigAvatar} />
-            : <View style={[cs.bigAvatar, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
-                <Feather name="user" size={54} color={primary} />
-              </View>}
-          <Text style={cs.name}>@{peer?.username || 'Viber'}</Text>
+          <Animated.View style={{ transform: [{ scale: pulse }] }}>
+            {peer?.avatar_url
+              ? <SmartImage source={peer.avatar_url} style={cs.bigAvatar} />
+              : <View style={[cs.bigAvatar, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
+                  <Feather name="user" size={54} color={primary} />
+                </View>}
+          </Animated.View>
+          <Text style={cs.name}>{peer?.username || 'Viber'}</Text>
           <Text style={cs.status}>{label}</Text>
         </View>
       )}
@@ -208,7 +262,12 @@ export const CallOverlay = ({
         ) : (
           <>
             <RoundBtn icon={muted ? 'mic-off' : 'mic'} active={muted} onPress={onToggleMute} />
-            {video ? <RoundBtn icon={camOff ? 'video-off' : 'video'} active={camOff} onPress={onToggleCamera} /> : null}
+            {video ? (
+              <>
+                <RoundBtn icon={camOff ? 'video-off' : 'video'} active={camOff} onPress={onToggleCamera} />
+                {!camOff && <RoundBtn icon="refresh-cw" onPress={onSwitchCamera} />}
+              </>
+            ) : null}
             {canShareScreen && status === 'connected'
               ? <RoundBtn icon="monitor" active={sharingScreen} onPress={onToggleScreenShare} />
               : null}
@@ -225,6 +284,7 @@ export const CallOverlay = ({
 
 const cs = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, backgroundColor: '#0a0d0e', alignItems: 'center', justifyContent: 'center', zIndex: 50 },
+  minimizeBtn: { position: 'absolute', top: 24, left: 18, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', zIndex: 65 },
   centerStage: { alignItems: 'center', gap: 12, paddingBottom: 60 },
   bigAvatar: { width: 120, height: 120, borderRadius: 60 },
   name: { color: '#fff', fontSize: 22, fontWeight: '900' },

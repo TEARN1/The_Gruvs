@@ -12,7 +12,7 @@ import {
   Modal, View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, Switch, ActivityIndicator, Platform,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { PHASE_META } from '../utils/eventPhase';

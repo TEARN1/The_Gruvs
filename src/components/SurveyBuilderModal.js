@@ -15,7 +15,7 @@ import {
   View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity,
   TextInput, Platform, KeyboardAvoidingView, ActivityIndicator, Switch,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';

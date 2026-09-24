@@ -4,7 +4,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
   Switch, Dimensions, Share, Platform, RefreshControl, Modal,
-  KeyboardAvoidingView, Pressable, Image,
+  KeyboardAvoidingView, Pressable, Image, Linking,
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
 import { WritingStylePicker } from '../components/WritingStylePicker';
@@ -12,7 +12,8 @@ import { CurrencyPicker } from '../components/CurrencyPicker';
 import { SettingsScreen } from './SettingsScreen';
 import { CrossedPathsModal } from '../components/CrossedPathsModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -37,6 +38,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { ALL_CATEGORIES_MAP } from '../constants/AllCategories';
 import { LAUNCH_MINIMAL, feature } from '../constants/launchConfig';
+import { hasResident, residentUrl } from '../constants/residentUrl';
 import { COMMUNITY_TAG_GROUPS, LANGUAGE_OPTIONS } from '../constants/AudienceTargeting';
 import { useToast } from '../components/ToastNotification';
 import { StreakBadge, useStreak } from '../components/StreakBadge';
@@ -73,6 +75,9 @@ import { BusinessDashboardScreen } from './BusinessDashboardScreen';
 import { FollowListModal } from '../components/FollowListModal';
 import { WalletScreen }            from './lazyScreens';
 import { MonetizationService }     from '../services/monetizationService';
+// RoyalCouncilPage reads the mint params from here. It was using `projectDNA`
+// without importing it, so opening the Royal Council threw a ReferenceError.
+import projectDNA                  from '../services/projectDNA.json';
 import { ProviderDashboardScreen } from './ProviderDashboardScreen';
 import { TutorialCenter }          from '../components/TutorialCenter';
 import { WhoWasThereModal }        from '../components/WhoWasThereModal';
@@ -235,7 +240,7 @@ const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage }) 
     }
     {checkOnline(person) && <View style={pcard.onlineDot} />}
     <View style={{ flex: 1, marginLeft: 12 }}>
-      <Text style={[pcard.name, { color: textColor }]}>@{person.username}</Text>
+      <Text style={[pcard.name, { color: textColor }]}>{person.username}</Text>
       <Text style={[pcard.meta, { color: muted }]}>{person.distance_km?.toFixed(1) || '?'} km away</Text>
       <View style={pcard.interestRow}>
         {(person.interests || []).slice(0, 2).map(int => (
@@ -269,11 +274,36 @@ const pcard = StyleSheet.create({
 });
 
 // ── Find Me Sub-View ──────────────────────────────────────────────────────────
-const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => {
+const BEACON_INTENTS = [
+  { key: 'open',  label: 'Open to meeting people', emoji: '👋' },
+  { key: 'crew',  label: 'With my crew',           emoji: '👥' },
+  { key: 'music', label: 'Here for the music',     emoji: '🎧' },
+];
+
+/** Minutes remaining until an ISO timestamp, floored at 0. Null-safe. */
+function minutesUntil(isoString) {
+  if (!isoString) return null;
+  const ms = new Date(isoString).getTime() - Date.now();
+  return Math.max(0, Math.round(ms / 60000));
+}
+
+const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onShowMap }) => {
   const [discoverable, setDiscoverable] = useState(profile?.is_discoverable ?? true);
   const [showOnline, setShowOnline] = useState(profile?.show_online ?? true);
   const [beaconActive, setBeaconActive] = useState(profile?.is_beacon_active ?? false);
   const [beaconBusy, setBeaconBusy] = useState(false);
+  // Not an access-control gate (see beacon_intent.sql) — purely what a viber
+  // sees before deciding whether to walk over.
+  const [beaconIntent, setBeaconIntentState] = useState(profile?.beacon_intent || 'open');
+  const [beaconExpiresAt, setBeaconExpiresAt] = useState(profile?.beacon_expires_at || null);
+  // Ticks once a minute so the countdown text below actually counts down,
+  // without needing a full profile refetch just to redraw a label.
+  const [, setCountdownTick] = useState(0);
+  useEffect(() => {
+    if (!beaconActive) return;
+    const id = setInterval(() => setCountdownTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, [beaconActive]);
   const [looksDescription, setLooksDescription] = useState('');
   const [careerTitle, setCareerTitle] = useState('');
   const [careerDescription, setCareerDescription] = useState('');
@@ -288,6 +318,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
       if (beaconActive) {
         await PresenceManager.deactivateBeacon(user.id);
         setBeaconActive(false);
+        setBeaconExpiresAt(null);
         toast?.show?.('You went off the radar.', 'success');
       } else {
         let coords = {};
@@ -300,17 +331,25 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         } catch { /* beacon still works without a fresh fix */ }
         // A3 — the Beacon PRODUCT: going live also pings your mutuals
         // ("X is out — pull up 📍"), not just a silent flag flip.
-        await PresenceManager.dropBeacon(user.id, { coords, minutes: 60 });
+        const expires = await PresenceManager.dropBeacon(user.id, { coords, minutes: 60, intent: beaconIntent });
         setBeaconActive(true);
+        setBeaconExpiresAt(expires);
         haptics.success?.();
-        toast?.show?.("You're live — your people just got the 'pull up' ping. On for 1 hour.", 'success');
+        toast?.show?.("You're live — your people just got the 'pull up' ping. On for 1 hour. Opening map...", 'success');
+        // Was `onNavigateToTab` — never a prop on FindMePage (that name only
+        // exists on the outer ProfilePage, which passed onShowMap in here for
+        // exactly this). Referencing an identifier that was never declared
+        // ANYWHERE in scope throws a ReferenceError even through `?.` — this
+        // fired on every single successful "go live", ~1.5s after the toast,
+        // outside the try/catch above by the time it threw.
+        setTimeout(() => onShowMap?.(), 1500);
       }
     } catch (e) {
       toast?.show?.(e?.message || 'Could not update your beacon.', 'error');
     } finally {
       setBeaconBusy(false);
     }
-  }, [user, beaconActive, beaconBusy, toast]);
+  }, [user, beaconActive, beaconBusy, toast, onShowMap, beaconIntent]);
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
@@ -343,11 +382,6 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
         setHomeArea(h.label || '');
         setHomeAreaPinned(h.lat != null && h.lon != null);
       }, () => {});
-      
-      // Fetch monetization balances
-      MonetizationService.getCoinBalance(user.id).then(setCoins).catch(() => {});
-      MonetizationService.getDiamondBalance(user.id).then(setDiamonds).catch(() => {});
-
       if (data) {
         setBio(data.bio || '');
         setLocation(data.location || '');
@@ -870,6 +904,28 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
           </Text>
         </TouchableOpacity>
 
+        {/* Intent — what going live MEANS, not just that you are. Chosen before
+            going live; not editable mid-beacon (simpler mental model — change
+            it by stopping and going live again). */}
+        {!beaconActive && (
+          <View style={{ flexDirection: 'row', gap: 6, marginTop: 12, marginBottom: 4 }}>
+            {BEACON_INTENTS.map((i) => {
+              const active = beaconIntent === i.key;
+              return (
+                <TouchableOpacity
+                  key={i.key}
+                  onPress={() => setBeaconIntentState(i.key)}
+                  style={[fm.intentChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}18` : 'transparent' }]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 15 }}>{i.emoji}</Text>
+                  <Text style={{ color: active ? primary : muted, fontSize: 10, fontWeight: '800', marginTop: 2, textAlign: 'center' }}>{i.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
         {/* "I'm here" — live presence beacon, broadcasts you're active now for 1 hour */}
         <TouchableOpacity
           style={[fm.outThereBtn, { marginTop: 10 }, beaconActive
@@ -888,11 +944,23 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
             {beaconActive ? "I'm here — live now (tap to stop)" : "I'm here — go live"}
           </Text>
         </TouchableOpacity>
-        {beaconActive && (
-          <Text style={{ color: muted, fontSize: 11, marginTop: 8, textAlign: 'center' }}>
-            Nearby vibers can see you live. Auto-stops after an hour.
-          </Text>
-        )}
+        {beaconActive && (() => {
+          const mins = minutesUntil(beaconExpiresAt);
+          const chosen = BEACON_INTENTS.find((i) => i.key === beaconIntent);
+          return (
+            <Text style={{ color: muted, fontSize: 11, marginTop: 8, textAlign: 'center' }}>
+              {chosen ? `${chosen.emoji} ${chosen.label} · ` : ''}
+              {mins == null ? 'Nearby vibers can see you live.' : mins <= 0 ? 'Wrapping up…' : `Live for ${mins} more min`}
+            </Text>
+          );
+        })()}
+        <TouchableOpacity
+          style={[fm.outThereBtn, { marginTop: 10, borderColor: primary, borderStyle: 'dashed' }]}
+          onPress={onShowMap}
+        >
+          <Feather name="map" size={18} color={primary} />
+          <Text style={[fm.outThereText, { color: primary }]}>View Me on Map</Text>
+        </TouchableOpacity>
       </GlassView>
 
       {/* Preview Card */}
@@ -906,7 +974,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast }) => 
             </View>
           }
           <View style={fm.previewInfo}>
-            <Text style={[fm.previewName, { color: textColor }]}>@{profile?.username || 'you'}</Text>
+            <Text style={[fm.previewName, { color: textColor }]}>{profile?.username || 'you'}</Text>
             <Text style={[fm.previewBio, { color: muted }]} numberOfLines={2}>{bio || 'No bio yet...'}</Text>
             {location ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
@@ -954,6 +1022,7 @@ const fm = StyleSheet.create({
   qrHandle: { fontSize: 16, fontWeight: '900', marginBottom: 4 },
   qrSub: { fontSize: 11 },
   outThereBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 15, borderRadius: 30, borderWidth: 1.5 },
+  intentChip: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 12, borderWidth: 1 },
   outThereText: { fontWeight: '900', fontSize: 14, letterSpacing: 0.3 },
   previewCard: { flexDirection: 'row', borderWidth: 1, borderRadius: 16, padding: 14 },
   previewAvatar: { width: 56, height: 56, borderRadius: 28, borderWidth: 2 },
@@ -1057,7 +1126,7 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
 
 
 // ── Find Them Sub-View ────────────────────────────────────────────────────────
-const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, applyLocationPrivacy, initialDistance = 5 }) => {
+const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, applyLocationPrivacy, initialDistance = 5, onShowMap }) => {
   const [distance, setDistance] = useState(initialDistance);
   const [activeFilter, setActiveFilter] = useState(null);
   const [people, setPeople] = useState([]);
@@ -1138,6 +1207,18 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
               )
             }
           </TouchableOpacity>
+
+          {people.length > 0 && (
+            <TouchableOpacity
+              style={[ft.searchBtn, { backgroundColor: 'transparent', borderColor: primary, borderWidth: 1.5, marginTop: 10 }]}
+              onPress={onShowMap}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Feather name="map" size={16} color={primary} />
+                <Text style={[ft.searchText, { color: primary }]}>View {people.length} on Map</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </GlassView>
 
         <View style={{ paddingHorizontal: 16 }}>
@@ -1162,7 +1243,7 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
                   onFollow={async () => {
                     if (!user) return;
                     await UserManager.follow(user.id, person.id);
-                    toast?.show(`Following @${person.username}`, 'success');
+                    toast?.show(`Following ${person.username}`, 'success');
                   }}
                   onMessage={() => setDmTarget(person)}
                 />
@@ -1842,7 +1923,7 @@ const AppUpdatesSection = ({ primary, muted, textColor, surface }) => {
 };
 
 // ── Main Profile Page ─────────────────────────────────────────────────────────
-export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
+export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab }) => {
   const { currentTheme, gender, themeIndex, changeTheme } = useTheme();
   const { user, profile, signOut, refreshProfile } = useAuth();
   const toast = useToast();
@@ -1912,6 +1993,23 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const draftDecidedRef = useRef(false);
   const serverSnapRef = useRef(null);
   const profileSnap = () => ({ bio, location, website, interests, looksDescription, careerTitle, careerDescription });
+  // Gifting wallet balances. These used to be fetched inside FindMePage, which
+  // has no coins/diamonds state — so `.then(setCoins)` threw a ReferenceError
+  // while evaluating its own argument (the trailing .catch cannot help with
+  // that, since it happens before the chain is even built). The state and the
+  // card that renders it both live here, so the fetch belongs here too, behind
+  // the same feature('gifting') flag as the card — no point spending two
+  // requests on a surface the Focus Cut has parked.
+  useEffect(() => {
+    if (!user?.id || !feature('gifting')) return undefined;
+    let alive = true;
+    MonetizationService.getCoinBalance(user.id)
+      .then((v) => { if (alive) setCoins(v || 0); }).catch(() => {});
+    MonetizationService.getDiamondBalance(user.id)
+      .then((v) => { if (alive) setDiamonds(v || 0); }).catch(() => {});
+    return () => { alive = false; };
+  }, [user?.id]);
+
   useEffect(() => {
     if (!PROFILE_DRAFT_KEY) return undefined;
     let alive = true;
@@ -2380,7 +2478,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const handleShareProfile = async () => {
     try {
       await Share.share({
-        message: `Check out my vibe on The Gruvs! @${username} 👑`,
+        message: `Check out my vibe on The Gruvs! ${username} 👑`,
         url: 'https://thegruvs.com/profile/' + username,
       });
     } catch (err) {
@@ -2453,7 +2551,11 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <Text style={[styles.subTitle, { color: textColor }]}>Find Me</Text>
           <View style={{ width: 40 }} />
         </View>
-        <FindMePage primary={primary} muted={muted} textColor={textColor} bg={bg} user={user} profile={profile} toast={toast} />
+        <FindMePage
+          primary={primary} muted={muted} textColor={textColor} bg={bg}
+          user={user} profile={profile} toast={toast}
+          onShowMap={() => onNavigateToTab?.('map')}
+        />
       </View>
     );
   }
@@ -2473,6 +2575,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           user={user} onAuthRequired={onAuthRequired} toast={toast}
           applyLocationPrivacy={applyLocationPrivacy}
           initialDistance={discoverRadius}
+          onShowMap={() => onNavigateToTab?.('map')}
         />
       </View>
     );
@@ -2679,7 +2782,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             </View>
           ) : (
             <TouchableOpacity onPress={() => { setNewUsername(username); setEditingUsername(true); }} activeOpacity={0.7}>
-              <Text style={[styles.profileBio, { color: primary, fontWeight: '700', marginTop: 2 }]}>@{username} ✎</Text>
+              <Text style={[styles.profileBio, { color: primary, fontWeight: '700', marginTop: 2 }]}>{username} ✎</Text>
             </TouchableOpacity>
           )}
 
@@ -2832,6 +2935,84 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <ResidentTrustBadge tier={profile?.resident_trust_tier ?? user?.resident_trust_tier} size="large" />
               {/* A2 — the Verified engine: live criteria checklist + apply. */}
               <VerifiedRequestCard primary={primary} surface={bg} textColor={textColor} muted={muted} />
+              
+              {/* VibeMap Surveyor Profile Integration Card */}
+              <View style={{
+                marginTop: 8,
+                padding: 12,
+                borderRadius: 12,
+                backgroundColor: `${primary}08`,
+                borderWidth: 1,
+                borderColor: `${primary}20`,
+                gap: 6
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Feather name="navigation" size={16} color={primary} />
+                    <Text style={{ color: textColor, fontWeight: '700', fontSize: 13 }}>VibeMap Surveyor</Text>
+                  </View>
+                  <Text style={{ color: '#10b981', fontWeight: '800', fontSize: 11 }}>
+                    {profile?.surveyor_xp ? `${profile.surveyor_xp} XP` : '0 XP'}
+                  </Text>
+                </View>
+                <Text style={{ color: muted, fontSize: 11, lineHeight: 15 }}>
+                  Level: {
+                    (profile?.surveyor_xp ?? 0) >= 200 ? 'Master Surveyor' :
+                    (profile?.surveyor_xp ?? 0) >= 50 ? 'Block Surveyor' :
+                    'Apprentice Surveyor'
+                  }
+                </Text>
+                {/* The Resident Crew Hub */}
+                <TouchableOpacity
+                  onPress={() => {
+                    const url = residentUrl('dashboard') || 'https://theresidentcrew.com';
+                    SecurityService.safeOpenURL(url);
+                  }}
+                  style={{
+                    backgroundColor: `${primary}15`,
+                    borderRadius: 10,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: 6,
+                    borderWidth: 1,
+                    borderColor: `${primary}40`,
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Feather name="home" size={14} color={primary} />
+                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 12 }}>The Resident Crew</Text>
+                  </View>
+                  <Feather name="external-link" size={13} color={primary} />
+                </TouchableOpacity>
+
+                {/* TEARN's Excellence Innovation Hub */}
+                <TouchableOpacity
+                  onPress={() => SecurityService.safeOpenURL('https://github.com/TEARN1/TEARNs-Excellence')}
+                  style={{
+                    backgroundColor: 'rgba(0,242,255,0.08)',
+                    borderRadius: 10,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: 6,
+                    borderWidth: 1,
+                    borderColor: 'rgba(0,242,255,0.3)',
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Feather name="cpu" size={14} color="#00f2ff" />
+                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 12 }}>TEARN's Excellence</Text>
+                  </View>
+                  <Feather name="arrow-up-right" size={13} color="#00f2ff" />
+                </TouchableOpacity>
+              </View>
             </View>
           </CollapsibleSection>
         )}
@@ -2884,13 +3065,17 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
             <Feather name="clock" size={16} color={primary} />
             <Text style={[styles.findBtnText, { color: primary }]}>History</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={() => user ? setCrossedPathsVisible(true) : onAuthRequired()}
-          >
-            <Feather name="shuffle" size={16} color={primary} />
-            <Text style={[styles.findBtnText, { color: primary }]}>Crossed</Text>
-          </TouchableOpacity>
+          {/* Crossed Paths needs crowd density to feel alive — parked by the
+              Focus Cut. This entry point was missing its flag check. */}
+          {feature('crossedPaths') && (
+            <TouchableOpacity
+              style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+              onPress={() => user ? setCrossedPathsVisible(true) : onAuthRequired()}
+            >
+              <Feather name="shuffle" size={16} color={primary} />
+              <Text style={[styles.findBtnText, { color: primary }]}>Crossed</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.findRow}>
@@ -3393,7 +3578,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <ClubScreen
             clubId={activeClubId}
             onClose={() => setActiveClubId(null)}
-            navigation={navigation}
           />
         </Modal>
       )}

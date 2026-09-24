@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 
 const WMO_CODES = {
   0:  { label: 'Clear',          icon: 'sun'           },

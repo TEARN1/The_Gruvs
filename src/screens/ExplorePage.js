@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
   TextInput, Dimensions, Animated, Platform, Modal, RefreshControl, ActivityIndicator,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -36,6 +36,9 @@ import { WhoWasThereModal } from '../components/WhoWasThereModal';
 import { TutorialCenter } from '../components/TutorialCenter';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SurveyCard } from '../components/SurveyCard';
+import { MealCard } from '../components/MealCard';
+import { MealDetailModal } from '../components/MealDetailModal';
+import { MealService } from '../services/mealService';
 
 const { width } = Dimensions.get('window');
 
@@ -369,7 +372,7 @@ const NearbyVibers = ({ vibers, primary, textColor, onPress }) => {
               {checkOnline(v) && <View style={[nv.dot, { backgroundColor: "#10b981", borderColor: "#0d1112", borderWidth: 2 }]} />}
             </View>
             <View style={{ marginTop: 4, alignItems: 'center' }}>
-              <Text style={[nv.name, { color: textColor, fontWeight: '800' }]} numberOfLines={1}>@{v.username}</Text>
+              <Text style={[nv.name, { color: textColor, fontWeight: '800' }]} numberOfLines={1}>{v.username}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                 <Feather name="map-pin" size={8} color={primary} />
                 <Text style={[nv.dist, { color: primary, fontSize: 9, fontWeight: '900' }]}>
@@ -419,7 +422,10 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
   const starts = startsInLabel(event);
   // TODO(v6): remove media_urls/cover_image/image_url fallbacks after migration
-  const thumb = event.media?.[0]?.url
+  // Named thumbUrl (not `thumb`) so it doesn't shadow the imported CDN helper —
+  // this raw URL was being served full-res, uncached and un-resized, straight
+  // past the weserv resizer every other image call site goes through.
+  const thumbUrl = event.media?.[0]?.url
     || (typeof event.media?.[0] === 'string' ? event.media[0] : null)
     || event.cover_url
     || (Array.isArray(event.media_urls) ? event.media_urls[0] : null)
@@ -430,7 +436,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
 
     // Poster mode: the flyer carries all the details — show it whole & uncropped,
     // no dark overlay, no text on top. Just a small "poster" marker + hot badge.
-    if (event.poster_mode && thumb) {
+    if (event.poster_mode && thumbUrl) {
       return (
         <TouchableOpacity
           style={[
@@ -443,7 +449,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
           accessibilityRole="button"
           accessibilityLabel={`Poster event: ${event.title}`}
         >
-          <SmartImage source={thumb} style={et.img} resizeMode="cover" />
+          <SmartImage source={thumb.thumbnail(thumbUrl)} style={et.img} resizeMode="cover" />
           {starts && (
             <View style={[et.startPill, { position: 'absolute', top: 10, left: 10, marginBottom: 0, backgroundColor: starts.live ? '#ef4444' : starts.soon ? `${primary}E0` : 'rgba(0,0,0,0.6)' }]}>
               {starts.live ? <View style={et.liveDot} /> : <Feather name="clock" size={9} color="#fff" />}
@@ -472,7 +478,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
         accessibilityRole="button"
         accessibilityLabel={`Event: ${event.title}, ${event.vibe_count || event.going || 0} vibing`}
       >
-        <SmartImage source={thumb} style={et.img} resizeMode="cover" />
+        <SmartImage source={thumb.thumbnail(thumbUrl)} style={et.img} resizeMode="cover" />
         <View style={[et.overlay, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
         <View style={[et.catBadge, { backgroundColor: catColor, ...(isWeb ? { boxShadow: `0 0 10px ${catColor}80` } : {}) }]}>
           <Feather name={CATEGORY_CONFIG[event.category]?.icon || 'tag'} size={12} color="#fff" />
@@ -585,8 +591,16 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const [whoWasThereVisible,  setWhoWasThereVisible]  = useState(false);
   const [routes, setRoutes] = useState([]);
   const [trendingHashtags, setTrendingHashtags] = useState([]);
+  const [meals, setMeals] = useState([]);
+  const [mealDetail, setMealDetail] = useState(null);
+  // Boosted, still-live meals — injected into the Near You rail for extra reach.
+  const boostedMeals = useMemo(() => {
+    const now = Date.now();
+    return meals.filter(m => m.is_boosted && (!m.boosted_until || new Date(m.boosted_until).getTime() > now)).slice(0, 4);
+  }, [meals]);
   const [scrollY, setScrollY] = useState(0);
   const scrollRef = useRef(null);
+  const resultsY = useRef(0); // y-offset of the category/mood results, for "take me there" scroll
   const searchTimer = useRef(null);
 
   const primary   = currentTheme?.primary    || "#00f2ff";
@@ -759,6 +773,13 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         );
       } catch { setTrendingHashtags([]); }
 
+      // The Meal — restaurant menus/specials/tastings (boosted-first ranking).
+      try {
+        const cached = LocationService.getCached?.();
+        const list = await MealService.listMeals({ lat: cached?.lat ?? null, lon: cached?.lon ?? null, limit: 30 });
+        setMeals(list || []);
+      } catch { setMeals([]); }
+
       setLocationLoading(true);
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -917,6 +938,16 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       })
       .catch(() => { setCatFilterLoading(false); });
   }, [activeCat, happeningNow, trendingEvents]);
+
+  // "Take me there": when a category is picked, scroll its results into view so
+  // it feels like a real filter, not a change buried below the fold.
+  useEffect(() => {
+    if (!activeCat || !scrollRef.current) return;
+    const t = setTimeout(() => {
+      try { scrollRef.current.scrollTo({ y: Math.max(0, resultsY.current - 8), animated: true }); } catch {}
+    }, 260);
+    return () => clearTimeout(t);
+  }, [activeCat]);
 
   // When moods are selected, fetch FRESH upcoming events for those categories.
   // Moods used to filter only the tiny already-loaded happeningNow pool (~8
@@ -1097,7 +1128,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                               </View>
                           }
                           <View style={{ flex: 1 }}>
-                            <Text style={[src.title, { color: textColor, fontSize: 13 }]}>@{u.username}</Text>
+                            <Text style={[src.title, { color: textColor, fontSize: 13 }]}>{u.username}</Text>
                             {u.bio ? <Text style={[src.metaText, { color: muted }]} numberOfLines={1}>{u.bio}</Text> : null}
                             {u.location ? <Text style={[src.metaText, { color: muted }]}>{u.location}</Text> : null}
                           </View>
@@ -1258,8 +1289,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               </View>
             )}
 
-            {/* ── Happening Now ───────────────────────────────────────────── */}
-            <View style={{ marginBottom: 20 }}>
+            {/* ── Happening Now (also the category/mood results anchor) ─────── */}
+            <View style={{ marginBottom: 20 }} onLayout={(e) => { resultsY.current = e.nativeEvent.layout.y; }}>
               <SectionHeader
                 title={activeMoods.size > 0 || activeCat ? `${activeMoods.size > 0 ? MOODS.filter(m => activeMoods.has(m.key)).map(m => m.label).join(' & ') : (CATEGORY_CONFIG[activeCat]?.label || '')} Gruvs` : 'Happening Now'}
                 actionLabel="See all"
@@ -1333,8 +1364,39 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                         />
                       </FadeInView>
                     ))}
+                    {/* Boosted meals ride along in Near You — "around the app" reach. */}
+                    {boostedMeals.map((m, i) => (
+                      <FadeInView key={`meal-${m.id}`} delay={(nearbyEvents.length + i) * 50} direction="right">
+                        <MealCard meal={m} primary={primary} textColor={textColor} muted={muted} surface={surface} onPress={(meal) => setMealDetail(meal)} width={150} />
+                      </FadeInView>
+                    ))}
                   </ScrollView>
                 )}
+              </View>
+            )}
+
+            {/* ── The Meal — restaurants' menus, specials & tastings ──────── */}
+            {meals.length > 0 && (
+              <View style={{ marginBottom: 22 }}>
+                <SectionHeader
+                  title="The Meal"
+                  textColor={textColor}
+                  primary={primary}
+                />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                  {meals.map((m, i) => (
+                    <FadeInView key={m.id} delay={i * 40} direction="right">
+                      <MealCard
+                        meal={m}
+                        primary={primary}
+                        textColor={textColor}
+                        muted={muted}
+                        surface={surface}
+                        onPress={(meal) => setMealDetail(meal)}
+                      />
+                    </FadeInView>
+                  ))}
+                </ScrollView>
               </View>
             )}
 
@@ -1370,7 +1432,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                           <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>{Math.round(m.matchScore)}%</Text>
                         </View>
                       </View>
-                      <Text style={{ color: textColor, fontWeight: '900', fontSize: 13 }} numberOfLines={1}>@{m.username}</Text>
+                      <Text style={{ color: textColor, fontWeight: '900', fontSize: 13 }} numberOfLines={1}>{m.username}</Text>
                       <Text style={{ color: primary, fontSize: 10, fontWeight: '700', marginTop: 2 }}>{m.career_title || 'Viber'}</Text>
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8, justifyContent: 'center' }}>
                         {m.overlap?.slice(0, 2).map(tag => (
@@ -1457,7 +1519,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                           : <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>{(b.username || '?').slice(0, 1).toUpperCase()}</Text>}
                       </View>
                       <Text style={{ position: 'absolute', top: -2, right: 6, fontSize: 18 }}>🎂</Text>
-                      <Text style={{ color: textColor, fontSize: 11, fontWeight: '700', marginTop: 5 }} numberOfLines={1}>@{b.username || 'viber'}</Text>
+                      <Text style={{ color: textColor, fontSize: 11, fontWeight: '700', marginTop: 5 }} numberOfLines={1}>{b.username || 'viber'}</Text>
                       <Text style={{ color: muted, fontSize: 9 }}>Wish them 🎉</Text>
                     </TouchableOpacity>
                   ))}
@@ -1670,6 +1732,11 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         userId={selectedViber?.id || selectedViber?.profile_id}
         onClose={() => setViberModalVisible(false)}
         onNavigateToEvent={(ev) => { setViberModalVisible(false); onNavigateToEvent?.(ev); }}
+      />
+      <MealDetailModal
+        visible={!!mealDetail}
+        meal={mealDetail}
+        onClose={() => setMealDetail(null)}
       />
       <Modal
         visible={marketplaceVisible}

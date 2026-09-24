@@ -8,7 +8,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, ActivityIndicator, ScrollView, Platform } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import QRCode from 'react-native-qrcode-svg';
 import { useTheme } from '../context/ThemeContext';
 import { enrollTotp, verifyTotp, mfaStatus, disableMfa, isValidTotpCode } from '../services/mfa';

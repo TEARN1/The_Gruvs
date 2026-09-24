@@ -8,7 +8,7 @@
 // offering a link that cannot work.
 //
 // Set EXPO_PUBLIC_RESIDENT_URL to the deployed Resident host to light these up.
-export const RESIDENT_WEB_URL = (process.env.EXPO_PUBLIC_RESIDENT_URL || '').replace(/\/+$/, '');
+export const RESIDENT_WEB_URL = (process.env.EXPO_PUBLIC_RESIDENT_URL || 'https://theresidentcrew.com').replace(/\/+$/, '');
 
 /** True when a Resident host is configured, so a hand-off is actually possible. */
 export const hasResident = () => RESIDENT_WEB_URL.length > 0;

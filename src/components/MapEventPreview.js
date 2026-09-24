@@ -13,14 +13,18 @@
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder, Platform, Linking } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { SmartImage } from './SmartImage';
 import { distanceKm } from '../utils/geo';
-import { FeedManager, RSVPManager, BookmarkManager, CheckInManager } from '../services/dataFlow';
+import { directionsUrl, directionsFallbackUrl } from '../utils/directions';
+import { FeedManager, RSVPManager, BookmarkManager, CheckInManager, DiscoveryManager } from '../services/dataFlow';
+import { thumb } from '../utils/storageThumb';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
+import { SHADOW, GLASS } from '../constants/DesignTokens';
+import { ViberProfileModal } from './ViberProfileModal';
 
 // A closure within this many metres of the venue is "right next to it".
 const CLOSURE_NEAR_M = 450;
@@ -78,11 +82,23 @@ export function MapEventPreview({
   const base = events[index] || null;
   const [full, setFull] = useState(base);
   const [going, setGoing] = useState(false);
+  const [attendees, setAttendees] = useState([]);
+  const [viberId, setViberId] = useState(null);
+  const [viberVisible, setViberVisible] = useState(false);
   const [saved, setSaved] = useState(false);
   const [goingCount, setGoingCount] = useState(base?.going || 0);
-  const [attendees, setAttendees] = useState([]);   // live "here now"
   const [friends, setFriends] = useState(0);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!full?.id) return;
+    DiscoveryManager.getEventAttendees(full.id).then(setAttendees).catch(() => {});
+  }, [full?.id]);
+
+  const openViber = (id) => {
+    setViberId(id);
+    setViberVisible(true);
+  };
 
   const slide = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -169,16 +185,24 @@ export function MapEventPreview({
     catch { setSaved(!next); toast('Could not save.', 'error'); }
   };
 
-  const takeMeThere = () => {
+  const takeMeThere = async () => {
     if (lat == null) { toast('No location on this event.', 'info'); return; }
-    const label = encodeURIComponent(full.title || 'Event');
-    // Universal Google Maps directions link — opens the maps app on any device,
-    // no API key. Apple Maps on iOS if Google isn't installed handles it too.
-    const url = Platform.select({
-      ios: `https://maps.apple.com/?daddr=${lat},${lng}&q=${label}`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-    });
-    Linking.openURL(url).catch(() => toast('Could not open maps.', 'error'));
+    // This used to close the sheet and say "follow the dotted line" — a straight
+    // segment through buildings. Hand off to the phone's own navigation app
+    // instead: real roads, live traffic, no API key, and it's already installed.
+    const dest = { lat, lng, label: full?.title || full?.venue_name || 'Gruv' };
+    const url = directionsUrl(dest, userCoords, Platform.OS);
+    if (!url) { toast('No location on this event.', 'info'); return; }
+    try {
+      await Linking.openURL(url);
+      onClose();
+    } catch {
+      // Android's geo: scheme resolves to nothing when no maps app is installed.
+      try {
+        await Linking.openURL(directionsFallbackUrl(dest, userCoords));
+        onClose();
+      } catch { toast('Could not open directions.', 'error'); }
+    }
   };
 
   const go = (delta) => {
@@ -199,10 +223,15 @@ export function MapEventPreview({
     <Animated.View
       {...pan.panHandlers}
       style={[cs.sheet, {
-        backgroundColor: `${bg}f7`, borderColor: `${primary}40`,
-        opacity: slide, transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }],
+        backgroundColor: `${bg}fa`,
+        borderColor: `${primary}35`,
+        opacity: slide,
+        transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }],
       }]}
     >
+      {/* Pull Handle */}
+      <View style={[cs.handle, { backgroundColor: `${muted}40` }]} />
+
       {/* Carousel controls + close */}
       <View style={cs.topRow}>
         <TouchableOpacity onPress={() => go(-1)} disabled={index === 0} style={cs.navBtn} hitSlop={cs.hit}>
@@ -235,8 +264,8 @@ export function MapEventPreview({
               <Text style={[cs.meta, { color: when === 'Live now' ? '#10b981' : muted, fontWeight: when === 'Live now' ? '800' : '600' }]}>{when}</Text>
             </View>
           )}
-          {full.venue ? (
-            <View style={cs.metaRow}><Feather name="map-pin" size={12} color={muted} /><Text numberOfLines={1} style={[cs.meta, { color: muted }]}>{full.venue}</Text></View>
+          {full.venue_name ? (
+            <View style={cs.metaRow}><Feather name="map-pin" size={12} color={muted} /><Text numberOfLines={1} style={[cs.meta, { color: muted }]}>{full.venue_name}</Text></View>
           ) : null}
           {km != null && (
             <View style={cs.metaRow}>
@@ -265,15 +294,27 @@ export function MapEventPreview({
             <Text style={[cs.proofText, { color: primary }]}>{friends} you follow</Text>
           </View>
         )}
-        {/* Live attendee avatars */}
-        {attendees.slice(0, 4).map((a, i) => (
-          a?.avatar_url
-            ? <SmartImage key={a.id || i} source={a.avatar_url} style={[cs.av, { marginLeft: i ? -8 : 4, borderColor: bg }]} />
-            : <View key={a?.id || i} style={[cs.av, { marginLeft: i ? -8 : 4, borderColor: bg, backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
-                <Text style={{ color: text, fontSize: 10, fontWeight: '800' }}>{(a?.username || '?')[0]?.toUpperCase()}</Text>
-              </View>
+        {/* Live attendee avatars — tapping opens their networking profile */}
+        {attendees.slice(0, 5).map((a, i) => (
+          <TouchableOpacity key={a.id || i} onPress={() => openViber(a.id)}>
+            {a?.avatar_url
+              ? <SmartImage source={a.avatar_url} style={[cs.av, { marginLeft: i ? -8 : 4, borderColor: bg }]} />
+              : <View style={[cs.av, { marginLeft: i ? -8 : 4, borderColor: bg, backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
+                  <Text style={{ color: text, fontSize: 10, fontWeight: '800' }}>{(a?.username || '?')[0]?.toUpperCase()}</Text>
+                </View>
+            }
+          </TouchableOpacity>
         ))}
       </View>
+
+      {/* Networking Modal */}
+      {viberVisible && (
+        <ViberProfileModal
+          visible={viberVisible}
+          userId={viberId}
+          onClose={() => setViberVisible(false)}
+        />
+      )}
 
       {/* Truth Protocol — closure right by the venue */}
       {closure && (
@@ -294,8 +335,30 @@ export function MapEventPreview({
         <TouchableOpacity onPress={toggleSave} style={[cs.iconBtn, { borderColor: `${primary}30`, backgroundColor: saved ? `${primary}18` : 'transparent' }]}>
           <Feather name="bookmark" size={16} color={saved ? primary : muted} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={takeMeThere} style={[cs.iconBtn, { borderColor: `${primary}30` }]}>
+        <TouchableOpacity
+          onPress={takeMeThere}
+          style={[cs.iconBtn, { borderColor: `${primary}30` }]}
+          accessibilityRole="button"
+          accessibilityLabel="Get directions to this Gruv"
+        >
           <Feather name="navigation-2" size={16} color={primary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            const destLat = full?.lat ?? full?.latitude;
+            const destLng = full?.lon ?? full?.longitude;
+            if (destLat && destLng) {
+              const uberUrl = `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${destLat}&dropoff[longitude]=${destLng}&dropoff[nickname]=${encodeURIComponent(full?.venue_name || full?.title || 'Gruv')}`;
+              Linking.openURL(uberUrl).catch(() => toast('Could not launch ride service.', 'error'));
+            } else {
+              toast('No coordinates for ride service.', 'info');
+            }
+          }}
+          style={[cs.iconBtn, { borderColor: `${primary}30`, backgroundColor: 'rgba(0,0,0,0.4)' }]}
+          accessibilityRole="button"
+          accessibilityLabel="Request ride with Uber/Bolt"
+        >
+          <Feather name="truck" size={16} color="#f59e0b" />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => onOpenEvent?.(full.id)} style={[cs.detailsBtn, { borderColor: `${primary}30` }]}>
           <Text style={[cs.actText, { color: text }]}>Details</Text>
@@ -307,7 +370,28 @@ export function MapEventPreview({
 }
 
 const cs = StyleSheet.create({
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, padding: 16, paddingBottom: 26, gap: 12 },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderTopWidth: 1.5,
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 24,
+    gap: 12,
+    zIndex: 50,
+    ...SHADOW?.lift,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' } : {}),
+  },
+  handle: {
+    width: 42,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
   hit: { top: 8, bottom: 8, left: 8, right: 8 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   navBtn: { padding: 2 },

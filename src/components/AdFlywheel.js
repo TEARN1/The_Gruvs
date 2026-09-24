@@ -8,11 +8,14 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useIdentity } from '../context/IdentityContext';
 import { supabase } from '../services/supabase';
 import { adSlotActive } from '../constants/adConfig';
+import { getPartnerCampaign } from '../constants/partnerSpotlight';
+import { SecurityService } from '../services/securityService';
+import { PartnerService } from '../services/partnerService';
 
 const intentToAdType = (intent) => {
   if (!intent) return null;
@@ -35,8 +38,6 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
   const fadeAnim              = useRef(new Animated.Value(0)).current;
 
   const selectAd = useCallback(async () => {
-    // Removed demo mode fallback. Real ads required.
-
     // Try to fetch a contextual ad from Supabase
     try {
       const preferredType = intentToAdType(intentTag);
@@ -57,8 +58,14 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
       }
     } catch (_) {}
 
-    // No real ads available — hide the unit
-  }, [intentTag]);
+    // Fallback: surface our premier partner campaigns (The Resident Crew & TEARN's Excellence)
+    const partner = getPartnerCampaign(intentTag === 'going_home' ? 'accommodation' : null);
+    if (partner) {
+      setAd(partner);
+      PartnerService.logImpression(partner.partner_key, slot);
+      fadeIn();
+    }
+  }, [intentTag, slot]);
 
   useEffect(() => {
     if (identityMode === 'celebrity' || !adSlotActive(slot)) return;
@@ -83,7 +90,11 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
 
   const handleCta = () => {
     if (!ad) return;
-    if (ad.type === 'event' && onNavigateToEvent && ad.event_id) {
+    if (ad.partner_key && ad.cta_url) {
+      PartnerService.logClickAndOpen(ad.partner_key, ad.cta_url, slot);
+    } else if (ad.cta_url) {
+      SecurityService.safeOpenURL(ad.cta_url);
+    } else if (ad.type === 'event' && onNavigateToEvent && ad.event_id) {
       onNavigateToEvent({ id: ad.event_id });
     } else if ((ad.type === 'service' || ad.type === 'gig') && onNavigateToServices) {
       onNavigateToServices();

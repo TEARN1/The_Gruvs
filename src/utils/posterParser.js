@@ -561,7 +561,7 @@ const parseAge = (t) => {
 // contains a venue word ("rooftop") but is prose — filling it into the Venue
 // field is worse than leaving the field empty for the host.
 const PROSE_WORDS = /\b(with|come|join|we|us|our|your|you|best|biggest|don'?t|miss|bring|expect|enjoy|experience|featuring|presents|ready|get)\b/i;
-const looksLikeProse = (s) => {
+const looksLikeMarketingCopy = (s) => {
   const words = s.trim().split(/\s+/);
   return words.length > 5 && PROSE_WORDS.test(s);
 };
@@ -572,7 +572,7 @@ const asVenue = (s) => {
   const v = clean(String(s)).replace(/^[~*\-–—•|]+\s*/, '').replace(/[.!,;:]+$/, '');
   if (!v || v.length > 80) return null;
   if (!/[a-z]{2,}/i.test(v)) return null;          // needs real letters
-  if (looksLikeProse(v)) return null;              // it's copy, not a place
+  if (looksLikeMarketingCopy(v)) return null;      // it's copy, not a place
   if (NOT_A_VENUE.test(v)) return null;            // it's a price/entry note
   return v;
 };
@@ -747,6 +747,20 @@ function parseTitle(lines, venue) {
  *   price, isFree, fromPrice, phone, email, ticketUrl, ageMin, categories,
  *   fields:Object }} — `fields[name]=true` for each thing we actually detected.
  */
+// A title/venue must be a LABEL, not a sentence. This rejects the AI/OCR prose
+// that occasionally lands in the raw text ("Based on the official tour poster,
+// here is the operation…", "the center, supported by a full live band") so it
+// never gets auto-filled into a field — which is how garbage events like the
+// title'd "Based on…" with a fake address got created.
+export function looksLikeProse(s) {
+  const t = String(s || '').trim();
+  if (!t) return false;
+  if (t.length > 90) return true;                       // real titles/venues are short
+  if (t.split(/\s+/).length > 14) return true;          // a sentence, not a label
+  if (/\.(jpg|jpeg|png|webp)\b/i.test(t)) return true;  // OCR echoing the image file
+  return /\b(based on|here is|here'?s the|as follows|according to|official ticketing|the operation|booking platform|provided (in|by)|i (cannot|can'?t|could not)|supported by a|full live band|below (is|are)|please note)\b/i.test(t);
+}
+
 export function parsePosterText(rawText, now = new Date(), opts = {}) {
   // Strip chat/decoration artifacts BEFORE anything reads the lines — otherwise
   // "*AMAPIANO SUNSET* 🌅" becomes the title and "📍 Konka" becomes the venue.
@@ -816,10 +830,15 @@ export function parsePosterText(rawText, now = new Date(), opts = {}) {
       .join(' ')
   ).slice(0, 400);
 
+  // Drop any title/venue that's actually prose — better to leave the field blank
+  // for the host to fill than to auto-fill a garbage sentence.
+  const safeTitle = looksLikeProse(title) ? '' : title;
+  const safeVenue = looksLikeProse(venue) ? '' : venue;
+
   const fields = {};
   const set = (k, v) => { if (v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length)) fields[k] = true; };
-  set('title', title); set('date', date); set('time', time); set('price', price.amount);
-  set('venue', venue); set('city', city); set('phone', phone); set('email', email);
+  set('title', safeTitle); set('date', date); set('time', time); set('price', price.amount);
+  set('venue', safeVenue); set('city', city); set('phone', phone); set('email', email);
   set('ticketUrl', ticketUrl); set('categories', categories);
   set('powerBackup', powerBackup); set('eventTags', eventTags);
   set('eventType', eventType); set('secretAct', secretAct);
@@ -828,10 +847,10 @@ export function parsePosterText(rawText, now = new Date(), opts = {}) {
   if (ageMin || ageRange.min) fields.age = true;
 
   return {
-    title: title || '',
+    title: safeTitle || '',
     description: description || '',
-    venue: venue || '',
-    address: venue || '',
+    venue: safeVenue || '',
+    address: safeVenue || '',
     city: city || '',
     date,                                   // 'YYYY-MM-DD' | null
     endDate,                                // multi-day festivals ("15-17 Aug")

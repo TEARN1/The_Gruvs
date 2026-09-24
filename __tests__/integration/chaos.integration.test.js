@@ -94,7 +94,10 @@ describe('Network Chaos & Database Strain Integration Tests', () => {
       const duration = Date.now() - start;
 
       expect(result).not.toBeNull();
-      expect(duration).toBeGreaterThanOrEqual(500);
+      // setTimeout is a minimum-delay guarantee, not exact — CI runners can
+      // legitimately fire 1-2ms early due to timer/clock rounding. A hard
+      // >=500 flakes on that jitter without the underlying behavior changing.
+      expect(duration).toBeGreaterThanOrEqual(495);
       console.log(`Completed slow connection query in ${duration}ms`);
     });
 

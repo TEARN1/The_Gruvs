@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition, Suspense } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import { GlassView } from '../components/GlassView';
 import { MediaViewer } from '../components/MediaViewer';
+import { BoostedMealRail } from '../components/BoostedMealRail';
 import { MatchVersus, parseMatchCard } from '../components/MatchVersus';
 import { SmartImage } from '../components/SmartImage';
 import { FadeInView } from '../components/FadeInView';
@@ -82,6 +84,7 @@ import { friendsGoing, friendsLabel } from '../services/socialProof';
 import { insertStartHeaders } from '../utils/startGroup';
 import { UnlockTeaserCard } from '../components/UnlockTeaserCard';
 import { NotificationNudge } from '../components/NotificationNudge';
+import { BirthDateNudge } from '../components/BirthDateNudge';
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
@@ -701,13 +704,13 @@ const EventCard = React.memo(({
               </View>
             </View>
 
-            {/* Venue / address — full-width row, truncates cleanly, taps to Maps */}
+            {/* Venue / address — full-width row, taps to internal Map */}
             {(event.venue_name || event.address) ? (
               <TouchableOpacity
                 style={[styles.venueRow, { borderColor: `${primary}22`, backgroundColor: `${primary}08` }]}
-                onPress={() => SecurityService.safeOpenURL(`https://maps.google.com/?q=${encodeURIComponent(event.address || event.venue_name)}`)}
+                onPress={() => onSelectEvent(event)}
                 accessibilityRole="button"
-                accessibilityLabel={`Open ${event.venue_name || event.address} in Maps`}
+                accessibilityLabel={`View ${event.venue_name || event.address} details`}
               >
                 <Feather name="map-pin" size={11} color={primary} />
                 <Text style={[styles.venueRowText, { color: primary }]} numberOfLines={1}>
@@ -1614,8 +1617,29 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       .catch(() => {});
   }, [user?.id, eventIdsKey]);
 
-  // Resolve the viewer's age once so the feed can hide mature listings from minors.
-  useEffect(() => { loadViewerAge(user?.id).then(() => loadData(true)).catch(() => {}); }, [user?.id]);
+  // Resolve the viewer's age so the feed can hide mature listings from minors.
+  //
+  // These run in PARALLEL, not in sequence. Chaining them put a whole extra
+  // round trip in front of the very first thing the user sees, for no reason:
+  // the age is never awaited by the feed — it is read synchronously via
+  // viewerAgeSync() at filter time (see loadData).
+  //
+  // What sequencing did buy was ordering: the age was always known before the
+  // filter ran. Losing that is safe in the conservative direction, because an
+  // unknown age already means "general content only" (viewerAge's documented
+  // fail-safe) — the same thing that happens on any cold load today. But it
+  // would leave an adult viewer over-filtered until their next load, so when a
+  // real age lands late we re-run the filter. That second pass reads the feed
+  // cache populated moments earlier, so it costs no additional network trip.
+  useEffect(() => {
+    let alive = true;
+    const ageWasKnown = viewerAgeSync() != null;
+    loadData(true);
+    loadViewerAge(user?.id)
+      .then((age) => { if (alive && age != null && !ageWasKnown) loadData(true); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [user?.id]);
 
   // Load birthday spotlight data
   useEffect(() => {
@@ -2101,8 +2125,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               <Feather name="film" size={18} color={primary} />
             </TouchableOpacity>
           )}
-          {user && (
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setPathMapVisible(true)}>
+          {/* Path Map needs density to feel alive — parked by the Focus Cut.
+              This header button was missing its flag check, so the parked
+              surface stayed one tap away. */}
+          {user && feature('pathMap') && (
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => setPathMapVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="My Path Map"
+            >
               <Feather name="map" size={18} color={primary} />
             </TouchableOpacity>
           )}
@@ -2361,15 +2393,19 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // ── FEED HEADER ───────────────────────────────────────────────────────────────
   const renderFeedHeader = () => (
-    <View style={styles.sectionRow}>
-      <Text style={[styles.sectionTitle, { color: textColor }]}>
-        {mode === 'drop' ? 'Recent Gruvs' : 'All Gruvs'}
-        {feedData.length > 0 ? <Text style={{ color: muted, fontWeight: '700' }}>  ·  {feedData.filter(e => !e._header).length}{hasMore ? '+' : ''}</Text> : null}
-      </Text>
-      <TouchableOpacity onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}>
-        <Text style={[styles.seeAll, { color: primary }]}>Drop a Gruv</Text>
-      </TouchableOpacity>
-    </View>
+    <>
+      {/* Boosted meals ride into The Drop — self-contained, renders nothing when empty. */}
+      {mode === 'drop' && <BoostedMealRail />}
+      <View style={styles.sectionRow}>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>
+          {mode === 'drop' ? 'Recent Gruvs' : 'All Gruvs'}
+          {feedData.length > 0 ? <Text style={{ color: muted, fontWeight: '700' }}>  ·  {feedData.filter(e => !e._header).length}{hasMore ? '+' : ''}</Text> : null}
+        </Text>
+        <TouchableOpacity onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}>
+          <Text style={[styles.seeAll, { color: primary }]}>Drop a Gruv</Text>
+        </TouchableOpacity>
+      </View>
+    </>
   );
 
   // Stable extraData bundle — FlatList only re-renders items when interaction state actually changes
@@ -2583,7 +2619,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           // in prod — the feed capped at initialNumToRender). Drive load-more from
           // the raw scroll geometry instead, which DOES fire.
           if (Platform.OS === 'web' && contentSize?.height > 0) {
-            if (contentOffset.y + layoutMeasurement.height > contentSize.height - 900) {
+            // Prefetch the next page ~2 screens early so a fast scroll never
+            // outruns the data and lands on still-loading cards.
+            const prefetch = Math.max(1800, layoutMeasurement.height * 1.5);
+            if (contentOffset.y + layoutMeasurement.height > contentSize.height - prefetch) {
               handleLoadMore();
             }
           }
@@ -2596,9 +2635,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         // matter how far you scroll — "I only see 5 events"). Browsers handle a
         // few hundred cards fine, so render everything and let the DOM scroll.
         disableVirtualization={Platform.OS === 'web'}
-        maxToRenderPerBatch={Platform.OS === 'web' ? 100 : 5}
-        windowSize={Platform.OS === 'web' ? 1001 : 10}
-        initialNumToRender={Platform.OS === 'web' ? 200 : 5}
+        maxToRenderPerBatch={Platform.OS === 'web' ? 100 : 8}
+        windowSize={Platform.OS === 'web' ? 1001 : 14}
+        initialNumToRender={Platform.OS === 'web' ? 200 : 7}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>
@@ -2607,6 +2646,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 snooze with Chats/Pings, so it never double-nags). */}
             {mode === 'drop' && (
               <NotificationNudge primary={primary} surface={surface} textColor={textColor} muted={muted} />
+            )}
+            {/* The age gate fails open on an unknown birthday, so the only thing
+                closing it is asking. Self-hides once a DOB exists. */}
+            {mode === 'drop' && (
+              <BirthDateNudge primary={primary} surface={surface} textColor={textColor} muted={muted} />
             )}
             {renderTrending()}
             {/* Reels on The Drop — video discovery starts in the feed */}
@@ -2646,7 +2690,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={primary} colors={[primary]} progressBackgroundColor={surface} />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={1.5}
         ListFooterComponent={
           loadingMore ? (
             <View style={{ paddingVertical: 20 }}>
@@ -2863,7 +2907,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                                   <Text style={{ color: primary, fontWeight: '900', fontSize: 12 }}>{(r.profiles?.username || '?')[0].toUpperCase()}</Text>
                                 </View>
                             }
-                            <Text style={[styles.reactorName, { color: textColor }]}>@{r.profiles?.username || 'Viber'}</Text>
+                            <Text style={[styles.reactorName, { color: textColor }]}>{r.profiles?.username || 'Viber'}</Text>
                             <Text style={{ fontSize: 22, marginLeft: 'auto' }}>{emojiFor(r.reaction_key)}</Text>
                           </View>
                         ))}

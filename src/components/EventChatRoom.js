@@ -9,10 +9,11 @@ import {
   KeyboardAvoidingView, Platform, Image, Modal, Animated, ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { ChatManager } from '../services/dataFlow';
+import { ChatManager } from '../services/dataFlow';
+
 import { useBackClose } from '../hooks/useBackClose';
 
 const avatarBg = (u = '') =>
@@ -76,7 +77,7 @@ const MessageBubble = memo(({ msg, isMine, canModerate, primary, textColor, mute
         {/* Reply reference */}
         {replyTarget && (
           <View style={[mb.replyRef, { borderLeftColor: primary, backgroundColor: `${primary}10` }]}>
-            <Text style={[mb.replyUser, { color: primary }]}>@{replyTarget.profiles?.username}</Text>
+            <Text style={[mb.replyUser, { color: primary }]}>{replyTarget.profiles?.username}</Text>
             <Text style={[mb.replyText, { color: muted }]} numberOfLines={1}>{replyTarget.message}</Text>
           </View>
         )}

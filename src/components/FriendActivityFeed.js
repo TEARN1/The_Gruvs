@@ -10,7 +10,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Image, ActivityIndicator,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { ActivityFeedManager } from '../services/dataFlow';
@@ -58,7 +58,7 @@ const ActivityCard = ({ item, primary, textColor, muted, surface, onPress }) => 
 
       {/* Text */}
       <View style={ac.text}>
-        <Text style={[ac.actor, { color: textColor }]} numberOfLines={1}>@{item.actor_username}</Text>
+        <Text style={[ac.actor, { color: textColor }]} numberOfLines={1}>{item.actor_username}</Text>
         <Text style={[ac.verb, { color: muted }]} numberOfLines={1}>
           {cfg.verb} {item.target_title || ''}
         </Text>
