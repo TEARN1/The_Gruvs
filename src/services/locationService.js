@@ -27,6 +27,23 @@ export const LocationService = {
     return _cachedCoords;
   },
 
+  /**
+   * Apply dynamic mathematically-safe jitter (350m–750m) for Ghost mode privacy
+   */
+  applyGhostJitter(coords) {
+    if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lon)) return coords;
+    // 0.005 degrees latitude is approximately 550 metres
+    const angle = Math.random() * 2 * Math.PI;
+    const distanceDeg = 0.0035 + Math.random() * 0.004; // ~380m to 800m
+    const dLat = Math.sin(angle) * distanceDeg;
+    const dLon = (Math.cos(angle) * distanceDeg) / Math.cos((coords.lat * Math.PI) / 180);
+    return {
+      lat: coords.lat + dLat,
+      lon: coords.lon + dLon,
+      isJittered: true,
+    };
+  },
+
   // Resolve the viewer's ISO country code (e.g. 'ZA', 'US') from GPS, used to
   // pick the local display currency. Best-effort: returns null if denied/offline.
   async getCountryCode() {
