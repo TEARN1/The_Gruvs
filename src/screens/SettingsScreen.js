@@ -580,8 +580,10 @@ export const SettingsScreen = ({
           </View>
         </SectionCard>
 
-        {/* ABOUT */}
-        <SectionCard icon="info" title="About & Support" primary={primary} muted={muted} textColor={textColor}>
+        {/* ABOUT & ECOSYSTEM */}
+        <SectionCard icon="info" title="About & Partners" primary={primary} muted={muted} textColor={textColor}>
+          <LinkRow icon="home" label="The Resident Crew" sub="Verified stays & accommodation" onPress={() => openUrl('https://theresidentcrew.com')} primary={primary} muted={muted} textColor={textColor} />
+          <LinkRow icon="cpu" label="TEARN's Excellence" sub="Engineering & Software Architecture" onPress={() => openUrl('https://github.com/TEARN1/TEARNs-Excellence')} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="file-text" label="Privacy policy" onPress={() => openUrl(PRIVACY_URL)} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="book-open" label="Terms of service" onPress={() => openUrl(TERMS_URL)} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="tag" label="Version" value={APP_VERSION} primary={primary} muted={muted} textColor={textColor} />

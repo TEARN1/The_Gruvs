@@ -14,6 +14,8 @@
  * startCall is a friendly no-op.
  */
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { PeerSession, isCallSupported, ringChannelName, ringUser } from '../services/webrtcCall';
 import { CallOverlay } from '../components/CallOverlay';
@@ -23,6 +25,7 @@ import { MessageManager } from '../services/dataFlow';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import { useToast } from '../components/ToastNotification';
+import { SHADOW } from '../constants/DesignTokens';
 
 // Native haptic buzz on incoming ring — guarded so a missing module or the web
 // platform is simply a silent no-op (never throws into the call UI).
@@ -68,11 +71,16 @@ export function CallProvider({ children }) {
   const [filterKey, setFilterKey] = useState('none');
   const [callReactions, setCallReactions] = useState([]);
   const [permGuide, setPermGuide] = useState(null); // { reason, needVideo }
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const pushCallReaction = useCallback((emoji, mine) => {
     const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     setCallReactions((prev) => [...prev.slice(-14), { id, emoji, mine }]);
     setTimeout(() => setCallReactions((prev) => prev.filter((r) => r.id !== id)), 2800);
+  }, []);
+
+  const toggleMinimize = useCallback(() => {
+    setIsMinimized((m) => !m);
   }, []);
 
   // Leave a call-log line in the thread — "📞 Voice call · 4:12" when answered,
@@ -106,6 +114,7 @@ export function CallProvider({ children }) {
     setCall(null); setLocalStream(null); setRemoteStream(null);
     setCallMuted(false); setCamOff(false); setRecording(false); setPeerRecording(false);
     setSharingScreen(false); setPeerSharingScreen(false); setFilterKey('none'); setCallReactions([]);
+    setIsMinimized(false);
     postCallSummary();
     callRef.current = null; // peerRef kept so a permission-retry still knows who
   }, [postCallSummary]);
@@ -282,12 +291,12 @@ export function CallProvider({ children }) {
     if (!user?.id && callRef.current) { try { callRef.current.destroy(); } catch {} endCallLocal(); }
   }, [user?.id, endCallLocal]);
 
-  const value = { startCall, callSupported: supported, inCall: !!call };
+  const value = { startCall, callSupported: supported, inCall: !!call, isMinimized, toggleMinimize };
 
   return (
     <CallContext.Provider value={value}>
       {children}
-      {call && (
+      {call && !isMinimized && (
         <CallOverlay
           status={call.status}
           video={call.video}
@@ -307,6 +316,7 @@ export function CallProvider({ children }) {
           reactions={callReactions}
           onSendReaction={sendCallReaction}
           primary={primary}
+          onMinimize={toggleMinimize}
           onAccept={acceptCall}
           onReject={rejectCall}
           onHangUp={hangUp}
@@ -317,6 +327,30 @@ export function CallProvider({ children }) {
           onToggleScreenShare={toggleScreenShare}
         />
       )}
+
+      {/* Floating Call PiP Bubble when minimized */}
+      {call && isMinimized && (
+        <TouchableOpacity
+          onPress={toggleMinimize}
+          activeOpacity={0.9}
+          style={[pipS.bubble, { borderColor: `${primary}50` }]}
+        >
+          <View style={[pipS.pulseRing, { backgroundColor: `${primary}20` }]} />
+          <Feather name={call.video ? 'video' : 'phone'} size={16} color={primary} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={pipS.name} numberOfLines={1}>{peer?.username || 'Call'}</Text>
+            <Text style={[pipS.status, { color: primary }]}>Active · Tap to expand</Text>
+          </View>
+          <TouchableOpacity
+            onPress={(e) => { e.stopPropagation(); hangUp(); }}
+            style={pipS.endBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="phone-off" size={14} color="#fff" />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      )}
+
       <PermissionGuideModal
         visible={!!permGuide}
         reason={permGuide?.reason}
@@ -328,3 +362,47 @@ export function CallProvider({ children }) {
     </CallContext.Provider>
   );
 }
+
+const pipS = StyleSheet.create({
+  bubble: {
+    position: 'absolute',
+    top: 56,
+    right: 16,
+    width: 210,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(10,13,14,0.92)',
+    zIndex: 9999,
+    ...SHADOW?.lift,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
+  },
+  pulseRing: {
+    position: 'absolute',
+    left: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  name: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  status: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  endBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#ef4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

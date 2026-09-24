@@ -22,7 +22,7 @@ export const HIDDEN_TABS = LAUNCH_MINIMAL ? ['reels'] : [];
 // only their entry points are hidden. Flip any flag to true to bring it back
 // instantly (or set LAUNCH_MINIMAL = false to restore the whole app).
 export const FEATURES = LAUNCH_MINIMAL ? {
-  reelsRail:    false, // the Reels strip on The Drop (Reels tab already hidden)
+  reelsRail:    true,  // the Reels strip on The Drop — video discovery live
   business:     true,  // Business dashboard + Store builder + campaigns — un-parked (founder wants it visible)
   gifting:      false, // creator gifting economy (regulated fintech — build last)
   // Cashing out earned diamonds to ZAR. Separate from `gifting` on purpose:

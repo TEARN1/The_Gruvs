@@ -2962,27 +2962,56 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                     'Apprentice Surveyor'
                   }
                 </Text>
-                {/* Only offered when a Resident host is actually configured.
-                    This button used to point at a hardcoded localhost:3000,
-                    which resolved for nobody but the developer. */}
-                {hasResident() && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      const url = residentUrl('dashboard');
-                      if (url) SecurityService.safeOpenURL(url);
-                    }}
-                    style={{
-                      backgroundColor: primary,
-                      borderRadius: 8,
-                      paddingVertical: 6,
-                      paddingHorizontal: 10,
-                      alignItems: 'center',
-                      marginTop: 4
-                    }}
-                  >
-                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>Launch Resident Map</Text>
-                  </TouchableOpacity>
-                )}
+                {/* The Resident Crew Hub */}
+                <TouchableOpacity
+                  onPress={() => {
+                    const url = residentUrl('dashboard') || 'https://theresidentcrew.com';
+                    SecurityService.safeOpenURL(url);
+                  }}
+                  style={{
+                    backgroundColor: `${primary}15`,
+                    borderRadius: 10,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: 6,
+                    borderWidth: 1,
+                    borderColor: `${primary}40`,
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Feather name="home" size={14} color={primary} />
+                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 12 }}>The Resident Crew</Text>
+                  </View>
+                  <Feather name="external-link" size={13} color={primary} />
+                </TouchableOpacity>
+
+                {/* TEARN's Excellence Innovation Hub */}
+                <TouchableOpacity
+                  onPress={() => SecurityService.safeOpenURL('https://github.com/TEARN1/TEARNs-Excellence')}
+                  style={{
+                    backgroundColor: 'rgba(0,242,255,0.08)',
+                    borderRadius: 10,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: 6,
+                    borderWidth: 1,
+                    borderColor: 'rgba(0,242,255,0.3)',
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Feather name="cpu" size={14} color="#00f2ff" />
+                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 12 }}>TEARN's Excellence</Text>
+                  </View>
+                  <Feather name="arrow-up-right" size={13} color="#00f2ff" />
+                </TouchableOpacity>
               </View>
             </View>
           </CollapsibleSection>

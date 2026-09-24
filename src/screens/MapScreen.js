@@ -8,7 +8,7 @@
  * map failure never takes the app down.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Image, TextInput, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
@@ -144,7 +144,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           .in('user_id', raw.map((v) => v.id));
         sameEventIds = new Set((shared || []).map((r) => r.user_id));
       }
-    } catch { /* ranking degrades to proximity-only */ }
+    } catch (_err) { /* ranking degrades to proximity-only */ }
 
     const viewer = { id: user.id, lat: userLoc?.lat, lon: userLoc?.lng };
     const extras = Object.fromEntries(raw.map((v) => [v.id, { sameEventNow: sameEventIds.has(v.id) }]));

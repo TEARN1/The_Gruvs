@@ -13,6 +13,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useIdentity } from '../context/IdentityContext';
 import { supabase } from '../services/supabase';
 import { adSlotActive } from '../constants/adConfig';
+import { getPartnerCampaign } from '../constants/partnerSpotlight';
+import { SecurityService } from '../services/securityService';
 
 const intentToAdType = (intent) => {
   if (!intent) return null;
@@ -35,8 +37,6 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
   const fadeAnim              = useRef(new Animated.Value(0)).current;
 
   const selectAd = useCallback(async () => {
-    // Removed demo mode fallback. Real ads required.
-
     // Try to fetch a contextual ad from Supabase
     try {
       const preferredType = intentToAdType(intentTag);
@@ -57,7 +57,12 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
       }
     } catch (_) {}
 
-    // No real ads available — hide the unit
+    // Fallback: surface our premier partner campaigns (The Resident Crew & TEARN's Excellence)
+    const partner = getPartnerCampaign(intentTag === 'going_home' ? 'accommodation' : null);
+    if (partner) {
+      setAd(partner);
+      fadeIn();
+    }
   }, [intentTag]);
 
   useEffect(() => {
@@ -83,7 +88,9 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
 
   const handleCta = () => {
     if (!ad) return;
-    if (ad.type === 'event' && onNavigateToEvent && ad.event_id) {
+    if (ad.cta_url) {
+      SecurityService.safeOpenURL(ad.cta_url);
+    } else if (ad.type === 'event' && onNavigateToEvent && ad.event_id) {
       onNavigateToEvent({ id: ad.event_id });
     } else if ((ad.type === 'service' || ad.type === 'gig') && onNavigateToServices) {
       onNavigateToServices();

@@ -118,6 +118,7 @@ export const CallOverlay = ({
   reactions,        // [{ id, emoji, mine }]
   onSendReaction,
   primary = '#00f2ff',
+  onMinimize,
   onAccept,
   onReject,
   onHangUp,
@@ -159,6 +160,18 @@ export const CallOverlay = ({
 
   return (
     <View style={cs.root}>
+      {/* Minimize to Floating Bubble Button */}
+      {status === 'connected' && onMinimize && (
+        <TouchableOpacity
+          onPress={onMinimize}
+          style={cs.minimizeBtn}
+          accessibilityLabel="Minimize call"
+          accessibilityRole="button"
+        >
+          <Feather name="chevron-down" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
+
       {/* Recording banner — always visible to BOTH parties (consent) */}
       {(recording || peerRecording) && (
         <View style={cs.recBanner}>
@@ -271,6 +284,7 @@ export const CallOverlay = ({
 
 const cs = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, backgroundColor: '#0a0d0e', alignItems: 'center', justifyContent: 'center', zIndex: 50 },
+  minimizeBtn: { position: 'absolute', top: 24, left: 18, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', zIndex: 65 },
   centerStage: { alignItems: 'center', gap: 12, paddingBottom: 60 },
   bigAvatar: { width: 120, height: 120, borderRadius: 60 },
   name: { color: '#fff', fontSize: 22, fontWeight: '900' },
