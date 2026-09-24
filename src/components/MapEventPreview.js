@@ -25,6 +25,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
 import { SHADOW, GLASS } from '../constants/DesignTokens';
 import { ViberProfileModal } from './ViberProfileModal';
+import { optimisticEngine } from '../services/optimisticEngine';
 
 // A closure within this many metres of the venue is "right next to it".
 const CLOSURE_NEAR_M = 450;
@@ -169,8 +170,14 @@ export function MapEventPreview({
     const next = !going;
     setGoing(next); setGoingCount((c) => Math.max(0, c + (next ? 1 : -1)));
     try {
-      if (next) await RSVPManager.upsert(full.id, user.id, 'going');
-      else await RSVPManager.remove(full.id, user.id);
+      await optimisticEngine.toggleRsvp({
+        eventId: full.id,
+        isGoing: going,
+        serverCall: async (nextStatus) => {
+          if (nextStatus === 'going') await RSVPManager.upsert(full.id, user.id, 'going');
+          else await RSVPManager.remove(full.id, user.id);
+        }
+      });
     } catch {
       setGoing(!next); setGoingCount((c) => Math.max(0, c + (next ? -1 : 1)));
       toast('Could not update RSVP.', 'error');
@@ -181,8 +188,18 @@ export function MapEventPreview({
     if (requireAuth()) return;
     const next = !saved;
     setSaved(next);
-    try { await BookmarkManager.toggle(full.id, user.id, saved); }
-    catch { setSaved(!next); toast('Could not save.', 'error'); }
+    try {
+      await optimisticEngine.toggleLike({
+        targetId: `save_${full.id}`,
+        isLiked: saved,
+        serverCall: async () => {
+          await BookmarkManager.toggle(full.id, user.id, saved);
+        }
+      });
+    } catch {
+      setSaved(!next);
+      toast('Could not save.', 'error');
+    }
   };
 
   const takeMeThere = async () => {

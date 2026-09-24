@@ -204,3 +204,21 @@ export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {
 
   return data.publicUrl;
 };
+
+/**
+ * Delete a file from Supabase storage by bucket and path/URL
+ */
+export const deleteFromStorage = async (bucket, pathOrUrl) => {
+  if (!pathOrUrl) return false;
+  try {
+    let storagePath = pathOrUrl;
+    if (pathOrUrl.startsWith('http')) {
+      const parts = pathOrUrl.split(`/${bucket}/`);
+      if (parts.length > 1) storagePath = parts[1].split('?')[0];
+    }
+    const { error } = await supabase.storage.from(bucket).remove([storagePath]);
+    return !error;
+  } catch (_) {
+    return false;
+  }
+};

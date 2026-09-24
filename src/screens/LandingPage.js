@@ -58,6 +58,7 @@ import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PresenceBar } from '../components/PresenceBar';
 import { AdFlywheel } from '../components/AdFlywheel';
+import { optimisticEngine } from '../services/optimisticEngine';
 import { EchoSection } from '../components/EchoSection';
 import { RatingSection } from '../components/RatingSection';
 import { PulseScheduleSection } from '../components/PulseScheduleSection';
@@ -1914,20 +1915,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     });
 
     try {
-      const success = await BookmarkManager.toggle(eventId, user.id, isSaved);
-      if (success === isSaved) {
-        // If it returns the same state, it failed (BookmarkManager.toggle returns the NEW state)
-        // Rollback
-        setSavedEvents(prev => {
-          const next = new Set(prev);
-          if (isSaved) next.add(eventId);
-          else next.delete(eventId);
-          return next;
-        });
-        toast.show('Failed to update bookmark', 'error');
-      } else {
-        toast.show(isSaved ? 'Removed from bookmarks' : 'Added to bookmarks', 'success');
-      }
+      await optimisticEngine.toggleLike({
+        targetId: `bookmark_${eventId}`,
+        isLiked: isSaved,
+        serverCall: async () => {
+          const success = await BookmarkManager.toggle(eventId, user.id, isSaved);
+          if (success === isSaved) {
+            throw new Error('Bookmark toggle failed');
+          }
+        }
+      });
+      toast.show(isSaved ? 'Removed from bookmarks' : 'Added to bookmarks', 'success');
     } catch {
       // Rollback on catch
       setSavedEvents(prev => {
@@ -1936,6 +1934,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         else next.delete(eventId);
         return next;
       });
+      toast.show('Failed to update bookmark', 'error');
     }
   };
 

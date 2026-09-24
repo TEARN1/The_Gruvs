@@ -279,7 +279,12 @@ export const SecurityService = {
   // ── Deep-link / URL scheme guard ────────────────────────────────────────
 
   /** Whitelist of allowed deep-link hosts. Opens only these from external links. */
-  ALLOWED_HOSTS: ['thegruvs.com', 'www.thegruvs.com', 'thegruvs.app', 'open.spotify.com', 'www.youtube.com', 'youtube.com', 'supabase.co', 'wa.me', 'maps.google.com'],
+  ALLOWED_HOSTS: [
+    'thegruvs.com', 'www.thegruvs.com', 'thegruvs.app',
+    'theresidentcrew.com', 'www.theresidentcrew.com',
+    'github.com', 'open.spotify.com', 'www.youtube.com',
+    'youtube.com', 'supabase.co', 'wa.me', 'maps.google.com'
+  ],
 
   isTrustedExternalUrl(url) {
     try {
@@ -287,6 +292,21 @@ export const SecurityService = {
       if (!['http:', 'https:'].includes(protocol)) return false;
       return this.ALLOWED_HOSTS.some(h => hostname === h || hostname.endsWith(`.${h}`));
     } catch { return false; }
+  },
+
+  /** Sanitize and validate route params extracted from deep-links against injection */
+  sanitizeDeepLinkParams(params = {}) {
+    if (!params || typeof params !== 'object') return {};
+    const sanitized = {};
+    for (const [key, val] of Object.entries(params)) {
+      if (typeof val === 'string') {
+        // Strip control characters, quotes, and HTML tags
+        sanitized[key] = val.replace(/[<>'";\\]/g, '').slice(0, 150);
+      } else if (typeof val === 'number' && Number.isFinite(val)) {
+        sanitized[key] = val;
+      }
+    }
+    return sanitized;
   },
 
   // ── Content moderation helpers ───────────────────────────────────────────
