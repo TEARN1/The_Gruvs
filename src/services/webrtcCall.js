@@ -200,11 +200,37 @@ export class PeerSession {
     const pc = new RTC(ICE_CONFIG);
     pc.onicecandidate = (e) => { if (e.candidate) this._send('ice', { candidate: e.candidate }); };
     pc.ontrack = (e) => { this.remoteStream = e.streams[0]; this.onRemoteStream?.(e.streams[0]); };
+    pc.oniceconnectionstatechange = () => {
+      const ist = pc.iceConnectionState;
+      if (ist === 'failed') {
+        // Attempt ICE restart before giving up
+        if (typeof pc.restartIce === 'function') {
+          try { pc.restartIce(); } catch (_) {}
+        }
+      }
+    };
     pc.onconnectionstatechange = () => {
       const st = pc.connectionState;
       if (st === 'connected') this.onStatus?.('connected');
-      else if (st === 'failed') { this.onStatus?.('failed'); this.destroy(); }
-      else if (st === 'disconnected' || st === 'closed') this.onStatus?.('ended');
+      else if (st === 'failed') {
+        // If iceRestart is available, try once before failing
+        if (typeof pc.restartIce === 'function' && !this._iceRestartAttempted) {
+          this._iceRestartAttempted = true;
+          try { pc.restartIce(); return; } catch (_) {}
+        }
+        this.onStatus?.('failed');
+        this.destroy();
+      }
+      else if (st === 'disconnected') {
+        // Temporarily disconnected (network handover) — give it 4 seconds to reconnect
+        setTimeout(() => {
+          if (this.pc && this.pc.connectionState === 'disconnected') {
+            this.onStatus?.('ended');
+            this.destroy();
+          }
+        }, 4000);
+      }
+      else if (st === 'closed') this.onStatus?.('ended');
     };
     if (this.sharedStream) {
       this.localStream = this.sharedStream;

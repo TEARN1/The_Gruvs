@@ -343,6 +343,23 @@ export function MapEventPreview({
         >
           <Feather name="navigation-2" size={16} color={primary} />
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            const destLat = full?.lat ?? full?.latitude;
+            const destLng = full?.lon ?? full?.longitude;
+            if (destLat && destLng) {
+              const uberUrl = `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${destLat}&dropoff[longitude]=${destLng}&dropoff[nickname]=${encodeURIComponent(full?.venue_name || full?.title || 'Gruv')}`;
+              Linking.openURL(uberUrl).catch(() => toast('Could not launch ride service.', 'error'));
+            } else {
+              toast('No coordinates for ride service.', 'info');
+            }
+          }}
+          style={[cs.iconBtn, { borderColor: `${primary}30`, backgroundColor: 'rgba(0,0,0,0.4)' }]}
+          accessibilityRole="button"
+          accessibilityLabel="Request ride with Uber/Bolt"
+        >
+          <Feather name="truck" size={16} color="#f59e0b" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => onOpenEvent?.(full.id)} style={[cs.detailsBtn, { borderColor: `${primary}30` }]}>
           <Text style={[cs.actText, { color: text }]}>Details</Text>
           <Feather name="arrow-up-right" size={14} color={text} />

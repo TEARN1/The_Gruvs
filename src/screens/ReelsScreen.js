@@ -23,6 +23,7 @@ import { escapeLike } from '../utils/handleGuard';
 import { APP_WEB_URL } from '../constants/appUrl';
 import { resilient } from '../utils/resilience';
 import { haptics } from '../utils/haptics';
+import { VideoCache } from '../services/videoCache';
 import { ViberProfileModal } from '../components/ViberProfileModal';
 import { DirectMessageModal } from '../components/DirectMessageModal';
 import { CreateReelModal } from '../components/CreateReelModal';
@@ -1378,6 +1379,8 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
 
       setReels(data);
       setError(null);
+      // Pre-warm the top 3 clips immediately
+      VideoCache.prefetchBatch(data.slice(0, 3).map((r) => r.media_url));
 
       if (initialReelId && data.length) {
         const idx = data.findIndex(r => r.id === initialReelId);
@@ -1432,7 +1435,16 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
   }, []);
 
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index ?? 0);
+    if (viewableItems.length > 0) {
+      const idx = viewableItems[0].index ?? 0;
+      setActiveIndex(idx);
+      // Pre-warm the next 2 videos in feed
+      const nextUrls = [
+        reelsRef.current?.[idx + 1]?.media_url,
+        reelsRef.current?.[idx + 2]?.media_url,
+      ].filter(Boolean);
+      VideoCache.prefetchBatch(nextUrls);
+    }
   }).current;
 
   const viewConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;

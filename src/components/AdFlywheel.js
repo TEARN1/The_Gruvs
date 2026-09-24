@@ -15,6 +15,7 @@ import { supabase } from '../services/supabase';
 import { adSlotActive } from '../constants/adConfig';
 import { getPartnerCampaign } from '../constants/partnerSpotlight';
 import { SecurityService } from '../services/securityService';
+import { PartnerService } from '../services/partnerService';
 
 const intentToAdType = (intent) => {
   if (!intent) return null;
@@ -61,9 +62,10 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
     const partner = getPartnerCampaign(intentTag === 'going_home' ? 'accommodation' : null);
     if (partner) {
       setAd(partner);
+      PartnerService.logImpression(partner.partner_key, slot);
       fadeIn();
     }
-  }, [intentTag]);
+  }, [intentTag, slot]);
 
   useEffect(() => {
     if (identityMode === 'celebrity' || !adSlotActive(slot)) return;
@@ -88,7 +90,9 @@ export const AdFlywheel = ({ intentTag, eventId, onNavigateToEvent, onNavigateTo
 
   const handleCta = () => {
     if (!ad) return;
-    if (ad.cta_url) {
+    if (ad.partner_key && ad.cta_url) {
+      PartnerService.logClickAndOpen(ad.partner_key, ad.cta_url, slot);
+    } else if (ad.cta_url) {
       SecurityService.safeOpenURL(ad.cta_url);
     } else if (ad.type === 'event' && onNavigateToEvent && ad.event_id) {
       onNavigateToEvent({ id: ad.event_id });

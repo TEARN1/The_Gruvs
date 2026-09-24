@@ -79,6 +79,17 @@ export function CallProvider({ children }) {
     setTimeout(() => setCallReactions((prev) => prev.filter((r) => r.id !== id)), 2800);
   }, []);
 
+  const [callDuration, setCallDuration] = useState(0);
+
+  useEffect(() => {
+    if (call?.status !== 'connected') {
+      setCallDuration(0);
+      return;
+    }
+    const timer = setInterval(() => setCallDuration((s) => s + 1), 1000);
+    return () => clearInterval(timer);
+  }, [call?.status]);
+
   const toggleMinimize = useCallback(() => {
     setIsMinimized((m) => !m);
   }, []);
@@ -339,7 +350,9 @@ export function CallProvider({ children }) {
           <Feather name={call.video ? 'video' : 'phone'} size={16} color={primary} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={pipS.name} numberOfLines={1}>{peer?.username || 'Call'}</Text>
-            <Text style={[pipS.status, { color: primary }]}>Active · Tap to expand</Text>
+            <Text style={[pipS.status, { color: primary }]}>
+              {`${Math.floor(callDuration / 60)}:${String(callDuration % 60).padStart(2, '0')}`} · Tap to expand
+            </Text>
           </View>
           <TouchableOpacity
             onPress={(e) => { e.stopPropagation(); hangUp(); }}
