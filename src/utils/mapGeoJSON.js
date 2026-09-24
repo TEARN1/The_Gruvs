@@ -200,3 +200,45 @@ export function drawGeoJSON(mode, pts) {
   }
   return { type: 'FeatureCollection', features };
 }
+
+/**
+ * Generate 5, 10, and 15 min walking distance circle polygons around a center point.
+ * Average walking speed: ~4.8 km/h -> 5 min ~= 400m, 10 min ~= 800m, 15 min ~= 1200m.
+ */
+export function isochronesGeoJSON(center) {
+  if (!center || center.lat == null || center.lng == null) return emptyFC();
+  const { lat, lng } = center;
+  const tiers = [
+    { mins: 5, radiusM: 400, color: '#10b981', label: '5 min walk' },
+    { mins: 10, radiusM: 800, color: '#00f2ff', label: '10 min walk' },
+    { mins: 15, radiusM: 1200, color: '#f59e0b', label: '15 min walk' },
+  ];
+
+  const features = tiers.map((tier) => {
+    const points = 48;
+    const coords = [];
+    const earthRadius = 6378137; // meters
+    const dLat = (tier.radiusM / earthRadius) * (180 / Math.PI);
+    const dLng = (tier.radiusM / (earthRadius * Math.cos((Math.PI * lat) / 180))) * (180 / Math.PI);
+
+    for (let i = 0; i <= points; i++) {
+      const theta = (i / points) * (2 * Math.PI);
+      const ptLng = lng + dLng * Math.cos(theta);
+      const ptLat = lat + dLat * Math.sin(theta);
+      coords.push([ptLng, ptLat]);
+    }
+
+    return {
+      type: 'Feature',
+      geometry: { type: 'Polygon', coordinates: [coords] },
+      properties: {
+        mins: tier.mins,
+        color: tier.color,
+        label: tier.label,
+      },
+    };
+  });
+
+  return { type: 'FeatureCollection', features };
+}
+

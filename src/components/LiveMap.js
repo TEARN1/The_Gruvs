@@ -15,7 +15,7 @@ import Feather from '@expo/vector-icons/Feather';
 import {
   emptyFC, eventsToGeoJSON, zonesToGeoJSON, zonesToMarkersGeoJSON, reportsToGeoJSON,
   pointsToGeoJSON, staysToGeoJSON, poisToGeoJSON, crewToGeoJSON,
-  nearbyToGeoJSON, trailsToGeoJSON, drawGeoJSON,
+  nearbyToGeoJSON, trailsToGeoJSON, drawGeoJSON, isochronesGeoJSON,
 } from '../utils/mapGeoJSON';
 import { toBbox } from '../utils/mapViewport';
 import { applyGroupVisibility } from '../constants/mapLayers';
@@ -360,22 +360,24 @@ export function LiveMap({
         }
       }, 'ev-glow'); // Place under event pins
 
-      // 3D Buildings layer (fill-extrusion)
-      // OpenFreeMap tiles often include building heights in 'render_height' or 'height'
+      // Isochrone Walking Distance Envelopes (5m, 10m, 15m)
+      map.addSource('isochrones', { type: 'geojson', data: isochronesGeoJSON(userLoc) });
       map.addLayer({
-        'id': '3d-buildings',
-        'source': 'openmaptiles',
-        'source-layer': 'building',
-        'type': 'fill-extrusion',
-        'minzoom': 14,
-        'layout': { 'visibility': show3DRef.current ? 'visible' : 'none' },
-        'paint': {
-          'fill-extrusion-color': '#aaa',
-          'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'render_height']],
-          'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'render_min_height']],
-          'fill-extrusion-opacity': 0.6
+        id: 'isochrones-fill', type: 'fill', source: 'isochrones',
+        paint: {
+          'fill-color': ['get', 'color'],
+          'fill-opacity': ['interpolate', ['linear'], ['get', 'mins'], 5, 0.08, 10, 0.05, 15, 0.03],
         }
-      }, 'ev-glow'); // Place under event pins
+      }, 'ev-glow');
+      map.addLayer({
+        id: 'isochrones-line', type: 'line', source: 'isochrones',
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': 1.5,
+          'line-dasharray': [3, 2],
+          'line-opacity': 0.75,
+        }
+      }, 'ev-glow');
 
       map.addLayer({
         id: 'ev-hot', type: 'circle', source: 'eventsC',
@@ -624,7 +626,10 @@ export function LiveMap({
   useEffect(() => { setData('trails', trailsToGeoJSON(trails)); }, [trails]);
   useEffect(() => { setData('stays', staysToGeoJSON(stays)); }, [stays]);
   useEffect(() => { setData('pois', poisToGeoJSON(pois)); }, [pois]);
-  useEffect(() => { setData('self', pointsToGeoJSON(userLoc ? [userLoc] : [])); }, [userLoc]);
+  useEffect(() => {
+    setData('self', pointsToGeoJSON(userLoc ? [userLoc] : []));
+    setData('isochrones', isochronesGeoJSON(userLoc));
+  }, [userLoc]);
   useEffect(() => { setData('reports', reportsToGeoJSON(reports)); }, [reports]);
   // Animate a ripple each time `ripple.key` changes — radius grows, ring fades.
   useEffect(() => {

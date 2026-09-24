@@ -311,6 +311,24 @@ export function MapEventPreview({
             <Text style={[cs.proofText, { color: primary }]}>{friends} you follow</Text>
           </View>
         )}
+        {/* Door Fluidity & Queue Barometer */}
+        <View style={[cs.proofChip, {
+          backgroundColor: here > 30 ? 'rgba(239,68,68,0.15)' : here > 10 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: here > 30 ? '#ef444450' : here > 10 ? '#f59e0b50' : '#10b98150',
+        }]}>
+          <Feather
+            name={here > 30 ? 'clock' : here > 10 ? 'activity' : 'zap'}
+            size={11}
+            color={here > 30 ? '#ef4444' : here > 10 ? '#f59e0b' : '#10b981'}
+          />
+          <Text style={[cs.proofText, { color: here > 30 ? '#ef4444' : here > 10 ? '#f59e0b' : '#10b981', fontSize: 11 }]}>
+            {here > 40 ? 'Door: Capacity Peak' : here > 20 ? 'Door: ~25 min wait' : here > 8 ? 'Door: Fast Line < 10m' : 'Door: Walk In (No Line)'}
+          </Text>
+        </View>
         {/* Live attendee avatars — tapping opens their networking profile */}
         {attendees.slice(0, 5).map((a, i) => (
           <TouchableOpacity key={a.id || i} onPress={() => openViber(a.id)}>

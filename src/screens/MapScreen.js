@@ -615,7 +615,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       );
     }
     return list;
-  }, [events, liveOnly, dayFilter, searchQuery]);
+  }, [events, liveOnly, dayFilter, hourFilter, searchQuery]);
 
   const communityPois = React.useMemo(() => {
     const POI_TYPES = new Set(['police_nearby', 'atm', 'medical_point', 'station', 'taxi_rank', 'safe_spot']);
