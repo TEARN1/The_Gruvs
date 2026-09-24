@@ -18,6 +18,9 @@ import { LiveMap, isMapSupported, mapCapabilities } from '../components/LiveMap'
 import { ZoneDrawTool } from '../components/ZoneDrawTool';
 import { MapEventPreview } from '../components/MapEventPreview';
 import { MapReportSheet } from '../components/MapReportSheet';
+import { MapLayersModal } from '../components/MapLayersModal';
+import { SmartImage } from '../components/SmartImage';
+import { GLASS, SHADOW } from '../constants/DesignTokens';
 import { MapReports } from '../services/mapReports';
 import { MAP_REPORT_BY_KEY } from '../constants/mapContributions';
 import { MapZones, ZONE_KINDS, ZONE_STATUS } from '../services/mapZones';
@@ -88,6 +91,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   // Crowdsourced map reports (the "update the map yourself" layer).
   const [reports, setReports] = useState([]);
   const [reportSheet, setReportSheet] = useState(false);
+  const [layersModalVisible, setLayersModalVisible] = useState(false);
   const [activeReport, setActiveReport] = useState(null);
 
   // Phase 2: Fog of the City — your lit Touch Downs.
@@ -586,13 +590,22 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   // Directions now hand off to the phone's own nav app (utils/directions).
 
   // "Live now" filters to venues with verified people there; the scrubber filters
-  // to a chosen night; otherwise everything upcoming shows.
+  // to a chosen night; search query instantly matches event names/venues; otherwise everything upcoming shows.
   const shownEvents = React.useMemo(() => {
     let list = events;
     if (liveOnly) list = list.filter((e) => (e.here_count || 0) > 0);
     if (dayFilter) list = list.filter((e) => String(e.event_date || '').slice(0, 10) === dayFilter);
+    const q = (searchQuery || '').trim().toLowerCase();
+    if (q) {
+      list = list.filter((e) =>
+        (e.title && e.title.toLowerCase().includes(q)) ||
+        (e.venue_name && e.venue_name.toLowerCase().includes(q)) ||
+        (e.suburb && e.suburb.toLowerCase().includes(q)) ||
+        (e.category && e.category.toLowerCase().includes(q))
+      );
+    }
     return list;
-  }, [events, liveOnly, dayFilter]);
+  }, [events, liveOnly, dayFilter, searchQuery]);
 
   const communityPois = React.useMemo(() => {
     const POI_TYPES = new Set(['police_nearby', 'atm', 'medical_point', 'station', 'taxi_rank', 'safe_spot']);
@@ -615,49 +628,107 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   return (
     <ErrorBoundary label="Map">
       <SafeAreaView style={[cs.screen, { backgroundColor: bg }]} edges={['top']}>
-        {/* Header */}
-        <View style={cs.header}>
-          <Text style={[cs.title, { color: primary }]}>THE MAP</Text>
-          <Text style={[cs.sub, { color: muted }]}>
-            {loading ? 'Reading your city…'
-              : `${events.length} events${activeClosures ? ` · ${activeClosures} live closure${activeClosures === 1 ? '' : 's'}` : ''}`}
-          </Text>
-        </View>
-
-        {/* Search Bar */}
-        <View style={[cs.searchRow, { backgroundColor: `${primary}12`, borderColor: `${primary}30` }]}>
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchBar}
-            placeholder="Search city or area..."
-            placeholderTextColor={muted}
-            onSubmitEditing={handleSearch}
-            style={[cs.searchInput, { color: textColor }]}
-          />
-          <TouchableOpacity onPress={handleSearch} style={cs.searchBtn}>
-            {searching ? <ActivityIndicator size="small" color={primary} /> : <Feather name="search" size={18} color={primary} />}
-          </TouchableOpacity>
-        </View>
-
-        {/* Time-scrubber — jump the map forward night by night */}
-        {isMapSupported() && !drawing && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}
-            style={cs.dayStrip} contentContainerStyle={{ gap: 8, paddingHorizontal: 14 }}>
-            <TouchableOpacity onPress={() => setDayFilter(null)}
-              style={[cs.dayChip, { borderColor: !dayFilter ? primary : `${primary}30`, backgroundColor: !dayFilter ? primary : 'transparent' }]}>
-              <Text style={{ color: !dayFilter ? '#000' : primary, fontSize: 12, fontWeight: '800' }}>All</Text>
+        {/* Floating Top Control Capsule */}
+        <View style={cs.floatingHeader} pointerEvents="box-none">
+          {/* Glass Search Bar */}
+          <View style={[cs.glassSearchRow, { backgroundColor: `${bg}dd`, borderColor: `${primary}35` }]}>
+            <Feather name="search" size={17} color={primary} style={{ marginLeft: 12, marginRight: 8 }} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchBar}
+              placeholder="Search spots, vibes, areas..."
+              placeholderTextColor={muted}
+              onSubmitEditing={handleSearch}
+              style={[cs.searchInput, { color: textColor }]}
+            />
+            {searching ? (
+              <ActivityIndicator size="small" color={primary} style={{ marginRight: 10 }} />
+            ) : searchQuery.length > 0 ? (
+              <TouchableOpacity onPress={() => setSearchBar('')} style={{ padding: 8 }}>
+                <Feather name="x" size={16} color={muted} />
+              </TouchableOpacity>
+            ) : null}
+            <View style={[cs.searchDivider, { backgroundColor: `${muted}30` }]} />
+            <TouchableOpacity onPress={recenter} style={cs.headerActionBtn} accessibilityLabel="My Location">
+              <Feather name="crosshair" size={18} color={primary} />
             </TouchableOpacity>
-            {days.map((d) => {
-              const on = dayFilter === d.key;
-              return (
-                <TouchableOpacity key={d.key} onPress={() => setDayFilter(on ? null : d.key)}
-                  style={[cs.dayChip, { borderColor: on ? primary : `${primary}30`, backgroundColor: on ? primary : 'transparent' }]}>
-                  <Text style={{ color: on ? '#000' : primary, fontSize: 12, fontWeight: '800' }}>{d.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        )}
+            <TouchableOpacity onPress={() => setLayersModalVisible(true)} style={[cs.headerActionBtn, { backgroundColor: `${primary}18`, borderRadius: 18 }]} accessibilityLabel="Layers and filters">
+              <Feather name="layers" size={18} color={primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Quick Filter Pill Strip */}
+          {isMapSupported() && !drawing && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              style={cs.quickFilterStrip} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+              {/* Live Now verified pill */}
+              <TouchableOpacity
+                onPress={() => setLiveOnly((v) => !v)}
+                style={[
+                  cs.quickPill,
+                  {
+                    borderColor: liveOnly ? '#10b981' : `${muted}35`,
+                    backgroundColor: liveOnly ? '#10b98122' : `${bg}dd`,
+                  }
+                ]}
+                activeOpacity={0.8}
+              >
+                <Feather name="radio" size={12} color={liveOnly ? '#10b981' : muted} />
+                <Text style={[cs.quickPillText, { color: liveOnly ? '#10b981' : textColor }]}>Live Now</Text>
+                {liveOnly && <View style={[cs.activePillDot, { backgroundColor: '#10b981' }]} />}
+              </TouchableOpacity>
+
+              {/* Crowd Heatmap pill */}
+              <TouchableOpacity
+                onPress={() => setHeat((h) => !h)}
+                style={[
+                  cs.quickPill,
+                  {
+                    borderColor: heat ? '#f59e0b' : `${muted}35`,
+                    backgroundColor: heat ? '#f59e0b22' : `${bg}dd`,
+                  }
+                ]}
+                activeOpacity={0.8}
+              >
+                <Feather name="activity" size={12} color={heat ? '#f59e0b' : muted} />
+                <Text style={[cs.quickPillText, { color: heat ? '#f59e0b' : textColor }]}>Heatmap</Text>
+              </TouchableOpacity>
+
+              {/* Crew Convergence pill */}
+              <TouchableOpacity
+                onPress={crewLayer.toggle}
+                style={[
+                  cs.quickPill,
+                  {
+                    borderColor: showCrew ? '#ec4899' : `${muted}35`,
+                    backgroundColor: showCrew ? '#ec489922' : `${bg}dd`,
+                  }
+                ]}
+                activeOpacity={0.8}
+              >
+                <Feather name="users" size={12} color={showCrew ? '#ec4899' : muted} />
+                <Text style={[cs.quickPillText, { color: showCrew ? '#ec4899' : textColor }]}>
+                  Crew{crewOut > 0 ? ` (${crewOut})` : ''}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Day filter pills */}
+              <TouchableOpacity onPress={() => setDayFilter(null)}
+                style={[cs.quickPill, { borderColor: !dayFilter ? primary : `${muted}35`, backgroundColor: !dayFilter ? `${primary}22` : `${bg}dd` }]}>
+                <Text style={[cs.quickPillText, { color: !dayFilter ? primary : muted }]}>All Nights</Text>
+              </TouchableOpacity>
+              {days.slice(0, 3).map((d) => {
+                const on = dayFilter === d.key;
+                return (
+                  <TouchableOpacity key={d.key} onPress={() => setDayFilter(on ? null : d.key)}
+                    style={[cs.quickPill, { borderColor: on ? primary : `${muted}35`, backgroundColor: on ? `${primary}22` : `${bg}dd` }]}>
+                    <Text style={[cs.quickPillText, { color: on ? primary : muted }]}>{d.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
 
         {/* The map fills the rest */}
         <View style={{ flex: 1 }}>
@@ -704,73 +775,57 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             />
           </ErrorBoundary>
 
-          {/* Floating controls (only when the real map is up and not drawing) */}
+          {/* Clean Modern Floating Action Bar */}
           {isMapSupported() && !drawing && (
             <View style={cs.fabCol} pointerEvents="box-none">
-              <TouchableOpacity onPress={() => (user ? setReportSheet(true) : onAuthRequired?.())} style={[cs.fab, { backgroundColor: primary, borderColor: primary }]} accessibilityLabel="Add a report to the map">
-                <Feather name="plus" size={20} color="#000" />
+              {/* Report button */}
+              <TouchableOpacity
+                onPress={() => (user ? setReportSheet(true) : onAuthRequired?.())}
+                style={[cs.fabPrimary, { backgroundColor: primary }]}
+                accessibilityLabel="Report incident or live tip"
+              >
+                <Feather name="plus" size={22} color="#000" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={mineLayer.toggle} style={[cs.fab, { backgroundColor: showMine ? '#fbbf24' : bg, borderColor: showMine ? '#fbbf24' : `${primary}40` }]}>
-                <Feather name="star" size={18} color={showMine ? '#000' : '#fbbf24'} />
+
+              {/* Layers Drawer Trigger */}
+              <TouchableOpacity
+                onPress={() => setLayersModalVisible(true)}
+                style={[cs.fab, { backgroundColor: `${bg}ee`, borderColor: `${primary}35` }]}
+                accessibilityLabel="Open map layers and visual modes"
+              >
+                <Feather name="layers" size={18} color={primary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={crewLayer.toggle} style={[cs.fab, { backgroundColor: showCrew ? '#ec4899' : bg, borderColor: showCrew ? '#ec4899' : `${primary}40` }]}>
-                <Feather name="users" size={18} color={showCrew ? '#fff' : '#ec4899'} />
+
+              {/* Roulette / Discovery prompt */}
+              <TouchableOpacity
+                onPress={() => setShowRoulette(true)}
+                style={[cs.fab, { backgroundColor: `${bg}ee`, borderColor: `${primary}35` }]}
+                accessibilityLabel="Vibe roulette"
+              >
+                <Feather name="compass" size={18} color={primary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={nearbyLayer.toggle} style={[cs.fab, { backgroundColor: showNearby ? primary : bg, borderColor: showNearby ? primary : `${primary}40` }]} accessibilityLabel="Find vibers nearby">
-                <Feather name="user-check" size={18} color={showNearby ? '#000' : primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={toggleNetworking} style={[cs.fab, { backgroundColor: networkingMode ? primary : bg, borderColor: networkingMode ? primary : `${primary}40` }]} accessibilityLabel="Toggle networking mode">
-                <Feather name="message-square" size={18} color={networkingMode ? '#000' : primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={trailsLayer.toggle} style={[cs.fab, { backgroundColor: showTrails ? primary : bg, borderColor: showTrails ? primary : `${primary}40` }]} accessibilityLabel="Show flow trails">
-                <Feather name="trending-up" size={18} color={showTrails ? '#000' : primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={staysLayer.toggle} style={[cs.fab, { backgroundColor: showStays ? '#f59e0b' : bg, borderColor: showStays ? '#f59e0b' : `${primary}40` }]} accessibilityLabel="Places to stay from Resident Crew">
-                <Feather name="home" size={17} color={showStays ? '#000' : '#f59e0b'} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setHeat((h) => !h)} style={[cs.fab, { backgroundColor: heat ? primary : bg, borderColor: `${primary}40` }]}>
-                <Feather name="activity" size={18} color={heat ? '#000' : primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setLiveOnly((v) => !v)} style={[cs.fab, { backgroundColor: liveOnly ? '#10b981' : bg, borderColor: liveOnly ? '#10b981' : `${primary}40` }]}>
-                <Feather name="radio" size={17} color={liveOnly ? '#000' : '#10b981'} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={cycleStyle} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]} accessibilityLabel="Change map style">
-                <Feather name="layers" size={17} color={primary} />
-              </TouchableOpacity>
-              {/* Only offered where the renderer actually implements them —
-                  see mapCapabilities(). A FAB that toggles nothing is worse
-                  than an absent one. */}
-              {caps.threeD && (
-                <TouchableOpacity onPress={() => setShow3D(!show3D)} style={[cs.fab, { backgroundColor: show3D ? primary : bg, borderColor: `${primary}40` }]} accessibilityLabel="Toggle 3D buildings">
-                  <Text style={{ color: show3D ? '#000' : primary, fontWeight: '900', fontSize: 10 }}>3D</Text>
+
+              {/* Zoom & Fit Cluster */}
+              <View style={[cs.zoomCluster, { backgroundColor: `${bg}ee`, borderColor: `${primary}30` }]}>
+                <TouchableOpacity onPress={zoomIn} style={cs.zoomBtn} accessibilityLabel="Zoom in">
+                  <Feather name="plus" size={17} color={primary} />
                 </TouchableOpacity>
-              )}
-              {caps.weather && (
-                <TouchableOpacity onPress={() => setShowWeather(!showWeather)} style={[cs.fab, { backgroundColor: showWeather ? primary : bg, borderColor: `${primary}40` }]} accessibilityLabel="Toggle weather radar">
-                  <Feather name="cloud" size={17} color={showWeather ? '#000' : primary} />
+                <View style={[cs.zoomDivider, { backgroundColor: `${muted}30` }]} />
+                <TouchableOpacity onPress={zoomOut} style={cs.zoomBtn} accessibilityLabel="Zoom out">
+                  <Feather name="minus" size={17} color={primary} />
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity onPress={fitAll} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
-                <Feather name="maximize" size={17} color={primary} />
+              </View>
+
+              {/* Fit All in View */}
+              <TouchableOpacity onPress={fitAll} style={[cs.fab, { backgroundColor: `${bg}ee`, borderColor: `${primary}35` }]} accessibilityLabel="Fit all events">
+                <Feather name="maximize-2" size={16} color={primary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={zoomIn} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
-                <Feather name="plus-circle" size={18} color={primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={zoomOut} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
-                <Feather name="minus-circle" size={18} color={primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={toggleFollowMe} style={[cs.fab, { backgroundColor: followMe ? primary : bg, borderColor: followMe ? primary : `${primary}40` }]}>
-                <Feather name="navigation" size={18} color={followMe ? '#000' : primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={recenter} style={[cs.fab, { backgroundColor: bg, borderColor: `${primary}40` }]}>
-                <Feather name="crosshair" size={18} color={primary} />
-              </TouchableOpacity>
-              {/* Tracing a closure needs the web renderer's map-click; on native
-                  the button would open a draw UI that never receives a point. */}
+
+              {/* Mark closure tool on web */}
               {caps.draw && (
                 <TouchableOpacity onPress={startDraw} style={[cs.markBtn, { backgroundColor: primary }]}>
-                  <Feather name="edit-3" size={15} color="#000" />
-                  <Text style={cs.markText}>Mark a closure</Text>
+                  <Feather name="edit-3" size={14} color="#000" />
+                  <Text style={cs.markText}>Closure</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -811,17 +866,61 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             </TouchableOpacity>
           )}
 
-          {/* Legend (compact) */}
-          {isMapSupported() && !drawing && !activeZone && !previewId && (
-            <View style={[cs.legend, { backgroundColor: `${bg}dd`, borderColor: `${primary}22` }]}>
-              <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: '#00f2ff' }]} /><Text style={cs.legendText}>Events</Text></View>
-              <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#ef4444' }]} /><Text style={cs.legendText}>Road closed</Text></View>
-              <View style={cs.legendRow}><View style={[cs.dash, { backgroundColor: '#10b981' }]} /><Text style={cs.legendText}>Route</Text></View>
-              <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: primary, borderWidth: 1, borderColor: '#fff' }]} /><Text style={cs.legendText}>Vibers</Text></View>
-              <View style={cs.legendRow}><View style={[cs.dot, { backgroundColor: '#ec4899' }]} /><Text style={cs.legendText}>Networking</Text></View>
-              <View style={cs.legendRow}><Text style={cs.legendText}>🛡️ Safety</Text></View>
-              <View style={cs.legendRow}><Feather name="bell" size={9} color="#eab308" /><Text style={cs.legendText}>Resident alert</Text></View>
-              {heat && <View style={cs.legendRow}><Feather name="activity" size={9} color="#f59e0b" /><Text style={cs.legendText}>Heat = verified Touch Downs</Text></View>}
+          {/* Bottom Quick Vibe Bar — glanceable pulse when no sheet is open */}
+          {isMapSupported() && !drawing && !activeZone && !previewId && shownEvents.length > 0 && (
+            <View style={cs.bottomVibeBar} pointerEvents="box-none">
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+              >
+                {shownEvents.slice(0, 8).map((ev) => {
+                  const here = ev.here_count || 0;
+                  const isLive = here > 0;
+                  const cover = ev.image_url || ev.image;
+                  return (
+                    <TouchableOpacity
+                      key={ev.id}
+                      style={[
+                        cs.vibeSpotCard,
+                        {
+                          backgroundColor: `${bg}f0`,
+                          borderColor: isLive ? '#10b98166' : `${primary}25`,
+                        }
+                      ]}
+                      onPress={() => {
+                        setPreviewId(ev.id);
+                        if (ev.lat != null && ev.lon != null) {
+                          setCenter({ lat: ev.lat, lng: ev.lon });
+                        }
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      {cover ? (
+                        <SmartImage source={cover} style={cs.vibeSpotThumb} />
+                      ) : (
+                        <View style={[cs.vibeSpotThumb, { backgroundColor: `${primary}18`, alignItems: 'center', justifyContent: 'center' }]}>
+                          <Feather name="music" size={14} color={primary} />
+                        </View>
+                      )}
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[cs.vibeSpotTitle, { color: textColor }]} numberOfLines={1}>
+                          {ev.title || ev.venue_name || 'Gruv'}
+                        </Text>
+                        <Text style={[cs.vibeSpotSub, { color: muted }]} numberOfLines={1}>
+                          {ev.venue_name || ev.suburb || 'South Africa'}
+                        </Text>
+                      </View>
+                      {isLive ? (
+                        <View style={cs.liveBadgeWrap}>
+                          <View style={cs.livePulseDot} />
+                          <Text style={cs.liveBadgeText}>{here}</Text>
+                        </View>
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
           )}
         </View>
@@ -877,6 +976,33 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
         {/* Add-a-report picker (the crowdsourced map layer) */}
         <MapReportSheet visible={reportSheet} onClose={() => setReportSheet(false)} onSubmit={submitReport} />
+
+        {/* Map Layers & Visual Modes Drawer */}
+        <MapLayersModal
+          visible={layersModalVisible}
+          onClose={() => setLayersModalVisible(false)}
+          mapStyle={mapStyle}
+          onSelectStyle={setMapStyle}
+          heat={heat}
+          onToggleHeat={() => setHeat((h) => !h)}
+          liveOnly={liveOnly}
+          onToggleLiveOnly={() => setLiveOnly((v) => !v)}
+          showMine={showMine}
+          onToggleMine={mineLayer.toggle}
+          showCrew={showCrew}
+          onToggleCrew={crewLayer.toggle}
+          showNearby={showNearby}
+          onToggleNearby={nearbyLayer.toggle}
+          showTrails={showTrails}
+          onToggleTrails={trailsLayer.toggle}
+          showStays={showStays}
+          onToggleStays={staysLayer.toggle}
+          show3D={show3D}
+          onToggle3D={() => setShow3D((v) => !v)}
+          showWeather={showWeather}
+          onToggleWeather={() => setShowWeather((v) => !v)}
+          caps={caps}
+        />
 
         {/* Report detail + Truth Protocol confirm/dispute */}
         {activeReport && !drawing && (
@@ -1128,30 +1254,203 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
 
 const cs = StyleSheet.create({
   screen: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8 },
-  title: { fontSize: 22, fontWeight: '900', letterSpacing: 1 },
-  sub: { fontSize: 12, fontWeight: '600', marginTop: 1 },
-  searchRow: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, borderRadius: 14, borderWidth: 1, paddingHorizontal: 12, alignItems: 'center' },
-  searchInput: { flex: 1, height: 44, fontSize: 14, fontWeight: '600' },
-  searchBtn: { padding: 8 },
-  fabCol: { position: 'absolute', right: 14, bottom: 20, alignItems: 'flex-end', gap: 10 },
-  fab: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  markBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 24 },
-  markText: { color: '#000', fontWeight: '900', fontSize: 13 },
-  dayStrip: { flexGrow: 0, paddingVertical: 8 },
-  dayChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, borderWidth: 1.5 },
-  legend: { position: 'absolute', left: 14, bottom: 20, flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 7 },
-  fogChip: { position: 'absolute', top: 10, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  // Floating top controls capsule
+  floatingHeader: {
+    position: 'absolute',
+    top: 10,
+    left: 0,
+    right: 0,
+    zIndex: 30,
+    gap: 10,
+  },
+  glassSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    height: 48,
+    paddingHorizontal: 4,
+    ...SHADOW?.lift,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: 14,
+    fontWeight: '700',
+    paddingVertical: 0,
+  },
+  searchDivider: {
+    width: 1,
+    height: 22,
+    marginHorizontal: 4,
+  },
+  headerActionBtn: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickFilterStrip: {
+    flexGrow: 0,
+  },
+  quickPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    ...SHADOW?.card,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } : {}),
+  },
+  quickPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  activePillDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  // Floating controls cluster
+  fabCol: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
+    alignItems: 'center',
+    gap: 12,
+    zIndex: 20,
+  },
+  fabPrimary: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOW?.lift,
+  },
+  fab: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOW?.card,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : {}),
+  },
+  zoomCluster: {
+    borderRadius: 22,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+    alignItems: 'center',
+    ...SHADOW?.card,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : {}),
+  },
+  zoomBtn: {
+    width: 40,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zoomDivider: {
+    width: 24,
+    height: 1,
+  },
+  markBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    ...SHADOW?.lift,
+  },
+  markText: {
+    color: '#000',
+    fontWeight: '900',
+    fontSize: 12,
+  },
+  legend: { position: 'absolute', left: 16, bottom: 24, flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8 },
+  fogChip: { position: 'absolute', top: 120, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, zIndex: 10 },
   fogChipText: { color: '#fbbf24', fontSize: 11, fontWeight: '800' },
-  crewChip: { position: 'absolute', alignSelf: 'center', maxWidth: '86%', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  crewChip: { position: 'absolute', alignSelf: 'center', maxWidth: '86%', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, zIndex: 10 },
   crewChipText: { color: '#ec4899', fontSize: 11, fontWeight: '800' },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendText: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '700' },
   dot: { width: 9, height: 9, borderRadius: 5 },
   dash: { width: 14, height: 3, borderRadius: 2 },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, padding: 16, paddingBottom: 26, gap: 10 },
+  // Bottom Quick Vibe Carousel Bar
+  bottomVibeBar: {
+    position: 'absolute',
+    left: 0,
+    right: 80,
+    bottom: 24,
+    zIndex: 15,
+  },
+  vibeSpotCard: {
+    width: 195,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    gap: 10,
+    ...SHADOW?.lift,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
+  },
+  vibeSpotThumb: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+  },
+  vibeSpotTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  vibeSpotSub: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  liveBadgeWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#10b98120',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#10b98155',
+  },
+  livePulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10b981',
+  },
+  liveBadgeText: {
+    color: '#10b981',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  vibeCategoryBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  vibeCategoryText: {
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1.5, padding: 18, paddingBottom: 28, gap: 10, zIndex: 40 },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  kindDot: { width: 34, height: 34, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  kindDot: { width: 36, height: 36, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   sheetTitle: { fontSize: 16, fontWeight: '900' },
   trust: { flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderRadius: 12, padding: 10 },
   verifyBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 22, paddingVertical: 11 },

@@ -19,6 +19,7 @@ import { supabase } from '../services/supabase';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SmartImage } from '../components/SmartImage';
 import { LineupRail } from '../components/LineupRail';
+import { thumb as cdnThumb } from '../utils/storageThumb';
 
 const { width } = Dimensions.get('window');
 const CELL = Math.floor((width - 32) / 7);
@@ -244,9 +245,10 @@ const CalEventCard = ({ ev, primary, textColor, muted, onPress, index, showDate 
         {/* Colour accent */}
         <View style={[ec.accent, { backgroundColor: isPast ? '#9ca3af' : catColor }]} />
 
-        {/* Thumbnail */}
+        {/* Thumbnail — routed through the weserv CDN (resized + WebP) instead of
+            the raw full-res original; SmartImage adds disk-cache + fade-in. */}
         {thumb ? (
-          <Image source={{ uri: typeof thumb === 'string' ? thumb : thumb }} style={ec.thumb} />
+          <SmartImage source={{ uri: cdnThumb.avatar(thumb) }} style={ec.thumb} />
         ) : (
           <View style={[ec.thumbPlaceholder, { backgroundColor: `${catColor}20` }]}>
             <Feather name="image" size={20} color={`${catColor}60`} />

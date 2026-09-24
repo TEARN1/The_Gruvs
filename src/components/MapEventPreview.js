@@ -23,6 +23,7 @@ import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
+import { SHADOW, GLASS } from '../constants/DesignTokens';
 import { ViberProfileModal } from './ViberProfileModal';
 
 // A closure within this many metres of the venue is "right next to it".
@@ -222,10 +223,15 @@ export function MapEventPreview({
     <Animated.View
       {...pan.panHandlers}
       style={[cs.sheet, {
-        backgroundColor: `${bg}f7`, borderColor: `${primary}40`,
-        opacity: slide, transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }],
+        backgroundColor: `${bg}fa`,
+        borderColor: `${primary}35`,
+        opacity: slide,
+        transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }],
       }]}
     >
+      {/* Pull Handle */}
+      <View style={[cs.handle, { backgroundColor: `${muted}40` }]} />
+
       {/* Carousel controls + close */}
       <View style={cs.topRow}>
         <TouchableOpacity onPress={() => go(-1)} disabled={index === 0} style={cs.navBtn} hitSlop={cs.hit}>
@@ -347,7 +353,28 @@ export function MapEventPreview({
 }
 
 const cs = StyleSheet.create({
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, padding: 16, paddingBottom: 26, gap: 12 },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderTopWidth: 1.5,
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 24,
+    gap: 12,
+    zIndex: 50,
+    ...SHADOW?.lift,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' } : {}),
+  },
+  handle: {
+    width: 42,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
   hit: { top: 8, bottom: 8, left: 8, right: 8 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   navBtn: { padding: 2 },

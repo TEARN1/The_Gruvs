@@ -422,7 +422,10 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
   const starts = startsInLabel(event);
   // TODO(v6): remove media_urls/cover_image/image_url fallbacks after migration
-  const thumb = event.media?.[0]?.url
+  // Named thumbUrl (not `thumb`) so it doesn't shadow the imported CDN helper —
+  // this raw URL was being served full-res, uncached and un-resized, straight
+  // past the weserv resizer every other image call site goes through.
+  const thumbUrl = event.media?.[0]?.url
     || (typeof event.media?.[0] === 'string' ? event.media[0] : null)
     || event.cover_url
     || (Array.isArray(event.media_urls) ? event.media_urls[0] : null)
@@ -433,7 +436,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
 
     // Poster mode: the flyer carries all the details — show it whole & uncropped,
     // no dark overlay, no text on top. Just a small "poster" marker + hot badge.
-    if (event.poster_mode && thumb) {
+    if (event.poster_mode && thumbUrl) {
       return (
         <TouchableOpacity
           style={[
@@ -446,7 +449,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
           accessibilityRole="button"
           accessibilityLabel={`Poster event: ${event.title}`}
         >
-          <SmartImage source={thumb} style={et.img} resizeMode="cover" />
+          <SmartImage source={thumb.thumbnail(thumbUrl)} style={et.img} resizeMode="cover" />
           {starts && (
             <View style={[et.startPill, { position: 'absolute', top: 10, left: 10, marginBottom: 0, backgroundColor: starts.live ? '#ef4444' : starts.soon ? `${primary}E0` : 'rgba(0,0,0,0.6)' }]}>
               {starts.live ? <View style={et.liveDot} /> : <Feather name="clock" size={9} color="#fff" />}
@@ -475,7 +478,7 @@ const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false })
         accessibilityRole="button"
         accessibilityLabel={`Event: ${event.title}, ${event.vibe_count || event.going || 0} vibing`}
       >
-        <SmartImage source={thumb} style={et.img} resizeMode="cover" />
+        <SmartImage source={thumb.thumbnail(thumbUrl)} style={et.img} resizeMode="cover" />
         <View style={[et.overlay, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
         <View style={[et.catBadge, { backgroundColor: catColor, ...(isWeb ? { boxShadow: `0 0 10px ${catColor}80` } : {}) }]}>
           <Feather name={CATEGORY_CONFIG[event.category]?.icon || 'tag'} size={12} color="#fff" />

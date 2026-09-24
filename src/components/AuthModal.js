@@ -306,8 +306,16 @@ export const AuthModal = ({ visible, onClose }) => {
     }
     if (!data) return;
     if (data.user) {
-      SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_SUCCESS');
-      track('signup', { hasCity: !!city.trim(), interests: selectedInterests.length });
+      // NOTE ON ORDERING — this is the bug that hid a 49-day outage.
+      // AUTH_SIGNUP_SUCCESS and track('signup') used to fire HERE, before the
+      // profile write below. When building the payload threw a ReferenceError
+      // (2026-07-17 → 2026-09-04), every one of those failed signups was still
+      // recorded as a SUCCESS in both the security log and analytics. The
+      // dashboards said the funnel was healthy the entire time it was dead.
+      //
+      // A success event must never be emitted before the work it claims to
+      // describe has actually completed. Both now fire only after the profile
+      // row is confirmed written — see the .then() below.
       const profilePayload = {
         id: data.user.id,
         username: username.trim(),
@@ -349,7 +357,17 @@ export const AuthModal = ({ visible, onClose }) => {
           logError('AuthModal.createProfile:allTiersFailed', new Error('profile payload rejected'), {
             userId: data.user.id,
           });
+          SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_PROFILE_FAILED');
+          return;
         }
+        // Only now is the account actually usable, so only now is it a success.
+        SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_SUCCESS');
+        track('signup', { hasCity: !!city.trim(), interests: selectedInterests.length });
+      }).catch((e) => {
+        // A throw between here and the write (the exact 2026-07-17 failure mode)
+        // must be recorded as a failure, not silently produce no event at all.
+        logError('AuthModal.createProfile:threw', e, { userId: data.user.id });
+        SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNUP_PROFILE_FAILED');
       });
     }
 

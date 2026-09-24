@@ -23,6 +23,7 @@ import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityMana
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
 import { affiliateUrl } from '../utils/affiliate';
+import { directionsUrl } from '../utils/directions';
 import { checkEventAge } from '../utils/ageGate';
 import { DeviceCalendar, RichHaptics } from '../services/smartphoneFeatures';
 import { DirectMessageModal } from '../components/DirectMessageModal';
@@ -674,6 +675,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   };
 
   const openMaps = () => {
+    const lat = event?.lat ?? event?.latitude;
+    const lon = event?.lon ?? event?.longitude;
+    if (lat != null && lon != null) {
+      const url = directionsUrl({ lat, lon, label: event.venue_name || event.title }, userCoords, Platform.OS);
+      if (url) {
+        Linking.openURL(url).catch(() => setMapVisible(true));
+        return;
+      }
+    }
     setMapVisible(true);
   };
 
