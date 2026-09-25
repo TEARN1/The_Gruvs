@@ -33,8 +33,6 @@ export const CURRENCIES = {
   BRL: { code: 'BRL', symbol: 'R$',   name: 'Brazilian Real', symbolSpace: true },
 };
 
-export const DEFAULT_CURRENCY = CURRENCIES.ZAR;
-
 // ISO 3166-1 alpha-2 country → currency code. Eurozone members all map to EUR.
 const COUNTRY_TO_CURRENCY = {
   ZA: 'ZAR', US: 'USD', GB: 'GBP', NG: 'NGN', KE: 'KES', GH: 'GHS', EG: 'EGP',
@@ -79,11 +77,26 @@ export const formatPrice = (amount, currency = DEFAULT_CURRENCY, opts = {}) => {
   return `${neg ? '-' : ''}${c.symbol}${c.symbolSpace ? ' ' : ''}${body}`;
 };
 
+const initialCountry = (() => {
+  try {
+    const loc =
+      (typeof Intl !== 'undefined' && Intl.DateTimeFormat().resolvedOptions().locale) ||
+      (typeof navigator !== 'undefined' && (navigator.language || navigator.languages?.[0])) ||
+      '';
+    const m = String(loc).match(/[-_]([A-Za-z]{2})\b/);
+    return m ? m[1].toUpperCase() : null;
+  } catch {
+    return null;
+  }
+})();
+
+export const DEFAULT_CURRENCY = (initialCountry && currencyForCountry(initialCountry)) || CURRENCIES.USD;
+
 // ── Active currency (module-global) ──────────────────────────────────────────
 // CurrencyProvider keeps this in sync with the resolved/chosen currency so that
 // the `money()` helper works the same in components, services and plain helper
 // functions (where a React hook isn't available). It's resolved once at launch
-// from GPS (cached), so by the time a price screen mounts it's already correct.
+// from GPS or device locale (cached), so by the time a price screen mounts it's already correct.
 let _active = DEFAULT_CURRENCY;
 let _rate = 1; // ZAR → active-currency rate (1 = no conversion / offline fallback)
 

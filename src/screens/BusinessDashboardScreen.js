@@ -555,7 +555,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
         const d = new Date(today); d.setDate(d.getDate() - (6 - i));
         const ds = d.toISOString().slice(0, 10);
         return {
-          tick: d.toLocaleDateString('en-ZA', { weekday: 'short' }).slice(0, 2),
+          tick: d.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 2),
           value: raw.filter(e => e.created_at?.slice(0, 10) === ds).length,
         };
       });

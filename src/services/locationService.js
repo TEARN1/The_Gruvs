@@ -44,14 +44,25 @@ export const LocationService = {
     };
   },
 
-  // Resolve the viewer's ISO country code (e.g. 'ZA', 'US') from GPS, used to
-  // pick the local display currency. Best-effort: returns null if denied/offline.
+  // Resolve the viewer's ISO country code (e.g. 'ZA', 'US', 'GB', 'NG', 'FR') from GPS,
+  // falling back to the device's locale region so international users immediately see their
+  // local currency even before GPS permission is granted.
   async getCountryCode() {
     try {
       const coords = _cachedCoords || (await this.requestAndGet());
-      if (!coords) return null;
-      const results = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lon });
-      return results?.[0]?.isoCountryCode || null;
+      if (coords) {
+        const results = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lon });
+        if (results?.[0]?.isoCountryCode) return results[0].isoCountryCode;
+      }
+    } catch { /* proceed to device locale fallback */ }
+
+    try {
+      const loc =
+        (typeof Intl !== 'undefined' && Intl.DateTimeFormat().resolvedOptions().locale) ||
+        (typeof navigator !== 'undefined' && (navigator.language || navigator.languages?.[0])) ||
+        '';
+      const m = String(loc).match(/[-_]([A-Za-z]{2})\b/);
+      return m ? m[1].toUpperCase() : null;
     } catch {
       return null;
     }

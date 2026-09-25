@@ -341,7 +341,7 @@ const EventCard = React.memo(({
   const heat = heatLabel(event); // honest: verified presence first, null when no real signal
   const isWeb = Platform.OS === 'web';
   const cardDate = event.event_date
-    ? new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' })
+    ? new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : '';
 
   const showAd = index > 0 && index % 5 === 4;
@@ -391,7 +391,7 @@ const EventCard = React.memo(({
                  event.recurrence_type === 'monthly'  ? 'MONTHLY SERIES' :
                  event.recurrence_type === 'annually' ? 'ANNUAL EVENT' :
                  event.recurrence_type === 'custom'   ? 'EVENT SERIES' : 'RECURRING'}
-                {event.next_occurrence ? ` · NEXT ${new Date(event.next_occurrence).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' }).toUpperCase()}` : ''}
+                {event.next_occurrence ? ` · NEXT ${new Date(event.next_occurrence).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase()}` : ''}
               </Text>
             </View>
           )}
@@ -686,7 +686,7 @@ const EventCard = React.memo(({
                   <View style={[styles.metaChip, { borderColor: `${primary}22` }]}>
                     <Feather name="calendar" size={10} color={primary} />
                     <Text style={[styles.metaChipText, { color: primary }]}>
-                      {new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}
+                      {new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </Text>
                   </View>
                 ) : null}

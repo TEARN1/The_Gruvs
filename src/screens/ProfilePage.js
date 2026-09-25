@@ -1329,7 +1329,7 @@ const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPres
       <View style={mec.info}>
         <Text style={[mec.title, { color: textColor }]} numberOfLines={1}>{ev.title || 'Untitled'}</Text>
         <Text style={[mec.meta, { color: muted }]}>
-          {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' }) : ev.venue_name || ''}
+          {ev.event_date ? new Date(ev.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : ev.venue_name || ''}
         </Text>
         <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
           <View style={[mec.badge, { backgroundColor: `${primary}15` }]}>
@@ -1890,7 +1890,7 @@ const AppUpdatesSection = ({ primary, muted, textColor, surface }) => {
 
   if (!updates.length) return null;
 
-  const fmtDate = (ts) => new Date(ts).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' });
+  const fmtDate = (ts) => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
     <GlassView style={[{ marginHorizontal: 16, marginBottom: 14, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: `${primary}18` }]}>

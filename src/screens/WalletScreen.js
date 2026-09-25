@@ -162,7 +162,7 @@ export const WalletScreen = ({ visible, onClose }) => {
     const isProvider = item.provider_id === user.id;
     const isClient = item.client_id === user.id;
     const amount = (item.amount_cents / 100).toFixed(2);
-    const date = new Date(item.created_at).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' });
+    const date = new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     const isEscrow = item.status === 'escrow_held';
 
     return (
@@ -339,7 +339,7 @@ export const WalletScreen = ({ visible, onClose }) => {
               <View style={[s.historyList, { backgroundColor: surface }]}>
                 {transactions.map(t => {
                   const isCredit = t.direction === 'credit';
-                  const date = new Date(t.created_at).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' });
+                  const date = new Date(t.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
                   return (
                     <View key={t.id} style={[s.bookingRow, { borderBottomColor: `${primary}10` }]}>
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -437,7 +437,7 @@ export const WalletScreen = ({ visible, onClose }) => {
             ) : (
               <View style={[s.historyList, { backgroundColor: surface }]}>
                 {cashouts.map(c => {
-                  const date = new Date(c.created_at).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' });
+                  const date = new Date(c.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
                   const statusColors = {
                     pending: '#f59e0b',
                     processing: '#3b82f6',

@@ -188,7 +188,7 @@ const HeroCard = ({ event, primary, onPress }) => {
   const isWeb = Platform.OS === 'web';
 
   const eventDate = event.event_date
-    ? new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' })
+    ? new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : '';
 
   return (
@@ -231,7 +231,7 @@ const HeroCard = ({ event, primary, onPress }) => {
             <View style={hero.metaItem}>
               <Feather name="calendar" size={12} color="rgba(255,255,255,0.7)" />
               <Text style={hero.metaText}>
-                {new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}
+                {new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
               </Text>
             </View>
           ) : null}
@@ -1189,7 +1189,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#10b981" }} />
                   <Text style={{ color: "#10b981", fontSize: 10, fontWeight: '800' }}>LIVE</Text>
                 </View>
-                <Text style={[styles.servSub, { color: muted, fontSize: 11, lineHeight: 15 }]}>Bakkie hire · Muscle · Event logistics{'\n'}Reliable Vibers active near you.</Text>
+                <Text style={[styles.servSub, { color: muted, fontSize: 11, lineHeight: 15 }]}>Transport & Haulage · Crew & Muscle · Event logistics{'\n'}Reliable Vibers active near you.</Text>
               </View>
               <View style={[styles.servCta, { backgroundColor: primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, shadowColor: primary, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }]}>
                 <Text style={[styles.servCtaText, { fontWeight: '900', color: '#000' }]}>Hire</Text>
@@ -1640,7 +1640,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                           </View>
                         ) : null}
                         <Text style={{ color: muted, fontSize: 10, marginLeft: 'auto' }}>
-                          {u.released_at ? new Date(u.released_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                          {u.released_at ? new Date(u.released_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                         </Text>
                       </View>
                       <Text style={{ color: textColor, fontSize: 13, fontWeight: '800', marginBottom: 2 }}>{u.title}</Text>
@@ -1868,7 +1868,7 @@ const SearchResultCard = ({ ev, primary, textColor, muted, catColor, onPress }) 
       <View style={{ flex: 1 }}>
         <Text style={[src.title, { color: textColor }]} numberOfLines={2}>{ev.title}</Text>
         <View style={src.meta}>
-          {ev.event_date ? <Text style={[src.metaText, { color: muted }]}>{new Date(ev.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}{isPast ? ' · PASSED' : ''}</Text> : null}
+          {ev.event_date ? <Text style={[src.metaText, { color: muted }]}>{new Date(ev.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}{isPast ? ' · PASSED' : ''}</Text> : null}
           {ev.venue_name ? <Text style={[src.metaText, { color: muted }]}>· {ev.venue_name}</Text> : null}
         </View>
       </View>

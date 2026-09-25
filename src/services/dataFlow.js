@@ -2292,7 +2292,7 @@ export const AnalyticsManager = {
           .reduce((sum, b) => sum + (b.amount_cents / 100), 0);
 
         return {
-          tick: d.toLocaleDateString('en-ZA', { weekday: 'short' }).slice(0, 2),
+          tick: d.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 2),
           value: dayTotal
         };
       });

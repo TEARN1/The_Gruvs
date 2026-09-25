@@ -73,7 +73,7 @@ export function describeSharedPresence(events) {
   if (!events?.length) return null;
   const [first, ...rest] = events;
   const when = first.event_date
-    ? new Date(`${first.event_date}T00:00:00`).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
+    ? new Date(`${first.event_date}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
     : null;
   const more = rest.length ? ` and ${rest.length} more` : '';
   return {
