@@ -21,6 +21,7 @@ import { heatScore as canonicalHeatScore } from '../utils/heatScore';
 import { getXpLevel } from '../utils/vibeLevel';
 import { rankEventResults, rankUserResults } from '../utils/searchRelevance';
 import { secureCode } from '../utils/secureId';
+import { GLOBAL_EVENTS_CATALOG } from '../constants/globalEventsCatalog';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
 export const normalizeEvent = (event) => {
@@ -210,6 +211,47 @@ _extend('charity',    'charity','fundraiser','volunteering','neighbourhood','blo
 _extend('dating',     'dating','speed_dating','singles_night','lgbtq','pride','social',
                       'meetup','party','birthday','anniversary','wedding','engagement',
                       'babyshower','reunion');
+
+// Helper to filter and paginate the curated Global Events Catalog
+export const filterCatalog = ({ category = 'all', query = '', dateRange = null, mode = 'drop', limit = 30 } = {}) => {
+  let list = Array.isArray(GLOBAL_EVENTS_CATALOG) ? [...GLOBAL_EVENTS_CATALOG] : [];
+  
+  if (category && category !== 'all') {
+    const subCats = CAT_KEY_TO_SUBCATS[category];
+    if (subCats && subCats.size > 0) {
+      list = list.filter(e => subCats.has(e.category) || e.category === category);
+    } else {
+      list = list.filter(e => e.category === category);
+    }
+  }
+
+  if (dateRange?.from) {
+    list = list.filter(e => String(e.event_date) >= String(dateRange.from));
+  }
+  if (dateRange?.to) {
+    list = list.filter(e => String(e.event_date) <= String(dateRange.to));
+  }
+
+  if (query && query.trim()) {
+    const s = query.trim().toLowerCase();
+    list = list.filter(e => 
+      (e.title && e.title.toLowerCase().includes(s)) ||
+      (e.venue_name && e.venue_name.toLowerCase().includes(s)) ||
+      (e.description && e.description.toLowerCase().includes(s)) ||
+      (e.city && e.city.toLowerCase().includes(s)) ||
+      (Array.isArray(e.tags) && e.tags.some(t => t.toLowerCase().includes(s)))
+    );
+  }
+
+  if (mode === 'upcoming') {
+    list.sort((a, b) => String(a.event_date || '').localeCompare(String(b.event_date || '')));
+  } else {
+    // Drop mode: shuffle slightly by vibe_count / date
+    list.sort((a, b) => (b.vibe_count || 0) - (a.vibe_count || 0));
+  }
+
+  return list.slice(0, limit);
+};
 
 // ── INTELLIGENCE MONITORING (Autonomous Training) ──────────────────────────
 export const IntelligenceMonitor = {
@@ -890,7 +932,20 @@ export const FeedManager = {
           } catch { /* boosted slot is enhancement only */ }
         }
       }
-      const result = { events, total: count || 0, page, hasMore: data?.length === this.PAGE_SIZE };
+      // If database returned fewer events (e.g. sparse results, offline, or specific category),
+      // enrich with curated real-world global events from the catalog
+      if (mode !== 'mine' && mode !== 'following' && events.length < 15) {
+        try {
+          const catalogEvents = filterCatalog({ category, query, dateRange, mode, limit: 30 });
+          const existingIds = new Set(events.map(e => String(e.id)));
+          const additions = catalogEvents.filter(ce => !existingIds.has(String(ce.id)));
+          if (additions.length > 0) {
+            events = [...events, ...additions];
+          }
+        } catch { /* catalog fallback best-effort */ }
+      }
+
+      const result = { events, total: Math.max(count || 0, events.length), page, hasMore: data?.length === this.PAGE_SIZE };
       cache.set(cacheKey, result);
       return result;
     };
@@ -921,8 +976,13 @@ export const FeedManager = {
         if (stale) return stale;
         throw new Error('cache miss');
       },
-      // ── Mother escalation: empty safe result ──────────────────────────────
-      { events: [], total: 0, page, hasMore: false },
+      // ── Mother escalation: fallback to curated global events catalog ──────
+      () => {
+        const fallbackList = (mode !== 'mine' && mode !== 'following') 
+          ? filterCatalog({ category, query, dateRange, mode, limit: pageSize })
+          : [];
+        return { events: fallbackList, total: fallbackList.length, page, hasMore: false };
+      },
       `FeedManager.fetchPage:${mode}`
     );
   },
@@ -1060,6 +1120,11 @@ export const FeedManager = {
   },
 
   async fetchSingle(eventId) {
+    if (eventId && String(eventId).startsWith('global_')) {
+      const found = (GLOBAL_EVENTS_CATALOG || []).find(e => String(e.id) === String(eventId));
+      if (found) return normalizeEvent(found);
+    }
+
     const cacheKey = `event:${eventId}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
