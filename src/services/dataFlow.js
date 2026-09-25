@@ -1120,7 +1120,7 @@ export const FeedManager = {
   },
 
   async fetchSingle(eventId) {
-    if (eventId && String(eventId).startsWith('global_')) {
+    if (eventId && (String(eventId).startsWith('gp_') || String(eventId).startsWith('global_'))) {
       const found = (GLOBAL_EVENTS_CATALOG || []).find(e => String(e.id) === String(eventId));
       if (found) return normalizeEvent(found);
     }
