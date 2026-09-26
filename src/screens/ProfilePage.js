@@ -84,6 +84,7 @@ import { TutorialCenter }          from '../components/TutorialCenter';
 import { WhoWasThereModal }        from '../components/WhoWasThereModal';
 import { EventTicketModal }        from '../components/EventTicketModal';
 import { CreateReelModal }         from '../components/CreateReelModal';
+import { GetAppModal }            from '../components/GetAppModal';
 
 const { width } = Dimensions.get('window');
 
@@ -1940,6 +1941,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const [walletVisible, setWalletVisible] = useState(false);
   const [coins, setCoins] = useState(0);
   const [diamonds, setDiamonds] = useState(0);
+  const [installModalVisible, setInstallModalVisible] = useState(false);
   const [ticketsVisible, setTicketsVisible] = useState(false);
   const [providerDashVisible, setProviderDashVisible] = useState(false);
   const [vibeCoachData, setVibeCoachData]   = useState(null);
@@ -2658,6 +2660,15 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#ef4444" }} />
               )}
             </TouchableOpacity>
+            {Platform.OS === 'web' && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}25`, borderWidth: 1, borderColor: primary }}
+                onPress={() => setInstallModalVisible(true)}
+              >
+                <Feather name="download" size={14} color={primary} />
+                <Text style={{ color: primary, fontSize: 11, fontWeight: '900' }}>Get App</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -3717,6 +3728,15 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             visible={createReelVisible}
             onClose={() => setCreateReelVisible(false)}
             onPosted={() => setCreateReelVisible(false)}
+          />
+        </SafeSection>
+      )}
+      {installModalVisible && (
+        <SafeSection label="Get App" primary={primary}>
+          <GetAppModal
+            visible={installModalVisible}
+            onClose={() => setInstallModalVisible(false)}
+            primary={primary}
           />
         </SafeSection>
       )}
