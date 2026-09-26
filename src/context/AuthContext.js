@@ -40,7 +40,22 @@ export const AuthProvider = ({ children }) => {
         const sel = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', userId).single();
         data = sel.data;
       }
-      if (data) setProfile(data);
+      if (data) {
+        // Overlay app-specific display name for the current app
+        try {
+          const appId = process.env.EXPO_PUBLIC_APP_ID || process.env.NEXT_PUBLIC_APP_ID || 'the_gruvs';
+          const { data: appProf } = await supabase
+            .from('app_user_profiles')
+            .select('display_name')
+            .eq('user_id', userId)
+            .eq('app_id', appId)
+            .maybeSingle();
+          if (appProf?.display_name) {
+            data.display_name = appProf.display_name;
+          }
+        } catch {}
+        setProfile(data);
+      }
     } catch {
       // Profile fetch failure is non-fatal — user can still navigate
     } finally {
