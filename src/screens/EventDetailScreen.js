@@ -233,6 +233,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   }, [event?.id]);
   useEffect(() => { loadGuests(); }, [loadGuests]);
 
+  const organizer = event?.profiles || {};
+
   // Publish schema.org Event markup + share meta while this event is open, so
   // Google can list it as a rich result and WhatsApp/IG unfurl a real card. The
   // SPA serves one HTML shell for every URL, so without this every event looks
@@ -319,8 +321,6 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const textColor = currentTheme?.text || "#ffffff";
   const textMuted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const surface = currentTheme?.surface || 'rgba(255,255,255,0.06)';
-
-  const organizer = event?.profiles || {};
 
   // Safe media resolution — guards against string media_urls (PostgreSQL array literal)
   let media = [];
