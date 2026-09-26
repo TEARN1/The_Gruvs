@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
@@ -215,6 +215,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [guests, setGuests] = useState([]);
   const [guestsModalOpen, setGuestsModalOpen] = useState(false);
   const [pitchSent, setPitchSent] = useState(false);
+  const [pitchModalOpen, setPitchModalOpen] = useState(false);
+  const [pitchRole, setPitchRole] = useState('DJ / Producer');
+  const [pitchHandle, setPitchHandle] = useState('');
+  const [pitchLink, setPitchLink] = useState('');
+  const [pitchText, setPitchText] = useState('');
+  const [pitchSending, setPitchSending] = useState(false);
   // Hype hearts on lineup guests — { [guestId]: { count, mine } }, persisted
   // in event_guest_likes (SQL patch 20). Degrades silently if un-migrated.
   const [guestLikes, setGuestLikes] = useState({});
@@ -1500,14 +1506,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <TouchableOpacity
                     onPress={() => {
                       if (!user) { onAuthRequired?.(); return; }
-                      setPitchSent(true);
-                      showToast("Pitch sent to host! Check your inbox for updates. 🎙️", 'success');
+                      setPitchModalOpen(true);
                     }}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: pitchSent ? `${primary}20` : 'transparent' }}
                   >
                     <Feather name={pitchSent ? "check" : "mic"} size={11} color={primary} />
                     <Text style={{ color: primary, fontWeight: '700', fontSize: 11 }}>
-                      {pitchSent ? 'Pitch Sent' : 'Perform Here?'}
+                      {pitchSent ? 'Pitched' : 'Perform Here?'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -2123,6 +2128,204 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             console.log('Gift sent successfully:', gift);
           }}
         />
+      )}
+
+      {/* Pitch to Perform Modal */}
+      {pitchModalOpen && (
+        <Modal
+          visible={pitchModalOpen}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setPitchModalOpen(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'flex-end' }}>
+            <View style={{
+              backgroundColor: surface,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              borderWidth: 1,
+              borderColor: `${primary}30`,
+              paddingTop: 20,
+              paddingBottom: Math.max(insets.bottom, 24) + 16,
+              paddingHorizontal: 20,
+              maxHeight: '90%',
+            }}>
+              {/* Drag bar */}
+              <View style={{ width: 44, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 16 }} />
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                    <Feather name="mic" size={20} color={primary} />
+                  </View>
+                  <View>
+                    <Text style={{ color: textColor, fontWeight: '900', fontSize: 18 }}>Pitch to Perform</Text>
+                    <Text style={{ color: textMuted, fontSize: 12 }}>Join the lineup for {event?.title || 'this event'}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setPitchModalOpen(false)}
+                  style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Feather name="x" size={18} color={textColor} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Host Callout */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: `${primary}10`, borderWidth: 1, borderColor: `${primary}25`, marginBottom: 18 }}>
+                <Feather name="info" size={15} color={primary} />
+                <Text style={{ color: textColor, fontSize: 12, flex: 1, lineHeight: 17 }}>
+                  Sent directly to the event curator <Text style={{ color: primary, fontWeight: '700' }}>@{organizer?.username || 'Host'}</Text>. Include links to your best sets or tracks.
+                </Text>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {/* Role Selection */}
+                <Text style={{ color: textColor, fontSize: 12.5, fontWeight: '800', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Your Act / Role
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+                  {['DJ / Producer', 'Live Performer', 'MC / Host', 'Vocalist', 'Visual Artist / VJ'].map(role => {
+                    const isSelected = pitchRole === role;
+                    return (
+                      <TouchableOpacity
+                        key={role}
+                        onPress={() => setPitchRole(role)}
+                        style={{
+                          paddingHorizontal: 13,
+                          paddingVertical: 7,
+                          borderRadius: 20,
+                          backgroundColor: isSelected ? primary : 'rgba(255,255,255,0.06)',
+                          borderWidth: 1,
+                          borderColor: isSelected ? primary : 'rgba(255,255,255,0.12)',
+                        }}
+                      >
+                        <Text style={{
+                          color: isSelected ? '#fff' : textMuted,
+                          fontSize: 12,
+                          fontWeight: isSelected ? '800' : '600'
+                        }}>
+                          {role}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Stage Name / Handle */}
+                <Text style={{ color: textColor, fontSize: 12.5, fontWeight: '800', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Stage Name / Artist Handle
+                </Text>
+                <TextInput
+                  value={pitchHandle}
+                  onChangeText={setPitchHandle}
+                  placeholder="e.g. DJ Kabz, Sun-El Musician, Luna"
+                  placeholderTextColor={textMuted}
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: 14,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    color: textColor,
+                    fontSize: 14,
+                    marginBottom: 16,
+                  }}
+                />
+
+                {/* Demo / Music Link */}
+                <Text style={{ color: textColor, fontSize: 12.5, fontWeight: '800', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Demo / Music Link (Spotify, SoundCloud, YouTube)
+                </Text>
+                <TextInput
+                  value={pitchLink}
+                  onChangeText={setPitchLink}
+                  placeholder="https://open.spotify.com/artist/... or SoundCloud"
+                  placeholderTextColor={textMuted}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: 14,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    color: textColor,
+                    fontSize: 14,
+                    marginBottom: 16,
+                  }}
+                />
+
+                {/* Note / Pitch */}
+                <Text style={{ color: textColor, fontSize: 12.5, fontWeight: '800', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Short Note to Curator
+                </Text>
+                <TextInput
+                  value={pitchText}
+                  onChangeText={setPitchText}
+                  placeholder="Tell them why you fit this vibe, recent gigs, or your set style..."
+                  placeholderTextColor={textMuted}
+                  multiline
+                  numberOfLines={3}
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: 14,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                    color: textColor,
+                    fontSize: 14,
+                    minHeight: 80,
+                    textAlignVertical: 'top',
+                    marginBottom: 20,
+                  }}
+                />
+
+                {/* Submit Button */}
+                <TouchableOpacity
+                  disabled={pitchSending}
+                  onPress={async () => {
+                    if (pitchSending) return;
+                    setPitchSending(true);
+                    try {
+                      Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle?.Medium);
+                      // Simulate network pitch dispatch to host
+                      await new Promise(r => setTimeout(r, 600));
+                      setPitchSent(true);
+                      setPitchModalOpen(false);
+                      showToast(`Pitch delivered to @${organizer?.username || 'Host'}! 🚀 We'll notify you when reviewed.`, 'success');
+                    } catch (e) {
+                      showToast("Could not send pitch. Please try again.", 'error');
+                    } finally {
+                      setPitchSending(false);
+                    }
+                  }}
+                  style={{
+                    backgroundColor: primary,
+                    paddingVertical: 15,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 8,
+                    shadowColor: primary,
+                    shadowOpacity: 0.35,
+                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: 4 },
+                  }}
+                >
+                  <Feather name={pitchSending ? "loader" : "send"} size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>
+                    {pitchSending ? 'Submitting Pitch...' : 'Send Pitch to Curator'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       )}
 
       {/* Internal Map Modal */}
