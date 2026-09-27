@@ -22,6 +22,7 @@ on:
     branches: ["**"]
     paths:
       - "supabase/queries/**"
+      - "supabase/migrations/**"
       - "supabase/test/**"
       - "supabase/functions/**"   # these read with service_role — see rls_autohide_test.sql
       - ".github/workflows/db-schema-ci.yml"
@@ -29,6 +30,7 @@ on:
     branches: [main]
     paths:
       - "supabase/queries/**"
+      - "supabase/migrations/**"
       - "supabase/test/**"
       - "supabase/functions/**"
 
@@ -95,10 +97,19 @@ jobs:
       - name: Re-apply schema_drift_fixes (idempotency check)
         run: $PSQL -f supabase/queries/schema_drift_fixes.sql
 
-      # Privilege hardening, applied on top of the base schema the same way it is
-      # in production — so the two security tests below check the real end state.
-      - name: Apply definer_rpc_hardening (privilege fixes)
-        run: $PSQL -f supabase/queries/definer_rpc_hardening.sql
+      # Every migration, in order, on top of the base schema — then again, to
+      # prove each is idempotent (supabase db push applies these to production,
+      # and a hand-run in the SQL editor may already have applied some).
+      - name: Apply supabase/migrations (in order)
+        run: for f in $(ls supabase/migrations/*.sql | sort); do echo "── $f"; $PSQL -f "$f"; done
+
+      - name: Re-apply supabase/migrations (idempotency check)
+        run: for f in $(ls supabase/migrations/*.sql | sort); do $PSQL -f "$f"; done
+
+      # Money can't be minted: bookings, disputes and ledger rows go through
+      # checked server functions only, and unfunded escrow credits nothing.
+      - name: Verify bookings / escrow / ledger integrity
+        run: $PSQL -f supabase/test/service_bookings_test.sql
 
       # Security control, not a shape check: proves the report-driven auto-hide
       # policies still exist, are still RESTRICTIVE, and still gate on the right

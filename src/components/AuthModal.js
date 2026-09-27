@@ -133,7 +133,7 @@ export const AuthModal = ({ visible, onClose }) => {
       // two queries, the second of which pulled up to 1000 usernames down to the
       // phone and diffed them in JavaScript — slow on mobile data, and it gets
       // slower AND weaker as the table grows, since it only ever compared against
-      // an arbitrary 1000 rows. See supabase/queries/username_skeleton.sql.
+      // an arbitrary 1000 rows. See supabase/migrations/20260927000800_username_skeleton.sql.
       const rpc = await supabase.rpc('check_handle_available', { p_handle: handle });
       const verdict = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
 

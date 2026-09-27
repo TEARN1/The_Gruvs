@@ -321,7 +321,7 @@ SELECT check_name, status, detail FROM (
         THEN '🔴 BROKEN — SECURITY DEFINER'
       ELSE '✅ OK'
     END AS status,
-    'DEFINER here means current_user is the owner, so the guard never fires and role=admin is self-assignable. Fix: definer_rpc_hardening.sql' AS detail
+    'DEFINER here means current_user is the owner, so the guard never fires and role=admin is self-assignable. Fix: 20260927000200_definer_rpc_hardening.sql' AS detail
 
   UNION ALL
   -- 🔴 SECURITY DEFINER + granted to clients + no auth.uid() check. Checks the
@@ -336,13 +336,13 @@ SELECT check_name, status, detail FROM (
          AND (has_function_privilege('authenticated', p.oid, 'EXECUTE')
            OR has_function_privilege('anon', p.oid, 'EXECUTE'))
     ) THEN '🔴 EXPOSED' ELSE '✅ OK' END,
-    'increment_wallet_balance / update_sis_score / soft_delete / restore_deleted executable by any signed-in user with no caller check. Fix: definer_rpc_hardening.sql'
+    'increment_wallet_balance / update_sis_score / soft_delete / restore_deleted executable by any signed-in user with no caller check. Fix: 20260927000200_definer_rpc_hardening.sql'
 
   UNION ALL
   SELECT 3, 'authorized escrow release',
     CASE WHEN EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'release_escrow_to_provider')
          THEN '✅ OK' ELSE '⚠️  MISSING' END,
-    'Without it, escrow release marks bookings completed but never pays the provider. Fix: definer_rpc_hardening.sql'
+    'Without it, escrow release marks bookings completed but never pays the provider. Fix: 20260927000200_definer_rpc_hardening.sql'
 
   UNION ALL
   SELECT 4, 'live_checkins GPS exposure',
@@ -350,7 +350,7 @@ SELECT check_name, status, detail FROM (
       SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
        WHERE n.nspname='public' AND c.relname='live_checkins' AND c.relrowsecurity
     ) THEN '✅ RLS on' ELSE '🔴 RLS OFF' END,
-    'Exact user coordinates readable by anon defeats the whole identity-privacy system. Fix: scripts/security-rls-fixes.sql'
+    'Exact user coordinates readable by anon defeats the whole identity-privacy system. Fix: supabase/migrations/20260927000400_security_rls_fixes.sql'
 
   UNION ALL
   SELECT 5, 'auto-hide moderation policies',
@@ -400,7 +400,7 @@ SELECT 'idx_messages_recipient' AS index_name,
                    WHERE schemaname='public' AND indexname='idx_messages_recipient')
                  LIKE '%created_at%'
             THEN '✅ composite — inbox reads are index-ordered'
-            ELSE '🔴 narrow — every inbox open sorts the user''s whole history (9ms vs 0.16ms at 50k messages). Fix: index_reconciliation.sql'
+            ELSE '🔴 narrow — every inbox open sorts the user''s whole history (9ms vs 0.16ms at 50k messages). Fix: 20260927000600_index_reconciliation.sql'
        END AS verdict;
 
 \echo ''

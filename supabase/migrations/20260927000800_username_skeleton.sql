@@ -1,4 +1,4 @@
--- username_skeleton.sql — server-side impersonation prevention.
+-- 20260927000800_username_skeleton.sql — server-side impersonation prevention.
 --
 -- The client (utils/handleGuard) blocks a signup whose handle READS the same as
 -- an existing one (k0nka / kon.ka / konkaa impersonating konka). But that check

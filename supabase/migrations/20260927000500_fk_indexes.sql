@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
---  fk_indexes.sql — index the foreign keys that ON DELETE CASCADE walks.
+--  20260927000500_fk_indexes.sql — index the foreign keys that ON DELETE CASCADE walks.
 --
 --  THE PROBLEM. Postgres creates an index for a PRIMARY KEY automatically. It
 --  does NOT create one for a FOREIGN KEY. So when a parent row is deleted, every
@@ -45,6 +45,10 @@ RETURNS void LANGUAGE plpgsql AS $fn$
 DECLARE idx_name text;
 BEGIN
   IF to_regclass('public.' || p_table) IS NULL THEN RETURN; END IF;
+  -- Only plain / partitioned tables. On some databases a name is a VIEW
+  -- (e.g. user_paths), and CREATE INDEX on a view aborts the whole file.
+  IF (SELECT relkind FROM pg_class WHERE oid = to_regclass('public.' || p_table))
+     NOT IN ('r','p') THEN RETURN; END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                   WHERE table_schema='public' AND table_name=p_table AND column_name=p_col)
   THEN RETURN; END IF;

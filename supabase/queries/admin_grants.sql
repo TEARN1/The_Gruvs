@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 --  admin_grants.sql — make specific accounts admin, safely and auditably.
 --
---  RUN definer_rpc_hardening.sql FIRST. Until it is applied, `role` is
+--  RUN 20260927000200_definer_rpc_hardening.sql FIRST. Until it is applied, `role` is
 --  self-assignable by any signed-in account, so granting admin is pointless —
 --  everyone already can. Section 3 of APP_DB_CONTRACT_CHECK.sql tells you.
 --
@@ -185,7 +185,7 @@ SELECT u.email, p.username, p.role,
 
 \echo ''
 \echo '═══ Anyone ELSE holding privilege you did not grant ═══'
-\echo '(if definer_rpc_hardening.sql was applied late, check this carefully)'
+\echo '(if 20260927000200_definer_rpc_hardening.sql was applied late, check this carefully)'
 
 SELECT u.email, p.username, p.role, p.is_verified, p.wallet_balance
   FROM public.profiles p

@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
---  report_brigading_fix.sql — two fresh accounts could hide anyone.
+--  20260927000300_report_brigading_fix.sql — two fresh accounts could hide anyone.
 --
 --  THE BUG. apply_report_autohide() weights each distinct reporter by:
 --

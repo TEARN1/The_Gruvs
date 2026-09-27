@@ -56,8 +56,8 @@ Run these two first. Nothing else on this page matters as much.
 
 | # | File | What it closes |
 |---|---|---|
-| 1 | `supabase/queries/definer_rpc_hardening.sql` | **Any signed-in account can make itself an admin** and mint unlimited currency |
-| 2 | `scripts/security-rls-fixes.sql` | Exact GPS coordinates of your users readable by anyone with the public key |
+| 1 | `supabase/migrations/20260927000200_definer_rpc_hardening.sql` | **Any signed-in account can make itself an admin** and mint unlimited currency |
+| 2 | `supabase/migrations/20260927000400_security_rls_fixes.sql` | Exact GPS coordinates of your users readable by anyone with the public key |
 
 **File 1 closes four things**, all reproduced on a local Postgres:
 
@@ -94,7 +94,7 @@ to a booking, predates the fix.
 
 ## Step 1a — stop two fresh accounts from hiding anyone
 
-`supabase/queries/report_brigading_fix.sql`
+`supabase/migrations/20260927000300_report_brigading_fix.sql`
 
 `apply_report_autohide()` divides the reporter's trust score by 50 and caps the
 result at 2.0. The divisor says it was written for a baseline of 50 — and all
@@ -123,7 +123,7 @@ in `onConflict`, and without the index that call fails outright.
 
 ## Step 1b — make the two accounts admin
 
-**Run `definer_rpc_hardening.sql` first.** Until it is applied, `role` is
+**Run `20260927000200_definer_rpc_hardening.sql` first.** Until it is applied, `role` is
 self-assignable by any signed-in account, so granting admin is meaningless —
 everyone already has it.
 
@@ -163,7 +163,7 @@ that account's privilege is not doing what someone intended.
 
 ## Step 1c — index the foreign keys that cascade
 
-`supabase/queries/fk_indexes.sql`
+`supabase/migrations/20260927000500_fk_indexes.sql`
 
 Postgres indexes a PRIMARY KEY automatically. It does **not** index a FOREIGN
 KEY. So deleting a parent row means finding every `ON DELETE CASCADE` child —
@@ -221,7 +221,7 @@ schema got ambiguous in the first place.
 | `data_retention.sql` | POPIA s.14 location windows, in one place |
 | `maintenance_status.sql` | the sensor that alarms when maintenance stops |
 | `account_deletion.sql` | `purge_user_data` — **the `delete-account` Edge Function calls this.** Without it, account deletion is incomplete, which is an Apple 5.1.1(v) / Play Store requirement |
-| `index_reconciliation.sql` | the inbox index (below) + 22 redundant indexes |
+| `20260927000600_index_reconciliation.sql` | the inbox index (below) + 22 redundant indexes |
 
 **`pg_cron` must be enabled** (Database → Extensions). Every schedule in
 `maintenance_levels.sql` is wrapped in `if exists (select 1 from pg_extension
@@ -251,8 +251,8 @@ composite is flat. Section 5 of the report tells you which one you have.
 
 | File | What breaks without it | Severity |
 |---|---|---|
-| `username_skeleton.sql` | Signup step 1 falls back to downloading up to 200 usernames to the phone instead of one indexed lookup. Also the impersonation guard (`k0nka` for `konka`) is client-only and bypassable | works, slower |
-| `mutual_follows_rpc.sql` | "Mutuals online" falls back to pulling both full follow lists — for a 40k-follower account that is ~40,800 rows to the phone every 2 minutes | works, expensive |
+| `20260927000800_username_skeleton.sql` | Signup step 1 falls back to downloading up to 200 usernames to the phone instead of one indexed lookup. Also the impersonation guard (`k0nka` for `konka`) is client-only and bypassable | works, slower |
+| `20260927000700_mutual_follows_rpc.sql` | "Mutuals online" falls back to pulling both full follow lists — for a 40k-follower account that is ~40,800 rows to the phone every 2 minutes | works, expensive |
 | `lock_authenticated_pii.sql` | Any signed-in user can read any other user's `email`, `push_token`, `phone`, `emergency_contacts` | privacy |
 
 All three are written so the app works before **and** after — the client tries
@@ -263,25 +263,44 @@ the RPC and falls back, the same pattern `AuthContext` uses for
 
 ## Order, in one block
 
+Everything numbered in `supabase/migrations/` now runs in one go. You no longer
+paste those files one by one.
+
+**Option A: automatic (recommended).** Add a GitHub secret
+`SUPABASE_PRODUCTION_DB_URL` (Supabase → Project Settings → Database →
+Connection string → URI, *session pooler*). Then run the **Deploy** workflow
+by hand. It first proves every migration applies cleanly to a throwaway
+database, then runs `supabase db push`, which applies each migration once and
+records it so it never runs twice.
+
+**Option B: by hand.** Paste each file in `supabase/migrations/` into the SQL
+editor **in filename order**. They are idempotent, so running one twice is harmless.
+
+Either way, these stay manual:
+
 ```
- 0.  APP_DB_CONTRACT_CHECK.sql        ← read-only, tells you what you need
- 1.  definer_rpc_hardening.sql        ← 🔴 admin escalation + currency minting
- 2.  scripts/security-rls-fixes.sql   ← 🔴 GPS exposure
- 2a. report_brigading_fix.sql         ← 2 fresh accounts can hide anyone
- 2b. admin_grants.sql                 ← your two admins (run Part 1 first)
- 2c. fk_indexes.sql                   ← makes account deletion finish in time
- 3.  <whatever section 1 flagged>
- 4.  account_deletion.sql             ← store compliance
+ 0.  APP_DB_CONTRACT_CHECK.sql         ← read-only, tells you what you need
+ 1.  supabase/migrations/*             ← Option A or B above (9 files, in order)
+ 2.  admin_grants.sql                  ← your two admins (run Part 1 first; has a
+                                          placeholder email only you can fill in)
+ 3.  <whatever section 1 of the contract check flagged>
+ 4.  account_deletion.sql              ← store compliance
  5.  maintenance_levels.sql + data_retention.sql + maintenance_status.sql
      (enable pg_cron first)
- 6.  index_reconciliation.sql
- 7.  username_skeleton.sql, mutual_follows_rpc.sql, lock_authenticated_pii.sql
- 8.  APP_DB_CONTRACT_CHECK.sql again  ← confirm it all went green
+ 6.  lock_authenticated_pii.sql → lock_pii_regrant_combined.sql
+ 7.  APP_DB_CONTRACT_CHECK.sql again   ← confirm it all went green
 ```
 
-Every file is idempotent and safe to re-run. `index_reconciliation.sql` should be
-re-run after any `schema_part_*` replay, because those files recreate the
-ambiguous index names.
+`20260927000600_index_reconciliation.sql` should be re-run after any
+`schema_part_*` replay, because those files recreate the ambiguous index names.
+
+### From now on
+
+New database changes go in a new file:
+`supabase/migrations/<YYYYMMDDHHMMSS>_<what>.sql`, idempotent
+(`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP … IF EXISTS`). DB Schema CI applies
+every migration twice on a fresh build and runs the security tests, so a broken
+or non-idempotent migration fails the PR before it gets near production.
 
 ---
 

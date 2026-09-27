@@ -91,7 +91,7 @@ BEGIN
     RAISE EXCEPTION
       '% client-executable SECURITY DEFINER function(s) have no caller check. '
       'Either add an auth.uid() check or REVOKE from anon/authenticated '
-      '(see supabase/queries/definer_rpc_hardening.sql).', bad;
+      '(see supabase/migrations/20260927000200_definer_rpc_hardening.sql).', bad;
   END IF;
   RAISE NOTICE 'OK  no client-executable SECURITY DEFINER writer skips the caller check';
 END $$;

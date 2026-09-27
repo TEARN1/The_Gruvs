@@ -61,7 +61,7 @@ stops, so it is **flat**: identical time at 200 messages and at 50,000.
 That is the whole five-year question in one row. The cost of the wrong index
 grows with every message a user ever receives; the right one does not move.
 
-**Fixed** in `supabase/queries/index_reconciliation.sql`.
+**Fixed** in `supabase/migrations/20260927000600_index_reconciliation.sql`.
 
 ## 🟠 Finding 2 — 12 index names mean different things in different files
 
@@ -95,14 +95,14 @@ cheaper, not duplicates.
 
 | | |
 |---|---|
-| `supabase/queries/index_reconciliation.sql` | Declarative DROP-then-CREATE for every name it owns, so the end state is identical regardless of what the database has now or what ran in what order. Guarded per table, idempotent, verified by applying twice. |
+| `supabase/migrations/20260927000600_index_reconciliation.sql` | Declarative DROP-then-CREATE for every name it owns, so the end state is identical regardless of what the database has now or what ran in what order. Guarded per table, idempotent, verified by applying twice. |
 | `scripts/audit-indexes.mjs` | Static check, wired into CI and `npm run preflight`. **Fails** when two build-order files define one name differently; **warns** on latent collisions and duplicates. Negative-tested: introducing a conflicting definition exits 1; removing it exits 0. |
 
 Dropping an index never loses data. Every index dropped is either an exact
 duplicate of one kept, or a strict prefix of one kept (a composite serves prefix
 lookups, so `(user_id)` is redundant once `(user_id, created_at DESC)` exists).
 
-**To apply:** paste `index_reconciliation.sql` into the Supabase SQL editor.
+**To apply:** paste `20260927000600_index_reconciliation.sql` into the Supabase SQL editor.
 Re-run it after any `schema_part_*` replay — those files will recreate the
 ambiguous names.
 
@@ -172,7 +172,7 @@ that driving from the user's (bounded) following list would beat driving from
 the online-profiles set. Measured at **37.7 ms vs 4.9 ms** — clearly worse, so
 it was discarded. The plain join ships.
 
-Added in `supabase/queries/mutual_follows_rpc.sql`:
+Added in `supabase/migrations/20260927000700_mutual_follows_rpc.sql`:
 `get_mutual_online()` and `mutual_online_count()` (both `SECURITY INVOKER`, so
 RLS still applies; both read `auth.uid()` and take no target-user argument, so
 one user cannot inspect another's graph), plus the two indexes the join needs —

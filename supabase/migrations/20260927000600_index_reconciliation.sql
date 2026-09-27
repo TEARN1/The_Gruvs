@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- index_reconciliation.sql — make the index set deterministic, and stop paying
+-- 20260927000600_index_reconciliation.sql — make the index set deterministic, and stop paying
 -- write amplification for indexes nothing reads.
 --
 -- TWO PROBLEMS, both invisible until the tables get big.

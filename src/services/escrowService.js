@@ -6,14 +6,15 @@ import { withRetry } from '../utils/retry';
 
 export const EscrowService = {
   /**
-   * Lock funds in escrow by inserting a service_bookings row.
+   * Create a booking via create_service_booking(). The server reads the
+   * provider from the listing, refuses self-booking and bounds the amount.
+   * No money moves here: the booking is 'unfunded' until a payment provider
+   * captures it (see supabase/migrations/20260927000900_service_bookings_integrity.sql).
    * Returns the new booking id, or null on failure.
    */
   async lockFunds(bookingData) {
     try {
       const {
-        requester_id,
-        provider_id,
         service_node_id,
         cargo_type,
         origin_address,
@@ -22,34 +23,24 @@ export const EscrowService = {
         dropoff_address,
         scheduled_at,
         amount_cents,
-      } = bookingData;
+      } = bookingData || {};
+      if (!service_node_id) return null;
 
-      const { data, error } = await supabase
-        .from('service_bookings')
-        .insert([
-          {
-            client_id: requester_id,
-            provider_id,
-            service_node_id,
-            cargo_type,
-            pickup_address: pickup_address || origin_address,
-            dropoff_address: dropoff_address || destination_address,
-            scheduled_at,
-            amount_cents,
-            estimated_price: amount_cents ? (amount_cents / 100) : null,
-            status: 'escrow_held',
-            created_at: new Date().toISOString(),
-          },
-        ])
-        .select('id')
-        .single();
+      const { data, error } = await supabase.rpc('create_service_booking', {
+        p_service_node_id: service_node_id,
+        p_amount_cents: Math.round(Number(amount_cents) || 0),
+        p_cargo_type: cargo_type ?? null,
+        p_pickup_address: pickup_address || origin_address || null,
+        p_dropoff_address: dropoff_address || destination_address || null,
+        p_scheduled_at: scheduled_at || null,
+      });
 
       if (error) {
         log.error('EscrowService:lockFunds', error);
         return null;
       }
 
-      return data?.id ?? null;
+      return data ?? null;
     } catch (err) {
       log.error('EscrowService:lockFunds', err);
       return null;
@@ -60,7 +51,7 @@ export const EscrowService = {
    * Release escrow to the provider.
    *
    * One authorized, atomic server call. `release_escrow_to_provider` (see
-   * supabase/queries/definer_rpc_hardening.sql) checks that the caller is the
+   * supabase/migrations/20260927000200_definer_rpc_hardening.sql) checks that the caller is the
    * CLIENT who paid, that the booking is still `escrow_held`, then marks it
    * completed and credits the provider's wallet under a row lock.
    *
@@ -129,38 +120,15 @@ export const EscrowService = {
    *  - inserts a row into disputes table
    * Returns true on success, false on failure.
    */
-  // callerId must be either the client_id or provider_id of the booking
+  // Via open_dispute(): the server checks the caller is a party, the booking
+  // is still live, and writes filed_by itself.
   async initiateDispute(bookingId, reason, callerId) {
     if (!callerId) { log.error('EscrowService:initiateDispute', 'callerId required'); return false; }
     try {
-      // Ownership check — only a party to the booking can open a dispute
-      const { data: booking, error: checkErr } = await supabase
-        .from('service_bookings')
-        .select('id')
-        .eq('id', bookingId)
-        .or(`client_id.eq.${callerId},provider_id.eq.${callerId}`)
-        .single();
-
-      if (checkErr || !booking) {
-        log.error('EscrowService:initiateDispute', 'booking not found or caller not a party');
-        return false;
-      }
-
-      const { error: updateErr } = await withRetry(() =>
-        supabase.from('service_bookings')
-          .update({ status: 'disputed' })
-          .eq('id', bookingId)
-          .or(`client_id.eq.${callerId},provider_id.eq.${callerId}`)
+      const { error } = await withRetry(() =>
+        supabase.rpc('open_dispute', { p_booking_id: bookingId, p_reason: reason ?? '' })
       );
-
-      if (updateErr) { log.error('EscrowService:initiateDispute', updateErr); return false; }
-
-      const { error: disputeErr } = await supabase
-        .from('disputes')
-        .insert([{ booking_id: bookingId, raised_by: callerId, reason, status: 'open', created_at: new Date().toISOString() }]);
-
-      if (disputeErr) { log.error('EscrowService:initiateDispute:insert', disputeErr); return false; }
-
+      if (error) { log.error('EscrowService:initiateDispute', error); return false; }
       return true;
     } catch (err) {
       log.error('EscrowService:initiateDispute', err);

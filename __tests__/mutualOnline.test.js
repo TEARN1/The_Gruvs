@@ -47,7 +47,7 @@ describe('RPC result shape', () => {
   it('falls back when the RPC is absent, so it ships before the migration', () => {
     // The component treats an RPC error as "not deployed" and uses the direct
     // query path. Anything else would break the app on a database that has not
-    // had mutual_follows_rpc.sql applied yet.
+    // had 20260927000700_mutual_follows_rpc.sql applied yet.
     const handle = (res) => (!res.error && Array.isArray(res.data) ? 'rpc' : 'fallback');
     expect(handle({ data: [{ id: 'x' }], error: null })).toBe('rpc');
     expect(handle({ data: null, error: { message: 'function does not exist' } })).toBe('fallback');

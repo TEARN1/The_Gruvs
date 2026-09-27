@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- definer_rpc_hardening.sql — close four SECURITY DEFINER RPCs that were
+-- 20260927000200_definer_rpc_hardening.sql — close four SECURITY DEFINER RPCs that were
 -- granted to every signed-in user with NO caller authorization check.
 --
 -- SECURITY DEFINER runs as the function owner and BYPASSES RLS. Granting such a

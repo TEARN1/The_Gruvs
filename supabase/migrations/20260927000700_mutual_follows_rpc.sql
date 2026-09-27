@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- mutual_follows_rpc.sql — stop shipping the whole social graph to the phone.
+-- 20260927000700_mutual_follows_rpc.sql — stop shipping the whole social graph to the phone.
 --
 -- THE PROBLEM. CommunityStatsBar shows "N mutuals online right now". To get it,
 -- the client did (CommunityStatsBar.js:79-86):
@@ -33,7 +33,7 @@
 
 -- ── Indexes the join needs ──────────────────────────────────────────────────
 -- The forward side is served by idx_follows_follower (follower_id, following_id)
--- — pinned in index_reconciliation.sql. The reverse side only had a single-column
+-- — pinned in 20260927000600_index_reconciliation.sql. The reverse side only had a single-column
 -- (following_id) index, so the join had to visit the heap for every candidate
 -- row. Widening it makes the whole intersection index-only.
 DROP INDEX IF EXISTS public.idx_follows_following;

@@ -28,22 +28,25 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DIR = 'supabase/queries';
+const DIRS = ['supabase/queries', 'supabase/migrations'];
 // Reconciliation deliberately redefines names the schema files also define —
 // that is its whole job, so it must not count as a collision against them.
 // Instead, a name it pins counts as RESOLVED: it declares the intended
 // definition, and applying it makes the end state deterministic.
-const OWNS_CANONICAL = 'index_reconciliation.sql';
+const OWNS_CANONICAL = '20260927000600_index_reconciliation.sql';
 
 // The files a fresh build actually applies, in order (FRESH_BUILD_ORDER.md).
 // A disagreement between two of these is live today. A disagreement that only
-// involves a file outside this list (schema_v6_proposed.sql and friends are
+// involves a file outside this list (archive/schema_v6_*.sql and friends were
 // proposals, not part of the build) is latent — worth reporting, not worth
 // failing the build over.
 const BUILD_ORDER = ['schema_part_2.sql', 'schema_part_3.sql', 'schema_part_4.sql', 'schema_part_1.sql'];
 
 const defs = [];
-for (const f of fs.readdirSync(DIR).sort()) {
+const sqlFiles = DIRS.filter((d) => fs.existsSync(d))
+  .flatMap((d) => fs.readdirSync(d).map((f) => [d, f]))
+  .sort((a, b) => a[1].localeCompare(b[1]));
+for (const [DIR, f] of sqlFiles) {
   if (!f.endsWith('.sql') || f === OWNS_CANONICAL) continue;
   const sql = fs.readFileSync(path.join(DIR, f), 'utf8');
   const re = /create\s+(unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?([a-z0-9_]+)\s+on\s+(?:public\.)?([a-z_]+)\s*(?:using\s+\w+\s*)?(\([^;]*?\))\s*(where[^;']*)?/gi;
@@ -63,7 +66,7 @@ for (const d of defs) (byName[d.name] ||= []).push(d);
 // Names pinned by the reconciliation file — their end state is declared, so a
 // disagreement upstream no longer decides anything.
 let pinned = new Set();
-const canonPath = path.join(DIR, OWNS_CANONICAL);
+const canonPath = path.join('supabase/migrations', OWNS_CANONICAL);
 if (fs.existsSync(canonPath)) {
   const canon = fs.readFileSync(canonPath, 'utf8');
   for (const m of canon.matchAll(/reidx\(\s*'[a-z_]+'\s*,\s*'([a-z0-9_]+)'/gi)) pinned.add(m[1].toLowerCase());
@@ -99,7 +102,7 @@ if (unresolved.length) {
   console.error(`\n❌ ${unresolved.length} index name(s) that the build applies are defined differently.`);
   console.error('   IF NOT EXISTS means the first file to run wins and the rest do nothing, so');
   console.error('   the real index depends on apply order. Give them distinct names, or pin the');
-  console.error(`   intended definition in ${DIR}/${OWNS_CANONICAL}.\n`);
+  console.error(`   intended definition in supabase/migrations/${OWNS_CANONICAL}.\n`);
   for (const c of unresolved) {
     console.error(`   ${c.name}`);
     for (const v of c.variants) console.error(`       ${v.file.padEnd(26)} ${v.table}${v.body}`);
@@ -130,7 +133,7 @@ if (dups.length) {
 }
 
 if (!failed) {
-  console.log(`✅ No index name collisions across ${defs.length} definitions in ${DIR}.`);
+  console.log(`✅ No index name collisions across ${defs.length} definitions in ${DIRS.join(' + ')}.`);
   if (dups.length) console.log(`   (${dups.length} duplicate definition(s) reported above as warnings.)`);
 }
 process.exit(failed ? 1 : 0);

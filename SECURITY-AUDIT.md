@@ -54,7 +54,7 @@ safety risk.**
 
 **Fix:** restrict `live_checkins` SELECT — at minimum block anonymous, ideally
 serve locations only through the privacy-aware `get_safe_nearby_vibers` RPC and
-revoke direct table reads. SQL in `scripts/security-rls-fixes.sql` (§1).
+revoke direct table reads. SQL in `supabase/migrations/20260927000400_security_rls_fixes.sql` (§1).
 
 ## 2. 🟠 MEDIUM — PII columns readable on `profiles`
 
@@ -129,7 +129,7 @@ function — otherwise any logged-in user could call them directly.
   (finding #6).
 
 ## What you must apply server-side (cannot be done from app code)
-Review and run `scripts/security-rls-fixes.sql` against your Supabase project
+Review and run `supabase/migrations/20260927000400_security_rls_fixes.sql` against your Supabase project
 (**test on a branch / staging first** — RLS changes can lock out features).
 That file addresses findings #1, #2, #4 and #5, with comments on each.
 
@@ -194,7 +194,7 @@ SCADA/OT, or datacenter of yours** to attack, so whole categories don't apply.
 |---|---|---|
 | XSS (stored/reflected/DOM) | Partly (web) | ✅ No HTML sinks; RN `<Text>` auto-escapes; no `dangerouslySetInnerHTML`/`eval` |
 | SQL/NoSQL/filter injection | Yes | ✅ Supabase parameterises; PostgREST `.or()` injection fixed (`sanitizeSearch`) |
-| IDOR / BOLA / BFLA | Yes | ⚠️ = server-side RLS (findings #1–#5, #7) — run `security-rls-fixes.sql` |
+| IDOR / BOLA / BFLA | Yes | ⚠️ = server-side RLS (findings #1–#5, #7) — run `20260927000400_security_rls_fixes.sql` |
 | Clickjacking / UI-redress | Yes (web) | ✅ X-Frame-Options + CSP frame-ancestors |
 | CSRF | Low | ✅ Auth is JWT in `Authorization` header, not cookies |
 | SSL/TLS stripping | Yes (web) | ✅ HSTS |
@@ -460,7 +460,7 @@ after:   attacker 1000000  victim 0   / sis 0     event: deleted
 1 caller (same arg-name mismatch). So revoking all four from `authenticated`
 breaks nothing that currently works.
 
-**Fixed** in `supabase/queries/definer_rpc_hardening.sql`: all four revoked from
+**Fixed** in `supabase/migrations/20260927000200_definer_rpc_hardening.sql`: all four revoked from
 `public, anon, authenticated`. They still work for `service_role` and for other
 DEFINER functions, which execute as their owner.
 
@@ -512,7 +512,7 @@ score.
 body only reassigns fields on `NEW` and touches no tables, so it needs no
 elevated privileges. A legitimate DEFINER RPC still passes through, because
 inside one `current_user` is that RPC's owner. Corrected in all three places the
-function is defined (`schema_part_4.sql`, `vibe_equity_column.sql`, and the new
+function is defined (`schema_part_4.sql`, `20260927000100_vibe_equity_column.sql`, and the new
 hardening migration) so a fresh build is never vulnerable.
 
 `wallet_balance` is now also pinned — `schema_part_4`'s own comment said that was
@@ -620,7 +620,7 @@ Two consequences:
 **Reproduced** on a local Postgres against the trigger exactly as shipped: two
 accounts created seconds earlier set `is_auto_hidden` on a 3-year-old profile.
 
-**Fixed** in `supabase/queries/report_brigading_fix.sql`:
+**Fixed** in `supabase/migrations/20260927000300_report_brigading_fix.sql`:
 
 - **Rebased the divisor** to the real default, so a normal account weighs 1.0 and
   three are needed — what "~3 trusted reports" was meant to mean. Score now only
@@ -691,13 +691,13 @@ scratch:
 These need the Supabase dashboard or a SQL run — they cannot be fixed in this repo:
 
 - **Findings #22 and #23 are the priority** — run
-  `supabase/queries/definer_rpc_hardening.sql` against the live database. Until
+  `supabase/migrations/20260927000200_definer_rpc_hardening.sql` against the live database. Until
   it is applied, any signed-in account can make itself an admin and mint
   currency. Everything in this repo is only the fix *staged*; the live DB is
   unchanged until you run it. Afterwards, audit `profiles` for accounts whose
   `role`, `is_verified`, `wallet_balance` or `social_integrity_score` you did not
   set yourself.
-- **Findings #1–#5, #7** from round 1 — run `scripts/security-rls-fixes.sql`.
+- **Findings #1–#5, #7** from round 1 — run `supabase/migrations/20260927000400_security_rls_fixes.sql`.
   The GPS exposure on `live_checkins` (#1) is still the highest-severity item.
 - **Rotate the Spotify client secret** and remove
   `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` from the repo's Actions secrets (#12).
