@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
+import { buildVibeCardShareText, vibeCardLink } from '../utils/vibeCardShare';
 import { AwardManager, MembershipManager, ClubManager } from '../services/clubEngine';
 import {
   View, Text, StyleSheet, TouchableOpacity,
@@ -2480,9 +2481,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
 
   const handleShareProfile = async () => {
     try {
+      // Same card as the DM "Vibe Card" share, one builder, and a link that
+      // resolves (the old /profile/<username> path did not on web).
+      const link = vibeCardLink(profile?.username);
       await Share.share({
-        message: `Check out my vibe on The Gruvs! ${username} 👑`,
-        url: 'https://thegruvs.com/profile/' + username,
+        message: buildVibeCardShareText(profile || {}),
+        url: link,
       });
     } catch (err) {
       console.warn('ProfilePage.handleShareProfile err:', err);

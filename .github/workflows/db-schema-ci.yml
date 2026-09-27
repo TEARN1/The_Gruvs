@@ -111,6 +111,11 @@ jobs:
       - name: Verify bookings / escrow / ledger integrity
         run: $PSQL -f supabase/test/service_bookings_test.sql
 
+      # Skips on this build (The Meal's SQL isn't part of schema_part_*), but
+      # runs anywhere it is installed.
+      - name: Verify The Meal reach columns can't be self-set
+        run: $PSQL -f supabase/test/meal_reach_test.sql
+
       # Security control, not a shape check: proves the report-driven auto-hide
       # policies still exist, are still RESTRICTIVE, and still gate on the right
       # column — and pins down that service_role (BYPASSRLS) skips them, which is

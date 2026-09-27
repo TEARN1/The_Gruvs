@@ -288,6 +288,10 @@ Either way, these stay manual:
  5.  maintenance_levels.sql + data_retention.sql + maintenance_status.sql
      (enable pg_cron first)
  6.  lock_authenticated_pii.sql → lock_pii_regrant_combined.sql
+ 6a. the_meal.sql (+ boosted_slot.sql), only if the contract check lists
+     meal_posts / feed_meals as missing. The Meal's rails render nothing,
+     with no error, until it is installed. Then re-run migration
+     20260927001100_meal_reach_integrity.sql (it no-ops until meal_posts exists).
  7.  APP_DB_CONTRACT_CHECK.sql again   ← confirm it all went green
 ```
 

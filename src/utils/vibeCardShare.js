@@ -9,6 +9,14 @@
 import { getVibeLevel } from './vibeLevel';
 import { APP_WEB_URL } from '../constants/appUrl';
 
+// /share/profile/<username> is the route that works: nginx proxies it to the
+// og-meta Edge Function, which gives WhatsApp/X a real preview card and sends
+// people on to /?profile=<id>. The old /u/<username> matched no route, so every
+// shared card dropped people on the home page.
+export function vibeCardLink(username) {
+  return username ? `${APP_WEB_URL}/share/profile/${encodeURIComponent(username)}` : APP_WEB_URL;
+}
+
 export function buildVibeCardShareText(profile = {}, opts = {}) {
   const p = profile || {};
   const handle = p.username ? `${p.username}` : (p.display_name || 'A Viber');
@@ -22,6 +30,6 @@ export function buildVibeCardShareText(profile = {}, opts = {}) {
   if (p.is_verified) lines.push('✓ Verified');
 
   lines.push('— reputation earned by showing up, not posting.');
-  lines.push(p.username ? `${APP_WEB_URL}/u/${p.username}` : APP_WEB_URL);
+  lines.push(vibeCardLink(p.username));
   return lines.join('\n');
 }
