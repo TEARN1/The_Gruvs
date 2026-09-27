@@ -16,7 +16,7 @@ export const NeuralMesh = {
 
   async executeSupremeThought(instruction) {
     // Return a high-fidelity local deterministic analysis report
-    const timestamp = new Date().toLocaleString('en-ZA');
+    const timestamp = new Date().toISOString();
     
     let report = `[LOCAL REASONING CORE — SYNTHESIS REPORT]\n`;
     report += `Timestamp: ${timestamp}\n`;

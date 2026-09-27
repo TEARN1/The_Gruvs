@@ -32,7 +32,7 @@ const MDY_COUNTRIES = new Set(['US']);
 let _region = null; // { country, dateOrder, source, ts }
 
 const mk = (country, source) => ({
-  country: String(country || 'ZA').toUpperCase(),
+  country: String(country || 'US').toUpperCase(),
   dateOrder: MDY_COUNTRIES.has(String(country || '').toUpperCase()) ? 'MDY' : 'DMY',
   source,
   ts: Date.now(),
@@ -45,7 +45,7 @@ export function countryFromLocale() {
       (typeof Intl !== 'undefined' && Intl.DateTimeFormat().resolvedOptions().locale) ||
       (typeof navigator !== 'undefined' && (navigator.language || navigator.languages?.[0])) ||
       '';
-    // "en-ZA" → ZA ; "en-US" → US
+    // e.g. "en-GB" → GB ; "en-US" → US ; "fr-FR" → FR ; "en-ZA" → ZA
     const m = String(loc).match(/[-_]([A-Za-z]{2})\b/);
     return m ? m[1].toUpperCase() : null;
   } catch {
@@ -57,7 +57,7 @@ export function countryFromLocale() {
 export function getRegion() {
   if (_region) return _region;
   const fromLocale = countryFromLocale();
-  _region = mk(fromLocale || 'ZA', fromLocale ? 'locale' : 'default');
+  _region = mk(fromLocale || 'US', fromLocale ? 'locale' : 'default');
   return _region;
 }
 

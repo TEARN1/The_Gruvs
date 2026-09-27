@@ -347,7 +347,7 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
           // TODO(v6): remove media_urls/image_url fallbacks after migration
           const thumb = event.media_urls?.[0] || event.image_url;
           const date = event.event_date
-            ? new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+            ? new Date(event.event_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
             : 'TBD';
           const dist = (userCoords && event.lat != null && event.lon != null)
             ? haversine(userCoords.lat, userCoords.lon, Number(event.lat), Number(event.lon))

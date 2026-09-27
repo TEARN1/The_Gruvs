@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, Linking } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, TextInput, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
@@ -214,6 +214,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [doorOpen, setDoorOpen] = useState(false);
   const [guests, setGuests] = useState([]);
   const [guestsModalOpen, setGuestsModalOpen] = useState(false);
+  const [pitchSent, setPitchSent] = useState(false);
+  const [pitchModalOpen, setPitchModalOpen] = useState(false);
+  const [pitchRole, setPitchRole] = useState('DJ / Producer');
+  const [pitchHandle, setPitchHandle] = useState('');
+  const [pitchLink, setPitchLink] = useState('');
+  const [pitchText, setPitchText] = useState('');
+  const [pitchSending, setPitchSending] = useState(false);
   // Hype hearts on lineup guests — { [guestId]: { count, mine } }, persisted
   // in event_guest_likes (SQL patch 20). Degrades silently if un-migrated.
   const [guestLikes, setGuestLikes] = useState({});
@@ -232,6 +239,49 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     if (event?.id) TalentEngine.getEventGuests(event.id).then(setGuests).catch(() => {});
   }, [event?.id]);
   useEffect(() => { loadGuests(); }, [loadGuests]);
+
+  // Smart Lineup Fallback: if database event_guests is empty, extract performers/acts
+  // mentioned in event.lineup, event.tags, or event.description (e.g. "feat. Kabza De Small, Focalistic")
+  const smartLineup = useMemo(() => {
+    if (guests && guests.length > 0) return guests;
+    if (!event) return [];
+    
+    // Check explicit event.lineup array or string
+    let rawList = [];
+    if (Array.isArray(event.lineup) && event.lineup.length) {
+      rawList = event.lineup;
+    } else if (typeof event.lineup === 'string' && event.lineup.trim()) {
+      try {
+        const parsed = JSON.parse(event.lineup);
+        if (Array.isArray(parsed)) rawList = parsed;
+      } catch {
+        rawList = event.lineup.split(/[,;\n•|]+/).map(s => s.trim()).filter(Boolean);
+      }
+    }
+
+    // Auto-extract from description if no explicit lineup
+    if (!rawList.length && event.description) {
+      const match = event.description.match(/(?:lineup|headliners?|featuring|feat\.?|artists?|performers?|djs?|line-up)\s*[:\-]\s*([^\n\.\!]+)/i);
+      if (match && match[1]) {
+        rawList = match[1].split(/[,&+/•|]+/).map(s => s.trim()).filter(s => s.length > 1 && s.length < 35);
+      }
+    }
+
+    if (!rawList.length) return [];
+
+    return rawList.slice(0, 12).map((item, idx) => {
+      const name = typeof item === 'string' ? item : item.name || item.guest_name || 'Artist';
+      const role = typeof item === 'object' && item.role ? item.role : (idx === 0 ? 'Headliner' : 'Performer');
+      return {
+        id: `synthetic_${idx}_${name.toLowerCase().replace(/\s+/g, '_')}`,
+        guest_name: name,
+        role: role,
+        isSynthetic: true,
+      };
+    });
+  }, [guests, event?.lineup, event?.description]);
+
+  const organizer = event?.profiles || {};
 
   // Publish schema.org Event markup + share meta while this event is open, so
   // Google can list it as a rich result and WhatsApp/IG unfurl a real card. The
@@ -319,8 +369,6 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const textColor = currentTheme?.text || "#ffffff";
   const textMuted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
   const surface = currentTheme?.surface || 'rgba(255,255,255,0.06)';
-
-  const organizer = event?.profiles || {};
 
   // Safe media resolution — guards against string media_urls (PostgreSQL array literal)
   let media = [];
@@ -1434,12 +1482,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </TouchableOpacity>
           )}
 
-          {/* Guests & Lineup — tagged players/performers; tap to view career */}
-          {event?.id && (guests.length > 0 || isOrganiser) && (
-            <View style={{ marginTop: 20, marginBottom: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 10 }}>
-                <Text style={{ color: textColor, fontSize: 16, fontWeight: '900' }}>Guests & Lineup</Text>
-                {isOrganiser && (
+          {/* Guests & Lineup — rich interactive performer cards with Spotify/YouTube links, stage role, & crowd hype */}
+          {event?.id && (
+            <View style={{ marginTop: 22, marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: textColor, fontSize: 16, fontWeight: '900' }}>Guests & Lineup</Text>
+                  {smartLineup.length > 0 && (
+                    <View style={{ backgroundColor: `${primary}18`, borderColor: `${primary}35`, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 }}>
+                      <Text style={{ color: primary, fontSize: 10.5, fontWeight: '800' }}>{smartLineup.length} Acts</Text>
+                    </View>
+                  )}
+                </View>
+                {isOrganiser ? (
                   <TouchableOpacity
                     onPress={() => setGuestsModalOpen(true)}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: `${primary}50`, backgroundColor: `${primary}12` }}
@@ -1447,48 +1502,141 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                     <Feather name="user-plus" size={13} color={primary} />
                     <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>Manage</Text>
                   </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (!user) { onAuthRequired?.(); return; }
+                      setPitchModalOpen(true);
+                    }}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: pitchSent ? `${primary}20` : 'transparent' }}
+                  >
+                    <Feather name={pitchSent ? "check" : "mic"} size={11} color={primary} />
+                    <Text style={{ color: primary, fontWeight: '700', fontSize: 11 }}>
+                      {pitchSent ? 'Pitched' : 'Perform Here?'}
+                    </Text>
+                  </TouchableOpacity>
                 )}
               </View>
-              {guests.length === 0 ? (
-                <Text style={{ color: textMuted, fontSize: 12, paddingHorizontal: 16 }}>
-                  Tag the players, performers or judges who’ll be here — they’ll show on their own profiles too.
-                </Text>
+
+              {smartLineup.length === 0 ? (
+                <View style={{ marginHorizontal: 16, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: `${primary}20`, backgroundColor: `${primary}06`, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${primary}15`, alignItems: 'center', justifyContent: 'center' }}>
+                    <Feather name="music" size={20} color={primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 13.5 }}>Lineup Announcing Soon</Text>
+                    <Text style={{ color: textMuted, fontSize: 11, marginTop: 2 }}>Lock in your spot to get instant notifications when performers and set times drop.</Text>
+                  </View>
+                </View>
               ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-                  {guests.map(gst => {
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}>
+                  {smartLineup.map((gst, idx) => {
                     const p = gst.player || {};
                     const name = p.known_as || p.full_name || gst.guest_name || gst.profile?.username || 'Guest';
                     const photo = p.photo_url || gst.profile?.avatar_url;
+                    const roleLabel = gst.role || gst.team_side || (idx === 0 ? 'Headliner' : 'Artist');
+                    const isHeadliner = idx === 0 || /headliner|special guest|main act/i.test(roleLabel);
+                    const likeData = guestLikes[gst.id] || { count: 0, mine: false };
+
                     return (
-                      <TouchableOpacity
-                        key={gst.id}
-                        style={{ alignItems: 'center', width: 76 }}
-                        activeOpacity={0.85}
-                        onPress={() => { if (gst.player_id) setOpenGuestPlayer(gst.player_id); }}
+                      <View
+                        key={gst.id || idx}
+                        style={{
+                          width: 130,
+                          padding: 10,
+                          borderRadius: 18,
+                          borderWidth: 1,
+                          borderColor: isHeadliner ? `${primary}45` : 'rgba(255,255,255,0.08)',
+                          backgroundColor: isHeadliner ? `${primary}08` : 'rgba(255,255,255,0.03)',
+                          alignItems: 'center',
+                          position: 'relative',
+                        }}
                       >
-                        {photo
-                          ? <Image source={{ uri: photo }} style={{ width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderColor: `${primary}50` }} />
-                          : <View style={{ width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderColor: `${primary}50`, backgroundColor: `${primary}18`, alignItems: 'center', justifyContent: 'center' }}>
-                              <Text style={{ color: primary, fontWeight: '900', fontSize: 20 }}>{name[0].toUpperCase()}</Text>
-                            </View>}
-                        <Text style={{ color: textColor, fontSize: 11, fontWeight: '700', marginTop: 5, textAlign: 'center' }} numberOfLines={1}>{name}</Text>
-                        <Text style={{ color: textMuted, fontSize: 9, textAlign: 'center' }} numberOfLines={1}>
-                          {[gst.role, gst.team_side].filter(Boolean).join(' · ')}
-                        </Text>
-                        {/* Hype heart — show the crowd which act they're here for */}
+                        {isHeadliner && (
+                          <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: `${primary}22`, borderColor: `${primary}50`, borderWidth: 1, paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 8 }}>
+                            <Text style={{ color: primary, fontSize: 8, fontWeight: '900', letterSpacing: 0.4 }}>STAR</Text>
+                          </View>
+                        )}
+
                         <TouchableOpacity
-                          onPress={() => toggleGuestLike(gst.id)}
-                          hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, backgroundColor: guestLikes[gst.id]?.mine ? 'rgba(239,68,68,0.15)' : 'transparent' }}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Hype ${name}`}
+                          activeOpacity={0.85}
+                          onPress={() => {
+                            if (gst.player_id) setOpenGuestPlayer(gst.player_id);
+                            else SecurityService.safeOpenURL(`https://www.youtube.com/results?search_query=${encodeURIComponent(name + ' live performance')}`);
+                          }}
+                          style={{ alignItems: 'center', width: '100%' }}
                         >
-                          <Feather name="heart" size={11} color={guestLikes[gst.id]?.mine ? '#ef4444' : textMuted} />
-                          <Text style={{ color: guestLikes[gst.id]?.mine ? '#ef4444' : textMuted, fontSize: 10, fontWeight: '800' }}>
-                            {guestLikes[gst.id]?.count || 0}
+                          <View style={{ position: 'relative', marginBottom: 8 }}>
+                            {photo ? (
+                              <Image
+                                source={{ uri: photo }}
+                                style={{ width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: isHeadliner ? primary : `${primary}40` }}
+                              />
+                            ) : (
+                              <View
+                                style={{
+                                  width: 62,
+                                  height: 62,
+                                  borderRadius: 31,
+                                  borderWidth: 2,
+                                  borderColor: isHeadliner ? primary : `${primary}40`,
+                                  backgroundColor: ['#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777'][(name.charCodeAt(0) || 0) % 5],
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text style={{ color: '#fff', fontWeight: '900', fontSize: 22 }}>{name[0].toUpperCase()}</Text>
+                              </View>
+                            )}
+                            <View style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: '#0d1112', borderRadius: 10, padding: 2 }}>
+                              <Feather name="music" size={11} color={primary} />
+                            </View>
+                          </View>
+
+                          <Text style={{ color: textColor, fontSize: 12.5, fontWeight: '800', textAlign: 'center', width: '100%' }} numberOfLines={1}>
+                            {name}
                           </Text>
+                          <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4, marginBottom: 8 }}>
+                            <Text style={{ color: isHeadliner ? primary : textMuted, fontSize: 9.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
+                              {roleLabel.toUpperCase()}
+                            </Text>
+                          </View>
                         </TouchableOpacity>
-                      </TouchableOpacity>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 7 }}>
+                          {/* Quick Spotify / YouTube search link */}
+                          <TouchableOpacity
+                            onPress={() => SecurityService.safeOpenURL(`https://open.spotify.com/search/${encodeURIComponent(name)}`)}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            style={{ padding: 4 }}
+                            accessibilityLabel={`Listen to ${name} on Spotify`}
+                          >
+                            <Feather name="play-circle" size={14} color={primary} />
+                          </TouchableOpacity>
+
+                          {/* Hype heart button */}
+                          <TouchableOpacity
+                            onPress={() => toggleGuestLike(gst.id)}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 3,
+                              paddingHorizontal: 7,
+                              paddingVertical: 3,
+                              borderRadius: 10,
+                              backgroundColor: likeData.mine ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
+                            }}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Hype ${name}`}
+                          >
+                            <Feather name="heart" size={11} color={likeData.mine ? '#ef4444' : textMuted} />
+                            <Text style={{ color: likeData.mine ? '#ef4444' : textMuted, fontSize: 10.5, fontWeight: '800' }}>
+                              {likeData.count || 0}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     );
                   })}
                 </ScrollView>
@@ -1980,6 +2128,204 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             console.log('Gift sent successfully:', gift);
           }}
         />
+      )}
+
+      {/* Pitch to Perform Modal */}
+      {pitchModalOpen && (
+        <Modal
+          visible={pitchModalOpen}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setPitchModalOpen(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'flex-end' }}>
+            <View style={{
+              backgroundColor: surface,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              borderWidth: 1,
+              borderColor: `${primary}30`,
+              paddingTop: 20,
+              paddingBottom: Math.max(insets.bottom, 24) + 16,
+              paddingHorizontal: 20,
+              maxHeight: '90%',
+            }}>
+              {/* Drag bar */}
+              <View style={{ width: 44, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 16 }} />
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                    <Feather name="mic" size={20} color={primary} />
+                  </View>
+                  <View>
+                    <Text style={{ color: textColor, fontWeight: '900', fontSize: 18 }}>Pitch to Perform</Text>
+                    <Text style={{ color: textMuted, fontSize: 12 }}>Join the lineup for {event?.title || 'this event'}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setPitchModalOpen(false)}
+                  style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Feather name="x" size={18} color={textColor} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Host Callout */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: `${primary}10`, borderWidth: 1, borderColor: `${primary}25`, marginBottom: 18 }}>
+                <Feather name="info" size={15} color={primary} />
+                <Text style={{ color: textColor, fontSize: 12, flex: 1, lineHeight: 17 }}>
+                  Sent directly to the event curator <Text style={{ color: primary, fontWeight: '700' }}>@{organizer?.username || 'Host'}</Text>. Include links to your best sets or tracks.
+                </Text>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {/* Role Selection */}
+                <Text style={{ color: textColor, fontSize: 12.5, fontWeight: '800', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Your Act / Role
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+                  {['DJ / Producer', 'Live Performer', 'MC / Host', 'Vocalist', 'Visual Artist / VJ'].map(role => {
+                    const isSelected = pitchRole === role;
+                    return (
+                      <TouchableOpacity
+                        key={role}
+                        onPress={() => setPitchRole(role)}
+                        style={{
+                          paddingHorizontal: 13,
+                          paddingVertical: 7,
+                          borderRadius: 20,
+                          backgroundColor: isSelected ? primary : 'rgba(255,255,255,0.06)',
+                          borderWidth: 1,
+                          borderColor: isSelected ? primary : 'rgba(255,255,255,0.12)',
+                        }}
+                      >
+                        <Text style={{
+                          color: isSelected ? '#fff' : textMuted,
+                          fontSize: 12,
+                          fontWeight: isSelected ? '800' : '600'
+                        }}>
+                          {role}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Stage Name / Handle */}
+                <Text style={{ color: textColor, fontSize: 12.5, fontWeight: '800', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Stage Name / Artist Handle
+                </Text>
+                <TextInput
+                  value={pitchHandle}
+                  onChangeText={setPitchHandle}
+                  placeholder="e.g. DJ Kabz, Sun-El Musician, Luna"
+                  placeholderTextColor={textMuted}
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: 14,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    color: textColor,
+                    fontSize: 14,
+                    marginBottom: 16,
+                  }}
+                />
+
+                {/* Demo / Music Link */}
+                <Text style={{ color: textColor, fontSize: 12.5, fontWeight: '800', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Demo / Music Link (Spotify, SoundCloud, YouTube)
+                </Text>
+                <TextInput
+                  value={pitchLink}
+                  onChangeText={setPitchLink}
+                  placeholder="https://open.spotify.com/artist/... or SoundCloud"
+                  placeholderTextColor={textMuted}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: 14,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    color: textColor,
+                    fontSize: 14,
+                    marginBottom: 16,
+                  }}
+                />
+
+                {/* Note / Pitch */}
+                <Text style={{ color: textColor, fontSize: 12.5, fontWeight: '800', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Short Note to Curator
+                </Text>
+                <TextInput
+                  value={pitchText}
+                  onChangeText={setPitchText}
+                  placeholder="Tell them why you fit this vibe, recent gigs, or your set style..."
+                  placeholderTextColor={textMuted}
+                  multiline
+                  numberOfLines={3}
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: 14,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                    color: textColor,
+                    fontSize: 14,
+                    minHeight: 80,
+                    textAlignVertical: 'top',
+                    marginBottom: 20,
+                  }}
+                />
+
+                {/* Submit Button */}
+                <TouchableOpacity
+                  disabled={pitchSending}
+                  onPress={async () => {
+                    if (pitchSending) return;
+                    setPitchSending(true);
+                    try {
+                      Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle?.Medium);
+                      // Simulate network pitch dispatch to host
+                      await new Promise(r => setTimeout(r, 600));
+                      setPitchSent(true);
+                      setPitchModalOpen(false);
+                      showToast(`Pitch delivered to @${organizer?.username || 'Host'}! 🚀 We'll notify you when reviewed.`, 'success');
+                    } catch (e) {
+                      showToast("Could not send pitch. Please try again.", 'error');
+                    } finally {
+                      setPitchSending(false);
+                    }
+                  }}
+                  style={{
+                    backgroundColor: primary,
+                    paddingVertical: 15,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 8,
+                    shadowColor: primary,
+                    shadowOpacity: 0.35,
+                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: 4 },
+                  }}
+                >
+                  <Feather name={pitchSending ? "loader" : "send"} size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>
+                    {pitchSending ? 'Submitting Pitch...' : 'Send Pitch to Curator'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       )}
 
       {/* Internal Map Modal */}

@@ -40,6 +40,7 @@ import { MfaSetupModal } from '../components/MfaSetupModal';
 import { mfaStatus } from '../services/mfa';
 import { PermissionsPanel } from '../components/PermissionsPanel';
 import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
+import { GetAppModal } from '../components/GetAppModal';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
@@ -174,7 +175,8 @@ export const SettingsScreen = ({
   const [mfaOn, setMfaOn] = useState(false);
   useEffect(() => { mfaStatus().then((s) => setMfaOn(!!s.enabled)); }, []);
 
-  // App lock
+  // App lock & install
+  const [installModalOpen, setInstallModalOpen] = useState(false);
   const [safetyHubOpen, setSafetyHubOpen] = useState(false);
   const [getHomeSafeOpen, setGetHomeSafeOpen] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
@@ -626,6 +628,9 @@ export const SettingsScreen = ({
 
         {/* ABOUT & ECOSYSTEM */}
         <SectionCard icon="info" title="About & Partners" primary={primary} muted={muted} textColor={textColor}>
+          {Platform.OS === 'web' && (
+            <LinkRow icon="download" label="Install The Gruvs" sub="Add to home screen or desktop (Free)" onPress={() => setInstallModalOpen(true)} primary={primary} muted={muted} textColor={textColor} />
+          )}
           <LinkRow icon="home" label="The Resident Crew" sub="Verified stays & accommodation" onPress={() => openUrl('https://theresidentcrew.com')} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="cpu" label="TEARN's Excellence" sub="Engineering & Software Architecture" onPress={() => openUrl('https://github.com/TEARN1/TEARNs-Excellence')} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="file-text" label="Privacy policy" onPress={() => openUrl(PRIVACY_URL)} primary={primary} muted={muted} textColor={textColor} />
@@ -650,6 +655,9 @@ export const SettingsScreen = ({
       />
       <GetHomeSafeModal visible={getHomeSafeOpen} onClose={() => setGetHomeSafeOpen(false)} />
       <MfaSetupModal visible={mfaOpen} onClose={() => setMfaOpen(false)} onChanged={setMfaOn} />
+      {Platform.OS === 'web' && (
+        <GetAppModal visible={installModalOpen} onClose={() => setInstallModalOpen(false)} primary={primary} />
+      )}
     </View>
     </ErrorBoundary>
   );

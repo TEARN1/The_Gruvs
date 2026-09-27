@@ -22,7 +22,7 @@ export function buildShareText(event = {}, opts = {}) {
   if (e.event_date) {
     try {
       const d = new Date(`${e.event_date}T00:00:00`).toLocaleDateString(
-        opts.locale || 'en-ZA',
+        opts.locale || undefined,
         { weekday: 'short', day: 'numeric', month: 'short' },
       );
       if (d && d !== 'Invalid Date') lines.push(`📅 ${d}${e.event_time ? ` · ${e.event_time}` : ''}`);

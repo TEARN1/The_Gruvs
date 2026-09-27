@@ -451,7 +451,7 @@ export const NotificationService = {
         .eq('notify_fixtures', true);
 
       const when = scheduledAt
-        ? new Date(scheduledAt).toLocaleString('en-ZA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        ? new Date(scheduledAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         : '';
       for (const f of (followers || [])) {
         await this.send(f.user_id, {

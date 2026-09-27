@@ -15,6 +15,7 @@ import { isBirthdayToday } from '../utils/birthday';
 import { thumb } from '../utils/storageThumb';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
+import { GlassView } from '../components/GlassView';
 import { TalentLeaderboardModal } from '../components/TalentLeaderboardModal';
 import { BrandLogo } from '../components/BrandLogo';
 import { ViberProfileModal } from '../components/ViberProfileModal';
@@ -187,7 +188,7 @@ const HeroCard = ({ event, primary, onPress }) => {
   const isWeb = Platform.OS === 'web';
 
   const eventDate = event.event_date
-    ? new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' })
+    ? new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : '';
 
   return (
@@ -230,7 +231,7 @@ const HeroCard = ({ event, primary, onPress }) => {
             <View style={hero.metaItem}>
               <Feather name="calendar" size={12} color="rgba(255,255,255,0.7)" />
               <Text style={hero.metaText}>
-                {new Date(event.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}
+                {new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
               </Text>
             </View>
           ) : null}
@@ -1067,23 +1068,34 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
           <View style={styles.brandRow}>
             <BrandLogo size={34} />
             <View style={{ marginLeft: 10 }}>
-              <Text style={[styles.headerTitle, { color: primary }]}>Explore</Text>
-              <Text style={[styles.headerSub, { color: muted }]}>Discover your next Gruv</Text>
+              <Text style={[styles.headerTitle, { color: textColor }]}>Explore</Text>
+              <Text style={[styles.headerSub, { color: primary }]}>DISCOVER YOUR NEXT GRUV</Text>
             </View>
           </View>
           <TouchableOpacity
             onPress={() => setScoutOpen(true)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, borderWidth: 1, borderColor: `${primary}50`, backgroundColor: `${primary}12` }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 20,
+              borderWidth: 1.2,
+              borderColor: `${primary}45`,
+              backgroundColor: `${primary}15`,
+              ...(Platform.OS === 'web' ? { boxShadow: `0 0 14px ${primary}25` } : {}),
+            }}
             activeOpacity={0.85}
             accessibilityLabel="Open Talent Scout leaderboard"
           >
             <Feather name="award" size={14} color={primary} />
-            <Text style={{ color: primary, fontWeight: '900', fontSize: 12 }}>Scout</Text>
+            <Text style={{ color: primary, fontWeight: '900', fontSize: 12, letterSpacing: 0.5 }}>Scout</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Search bar */}
-        <View style={[styles.searchWrap, { borderColor: `${primary}25` }]}>
+        {/* Search bar — neo-glass capsule */}
+        <GlassView glow={isSearching} style={[styles.searchWrap, { borderColor: isSearching ? primary : `${primary}25`, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
           <Feather name="search" size={17} color={isSearching ? primary : muted} />
           <TextInput
             style={[styles.searchInput, { color: textColor }]}
@@ -1095,11 +1107,11 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             accessibilityHint="Results appear below as you type"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')}>
-              <Feather name="x" size={16} color={muted} />
+            <TouchableOpacity onPress={() => setQuery('')} style={{ padding: 6, marginRight: 2 }}>
+              <Feather name="x" size={15} color={muted} />
             </TouchableOpacity>
           )}
-        </View>
+        </GlassView>
 
         {/* ── SEARCH MODE ─────────────────────────────────────────────────── */}
         {isSearching ? (
@@ -1177,7 +1189,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#10b981" }} />
                   <Text style={{ color: "#10b981", fontSize: 10, fontWeight: '800' }}>LIVE</Text>
                 </View>
-                <Text style={[styles.servSub, { color: muted, fontSize: 11, lineHeight: 15 }]}>Bakkie hire · Muscle · Event logistics{'\n'}Reliable Vibers active near you.</Text>
+                <Text style={[styles.servSub, { color: muted, fontSize: 11, lineHeight: 15 }]}>Transport & Haulage · Crew & Muscle · Event logistics{'\n'}Reliable Vibers active near you.</Text>
               </View>
               <View style={[styles.servCta, { backgroundColor: primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, shadowColor: primary, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }]}>
                 <Text style={[styles.servCtaText, { fontWeight: '900', color: '#000' }]}>Hire</Text>
@@ -1628,7 +1640,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                           </View>
                         ) : null}
                         <Text style={{ color: muted, fontSize: 10, marginLeft: 'auto' }}>
-                          {u.released_at ? new Date(u.released_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                          {u.released_at ? new Date(u.released_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                         </Text>
                       </View>
                       <Text style={{ color: textColor, fontSize: 13, fontWeight: '800', marginBottom: 2 }}>{u.title}</Text>
@@ -1856,7 +1868,7 @@ const SearchResultCard = ({ ev, primary, textColor, muted, catColor, onPress }) 
       <View style={{ flex: 1 }}>
         <Text style={[src.title, { color: textColor }]} numberOfLines={2}>{ev.title}</Text>
         <View style={src.meta}>
-          {ev.event_date ? <Text style={[src.metaText, { color: muted }]}>{new Date(ev.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}{isPast ? ' · PASSED' : ''}</Text> : null}
+          {ev.event_date ? <Text style={[src.metaText, { color: muted }]}>{new Date(ev.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}{isPast ? ' · PASSED' : ''}</Text> : null}
           {ev.venue_name ? <Text style={[src.metaText, { color: muted }]}>· {ev.venue_name}</Text> : null}
         </View>
       </View>

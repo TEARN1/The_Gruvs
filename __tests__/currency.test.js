@@ -1,4 +1,4 @@
-import { formatPrice, currencyForCountry, money, setActiveCurrency, setActiveRate, CURRENCIES } from '../src/constants/currencies';
+import { formatPrice, currencyForCountry, money, setActiveCurrency, setActiveRate, CURRENCIES, DEFAULT_CURRENCY } from '../src/constants/currencies';
 
 describe('formatPrice (symbol/format only — never converts the number)', () => {
   it('whole numbers render with grouping and no decimals', () => {
@@ -40,10 +40,10 @@ describe('currencyForCountry', () => {
     expect(currencyForCountry('SN').code).toBe('XOF'); // CFA zone
   });
 
-  it('defaults to ZAR for unknown / empty', () => {
-    expect(currencyForCountry('ZZ').code).toBe('ZAR');
-    expect(currencyForCountry(null).code).toBe('ZAR');
-    expect(currencyForCountry(undefined).code).toBe('ZAR');
+  it('falls back to the device-locale default (USD when unknown) for unknown / empty', () => {
+    expect(currencyForCountry('ZZ')).toBe(DEFAULT_CURRENCY);
+    expect(currencyForCountry(null)).toBe(DEFAULT_CURRENCY);
+    expect(currencyForCountry(undefined)).toBe(DEFAULT_CURRENCY);
   });
 });
 

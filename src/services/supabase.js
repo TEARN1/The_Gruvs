@@ -40,10 +40,17 @@ const secureStorage = {
   },
 };
 
+const currentAppId   = process.env.EXPO_PUBLIC_APP_ID || process.env.NEXT_PUBLIC_APP_ID || 'the_gruvs';
+
 export const supabase = createClient(
   supabaseUrl    || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-key',
   {
+    global: {
+      headers: {
+        'x-app-id': currentAppId,
+      },
+    },
     auth: {
       storage:          secureStorage,
       autoRefreshToken: true,

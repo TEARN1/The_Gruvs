@@ -84,6 +84,7 @@ import { TutorialCenter }          from '../components/TutorialCenter';
 import { WhoWasThereModal }        from '../components/WhoWasThereModal';
 import { EventTicketModal }        from '../components/EventTicketModal';
 import { CreateReelModal }         from '../components/CreateReelModal';
+import { GetAppModal }            from '../components/GetAppModal';
 
 const { width } = Dimensions.get('window');
 
@@ -1329,7 +1330,7 @@ const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPres
       <View style={mec.info}>
         <Text style={[mec.title, { color: textColor }]} numberOfLines={1}>{ev.title || 'Untitled'}</Text>
         <Text style={[mec.meta, { color: muted }]}>
-          {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' }) : ev.venue_name || ''}
+          {ev.event_date ? new Date(ev.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : ev.venue_name || ''}
         </Text>
         <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
           <View style={[mec.badge, { backgroundColor: `${primary}15` }]}>
@@ -1890,7 +1891,7 @@ const AppUpdatesSection = ({ primary, muted, textColor, surface }) => {
 
   if (!updates.length) return null;
 
-  const fmtDate = (ts) => new Date(ts).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' });
+  const fmtDate = (ts) => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
     <GlassView style={[{ marginHorizontal: 16, marginBottom: 14, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: `${primary}18` }]}>
@@ -1940,6 +1941,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const [walletVisible, setWalletVisible] = useState(false);
   const [coins, setCoins] = useState(0);
   const [diamonds, setDiamonds] = useState(0);
+  const [installModalVisible, setInstallModalVisible] = useState(false);
   const [ticketsVisible, setTicketsVisible] = useState(false);
   const [providerDashVisible, setProviderDashVisible] = useState(false);
   const [vibeCoachData, setVibeCoachData]   = useState(null);
@@ -2658,6 +2660,15 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#ef4444" }} />
               )}
             </TouchableOpacity>
+            {Platform.OS === 'web' && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}25`, borderWidth: 1, borderColor: primary }}
+                onPress={() => setInstallModalVisible(true)}
+              >
+                <Feather name="download" size={14} color={primary} />
+                <Text style={{ color: primary, fontSize: 11, fontWeight: '900' }}>Get App</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -2705,20 +2716,50 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           <View style={styles.avatarActions}>
             {user && (
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: primary }]}
+                style={[
+                  styles.actionBtn,
+                  {
+                    backgroundColor: primary,
+                    shadowColor: primary,
+                    shadowOpacity: 0.35,
+                    shadowRadius: 10,
+                    elevation: 4,
+                  },
+                ]}
                 onPress={() => setEditProfileVisible(true)}
               >
                 <Feather name="edit-2" size={13} color="#000" />
                 <Text style={styles.actionBtnText}>Edit Profile</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={[styles.actionBtnOutline, { borderColor: `${primary}50` }]} onPress={handleShareProfile}>
-              <Feather name="share-2" size={14} color={primary} />
+            <TouchableOpacity
+              style={[
+                styles.actionBtnOutline,
+                {
+                  borderColor: `${primary}55`,
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                },
+              ]}
+              onPress={handleShareProfile}
+            >
+              <Feather name="share-2" size={13} color={primary} />
               <Text style={[styles.actionBtnOutlineText, { color: primary }]}>Share</Text>
             </TouchableOpacity>
             {user && (
               <TouchableOpacity
-                style={[styles.actionBtnOutline, { borderColor: `${primary}50`, paddingHorizontal: 12 }]}
+                style={[
+                  styles.actionBtnOutline,
+                  {
+                    borderColor: `${primary}55`,
+                    backgroundColor: 'rgba(255,255,255,0.06)',
+                    width: 38,
+                    height: 38,
+                    borderRadius: 19,
+                    paddingHorizontal: 0,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  },
+                ]}
                 onPress={() => setSubView('settings')}
                 accessibilityRole="button"
                 accessibilityLabel="Settings"
@@ -2970,29 +3011,35 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                     PartnerService.logClickAndOpen('theresidentcrew', url, 'profile_powers');
                   }}
                   style={{
-                    backgroundColor: `${primary}15`,
-                    borderRadius: 10,
-                    paddingVertical: 10,
-                    paddingHorizontal: 12,
+                    backgroundColor: `${primary}12`,
+                    borderRadius: 14,
+                    paddingVertical: 12,
+                    paddingHorizontal: 14,
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    marginTop: 6,
-                    borderWidth: 1,
-                    borderColor: `${primary}40`,
+                    marginTop: 8,
+                    borderWidth: 1.2,
+                    borderColor: `${primary}45`,
+                    ...(Platform.OS === 'web' ? { boxShadow: `0 4px 16px ${primary}15` } : {}),
                   }}
                   activeOpacity={0.85}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center' }}>
-                      <Feather name="home" size={14} color={primary} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: `${primary}25`, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: `${primary}40` }}>
+                      <Feather name="home" size={16} color={primary} />
                     </View>
                     <View>
-                      <Text style={{ color: textColor, fontWeight: '800', fontSize: 12 }}>The Resident Crew</Text>
-                      <Text style={{ color: muted, fontSize: 10 }}>Verified Artist Stays & Crew Living</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ color: textColor, fontWeight: '900', fontSize: 13 }}>The Resident Crew</Text>
+                        <View style={{ backgroundColor: '#10b98125', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.8, borderColor: '#10b981' }}>
+                          <Text style={{ color: '#10b981', fontSize: 9, fontWeight: '900' }}>VERIFIED</Text>
+                        </View>
+                      </View>
+                      <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>Verified Artist Stays & Crew Living</Text>
                     </View>
                   </View>
-                  <Feather name="external-link" size={13} color={primary} />
+                  <Feather name="external-link" size={14} color={primary} />
                 </TouchableOpacity>
 
                 {/* TEARN's Excellence Innovation Hub */}
@@ -3000,28 +3047,34 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                   onPress={() => PartnerService.logClickAndOpen('tearns-excellence', 'https://github.com/TEARN1/TEARNs-Excellence', 'profile_powers')}
                   style={{
                     backgroundColor: 'rgba(0,242,255,0.08)',
-                    borderRadius: 10,
-                    paddingVertical: 10,
-                    paddingHorizontal: 12,
+                    borderRadius: 14,
+                    paddingVertical: 12,
+                    paddingHorizontal: 14,
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    marginTop: 6,
-                    borderWidth: 1,
-                    borderColor: 'rgba(0,242,255,0.3)',
+                    marginTop: 8,
+                    borderWidth: 1.2,
+                    borderColor: 'rgba(0,242,255,0.4)',
+                    ...(Platform.OS === 'web' ? { boxShadow: '0 4px 16px rgba(0,242,255,0.15)' } : {}),
                   }}
                   activeOpacity={0.85}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,242,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
-                      <Feather name="cpu" size={14} color="#00f2ff" />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,242,255,0.22)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0,242,255,0.5)' }}>
+                      <Feather name="cpu" size={16} color="#00f2ff" />
                     </View>
                     <View>
-                      <Text style={{ color: textColor, fontWeight: '800', fontSize: 12 }}>TEARN's Excellence</Text>
-                      <Text style={{ color: '#00f2ff', fontSize: 10, fontWeight: '600' }}>Engineered Architecture ✦ Open Source</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ color: textColor, fontWeight: '900', fontSize: 13 }}>TEARN's Excellence</Text>
+                        <View style={{ backgroundColor: 'rgba(0,242,255,0.2)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.8, borderColor: '#00f2ff' }}>
+                          <Text style={{ color: '#00f2ff', fontSize: 9, fontWeight: '900' }}>HQ</Text>
+                        </View>
+                      </View>
+                      <Text style={{ color: '#00f2ff', fontSize: 11, fontWeight: '600', marginTop: 2 }}>Engineered Architecture ✦ Open Source</Text>
                     </View>
                   </View>
-                  <Feather name="arrow-up-right" size={13} color="#00f2ff" />
+                  <Feather name="arrow-up-right" size={14} color="#00f2ff" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -3675,6 +3728,15 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             visible={createReelVisible}
             onClose={() => setCreateReelVisible(false)}
             onPosted={() => setCreateReelVisible(false)}
+          />
+        </SafeSection>
+      )}
+      {installModalVisible && (
+        <SafeSection label="Get App" primary={primary}>
+          <GetAppModal
+            visible={installModalVisible}
+            onClose={() => setInstallModalVisible(false)}
+            primary={primary}
           />
         </SafeSection>
       )}
