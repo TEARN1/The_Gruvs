@@ -34,3 +34,6 @@ build.txt
 dist.tgz
 d.tgz
 android/
+
+# Supabase CLI local scratch (never commit)
+supabase/.temp/
