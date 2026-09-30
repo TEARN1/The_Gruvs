@@ -23,9 +23,11 @@ through it, what is actually finished, and what the remaining percentage is made
 | Typecheck | `tsc --noEmit` clean (advisory — JS project) | this session |
 | Edge Functions | 5 (`delete-account`, `og-meta`, `push-notify`, `spotify-token`, `sso-redeem`) | `supabase/functions/` |
 | SQL assets | 66 files in `supabase/queries/` | `ls` |
-| Versioned migrations | **0** in `supabase/migrations/` | `ls` |
+| Versioned migrations | **0** in repo; **198 recorded in the live DB**, 13 of them hollow — see `DB_BASELINE.md` | `ls` + live audit |
 
-The last row is the most important fact in this document. See §6.
+The last row is the most important fact in this document. See §6 — and `DB_BASELINE.md`, which
+corrects it with a live audit: the history exists remotely but is unversioned and unreplayable
+at the foundation, which is a worse problem than a missing baseline.
 
 ---
 
