@@ -124,7 +124,7 @@ never run against the production DB is capped at 70%.
 | 6 | **Talent / tournaments / scout** | **75%** | Engine + UI complete; blocked on migrations `27 → 28 → 30` reaching prod. Calls no-op safely until then. |
 | 7 | **Offline / resilience / optimistic writes** | **90%** | Strong. Queue + classifier + reporter all tested. |
 | 8 | **Auth, identity, multi-app partitioning** | **85%** | Works; password-reset redirect URLs are still a console-side config step. |
-| 9 | **Security** (RLS coverage, pinned definer paths, MFA, biometric, app-lock, admin gating) | **80%** | RLS coverage closed and admin gating server-validated. Uncapped by an audit that has not been re-run against prod since the drift. |
+| 9 | **Security** (RLS coverage, pinned definer paths, MFA, biometric, app-lock, admin gating) | **85%** | Live advisor audit run 2026-09-30: 379 → 319 findings, mutable `search_path` cleared, `EXECUTE` revoked on 76 trigger functions. Remaining ERRORs are intentional definer views — see `DB_BASELINE.md` addendum. |
 | 10 | **Moderation & safety** (report, block, ghost, trust auto-hide, panic, SOS) | **85%** | All flows exist. Play requires report+block reachable on *every* UGC surface — needs a sweep, not new code. |
 | 11 | **Monetization** (entitlements, business tiers, gifts, boosts, referral, revenue engine) | **70%** | Entitlement + gift/boost loop works. Escrow/wallet is **phantom money** — modelled but not settled through a real processor. Either reframe as credits or integrate a PSP before it is user-visible. |
 | 12 | **Notifications** (push Edge Function, policy, digests, birthdays) | **80%** | Pipeline live; delivery policy tuned; needs live volume verification. |

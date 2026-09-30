@@ -141,3 +141,92 @@ is sharper and the fix is smaller: one command, not a reconstruction project.
 
 Once the baseline is committed and preflight is armed, layer 14 reaches ~90% and the system
 moves to **~88%**.
+
+---
+
+# Addendum — live database audit, 2026-09-30
+
+The `db pull` baseline is still outstanding (this cloud container is a separate checkout
+with no access token or database password, so `supabase db pull` returns
+`ProjectRefNotLinkedError` regardless of the link on your machine). Everything below was
+done instead, over the MCP connection to the live project.
+
+## Advisor results
+
+| Finding | Level | Before | After |
+|---|---|---:|---:|
+| `authenticated_security_definer_function_executable` | WARN | 303 | 250 |
+| `rls_enabled_no_policy` | INFO | 33 | 33 |
+| `anon_security_definer_function_executable` | WARN | 32 | 26 |
+| `extension_in_public` | WARN | 4 | 4 |
+| `security_definer_view` | ERROR | 3 | 3 |
+| `function_search_path_mutable` | WARN | 1 | **0** |
+| `rls_disabled_in_public` | ERROR | 1 | 1 |
+| `materialized_view_in_api` | WARN | 1 | 1 |
+| `auth_leaked_password_protection` | WARN | 1 | 1 |
+| **Total** | | **379** | **319** |
+
+## Fixed (migration `20260930034247`)
+
+1. **`public.current_app_id()` had no pinned `search_path`.** It is called inside the
+   `public_profiles` view, so a mutable `search_path` there is a genuine
+   resolution-hijack surface. Pinned to `public, pg_temp`. No behaviour change — the
+   function only calls `current_setting()`. It arrived with the recent `x-app-id` work,
+   so it was a fresh regression.
+2. **`EXECUTE` was granted to `PUBLIC`/`anon`/`authenticated` on 76 trigger functions.**
+   Trigger functions must never be directly callable. Revoked. Verified safe two ways:
+   no trigger function is called via `.rpc()` anywhere in the client, and trigger firing
+   does not consult `EXECUTE` privilege. Post-change: **155 triggers enabled, 0 disabled.**
+   The 2 still granted are PostGIS-owned (`checkauthtrigger`, `postgis_cache_bbox`) and
+   deliberately excluded.
+
+Applied with `apply_migration`, so its SQL **is** stored in `schema_migrations` — unlike
+the 13 hollow records in §2. That is the discipline going forward, and this repo now holds
+the matching file under `supabase/migrations/`.
+
+## Deliberately NOT changed, with reasons
+
+**The 3 `security_definer_view` ERRORs are intentional design, not defects.** Flipping them
+to `security_invoker = true` — the naive way to clear the linter — would cause an outage:
+
+- `res_public_services` → `SELECT <safe columns> FROM res_handyman_services WHERE show_publicly`
+- `res_public_vendors` → `SELECT <safe columns> FROM res_vendors WHERE show_publicly`
+- `public_profiles` → a curated projection of `profiles`, joined to `app_user_profiles`
+
+Each is guarded twice: an explicit column allow-list and a `WHERE show_publicly` predicate.
+They run as definer precisely *because* the base tables have PII column grants revoked
+(`lock_authenticated_pii`, `lock_profile_coordinates`). Under `security_invoker` the
+caller's RLS and column grants would apply and `anon` would get empty results — breaking
+the public directory and profile display app-wide.
+
+To satisfy the linter properly the fix is not a view flag: add explicit `anon` SELECT
+policies on the base tables scoped to `show_publicly`, move enforcement into RLS, *then*
+flip to invoker. That has real blast radius and wants its own migration plus a staging
+test — not a drive-by.
+
+**The 33 `rls_enabled_no_policy` tables are correctly fail-closed, not broken features.**
+All 33 were cross-referenced against every `.from()` call in the client: **zero overlap**.
+They are dormant/legacy (`ai_predictions`, `vip_bids`, `vibe_tuning_sessions`,
+`social_relations`, `groups`, `blocks`, `comments`, …). RLS on with no policy means
+deny-all, the right posture for a table nothing reads. Worth a cleanup pass to drop what is
+truly dead, but not a live defect.
+
+**`rls_disabled_in_public: spatial_ref_sys`** is a PostGIS system table you do not own and
+cannot enable RLS on. Writes were already revoked by `revoke_spatial_ref_sys_public_writes`.
+Accepted.
+
+**`extension_in_public`** (postgis, vector, pg_trgm, unaccent): relocating extensions on a
+live database rewrites every dependent reference. Risk exceeds benefit. Revisit only in a
+planned maintenance window.
+
+**`materialized_view_in_api: leaderboard_snapshot`** has no SELECT grant to `anon` or
+`authenticated`, so it is not actually reachable through the API despite the warning.
+
+**`auth_leaked_password_protection`** is a dashboard toggle, not SQL: Authentication →
+Providers → Password → enable "Prevent use of leaked passwords". One click, user-only.
+
+## Still yours to run
+
+`npx supabase db pull` on your linked machine remains the one step that produces a
+rebuildable baseline, which is what unblocks arming `migration-preflight`. The hollow
+foundation records in §2 are unaffected by today's work.
