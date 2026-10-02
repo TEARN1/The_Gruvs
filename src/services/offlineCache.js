@@ -162,6 +162,15 @@ export const EventCache = {
   async getVendorsStale(eventId) { return readStale('vendors', eventId); },
 };
 
+export const TicketCache = {
+  async saveUserTicket(eventId, ticket) { await write('user_ticket', eventId, ticket); },
+  async getUserTicket(eventId) { return read('user_ticket', eventId, 3600_000 * 24); }, // 24hr TTL
+  async getUserTicketStale(eventId) { return readStale('user_ticket', eventId); },
+  async saveAllTickets(tickets) { await write('my_tickets', 'list', tickets); },
+  async getAllTickets() { return read('my_tickets', 'list', 3600_000 * 48); },
+  async getAllTicketsStale() { return readStale('my_tickets', 'list'); },
+};
+
 /**
  * withCache — wraps any async data fetch with cache-then-network logic.
  *

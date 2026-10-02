@@ -84,3 +84,29 @@ export function describeSharedPresence(events) {
     text: `You both Touched Down at ${first.title}${more}${when ? ` · ${when}` : ''}`,
   };
 }
+
+/**
+ * "Find Me / Who's In The Room" — Find people you've crossed paths with or mutuals
+ * who are currently checked in at the same event right now.
+ */
+export async function findNearbyCoPresence(userId, eventId) {
+  if (!userId || !eventId) return [];
+  try {
+    const { data: attendees } = await supabase
+      .from('live_checkins')
+      .select('user_id, checked_in_at, profiles!live_checkins_user_id_fkey(id, username, display_name, avatar_url, vibe_score, is_verified)')
+      .eq('event_id', eventId)
+      .neq('user_id', userId)
+      .order('checked_in_at', { ascending: false })
+      .limit(50);
+
+    return (attendees || []).map(a => ({
+      userId: a.user_id,
+      checkedInAt: a.checked_in_at,
+      ...(a.profiles || {}),
+    }));
+  } catch {
+    return [];
+  }
+}
+

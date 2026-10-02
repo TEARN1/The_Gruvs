@@ -35,7 +35,11 @@
       "<rootDir>/jest.setup.js"
     ],
     "testMatch": [
-      "**/__tests__/**/*.test.js"
+      "<rootDir>/__tests__/**/*.test.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/.claude/"
     ],
     "collectCoverageFrom": [
       "src/utils/**/*.js",

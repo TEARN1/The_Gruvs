@@ -483,9 +483,34 @@ export const NotificationService = {
         .select('id', { count: 'exact', head: true })
         .eq('recipient_id', userId)
         .eq('read', false);
-      return count || 0;
+      const unread = count || 0;
+      this.syncAppBadge(unread);
+      return unread;
     } catch {
       return 0;
+    }
+  },
+
+  /**
+   * Sync unread notification count to phone app icon badge (iOS/Android) and Web tab badge
+   */
+  async syncAppBadge(count = 0) {
+    const safeCount = Math.max(0, parseInt(count, 10) || 0);
+    if (Platform.OS !== 'web') {
+      try {
+        await Notifications.setBadgeCountAsync(safeCount);
+      } catch (_) {}
+    } else if (typeof document !== 'undefined') {
+      // Dynamic Web App Tab Title Badge e.g. "(3) The Gruvs"
+      try {
+        const titleClean = document.title.replace(/^\(\d+\)\s*/, '');
+        document.title = safeCount > 0 ? `(${safeCount}) ${titleClean}` : titleClean;
+        // PWA App Badge API (Chrome / Edge / Safari on mobile & desktop)
+        if ('setAppBadge' in navigator) {
+          if (safeCount > 0) navigator.setAppBadge(safeCount).catch(() => {});
+          else if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
+        }
+      } catch (_) {}
     }
   },
 };
