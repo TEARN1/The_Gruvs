@@ -93,6 +93,9 @@ import { BirthdayCelebrationHub } from '../components/BirthdayCelebrationHub';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { TicketVaultExchangeModal } from '../components/TicketVaultExchangeModal';
 import { NightSafetyLogisticsModal } from '../components/NightSafetyLogisticsModal';
+import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
+import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
+import { sensoryHaptics } from '../services/sensoryHapticEngine';
 
 const { width } = Dimensions.get('window');
 
@@ -1956,6 +1959,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const [storeBuilderVisible, setStoreBuilderVisible] = useState(false);
   const [profileVaultVisible, setProfileVaultVisible] = useState(false);
   const [profileSafetyVisible, setProfileSafetyVisible] = useState(false);
+  const [profileSensoryVisible, setProfileSensoryVisible] = useState(false);
+  const [profileCultureVisible, setProfileCultureVisible] = useState(false);
   const [hubGlitter, setHubGlitter] = useState({});
   const [whoWasThereVisible, setWhoWasThereVisible] = useState(false);
   const [crossedPathsVisible, setCrossedPathsVisible] = useState(false);
@@ -3072,6 +3077,58 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               <ControlledGlitterBurst trigger={hubGlitter.safety} count={12} radius={34} colors={['#ef4444', '#fde047', '#fff']} />
             </TouchableOpacity>
           </View>
+
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+            {/* Sensory Suite (Beacon & Survival) */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, sensory: Date.now() }));
+                setProfileSensoryVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(236,72,153,0.40)',
+                  backgroundColor: 'rgba(236,72,153,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
+                <Feather name="zap" size={16} color="#ec4899" />
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Sensory Suite</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Beacon · 3AM Survival</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.sensory} count={12} radius={34} colors={['#ec4899', '#fde047', '#fff']} />
+            </TouchableOpacity>
+
+            {/* Cultural Artifacts (Wristbands & Stubs) */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, culture: Date.now() }));
+                setProfileCultureVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(251,191,36,0.40)',
+                  backgroundColor: 'rgba(251,191,36,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#fbbf2450', backgroundColor: 'rgba(251,191,36,0.20)' }]}>
+                <Feather name="award" size={16} color="#fbbf24" />
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Cultural Stubs</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Wristbands & Tokens</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.culture} count={12} radius={34} colors={['#fbbf24', '#00f2ff', '#fff']} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* XP Level bar — F3: the ONE canonical curve (getXpLevel), shared with
@@ -4007,6 +4064,34 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           <NightSafetyLogisticsModal
             visible={profileSafetyVisible}
             onClose={() => setProfileSafetyVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+            bg={bg}
+          />
+        </SafeSection>
+      )}
+
+      {profileSensoryVisible && (
+        <SafeSection label="Sensory Suite" primary={primary}>
+          <NightlifeSensoryModal
+            visible={profileSensoryVisible}
+            onClose={() => setProfileSensoryVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+            bg={bg}
+          />
+        </SafeSection>
+      )}
+
+      {profileCultureVisible && (
+        <SafeSection label="Cultural Artifacts" primary={primary}>
+          <CultureArtifactsModal
+            visible={profileCultureVisible}
+            onClose={() => setProfileCultureVisible(false)}
             primary={primary}
             textColor={textColor}
             muted={muted}

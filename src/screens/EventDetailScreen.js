@@ -96,6 +96,10 @@ import { NightSafetyLogisticsModal } from '../components/NightSafetyLogisticsMod
 import { InPersonVibeRadarModal } from '../components/InPersonVibeRadarModal';
 import { BoothAndStreetModal } from '../components/BoothAndStreetModal';
 import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
+import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
+import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
+import { sensoryHaptics } from '../services/sensoryHapticEngine';
+import { OpticalMoirePass, BorderTracer } from '../components/KasiIndustrialUI';
 
 // Gaming events get a scoreboard too (esports engine), EXCEPT the purely social
 // gaming categories where a league table makes no sense.
@@ -204,7 +208,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [safetyModalVisible, setSafetyModalVisible] = useState(false);
   const [inPersonModalVisible, setInPersonModalVisible] = useState(false);
   const [boothModalVisible, setBoothModalVisible] = useState(false);
-  const [dockGlitter, setDockGlitter] = useState({ vault: 0, safety: 0, vibe: 0, booth: 0 });
+  const [sensoryModalVisible, setSensoryModalVisible] = useState(false);
+  const [cultureModalVisible, setCultureModalVisible] = useState(false);
+  const [dockGlitter, setDockGlitter] = useState({ vault: 0, safety: 0, vibe: 0, booth: 0, sensory: 0, culture: 0 });
   const [myTicket, setMyTicket] = useState(null);
   const [groupModalVisible, setGroupModalVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
@@ -609,7 +615,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     // Optimistic update
     const prev = rsvpStatus;
     setRsvpStatus(status);
-    if (status === 'going' && prev !== 'going') { setGoingCount((c) => c + 1); setRsvpFx(Date.now()); }
+    if (status === 'going' && prev !== 'going') {
+      setGoingCount((c) => c + 1);
+      setRsvpFx(Date.now());
+      sensoryHaptics.triggerLogDrum('heavy');
+    }
     if (prev === 'going' && status !== 'going') setGoingCount((c) => Math.max(0, c - 1));
     setRsvpLoading(true);
     try {
@@ -1584,6 +1594,71 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <ControlledGlitterBurst trigger={dockGlitter.booth} count={12} radius={32} colors={['#f59e0b', '#fde047', '#fff']} />
                 </TouchableOpacity>
               </View>
+
+              {/* Row 3: Sensory & Safety Suite + Cultural Artifacts */}
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                {/* 5. Sensory & Safety Suite */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, sensory: Date.now() }));
+                    setSensoryModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(236,72,153,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(236,72,153,0.15)', borderWidth: 1, borderColor: 'rgba(236,72,153,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="zap" size={16} color="#ec4899" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(236,72,153,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#ec4899', fontSize: 9.5, fontWeight: '800' }}>SENSORY HUD</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Sensory Suite</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Beacon · 3AM Survival · Bouncer</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.sensory} count={12} radius={32} colors={['#ec4899', '#fde047', '#fff']} />
+                </TouchableOpacity>
+
+                {/* 6. Cultural Artifacts */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, culture: Date.now() }));
+                    setCultureModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(251,191,36,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(251,191,36,0.15)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="award" size={16} color="#fbbf24" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(251,191,36,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#fbbf24', fontSize: 9.5, fontWeight: '800' }}>ARTIFACTS</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Cultural Stubs</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Receipts · Sparklers · Dials</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.culture} count={12} radius={32} colors={['#fbbf24', '#00f2ff', '#fff']} />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -2486,6 +2561,38 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             visible={boothModalVisible}
             event={event}
             onClose={() => setBoothModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
+      )}
+
+      {/* 5. Nightlife Sensory Suite — Squad Beacon, 3AM Survival & Bouncer HUD */}
+      {sensoryModalVisible && (
+        <SafeSection label="Sensory Suite" primary={primary}>
+          <NightlifeSensoryModal
+            visible={sensoryModalVisible}
+            event={event}
+            onClose={() => setSensoryModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
+      )}
+
+      {/* 6. Cultural Artifacts Hub — Butcher Receipts, Sparklers & Dials */}
+      {cultureModalVisible && (
+        <SafeSection label="Cultural Artifacts" primary={primary}>
+          <CultureArtifactsModal
+            visible={cultureModalVisible}
+            event={event}
+            onClose={() => setCultureModalVisible(false)}
             primary={primary}
             textColor={textColor}
             muted={textMuted}
