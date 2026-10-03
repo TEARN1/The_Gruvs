@@ -85,6 +85,12 @@ import { WhoWasThereModal }        from '../components/WhoWasThereModal';
 import { EventTicketModal }        from '../components/EventTicketModal';
 import { CreateReelModal }         from '../components/CreateReelModal';
 import { GetAppModal }            from '../components/GetAppModal';
+import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
+import { BusinessActivationPortal } from '../components/BusinessActivationPortal';
+import { SportTournamentHub } from '../components/SportTournamentHub';
+import { FoodKotaSection } from '../components/FoodKotaSection';
+import { BirthdayCelebrationHub } from '../components/BirthdayCelebrationHub';
+import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 
 const { width } = Dimensions.get('window');
 
@@ -298,6 +304,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
   // sees before deciding whether to walk over.
   const [beaconIntent, setBeaconIntentState] = useState(profile?.beacon_intent || 'open');
   const [beaconExpiresAt, setBeaconExpiresAt] = useState(profile?.beacon_expires_at || null);
+  const [intentGlitter, setIntentGlitter] = useState({});
   // Ticks once a minute so the countdown text below actually counts down,
   // without needing a full profile refetch just to redraw a label.
   const [, setCountdownTick] = useState(0);
@@ -916,12 +923,16 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
               return (
                 <TouchableOpacity
                   key={i.key}
-                  onPress={() => setBeaconIntentState(i.key)}
-                  style={[fm.intentChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}18` : 'transparent' }]}
+                  onPress={() => {
+                    setIntentGlitter(prev => ({ ...prev, [i.key]: Date.now() }));
+                    setBeaconIntentState(i.key);
+                  }}
+                  style={[fm.intentChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}18` : 'transparent', position: 'relative' }]}
                   activeOpacity={0.8}
                 >
                   <Text style={{ fontSize: 15 }}>{i.emoji}</Text>
                   <Text style={{ color: active ? primary : muted, fontSize: 10, fontWeight: '800', marginTop: 2, textAlign: 'center' }}>{i.label}</Text>
+                  <ControlledGlitterBurst trigger={intentGlitter[i.key]} count={10} radius={26} colors={[primary, '#fff', '#ffd700']} />
                 </TouchableOpacity>
               );
             })}
@@ -1936,6 +1947,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [bizDashVisible, setBizDashVisible] = useState(false);
+  const [bizPortalVisible, setBizPortalVisible] = useState(false);
+  const [sportHubVisible, setSportHubVisible] = useState(false);
+  const [foodKotaVisible, setFoodKotaVisible] = useState(false);
+  const [bdayHubVisible, setBdayHubVisible] = useState(false);
+  const [storeBuilderVisible, setStoreBuilderVisible] = useState(false);
+  const [hubGlitter, setHubGlitter] = useState({});
   const [whoWasThereVisible, setWhoWasThereVisible] = useState(false);
   const [crossedPathsVisible, setCrossedPathsVisible] = useState(false);
   const [walletVisible, setWalletVisible] = useState(false);
@@ -2622,15 +2639,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', letterSpacing: 2 }}>MY ROYALTY</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-            {feature('business') && (
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
-              onPress={() => setBizDashVisible(true)}
-            >
-              <Feather name="briefcase" size={14} color={primary} />
-              <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Business</Text>
-            </TouchableOpacity>
-            )}
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
               onPress={() => setClubsModalVisible(true)}
@@ -2895,6 +2903,120 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             </GlassView>
           </View>
         )}
+
+        {/* ── Vibe Ecosystem Hubs — Business, Sports, Food/Kota & Birthdays ── */}
+        <View style={{ paddingHorizontal: 16, marginBottom: 16, gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: muted, fontSize: 11, fontWeight: '800', letterSpacing: 0.8 }}>
+              COMMUNITY & CREATOR HUBS
+            </Text>
+            <Text style={{ color: primary, fontSize: 10, fontWeight: '700' }}>Active Radar</Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {/* Business & Creator Studio */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, biz: Date.now() }));
+                setBizPortalVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: `${primary}40`,
+                  backgroundColor: `${primary}12`,
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: `${primary}50`, backgroundColor: `${primary}20` }]}>
+                <Feather name="briefcase" size={16} color={primary} />
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Business Studio</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Where & How products work</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.biz} count={12} radius={34} colors={[primary, '#fde047', '#fff']} />
+            </TouchableOpacity>
+
+            {/* Sports & Tournament Hub */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, sport: Date.now() }));
+                setSportHubVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(16,185,129,0.40)',
+                  backgroundColor: 'rgba(16,185,129,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#10b98150', backgroundColor: 'rgba(16,185,129,0.20)' }]}>
+                <Text style={{ fontSize: 16 }}>🏆</Text>
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Sports & Cups</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Top 32 & Fair Play</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.sport} count={12} radius={34} colors={['#10b981', '#fde047', '#fff']} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {/* Food & Kota Section */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, food: Date.now() }));
+                setFoodKotaVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(245,158,11,0.40)',
+                  backgroundColor: 'rgba(245,158,11,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#f59e0b50', backgroundColor: 'rgba(245,158,11,0.20)' }]}>
+                <Text style={{ fontSize: 16 }}>🍔</Text>
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Kotas & Food</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Late Night Kitchens</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.food} count={12} radius={34} colors={['#f59e0b', '#00f2ff', '#fff']} />
+            </TouchableOpacity>
+
+            {/* Birthday Radar */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, bday: Date.now() }));
+                setBdayHubVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(236,72,153,0.40)',
+                  backgroundColor: 'rgba(236,72,153,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
+                <Text style={{ fontSize: 16 }}>🎂</Text>
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Birthday Radar</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Perks & Free Drinks</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.bday} count={12} radius={34} colors={['#ec4899', '#fde047', '#fff']} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* XP Level bar — F3: the ONE canonical curve (getXpLevel), shared with
             LevelManager's level-up notifications so they can never disagree. */}
@@ -3740,6 +3862,76 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           />
         </SafeSection>
       )}
+      {bizPortalVisible && (
+        <SafeSection label="Business Activation Portal" primary={primary}>
+          <BusinessActivationPortal
+            visible={bizPortalVisible}
+            onClose={() => setBizPortalVisible(false)}
+            onOpenStoreBuilder={() => {
+              setBizPortalVisible(false);
+              setStoreBuilderVisible(true);
+            }}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+          />
+        </SafeSection>
+      )}
+      {sportHubVisible && (
+        <SafeSection label="Sport & Tournament Hub" primary={primary}>
+          <SportTournamentHub
+            visible={sportHubVisible}
+            onClose={() => setSportHubVisible(false)}
+            currentUserId={user?.id}
+            currentUsername={username}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+          />
+        </SafeSection>
+      )}
+      {foodKotaVisible && (
+        <SafeSection label="Food & Kotas" primary={primary}>
+          <FoodKotaSection
+            visible={foodKotaVisible}
+            onClose={() => setFoodKotaVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+            onSelectEvent={(evId) => onNavigateToEvent?.(evId)}
+          />
+        </SafeSection>
+      )}
+      {bdayHubVisible && (
+        <SafeSection label="Birthday Radar" primary={primary}>
+          <BirthdayCelebrationHub
+            visible={bdayHubVisible}
+            onClose={() => setBdayHubVisible(false)}
+            currentUserId={user?.id}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+            onSelectEvent={(evId) => onNavigateToEvent?.(evId)}
+          />
+        </SafeSection>
+      )}
+      {storeBuilderVisible && (
+        <Modal visible={storeBuilderVisible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setStoreBuilderVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: bg }}>
+            <BusinessStoreBuilder
+              biz={profile?.business_profiles || { id: user?.id, user_id: user?.id }}
+              primary={primary}
+              textColor={textColor}
+              muted={muted}
+              bg={bg}
+              onClose={() => setStoreBuilderVisible(false)}
+            />
+          </View>
+        </Modal>
+      )}
 
       {/* ── Full-screen image viewer ── */}
       <Modal
@@ -4050,8 +4242,36 @@ const styles = StyleSheet.create({
   // Career / Looks edit fields
   editRow: { marginBottom: 14 },
   editLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6, opacity: 0.7 },
-  editInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 13, backgroundColor: 'rgba(255,255,255,0.04)', textAlignVertical: 'top' },
   mintStatRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
+  hubTile: {
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    minHeight: 88,
+  },
+  hubIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    marginBottom: 2,
+  },
+  hubTileTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+    textAlign: 'center',
+  },
+  hubTileSub: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 });
 
 const af = StyleSheet.create({

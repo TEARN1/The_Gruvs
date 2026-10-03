@@ -7,6 +7,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../context/ThemeContext';
 import { REACTION_LIST } from '../constants/CategoryConfig';
 import { ReactionFX, themeForReaction } from './ReactionFX';
+import { ControlledGlitterBurst } from './ControlledGlitterBurst';
 
 const IS_WEB = Platform.OS === 'web';
 const reducedMotion = () =>
@@ -56,6 +57,8 @@ const ReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle 
     Animated.spring(pop, { toValue: isActive ? 1.18 : 1, useNativeDriver: true, tension: 200, friction: 7 }).start();
   }, [isActive, pop]);
 
+  const [glitterTrigger, setGlitterTrigger] = useState(0);
+
   const handlePress = () => {
     // Quick 3D flip — the orb tips toward you and snaps back.
     flip.setValue(0);
@@ -63,6 +66,7 @@ const ReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle 
       Animated.timing(flip, { toValue: 1, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: true }),
       Animated.spring(flip, { toValue: 0, useNativeDriver: true, tension: 120, friction: 8 }),
     ]).start();
+    setGlitterTrigger(Date.now());
     onPress(reaction.key);
   };
 
@@ -84,10 +88,8 @@ const ReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle 
           {
             borderColor: isActive ? accent : `${primary}22`,
             backgroundColor: isActive ? `${accent}26` : 'rgba(255,255,255,0.05)',
+            position: 'relative',
           },
-          isActive && (IS_WEB
-            ? { boxShadow: `0 0 14px ${accent}` }
-            : { shadowColor: accent, shadowOpacity: 0.9, shadowRadius: 12, elevation: 8 }),
         ]}
       >
         <MaterialCommunityIcons name={reaction.icon || 'star'} size={18} color={isActive ? accent : 'rgba(255,255,255,0.55)'} />
@@ -95,6 +97,7 @@ const ReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle 
         {isActive && (
           <Text style={[styles.count, { color: accent }]}>{count != null ? count : 1}</Text>
         )}
+        <ControlledGlitterBurst trigger={glitterTrigger} count={10} radius={24} colors={[accent, primary, '#fff']} />
       </TouchableOpacity>
     </Animated.View>
   );

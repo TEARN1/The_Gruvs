@@ -53,6 +53,7 @@ import { ResidentLiftsSection }   from '../components/ResidentLiftsSection';
 import { ResidentStaysSection }   from '../components/ResidentStaysSection';
 import { ResidentTrustBadge }     from '../components/ResidentTrustBadge';
 import { EventContextualAds }     from '../components/EventContextualAds';
+import { EventFlyersSection }     from '../components/EventFlyersSection';
 import { EventScheduleSection }   from '../components/EventScheduleSection';
 import { EventChatRoom }          from '../components/EventChatRoom';
 import { EventPollSection }       from '../components/EventPollSection';
@@ -1738,6 +1739,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {event && (
             <SafeSection label="Ads" primary={primary}>
               <EventContextualAds event={event} onNavigate={() => {}} />
+            </SafeSection>
+          )}
+
+          {event && (
+            <SafeSection label="In-Event Flyers" primary={primary}>
+              <EventFlyersSection
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                surface={surface}
+                onAuthRequired={onAuthRequired}
+              />
             </SafeSection>
           )}
 
