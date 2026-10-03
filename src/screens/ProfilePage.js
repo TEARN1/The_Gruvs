@@ -91,6 +91,8 @@ import { SportTournamentHub } from '../components/SportTournamentHub';
 import { FoodKotaSection } from '../components/FoodKotaSection';
 import { BirthdayCelebrationHub } from '../components/BirthdayCelebrationHub';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
+import { TicketVaultExchangeModal } from '../components/TicketVaultExchangeModal';
+import { NightSafetyLogisticsModal } from '../components/NightSafetyLogisticsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -1952,6 +1954,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const [foodKotaVisible, setFoodKotaVisible] = useState(false);
   const [bdayHubVisible, setBdayHubVisible] = useState(false);
   const [storeBuilderVisible, setStoreBuilderVisible] = useState(false);
+  const [profileVaultVisible, setProfileVaultVisible] = useState(false);
+  const [profileSafetyVisible, setProfileSafetyVisible] = useState(false);
   const [hubGlitter, setHubGlitter] = useState({});
   const [whoWasThereVisible, setWhoWasThereVisible] = useState(false);
   const [crossedPathsVisible, setCrossedPathsVisible] = useState(false);
@@ -3016,6 +3020,58 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               <ControlledGlitterBurst trigger={hubGlitter.bday} count={12} radius={34} colors={['#ec4899', '#fde047', '#fff']} />
             </TouchableOpacity>
           </View>
+
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+            {/* Offline Ticket Vault & Resale */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, vault: Date.now() }));
+                setProfileVaultVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(0,242,255,0.40)',
+                  backgroundColor: 'rgba(0,242,255,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#00f2ff50', backgroundColor: 'rgba(0,242,255,0.20)' }]}>
+                <Feather name="shield" size={16} color={primary} />
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Ticket Vault</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Offline Passes & Resale</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.vault} count={12} radius={34} colors={[primary, '#fde047', '#fff']} />
+            </TouchableOpacity>
+
+            {/* Night Safety & Safe Ride Home */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, safety: Date.now() }));
+                setProfileSafetyVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(239,68,68,0.40)',
+                  backgroundColor: 'rgba(239,68,68,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#ef444450', backgroundColor: 'rgba(239,68,68,0.20)' }]}>
+                <Feather name="life-buoy" size={16} color="#ef4444" />
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Safe Ride Home</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Squad SOS & Care</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.safety} count={12} radius={34} colors={['#ef4444', '#fde047', '#fff']} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* XP Level bar — F3: the ONE canonical curve (getXpLevel), shared with
@@ -3931,6 +3987,33 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             />
           </View>
         </Modal>
+      )}
+
+      {profileVaultVisible && (
+        <SafeSection label="Ticket Vault" primary={primary}>
+          <TicketVaultExchangeModal
+            visible={profileVaultVisible}
+            onClose={() => setProfileVaultVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            background={bg}
+            surface={surface}
+          />
+        </SafeSection>
+      )}
+
+      {profileSafetyVisible && (
+        <SafeSection label="Night Safety" primary={primary}>
+          <NightSafetyLogisticsModal
+            visible={profileSafetyVisible}
+            onClose={() => setProfileSafetyVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+            bg={bg}
+          />
+        </SafeSection>
       )}
 
       {/* ── Full-screen image viewer ── */}

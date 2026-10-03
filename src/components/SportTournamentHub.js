@@ -143,6 +143,38 @@ export function SportTournamentHub({
   const [scoreTeamB, setScoreTeamB] = useState('2');
   const [dualConfirmed, setDualConfirmed] = useState(false);
 
+  // Live Ticker & Predictions
+  const [tickerMatches, setTickerMatches] = useState([
+    {
+      id: 'm1',
+      teamA: 'Soweto City Stars',
+      teamB: 'Jozi Dribblers',
+      scoreA: 3,
+      scoreB: 2,
+      minute: "84'",
+      status: 'LIVE',
+      events: [
+        { min: "82'", text: "GOAL! Sipho header into top right corner (3-2) ⚽" },
+        { min: "65'", text: "Yellow card for tackle on edge of box 🟨" },
+        { min: "44'", text: "GOAL! Jozi Dribblers equalizer via penalty (2-2) ⚽" },
+      ],
+    },
+    {
+      id: 'm2',
+      teamA: 'Diepkloof Padel Aces',
+      teamB: 'Rosebank Smashers',
+      scoreA: 2,
+      scoreB: 1,
+      minute: 'Set 3 (5-4)',
+      status: 'MATCH POINT',
+      events: [
+        { min: 'Set 3', text: 'Break point won by Diepkloof Aces 🎾' },
+      ],
+    },
+  ]);
+  const [predictions, setPredictions] = useState({});
+  const [predictionGlitters, setPredictionGlitters] = useState({});
+
   const filteredTournaments = useMemo(() => {
     return tournaments.filter((t) => t.sport === selectedSport);
   }, [tournaments, selectedSport]);
@@ -237,9 +269,11 @@ export function SportTournamentHub({
           <View style={styles.tabBar}>
             {[
               { key: 'tournaments', label: 'Tournaments', icon: 'award' },
-              { key: 'teams', label: 'Squads & Teams', icon: 'users' },
-              { key: 'bracket', label: 'Top 32 Bracket', icon: 'git-merge' },
-              { key: 'fairplay', label: 'Fair Play Protocol', icon: 'shield' },
+              { key: 'teams', label: 'Squads', icon: 'users' },
+              { key: 'bracket', label: 'Bracket', icon: 'git-merge' },
+              { key: 'fairplay', label: 'Fair Play', icon: 'shield' },
+              { key: 'ticker', label: 'Live Ticker', icon: 'activity' },
+              { key: 'predictions', label: 'Predictions', icon: 'target' },
             ].map((t) => {
               const active = activeTab === t.key;
               return (
@@ -540,6 +574,107 @@ export function SportTournamentHub({
                     <ControlledGlitterBurst trigger={glitterFx} count={14} radius={38} />
                   </TouchableOpacity>
                 </View>
+              </View>
+            )}
+
+            {/* TAB 5: LIVE MATCH TICKER */}
+            {activeTab === 'ticker' && (
+              <View style={{ gap: 12 }}>
+                <Text style={[styles.sectionTitle, { color: muted }]}>LIVE MINUTE-BY-MINUTE TOURNAMENT TICKER</Text>
+                {tickerMatches.map(match => (
+                  <View key={match.id} style={[styles.teamCard, { borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(15,22,25,0.96)', padding: 14 }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' }} />
+                        <Text style={{ color: '#10b981', fontWeight: '900', fontSize: 11 }}>{match.status} · {match.minute}</Text>
+                      </View>
+                      <Text style={{ color: muted, fontSize: 10 }}>Match ID: #{match.id}</Text>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+                      <Text style={{ color: textColor, fontWeight: '900', fontSize: 14, flex: 1 }}>{match.teamA}</Text>
+                      <View style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, backgroundColor: `${primary}20`, borderWidth: 1, borderColor: `${primary}45` }}>
+                        <Text style={{ color: primary, fontWeight: '950', fontSize: 16 }}>{match.scoreA} - {match.scoreB}</Text>
+                      </View>
+                      <Text style={{ color: textColor, fontWeight: '900', fontSize: 14, flex: 1, textAlign: 'right' }}>{match.teamB}</Text>
+                    </View>
+
+                    {/* Timeline events */}
+                    <View style={{ gap: 4, marginTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 8 }}>
+                      {match.events.map((ev, i) => (
+                        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ color: primary, fontWeight: '800', fontSize: 10.5 }}>{ev.min}</Text>
+                          <Text style={{ color: muted, fontSize: 11, flex: 1 }}>{ev.text}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* TAB 6: SPECTATOR PREDICTIONS */}
+            {activeTab === 'predictions' && (
+              <View style={{ gap: 12 }}>
+                <Text style={[styles.sectionTitle, { color: muted }]}>SPECTATOR BRACKET PREDICTIONS</Text>
+                <View style={[styles.fairPlayCard, { borderColor: '#8b5cf650', backgroundColor: 'rgba(139,92,246,0.08)' }]}>
+                  <Text style={{ color: textColor, fontSize: 13, fontWeight: '900' }}>Pick Matchup Winners · Win Coins 🎯</Text>
+                  <Text style={{ color: muted, fontSize: 11 }}>Lock your prediction before the final whistle. Correct picks earn 50 Coins!</Text>
+                </View>
+
+                {tickerMatches.map(m => {
+                  const picked = predictions[m.id];
+                  return (
+                    <View key={m.id} style={[styles.teamCard, { borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(15,22,25,0.96)', padding: 14 }]}>
+                      <Text style={{ color: muted, fontSize: 10, fontWeight: '900', letterSpacing: 0.5 }}>MATCH PREDICTION</Text>
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setPredictionGlitters(prev => ({ ...prev, [`${m.id}_A`]: Date.now() }));
+                            setPredictions(prev => ({ ...prev, [m.id]: m.teamA }));
+                            toast(`Prediction locked: ${m.teamA} to win! 🎯`, 'success');
+                          }}
+                          style={[
+                            styles.teamActionBtn,
+                            {
+                              flex: 1,
+                              backgroundColor: picked === m.teamA ? `${primary}30` : 'rgba(255,255,255,0.05)',
+                              borderColor: picked === m.teamA ? primary : 'rgba(255,255,255,0.12)',
+                              position: 'relative',
+                            },
+                          ]}
+                        >
+                          <Text style={{ color: picked === m.teamA ? primary : textColor, fontWeight: '800', fontSize: 11 }}>
+                            {m.teamA} (2.1x)
+                          </Text>
+                          <ControlledGlitterBurst trigger={predictionGlitters[`${m.id}_A`]} count={10} radius={26} colors={[primary, '#fff']} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => {
+                            setPredictionGlitters(prev => ({ ...prev, [`${m.id}_B`]: Date.now() }));
+                            setPredictions(prev => ({ ...prev, [m.id]: m.teamB }));
+                            toast(`Prediction locked: ${m.teamB} to win! 🎯`, 'success');
+                          }}
+                          style={[
+                            styles.teamActionBtn,
+                            {
+                              flex: 1,
+                              backgroundColor: picked === m.teamB ? `${primary}30` : 'rgba(255,255,255,0.05)',
+                              borderColor: picked === m.teamB ? primary : 'rgba(255,255,255,0.12)',
+                              position: 'relative',
+                            },
+                          ]}
+                        >
+                          <Text style={{ color: picked === m.teamB ? primary : textColor, fontWeight: '800', fontSize: 11 }}>
+                            {m.teamB} (1.9x)
+                          </Text>
+                          <ControlledGlitterBurst trigger={predictionGlitters[`${m.id}_B`]} count={10} radius={26} colors={[primary, '#fff']} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             )}
           </ScrollView>
