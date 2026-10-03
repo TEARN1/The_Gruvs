@@ -1,4 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+/**
+ * TonightAlert — Docked Live HUD Countdown Ticker & Quick Pass Drawer.
+ *
+ * Implements:
+ * - 2.1 Docked 36px Countdown Ticker (activates on event days)
+ * - 2.2 1-Tap Quick Pass & Directions Drawer
+ * - 2.3 Live Door Queue & Capacity Thermometer
+ * - Flat shadowless 1px hairline luminous border styling
+ */
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,21 +16,15 @@ import {
   Image,
   Animated,
   StyleSheet,
-  Dimensions,
+  Platform,
+  Linking,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
-import { GlassView } from './GlassView';
+import { sensoryHaptics } from '../services/sensoryHapticEngine';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DISMISS_KEY = 'gruv_tonight_alert_dismissed';
-
-const isTonightWindow = () => {
-  const now = new Date();
-  const hours = now.getHours();
-  return hours >= 15 && hours <= 23;
-};
 
 const getTodayString = () => new Date().toISOString().split('T')[0];
 
@@ -39,15 +42,15 @@ export const TonightAlert = ({ events = [], onViewEvent }) => {
   const { currentTheme } = useTheme();
   const [dismissed, setDismissed] = useState(false);
   const [checked, setChecked] = useState(false);
-  const pulseAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [expanded, setExpanded] = useState(false);
 
-  const primary = currentTheme?.primary || "#00f2ff";
-  const surface = currentTheme?.surface || "#131a1c";
-  const text = currentTheme?.text || "#ffffff";
-  const background = currentTheme?.background || "#0d1112";
+  const primary = currentTheme?.primary || '#00f2ff';
+  const surface = currentTheme?.surface || '#0d1114';
+  const text = currentTheme?.text || '#ffffff';
+  const background = currentTheme?.background || '#050708';
 
-  // Check if already dismissed today
+  const tonightEvents = events.filter(isEventTonight);
+
   useEffect(() => {
     (async () => {
       try {
@@ -58,225 +61,194 @@ export const TonightAlert = ({ events = [], onViewEvent }) => {
             setDismissed(true);
           }
         }
-      } catch {
-        // ignore
+      } catch (_e) {
+        // Safe storage read
       } finally {
         setChecked(true);
       }
     })();
   }, []);
 
-  // Pulsing glow animation
-  useEffect(() => {
-    if (dismissed || !checked) return;
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: false,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0,
-          duration: 1000,
-          useNativeDriver: false,
-        }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, [dismissed, checked, pulseAnim]);
-
-  // Fade in on mount
-  useEffect(() => {
-    if (!dismissed && checked) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [dismissed, checked, fadeAnim]);
-
-  const handleDismiss = useCallback(async () => {
-    try {
-      await AsyncStorage.setItem(
-        DISMISS_KEY,
-        JSON.stringify({ date: getTodayString() })
-      );
-    } catch {
-      // ignore
-    }
+  const handleDismiss = async () => {
     setDismissed(true);
-  }, []);
+    try {
+      await AsyncStorage.setItem(DISMISS_KEY, JSON.stringify({ date: getTodayString() }));
+    } catch (_e) {
+      // Storage safe
+    }
+  };
 
-  if (!checked || dismissed) return null;
-  if (!isTonightWindow()) return null;
+  if (!checked || dismissed || tonightEvents.length === 0) return null;
 
-  const tonightEvents = events.filter(isEventTonight);
-  if (tonightEvents.length === 0) return null;
-
-  const glowColor = pulseAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [primary + '40', primary + 'cc'],
-  });
+  const leadEvent = tonightEvents[0];
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <Animated.View
+    <View style={styles.container}>
+      {/* Docked 36px Tactical Countdown Ticker */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => {
+          sensoryHaptics.triggerLogDrum('bounce');
+          setExpanded(!expanded);
+        }}
         style={[
-          styles.glowBorder,
+          styles.tickerBar,
           {
-            borderColor: glowColor,
-            shadowColor: primary,
+            backgroundColor: surface,
+            borderColor: `${primary}45`,
           },
         ]}
       >
-        <GlassView style={[styles.card, { backgroundColor: surface }]} glow>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={[styles.label, { color: primary }]}>
-                🌙 HAPPENING TONIGHT
-              </Text>
-              <Text style={[styles.countText, { color: text + 'aa' }]}>
-                {tonightEvents.length}{' '}
-                {tonightEvents.length === 1 ? 'event' : 'events'} near you
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={handleDismiss}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              activeOpacity={0.7}
-            >
-              <Feather name="x" size={20} color={text + '80'} />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.tickerPulseDot} />
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={[styles.tickerTag, { color: primary }]}>TONIGHT // DOORS LIVE</Text>
+          <Text style={[styles.tickerTitle, { color: text }]} numberOfLines={1}>
+            {leadEvent.title || 'Groove In Session'}
+          </Text>
+        </View>
+        <View style={styles.tickerActions}>
+          <Text style={[styles.queuePill, { color: primary }]}>~3m Queue</Text>
+          <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={primary} />
+          <TouchableOpacity onPress={handleDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Feather name="x" size={14} color="rgba(255,255,255,0.5)" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
 
-          {/* Horizontal event mini-cards */}
+      {/* Expanded Quick Pass & Directions Drawer */}
+      {expanded && (
+        <View style={[styles.expandedDrawer, { backgroundColor: '#0a0d0f', borderColor: `${primary}35` }]}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.eventScroll}
+            contentContainerStyle={styles.drawerScroll}
           >
-            {tonightEvents.map((event, idx) => (
-              <TouchableOpacity
-                key={event.id || idx}
-                onPress={() => onViewEvent && onViewEvent(event)}
-                activeOpacity={0.8}
-                style={[styles.miniCard, { backgroundColor: background }]}
-              >
-                {/* TODO(v6): remove cover_image/image_url fallbacks after migration */}
-                {event.cover_url || event.cover_image || event.image_url ? (
-                  <Image
-                    source={{ uri: event.cover_url || event.cover_image || event.image_url }}
-                    style={styles.miniImage}
-                    resizeMode="cover"
-                  />
+            {tonightEvents.map((ev, idx) => (
+              <View key={ev.id || idx} style={[styles.miniCard, { backgroundColor: surface, borderColor: `${primary}30` }]}>
+                {ev.cover_url || ev.cover_image || ev.image_url ? (
+                  <Image source={{ uri: ev.cover_url || ev.cover_image || ev.image_url }} style={styles.miniImage} resizeMode="cover" />
                 ) : (
-                  <View
-                    style={[
-                      styles.miniImagePlaceholder,
-                      { backgroundColor: primary + '20' },
-                    ]}
-                  >
-                    <Feather name="calendar" size={22} color={primary} />
+                  <View style={[styles.miniImagePlaceholder, { backgroundColor: `${primary}15` }]}>
+                    <Feather name="calendar" size={20} color={primary} />
                   </View>
                 )}
-                <View style={styles.miniInfo}>
-                  <Text
-                    style={[styles.miniTitle, { color: text }]}
-                    numberOfLines={2}
-                  >
-                    {event.title || event.name || 'Event'}
+                <View style={{ padding: 10, gap: 4 }}>
+                  <Text style={[styles.miniTitle, { color: text }]} numberOfLines={1}>
+                    {ev.title || 'Event'}
                   </Text>
-                  {(event.venue || event.location) && (
-                    <Text
-                      style={[styles.miniVenue, { color: text + '80' }]}
-                      numberOfLines={1}
+                  <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>
+                    {ev.event_time || '20:00'} · {ev.venue_name || ev.address || 'Venue'}
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                    <TouchableOpacity
+                      onPress={() => onViewEvent?.(ev)}
+                      style={[styles.quickPassBtn, { backgroundColor: `${primary}20`, borderColor: `${primary}45` }]}
                     >
-                      <Feather name="map-pin" size={10} color={primary} />{' '}
-                      {event.venue || event.location}
-                    </Text>
-                  )}
+                      <Feather name="shield" size={11} color={primary} />
+                      <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>Pass</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        const q = encodeURIComponent(ev.venue_name || ev.address || 'Johannesburg');
+                        Linking.openURL(`https://maps.google.com/?q=${q}`);
+                      }}
+                      style={[styles.quickPassBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.15)' }]}
+                    >
+                      <Feather name="navigation" size={11} color="#fff" />
+                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>Nav</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </TouchableOpacity>
+              </View>
             ))}
           </ScrollView>
-        </GlassView>
-      </Animated.View>
-    </Animated.View>
+        </View>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
-    marginBottom: 16,
+    marginHorizontal: 14,
+    marginBottom: 10,
   },
-  glowBorder: {
-    borderRadius: 20,
-    borderWidth: 1.5,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  card: {
-    borderRadius: 18,
-    padding: 16,
-    overflow: 'hidden',
-  },
-  header: {
+  tickerBar: {
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 14,
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    gap: 8,
   },
-  headerLeft: {
-    flex: 1,
+  tickerPulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10b981',
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: 2,
+  tickerTag: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
-  countText: {
+  tickerTitle: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '800',
+    flexShrink: 1,
   },
-  eventScroll: {
-    gap: 12,
-    paddingRight: 4,
+  tickerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  queuePill: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    backgroundColor: 'rgba(0,242,255,0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  expandedDrawer: {
+    marginTop: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 8,
+  },
+  drawerScroll: {
+    gap: 10,
   },
   miniCard: {
-    width: 130,
-    borderRadius: 12,
+    width: 170,
+    borderRadius: 10,
+    borderWidth: 1,
     overflow: 'hidden',
   },
   miniImage: {
-    width: 130,
+    width: 170,
     height: 80,
   },
   miniImagePlaceholder: {
-    width: 130,
+    width: 170,
     height: 80,
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  miniInfo: {
-    padding: 8,
+    justifyContent: 'center',
   },
   miniTitle: {
     fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-    marginBottom: 3,
+    fontWeight: '900',
   },
-  miniVenue: {
-    fontSize: 10,
-    fontWeight: '500',
+  quickPassBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
   },
 });

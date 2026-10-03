@@ -108,3 +108,28 @@ export const MOTION = {
   shimmer:     1400,                           // skeleton shimmer sweep (ms)
   countUp:     900,                            // number count-up (ms)
 };
+
+// ── Obsidian 3-Tier Surface Hierarchy & Luminous Hairline Tokens ──
+export const OBSIDIAN = {
+  canvas:       '#050708', // pure background canvas
+  card:         '#0d1114', // primary flat shadowless card surface
+  input:        '#151b20', // interactive input fields & dropdowns
+  hairline:     'rgba(255,255,255,0.12)', // 1px laser border
+  laserCyan:    '#00f2ff35',
+  laserAmber:   '#f59e0b35',
+  laserEmerald: '#10b98135',
+  laserRose:    '#ec489935',
+  laserCrimson: '#ef444435',
+};
+
+// ── Authentic Cultural Street Lexicon (Zero AI / Kasi Nightlife Copy) ──
+export const CULTURAL_LEXICON = {
+  rsvp:         'Lock It In',
+  after:        'The Morning After',
+  paid:         'Coins Secured',
+  dayOnes:      'My Day Ones',
+  onDecks:      'Live On Decks',
+  foodReady:    'Kota Hot at Counter',
+  mayor:        'Mayor of the Spot',
+  crossed:      'Crossed Paths',
+};

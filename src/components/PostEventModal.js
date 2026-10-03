@@ -46,6 +46,17 @@ const EVENT_TYPES = ['Social', 'Concert', 'Workshop', 'Festival', 'Meetup', 'Par
 const AGE_MIN_OPTIONS = [0, 13, 16, 18, 21, 25, 30, 35];
 const AGE_MAX_OPTIONS = [0, 17, 20, 25, 30, 35, 45, 99]; // 0 = no upper limit
 
+const VIBE_RULES_OPTIONS = [
+  '🧊 No Cooler Box Fee',
+  '💨 Hubbly / Shisha Allowed',
+  '🎹 Strictly Amapiano & Deep House',
+  '🛡️ Heavy Security / Metal Detector at Gate',
+  '🥩 Kasi Kota & Braai Stalls On-Site',
+  '👗 Dress Code: Streetwear / Smart Casual',
+  '🚫 No Under 21s After 10 PM',
+  '🚗 Secured Kasi Car Park Marshals',
+];
+
 export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
@@ -55,6 +66,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   // Poster mode: the uploaded poster already carries all the details, so the
   // manual text fields become optional and the event renders as a full poster.
   const [posterMode, setPosterMode] = useState(false);
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState('4:5');
+  const [selectedVibeRules, setSelectedVibeRules] = useState([]);
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
@@ -755,6 +768,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (ticketUrl.trim()) payload.ticket_url = ticketUrl.trim();
     if (contactPhone.trim()) payload.contact_phone = contactPhone.trim();
     if (contactEmail.trim()) payload.contact_email = contactEmail.trim();
+    if (selectedVibeRules.length > 0) payload.vibe_rules = selectedVibeRules;
+    if (selectedAspectRatio) payload.aspect_ratio = selectedAspectRatio;
 
     // Recurrence
     if (isRecurring) {
@@ -1950,6 +1965,73 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                         : `Add more (${MAX_MEDIA - mediaItems.length} left)`}
                     </Text>
                   </TouchableOpacity>
+
+                  {/* Aspect Ratio Guide Framing */}
+                  <Text style={[pm.label, { color: muted, marginTop: 14, marginBottom: 8 }]}>Framing Guide & Canvas Ratio</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                    {[
+                      { id: '4:5', label: '4:5 Portrait Flyer', sub: 'Feed Standard' },
+                      { id: '9:16', label: '9:16 Full Screen', sub: 'Stories / Reels' },
+                      { id: '1:1', label: '1:1 Square', sub: 'Classic Grid' },
+                    ].map((ratio) => {
+                      const isSel = selectedAspectRatio === ratio.id;
+                      return (
+                        <TouchableOpacity
+                          key={ratio.id}
+                          onPress={() => setSelectedAspectRatio(ratio.id)}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            borderWidth: 1,
+                            borderColor: isSel ? primary : 'rgba(255,255,255,0.1)',
+                            backgroundColor: isSel ? `${primary}18` : 'rgba(255,255,255,0.03)',
+                            alignItems: 'center',
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={{ color: isSel ? primary : textColor, fontSize: 11.5, fontWeight: '900' }}>
+                            {ratio.label}
+                          </Text>
+                          <Text style={{ color: muted, fontSize: 9.5, marginTop: 2 }}>{ratio.sub}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Tactical Vibe Rules Pill Bar */}
+                  <Text style={[pm.label, { color: muted, marginTop: 10, marginBottom: 8 }]}>Kasi Vibe & Gate Rules</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {VIBE_RULES_OPTIONS.map((rule) => {
+                        const active = selectedVibeRules.includes(rule);
+                        return (
+                          <TouchableOpacity
+                            key={rule}
+                            onPress={() => {
+                              setSelectedVibeRules(prev =>
+                                prev.includes(rule) ? prev.filter(r => r !== rule) : [...prev, rule]
+                              );
+                            }}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 7,
+                              borderRadius: 20,
+                              borderWidth: 1,
+                              borderColor: active ? primary : 'rgba(255,255,255,0.12)',
+                              backgroundColor: active ? `${primary}20` : 'rgba(255,255,255,0.04)',
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: active ? primary : textColor }}>
+                              {rule}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
 
                   {/* Schedule */}
                   {renderScheduleBuilder()}
