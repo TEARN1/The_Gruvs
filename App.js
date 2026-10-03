@@ -1160,10 +1160,9 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     height: 64,
     borderRadius: 32,
-    borderWidth: 1.5,
+    borderWidth: 1,
     position: 'relative',
     paddingHorizontal: 6,
-    ...SHADOW?.lift,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
   },
   indicator: {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
-  TextInput, Dimensions, Animated, Platform, Modal, RefreshControl, ActivityIndicator,
+  TextInput, useWindowDimensions, Animated, Platform, Modal, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import * as Location from 'expo-location';
@@ -41,7 +41,6 @@ import { MealCard } from '../components/MealCard';
 import { MealDetailModal } from '../components/MealDetailModal';
 import { MealService } from '../services/mealService';
 
-const { width } = Dimensions.get('window');
 
 // ── Sport type quick-filter chips ────────────────────────────────────────────
 const SPORT_FILTERS = [
@@ -550,6 +549,7 @@ const sh = StyleSheet.create({
 // ── Main ExplorePage ──────────────────────────────────────────────────────────
 export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const { applyLocationPrivacy } = useIdentity();
@@ -1045,7 +1045,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ width: '100%', maxWidth: 720, alignSelf: 'center', paddingBottom: 140 }}
         onScroll={Platform.OS === 'web' ? (e) => {
           const y = e.nativeEvent.contentOffset.y;
           // Only re-render when the scroll-to-top threshold (400) is crossed.
@@ -1191,7 +1191,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 </View>
                 <Text style={[styles.servSub, { color: muted, fontSize: 11, lineHeight: 15 }]}>Transport & Haulage · Crew & Muscle · Event logistics{'\n'}Reliable Vibers active near you.</Text>
               </View>
-              <View style={[styles.servCta, { backgroundColor: primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, shadowColor: primary, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }]}>
+              <View style={[styles.servCta, { backgroundColor: primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }]}>
                 <Text style={[styles.servCtaText, { fontWeight: '900', color: '#000' }]}>Hire</Text>
                 <Feather name="arrow-right" size={14} color="#000" />
               </View>
@@ -1560,21 +1560,21 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 (() => {
                   const GAP = 10;
                   const SIDE = 16;
-                  const colW = (width - SIDE * 2 - GAP) / 2;
+                  const numCols = windowWidth >= 1024 ? 4 : (windowWidth >= 640 ? 3 : 2);
                   // Deterministic varied heights for the masonry rhythm.
                   const heights = [200, 150, 240, 175, 215, 160];
-                  const cols = [[], []];
+                  const cols = Array.from({ length: numCols }, () => []);
                   // Pinterest-style teaser: show a few tiles, reveal the rest on "See more".
-                  const PREVIEW = 8;
+                  const PREVIEW = numCols * 4;
                   const shown = showAllPhotos ? galleryPhotos : galleryPhotos.slice(0, PREVIEW);
                   shown.forEach((photo, i) => {
-                    cols[i % 2].push({ photo, i, h: heights[i % heights.length] });
+                    cols[i % numCols].push({ photo, i, h: heights[i % heights.length] });
                   });
                   const renderTile = ({ photo, i, h }) => (
                     <TouchableOpacity
                       key={photo.id}
                       activeOpacity={0.9}
-                      style={{ width: colW, height: h, borderRadius: 18, overflow: 'hidden', backgroundColor: `${primary}10`, marginBottom: GAP }}
+                      style={{ width: '100%', height: h, borderRadius: 18, overflow: 'hidden', backgroundColor: `${primary}10`, marginBottom: GAP }}
                       onPress={() => { setSelectedPhotoIndex(i); setPhotoViewerVisible(true); }}
                     >
                       <SmartImage source={{ uri: thumb.thumbnail(photo.media_url) }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
@@ -1597,8 +1597,9 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   return (
                     <>
                       <View style={{ flexDirection: 'row', paddingHorizontal: SIDE, gap: GAP }}>
-                        <View style={{ flex: 1 }}>{cols[0].map(renderTile)}</View>
-                        <View style={{ flex: 1 }}>{cols[1].map(renderTile)}</View>
+                        {cols.map((colItems, colIdx) => (
+                          <View key={colIdx} style={{ flex: 1 }}>{colItems.map(renderTile)}</View>
+                        ))}
                       </View>
                       {galleryPhotos.length > PREVIEW && (
                         <TouchableOpacity
@@ -1834,10 +1835,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 600,
-            shadowColor: primary,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.5,
-            shadowRadius: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.22)',
           }}
         >
           <Feather name="chevron-up" size={22} color="#000" />
@@ -1926,7 +1925,7 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginTop: 2 },
   searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginVertical: 14, paddingHorizontal: 14, height: 48, borderRadius: 24, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.05)' },
   searchInput: { flex: 1, fontSize: 14 },
-  heroSkeleton: { height: Math.min(320, Math.max(240, width * 0.75)), borderRadius: 24, marginHorizontal: 16, marginBottom: 20 },
+  heroSkeleton: { height: 280, borderRadius: 24, marginHorizontal: 16, marginBottom: 20 },
   noResults: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   noResultsText: { fontSize: 14 },
   resultCount: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 12 },

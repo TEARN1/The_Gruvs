@@ -39,8 +39,6 @@ import { deviceTimeZone } from '../utils/tz';
 import { checkEvent } from '../utils/eventGuard';
 import { findDuplicate } from '../utils/eventKey';
 
-const SCREEN_W = Dimensions.get('window').width;
-
 const MAX_MEDIA = 30;
 const EVENT_TYPES = ['Social', 'Concert', 'Workshop', 'Festival', 'Meetup', 'Party', 'Conference', 'Pop-Up', 'Rave', 'Market', 'Retreat', 'Competition'];
 const AGE_MIN_OPTIONS = [0, 13, 16, 18, 21, 25, 30, 35];
@@ -2597,10 +2595,22 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
 };
 
 const pm = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.78)' },
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.78)',
+  },
   sheet: {
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    borderWidth: 1, paddingHorizontal: 22, paddingBottom: 10, maxHeight: '94%',
+    width: '100%',
+    maxWidth: 680,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    paddingHorizontal: 22,
+    paddingBottom: 10,
+    maxHeight: '94%',
+    overflow: 'hidden',
   },
   pill: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 16 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
@@ -2653,7 +2663,7 @@ const pm = StyleSheet.create({
   tag: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginRight: 8 },
   targetChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 14, borderWidth: 1 },
   ageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  ageBtn: { flex: 1, minWidth: SCREEN_W < 375 ? 45 : 60, paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
+  ageBtn: { flex: 1, minWidth: 48, paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
 
   // Summary
   summary: { borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, gap: 6 },
@@ -2692,7 +2702,7 @@ const pm = StyleSheet.create({
   scheduleSub: { fontSize: 11, lineHeight: 16, marginTop: 2 },
   scheduleForm: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10, marginBottom: 10 },
   scheduleFormTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
-  scheduleRow2: { flexDirection: SCREEN_W < 375 ? 'column' : 'row', gap: 8 },
+  scheduleRow2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   scheduleInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, fontSize: 13, backgroundColor: 'rgba(255,255,255,0.05)' },
   scheduleConfirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 30 },
   scheduleEmpty: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 16, paddingVertical: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },

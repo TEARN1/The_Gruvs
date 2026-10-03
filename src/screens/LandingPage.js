@@ -96,9 +96,8 @@ import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
 // fresh app load once the schema is deployed.
 let residentAlertsEnabled = true;
 
-const SCREEN_W = Dimensions.get('window').width;
-const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
-const TREND_CARD_H = Math.round(TREND_CARD_W * 0.62);
+const TREND_CARD_W = 190;
+const TREND_CARD_H = 124;
 
 // Safe haptic wrapper for web compatibility
 const safeHaptic = (fn) => {
@@ -2794,7 +2793,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             </View>
           ) : null
         }
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={[styles.flatListContent, { paddingBottom: 140 }]}
       />
 
       {/* Modals — only mount when open so lazy components don't crash on idle load */}
@@ -3121,9 +3120,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       {/* ── Under-finger reaction ring (long-press) ──────────────────────── */}
       {!!reactionRing && (() => {
+        const winW = Dimensions.get('window').width;
         const EMOJIS = REACTION_LIST.slice(0, 8);
-        const BAR_W = Math.min(SCREEN_W - 24, EMOJIS.length * 44 + 16);
-        const left = Math.max(12, Math.min(reactionRing.x - BAR_W / 2, SCREEN_W - BAR_W - 12));
+        const BAR_W = Math.min(winW - 24, EMOJIS.length * 44 + 16);
+        const left = Math.max(12, Math.min(reactionRing.x - BAR_W / 2, winW - BAR_W - 12));
         const top = Math.max(70, reactionRing.y - 78); // float above the finger
         const current = reactions[reactionRing.event.id];
         return (
@@ -3226,8 +3226,10 @@ const styles = StyleSheet.create({
   trendMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   trendMeta: { color: 'rgba(255,255,255,0.75)', fontSize: 10 },
 
+  flatListContent: { width: '100%', maxWidth: 720, alignSelf: 'center' },
+
   // Card
-  eventCard: { flex: 1, marginHorizontal: SCREEN_W < 375 ? 10 : 16, marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
+  eventCard: { width: '100%', maxWidth: 680, alignSelf: 'center', marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
   schedulePreview: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
   schedulePreviewText: { fontSize: 12, fontWeight: '700', flex: 1, flexShrink: 1, minWidth: 0 },
   // Loading floor only — fitToImage drives the real height so the frame hugs the
@@ -3241,19 +3243,19 @@ const styles = StyleSheet.create({
   bookmarkBtn: { position: 'absolute', top: 12, right: 12, padding: 8, borderRadius: 20 },
   cardBody: { padding: 14 },
 
-  userRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
-  avatarWrap: { position: 'relative' },
+  userRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
+  avatarWrap: { position: 'relative', flexShrink: 0 },
   avatar: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5 },
   onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: 5, borderWidth: 1.5, borderColor: '#000' },
-  username: { fontSize: 14, fontWeight: '900', flex: 1, flexShrink: 1, minWidth: 0 },
-  vibeScoreBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1 },
+  username: { fontSize: 13.5, fontWeight: '900', flex: 1, flexShrink: 1, minWidth: 0 },
+  vibeScoreBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1, flexShrink: 0 },
   vibeScoreText: { fontSize: 8, fontWeight: '900' },
-  handle: { fontSize: 10, opacity: 0.6 },
-  verifiedBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  priceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
-  priceText: { fontSize: 11, fontWeight: '900' },
-  feedFollowBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: "#00f2ff", backgroundColor: 'rgba(0,242,255,0.1)', marginRight: 6 },
-  feedFollowText: { fontSize: 11, fontWeight: '700', color: "#00f2ff" },
+  handle: { fontSize: 10, opacity: 0.6, flexShrink: 1 },
+  verifiedBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  priceBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1, flexShrink: 0 },
+  priceText: { fontSize: 10.5, fontWeight: '900' },
+  feedFollowBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: "#00f2ff", backgroundColor: 'rgba(0,242,255,0.1)', marginRight: 2, flexShrink: 0 },
+  feedFollowText: { fontSize: 10.5, fontWeight: '700', color: "#00f2ff" },
 
   countdownOverlay: {
     position: 'absolute', bottom: 12, left: 12,

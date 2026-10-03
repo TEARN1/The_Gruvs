@@ -185,61 +185,63 @@ export function NightlifeSensoryModal({
     return (
       <Modal visible animationType="fade" presentationStyle="fullScreen">
         <View style={styles.survivalRoot}>
-          <View style={styles.survivalHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Feather name="battery-charging" size={16} color="#ef4444" />
-              <Text style={styles.survivalTag}>3 AM ULTRA-BLACKOUT SURVIVAL MODE</Text>
+          <View style={styles.survivalContent}>
+            <View style={styles.survivalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Feather name="battery-charging" size={16} color="#ef4444" />
+                <Text style={styles.survivalTag}>3 AM ULTRA-BLACKOUT SURVIVAL MODE</Text>
+              </View>
+              <TouchableOpacity onPress={() => setSurvivalModeActive(false)}>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>EXIT</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => setSurvivalModeActive(false)}>
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>EXIT</Text>
-            </TouchableOpacity>
-          </View>
 
-          <Text style={styles.survivalWarning}>
-            Animations & background queries stripped. Pure OLED Black active.
-          </Text>
+            <Text style={styles.survivalWarning}>
+              Animations & background queries stripped. Pure OLED Black active.
+            </Text>
 
-          <View style={styles.survivalActions}>
-            {/* 1. Offline Ticket Pass */}
-            <TouchableOpacity
-              style={styles.survivalBtn}
-              onPress={() => toast.show('Offline Ticket Pass Active on Screen', 'info')}
-            >
-              <Feather name="shield" size={22} color="#00f2ff" />
-              <View>
-                <Text style={styles.survivalBtnTitle}>OFFLINE PASS</Text>
-                <Text style={styles.survivalBtnSub}>Ready for door bouncer</Text>
-              </View>
-            </TouchableOpacity>
+            <View style={styles.survivalActions}>
+              {/* 1. Offline Ticket Pass */}
+              <TouchableOpacity
+                style={styles.survivalBtn}
+                onPress={() => toast.show('Offline Ticket Pass Active on Screen', 'info')}
+              >
+                <Feather name="shield" size={22} color="#00f2ff" />
+                <View>
+                  <Text style={styles.survivalBtnTitle}>OFFLINE PASS</Text>
+                  <Text style={styles.survivalBtnSub}>Ready for door bouncer</Text>
+                </View>
+              </TouchableOpacity>
 
-            {/* 2. Call Day Ones / Squad SOS */}
-            <TouchableOpacity
-              style={[styles.survivalBtn, { borderColor: '#ef4444' }]}
-              onPress={() => {
-                sensoryHaptics.triggerPocketSquadAlerted();
-                toast.show('Pinging Day Ones with Emergency SMS...', 'error');
-              }}
-            >
-              <Feather name="phone-call" size={22} color="#ef4444" />
-              <View>
-                <Text style={[styles.survivalBtnTitle, { color: '#ef4444' }]}>CALL DAY ONES (SOS)</Text>
-                <Text style={styles.survivalBtnSub}>1-tap emergency squad alert</Text>
-              </View>
-            </TouchableOpacity>
+              {/* 2. Call Day Ones / Squad SOS */}
+              <TouchableOpacity
+                style={[styles.survivalBtn, { borderColor: '#ef4444' }]}
+                onPress={() => {
+                  sensoryHaptics.triggerPocketSquadAlerted();
+                  toast.show('Pinging Day Ones with Emergency SMS...', 'error');
+                }}
+              >
+                <Feather name="phone-call" size={22} color="#ef4444" />
+                <View>
+                  <Text style={[styles.survivalBtnTitle, { color: '#ef4444' }]}>CALL DAY ONES (SOS)</Text>
+                  <Text style={styles.survivalBtnSub}>1-tap emergency squad alert</Text>
+                </View>
+              </TouchableOpacity>
 
-            {/* 3. Driver Pickup / Directions */}
-            <TouchableOpacity
-              style={styles.survivalBtn}
-              onPress={() => {
-                Linking.openURL('https://maps.google.com');
-              }}
-            >
-              <Feather name="navigation" size={22} color="#10b981" />
-              <View>
-                <Text style={styles.survivalBtnTitle}>GET PICKUP / DIRECTIONS</Text>
-                <Text style={styles.survivalBtnSub}>Directions to home address</Text>
-              </View>
-            </TouchableOpacity>
+              {/* 3. Driver Pickup / Directions */}
+              <TouchableOpacity
+                style={styles.survivalBtn}
+                onPress={() => {
+                  Linking.openURL('https://maps.google.com');
+                }}
+              >
+                <Feather name="navigation" size={22} color="#10b981" />
+                <View>
+                  <Text style={styles.survivalBtnTitle}>GET PICKUP / DIRECTIONS</Text>
+                  <Text style={styles.survivalBtnSub}>Directions to home address</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -535,13 +537,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   modalSheet: {
+    width: '100%',
+    maxWidth: 600,
     height: '84%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    maxHeight: 740,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+    overflow: 'hidden',
   },
   sheetHeader: {
     flexDirection: 'row',
@@ -666,6 +673,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     padding: 24,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  survivalContent: {
+    width: '100%',
+    maxWidth: 480,
   },
   survivalHeader: {
     flexDirection: 'row',

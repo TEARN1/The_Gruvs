@@ -75,9 +75,16 @@ export const FONT = {
 };
 
 export const BREAKPOINT = {
-  wide:   900,
-  medium: 640,
-  small:  375,
+  wide:        900,
+  medium:      640,
+  small:       375,
+  smallMobile: 360,
+  tablet:      640,
+  desktop:     1024,
+  wideDesktop: 1440,
+  feedMax:     680,
+  detailMax:   740,
+  modalMax:    580,
 };
 
 // ── Glass / Water design language ────────────────────────────────────────────

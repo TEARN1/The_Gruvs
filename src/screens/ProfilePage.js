@@ -3,7 +3,7 @@ import { AwardManager, MembershipManager, ClubManager } from '../services/clubEn
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
-  Switch, Dimensions, Share, Platform, RefreshControl, Modal,
+  Switch, Dimensions, useWindowDimensions, Share, Platform, RefreshControl, Modal,
   KeyboardAvoidingView, Pressable, Image, Linking,
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
@@ -96,8 +96,6 @@ import { NightSafetyLogisticsModal } from '../components/NightSafetyLogisticsMod
 import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
 import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
-
-const { width } = Dimensions.get('window');
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 
@@ -1779,8 +1777,12 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDelete
     } catch { setTileLikes(s => ({ ...s, [url]: prev })); }
   };
 
+  const { width: windowWidth } = useWindowDimensions();
   const visibleItems = expanded ? allItems : allItems.slice(0, 6);
-  const cellSize = Math.floor((width - 44) / 3);
+  const containerW = Math.min(windowWidth, 760);
+  const numCols = windowWidth >= 768 ? 4 : 3;
+  const gap = 6;
+  const cellSize = Math.floor((containerW - 32 - (numCols - 1) * gap) / numCols);
 
   const doDelete = async (item) => {
     if (!item || item.source === 'event') return;
@@ -2631,7 +2633,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
       <LiquidBackground intensity={0.8} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 140 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -2737,10 +2739,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                   styles.actionBtn,
                   {
                     backgroundColor: primary,
-                    shadowColor: primary,
-                    shadowOpacity: 0.35,
-                    shadowRadius: 10,
-                    elevation: 4,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.18)',
                   },
                 ]}
                 onPress={() => setEditProfileVisible(true)}
@@ -3801,10 +3801,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                           justifyContent: 'center',
                           backgroundColor: `${stamp.stamp_color || primary}08`,
                           position: 'relative',
-                          shadowColor: stamp.stamp_color || primary,
-                          shadowOpacity: 0.1,
-                          shadowRadius: 4,
-                          elevation: 2,
                         }}
                       >
                         <Feather name={stamp.stamp_icon || 'award'} size={24} color={stamp.stamp_color || primary} />
@@ -4116,7 +4112,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           <TouchableOpacity activeOpacity={1} style={{ width: '100%', alignItems: 'center' }}>
             <Image
               source={{ uri: imageViewerUri }}
-              style={{ width: width, height: width, resizeMode: 'contain' }}
+              style={{ width: '100%', maxWidth: 540, height: 540, maxHeight: '80%', resizeMode: 'contain' }}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -4314,8 +4310,8 @@ const styles = StyleSheet.create({
 
   // Cover
   coverPhoto: { height: COVER_H, overflow: 'hidden', position: 'relative' },
-  coverPattern: { position: 'absolute', top: -30, left: -30, width: Math.min(220, width * 0.5), height: Math.min(220, width * 0.5), borderRadius: Math.min(110, width * 0.25), borderWidth: 40 },
-  coverPatternAlt: { position: 'absolute', bottom: -50, right: -30, width: Math.min(180, width * 0.42), height: Math.min(180, width * 0.42), borderRadius: Math.min(90, width * 0.21), borderWidth: 35 },
+  coverPattern: { position: 'absolute', top: -30, left: -30, width: 200, height: 200, borderRadius: 100, borderWidth: 40 },
+  coverPatternAlt: { position: 'absolute', bottom: -50, right: -30, width: 160, height: 160, borderRadius: 80, borderWidth: 35 },
   coverEditBtn: { position: 'absolute', bottom: 10, right: 14, backgroundColor: 'rgba(0,0,0,0.55)', padding: 8, borderRadius: 20 },
 
   // Avatar row
@@ -4365,7 +4361,7 @@ const styles = StyleSheet.create({
   contentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, gap: 4, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   contentTabLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
   tabContent: { paddingHorizontal: 16, marginBottom: 14 },
-  emptyTab: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 16, paddingVertical: width < 375 ? 24 : 36, alignItems: 'center', gap: 12 },
+  emptyTab: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 16, paddingVertical: 32, alignItems: 'center', gap: 12 },
   emptyTabText: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
   miniCard: { flexDirection: 'row', borderWidth: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.03)' },
   miniCardImg: { width: 72, height: 72 },
@@ -4375,7 +4371,7 @@ const styles = StyleSheet.create({
   miniCardBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   miniCardBadgeText: { fontSize: 10, fontWeight: '800' },
   galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  galleryCell: { width: (width - 44) / 3, height: (width - 44) / 3, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  galleryCell: { width: '31%', aspectRatio: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
 
   // Settings tabs
   settingsTabs: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 4, borderRadius: 30, borderWidth: 1, overflow: 'hidden' },
@@ -4396,11 +4392,11 @@ const styles = StyleSheet.create({
   activeCheck: { position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 
   // Guest
-  guestContent: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 80, alignItems: 'center' },
-  guestCard: { width: '100%', padding: width < 375 ? 20 : 36, alignItems: 'center', marginBottom: 20, borderRadius: 24 },
+  guestContent: { width: '100%', maxWidth: 540, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 80, alignItems: 'center' },
+  guestCard: { width: '100%', padding: 32, alignItems: 'center', marginBottom: 20, borderRadius: 24 },
   guestTitle: { fontSize: 26, fontWeight: '900', marginBottom: 12, letterSpacing: 1 },
   guestSub: { fontSize: 14, textAlign: 'center', lineHeight: 21, marginBottom: 28 },
-  guestBtn: { paddingVertical: 15, paddingHorizontal: width < 375 ? 20 : 32, borderRadius: 30 },
+  guestBtn: { paddingVertical: 15, paddingHorizontal: 32, borderRadius: 30 },
   guestBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
 
   // Sign out

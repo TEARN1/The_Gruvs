@@ -112,8 +112,7 @@ const _isSportCat = (cat) => {
   return GAMING_KEYS.has(c) && !_NON_SCORE_GAMING.has(c);
 };
 
-const SCREEN_W = Dimensions.get('window').width;
-const HERO_H = Math.min(300, Math.max(220, SCREEN_W * 0.72));
+const HERO_H = 280;
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -875,12 +874,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose} statusBarTranslucent>
-      <View
-        style={[styles.root, { backgroundColor: background }]}
-        accessibilityViewIsModal
-        accessibilityLabel={event?.title ? `Event details: ${event.title}` : 'Event details'}
-        {...(Platform.OS === 'web' ? { 'aria-modal': true } : {})}
-      >
+      <View style={{ flex: 1, width: '100%', backgroundColor: background }}>
+        <View
+          style={[styles.root, { backgroundColor: background }]}
+          accessibilityViewIsModal
+          accessibilityLabel={event?.title ? `Event details: ${event.title}` : 'Event details'}
+          {...(Platform.OS === 'web' ? { 'aria-modal': true } : {})}
+        >
 
         <View style={styles.hero}>
           {matchCard ? (
@@ -2783,10 +2783,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                     justifyContent: 'center',
                     flexDirection: 'row',
                     gap: 8,
-                    shadowColor: primary,
-                    shadowOpacity: 0.35,
-                    shadowRadius: 10,
-                    shadowOffset: { width: 0, height: 4 },
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.18)',
                   }}
                 >
                   <Feather name={pitchSending ? "loader" : "send"} size={16} color="#fff" />
@@ -2810,6 +2808,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           onSelectEvent={() => setMapVisible(false)}
         />
       )}
+      </View>
     </Modal>
   );
 };
@@ -2833,6 +2832,9 @@ const MetaChip = ({ icon, label, color, pressable }) => (
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    width: '100%',
+    maxWidth: 740,
+    alignSelf: 'center',
   },
   hero: {
     height: HERO_H,
@@ -3141,10 +3143,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
   },
   reportText: {
     fontSize: 12,
