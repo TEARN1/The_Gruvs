@@ -31,6 +31,8 @@ export const eventsToGeoJSON = (events = []) => ({
           here: Number(e.here_count ?? e.going ?? 0),
           cat: e.category || '',
           biz: !!(e.is_business || e.profiles?.is_business),
+          isLive: Number(e.here_count || 0) > 0,
+          isSecret: !!(e.is_secret || e.secret_act),
         },
       };
     })

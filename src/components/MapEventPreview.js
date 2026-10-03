@@ -23,7 +23,7 @@ import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
-import { SHADOW, GLASS } from '../constants/DesignTokens';
+import { GLASS } from '../constants/DesignTokens';
 import { ViberProfileModal } from './ViberProfileModal';
 import { optimisticEngine } from '../services/optimisticEngine';
 
@@ -412,12 +412,11 @@ const cs = StyleSheet.create({
     bottom: 0,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    borderTopWidth: 1.5,
+    borderTopWidth: 1,
     padding: 16,
     paddingBottom: Platform.OS === 'ios' ? 32 : 24,
     gap: 12,
     zIndex: 50,
-    ...SHADOW?.lift,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' } : {}),
   },
   handle: {
