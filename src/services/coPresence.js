@@ -90,21 +90,48 @@ export function describeSharedPresence(events) {
  * who are currently checked in at the same event right now.
  */
 export async function findNearbyCoPresence(userId, eventId) {
-  if (!userId || !eventId) return [];
+  if (!eventId) return [];
   try {
-    const { data: attendees } = await supabase
+    let q = supabase
       .from('live_checkins')
-      .select('user_id, checked_in_at, profiles!live_checkins_user_id_fkey(id, username, display_name, avatar_url, vibe_score, is_verified)')
+      .select('user_id, checked_in_at')
       .eq('event_id', eventId)
-      .neq('user_id', userId)
       .order('checked_in_at', { ascending: false })
-      .limit(50);
+      .limit(60);
 
-    return (attendees || []).map(a => ({
-      userId: a.user_id,
-      checkedInAt: a.checked_in_at,
-      ...(a.profiles || {}),
-    }));
+    if (userId) {
+      q = q.neq('user_id', userId);
+    }
+
+    const { data: checkins, error } = await q;
+    if (error || !checkins?.length) return [];
+
+    const uids = [...new Set(checkins.map(c => c.user_id).filter(Boolean))];
+    if (!uids.length) return [];
+
+    const { data: profs } = await supabase
+      .from('public_profiles')
+      .select('id, username, display_name, avatar_url, vibe_score, verified')
+      .in('id', uids);
+
+    const profMap = new Map((profs || []).map(p => [p.id, p]));
+
+    return checkins
+      .map(c => {
+        const prof = profMap.get(c.user_id);
+        if (!prof) return null;
+        return {
+          id: prof.id,
+          userId: c.user_id,
+          username: prof.username || 'Viber',
+          display_name: prof.display_name || prof.username || 'Viber',
+          avatar_url: prof.avatar_url,
+          vibe_score: prof.vibe_score || 0,
+          is_verified: !!prof.verified,
+          checkedInAt: c.checked_in_at,
+        };
+      })
+      .filter(Boolean);
   } catch {
     return [];
   }

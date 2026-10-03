@@ -22,6 +22,7 @@ import { getXpLevel } from '../utils/vibeLevel';
 import { rankEventResults, rankUserResults } from '../utils/searchRelevance';
 import { secureCode } from '../utils/secureId';
 import { GLOBAL_EVENTS_CATALOG } from '../constants/globalEventsCatalog';
+import { TicketCache } from './offlineCache';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
 export const normalizeEvent = (event) => {
@@ -4273,13 +4274,23 @@ export const TicketManager = {
   },
 
   async getMyTickets(userId) {
-    const { data, error } = await supabase
-      .from('ticket_tokens')
-      .select('*, events(id, title, event_date, event_time, venue_name, cover_image, cover_url)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data || [];
+    if (!userId) return [];
+    try {
+      const { data, error } = await supabase
+        .from('ticket_tokens')
+        .select('*, events(id, title, event_date, event_time, venue_name, cover_image, cover_url)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const list = data || [];
+      TicketCache.saveAllTickets(list).catch(() => {});
+      return list;
+    } catch (e) {
+      // Offline fallback: load from persistent local TicketCache (zero signal venues)
+      const offline = await TicketCache.getAllTicketsStale();
+      if (offline && offline.length) return offline;
+      return [];
+    }
   },
 
   /**

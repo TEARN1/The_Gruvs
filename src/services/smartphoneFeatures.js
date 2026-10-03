@@ -253,4 +253,20 @@ export const RichHaptics = {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {}
   },
+  /** Incoming call dual-pulse ring pattern */
+  async incomingCall() {
+    if (Platform.OS === 'web') return;
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      await new Promise(r => setTimeout(r, 120));
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    } catch {}
+  },
+  /** Call connected reassuring confirmation buzz */
+  async callConnected() {
+    if (Platform.OS === 'web') return;
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {}
+  },
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, TextInput, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
@@ -20,6 +20,7 @@ import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
 import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, VibeManager } from '../services/dataFlow';
+import { findNearbyCoPresence } from '../services/coPresence';
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
 import { affiliateUrl } from '../utils/affiliate';
@@ -185,6 +186,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [settingReminder, setSettingReminder] = useState(false);
   const [whoGoingVisible, setWhoGoingVisible] = useState(false);
   const [whoGoing, setWhoGoing] = useState([]);
+  const [whoHereVisible, setWhoHereVisible] = useState(false);
+  const [whoHere, setWhoHere] = useState([]);
+  const [whoHereLoading, setWhoHereLoading] = useState(false);
+  const [activeProfileId, setActiveProfileId] = useState(null);
+  const [dmUser, setDmUser] = useState(null);
   const [attendeePreview, setAttendeePreview] = useState([]);
   const [attendeeGroups, setAttendeeGroups] = useState({ mutuals: [], friends: [], neighborhood: [] });
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
@@ -719,6 +725,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       setWhoGoingVisible(true);
     } catch (err) {
       showToast('Could not load vibers list.', 'error');
+    }
+  };
+
+  const handleWhoHere = async () => {
+    if (!event?.id) return;
+    setWhoHereLoading(true);
+    setWhoHereVisible(true);
+    try {
+      const results = await findNearbyCoPresence(user?.id, event.id);
+      setWhoHere(results);
+    } catch {
+      showToast('Could not load vibers in the room.', 'error');
+    } finally {
+      setWhoHereLoading(false);
     }
   };
 
@@ -1304,10 +1324,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <Text style={[styles.vibeCountText, { color: primary }]}>{goingCount} Locked In</Text>
             </TouchableOpacity>
             {hereCount > 0 && (
-              <View style={[styles.vibePill, { backgroundColor: '#10b98118', borderColor: '#10b98140' }]}>
+              <TouchableOpacity
+                style={[styles.vibePill, { backgroundColor: '#10b98118', borderColor: '#10b98140' }]}
+                onPress={handleWhoHere}
+                activeOpacity={0.8}
+              >
                 <Feather name="map-pin" size={13} color="#10b981" />
                 <Text style={[styles.vibeCountText, { color: '#10b981' }]}>{hereCount} Here</Text>
-              </View>
+                <Feather name="chevron-right" size={12} color="#10b981" style={{ marginLeft: 2 }} />
+              </TouchableOpacity>
             )}
             {isSoldOut && (
               <View style={[styles.vibePill, { backgroundColor: '#ef444420', borderColor: '#ef444440' }]}>
@@ -2110,6 +2135,114 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </View>
           </View>
         </Modal>
+
+        {/* In The Room / Find Me Verified Co-Presence Modal */}
+        <Modal visible={whoHereVisible} animationType="slide" transparent onRequestClose={() => setWhoHereVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
+            <View style={[styles.whoGoingSheet, { backgroundColor: background, maxHeight: '80%' }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Feather name="navigation" size={16} color="#10b981" />
+                    <Text style={[styles.whoGoingTitle, { color: textColor }]}>In The Room ({whoHere.length})</Text>
+                  </View>
+                  <Text style={{ color: textMuted, fontSize: 12, marginTop: 2 }}>
+                    Verified on-the-ground Touch Downs
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setWhoHereVisible(false)}>
+                  <Feather name="x" size={22} color={textColor} />
+                </TouchableOpacity>
+              </View>
+
+              {whoHereLoading ? (
+                <View style={{ paddingVertical: 36, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color={primary} />
+                  <Text style={{ color: textMuted, fontSize: 13, marginTop: 10 }}>Locating Vibers in the room...</Text>
+                </View>
+              ) : whoHere.length === 0 ? (
+                <View style={{ paddingVertical: 36, alignItems: 'center' }}>
+                  <Feather name="map-pin" size={32} color={textMuted} style={{ marginBottom: 10 }} />
+                  <Text style={{ color: textColor, fontWeight: '700', fontSize: 14 }}>No other verified Touch Downs yet</Text>
+                  <Text style={{ color: textMuted, fontSize: 12, textAlign: 'center', marginTop: 4, paddingHorizontal: 20 }}>
+                    When other Vibers Touch Down at the venue, they will show up here.
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {whoHere.map((p) => (
+                    <View key={p.userId || p.id} style={[styles.whoGoingRow, { borderBottomColor: `${primary}15`, justifyContent: 'space-between' }]}>
+                      <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                        onPress={() => {
+                          setWhoHereVisible(false);
+                          setActiveProfileId(p.userId || p.id);
+                        }}
+                      >
+                        {p.avatar_url ? (
+                          <Image source={{ uri: thumb.avatar(p.avatar_url) }} style={styles.whoGoingAvatar} />
+                        ) : (
+                          <View style={[styles.whoGoingAvatar, { backgroundColor: ["#0891b2", "#7c3aed", "#059669", "#dc2626"][(p.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
+                            <Text style={{ color: '#fff', fontWeight: '900' }}>{(p.username || 'V')[0].toUpperCase()}</Text>
+                          </View>
+                        )}
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={{ color: textColor, fontWeight: '700', fontSize: 14 }}>{p.display_name || p.username}</Text>
+                            {p.is_verified && <Feather name="check-circle" size={13} color={primary} />}
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                            <View style={{ backgroundColor: '#10b98120', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                              <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '700' }}>📍 In Room</Text>
+                            </View>
+                            <Text style={{ color: primary, fontSize: 11, fontWeight: '600' }}>⚡ {p.vibe_score || 0} pts</Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 12,
+                          backgroundColor: `${primary}20`,
+                          borderColor: `${primary}40`,
+                          borderWidth: 1,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                        onPress={() => {
+                          if (!user) { onAuthRequired?.(); return; }
+                          setWhoHereVisible(false);
+                          setDmUser({ id: p.userId || p.id, username: p.username, avatar_url: p.avatar_url });
+                        }}
+                      >
+                        <Feather name="message-circle" size={13} color={primary} />
+                        <Text style={{ color: primary, fontSize: 12, fontWeight: '700' }}>Say Hey</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {activeProfileId && (
+          <ViberProfileModal
+            visible={!!activeProfileId}
+            userId={activeProfileId}
+            onClose={() => setActiveProfileId(null)}
+          />
+        )}
+        {dmUser && (
+          <DirectMessageModal
+            visible={!!dmUser}
+            recipient={dmUser}
+            onClose={() => setDmUser(null)}
+          />
+        )}
       </View>
       {dmOpen && (
         <DirectMessageModal
