@@ -232,3 +232,19 @@ that works today.**
 Follow-ups that need app code: an age-only helper for `birth_date`; a participant-scoped
 `chat_media` read policy; and fixing the two broken client calls if wallet and trust-score
 updates are meant to work (they must run server-side, not from the client).
+
+## Fix status (2026-10-04)
+
+| Part | Change | Status |
+|---|---|---|
+| 1 | Revoke `EXECUTE` on 11 unguarded functions (wallet, trust score, XP, escrow, tickets, bids, notifications, feed) | **Live** — `20261004062609`; verified none callable by `anon`/`authenticated` |
+| 3 | Revoke `SELECT (coords)` on `profiles` | **Live** — `20261004063955`; verified `coords` unreadable, other columns unaffected |
+| 2 | Bind `get_crossed_paths`, `increment_vibe_count`, `decrement_vibe_count`, `record_daily_activity` to the caller | **Pending** — `supabase/pending/bind_user_rpcs_to_caller.sql` |
+
+Part 2 replaces existing functions. The Supabase MCP connection holds such statements for a
+user confirmation that cannot be given from a cloud session, so every attempt timed out with
+nothing applied (verified each time; a brand-new temp function created instantly, ruling out
+locks and database load). Apply it from the SQL Editor.
+
+Open items unchanged: the `birth_date` grant (needs an age-only helper for
+`ViberProfileModal.js:319`), the `chat_media` recipient read policy, and findings #1–#5 above.
