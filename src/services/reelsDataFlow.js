@@ -11,6 +11,7 @@
  */
 
 import { supabase } from './supabase';
+import { likeContains } from '../utils/sanitize';
 import { resilient } from '../utils/resilience';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { rankReels } from './reelScore';
@@ -179,7 +180,7 @@ export const ReelsRepository = {
               .select('id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, metadata, visibility, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
               .eq('is_deleted', false).limit(30);
             if (tab === 'following' && followedIds.length) qb = qb.in('user_id', followedIds);
-            if (hashtag) qb = qb.ilike('caption', `%${hashtag}%`);
+            if (hashtag) qb = qb.ilike('caption', likeContains(hashtag));
             qb = applyOrder(qb);
             const { data, error } = await qb;
             if (error) throw error;
@@ -194,7 +195,7 @@ export const ReelsRepository = {
               .select('id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
               .eq('is_deleted', false).limit(30);
             if (tab === 'following' && followedIds.length) qb = qb.in('user_id', followedIds);
-            if (hashtag) qb = qb.ilike('caption', `%${hashtag}%`);
+            if (hashtag) qb = qb.ilike('caption', likeContains(hashtag));
             qb = applyOrder(qb);
             const { data, error } = await qb;
             if (error) throw error;

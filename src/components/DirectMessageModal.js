@@ -32,6 +32,7 @@ import { LocationService } from '../services/locationService';
 import { EventMapView } from './EventMapView';
 import { uploadToStorage } from '../services/storageService';
 import { useBackClose } from '../hooks/useBackClose';
+import { SecurityService } from '../services/securityService';
 import { money, priceLabel } from '../constants/currencies';
 import { buildVibeCardShareText } from '../utils/vibeCardShare';
 
@@ -997,7 +998,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 )}
                 {item.message_type === 'document' && item.media_url && (
                   <TouchableOpacity
-                    onPress={() => Linking.openURL(item.media_url)}
+                    onPress={() => { SecurityService.safeOpenURL(item.media_url); }}
                     style={[dm.docCard, { borderColor: isMine ? 'rgba(0,0,0,0.15)' : `${primary}30`, backgroundColor: isMine ? 'rgba(0,0,0,0.05)' : `${primary}0f` }]}
                   >
                     <View style={[dm.docIcon, { backgroundColor: isMine ? 'rgba(0,0,0,0.08)' : `${primary}20` }]}>

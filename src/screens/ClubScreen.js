@@ -25,6 +25,7 @@ import { useAuth } from '../context/AuthContext';
 import { ClubManager, MembershipManager, AwardManager } from '../services/clubEngine';
 import { NotificationService } from '../services/notificationService';
 import { supabase } from '../services/supabase';
+import { likeContains } from '../utils/sanitize';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const ROLES = ['player','captain','vice_captain','coach','manager','assistant_coach','physio','analyst','admin','performer','speaker','member'];
@@ -82,7 +83,7 @@ export const ClubScreen = ({ route, navigation, clubId: propClubId, onClose }) =
     const { data } = await supabase
       .from('profiles')
       .select('id, username, display_name, avatar_url')
-      .ilike('username', `%${q}%`)
+      .ilike('username', likeContains(q))
       .limit(10);
     setSearchResults(data || []);
     setSearching(false);

@@ -21,6 +21,7 @@ import { HashtagStrip } from '../components/HashtagStrip';
 import { useIdentity } from '../context/IdentityContext';
 import { SafeSection } from '../components/SafeSection';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { likeContains } from '../utils/sanitize';
 import { thumb } from '../utils/storageThumb';
 import { buildShareText } from '../utils/shareText';
 import { heatLabel, heatScore as heatScoreCanon } from '../utils/heatScore';
@@ -1108,7 +1109,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1);
-      if (suburb) query.ilike('suburb', `%${suburb}%`);
+      if (suburb) query.ilike('suburb', likeContains(suburb));
       const { data, error } = await query;
       if (error) {
         // Missing table / not exposed → disable for the rest of the session.

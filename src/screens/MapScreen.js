@@ -49,6 +49,7 @@ import { getCrewPlans } from '../services/crewMap';
 import { rankPeople } from '../services/peopleScore';
 import { Accommodation } from '../services/accommodation';
 import { residentUrl, hasResident } from '../constants/residentUrl';
+import { SecurityService } from '../services/securityService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
@@ -1136,7 +1137,7 @@ const StayDetail = ({ stay, onClose, bg, textColor, muted }) => {
     stay.livesHere ? 'Landlord on-site' : null,
   ].filter(Boolean).join(' · ');
   const link = residentUrl('dashboard'); // Resident's map/listings live under the dashboard
-  const open = () => { if (link) Linking.openURL(link).catch(() => {}); };
+  const open = () => { if (link) SecurityService.safeOpenURL(link).catch(() => {}); };
 
   return (
     <View style={[cs.sheet, { backgroundColor: bg, borderColor: `${gold}55` }]}>

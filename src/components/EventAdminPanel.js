@@ -7,6 +7,7 @@ import {
 import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabase';
+import { likeContains } from '../utils/sanitize';
 import { resilient } from '../utils/resilience';
 import { QRCheckInScanner } from './QRCheckInScanner';
 
@@ -163,7 +164,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
         .from('event_rsvps')
         .select('user_id, status, profiles:user_id(username, avatar_url)')
         .eq('event_id', eventId)
-        .ilike('profiles.username', `%${q.toLowerCase()}%`)
+        .ilike('profiles.username', likeContains(q.toLowerCase()))
         .limit(1)
         .maybeSingle();
       const rsvp = byUser || null;

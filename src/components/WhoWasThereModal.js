@@ -4,6 +4,7 @@ import { SmartImage } from './SmartImage';
 import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../services/supabase';
+import { likeContains } from '../utils/sanitize';
 import { isOnline as checkOnline, BlockManager } from '../services/dataFlow';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -145,7 +146,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
         .limit(100);
 
       if (venue.trim()) {
-        qb = qb.ilike('venue_name', `%${venue.trim()}%`);
+        qb = qb.ilike('venue_name', likeContains(venue));
       }
 
       const { data, error } = await qb;

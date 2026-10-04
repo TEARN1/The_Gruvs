@@ -32,6 +32,17 @@ export function isUuid(v) {
 }
 
 /**
+ * Build a safe `%term%` pattern for `.ilike(col, …)`. supabase-js already
+ * URL-encodes the value, but `%` / `_` / `\` inside user text would still act
+ * as LIKE wildcards — a search of `%%%%_%` forces a full-table pattern scan
+ * (cheap DoS) and `_` silently matches any char. Escapes them and caps length.
+ */
+export function likeContains(input, maxLen = 80) {
+  const s = String(input ?? '').trim().slice(0, maxLen).replace(/([%_\\])/g, '\\$1');
+  return `%${s}%`;
+}
+
+/**
  * Safe URL validation and opening wrapper.
  * Checks that the URL uses approved schemes (http, https, maps, mailto, tel)
  * and hostnames to protect against malicious redirects.
@@ -115,13 +126,31 @@ export async function safeOpenExternal(url) {
   // guess a scheme.
   if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) raw = `https://${raw}`;
 
+  // Control chars and Unicode bidi overrides (U+202A–202E, U+2066–2069) are used
+  // to visually disguise a link's real destination ("moc.live" shown as
+  // "evil.com"). No legitimate shared link needs them.
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/.test(raw)) {
+    console.warn('safeOpenExternal: blocked URL with control/bidi characters');
+    return false;
+  }
+
   const ALLOWED = ['https:', 'http:', 'mailto:', 'tel:'];
+  let host = '';
   try {
-    const proto = new URL(raw).protocol.toLowerCase();
+    const parsed = new URL(raw);
+    const proto = parsed.protocol.toLowerCase();
     if (!ALLOWED.includes(proto)) {
       console.warn(`safeOpenExternal: blocked scheme ${proto}`);
       return false;
     }
+    // https://thegruvs.com@evil.com/login → really goes to evil.com. Classic
+    // phishing disguise; never legitimate in a shared link.
+    if (parsed.username || parsed.password) {
+      console.warn('safeOpenExternal: blocked credential-bearing URL');
+      return false;
+    }
+    host = parsed.hostname;
   } catch {
     const lower = raw.toLowerCase();
     if (!ALLOWED.some((s) => lower.startsWith(s))) return false;
@@ -132,7 +161,14 @@ export async function safeOpenExternal(url) {
   // Mailto and tel links don't load external websites, so they don't need a warning.
   const lowerUrl = raw.toLowerCase();
   if (lowerUrl.startsWith('http:') || lowerUrl.startsWith('https:')) {
-    const message = `You are leaving The Gruvs to visit:\n\n${raw}\n\nTo keep your account secure, never enter your password or share sensitive information on unverified external sites.`;
+    const punycode = host.split('.').some((l) => l.startsWith('xn--'));
+    const insecure = lowerUrl.startsWith('http:');
+    const shown = raw.length > 300 ? `${raw.slice(0, 300)}…` : raw;
+    const message =
+      `You are leaving The Gruvs to visit:\n\n${host ? `${host}\n` : ''}${shown}\n\n` +
+      (punycode ? '⚠️ This address uses lookalike characters and may be impersonating another site.\n\n' : '') +
+      (insecure ? '⚠️ This link is not encrypted (http).\n\n' : '') +
+      'To keep your account secure, never enter your password or share sensitive information on unverified external sites.';
 
     if (Platform.OS === 'web') {
       const confirm = typeof window !== 'undefined' && window.confirm && window.confirm(message);
@@ -157,5 +193,5 @@ export async function safeOpenExternal(url) {
   catch (e) { console.warn('safeOpenExternal: failed to open', e); return false; }
 }
 
-export default { sanitizeSearch, isUuid, safeOpenURL, safeOpenExternal };
+export default { sanitizeSearch, isUuid, likeContains, safeOpenURL, safeOpenExternal };
 

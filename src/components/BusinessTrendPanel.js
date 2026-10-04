@@ -14,6 +14,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
+import { likeContains } from '../utils/sanitize';
 import { useAuth } from '../context/AuthContext';
 import { LocationService } from '../services/locationService';
 import { heatScore } from '../utils/heatScore';
@@ -38,7 +39,7 @@ export const BusinessTrendPanel = ({ tier, primary = '#00f2ff', textColor = '#ff
           .gte('event_date', today).lte('event_date', horizon)
           .is('deleted_at', null).neq('status', 'cancelled')
           .limit(120);
-        if (c) q = q.ilike('city', `%${c}%`);
+        if (c) q = q.ilike('city', likeContains(c));
         const { data, error } = await q;
         if (error || !alive) return;
         const rows = (data || []).map(e => ({ e, h: Math.max(0, heatScore(e)) })).filter(x => x.h > 0);
