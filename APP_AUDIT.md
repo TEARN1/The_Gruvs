@@ -248,3 +248,22 @@ locks and database load). Apply it from the SQL Editor.
 
 Open items unchanged: the `birth_date` grant (needs an age-only helper for
 `ViberProfileModal.js:319`), the `chat_media` recipient read policy, and findings #1–#5 above.
+
+## Finding #1 (account deletion) — fixed 2026-10-04
+
+`delete-account` v3 is deployed (`verify_jwt` on) and the repo file matches the live code
+byte-for-byte. It was built on the live v2, which had already added `gossip-media`.
+
+- The `purge_user_data` error is now checked; a failure aborts **before** the login is deleted.
+- Buckets are listed at runtime (plus a known-bucket fallback), so `stories` and any future
+  bucket are swept; storage listing is paginated past 1,000 objects per folder.
+- Storage list/remove errors now abort instead of being skipped.
+- Internal error detail goes to the function logs only, not the client.
+
+On failure the account is kept and the app's existing fallback (`SettingsScreen.js:337`) marks
+`deletion_requested_at`, which `run_maintenance_l1` processes. Not exercised end-to-end: a real
+run deletes an account, and this container cannot reach the function URL.
+
+Deployed vs repo drift found while fixing: `paystack-checkout`, `paystack-webhook` and
+`web-push-send` are live with no source in this repo; `spotify-token` and `sso-redeem` are in
+the repo but not deployed.
