@@ -154,3 +154,81 @@ Known from earlier: `__tests__/currency.test.js:44` is stale after the global-cu
 - **`delete-account` and `spotify-token`** derive identity from the caller's JWT, never the body.
 - **Storage paths** are user-id-prefixed at all 12 upload sites.
 - **Lint** clean; **unit tests** 1002/1003.
+
+---
+
+# Security check — database privileges, PII and storage (2026-10-04)
+
+Second pass, focused on what the first pass did not cover: the ~250 `SECURITY DEFINER`
+functions any signed-in user can call, column-level PII exposure, and storage permissions.
+**Nothing was changed.** Every function below was confirmed by reading its body, not inferred
+from its name. Every Supabase function is callable at `/rest/v1/rpc/<name>` by anyone with the
+public anon key and a free account, so "the app doesn't call it" does not reduce exposure.
+
+## Critical — anyone can forge balances and trust scores
+
+These run with owner privileges, take a user id as a parameter, and never check that the caller
+*is* that user (no `auth.uid()`, no admin check):
+
+| Function | What any signed-in user can do | App uses it? |
+|---|---|---|
+| `increment_wallet_balance(p_user_id, p_amount)` | Add or subtract any amount on **any** user's `wallet_balance` | Call at `escrowService.js:106` is already broken (wrong parameter names) |
+| `update_sis_score(p_user_id, p_delta)` | Set any user's `social_integrity_score` anywhere in 0–100 — the trust score behind trust gates and trust-weighted moderation | Call at `trustLedger.js:108` is already broken (wrong parameter names) |
+| `verify_pop(p_event_id, p_user_id)` | +200 XP and +50 points to anyone, unlimited repeats | No |
+| `release_escrow(p_transaction_id, p_user_id)` | Release **anyone's** escrow by passing the sender's id — the "only the customer" check compares against the caller-supplied id | No |
+
+Because both app call sites are already broken, **revoking `EXECUTE` on all four breaks nothing
+that works today.**
+
+## High
+
+- **`get_crossed_paths(p_user_id)` returns any user's crossed paths:** who they have been at
+  events with, the venue names, and when. Pass a victim's id and you get a partial location
+  history. In a nightlife app built around safety, that is a stalking vector. The app only
+  ever passes the caller's own id (`dataFlow.js:2013`), so requiring
+  `p_user_id = auth.uid()` breaks nothing.
+- **Precise location and date of birth are readable by every signed-in user.** `profiles.coords`
+  is a `geography` stored at 7–13 decimal places (millimetre precision), set for **7 of 40
+  users**; `birth_date` is set for 1. `SELECT` on both columns is granted to `authenticated`
+  despite the earlier `lock_profile_coordinates` migration.
+  - `coords`: the client never selects it (only definer functions use it) — revoking is safe.
+  - `birth_date`: `ViberProfileModal.js:319` reads it for *other* users, so that path needs an
+    age-only helper before the grant can go.
+- **`purchase_tickets` and `place_bid` act as any user** (caller-supplied `p_user_id`). Unused by
+  the app — revoke.
+
+## Medium
+
+- **Acting on another user's behalf:** `increment_vibe`, `increment_vibe_count`,
+  `decrement_vibe`, `decrement_vibe_count`, `record_daily_activity` accept any user id. The used
+  ones need an `auth.uid()` check; the unused ones can be revoked.
+- **Reading or changing another user's notification state and feed:** `mark_notifications_read`,
+  `get_unread_notification_count`, `feed_for_user`. Unused — revoke.
+- **DM images can't be read by the recipient.** `chat_media` `SELECT` is limited to the
+  uploader's own folder, so a recipient cannot load an image sent to them. It fails safe, so it
+  is not a leak — it is a broken feature that needs a participant-scoped read policy.
+
+## Confirmed safe on this pass
+
+- **Storage writes:** every bucket only accepts uploads into the caller's own `uid/` folder;
+  update and delete are owner-scoped.
+- **No `USING (true)` write policies** on any public table.
+- **Moderation hiding works:** the `*_hide_autohidden` policies on profiles, events and reels
+  are `RESTRICTIVE`, so they hold even next to `USING (true)` read policies.
+- **`set_user_role`** is protected by `assert_admin()` (flagged by the scan; cleared on reading).
+
+## Recommended fix — one migration, no app changes required
+
+1. `REVOKE EXECUTE … FROM anon, authenticated` on: `increment_wallet_balance`,
+   `update_sis_score`, `verify_pop`, `release_escrow`, `purchase_tickets`, `place_bid`,
+   `increment_vibe`, `decrement_vibe`, `mark_notifications_read`,
+   `get_unread_notification_count`, `feed_for_user`.
+   Owner-run (definer) callers are unaffected by the revoke.
+2. Add `IF p_user_id IS DISTINCT FROM auth.uid() THEN RAISE EXCEPTION 'forbidden'` to
+   `get_crossed_paths`, `increment_vibe_count`, `decrement_vibe_count`,
+   `record_daily_activity`.
+3. `REVOKE SELECT (coords) ON public.profiles FROM anon, authenticated`.
+
+Follow-ups that need app code: an age-only helper for `birth_date`; a participant-scoped
+`chat_media` read policy; and fixing the two broken client calls if wallet and trust-score
+updates are meant to work (they must run server-side, not from the client).
