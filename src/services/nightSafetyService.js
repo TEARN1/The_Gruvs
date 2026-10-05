@@ -17,6 +17,22 @@ const LOST_FOUND_KEY = 'gruvs_lost_found_v1';
 const SHUTTLE_STORAGE_KEY = 'gruvs_party_shuttles_v1';
 const FLOORPLAN_STORAGE_KEY = 'gruvs_venue_floorplans_v1';
 
+// ── Honest delivery (read before changing the safety copy) ───────────────────
+// There is no server side for these yet: no emergency_alerts / safety_pings
+// tables, no job that fires when a Safe Ride timer runs out, and the timer
+// lives only on this phone. So the app must never claim it alerted anyone.
+// What DOES reach a person today is the user's own WhatsApp: these build a
+// wa.me share link (no recipient: the user picks who) with the trip details.
+export function buildSafetyShareUrl(kind, { eventTitle, destination, minutes, parkingArea } = {}) {
+  const at = eventTitle ? ` from ${eventTitle}` : '';
+  const text = {
+    trip: `Heading out${at} now, going to ${destination || 'home'}. Should be there in about ${minutes || '?'} min. If you haven't heard from me by then, please call me.`,
+    home: `Home safe ✅ Thanks for keeping an eye on me.`,
+    walk: `I'm walking to my car${at} (${parkingArea || 'parking'}). Can you walk with me or stay on the phone?`,
+  }[kind] || '';
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
 export const NightSafetyService = {
   // ── 1. SAFE RIDE HOME TIMER ──────────────────────────────────────────────────
   async startSafeTimer({ userId, eventId, durationMinutes = 30, destinationLabel, emergencyContacts = [] }) {

@@ -20,7 +20,8 @@ import {
   Alert,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import { NightSafetyService } from '../services/nightSafetyService';
+import { NightSafetyService, buildSafetyShareUrl } from '../services/nightSafetyService';
+import { SecurityService } from '../services/securityService';
 import { ControlledGlitterBurst } from './ControlledGlitterBurst';
 import { haptics } from '../utils/haptics';
 import { useAuth } from '../context/AuthContext';
@@ -94,14 +95,20 @@ export function NightSafetyLogisticsModal({
       destinationLabel: safeDest,
     });
     setActiveTimer(timer);
-    toast?.(`Safe Ride timer running for ${safeDuration} minutes! Have a safe trip. 🚗`, 'success');
+    // Nobody is alerted automatically (see buildSafetyShareUrl): the trip goes
+    // to whoever the user picks in WhatsApp.
+    await SecurityService.safeOpenURL(buildSafetyShareUrl('trip', {
+      eventTitle: event?.title, destination: safeDest, minutes: safeDuration,
+    }));
+    toast?.('Timer started on this phone. Send your trip to someone you trust in WhatsApp.', 'success');
   };
 
   const handleConfirmHomeSafe = async () => {
     triggerGlitter('home_safe');
     await NightSafetyService.confirmHomeSafe();
     setActiveTimer(null);
-    toast?.('You checked in Safe & Sound! Squad notified. Good night! 😴✨', 'success');
+    await SecurityService.safeOpenURL(buildSafetyShareUrl('home'));
+    toast?.('Timer cleared. Let your friend know you made it home.', 'success');
   };
 
   const handleWalkToCar = async () => {
@@ -112,7 +119,10 @@ export function NightSafetyLogisticsModal({
       eventId: event.id,
       parkingArea: parkingNote,
     });
-    toast?.('Buddy ping sent to mutuals & security in the venue! 🛡️', 'success');
+    await SecurityService.safeOpenURL(buildSafetyShareUrl('walk', {
+      eventTitle: event?.title, parkingArea: parkingNote,
+    }));
+    toast?.('Pick someone in WhatsApp to walk with you.', 'success');
   };
 
   const handlePostLostFound = async () => {
@@ -192,7 +202,7 @@ export function NightSafetyLogisticsModal({
                 <View style={[styles.infoBanner, { borderColor: '#10b98140', backgroundColor: '#10b98112' }]}>
                   <Feather name="shield" size={18} color="#10b981" />
                   <Text style={[styles.infoBannerText, { color: textColor }]}>
-                    Heading out? Set a Safe Ride timer. If you don't tap "I'm Home Safe" before time runs out, emergency contacts receive an alert with your last GPS location.
+                    Heading out? Start a Safe Ride timer and send your trip to someone you trust on WhatsApp. The timer runs on this phone only. The Gruvs does not alert anyone automatically, so make sure a friend knows where you're going.
                   </Text>
                 </View>
 
@@ -202,7 +212,7 @@ export function NightSafetyLogisticsModal({
                     <Text style={[styles.timerSub, { color: muted }]}>Heading to: {activeTimer.destination}</Text>
                     <View style={styles.timerClockBox}>
                       <Feather name="clock" size={32} color="#10b981" />
-                      <Text style={[styles.timerClockVal, { color: '#10b981' }]}>Active Protection</Text>
+                      <Text style={[styles.timerClockVal, { color: '#10b981' }]}>Timer Running</Text>
                     </View>
                     <TouchableOpacity
                       onPress={handleConfirmHomeSafe}
@@ -238,7 +248,7 @@ export function NightSafetyLogisticsModal({
                       activeOpacity={0.85}
                     >
                       <Feather name="play" size={14} color="#000" />
-                      <Text style={styles.primaryActionBtnText}>Activate Safe Ride Timer</Text>
+                      <Text style={styles.primaryActionBtnText}>Start Timer & Share Trip</Text>
                       <ControlledGlitterBurst trigger={glitters.start_timer} count={10} radius={28} colors={['#10b981', '#fff']} />
                     </TouchableOpacity>
                   </View>
@@ -252,7 +262,7 @@ export function NightSafetyLogisticsModal({
                 <View style={[styles.infoBanner, { borderColor: `${primary}35`, backgroundColor: `${primary}10` }]}>
                   <Feather name="users" size={18} color={primary} />
                   <Text style={[styles.infoBannerText, { color: textColor }]}>
-                    Never walk alone to dark parking lots late at night. Ping fellow checked-in vibers or on-site security to walk with you.
+                    Never walk alone to dark parking lots late at night. Ask a friend on WhatsApp to walk with you or stay on the phone. For an emergency, call 10111 (SAPS) or 112.
                   </Text>
                 </View>
 
@@ -271,7 +281,7 @@ export function NightSafetyLogisticsModal({
                     activeOpacity={0.85}
                   >
                     <Feather name="radio" size={15} color="#000" />
-                    <Text style={styles.primaryActionBtnText}>Broadcast "Walk Me to Car" Alert</Text>
+                    <Text style={styles.primaryActionBtnText}>Ask a Friend on WhatsApp</Text>
                     <ControlledGlitterBurst trigger={glitters.walk_car} count={12} radius={32} colors={[primary, '#fff']} />
                   </TouchableOpacity>
                 </View>
