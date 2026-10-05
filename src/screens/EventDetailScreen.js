@@ -1468,6 +1468,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
               {/* 2x2 Command Grid with flat shadowless styling and micro-glitter bursts */}
               <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                {feature('ticketVault') && (<>
                 {/* 1. Offline Pass & Vault */}
                 <TouchableOpacity
                   onPress={() => {
@@ -1498,6 +1499,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Pass · Resale · Kitty · Escrow</Text>
                   <ControlledGlitterBurst trigger={dockGlitter.vault} count={12} radius={32} colors={[primary, '#fde047', '#fff']} />
                 </TouchableOpacity>
+                </>)}
 
                 {/* 2. Night Safety & Squad Care */}
                 <TouchableOpacity
@@ -1531,7 +1533,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 </TouchableOpacity>
               </View>
 
+              {(feature('inPersonVibe') || feature('boothStreet')) && (<>
               <View style={{ flexDirection: 'row', gap: 10 }}>
+                {feature('inPersonVibe') && (<>
                 {/* 3. In-Person Radar & Handshake */}
                 <TouchableOpacity
                   onPress={() => {
@@ -1562,7 +1566,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Handshake · Crossed · Mayor</Text>
                   <ControlledGlitterBurst trigger={dockGlitter.vibe} count={12} radius={32} colors={['#10b981', '#00f2ff', '#fff']} />
                 </TouchableOpacity>
+                </>)}
 
+                {feature('boothStreet') && (<>
                 {/* 4. DJ Booth & Street Bites */}
                 <TouchableOpacity
                   onPress={() => {
@@ -1593,7 +1599,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Live Audio · Kotas · 3AM Braai</Text>
                   <ControlledGlitterBurst trigger={dockGlitter.booth} count={12} radius={32} colors={['#f59e0b', '#fde047', '#fff']} />
                 </TouchableOpacity>
+                </>)}
               </View>
+              </>)}
 
               {/* Row 3: Sensory & Safety Suite + Cultural Artifacts */}
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>

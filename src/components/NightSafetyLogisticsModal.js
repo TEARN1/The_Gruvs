@@ -8,6 +8,7 @@
  * - Festival Party Shuttle Passes & Convoy Tracker
  * - Venue Floorplan & Sound Zones (High-intensity, Chillout, Quiet Corner)
  */
+import { feature } from '../constants/launchConfig';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -30,10 +31,10 @@ import { useToast } from './ToastNotification';
 const TABS = [
   { key: 'safe_home', label: 'Safe Ride Home', icon: 'shield' },
   { key: 'walk_car', label: 'Walk to Car', icon: 'map-pin' },
-  { key: 'lost_found', label: 'Lost & Found', icon: 'help-circle' },
-  { key: 'shuttles', label: 'Party Shuttles', icon: 'navigation' },
-  { key: 'floorplan', label: 'Venue Floorplan', icon: 'layout' },
-];
+  { flag: 'safetyExtras', key: 'lost_found', label: 'Lost & Found', icon: 'help-circle' },
+  { flag: 'safetyExtras', key: 'shuttles', label: 'Party Shuttles', icon: 'navigation' },
+  { flag: 'safetyExtras', key: 'floorplan', label: 'Venue Floorplan', icon: 'layout' },
+].filter((t) => !t.flag || feature(t.flag));
 
 export function NightSafetyLogisticsModal({
   visible,

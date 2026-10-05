@@ -11,6 +11,7 @@
  * - 8.1 3 AM Ultra-Blackout Battery Survival Mode
  * - 8.4 The "Proof of Physical Sweat" Protocol
  */
+import { feature } from '../constants/launchConfig';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -34,8 +35,8 @@ const TABS = [
   { key: 'survival', label: '3AM Survival', icon: 'battery-charging' },
   { key: 'bouncer', label: 'Bouncer HUD', icon: 'shield' },
   { key: 'stealth', label: 'Pocket Stealth', icon: 'eye-off' },
-  { key: 'sweat', label: 'Proof of Sweat', icon: 'award' },
-];
+  { key: 'sweat', label: 'Proof of Sweat', icon: 'award', flag: 'proofOfSweat' },
+].filter((t) => !t.flag || feature(t.flag));
 
 export function NightlifeSensoryModal({
   visible,

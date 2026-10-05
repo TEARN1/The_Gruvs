@@ -3031,6 +3031,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           </View>
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+            {feature('ticketVault') && (<>
             {/* Offline Ticket Vault & Resale */}
             <TouchableOpacity
               onPress={() => {
@@ -3055,6 +3056,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               <Text style={[styles.hubTileSub, { color: muted }]}>Offline Passes & Resale</Text>
               <ControlledGlitterBurst trigger={hubGlitter.vault} count={12} radius={34} colors={[primary, '#fde047', '#fff']} />
             </TouchableOpacity>
+            </>)}
 
             {/* Night Safety & Safe Ride Home */}
             <TouchableOpacity
