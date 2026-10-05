@@ -79,7 +79,10 @@ end;
 $$;
 
 -- Status-page semantics: aggregates only, safe for the anon key Guardian uses.
-grant execute on function public.maintenance_status() to anon, authenticated;
+-- Not anon: these SECURITY DEFINER sensors expose operational data. The
+-- Guardian calls them with the service role key.
+revoke execute on function public.maintenance_status() from anon, public;
+grant execute on function public.maintenance_status() to authenticated, service_role;
 
 -- ✅ Check after running:  select maintenance_status();
 --    → jsonb with checkins_oldest_days etc. As anon (REST):
