@@ -706,3 +706,21 @@ These need the Supabase dashboard or a SQL run — they cannot be fixed in this 
   `metro`, `@expo/cli`) rather than in shipped app code. Clearing them means an
   Expo SDK 52 → 57 major upgrade, which is a separate, breaking piece of work —
   deliberately not attempted here. Dependabot PRs #25/#26 cover part of it.
+
+---
+
+# Round 3 (2026-10-04) — client hardening pass
+
+| # | Severity | Finding | Status |
+|---|----------|---------|--------|
+| 11 | 🟠 HIGH | **Stored XSS via upload content-type.** `uploadToStorage` allow-listed the *declared* MIME but uploaded with the blob's *actual* type — a crafted `data:text/html,…` / SVG would be stored as `text/html` in a public bucket and served from our storage origin. | ✅ Actual type re-validated before upload |
+| 12 | 🟡 MED | Storage path not validated (`..`, absolute, backslash, control chars). RLS is the real gate; this is defence in depth. | ✅ `assertSafeStoragePath` |
+| 13 | 🟠 HIGH | **DM document links** opened with raw `Linking.openURL` — sender-controlled URL, no scheme check, no phishing warning. | ✅ `SecurityService.safeOpenURL` |
+| 14 | 🟡 MED | `ALLOWED_HOSTS` trusted **all of `supabase.co`** — anyone can create a project there and host a phishing page under a "trusted" host. Also trusted plain `http:`. | ✅ Only this project's Supabase host; https-only |
+| 15 | 🟡 MED | `user@host` disguise (`https://thegruvs.com@evil.com`) and Unicode bidi-override links were openable. | ✅ Blocked; warning now shows real host + punycode/http alerts |
+| 16 | 🟡 LOW | 8 `.ilike()` searches interpolated raw user text — `%`/`_` acted as wildcards (pattern-scan DoS, wrong matches). | ✅ `likeContains()` escaping |
+| 17 | 🟡 LOW | Map / Settings links used raw `Linking.openURL`. | ✅ Routed through `safeOpenURL` (trusted hosts open without a prompt) |
+
+Tests: `__tests__/sanitize.test.js` covers the credential-URL, bidi and LIKE-escape cases.
+
+**Still server-side / owner action (unchanged):** run `supabase/migrations/20260927000400_security_rls_fixes.sql` (findings #1, #2, #4, #5), rotate the Spotify secret (#8), confirm admin RPCs check `role` server-side (#7), enable Supabase Auth rate-limits + leaked-password protection. The owner email is still hardcoded in `BusinessDashboardScreen.js` (tier-upgrade `mailto:`). Swap it for a support alias.

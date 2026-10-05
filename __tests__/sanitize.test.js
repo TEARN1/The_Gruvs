@@ -1,4 +1,4 @@
-import { sanitizeSearch, isUuid, safeOpenURL, safeOpenExternal } from '../src/utils/sanitize';
+import { sanitizeSearch, isUuid, likeContains, safeOpenURL, safeOpenExternal } from '../src/utils/sanitize';
 import { Linking, Alert } from 'react-native';
 
 jest.spyOn(Linking, 'canOpenURL').mockImplementation(async () => true);
@@ -134,6 +134,35 @@ describe('safeOpenExternal', () => {
     expect(resData).toBe(false);
     expect(alertSpy).not.toHaveBeenCalled();
     expect(Linking.openURL).not.toHaveBeenCalled();
+  });
+
+  it('blocks credential-bearing phishing URLs (user@host disguise)', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert');
+    const res = await safeOpenExternal('https://thegruvs.com@evil.example/login');
+    expect(res).toBe(false);
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(Linking.openURL).not.toHaveBeenCalled();
+  });
+
+  it('blocks URLs containing bidi-override / control characters', async () => {
+    const res = await safeOpenExternal('https://example.com/\u202Egpj.exe');
+    expect(res).toBe(false);
+    expect(Linking.openURL).not.toHaveBeenCalled();
+  });
+});
+
+describe('likeContains', () => {
+  it('wraps plain text in % wildcards', () => {
+    expect(likeContains('jazz')).toBe('%jazz%');
+  });
+  it('escapes LIKE metacharacters so user text cannot become a pattern', () => {
+    expect(likeContains('%_')).toBe('%\\%\\_%');
+    expect(likeContains('a\\b')).toBe('%a\\\\b%');
+  });
+  it('trims, caps length and tolerates null', () => {
+    expect(likeContains('  x  ')).toBe('%x%');
+    expect(likeContains('a'.repeat(200)).length).toBe(82);
+    expect(likeContains(null)).toBe('%%');
   });
 });
 

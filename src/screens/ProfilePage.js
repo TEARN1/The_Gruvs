@@ -4,7 +4,7 @@ import { AwardManager, MembershipManager, ClubManager } from '../services/clubEn
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
-  Switch, Dimensions, Share, Platform, RefreshControl, Modal,
+  Switch, Dimensions, useWindowDimensions, Share, Platform, RefreshControl, Modal,
   KeyboardAvoidingView, Pressable, Image, Linking,
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
@@ -86,8 +86,17 @@ import { WhoWasThereModal }        from '../components/WhoWasThereModal';
 import { EventTicketModal }        from '../components/EventTicketModal';
 import { CreateReelModal }         from '../components/CreateReelModal';
 import { GetAppModal }            from '../components/GetAppModal';
-
-const { width } = Dimensions.get('window');
+import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
+import { BusinessActivationPortal } from '../components/BusinessActivationPortal';
+import { SportTournamentHub } from '../components/SportTournamentHub';
+import { FoodKotaSection } from '../components/FoodKotaSection';
+import { BirthdayCelebrationHub } from '../components/BirthdayCelebrationHub';
+import { BusinessStoreBuilder } from './BusinessStoreBuilder';
+import { TicketVaultExchangeModal } from '../components/TicketVaultExchangeModal';
+import { NightSafetyLogisticsModal } from '../components/NightSafetyLogisticsModal';
+import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
+import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
+import { sensoryHaptics } from '../services/sensoryHapticEngine';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 
@@ -299,6 +308,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
   // sees before deciding whether to walk over.
   const [beaconIntent, setBeaconIntentState] = useState(profile?.beacon_intent || 'open');
   const [beaconExpiresAt, setBeaconExpiresAt] = useState(profile?.beacon_expires_at || null);
+  const [intentGlitter, setIntentGlitter] = useState({});
   // Ticks once a minute so the countdown text below actually counts down,
   // without needing a full profile refetch just to redraw a label.
   const [, setCountdownTick] = useState(0);
@@ -917,12 +927,16 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
               return (
                 <TouchableOpacity
                   key={i.key}
-                  onPress={() => setBeaconIntentState(i.key)}
-                  style={[fm.intentChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}18` : 'transparent' }]}
+                  onPress={() => {
+                    setIntentGlitter(prev => ({ ...prev, [i.key]: Date.now() }));
+                    setBeaconIntentState(i.key);
+                  }}
+                  style={[fm.intentChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}18` : 'transparent', position: 'relative' }]}
                   activeOpacity={0.8}
                 >
                   <Text style={{ fontSize: 15 }}>{i.emoji}</Text>
                   <Text style={{ color: active ? primary : muted, fontSize: 10, fontWeight: '800', marginTop: 2, textAlign: 'center' }}>{i.label}</Text>
+                  <ControlledGlitterBurst trigger={intentGlitter[i.key]} count={10} radius={26} colors={[primary, '#fff', '#ffd700']} />
                 </TouchableOpacity>
               );
             })}
@@ -1764,8 +1778,12 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDelete
     } catch { setTileLikes(s => ({ ...s, [url]: prev })); }
   };
 
+  const { width: windowWidth } = useWindowDimensions();
   const visibleItems = expanded ? allItems : allItems.slice(0, 6);
-  const cellSize = Math.floor((width - 44) / 3);
+  const containerW = Math.min(windowWidth, 760);
+  const numCols = windowWidth >= 768 ? 4 : 3;
+  const gap = 6;
+  const cellSize = Math.floor((containerW - 32 - (numCols - 1) * gap) / numCols);
 
   const doDelete = async (item) => {
     if (!item || item.source === 'event') return;
@@ -1863,10 +1881,10 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDelete
           )}
           {lightboxItem?.isVideo ? (
             <Pressable onPress={e => e.stopPropagation()}>
-              <Video source={{ uri: lightboxItem.url }} style={{ width: width - 32, height: (width - 32) * 9 / 16, borderRadius: 12 }} resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping useNativeControls />
+              <Video source={{ uri: lightboxItem.url }} style={{ width: windowWidth - 32, height: (windowWidth - 32) * 9 / 16, borderRadius: 12 }} resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping useNativeControls />
             </Pressable>
           ) : (
-            <Image source={{ uri: lightboxItem?.url }} style={{ width: width - 32, height: width - 32, borderRadius: 12 }} resizeMode="contain" />
+            <Image source={{ uri: lightboxItem?.url }} style={{ width: windowWidth - 32, height: windowWidth - 32, borderRadius: 12 }} resizeMode="contain" />
           )}
         </Pressable>
       </Modal>
@@ -1937,6 +1955,16 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [bizDashVisible, setBizDashVisible] = useState(false);
+  const [bizPortalVisible, setBizPortalVisible] = useState(false);
+  const [sportHubVisible, setSportHubVisible] = useState(false);
+  const [foodKotaVisible, setFoodKotaVisible] = useState(false);
+  const [bdayHubVisible, setBdayHubVisible] = useState(false);
+  const [storeBuilderVisible, setStoreBuilderVisible] = useState(false);
+  const [profileVaultVisible, setProfileVaultVisible] = useState(false);
+  const [profileSafetyVisible, setProfileSafetyVisible] = useState(false);
+  const [profileSensoryVisible, setProfileSensoryVisible] = useState(false);
+  const [profileCultureVisible, setProfileCultureVisible] = useState(false);
+  const [hubGlitter, setHubGlitter] = useState({});
   const [whoWasThereVisible, setWhoWasThereVisible] = useState(false);
   const [crossedPathsVisible, setCrossedPathsVisible] = useState(false);
   const [walletVisible, setWalletVisible] = useState(false);
@@ -2609,7 +2637,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
       <LiquidBackground intensity={0.8} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 140 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -2626,15 +2654,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             <Text style={{ color: textColor, fontSize: 16, fontWeight: '900', letterSpacing: 2 }}>MY ROYALTY</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-            {feature('business') && (
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
-              onPress={() => setBizDashVisible(true)}
-            >
-              <Feather name="briefcase" size={14} color={primary} />
-              <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Business</Text>
-            </TouchableOpacity>
-            )}
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}30` }}
               onPress={() => setClubsModalVisible(true)}
@@ -2724,10 +2743,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                   styles.actionBtn,
                   {
                     backgroundColor: primary,
-                    shadowColor: primary,
-                    shadowOpacity: 0.35,
-                    shadowRadius: 10,
-                    elevation: 4,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.18)',
                   },
                 ]}
                 onPress={() => setEditProfileVisible(true)}
@@ -2899,6 +2916,224 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             </GlassView>
           </View>
         )}
+
+        {/* ── Vibe Ecosystem Hubs — Business, Sports, Food/Kota & Birthdays ── */}
+        <View style={{ paddingHorizontal: 16, marginBottom: 16, gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: muted, fontSize: 11, fontWeight: '800', letterSpacing: 0.8 }}>
+              COMMUNITY & CREATOR HUBS
+            </Text>
+            <Text style={{ color: primary, fontSize: 10, fontWeight: '700' }}>Active Radar</Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {/* Business & Creator Studio */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, biz: Date.now() }));
+                setBizPortalVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: `${primary}40`,
+                  backgroundColor: `${primary}12`,
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: `${primary}50`, backgroundColor: `${primary}20` }]}>
+                <Feather name="briefcase" size={16} color={primary} />
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Business Studio</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Where & How products work</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.biz} count={12} radius={34} colors={[primary, '#fde047', '#fff']} />
+            </TouchableOpacity>
+
+            {/* Sports & Tournament Hub */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, sport: Date.now() }));
+                setSportHubVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(16,185,129,0.40)',
+                  backgroundColor: 'rgba(16,185,129,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#10b98150', backgroundColor: 'rgba(16,185,129,0.20)' }]}>
+                <Text style={{ fontSize: 16 }}>🏆</Text>
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Sports & Cups</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Top 32 & Fair Play</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.sport} count={12} radius={34} colors={['#10b981', '#fde047', '#fff']} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {/* Food & Kota Section */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, food: Date.now() }));
+                setFoodKotaVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(245,158,11,0.40)',
+                  backgroundColor: 'rgba(245,158,11,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#f59e0b50', backgroundColor: 'rgba(245,158,11,0.20)' }]}>
+                <Text style={{ fontSize: 16 }}>🍔</Text>
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Kotas & Food</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Late Night Kitchens</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.food} count={12} radius={34} colors={['#f59e0b', '#00f2ff', '#fff']} />
+            </TouchableOpacity>
+
+            {/* Birthday Radar */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, bday: Date.now() }));
+                setBdayHubVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(236,72,153,0.40)',
+                  backgroundColor: 'rgba(236,72,153,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
+                <Text style={{ fontSize: 16 }}>🎂</Text>
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Birthday Radar</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Perks & Free Drinks</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.bday} count={12} radius={34} colors={['#ec4899', '#fde047', '#fff']} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+            {/* Offline Ticket Vault & Resale */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, vault: Date.now() }));
+                setProfileVaultVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(0,242,255,0.40)',
+                  backgroundColor: 'rgba(0,242,255,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#00f2ff50', backgroundColor: 'rgba(0,242,255,0.20)' }]}>
+                <Feather name="shield" size={16} color={primary} />
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Ticket Vault</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Offline Passes & Resale</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.vault} count={12} radius={34} colors={[primary, '#fde047', '#fff']} />
+            </TouchableOpacity>
+
+            {/* Night Safety & Safe Ride Home */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, safety: Date.now() }));
+                setProfileSafetyVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(239,68,68,0.40)',
+                  backgroundColor: 'rgba(239,68,68,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#ef444450', backgroundColor: 'rgba(239,68,68,0.20)' }]}>
+                <Feather name="life-buoy" size={16} color="#ef4444" />
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Safe Ride Home</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Squad SOS & Care</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.safety} count={12} radius={34} colors={['#ef4444', '#fde047', '#fff']} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+            {/* Sensory Suite (Beacon & Survival) */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, sensory: Date.now() }));
+                setProfileSensoryVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(236,72,153,0.40)',
+                  backgroundColor: 'rgba(236,72,153,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
+                <Feather name="zap" size={16} color="#ec4899" />
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Sensory Suite</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Beacon · 3AM Survival</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.sensory} count={12} radius={34} colors={['#ec4899', '#fde047', '#fff']} />
+            </TouchableOpacity>
+
+            {/* Cultural Artifacts (Wristbands & Stubs) */}
+            <TouchableOpacity
+              onPress={() => {
+                setHubGlitter((prev) => ({ ...prev, culture: Date.now() }));
+                setProfileCultureVisible(true);
+              }}
+              style={[
+                styles.hubTile,
+                {
+                  borderColor: 'rgba(251,191,36,0.40)',
+                  backgroundColor: 'rgba(251,191,36,0.10)',
+                  flex: 1,
+                  position: 'relative',
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.hubIconWrap, { borderColor: '#fbbf2450', backgroundColor: 'rgba(251,191,36,0.20)' }]}>
+                <Feather name="award" size={16} color="#fbbf24" />
+              </View>
+              <Text style={[styles.hubTileTitle, { color: textColor }]}>Cultural Stubs</Text>
+              <Text style={[styles.hubTileSub, { color: muted }]}>Wristbands & Tokens</Text>
+              <ControlledGlitterBurst trigger={hubGlitter.culture} count={12} radius={34} colors={['#fbbf24', '#00f2ff', '#fff']} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* XP Level bar — F3: the ONE canonical curve (getXpLevel), shared with
             LevelManager's level-up notifications so they can never disagree. */}
@@ -3570,10 +3805,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                           justifyContent: 'center',
                           backgroundColor: `${stamp.stamp_color || primary}08`,
                           position: 'relative',
-                          shadowColor: stamp.stamp_color || primary,
-                          shadowOpacity: 0.1,
-                          shadowRadius: 4,
-                          elevation: 2,
                         }}
                       >
                         <Feather name={stamp.stamp_icon || 'award'} size={24} color={stamp.stamp_color || primary} />
@@ -3744,6 +3975,131 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           />
         </SafeSection>
       )}
+      {bizPortalVisible && (
+        <SafeSection label="Business Activation Portal" primary={primary}>
+          <BusinessActivationPortal
+            visible={bizPortalVisible}
+            onClose={() => setBizPortalVisible(false)}
+            onOpenStoreBuilder={() => {
+              setBizPortalVisible(false);
+              setStoreBuilderVisible(true);
+            }}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+          />
+        </SafeSection>
+      )}
+      {sportHubVisible && (
+        <SafeSection label="Sport & Tournament Hub" primary={primary}>
+          <SportTournamentHub
+            visible={sportHubVisible}
+            onClose={() => setSportHubVisible(false)}
+            currentUserId={user?.id}
+            currentUsername={username}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+          />
+        </SafeSection>
+      )}
+      {foodKotaVisible && (
+        <SafeSection label="Food & Kotas" primary={primary}>
+          <FoodKotaSection
+            visible={foodKotaVisible}
+            onClose={() => setFoodKotaVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+            onSelectEvent={(evId) => onNavigateToEvent?.(evId)}
+          />
+        </SafeSection>
+      )}
+      {bdayHubVisible && (
+        <SafeSection label="Birthday Radar" primary={primary}>
+          <BirthdayCelebrationHub
+            visible={bdayHubVisible}
+            onClose={() => setBdayHubVisible(false)}
+            currentUserId={user?.id}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+            onSelectEvent={(evId) => onNavigateToEvent?.(evId)}
+          />
+        </SafeSection>
+      )}
+      {storeBuilderVisible && (
+        <Modal visible={storeBuilderVisible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setStoreBuilderVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: bg }}>
+            <BusinessStoreBuilder
+              biz={profile?.business_profiles || { id: user?.id, user_id: user?.id }}
+              primary={primary}
+              textColor={textColor}
+              muted={muted}
+              bg={bg}
+              onClose={() => setStoreBuilderVisible(false)}
+            />
+          </View>
+        </Modal>
+      )}
+
+      {profileVaultVisible && (
+        <SafeSection label="Ticket Vault" primary={primary}>
+          <TicketVaultExchangeModal
+            visible={profileVaultVisible}
+            onClose={() => setProfileVaultVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            background={bg}
+            surface={surface}
+          />
+        </SafeSection>
+      )}
+
+      {profileSafetyVisible && (
+        <SafeSection label="Night Safety" primary={primary}>
+          <NightSafetyLogisticsModal
+            visible={profileSafetyVisible}
+            onClose={() => setProfileSafetyVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+            bg={bg}
+          />
+        </SafeSection>
+      )}
+
+      {profileSensoryVisible && (
+        <SafeSection label="Sensory Suite" primary={primary}>
+          <NightlifeSensoryModal
+            visible={profileSensoryVisible}
+            onClose={() => setProfileSensoryVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+            bg={bg}
+          />
+        </SafeSection>
+      )}
+
+      {profileCultureVisible && (
+        <SafeSection label="Cultural Artifacts" primary={primary}>
+          <CultureArtifactsModal
+            visible={profileCultureVisible}
+            onClose={() => setProfileCultureVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+            bg={bg}
+          />
+        </SafeSection>
+      )}
 
       {/* ── Full-screen image viewer ── */}
       <Modal
@@ -3760,7 +4116,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           <TouchableOpacity activeOpacity={1} style={{ width: '100%', alignItems: 'center' }}>
             <Image
               source={{ uri: imageViewerUri }}
-              style={{ width: width, height: width, resizeMode: 'contain' }}
+              style={{ width: '100%', maxWidth: 540, height: 540, maxHeight: '80%', resizeMode: 'contain' }}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -3958,8 +4314,8 @@ const styles = StyleSheet.create({
 
   // Cover
   coverPhoto: { height: COVER_H, overflow: 'hidden', position: 'relative' },
-  coverPattern: { position: 'absolute', top: -30, left: -30, width: Math.min(220, width * 0.5), height: Math.min(220, width * 0.5), borderRadius: Math.min(110, width * 0.25), borderWidth: 40 },
-  coverPatternAlt: { position: 'absolute', bottom: -50, right: -30, width: Math.min(180, width * 0.42), height: Math.min(180, width * 0.42), borderRadius: Math.min(90, width * 0.21), borderWidth: 35 },
+  coverPattern: { position: 'absolute', top: -30, left: -30, width: 200, height: 200, borderRadius: 100, borderWidth: 40 },
+  coverPatternAlt: { position: 'absolute', bottom: -50, right: -30, width: 160, height: 160, borderRadius: 80, borderWidth: 35 },
   coverEditBtn: { position: 'absolute', bottom: 10, right: 14, backgroundColor: 'rgba(0,0,0,0.55)', padding: 8, borderRadius: 20 },
 
   // Avatar row
@@ -4009,7 +4365,7 @@ const styles = StyleSheet.create({
   contentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, gap: 4, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   contentTabLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
   tabContent: { paddingHorizontal: 16, marginBottom: 14 },
-  emptyTab: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 16, paddingVertical: width < 375 ? 24 : 36, alignItems: 'center', gap: 12 },
+  emptyTab: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 16, paddingVertical: 32, alignItems: 'center', gap: 12 },
   emptyTabText: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
   miniCard: { flexDirection: 'row', borderWidth: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.03)' },
   miniCardImg: { width: 72, height: 72 },
@@ -4019,7 +4375,7 @@ const styles = StyleSheet.create({
   miniCardBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   miniCardBadgeText: { fontSize: 10, fontWeight: '800' },
   galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  galleryCell: { width: (width - 44) / 3, height: (width - 44) / 3, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  galleryCell: { width: '31%', aspectRatio: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
 
   // Settings tabs
   settingsTabs: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 4, borderRadius: 30, borderWidth: 1, overflow: 'hidden' },
@@ -4040,11 +4396,11 @@ const styles = StyleSheet.create({
   activeCheck: { position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 
   // Guest
-  guestContent: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 80, alignItems: 'center' },
-  guestCard: { width: '100%', padding: width < 375 ? 20 : 36, alignItems: 'center', marginBottom: 20, borderRadius: 24 },
+  guestContent: { width: '100%', maxWidth: 540, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 80, alignItems: 'center' },
+  guestCard: { width: '100%', padding: 32, alignItems: 'center', marginBottom: 20, borderRadius: 24 },
   guestTitle: { fontSize: 26, fontWeight: '900', marginBottom: 12, letterSpacing: 1 },
   guestSub: { fontSize: 14, textAlign: 'center', lineHeight: 21, marginBottom: 28 },
-  guestBtn: { paddingVertical: 15, paddingHorizontal: width < 375 ? 20 : 32, borderRadius: 30 },
+  guestBtn: { paddingVertical: 15, paddingHorizontal: 32, borderRadius: 30 },
   guestBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
 
   // Sign out
@@ -4054,8 +4410,36 @@ const styles = StyleSheet.create({
   // Career / Looks edit fields
   editRow: { marginBottom: 14 },
   editLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6, opacity: 0.7 },
-  editInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 13, backgroundColor: 'rgba(255,255,255,0.04)', textAlignVertical: 'top' },
   mintStatRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
+  hubTile: {
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    minHeight: 88,
+  },
+  hubIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    marginBottom: 2,
+  },
+  hubTileTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+    textAlign: 'center',
+  },
+  hubTileSub: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 });
 
 const af = StyleSheet.create({

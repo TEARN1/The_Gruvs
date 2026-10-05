@@ -379,6 +379,20 @@ export function LiveMap({
         }
       }, 'ev-glow');
 
+      // Emerald Live Touch Down radar ring
+      map.addLayer({
+        id: 'ev-live-radar', type: 'circle', source: 'eventsC',
+        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'isLive'], true]],
+        layout: { visibility: heatRef.current ? 'none' : 'visible' },
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 1, 14, 25, 24, 50, 32],
+          'circle-color': 'rgba(16, 185, 129, 0.16)',
+          'circle-stroke-color': '#10b981',
+          'circle-stroke-width': 1.5,
+          'circle-stroke-opacity': 0.85,
+        },
+      }, 'ev-glow');
+
       map.addLayer({
         id: 'ev-hot', type: 'circle', source: 'eventsC',
         filter: ['all', ['!', ['has', 'point_count']], ['>=', ['get', 'here'], 10]],
@@ -394,7 +408,14 @@ export function LiveMap({
         layout: { visibility: heatRef.current ? 'none' : 'visible' },
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['get', 'here'], 0, 5, 50, 9],
-          'circle-color': '#00f2ff', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5,
+          'circle-color': [
+            'case',
+            ['get', 'isLive'], '#10b981',
+            ['get', 'isSecret'], '#a855f7',
+            '#00f2ff'
+          ],
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 1.5,
         },
       });
 

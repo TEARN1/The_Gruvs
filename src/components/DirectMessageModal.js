@@ -32,6 +32,7 @@ import { LocationService } from '../services/locationService';
 import { EventMapView } from './EventMapView';
 import { uploadToStorage } from '../services/storageService';
 import { useBackClose } from '../hooks/useBackClose';
+import { SecurityService } from '../services/securityService';
 import { money, priceLabel } from '../constants/currencies';
 import { buildVibeCardShareText } from '../utils/vibeCardShare';
 
@@ -946,9 +947,17 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 {
                   borderBottomRightRadius: isMine ? 4 : 18,
                   borderBottomLeftRadius: isMine ? 18 : 4,
-                  backgroundColor: isMine ? primary : bg,
+                  backgroundColor: isMine ? primary : '#0d1114',
+                  borderWidth: 1,
+                  borderColor: isMine ? `${primary}50` : `${primary}25`,
                 },
               ]}>
+                {(item.in_room || item.is_checked_in) && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: isMine ? 'flex-end' : 'flex-start', backgroundColor: isMine ? 'rgba(0,0,0,0.15)' : 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: isMine ? 'rgba(0,0,0,0.25)' : '#10b98150', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6, marginBottom: 4 }}>
+                    <Text style={{ fontSize: 9 }}>📍</Text>
+                    <Text style={{ fontSize: 8.5, color: isMine ? '#000' : '#10b981', fontWeight: '900', letterSpacing: 0.5 }}>IN ROOM</Text>
+                  </View>
+                )}
                 {item.parent_id && (() => {
                   const p1 = messages.find(m => m.id === item.parent_id);
                   if (!p1) return null;
@@ -991,7 +1000,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 )}
                 {item.message_type === 'document' && item.media_url && (
                   <TouchableOpacity
-                    onPress={() => Linking.openURL(item.media_url)}
+                    onPress={() => { SecurityService.safeOpenURL(item.media_url); }}
                     style={[dm.docCard, { borderColor: isMine ? 'rgba(0,0,0,0.15)' : `${primary}30`, backgroundColor: isMine ? 'rgba(0,0,0,0.05)' : `${primary}0f` }]}
                   >
                     <View style={[dm.docIcon, { backgroundColor: isMine ? 'rgba(0,0,0,0.08)' : `${primary}20` }]}>

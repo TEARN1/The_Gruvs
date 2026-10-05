@@ -450,7 +450,7 @@ const StoreSkeleton = ({ primary, bg }) => {
 };
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => {
+export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg, onClose }) => {
   const [blocks, setBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -461,7 +461,13 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
   const [storeEnabled, setStoreEnabled] = useState(false);
   const [slug, setSlug] = useState(biz?.store_slug || '');
 
-  useEffect(() => { if (biz?.id) loadBlocks(); }, [biz?.id]);
+  useEffect(() => {
+    if (biz?.id) {
+      loadBlocks();
+    } else {
+      setLoading(false);
+    }
+  }, [biz?.id]);
 
   const loadBlocks = async () => {
     setLoading(true);
@@ -577,6 +583,11 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg }) => 
     <View style={{ flex: 1 }}>
       {/* Store toolbar */}
       <View style={[sbs.toolbar, { borderBottomColor: `${primary}15`, backgroundColor: `${bg}ee` }]}>
+        {onClose && (
+          <TouchableOpacity onPress={onClose} style={{ padding: 6, marginRight: 6 }}>
+            <Feather name="arrow-left" size={20} color={textColor} />
+          </TouchableOpacity>
+        )}
         <View style={{ flex: 1 }}>
           <TextInput
             style={[sbs.slugInput, { color: textColor, borderColor: `${primary}25` }]}

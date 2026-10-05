@@ -8,7 +8,7 @@
  * map failure never takes the app down.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Image, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Image, TextInput, Platform, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
@@ -16,11 +16,17 @@ import { useAuth } from '../context/AuthContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LiveMap, isMapSupported, mapCapabilities } from '../components/LiveMap';
 import { ZoneDrawTool } from '../components/ZoneDrawTool';
-import { MapEventPreview } from '../components/MapEventPreview';
+import { MapVenueDeck } from '../components/MapVenueDeck';
+import { NightlifeTimeDial } from '../components/NightlifeTimeDial';
+import { StealthMode, STEALTH_MODES } from '../services/stealthMode';
+import { findNearbyCoPresence } from '../services/coPresence';
+import { ViberProfileModal } from '../components/ViberProfileModal';
+import { haptics } from '../utils/haptics';
+import { thumb } from '../utils/storageThumb';
 import { MapReportSheet } from '../components/MapReportSheet';
 import { MapLayersModal } from '../components/MapLayersModal';
 import { SmartImage } from '../components/SmartImage';
-import { GLASS, SHADOW } from '../constants/DesignTokens';
+import { GLASS } from '../constants/DesignTokens';
 import { MapReports } from '../services/mapReports';
 import { MAP_REPORT_BY_KEY } from '../constants/mapContributions';
 import { MapZones, ZONE_KINDS, ZONE_STATUS } from '../services/mapZones';
@@ -43,6 +49,7 @@ import { getCrewPlans } from '../services/crewMap';
 import { rankPeople } from '../services/peopleScore';
 import { Accommodation } from '../services/accommodation';
 import { residentUrl, hasResident } from '../constants/residentUrl';
+import { SecurityService } from '../services/securityService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
@@ -86,6 +93,38 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [ripple, setRipple] = useState(null);      // {lng,lat,key} — pulse on a live check-in
   const [dayFilter, setDayFilter] = useState(null); // 'YYYY-MM-DD' | null(all) — the time-scrubber
   const [hourFilter, setHourFilter] = useState(null); // 20 (8PM) to 4 (4AM) | null (all hours)
+  const [showTimeDial, setShowTimeDial] = useState(false);
+  const [stealthMode, setStealthMode] = useState('public');
+  const [whoHereModal, setWhoHereModal] = useState({ visible: false, eventId: null, attendees: [], loading: false });
+
+  useEffect(() => {
+    StealthMode.getMode().then(setStealthMode);
+  }, []);
+
+  const cycleStealthMode = useCallback(async () => {
+    try { haptics.medium(); } catch {}
+    const modes = ['public', 'fuzzy', 'ghost'];
+    const nextIdx = (modes.indexOf(stealthMode) + 1) % modes.length;
+    const next = modes[nextIdx];
+    setStealthMode(next);
+    await StealthMode.setMode(next, user?.id);
+    const meta = STEALTH_MODES[next];
+    if (meta) toast(`${meta.label}: ${meta.desc}`, 'info');
+  }, [stealthMode, user?.id, toast]);
+
+  const stealthMeta = STEALTH_MODES[stealthMode] || STEALTH_MODES.public;
+
+  const openWhoHere = useCallback(async (eventId) => {
+    if (!eventId) return;
+    setWhoHereModal({ visible: true, eventId, attendees: [], loading: true });
+    try {
+      const list = await findNearbyCoPresence(user?.id, eventId);
+      setWhoHereModal({ visible: true, eventId, attendees: list, loading: false });
+    } catch {
+      setWhoHereModal((prev) => ({ ...prev, loading: false }));
+    }
+  }, [user?.id]);
+
   const [nudge, setNudge] = useState(null);
   const [showRoulette, setShowRoulette] = useState(false);
   const [showHomeSafe, setShowHomeSafe] = useState(false);
@@ -662,6 +701,22 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             <TouchableOpacity onPress={recenter} style={cs.headerActionBtn} accessibilityLabel="My Location">
               <Feather name="crosshair" size={18} color={primary} />
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={cycleStealthMode}
+              style={[
+                cs.headerActionBtn,
+                {
+                  backgroundColor: stealthMode === 'public' ? 'rgba(0,242,255,0.12)' : stealthMode === 'fuzzy' ? 'rgba(168,85,247,0.18)' : 'rgba(100,116,139,0.22)',
+                  borderRadius: 18,
+                  borderWidth: 1,
+                  borderColor: `${stealthMeta.color}45`,
+                  marginRight: 2,
+                },
+              ]}
+              accessibilityLabel={`Stealth Mode: ${stealthMeta.label}`}
+            >
+              <Feather name={stealthMeta.icon} size={15} color={stealthMeta.color} />
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => setLayersModalVisible(true)} style={[cs.headerActionBtn, { backgroundColor: `${primary}18`, borderRadius: 18 }]} accessibilityLabel="Layers and filters">
               <Feather name="layers" size={18} color={primary} />
             </TouchableOpacity>
@@ -677,8 +732,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                 style={[
                   cs.quickPill,
                   {
-                    borderColor: liveOnly ? '#10b981' : `${muted}35`,
-                    backgroundColor: liveOnly ? '#10b98122' : `${bg}dd`,
+                    borderColor: liveOnly ? '#10b981' : 'rgba(255,255,255,0.12)',
+                    backgroundColor: liveOnly ? 'rgba(16,185,129,0.20)' : 'rgba(12,16,18,0.88)',
                   }
                 ]}
                 activeOpacity={0.8}
@@ -694,8 +749,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                 style={[
                   cs.quickPill,
                   {
-                    borderColor: heat ? '#f59e0b' : `${muted}35`,
-                    backgroundColor: heat ? '#f59e0b22' : `${bg}dd`,
+                    borderColor: heat ? '#f59e0b' : 'rgba(255,255,255,0.12)',
+                    backgroundColor: heat ? 'rgba(245,158,11,0.20)' : 'rgba(12,16,18,0.88)',
                   }
                 ]}
                 activeOpacity={0.8}
@@ -710,8 +765,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                 style={[
                   cs.quickPill,
                   {
-                    borderColor: showCrew ? '#ec4899' : `${muted}35`,
-                    backgroundColor: showCrew ? '#ec489922' : `${bg}dd`,
+                    borderColor: showCrew ? '#ec4899' : 'rgba(255,255,255,0.12)',
+                    backgroundColor: showCrew ? 'rgba(236,72,153,0.20)' : 'rgba(12,16,18,0.88)',
                   }
                 ]}
                 activeOpacity={0.8}
@@ -724,7 +779,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
               {/* Day filter pills */}
               <TouchableOpacity onPress={() => setDayFilter(null)}
-                style={[cs.quickPill, { borderColor: !dayFilter ? primary : `${muted}35`, backgroundColor: !dayFilter ? `${primary}22` : `${bg}dd` }]}>
+                style={[cs.quickPill, { borderColor: !dayFilter ? primary : 'rgba(255,255,255,0.12)', backgroundColor: !dayFilter ? `${primary}20` : 'rgba(12,16,18,0.88)' }]}>
                 <Text style={[cs.quickPillText, { color: !dayFilter ? primary : muted }]}>All Nights</Text>
               </TouchableOpacity>
               {/* Nightlife 8 PM - 4 AM Time-Scrubber Pills */}
@@ -742,8 +797,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                     style={[
                       cs.quickPill,
                       {
-                        borderColor: active ? '#00f2ff' : `${muted}35`,
-                        backgroundColor: active ? 'rgba(0,242,255,0.22)' : `${bg}dd`,
+                        borderColor: active ? '#00f2ff' : 'rgba(255,255,255,0.12)',
+                        backgroundColor: active ? 'rgba(0,242,255,0.20)' : 'rgba(12,16,18,0.88)',
                       }
                     ]}
                   >
@@ -801,59 +856,59 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             />
           </ErrorBoundary>
 
-          {/* Clean Modern Floating Action Bar */}
-          {isMapSupported() && !drawing && (
-            <View style={cs.fabCol} pointerEvents="box-none">
-              {/* Report button */}
+          {/* Luminous Thumb Control Pod */}
+          {isMapSupported() && !drawing && !activeZone && (
+            <View style={cs.thumbPod} pointerEvents="box-none">
+              {/* Recenter GPS */}
               <TouchableOpacity
-                onPress={() => (user ? setReportSheet(true) : onAuthRequired?.())}
-                style={[cs.fabPrimary, { backgroundColor: primary }]}
-                accessibilityLabel="Report incident or live tip"
+                onPress={recenter}
+                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.92)', borderColor: 'rgba(255,255,255,0.15)' }]}
+                accessibilityLabel="Recenter GPS"
               >
-                <Feather name="plus" size={22} color="#000" />
+                <Feather name="crosshair" size={17} color={primary} />
+              </TouchableOpacity>
+
+              {/* Nightlife Timeline Dial Trigger */}
+              <TouchableOpacity
+                onPress={() => setShowTimeDial((v) => !v)}
+                style={[
+                  cs.thumbBtn,
+                  {
+                    backgroundColor: showTimeDial ? 'rgba(0,242,255,0.22)' : 'rgba(12,16,18,0.92)',
+                    borderColor: showTimeDial ? primary : 'rgba(255,255,255,0.15)',
+                  },
+                ]}
+                accessibilityLabel="Toggle Nightlife Time Scrubber"
+              >
+                <Feather name="clock" size={17} color={showTimeDial ? primary : '#fff'} />
               </TouchableOpacity>
 
               {/* Layers Drawer Trigger */}
               <TouchableOpacity
                 onPress={() => setLayersModalVisible(true)}
-                style={[cs.fab, { backgroundColor: `${bg}ee`, borderColor: `${primary}35` }]}
+                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.92)', borderColor: 'rgba(255,255,255,0.15)' }]}
                 accessibilityLabel="Open map layers and visual modes"
               >
-                <Feather name="layers" size={18} color={primary} />
+                <Feather name="layers" size={17} color={primary} />
               </TouchableOpacity>
 
-              {/* Roulette / Discovery prompt */}
+              {/* Vibe Roulette */}
               <TouchableOpacity
                 onPress={() => setShowRoulette(true)}
-                style={[cs.fab, { backgroundColor: `${bg}ee`, borderColor: `${primary}35` }]}
+                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.92)', borderColor: 'rgba(255,255,255,0.15)' }]}
                 accessibilityLabel="Vibe roulette"
               >
-                <Feather name="compass" size={18} color={primary} />
+                <Feather name="compass" size={17} color={primary} />
               </TouchableOpacity>
 
-              {/* Zoom & Fit Cluster */}
-              <View style={[cs.zoomCluster, { backgroundColor: `${bg}ee`, borderColor: `${primary}30` }]}>
-                <TouchableOpacity onPress={zoomIn} style={cs.zoomBtn} accessibilityLabel="Zoom in">
-                  <Feather name="plus" size={17} color={primary} />
-                </TouchableOpacity>
-                <View style={[cs.zoomDivider, { backgroundColor: `${muted}30` }]} />
-                <TouchableOpacity onPress={zoomOut} style={cs.zoomBtn} accessibilityLabel="Zoom out">
-                  <Feather name="minus" size={17} color={primary} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Fit All in View */}
-              <TouchableOpacity onPress={fitAll} style={[cs.fab, { backgroundColor: `${bg}ee`, borderColor: `${primary}35` }]} accessibilityLabel="Fit all events">
-                <Feather name="maximize-2" size={16} color={primary} />
+              {/* Report button */}
+              <TouchableOpacity
+                onPress={() => (user ? setReportSheet(true) : onAuthRequired?.())}
+                style={[cs.thumbBtnPrimary, { backgroundColor: primary }]}
+                accessibilityLabel="Report incident or live tip"
+              >
+                <Feather name="plus" size={20} color="#000" />
               </TouchableOpacity>
-
-              {/* Mark closure tool on web */}
-              {caps.draw && (
-                <TouchableOpacity onPress={startDraw} style={[cs.markBtn, { backgroundColor: primary }]}>
-                  <Feather name="edit-3" size={14} color="#000" />
-                  <Text style={cs.markText}>Closure</Text>
-                </TouchableOpacity>
-              )}
             </View>
           )}
 
@@ -892,62 +947,39 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             </TouchableOpacity>
           )}
 
-          {/* Bottom Quick Vibe Bar — glanceable pulse when no sheet is open */}
-          {isMapSupported() && !drawing && !activeZone && !previewId && shownEvents.length > 0 && (
-            <View style={cs.bottomVibeBar} pointerEvents="box-none">
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
-              >
-                {shownEvents.slice(0, 8).map((ev) => {
-                  const here = ev.here_count || 0;
-                  const isLive = here > 0;
-                  const cover = ev.image_url || ev.image;
-                  return (
-                    <TouchableOpacity
-                      key={ev.id}
-                      style={[
-                        cs.vibeSpotCard,
-                        {
-                          backgroundColor: `${bg}f0`,
-                          borderColor: isLive ? '#10b98166' : `${primary}25`,
-                        }
-                      ]}
-                      onPress={() => {
-                        setPreviewId(ev.id);
-                        if (ev.lat != null && ev.lon != null) {
-                          setCenter({ lat: ev.lat, lng: ev.lon });
-                        }
-                      }}
-                      activeOpacity={0.85}
-                    >
-                      {cover ? (
-                        <SmartImage source={cover} style={cs.vibeSpotThumb} />
-                      ) : (
-                        <View style={[cs.vibeSpotThumb, { backgroundColor: `${primary}18`, alignItems: 'center', justifyContent: 'center' }]}>
-                          <Feather name="music" size={14} color={primary} />
-                        </View>
-                      )}
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={[cs.vibeSpotTitle, { color: textColor }]} numberOfLines={1}>
-                          {ev.title || ev.venue_name || 'Gruv'}
-                        </Text>
-                        <Text style={[cs.vibeSpotSub, { color: muted }]} numberOfLines={1}>
-                          {ev.venue_name || ev.suburb || 'South Africa'}
-                        </Text>
-                      </View>
-                      {isLive ? (
-                        <View style={cs.liveBadgeWrap}>
-                          <View style={cs.livePulseDot} />
-                          <Text style={cs.liveBadgeText}>{here}</Text>
-                        </View>
-                      ) : null}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+          {/* Nightlife Timeline Scrubber Dial (when active) */}
+          {showTimeDial && !drawing && !activeZone && (
+            <View style={cs.timeDialWrap}>
+              <NightlifeTimeDial
+                selectedHour={hourFilter}
+                onSelectHour={(h) => setHourFilter(h)}
+                onClose={() => setShowTimeDial(false)}
+                primary={primary}
+                textColor={textColor}
+                muted={muted}
+              />
             </View>
+          )}
+
+          {/* Unified 3-State Interactive Venue Deck */}
+          {!drawing && !activeZone && shownEvents.length > 0 && (
+            <MapVenueDeck
+              events={shownEvents}
+              activeEventId={previewId}
+              userCoords={userLoc || center}
+              onSelectEvent={(id) => {
+                setPreviewId(id);
+                const ev = events.find((x) => x.id === id);
+                if (ev) setCenter({ lat: ev.lat ?? ev.latitude, lng: ev.lon ?? ev.longitude });
+              }}
+              onOpenEventDetail={(id) => onNavigateToEvent?.({ id })}
+              onOpenWhoHere={openWhoHere}
+              onAuthRequired={onAuthRequired}
+              primary={primary}
+              bg={bg}
+              textColor={textColor}
+              muted={muted}
+            />
           )}
         </View>
 
@@ -969,19 +1001,23 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           />
         )}
 
-        {/* Tapped-pin preview — RSVP, save, route, live here-now, swipe pins */}
-        {previewId && !drawing && !activeZone && (
-          <MapEventPreview
-            events={events}
-            startId={previewId}
-            userCoords={center}
-            zones={zones}
-            onOpenEvent={(id) => { setPreviewId(null); onNavigateToEvent?.({ id }); }}
-            onOpenZone={(z) => { setPreviewId(null); setActiveZone(z); }}
-            onClose={() => setPreviewId(null)}
-            onAuthRequired={onAuthRequired}
-          />
-        )}
+        {/* Verified In-Room Radar Modal */}
+        <WhoHereModal
+          visible={whoHereModal.visible}
+          eventId={whoHereModal.eventId}
+          event={events.find((x) => x.id === whoHereModal.eventId)}
+          attendees={whoHereModal.attendees}
+          loading={whoHereModal.loading}
+          onClose={() => setWhoHereModal((prev) => ({ ...prev, visible: false }))}
+          onSelectViber={(viberId) => {
+            setWhoHereModal((prev) => ({ ...prev, visible: false }));
+            handleViberPress(viberId);
+          }}
+          primary={primary}
+          bg={bg}
+          textColor={textColor}
+          muted={muted}
+        />
 
         {/* Concierge destinations */}
         <VibeRouletteModal
@@ -1101,7 +1137,7 @@ const StayDetail = ({ stay, onClose, bg, textColor, muted }) => {
     stay.livesHere ? 'Landlord on-site' : null,
   ].filter(Boolean).join(' · ');
   const link = residentUrl('dashboard'); // Resident's map/listings live under the dashboard
-  const open = () => { if (link) Linking.openURL(link).catch(() => {}); };
+  const open = () => { if (link) SecurityService.safeOpenURL(link).catch(() => {}); };
 
   return (
     <View style={[cs.sheet, { backgroundColor: bg, borderColor: `${gold}55` }]}>
@@ -1278,6 +1314,129 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
   );
 };
 
+// ── WhoHereModal — Verified In-The-Room Co-Presence Radar ──────────────────────
+const WhoHereModal = ({
+  visible,
+  eventId,
+  event,
+  attendees = [],
+  loading = false,
+  onClose,
+  onSelectViber,
+  primary = '#00f2ff',
+  bg = '#080b0d',
+  textColor = '#fff',
+  muted = 'rgba(255,255,255,0.55)',
+}) => {
+  if (!visible) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={cs.modalOverlay}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
+        <View style={[cs.whoHereCard, { backgroundColor: 'rgba(10,14,16,0.96)', borderColor: 'rgba(255,255,255,0.14)' }]}>
+          {/* Header */}
+          <View style={cs.whoHereHeader}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                <View style={cs.liveDotPulse} />
+                <Text style={[cs.whoHereTitle, { color: textColor }]}>Verified In The Room</Text>
+              </View>
+              <Text style={[cs.whoHereSub, { color: muted }]} numberOfLines={1}>
+                {event?.title ? `${event.title} · ` : ''}Live Touch Downs
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={cs.whoHereCloseBtn}>
+              <Feather name="x" size={18} color={muted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Body */}
+          {loading ? (
+            <View style={{ paddingVertical: 36, alignItems: 'center', gap: 12 }}>
+              <ActivityIndicator size="small" color="#10b981" />
+              <Text style={{ color: muted, fontSize: 13, fontWeight: '600' }}>Scanning in-room attendance...</Text>
+            </View>
+          ) : attendees.length === 0 ? (
+            <View style={{ paddingVertical: 32, alignItems: 'center', gap: 10, paddingHorizontal: 16 }}>
+              <View style={[cs.emptyIconWrap, { borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+                <Feather name="radio" size={22} color="#10b981" />
+              </View>
+              <Text style={{ color: textColor, fontSize: 14, fontWeight: '800', textAlign: 'center' }}>
+                No active check-ins right now
+              </Text>
+              <Text style={{ color: muted, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
+                Touch Down when you arrive at this spot to appear on the live radar and connect with mutuals.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 8, paddingVertical: 4 }}>
+                {attendees.map((attendee) => {
+                  const avatarUri = attendee.avatar_url ? thumb(attendee.avatar_url, 80, 80) : null;
+                  return (
+                    <TouchableOpacity
+                      key={attendee.id || attendee.userId}
+                      onPress={() => onSelectViber?.(attendee.userId)}
+                      style={[cs.attendeeRow, { borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.03)' }]}
+                      activeOpacity={0.7}
+                    >
+                      {avatarUri ? (
+                        <SmartImage uri={avatarUri} style={cs.attendeeAvatar} />
+                      ) : (
+                        <View style={[cs.attendeeAvatarFallback, { backgroundColor: `${primary}25` }]}>
+                          <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>
+                            {(attendee.display_name || attendee.username || 'V')[0].toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Text style={[cs.attendeeName, { color: textColor }]} numberOfLines={1}>
+                            {attendee.display_name || attendee.username}
+                          </Text>
+                          {attendee.is_verified && (
+                            <Feather name="check-circle" size={13} color={primary} />
+                          )}
+                        </View>
+                        <Text style={[cs.attendeeUsername, { color: muted }]}>
+                          @{attendee.username}
+                        </Text>
+                      </View>
+
+                      {attendee.vibe_score > 0 && (
+                        <View style={[cs.vibeScoreBadge, { borderColor: 'rgba(0,242,255,0.25)', backgroundColor: 'rgba(0,242,255,0.08)' }]}>
+                          <Feather name="zap" size={10} color={primary} />
+                          <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>
+                            {attendee.vibe_score}
+                          </Text>
+                        </View>
+                      )}
+
+                      <View style={[cs.profileTapBtn, { borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                        <Feather name="arrow-up-right" size={14} color={textColor} />
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          )}
+
+          {/* Dismiss button */}
+          <TouchableOpacity
+            onPress={onClose}
+            style={[cs.modalDoneBtn, { borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(255,255,255,0.06)' }]}
+            activeOpacity={0.8}
+          >
+            <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const cs = StyleSheet.create({
   screen: { flex: 1 },
   // Floating top controls capsule
@@ -1294,10 +1453,9 @@ const cs = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 16,
     borderRadius: 24,
-    borderWidth: 1.5,
+    borderWidth: 1,
     height: 48,
     paddingHorizontal: 4,
-    ...SHADOW?.lift,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
   },
   searchInput: {
@@ -1328,8 +1486,7 @@ const cs = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 7,
     borderRadius: 20,
-    borderWidth: 1.5,
-    ...SHADOW?.card,
+    borderWidth: 1,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } : {}),
   },
   quickPillText: {
@@ -1341,39 +1498,54 @@ const cs = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  // Floating controls cluster
-  fabCol: {
+  // Consolidated Thumb Pod (right side above bottom deck)
+  thumbPod: {
     position: 'absolute',
     right: 16,
-    bottom: 24,
+    bottom: 250,
     alignItems: 'center',
-    gap: 12,
-    zIndex: 20,
+    gap: 10,
+    zIndex: 36,
   },
-  fabPrimary: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  thumbBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    ...SHADOW?.lift,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : {}),
   },
-  fab: {
+  thumbBtnPrimary: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    ...SHADOW?.card,
-    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : {}),
+  },
+  timeDialWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 242,
+    zIndex: 37,
+  },
+  whoGoingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  whoGoingAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   zoomCluster: {
     borderRadius: 22,
-    borderWidth: 1.5,
+    borderWidth: 1,
     overflow: 'hidden',
     alignItems: 'center',
-    ...SHADOW?.card,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : {}),
   },
   zoomBtn: {
@@ -1393,7 +1565,6 @@ const cs = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
-    ...SHADOW?.lift,
   },
   markText: {
     color: '#000',
@@ -1424,9 +1595,8 @@ const cs = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 20,
-    borderWidth: 1.5,
+    borderWidth: 1,
     gap: 10,
-    ...SHADOW?.lift,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
   },
   vibeSpotThumb: {
@@ -1481,6 +1651,111 @@ const cs = StyleSheet.create({
   trust: { flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderRadius: 12, padding: 10 },
   verifyBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 22, paddingVertical: 11 },
   eventLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, marginTop: 2 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : {}),
+  },
+  whoHereCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 18,
+    gap: 12,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
+  },
+  whoHereHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 4,
+  },
+  whoHereTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  whoHereSub: {
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  whoHereCloseBtn: {
+    padding: 4,
+  },
+  liveDotPulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
+  },
+  emptyIconWrap: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attendeeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  attendeeAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  attendeeAvatarFallback: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attendeeName: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  attendeeUsername: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  vibeScoreBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginRight: 6,
+  },
+  profileTapBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalDoneBtn: {
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
 });
 
 export default MapScreen;

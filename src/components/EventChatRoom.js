@@ -96,17 +96,25 @@ const MessageBubble = memo(({ msg, isMine, canModerate, primary, textColor, mute
           style={[
             mb.bubble,
             isMine
-              ? { backgroundColor: primary, borderBottomRightRadius: 4 }
-              : { backgroundColor: surface, borderBottomLeftRadius: 4 },
-            msg.pinned && { borderWidth: 1, borderColor: `${primary}50` },
+              ? { backgroundColor: primary, borderBottomRightRadius: 4, borderWidth: 1, borderColor: `${primary}50` }
+              : { backgroundColor: '#0d1114', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: `${primary}25` },
+            msg.pinned && { borderWidth: 1, borderColor: `${primary}60` },
           ]}
         >
-          {!isMine && (
-            <Text style={[mb.username, { color: primary }]}>
-              {author.username || 'Viber'}
-              {author.is_verified && '  ✓'}
-            </Text>
-          )}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {!isMine && (
+              <Text style={[mb.username, { color: primary }]}>
+                {author.username || 'Viber'}
+                {author.is_verified && '  ✓'}
+              </Text>
+            )}
+            {(msg.in_room || msg.is_checked_in || msg.checked_in) && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: '#10b98150', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6, marginBottom: 2 }}>
+                <Text style={{ fontSize: 9 }}>📍</Text>
+                <Text style={{ fontSize: 8.5, color: '#10b981', fontWeight: '900', letterSpacing: 0.4 }}>IN ROOM</Text>
+              </View>
+            )}
+          </View>
           <Text style={[mb.text, { color: isMine ? '#000' : textColor }]}>{msg.message}</Text>
           <Text style={[mb.time, { color: isMine ? 'rgba(0,0,0,0.5)' : muted }]}>{timeStr(msg.created_at)}</Text>
         </TouchableOpacity>

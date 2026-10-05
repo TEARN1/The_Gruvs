@@ -45,6 +45,19 @@ const DEFAULT_MAX_SIZE = 100 * 1024 * 1024; // never exceed the smallest common 
 const limitFor = (bucket) => BUCKET_LIMITS[bucket] ?? DEFAULT_MAX_SIZE;
 const mb = (bytes) => (bytes / 1024 / 1024).toFixed(1).replace(/\.0$/, '');
 
+// Storage paths are `${userId}/...` and RLS keys ownership off the first
+// segment. Refuse anything that could step outside that folder or be
+// interpreted differently by the storage API: `..` segments, absolute paths,
+// backslashes, control characters, or an absurd length.
+const assertSafeStoragePath = (p) => {
+  const s = String(p || '');
+  // eslint-disable-next-line no-control-regex
+  if (!s || s.length > 512 || s.startsWith('/') || s.includes('\\') || /[\u0000-\u001f\u007f]/.test(s)
+      || s.split('/').some(seg => seg === '..' || seg === '.')) {
+    throw new Error('Invalid upload path.');
+  }
+};
+
 const extFromPath = (storagePath) => {
   const base = storagePath.split('?')[0];
   return (base.split('.').pop() || 'jpg').toLowerCase();
@@ -139,6 +152,7 @@ const compressImageBlob = async (blob, type) => {
  */
 export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {}) => {
   if (!uri) throw new Error('No file selected. Please pick an image first.');
+  assertSafeStoragePath(storagePath);
 
   const type = resolveMime(mimeType, storagePath);
 
@@ -162,6 +176,15 @@ export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {
   blob = await compressImageBlob(blob, (blob.type && blob.type !== 'application/octet-stream') ? blob.type : type);
 
   const finalType = (blob.type && blob.type !== 'application/octet-stream') ? blob.type : type;
+
+  // SECURITY: the allow-list above checked the DECLARED type, but the upload
+  // sends the blob's ACTUAL type. A crafted `data:text/html,…` URI or a
+  // mislabelled file would otherwise be stored as text/html or image/svg+xml in
+  // a PUBLIC bucket and served from our storage origin — stored XSS. Re-check
+  // the type that will really go over the wire.
+  if (!ALLOWED_TYPES.includes(String(finalType).toLowerCase().split(';')[0].trim())) {
+    throw new Error('This file type is not allowed. Please use a JPG, PNG, WEBP, GIF or MP4.');
+  }
 
   // Enforce THIS bucket's real limit, not one global number. The bucket rejects
   // anything over its own ceiling server-side, so checking a 150 MB cap here just

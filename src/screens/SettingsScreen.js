@@ -41,6 +41,7 @@ import { mfaStatus } from '../services/mfa';
 import { PermissionsPanel } from '../components/PermissionsPanel';
 import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
 import { GetAppModal } from '../components/GetAppModal';
+import { SecurityService } from '../services/securityService';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
@@ -364,7 +365,7 @@ export const SettingsScreen = ({
     }
   }, [onSignOut]);
 
-  const openUrl = (url) => Linking.openURL(url).catch(() => toast?.show('Could not open link.', 'error'));
+  const openUrl = (url) => SecurityService.safeOpenURL(url).catch(() => toast?.show('Could not open link.', 'error'));
 
   const gKey = genderKey(profile?.gender);
   const themeList = THEMES[gKey] || THEMES.non_binary || [];

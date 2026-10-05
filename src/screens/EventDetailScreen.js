@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, TextInput, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, TextInput, Linking, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
@@ -20,6 +20,7 @@ import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
 import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, VibeManager } from '../services/dataFlow';
+import { findNearbyCoPresence } from '../services/coPresence';
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
 import { affiliateUrl } from '../utils/affiliate';
@@ -52,6 +53,7 @@ import { ResidentLiftsSection }   from '../components/ResidentLiftsSection';
 import { ResidentStaysSection }   from '../components/ResidentStaysSection';
 import { ResidentTrustBadge }     from '../components/ResidentTrustBadge';
 import { EventContextualAds }     from '../components/EventContextualAds';
+import { EventFlyersSection }     from '../components/EventFlyersSection';
 import { EventScheduleSection }   from '../components/EventScheduleSection';
 import { EventChatRoom }          from '../components/EventChatRoom';
 import { EventPollSection }       from '../components/EventPollSection';
@@ -89,6 +91,15 @@ import { lifecycleState } from '../utils/eventLifecycle';
 import { eventInstant } from '../utils/tz';
 import { DoorCheckInModal } from '../components/DoorCheckInModal';
 import { checkinVerdict, movementPlausible } from '../utils/checkinGuard';
+import { TicketVaultExchangeModal } from '../components/TicketVaultExchangeModal';
+import { NightSafetyLogisticsModal } from '../components/NightSafetyLogisticsModal';
+import { InPersonVibeRadarModal } from '../components/InPersonVibeRadarModal';
+import { BoothAndStreetModal } from '../components/BoothAndStreetModal';
+import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
+import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
+import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
+import { sensoryHaptics } from '../services/sensoryHapticEngine';
+import { OpticalMoirePass, BorderTracer } from '../components/KasiIndustrialUI';
 
 // Gaming events get a scoreboard too (esports engine), EXCEPT the purely social
 // gaming categories where a league table makes no sense.
@@ -101,8 +112,7 @@ const _isSportCat = (cat) => {
   return GAMING_KEYS.has(c) && !_NON_SCORE_GAMING.has(c);
 };
 
-const SCREEN_W = Dimensions.get('window').width;
-const HERO_H = Math.min(300, Math.max(220, SCREEN_W * 0.72));
+const HERO_H = 280;
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -185,9 +195,21 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [settingReminder, setSettingReminder] = useState(false);
   const [whoGoingVisible, setWhoGoingVisible] = useState(false);
   const [whoGoing, setWhoGoing] = useState([]);
+  const [whoHereVisible, setWhoHereVisible] = useState(false);
+  const [whoHere, setWhoHere] = useState([]);
+  const [whoHereLoading, setWhoHereLoading] = useState(false);
+  const [activeProfileId, setActiveProfileId] = useState(null);
+  const [dmUser, setDmUser] = useState(null);
   const [attendeePreview, setAttendeePreview] = useState([]);
   const [attendeeGroups, setAttendeeGroups] = useState({ mutuals: [], friends: [], neighborhood: [] });
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
+  const [vaultModalVisible, setVaultModalVisible] = useState(false);
+  const [safetyModalVisible, setSafetyModalVisible] = useState(false);
+  const [inPersonModalVisible, setInPersonModalVisible] = useState(false);
+  const [boothModalVisible, setBoothModalVisible] = useState(false);
+  const [sensoryModalVisible, setSensoryModalVisible] = useState(false);
+  const [cultureModalVisible, setCultureModalVisible] = useState(false);
+  const [dockGlitter, setDockGlitter] = useState({ vault: 0, safety: 0, vibe: 0, booth: 0, sensory: 0, culture: 0 });
   const [myTicket, setMyTicket] = useState(null);
   const [groupModalVisible, setGroupModalVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
@@ -592,7 +614,11 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     // Optimistic update
     const prev = rsvpStatus;
     setRsvpStatus(status);
-    if (status === 'going' && prev !== 'going') { setGoingCount((c) => c + 1); setRsvpFx(Date.now()); }
+    if (status === 'going' && prev !== 'going') {
+      setGoingCount((c) => c + 1);
+      setRsvpFx(Date.now());
+      sensoryHaptics.triggerLogDrum('heavy');
+    }
     if (prev === 'going' && status !== 'going') setGoingCount((c) => Math.max(0, c - 1));
     setRsvpLoading(true);
     try {
@@ -722,6 +748,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     }
   };
 
+  const handleWhoHere = async () => {
+    if (!event?.id) return;
+    setWhoHereLoading(true);
+    setWhoHereVisible(true);
+    try {
+      const results = await findNearbyCoPresence(user?.id, event.id);
+      setWhoHere(results);
+    } catch {
+      showToast('Could not load vibers in the room.', 'error');
+    } finally {
+      setWhoHereLoading(false);
+    }
+  };
+
   const openMaps = () => {
     const lat = event?.lat ?? event?.latitude;
     const lon = event?.lon ?? event?.longitude;
@@ -834,12 +874,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose} statusBarTranslucent>
-      <View
-        style={[styles.root, { backgroundColor: background }]}
-        accessibilityViewIsModal
-        accessibilityLabel={event?.title ? `Event details: ${event.title}` : 'Event details'}
-        {...(Platform.OS === 'web' ? { 'aria-modal': true } : {})}
-      >
+      <View style={{ flex: 1, width: '100%', backgroundColor: background }}>
+        <View
+          style={[styles.root, { backgroundColor: background }]}
+          accessibilityViewIsModal
+          accessibilityLabel={event?.title ? `Event details: ${event.title}` : 'Event details'}
+          {...(Platform.OS === 'web' ? { 'aria-modal': true } : {})}
+        >
 
         <View style={styles.hero}>
           {matchCard ? (
@@ -1304,10 +1345,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <Text style={[styles.vibeCountText, { color: primary }]}>{goingCount} Locked In</Text>
             </TouchableOpacity>
             {hereCount > 0 && (
-              <View style={[styles.vibePill, { backgroundColor: '#10b98118', borderColor: '#10b98140' }]}>
+              <TouchableOpacity
+                style={[styles.vibePill, { backgroundColor: '#10b98118', borderColor: '#10b98140' }]}
+                onPress={handleWhoHere}
+                activeOpacity={0.8}
+              >
                 <Feather name="map-pin" size={13} color="#10b981" />
                 <Text style={[styles.vibeCountText, { color: '#10b981' }]}>{hereCount} Here</Text>
-              </View>
+                <Feather name="chevron-right" size={12} color="#10b981" style={{ marginLeft: 2 }} />
+              </TouchableOpacity>
             )}
             {isSoldOut && (
               <View style={[styles.vibePill, { backgroundColor: '#ef444420', borderColor: '#ef444440' }]}>
@@ -1406,6 +1452,215 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               </View>
             );
           })()}
+
+          {/* Nightlife Operations & Squad Command Strip — Zero AI Truth Protocol */}
+          {event?.id && (
+            <View style={{ paddingHorizontal: 16, marginTop: 14, marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <Text style={{ color: textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 0.8 }}>
+                  NIGHTLIFE & EVENT OPERATIONS
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: `${primary}15`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: `${primary}30` }}>
+                  <Feather name="shield" size={10} color={primary} />
+                  <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>Zero AI · Truth Protocol</Text>
+                </View>
+              </View>
+
+              {/* 2x2 Command Grid with flat shadowless styling and micro-glitter bursts */}
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                {/* 1. Offline Pass & Vault */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, vault: Date.now() }));
+                    setVaultModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: `${primary}35`,
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: `${primary}18`, borderWidth: 1, borderColor: `${primary}40`, alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="shield" size={16} color={primary} />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: primary, fontSize: 9.5, fontWeight: '800' }}>OFFLINE HMAC</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Ticket Vault</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Pass · Resale · Kitty · Escrow</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.vault} count={12} radius={32} colors={[primary, '#fde047', '#fff']} />
+                </TouchableOpacity>
+
+                {/* 2. Night Safety & Squad Care */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, safety: Date.now() }));
+                    setSafetyModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(239,68,68,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="life-buoy" size={16} color="#ef4444" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(239,68,68,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#ef4444', fontSize: 9.5, fontWeight: '800' }}>SOS GUARD</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Night Safety</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Safe Ride · Walk to Car · Shuttles</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.safety} count={12} radius={32} colors={['#ef4444', '#fde047', '#fff']} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {/* 3. In-Person Radar & Handshake */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, vibe: Date.now() }));
+                    setInPersonModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(16,185,129,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="radio" size={16} color="#10b981" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(16,185,129,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#10b981', fontSize: 9.5, fontWeight: '800' }}>CREW RADAR</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Vibe Radar</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Handshake · Crossed · Mayor</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.vibe} count={12} radius={32} colors={['#10b981', '#00f2ff', '#fff']} />
+                </TouchableOpacity>
+
+                {/* 4. DJ Booth & Street Bites */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, booth: Date.now() }));
+                    setBoothModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(245,158,11,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="headphones" size={16} color="#f59e0b" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(245,158,11,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#f59e0b', fontSize: 9.5, fontWeight: '800' }}>BOOTH DROPS</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Booth & Street</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Live Audio · Kotas · 3AM Braai</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.booth} count={12} radius={32} colors={['#f59e0b', '#fde047', '#fff']} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Row 3: Sensory & Safety Suite + Cultural Artifacts */}
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                {/* 5. Sensory & Safety Suite */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, sensory: Date.now() }));
+                    setSensoryModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(236,72,153,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(236,72,153,0.15)', borderWidth: 1, borderColor: 'rgba(236,72,153,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="zap" size={16} color="#ec4899" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(236,72,153,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#ec4899', fontSize: 9.5, fontWeight: '800' }}>SENSORY HUD</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Sensory Suite</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Beacon · 3AM Survival · Bouncer</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.sensory} count={12} radius={32} colors={['#ec4899', '#fde047', '#fff']} />
+                </TouchableOpacity>
+
+                {/* 6. Cultural Artifacts */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, culture: Date.now() }));
+                    setCultureModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(251,191,36,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(251,191,36,0.15)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="award" size={16} color="#fbbf24" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(251,191,36,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#fbbf24', fontSize: 9.5, fontWeight: '800' }}>ARTIFACTS</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Cultural Stubs</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Receipts · Sparklers · Dials</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.culture} count={12} radius={32} colors={['#fbbf24', '#00f2ff', '#fff']} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           {event?.rsvp_tiers?.length > 0 && (
             <SafeSection label="VIP Tiers" primary={primary}>
@@ -1713,6 +1968,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {event && (
             <SafeSection label="Ads" primary={primary}>
               <EventContextualAds event={event} onNavigate={() => {}} />
+            </SafeSection>
+          )}
+
+          {event && (
+            <SafeSection label="In-Event Flyers" primary={primary}>
+              <EventFlyersSection
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                surface={surface}
+                onAuthRequired={onAuthRequired}
+              />
             </SafeSection>
           )}
 
@@ -2110,6 +2378,114 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </View>
           </View>
         </Modal>
+
+        {/* In The Room / Find Me Verified Co-Presence Modal */}
+        <Modal visible={whoHereVisible} animationType="slide" transparent onRequestClose={() => setWhoHereVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
+            <View style={[styles.whoGoingSheet, { backgroundColor: background, maxHeight: '80%' }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Feather name="navigation" size={16} color="#10b981" />
+                    <Text style={[styles.whoGoingTitle, { color: textColor }]}>In The Room ({whoHere.length})</Text>
+                  </View>
+                  <Text style={{ color: textMuted, fontSize: 12, marginTop: 2 }}>
+                    Verified on-the-ground Touch Downs
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setWhoHereVisible(false)}>
+                  <Feather name="x" size={22} color={textColor} />
+                </TouchableOpacity>
+              </View>
+
+              {whoHereLoading ? (
+                <View style={{ paddingVertical: 36, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color={primary} />
+                  <Text style={{ color: textMuted, fontSize: 13, marginTop: 10 }}>Locating Vibers in the room...</Text>
+                </View>
+              ) : whoHere.length === 0 ? (
+                <View style={{ paddingVertical: 36, alignItems: 'center' }}>
+                  <Feather name="map-pin" size={32} color={textMuted} style={{ marginBottom: 10 }} />
+                  <Text style={{ color: textColor, fontWeight: '700', fontSize: 14 }}>No other verified Touch Downs yet</Text>
+                  <Text style={{ color: textMuted, fontSize: 12, textAlign: 'center', marginTop: 4, paddingHorizontal: 20 }}>
+                    When other Vibers Touch Down at the venue, they will show up here.
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {whoHere.map((p) => (
+                    <View key={p.userId || p.id} style={[styles.whoGoingRow, { borderBottomColor: `${primary}15`, justifyContent: 'space-between' }]}>
+                      <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                        onPress={() => {
+                          setWhoHereVisible(false);
+                          setActiveProfileId(p.userId || p.id);
+                        }}
+                      >
+                        {p.avatar_url ? (
+                          <Image source={{ uri: thumb.avatar(p.avatar_url) }} style={styles.whoGoingAvatar} />
+                        ) : (
+                          <View style={[styles.whoGoingAvatar, { backgroundColor: ["#0891b2", "#7c3aed", "#059669", "#dc2626"][(p.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
+                            <Text style={{ color: '#fff', fontWeight: '900' }}>{(p.username || 'V')[0].toUpperCase()}</Text>
+                          </View>
+                        )}
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={{ color: textColor, fontWeight: '700', fontSize: 14 }}>{p.display_name || p.username}</Text>
+                            {p.is_verified && <Feather name="check-circle" size={13} color={primary} />}
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                            <View style={{ backgroundColor: '#10b98120', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                              <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '700' }}>📍 In Room</Text>
+                            </View>
+                            <Text style={{ color: primary, fontSize: 11, fontWeight: '600' }}>⚡ {p.vibe_score || 0} pts</Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 12,
+                          backgroundColor: `${primary}20`,
+                          borderColor: `${primary}40`,
+                          borderWidth: 1,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                        onPress={() => {
+                          if (!user) { onAuthRequired?.(); return; }
+                          setWhoHereVisible(false);
+                          setDmUser({ id: p.userId || p.id, username: p.username, avatar_url: p.avatar_url });
+                        }}
+                      >
+                        <Feather name="message-circle" size={13} color={primary} />
+                        <Text style={{ color: primary, fontSize: 12, fontWeight: '700' }}>Say Hey</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {activeProfileId && (
+          <ViberProfileModal
+            visible={!!activeProfileId}
+            userId={activeProfileId}
+            onClose={() => setActiveProfileId(null)}
+          />
+        )}
+        {dmUser && (
+          <DirectMessageModal
+            visible={!!dmUser}
+            recipient={dmUser}
+            onClose={() => setDmUser(null)}
+          />
+        )}
       </View>
       {dmOpen && (
         <DirectMessageModal
@@ -2128,6 +2504,102 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             console.log('Gift sent successfully:', gift);
           }}
         />
+      )}
+
+      {/* 1. Cryptographic Offline Ticket Vault, Resale & Queue */}
+      {vaultModalVisible && (
+        <SafeSection label="Ticket Vault" primary={primary}>
+          <TicketVaultExchangeModal
+            visible={vaultModalVisible}
+            event={event}
+            onClose={() => setVaultModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            background={background}
+            surface={surface}
+            onAuthRequired={onAuthRequired}
+          />
+        </SafeSection>
+      )}
+
+      {/* 2. Night Safety, Safe Ride Home & Shuttles */}
+      {safetyModalVisible && (
+        <SafeSection label="Night Safety" primary={primary}>
+          <NightSafetyLogisticsModal
+            visible={safetyModalVisible}
+            event={event}
+            onClose={() => setSafetyModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
+      )}
+
+      {/* 3. In-Person Radar, Handshake & Morning After */}
+      {inPersonModalVisible && (
+        <SafeSection label="In-Person Vibe Radar" primary={primary}>
+          <InPersonVibeRadarModal
+            visible={inPersonModalVisible}
+            event={event}
+            onClose={() => setInPersonModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
+      )}
+
+      {/* 4. DJ Booth Live, Track ID, Kotas & 3AM Recovery */}
+      {boothModalVisible && (
+        <SafeSection label="Booth & Street" primary={primary}>
+          <BoothAndStreetModal
+            visible={boothModalVisible}
+            event={event}
+            onClose={() => setBoothModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
+      )}
+
+      {/* 5. Nightlife Sensory Suite — Squad Beacon, 3AM Survival & Bouncer HUD */}
+      {sensoryModalVisible && (
+        <SafeSection label="Sensory Suite" primary={primary}>
+          <NightlifeSensoryModal
+            visible={sensoryModalVisible}
+            event={event}
+            onClose={() => setSensoryModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
+      )}
+
+      {/* 6. Cultural Artifacts Hub — Butcher Receipts, Sparklers & Dials */}
+      {cultureModalVisible && (
+        <SafeSection label="Cultural Artifacts" primary={primary}>
+          <CultureArtifactsModal
+            visible={cultureModalVisible}
+            event={event}
+            onClose={() => setCultureModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
       )}
 
       {/* Pitch to Perform Modal */}
@@ -2311,10 +2783,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                     justifyContent: 'center',
                     flexDirection: 'row',
                     gap: 8,
-                    shadowColor: primary,
-                    shadowOpacity: 0.35,
-                    shadowRadius: 10,
-                    shadowOffset: { width: 0, height: 4 },
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.18)',
                   }}
                 >
                   <Feather name={pitchSending ? "loader" : "send"} size={16} color="#fff" />
@@ -2338,6 +2808,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           onSelectEvent={() => setMapVisible(false)}
         />
       )}
+      </View>
     </Modal>
   );
 };
@@ -2361,6 +2832,9 @@ const MetaChip = ({ icon, label, color, pressable }) => (
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    width: '100%',
+    maxWidth: 740,
+    alignSelf: 'center',
   },
   hero: {
     height: HERO_H,
@@ -2669,10 +3143,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
   },
   reportText: {
     fontSize: 12,

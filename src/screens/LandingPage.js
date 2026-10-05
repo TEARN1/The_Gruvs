@@ -21,6 +21,7 @@ import { HashtagStrip } from '../components/HashtagStrip';
 import { useIdentity } from '../context/IdentityContext';
 import { SafeSection } from '../components/SafeSection';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { likeContains } from '../utils/sanitize';
 import { thumb } from '../utils/storageThumb';
 import { buildShareText } from '../utils/shareText';
 import { heatLabel, heatScore as heatScoreCanon } from '../utils/heatScore';
@@ -86,15 +87,18 @@ import { insertStartHeaders } from '../utils/startGroup';
 import { UnlockTeaserCard } from '../components/UnlockTeaserCard';
 import { NotificationNudge } from '../components/NotificationNudge';
 import { BirthDateNudge } from '../components/BirthDateNudge';
+import { sensoryHaptics } from '../services/sensoryHapticEngine';
+import { BorderTracer } from '../components/KasiIndustrialUI';
+import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
+import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
 // fresh app load once the schema is deployed.
 let residentAlertsEnabled = true;
 
-const SCREEN_W = Dimensions.get('window').width;
-const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
-const TREND_CARD_H = Math.round(TREND_CARD_W * 0.62);
+const TREND_CARD_W = 190;
+const TREND_CARD_H = 124;
 
 // Safe haptic wrapper for web compatibility
 const safeHaptic = (fn) => {
@@ -359,18 +363,15 @@ const EventCard = React.memo(({
           style={[
             styles.eventCard,
             {
-              backgroundColor: isFlashing ? `${primary}22` : flashColor ? `${flashColor}12` : surface,
-              borderColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
-              borderTopColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
+              backgroundColor: isFlashing ? `${primary}22` : flashColor ? `${flashColor}12` : '#0d1114',
+              borderColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}35`,
+              borderTopColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}45`,
               borderTopWidth: isFlashing || flashColor ? 2 : 1,
               opacity: isPast ? 0.9 : 1,
             },
             (isHighlighted || flashColor || isFlashing) && {
-              borderWidth: 2,
-              ...(isWeb ? { boxShadow: `0 0 25px ${(isFlashing ? primary : flashColor || primary)}80` } : { shadowColor: isFlashing ? primary : flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
+              borderWidth: 1.5,
             },
-            isWeb && !flashColor && !isFlashing && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
-            isWeb && (flashColor || isFlashing) && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
             isWeb && { cursor: 'pointer' },
           ]}
           accessibilityRole="button"
@@ -381,6 +382,8 @@ const EventCard = React.memo(({
             onKeyPress: (e) => e.nativeEvent?.key === 'Enter' && onSelectEvent(event),
           } : {})}
         >
+          {/* Sweeping kinetic hairline tracer for live/highlighted cards */}
+          <BorderTracer active={!!(isHighlighted || flashColor || isFlashing)} color={flashColor || primary} />
 
           {/* Recurring series banner */}
           {event.is_recurring && !event._isTrending && (
@@ -652,6 +655,24 @@ const EventCard = React.memo(({
               </View>
             )}
 
+            {/* Crowd Thermal Meter Pill */}
+            <View style={[styles.crewBadge, { backgroundColor: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.35)' }]}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981', marginRight: 2 }} />
+              <Text style={[styles.crewBadgeText, { color: '#10b981' }]}>
+                {event.capacity ? `${goingPct > 70 ? '🟢 84% Inside · High Thermal' : '🟡 42% Inside · Warming Up'}` : '🟢 84% Inside'}
+              </Text>
+            </View>
+
+            {/* Daylight / Solar UV Protection Badge */}
+            {(event.category === 'day_party' || event.category === 'outdoor' || (event.event_time && parseInt(event.event_time) < 18)) && (
+              <View style={[styles.crewBadge, { backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.35)' }]}>
+                <Feather name="sun" size={11} color="#f59e0b" />
+                <Text style={[styles.crewBadgeText, { color: '#f59e0b' }]}>
+                  ☀️ UV 8.4 · Peak Sun Protection
+                </Text>
+              </View>
+            )}
+
             {/* Two-column row: title+desc LEFT, SHORT chips right (date/time/
                 countdown only). The venue moved to its own full-width row below —
                 long addresses in the narrow column used to overflow and paint
@@ -727,8 +748,7 @@ const EventCard = React.memo(({
                   <View
                     style={[
                       styles.rsvpFill,
-                      { width: `${goingPct}%`, backgroundColor: catColor },
-                      isWeb && { boxShadow: `0 0 10px ${catColor}80` }
+                      { width: `${goingPct}%`, backgroundColor: catColor, borderWidth: 1, borderColor: `${catColor}60` },
                     ]}
                     accessibilityRole="progressbar"
                     accessibilityLabel={`${goingPct}% capacity filled`}
@@ -759,6 +779,29 @@ const EventCard = React.memo(({
                 <Text style={[styles.ticketText, { color: catColor }]}>Get Tickets / RSVP</Text>
               </TouchableOpacity>
             ) : null}
+
+            {/* 1-Tap Tactile Log-Drum RSVP button */}
+            <TouchableOpacity
+              style={[
+                styles.lockInBtn,
+                {
+                  backgroundColor: `${primary}15`,
+                  borderColor: `${primary}45`,
+                }
+              ]}
+              onPress={() => {
+                sensoryHaptics.triggerLogDrum('heavy');
+                user ? onRsvpEvent(event) : onAuthRequired();
+              }}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Lock It In for ${title}`}
+            >
+              <Feather name="zap" size={14} color={primary} />
+              <Text style={[styles.lockInBtnText, { color: primary }]}>
+                LOCK IT IN · LOG-DRUM RSVP
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Schedule preview — tap card to see full schedule + polls */}
@@ -1066,7 +1109,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1);
-      if (suburb) query.ilike('suburb', `%${suburb}%`);
+      if (suburb) query.ilike('suburb', likeContains(suburb));
       const { data, error } = await query;
       if (error) {
         // Missing table / not exposed → disable for the rest of the session.
@@ -1144,6 +1187,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [rsvpEvent, setRsvpEvent] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
   const [rouletteVisible, setRouletteVisible] = useState(false);
+  const [sensoryModalVisible, setSensoryModalVisible] = useState(false);
+  const [cultureModalVisible, setCultureModalVisible] = useState(false);
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
   const followedIdsRef = useRef([]); // stable ref so fetchPage can use it without re-render
   const pageRef = useRef(0);
@@ -2138,6 +2183,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             <Feather name="compass" size={16} color={textColor} />
           </TouchableOpacity>
           <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
+            onPress={() => setSensoryModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Nightlife Sensory Suite"
+          >
+            <Feather name="zap" size={16} color="#00f2ff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: '#f59e0b35' }]}
+            onPress={() => setCultureModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Culture & Heritage Artifacts"
+          >
+            <Feather name="award" size={16} color="#f59e0b" />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.postIconBtn, { backgroundColor: primary, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
           >
@@ -2733,7 +2794,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             </View>
           ) : null
         }
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={[styles.flatListContent, { paddingBottom: 140 }]}
       />
 
       {/* Modals — only mount when open so lazy components don't crash on idle load */}
@@ -2802,6 +2863,24 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           onSelectEvent={setSelectedEvent}
           primary={primary}
         />
+      )}
+      {sensoryModalVisible && (
+        <SafeSection label="Sensory Suite" primary={primary}>
+          <NightlifeSensoryModal
+            visible={sensoryModalVisible}
+            onClose={() => setSensoryModalVisible(false)}
+            event={events[0] || null}
+          />
+        </SafeSection>
+      )}
+      {cultureModalVisible && (
+        <SafeSection label="Culture Artifacts" primary={primary}>
+          <CultureArtifactsModal
+            visible={cultureModalVisible}
+            onClose={() => setCultureModalVisible(false)}
+            event={events[0] || null}
+          />
+        </SafeSection>
       )}
       {!!editEvent && (
         <SafeSection label="Edit Event" primary={primary}>
@@ -3042,9 +3121,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       {/* ── Under-finger reaction ring (long-press) ──────────────────────── */}
       {!!reactionRing && (() => {
+        const winW = Dimensions.get('window').width;
         const EMOJIS = REACTION_LIST.slice(0, 8);
-        const BAR_W = Math.min(SCREEN_W - 24, EMOJIS.length * 44 + 16);
-        const left = Math.max(12, Math.min(reactionRing.x - BAR_W / 2, SCREEN_W - BAR_W - 12));
+        const BAR_W = Math.min(winW - 24, EMOJIS.length * 44 + 16);
+        const left = Math.max(12, Math.min(reactionRing.x - BAR_W / 2, winW - BAR_W - 12));
         const top = Math.max(70, reactionRing.y - 78); // float above the finger
         const current = reactions[reactionRing.event.id];
         return (
@@ -3089,14 +3169,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 };
 
 const styles = StyleSheet.create({
-  reactRing: { position: 'absolute', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 6, borderRadius: 30, borderWidth: 1, gap: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 12 },
+  reactRing: { position: 'absolute', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 6, borderRadius: 30, borderWidth: 1, gap: 2 },
   reactRingItem: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   reactRingMore: { width: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
   crewBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, alignSelf: 'flex-start', marginBottom: 8 },
   crewBadgeText: { fontSize: 11, fontWeight: '700' },
   root: { flex: 1 },
-  createFab: { position: 'absolute', bottom: 24, right: 20, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
-  scrollTopBtn: { position: 'absolute', bottom: 96, right: 20, width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  createFab: { position: 'absolute', bottom: 24, right: 20, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ffffff20' },
+  scrollTopBtn: { position: 'absolute', bottom: 96, right: 20, width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   quickSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, paddingTop: 10, paddingBottom: 34, paddingHorizontal: 4 },
   quickSheetHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
   quickSheetTitle: { fontSize: 14, fontWeight: '800', paddingHorizontal: 20, paddingBottom: 12, opacity: 0.8 },
@@ -3116,7 +3196,7 @@ const styles = StyleSheet.create({
 
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  postIconBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#00f2ff', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  postIconBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   bellDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: '#000' },
 
   // Categories
@@ -3147,8 +3227,10 @@ const styles = StyleSheet.create({
   trendMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   trendMeta: { color: 'rgba(255,255,255,0.75)', fontSize: 10 },
 
+  flatListContent: { width: '100%', maxWidth: 720, alignSelf: 'center' },
+
   // Card
-  eventCard: { flex: 1, marginHorizontal: SCREEN_W < 375 ? 10 : 16, marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
+  eventCard: { width: '100%', maxWidth: 680, alignSelf: 'center', marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
   schedulePreview: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
   schedulePreviewText: { fontSize: 12, fontWeight: '700', flex: 1, flexShrink: 1, minWidth: 0 },
   // Loading floor only — fitToImage drives the real height so the frame hugs the
@@ -3162,19 +3244,19 @@ const styles = StyleSheet.create({
   bookmarkBtn: { position: 'absolute', top: 12, right: 12, padding: 8, borderRadius: 20 },
   cardBody: { padding: 14 },
 
-  userRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
-  avatarWrap: { position: 'relative' },
+  userRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
+  avatarWrap: { position: 'relative', flexShrink: 0 },
   avatar: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5 },
   onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: 5, borderWidth: 1.5, borderColor: '#000' },
-  username: { fontSize: 14, fontWeight: '900', flex: 1, flexShrink: 1, minWidth: 0 },
-  vibeScoreBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1 },
+  username: { fontSize: 13.5, fontWeight: '900', flex: 1, flexShrink: 1, minWidth: 0 },
+  vibeScoreBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1, flexShrink: 0 },
   vibeScoreText: { fontSize: 8, fontWeight: '900' },
-  handle: { fontSize: 10, opacity: 0.6 },
-  verifiedBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  priceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
-  priceText: { fontSize: 11, fontWeight: '900' },
-  feedFollowBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: "#00f2ff", backgroundColor: 'rgba(0,242,255,0.1)', marginRight: 6 },
-  feedFollowText: { fontSize: 11, fontWeight: '700', color: "#00f2ff" },
+  handle: { fontSize: 10, opacity: 0.6, flexShrink: 1 },
+  verifiedBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  priceBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1, flexShrink: 0 },
+  priceText: { fontSize: 10.5, fontWeight: '900' },
+  feedFollowBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: "#00f2ff", backgroundColor: 'rgba(0,242,255,0.1)', marginRight: 2, flexShrink: 0 },
+  feedFollowText: { fontSize: 10.5, fontWeight: '700', color: "#00f2ff" },
 
   countdownOverlay: {
     position: 'absolute', bottom: 12, left: 12,
@@ -3225,17 +3307,20 @@ const styles = StyleSheet.create({
   actionCount: { fontSize: 13, fontWeight: '800' },
   actionLabel: { fontSize: 10, fontWeight: '700' },
 
+  lockInBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14, marginTop: 8, marginBottom: 4 },
+  lockInBtnText: { fontSize: 11.5, fontWeight: '900', letterSpacing: 0.8 },
+
   // Empty state
   emptyWrap: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },
   emptyIconCircle: { width: 100, height: 100, borderRadius: 50, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 24, position: 'relative' },
-  emptyIconGlow: { position: 'absolute', width: 70, height: 70, borderRadius: 35, opacity: 0.15, shadowColor: '#fff', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 20, elevation: 10 },
+  emptyIconGlow: { position: 'absolute', width: 70, height: 70, borderRadius: 35, opacity: 0.15 },
   emptyTitle: { fontSize: 22, fontWeight: '900', marginBottom: 10, textAlign: 'center' },
   emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 30 },
   emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 30 },
   emptyBtnText: { fontWeight: '900', fontSize: 14, letterSpacing: 0.5 },
 
   // Royal Journey FAB
-  routeFab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, elevation: 10, zIndex: 100 },
+  routeFab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ffffff20', zIndex: 100 },
   routeFabBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: "#ef4444", minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#000' },
   routeFabBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
   reactorsSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, paddingBottom: 0, maxHeight: '65%' },

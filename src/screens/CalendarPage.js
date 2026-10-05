@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, Image, Animated, RefreshControl, TextInput, ActivityIndicator,
+  useWindowDimensions, Image, Animated, RefreshControl, TextInput, ActivityIndicator,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
@@ -21,8 +21,6 @@ import { SmartImage } from '../components/SmartImage';
 import { LineupRail } from '../components/LineupRail';
 import { thumb as cdnThumb } from '../utils/storageThumb';
 
-const { width } = Dimensions.get('window');
-const CELL = Math.floor((width - 32) / 7);
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const FULL_MONTH = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAY_SHORT = ['S','M','T','W','T','F','S'];
@@ -96,6 +94,9 @@ const scoreEvent = (ev, tokens) => {
 // ── Week strip ────────────────────────────────────────────────────────────────
 const WeekStrip = ({ selectedDate, onSelect, primary, bg, textColor, muted, eventDots }) => {
   const scrollRef = useRef(null);
+  const { width } = useWindowDimensions();
+  const cellWidth = Math.min(56, Math.max(42, Math.floor((Math.min(width, 680) - 32) / 7)));
+  const cellHeight = cellWidth + 10;
   const days = useMemo(() => {
     const arr = [];
     // 3 weeks centred on today
@@ -109,8 +110,8 @@ const WeekStrip = ({ selectedDate, onSelect, primary, bg, textColor, muted, even
 
   useEffect(() => {
     // Scroll so today is visible (index 10)
-    setTimeout(() => scrollRef.current?.scrollTo({ x: 10 * (CELL + 8), animated: false }), 100);
-  }, []);
+    setTimeout(() => scrollRef.current?.scrollTo({ x: 10 * (cellWidth + 8), animated: false }), 100);
+  }, [cellWidth]);
 
   return (
     <ScrollView
@@ -137,6 +138,7 @@ const WeekStrip = ({ selectedDate, onSelect, primary, bg, textColor, muted, even
             key={i}
             style={[
               ws.cell,
+              { width: cellWidth, height: cellHeight },
               isSelected && { backgroundColor: primary },
               !isSelected && isToday && { borderColor: primary, borderWidth: 1.5 },
             ]}
@@ -162,7 +164,7 @@ const WeekStrip = ({ selectedDate, onSelect, primary, bg, textColor, muted, even
 };
 
 const ws = StyleSheet.create({
-  cell: { width: CELL, height: CELL + 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: 'rgba(255,255,255,0.05)' },
+  cell: { borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: 'rgba(255,255,255,0.05)' },
   dow: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
   num: { fontSize: 16, fontWeight: '900' },
   dot: { width: 4, height: 4, borderRadius: 2 },
@@ -578,7 +580,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ width: '100%', maxWidth: 680, alignSelf: 'center', paddingBottom: 140 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={primary} />}
       >
 

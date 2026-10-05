@@ -165,14 +165,29 @@ export const SecurityService = {
     return redacted;
   },
 
-  // Safe URL opener
+  // Safe URL opener.
+  //  • Non-http schemes (tel/mailto/geo/maps/whatsapp/thegruvs) → opened directly
+  //    (isValidUrl already whitelisted them).
+  //  • http(s) on a TRUSTED host (ALLOWED_HOSTS) → opened directly, no nag.
+  //  • Any other http(s) → safeOpenExternal (consent/phishing warning).
+  //  • URLs carrying credentials (https://thegruvs.com@evil.com) → refused.
   async safeOpenURL(url) {
     if (!this.isValidUrl(url)) return false;
     try {
-      const lower = String(url).trim().toLowerCase();
+      const trimmed = String(url).trim();
+      const lower = trimmed.toLowerCase();
       if (lower.startsWith('http:') || lower.startsWith('https:')) {
+        try {
+          const parsed = new URL(trimmed);
+          if (parsed.username || parsed.password) return false;
+        } catch { return false; }
+        if (this.isTrustedExternalUrl(trimmed)) {
+          const { Linking } = require('react-native');
+          await Linking.openURL(trimmed);
+          return true;
+        }
         const { safeOpenExternal } = require('../utils/sanitize');
-        return await safeOpenExternal(url);
+        return await safeOpenExternal(trimmed);
       }
       const { Linking } = require('react-native');
       await Linking.openURL(url);
@@ -278,19 +293,31 @@ export const SecurityService = {
 
   // ── Deep-link / URL scheme guard ────────────────────────────────────────
 
-  /** Whitelist of allowed deep-link hosts. Opens only these from external links. */
+  /** Whitelist of allowed deep-link hosts. Opens only these from external links.
+   *  NOTE: never whitelist a multi-tenant parent domain (e.g. all of supabase.co)
+   *  — anyone can create a project there and host a phishing page under it.
+   *  Only THIS app's own Supabase project host is trusted. */
   ALLOWED_HOSTS: [
     'thegruvs.com', 'www.thegruvs.com', 'thegruvs.app',
     'theresidentcrew.com', 'www.theresidentcrew.com',
-    'github.com', 'open.spotify.com', 'www.youtube.com',
-    'youtube.com', 'supabase.co', 'wa.me', 'maps.google.com'
+    'open.spotify.com', 'www.youtube.com', 'youtube.com', 'youtu.be',
+    'wa.me', 'maps.google.com', 'www.google.com', 'maps.apple.com',
+    'm.uber.com', 'bolt.eu',
+    ...(() => {
+      try {
+        const h = new URL(process.env.EXPO_PUBLIC_SUPABASE_URL || '').hostname;
+        return h ? [h] : [];
+      } catch { return []; }
+    })(),
   ],
 
   isTrustedExternalUrl(url) {
     try {
-      const { protocol, hostname } = new URL(url);
-      if (!['http:', 'https:'].includes(protocol)) return false;
-      return this.ALLOWED_HOSTS.some(h => hostname === h || hostname.endsWith(`.${h}`));
+      const { protocol, hostname, username, password } = new URL(url);
+      if (protocol !== 'https:') return false; // plain http is never "trusted"
+      if (username || password) return false;
+      const host = hostname.toLowerCase();
+      return this.ALLOWED_HOSTS.some(h => host === h || host.endsWith(`.${h}`));
     } catch { return false; }
   },
 

@@ -22,6 +22,7 @@ import { CallOverlay } from '../components/CallOverlay';
 import { PermissionGuideModal } from '../components/PermissionGuideModal';
 import { SoundFX } from '../services/soundFX';
 import { MessageManager } from '../services/dataFlow';
+import { RichHaptics } from '../services/smartphoneFeatures';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import { useToast } from '../components/ToastNotification';
@@ -175,6 +176,7 @@ export function CallProvider({ children }) {
         connectedRef.current = true;
         if (ringTimerRef.current) { clearTimeout(ringTimerRef.current); ringTimerRef.current = null; }
         callStartRef.current = Date.now();
+        RichHaptics.callConnected().catch(() => {});
         setCall((c) => { if (c) callMetaRef.current = { video: c.video, role: c.role }; return c ? { ...c, status: 'connected' } : c; });
       } else if (st === 'ended' || st === 'failed') {
         endCallLocal();
@@ -302,10 +304,10 @@ export function CallProvider({ children }) {
     if (!isIncoming && !isCallerWaiting) return;
     const name = isIncoming ? 'ringtone' : 'ringback';
     SoundFX.play(name);
-    if (isIncoming) Haptics.notify();
+    if (isIncoming) RichHaptics.incomingCall().catch(() => {});
     const id = setInterval(() => {
       SoundFX.play(name);
-      if (isIncoming) Haptics.notify();
+      if (isIncoming) RichHaptics.incomingCall().catch(() => {});
     }, isIncoming ? 1800 : 3200);
     return () => clearInterval(id);
   }, [call?.status, call?.role]);
