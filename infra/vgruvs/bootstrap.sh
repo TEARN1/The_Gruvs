@@ -30,13 +30,16 @@ die() { printf 'bootstrap: %s\n' "$*" >&2; exit 1; }
 
 say "Packages"
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -q
-apt-get install -y -q nginx certbot curl ufw fail2ban unattended-upgrades openssl
+# Ubuntu's own background updates hold the package lock now and then: wait
+# for them (up to 5 minutes) rather than fail.
+apt_get() { apt-get -o DPkg::Lock::Timeout=300 "$@"; }
+apt_get update -q
+apt_get install -y -q nginx certbot curl ufw fail2ban unattended-upgrades openssl
 node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
 if ((node_major < 20)); then
   say "Installing Node 22 (found: ${node_major})"
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-  apt-get install -y -q nodejs
+  apt_get install -y -q nodejs
 fi
 # Security updates install themselves.
 cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
@@ -48,7 +51,10 @@ systemctl enable --now fail2ban >/dev/null 2>&1 || true
 say "Swap"
 if ! swapon --show | grep -q .; then
   mem_mb="$(free -m | awk '/Mem:/ {print $2}')"
-  if ((mem_mb < 2048)); then
+  free_gb="$(df -BG --output=avail / | tail -1 | tr -dc '0-9')"
+  if ((mem_mb < 2048 && ${free_gb:-0} < 4)); then
+    echo "skipped: only ${free_gb:-?} GB of disk free for a 2 GB swap file"
+  elif ((mem_mb < 2048)); then
     fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile
     grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >>/etc/fstab
     echo 'vm.swappiness=10' >/etc/sysctl.d/90-vgruvs-swap.conf && sysctl -q -p /etc/sysctl.d/90-vgruvs-swap.conf
@@ -156,7 +162,7 @@ fi
 
 # Brotli, when the distribution packages the nginx module: smaller than
 # gzip for text. Kept off if nginx does not accept it.
-if apt-get install -y -q libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static brotli >/dev/null 2>&1 &&
+if apt_get install -y -q libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static brotli >/dev/null 2>&1 &&
   compgen -G '/etc/nginx/modules-enabled/*brotli*' >/dev/null; then
   cat >/etc/nginx/snippets/vgruvs-brotli.conf <<'BROTLI'
 brotli_static on;
@@ -168,6 +174,8 @@ BROTLI
     echo "brotli is on"
   else
     install -m 644 "$HERE/nginx/snippets/vgruvs-brotli.conf" /etc/nginx/snippets/vgruvs-brotli.conf
+    # A module nginx cannot load would break every later reload.
+    nginx -t -q 2>/dev/null || apt_get remove -y -q libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static >/dev/null 2>&1 || true
     echo "nginx refused the brotli module; brotli stays off"
   fi
 fi
@@ -214,7 +222,8 @@ if [[ -e /srv/vgruvs/thegruvs/current && -r /etc/letsencrypt/live/thegruvs.com/f
   rm -f /etc/nginx/sites-enabled/default
   for f in /etc/nginx/sites-enabled/*; do
     [[ "$f" == */00-vgruvs-http.conf || "$f" == */vgruvs-* ]] && continue
-    if grep -q 'server_name thegruvs.com' "$f" 2>/dev/null; then
+    # Whatever order its names are in (certbot sometimes writes www first).
+    if grep -Eq 'server_name[^;]*[[:space:]](www\.)?thegruvs\.com([[:space:];]|$)' "$f" 2>/dev/null; then
       rm -f "$f"
       echo "switched off the hand-made site $(basename "$f")"
     fi
@@ -231,6 +240,12 @@ if [[ -e /srv/vgruvs/thegruvs/current && -r /etc/letsencrypt/live/thegruvs.com/f
   if [[ ! "$code" =~ ^[23] ]]; then
     restore
     die "thegruvs.com answered $code after the move; the previous config is back"
+  fi
+  # Only V-Gruvs serves this file: proof the new config is the one answering,
+  # not a hand-made site that was not recognised and still wins.
+  if ! curl --noproxy '*' -sk --resolve thegruvs.com:443:127.0.0.1 https://thegruvs.com/_vgruvs/v.js | grep -q largest-contentful-paint; then
+    restore
+    die "thegruvs.com is still answered by the old config; the previous config is back"
   fi
   echo "thegruvs.com answers $code from V-Gruvs"
 else

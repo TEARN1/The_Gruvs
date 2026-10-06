@@ -1,0 +1,113 @@
+# ────────────────────────────────────────────────────────────────────────────
+# V-Gruvs Droplet: look at, install or update V-Gruvs on the droplet, from the
+# Actions tab. Uses the DROPLET_SSH_KEY secret (root), which Web Deploy
+# already uses.
+#
+#   inspect                  what the droplet runs today (read-only)
+#   install or update        copy infra/vgruvs up and run bootstrap.sh; safe
+#                            to repeat; puts the old nginx config back if
+#                            anything fails
+#   status / doctor / events / insights   V-Gruvs' own reports (read-only)
+#
+# Optional "deploy_pubkey": the public half of a CI deploy key; bootstrap
+# installs it for the `deploy` user, whose private half then goes in each
+# repo's VGRUVS_SSH_KEY secret.
+# ────────────────────────────────────────────────────────────────────────────
+name: V-Gruvs Droplet
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to do
+        type: choice
+        options: [inspect, install or update, status, doctor, events, insights]
+        default: inspect
+      deploy_pubkey:
+        description: Optional public deploy key (ssh-ed25519 AAAA... name), for install
+        required: false
+        default: ''
+
+# Never at the same time as a deploy.
+concurrency:
+  group: web-deploy-production
+  cancel-in-progress: false
+
+jobs:
+  droplet:
+    name: ${{ inputs.action }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Connect
+        env:
+          KEY: ${{ secrets.DROPLET_SSH_KEY }}
+          HOST: ${{ secrets.DROPLET_HOST }}
+        run: |
+          [ -n "$KEY" ] || { echo "::error::This needs the DROPLET_SSH_KEY secret."; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_root && chmod 600 ~/.ssh/id_root
+          ssh-keyscan -H "${HOST:-144.126.236.75}" >> ~/.ssh/known_hosts 2>/dev/null
+          printf 'Host droplet\n  HostName %s\n  User root\n  IdentityFile ~/.ssh/id_root\n  IdentitiesOnly yes\n  ServerAliveInterval 15\n' \
+            "${HOST:-144.126.236.75}" > ~/.ssh/config
+          ssh droplet true
+
+      - name: Inspect
+        if: inputs.action == 'inspect'
+        run: |
+          ssh droplet 'bash -s' <<'REMOTE'
+          echo "== system";   . /etc/os-release; echo "$PRETTY_NAME, kernel $(uname -r)"
+          echo "== memory";   free -m
+          echo "== disk";     df -h /
+          echo "== nginx";    nginx -v 2>&1; nginx -V 2>&1 | tr ' ' '\n' | grep -E 'sub_module|gzip_static|v2_module' || true
+          echo "== node";     node -v 2>/dev/null || echo "no node"
+          echo "== listening"; ss -tlnp | awk 'NR>1 {print $4, $6}' | sort -u
+          echo "== firewall"; ufw status 2>/dev/null | head -5 || echo "no ufw"
+          echo "== sites enabled"; ls -la /etc/nginx/sites-enabled/
+          for f in /etc/nginx/sites-enabled/*; do echo "---- $f"; cat "$f"; done
+          echo "== conf.d"; ls /etc/nginx/conf.d/ 2>/dev/null
+          echo "== certificates"; ls /etc/letsencrypt/live/ 2>/dev/null
+          echo "== site files"; ls -la /var/www/ /var/www/thegruvs 2>/dev/null | head -20
+          echo "== v-gruvs"; command -v vgruvs && vgruvs version || echo "not installed"
+          echo "== nginx -t"; nginx -t 2>&1 | tail -3
+          REMOTE
+
+      - name: Check out the kit
+        if: inputs.action == 'install or update'
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: infra/vgruvs
+
+      - name: Install or update V-Gruvs
+        if: inputs.action == 'install or update'
+        env:
+          PUBKEY: ${{ inputs.deploy_pubkey }}
+        run: |
+          if [ -n "$PUBKEY" ] && ! printf '%s' "$PUBKEY" | grep -Eq '^ssh-(ed25519|rsa) [A-Za-z0-9+/=]+( [A-Za-z0-9@._-]+)?$'; then
+            echo "::error::deploy_pubkey must be one public key line (ssh-ed25519 AAAA... name)"; exit 1
+          fi
+          tar -czf - -C infra vgruvs | ssh droplet 'rm -rf /root/vgruvs.new && mkdir -p /root/vgruvs.new && tar -xzf - -C /root/vgruvs.new && rm -rf /root/vgruvs && mv /root/vgruvs.new/vgruvs /root/vgruvs && rm -rf /root/vgruvs.new'
+          ssh droplet "DEPLOY_PUBKEY='$PUBKEY' bash /root/vgruvs/bootstrap.sh" 2>&1 | tee bootstrap.log
+          status="${PIPESTATUS[0]}"
+          { echo "## V-Gruvs install"; echo '```'; tail -n 40 bootstrap.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Report
+        if: inputs.action != 'inspect' && inputs.action != 'install or update'
+        env:
+          ACTION: ${{ inputs.action }}
+        run: |
+          case "$ACTION" in
+            status) cmd='vgruvs status' ;;
+            doctor) cmd='vgruvs doctor' ;;
+            events) cmd='vgruvs events -n 50' ;;
+            insights) cmd='for a in $(ls /etc/vgruvs/apps | sed -n "s/\.conf$//p"); do vgruvs insights "$a"; echo; done' ;;
+          esac
+          ssh droplet "$cmd" 2>&1 | tee report.txt
+          { echo "## vgruvs: $ACTION"; echo '```'; cat report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: After an install, the report
+        if: inputs.action == 'install or update'
+        run: |
+          ssh droplet 'vgruvs status; echo; vgruvs doctor' 2>&1 | tee report.txt
+          { echo "## After the install"; echo '```'; cat report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

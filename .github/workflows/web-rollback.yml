@@ -5,7 +5,8 @@
 # or paste a release id from the list this workflow prints. Takes seconds:
 # nothing is rebuilt, the droplet already has the files.
 #
-# Needs the VGRUVS_SSH_KEY secret (the droplet's `deploy` user).
+# Uses the VGRUVS_SSH_KEY secret (the droplet's `deploy` user), or the
+# DROPLET_SSH_KEY root key until that one is set.
 # ────────────────────────────────────────────────────────────────────────────
 name: Web Rollback
 
@@ -29,15 +30,18 @@ jobs:
       - name: Roll back
         env:
           KEY: ${{ secrets.VGRUVS_SSH_KEY }}
+          ROOT_KEY: ${{ secrets.DROPLET_SSH_KEY }}
           HOST: ${{ secrets.DROPLET_HOST }}
           RELEASE: ${{ inputs.release }}
         run: |
+          user=deploy sudo=sudo
+          if [ -z "$KEY" ]; then KEY="$ROOT_KEY" user=root sudo=''; fi
           [ -n "$KEY" ] || { echo "::error::Set the VGRUVS_SSH_KEY secret first (see infra/vgruvs/README.md)."; exit 1; }
           if [ -n "$RELEASE" ] && ! printf '%s' "$RELEASE" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'; then
             echo "::error::'$RELEASE' is not a release id."; exit 1
           fi
           mkdir -p ~/.ssh
           printf '%s\n' "$KEY" > ~/.ssh/vgruvs && chmod 600 ~/.ssh/vgruvs
-          run() { ssh -i ~/.ssh/vgruvs -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "deploy@${HOST:-144.126.236.75}" "$@"; }
-          run sudo /usr/local/bin/vgruvs rollback thegruvs $RELEASE
-          { echo "### Releases on the droplet (* = live)"; echo '```'; run sudo /usr/local/bin/vgruvs releases thegruvs; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
+          run() { ssh -i ~/.ssh/vgruvs -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$user@${HOST:-144.126.236.75}" $sudo "$@"; }
+          run /usr/local/bin/vgruvs rollback thegruvs $RELEASE
+          { echo "### Releases on the droplet (* = live)"; echo '```'; run /usr/local/bin/vgruvs releases thegruvs; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
