@@ -3,14 +3,17 @@
 # self-signed certificates), the real vgruvs script and functions runtime,
 # and a stand-in for systemctl that starts app slots as plain processes.
 #
-#   bash infra/vgruvs/test/e2e.sh [path/to/excellency/checkout]
+#   bash infra/vgruvs/test/e2e.sh [path/to/excellency/checkout] [path/to/resident/release]
 #
 # With an Excellency checkout that has been built (dist/ and api/ present),
 # its real build is deployed as the functions app; otherwise a small fixture.
+# With a Resident release folder (what its deploy workflow ships: the Next
+# standalone output plus public/ and .next/static), it is deployed too.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 EXCELLENCY="${1:-}"
+RESIDENT="${2:-}"
 T="$(mktemp -d /tmp/vgruvs-e2e.XXXXXX)"
 chmod 755 "$T" # nginx's worker runs as an unprivileged user
 HTTP_PORT=18080
@@ -207,6 +210,16 @@ if mk_node crash | "$VG" receive theresident n2 >/dev/null 2>&1; then bad "a rel
 check "and the old one keeps serving" contains "$(get theresidentcrew.com /)" "resident ok"
 if mk_node public-fail | "$VG" receive theresident n3 >/dev/null 2>&1; then bad "a release that fails behind nginx is rolled back"; else ok "a release that fails behind nginx is rolled back"; fi
 check "automatically, to the last good release" contains "$(get theresidentcrew.com /)" "resident ok"
+
+if [[ -n "$RESIDENT" && -s "$RESIDENT/server.js" ]]; then
+  echo "  (deploying the real Resident build from $RESIDENT)"
+  tar -czf - -C "$RESIDENT" . | VGRUVS_HEALTH_WAIT=60 "$VG" receive theresident real1 >/dev/null
+  check "the real Resident build goes live" test "$(code_of theresidentcrew.com /)" = 200
+  check "and is the release nginx serves" test "$(readlink "$T/srv/theresident/current")" = releases/real1
+  chunk="$(cd "$RESIDENT" && find .next/static -name '*.js' | head -1)"
+  check "Next's static files come from disk, cached for a year" contains "$(head_of theresidentcrew.com "/_${chunk#.}")" "immutable"
+  check "a page that regenerates (ISR) renders" test "$(code_of theresidentcrew.com /services)" = 200
+fi
 
 echo "status"
 check "status reports every app healthy" bash -c "! \"$VG\" status | grep -E '^(thegruvs|excellency|theresident) ' | grep -v 'health=ok'"
