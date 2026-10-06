@@ -62,7 +62,9 @@ jobs:
           echo "== nginx";    nginx -v 2>&1; nginx -V 2>&1 | tr ' ' '\n' | grep -E 'sub_module|gzip_static|v2_module' || true
           echo "== node";     node -v 2>/dev/null || echo "no node"
           echo "== listening"; ss -tlnp | awk 'NR>1 {print $4, $6}' | sort -u
-          echo "== firewall"; ufw status 2>/dev/null | head -5 || echo "no ufw"
+          echo "== firewall"; ufw status 2>/dev/null | grep -v '(v6)' || echo "no ufw"
+          echo "== deploy keys"; ssh-keygen -lf /home/deploy/.ssh/authorized_keys 2>/dev/null || echo "none"
+          echo "== certificate renewal"; grep -H '^authenticator' /etc/letsencrypt/renewal/*.conf 2>/dev/null || echo "none"
           echo "== sites enabled"; ls -la /etc/nginx/sites-enabled/
           for f in /etc/nginx/sites-enabled/*; do echo "---- $f"; cat "$f"; done
           echo "== conf.d"; ls /etc/nginx/conf.d/ 2>/dev/null

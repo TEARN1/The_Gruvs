@@ -188,7 +188,7 @@ say "Firewall"
 ufw allow OpenSSH >/dev/null
 ufw allow 'Nginx Full' >/dev/null
 ufw --force enable >/dev/null
-ufw status | sed -n '1,6p'
+ufw status | grep -v '(v6)'
 
 say "Moving The Gruvs onto V-Gruvs"
 mkdir -p "$BACKUP"
@@ -251,6 +251,24 @@ if [[ -e /srv/vgruvs/thegruvs/current && -r /etc/letsencrypt/live/thegruvs.com/f
 else
   echo "skipped: no /var/www/thegruvs or no certificate for thegruvs.com yet"
 fi
+
+say "Certificate renewal"
+# A certificate first made by certbot's nginx plugin renews through it, and
+# the plugin has to parse every nginx file. The webroot needs nothing but the
+# challenge folder V-Gruvs serves on port 80. `certbot reconfigure` proves
+# the switch with a dry run against Let's Encrypt's staging server, and keeps
+# the old way if that fails.
+for conf in /etc/letsencrypt/renewal/*.conf; do
+  [[ -e "$conf" ]] || continue
+  name="$(basename "$conf" .conf)"
+  if ! grep -Eq '^authenticator *= *nginx' "$conf"; then
+    echo "$name: renews through the $(sed -n 's/^authenticator *= *//p' "$conf" | head -1)"
+  elif certbot reconfigure --cert-name "$name" --webroot -w /var/www/letsencrypt --non-interactive >/dev/null 2>&1; then
+    echo "$name: renews through the webroot now (dry run passed)"
+  else
+    echo "$name: the webroot dry run failed; it still renews through the nginx plugin"
+  fi
+done
 
 if [[ -n "${HARDEN_SSH:-}" ]]; then
   say "SSH"
