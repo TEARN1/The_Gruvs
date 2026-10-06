@@ -813,6 +813,10 @@ cmd_status() {
     extra=''
     if rollout_load; then extra=" rollout=$R_RELEASE@$(rollout_percent)%"; fi
     [[ -f "$APP_DIR/maintenance" ]] && extra+=" maintenance=on"
+    if [[ "$(current_release)" == none ]]; then
+      printf '%-12s %-9s release=%-28s health=%s\n' "$APP" "$APP_TYPE" none "- (not deployed yet)"
+      continue
+    fi
     printf '%-12s %-9s release=%-28s health=%s%s\n' "$APP" "$APP_TYPE" "$(current_release)" "$(app_health)" "$extra"
   done
   if [[ $# -eq 0 ]]; then
@@ -1046,7 +1050,13 @@ public_ips() {
     "$CURL" --noproxy '*' -s --max-time 2 http://169.254.169.254/metadata/v1/interfaces/public/0/ipv4/address 2>/dev/null || true
     echo
     hostname -I 2>/dev/null | tr ' ' '\n'
-  } | grep -E '^[0-9a-f.:]+$' | sort -u || true
+  } | grep -E '^[0-9a-f.:]+$' | awk '!seen[$0]++' || true
+}
+
+# The address for a DNS A record: the first public IPv4 (a droplet also has
+# private ones, for its VPC and its floating-IP anchor).
+a_record_ip() {
+  grep -Ev ':|^(10|127)\.|^169\.254\.|^192\.168\.|^172\.(1[6-9]|2[0-9]|3[01])\.|^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.' <<<"$1" | head -1 || true
 }
 
 cmd_doctor() {
@@ -1079,7 +1089,7 @@ cmd_doctor() {
       if [[ -z "$resolved" ]]; then
         doc warn "DNS $d" "does not resolve" "add an A record for $d"
       elif [[ -n "$ips" ]] && ! grep -qxF -f <(tr ' ' '\n' <<<"$resolved" | sed '/^$/d') <<<"$ips"; then
-        doc warn "DNS $d" "points to ${resolved% }, not this server" "if it should be served here, set its A record to $(head -1 <<<"$ips")"
+        doc warn "DNS $d" "points to ${resolved% }, not this server" "if it should be served here, set its A record to $(a_record_ip "$ips" | grep . || echo "this server's public address")"
       else
         doc ok "DNS $d" "points here"
       fi
@@ -1104,7 +1114,19 @@ cmd_doctor() {
   local node_major
   node_major="$("$NODE" -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
   if ((node_major >= 20)); then doc ok "node" "v$("$NODE" -v 2>/dev/null | tr -d v)"; else doc fail "node" "missing or older than 20" "re-run bootstrap.sh"; fi
-  if [[ -s /home/deploy/.ssh/authorized_keys ]]; then doc ok "deploy key" "installed"; else doc warn "deploy key" "none yet" "DEPLOY_PUBKEY=... bash bootstrap.sh"; fi
+  local keys
+  keys="$(grep -cE '^(ssh-|ecdsa-|sk-)' /home/deploy/.ssh/authorized_keys 2>/dev/null || true)"
+  if ((${keys:-0} > 0)); then doc ok "deploy key" "$keys key(s) can log in as deploy (fingerprints: ssh-keygen -lf /home/deploy/.ssh/authorized_keys)"
+  else doc warn "deploy key" "none yet" "DEPLOY_PUBKEY=... bash bootstrap.sh"; fi
+  # certbot's nginx plugin must parse every nginx file to renew; the webroot
+  # needs only the challenge folder V-Gruvs serves on port 80.
+  local renewal
+  for renewal in /etc/letsencrypt/renewal/*.conf; do
+    [[ -r "$renewal" ]] || continue
+    if grep -Eq '^authenticator *= *nginx' "$renewal"; then
+      doc warn "renewal $(basename "$renewal" .conf)" "through the nginx plugin" "re-run bootstrap.sh (it moves renewals to the webroot after a dry run)"
+    fi
+  done
   if [[ -r "$STATE/events.jsonl" ]] && tail -n 200 "$STATE/events.jsonl" | grep -q '"type":"auto_rollback"'; then
     doc warn "autopilot" "rolled a deploy back recently" "vgruvs events; reports in $STATE/incidents"
   fi
