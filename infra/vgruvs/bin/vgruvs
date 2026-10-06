@@ -1,0 +1,470 @@
+#!/usr/bin/env bash
+# V-Gruvs: deploys, rollbacks and health for the apps on this droplet.
+#
+#   vgruvs receive <app> <release> [--preview <name>]   (a .tar.gz on stdin)
+#   vgruvs rollback <app> [<release>]                    previous release, or a named one
+#   vgruvs releases <app>                                list releases, newest first
+#   vgruvs status [<app>]                                what is live and whether it is healthy
+#   vgruvs logs <app> [-f]                               the app's output (functions and node apps)
+#   vgruvs env <app> list | set <KEY> <VALUE> | unset <KEY>
+#   vgruvs restart <app>
+#   vgruvs site <app>                                    install or refresh the app's nginx site
+#   vgruvs certs <app>                                   get or renew the app's certificates
+#   vgruvs previews <app> list | remove <name> | enable
+#   vgruvs heal                                          run by vgruvs-heal.timer
+#
+# App types (from /etc/vgruvs/apps/<app>.conf):
+#   static     nginx serves the release directory.
+#   functions  nginx serves STATIC_DIR; the functions runtime runs api/ and vercel.json.
+#   node       a server.js (e.g. Next.js standalone) behind nginx.
+# functions and node apps are switched blue/green: the new release starts on
+# the idle port and must pass its health check before nginx moves to it.
+set -euo pipefail
+
+ROOT="${VGRUVS_ROOT:-/srv/vgruvs}"
+ETC="${VGRUVS_ETC:-/etc/vgruvs}"
+NGINX_DIR="${VGRUVS_NGINX_DIR:-/etc/nginx}"
+LIB="${VGRUVS_LIB:-/usr/local/lib/vgruvs}"
+SYSTEMCTL="${VGRUVS_SYSTEMCTL:-systemctl}"
+NGINX="${VGRUVS_NGINX:-nginx}"
+CURL="${VGRUVS_CURL:-curl}"
+HTTPS_PORT="${VGRUVS_HTTPS_PORT:-443}"
+HEALTH_WAIT="${VGRUVS_HEALTH_WAIT:-40}"
+LOCK_DIR="${VGRUVS_LOCK_DIR:-/run/lock}"
+
+say() { printf '==> %s\n' "$*"; }
+warn() { printf 'warning: %s\n' "$*" >&2; }
+die() { printf 'vgruvs: %s\n' "$*" >&2; exit 1; }
+
+# Unpack as the unprivileged app user when running as root: a crafted
+# archive (symlinks, odd paths) can then write nowhere but its own folder.
+APP_USER="${VGRUVS_USER:-vgruvs}"
+unpack_into() {
+  local dir="$1"
+  if [[ $EUID -eq 0 ]] && id "$APP_USER" >/dev/null 2>&1; then
+    chown "$APP_USER:$APP_USER" "$dir"
+    runuser -u "$APP_USER" -- tar -xzf - -C "$dir" --no-same-owner --no-same-permissions
+  else
+    tar -xzf - -C "$dir" --no-same-owner
+  fi
+  # Whatever modes the build had, nginx (www-data) must be able to read the
+  # release and nobody but its owner may change it.
+  chmod -R u+rwX,go+rX,go-w "$dir"
+}
+
+valid_name() { [[ "$1" =~ ^[a-z0-9][a-z0-9-]{0,40}$ ]]; }
+valid_release() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]]; }
+
+load_app() {
+  APP="$1"
+  valid_name "$APP" || die "bad app name: $APP"
+  [[ -r "$ETC/apps/$APP.conf" ]] || die "unknown app: $APP (no $ETC/apps/$APP.conf)"
+  APP_TYPE='' DOMAINS='' STATIC_DIR='' PORT_A='' PORT_B='' HEALTH_PATH='/' KEEP_RELEASES=5 PREVIEW_DOMAIN=''
+  # shellcheck source=/dev/null
+  . "$ETC/apps/$APP.conf"
+  case "$APP_TYPE" in static | functions | node) ;; *) die "$APP: APP_TYPE must be static, functions or node" ;; esac
+  APP_DIR="$ROOT/$APP"
+  PRIMARY_DOMAIN="${DOMAINS%% *}"
+  mkdir -p "$APP_DIR/releases" "$APP_DIR/slots" "$APP_DIR/previews"
+}
+
+lock_app() {
+  mkdir -p "$LOCK_DIR"
+  exec 9>"$LOCK_DIR/vgruvs-$APP.lock"
+  flock -w 120 9 || die "another deploy of $APP is still running"
+}
+
+# Every service call closes the deploy lock's descriptor, so a process it
+# starts (or a draining old slot) cannot keep the lock after this exits.
+svc() { "$SYSTEMCTL" "$@" 9>&-; }
+
+current_release() { basename "$(readlink "$APP_DIR/current" 2>/dev/null || echo none)"; }
+active_slot() { cat "$APP_DIR/active-slot" 2>/dev/null || echo a; }
+other_slot() { [[ "$1" == a ]] && echo b || echo a; }
+slot_port() { [[ "$1" == a ]] && echo "$PORT_A" || echo "$PORT_B"; }
+
+# Atomically point a symlink somewhere: write a temporary link, rename over.
+swap_link() {
+  local target="$1" link="$2"
+  ln -sfn "$target" "$link.tmp.$$"
+  mv -Tf "$link.tmp.$$" "$link"
+}
+
+# GET a URL until it answers 2xx/3xx STREAK times in a row (and, if EXPECT is
+# set, with EXPECT in the body), or the wait runs out.
+wait_healthy() {
+  local url="$1" deadline=$((SECONDS + HEALTH_WAIT)) code body good=0 out
+  shift
+  out="$(mktemp)"
+  while ((SECONDS < deadline)); do
+    code="$("$CURL" --noproxy '*' -s -o "$out" -w '%{http_code}' --max-time 5 "$@" "$url" 2>/dev/null || true)"
+    body="$(head -c 4096 "$out" 2>/dev/null || true)"
+    if [[ "$code" =~ ^[23] && ( -z "${EXPECT:-}" || "$body" == *"$EXPECT"* ) ]]; then
+      good=$((good + 1))
+      if ((good >= ${STREAK:-1})); then rm -f "$out"; return 0; fi
+      sleep 0.5
+      continue
+    fi
+    good=0
+    sleep 1
+  done
+  rm -f "$out"
+  warn "$url did not answer 2xx/3xx${EXPECT:+ with $EXPECT} within ${HEALTH_WAIT}s (last: ${code:-none})"
+  return 1
+}
+
+# The public check: through nginx and TLS, as a visitor would see it. Right
+# after a reload, nginx's old workers can still answer for a moment, so it
+# waits for them to settle and wants three good answers in a row; an app
+# with the functions runtime must also report the new release.
+public_check() {
+  local release="${1:-}"
+  [[ -n "${VGRUVS_SKIP_PUBLIC_CHECK:-}" ]] && return 0
+  sleep "${VGRUVS_SETTLE:-2}"
+  local expect=''
+  [[ "$HEALTH_PATH" == /_vgruvs/health && -n "$release" ]] && expect="\"release\":\"$release\""
+  EXPECT="$expect" STREAK=3 wait_healthy "https://$PRIMARY_DOMAIN:$HTTPS_PORT$HEALTH_PATH" -k --resolve "$PRIMARY_DOMAIN:$HTTPS_PORT:127.0.0.1"
+}
+
+write_upstream() {
+  local port="$1"
+  mkdir -p "$NGINX_DIR/vgruvs/upstreams"
+  cat >"$NGINX_DIR/vgruvs/upstreams/$APP.conf.tmp" <<EOF
+# Written by vgruvs: the slot nginx sends $APP traffic to.
+upstream vgruvs_${APP//-/_} {
+    server 127.0.0.1:$port;
+    keepalive 8;
+}
+EOF
+  mv -f "$NGINX_DIR/vgruvs/upstreams/$APP.conf.tmp" "$NGINX_DIR/vgruvs/upstreams/$APP.conf"
+}
+
+reload_nginx() {
+  "$NGINX" -t -q || die "nginx -t failed; nginx was not reloaded"
+  svc reload nginx
+}
+
+# Point a release at its place in the world. For static apps that is the
+# `current` link; for functions/node apps, the idle slot is started on it,
+# checked, and only then does nginx move over.
+activate() {
+  local release="$1" rel_dir="$APP_DIR/releases/$1"
+  [[ -d "$rel_dir" ]] || die "$APP has no release $release"
+
+  if [[ "$APP_TYPE" == static ]]; then
+    swap_link "releases/$release" "$APP_DIR/current"
+    return 0
+  fi
+
+  local old new port
+  old="$(active_slot)"
+  new="$(other_slot "$old")"
+  port="$(slot_port "$new")"
+  swap_link "../releases/$release" "$APP_DIR/slots/$new"
+  svc restart "vgruvs-app@$APP-$new"
+  if ! wait_healthy "http://127.0.0.1:$port$HEALTH_PATH"; then
+    svc stop "vgruvs-app@$APP-$new" || true
+    warn "release $release failed its health check on slot $new; $APP is unchanged"
+    return 1
+  fi
+  write_upstream "$port"
+  swap_link "releases/$release" "$APP_DIR/current"
+  reload_nginx
+  echo "$new" >"$APP_DIR/active-slot"
+  # Let requests already on the old slot finish, then free its memory.
+  ( exec 9>&-; sleep "${VGRUVS_DRAIN:-10}"; svc stop "vgruvs-app@$APP-$old" >/dev/null 2>&1 || true ) &
+  return 0
+}
+
+prune() {
+  local keep="${KEEP_RELEASES:-5}" live slot_a slot_b n=0
+  live="$(current_release)"
+  slot_a="$(basename "$(readlink "$APP_DIR/slots/a" 2>/dev/null || echo -)")"
+  slot_b="$(basename "$(readlink "$APP_DIR/slots/b" 2>/dev/null || echo -)")"
+  while IFS= read -r dir; do
+    n=$((n + 1))
+    local r
+    r="$(basename "$dir")"
+    ((n <= keep)) && continue
+    [[ "$r" == "$live" || "$r" == "$slot_a" || "$r" == "$slot_b" ]] && continue
+    rm -rf -- "$dir"
+  done < <(ls -1dt "$APP_DIR/releases"/*/ 2>/dev/null | sed 's#/$##')
+}
+
+check_release_shape() {
+  local dir="$1"
+  case "$APP_TYPE" in
+    static) [[ -s "$dir/index.html" ]] || die "release has no index.html at its top level" ;;
+    functions)
+      [[ -s "$dir/${STATIC_DIR:-dist}/index.html" ]] || die "release has no ${STATIC_DIR:-dist}/index.html"
+      [[ -d "$dir/api" ]] || die "release has no api/ directory"
+      ;;
+    node) [[ -s "$dir/server.js" ]] || die "release has no server.js (is next.config output: 'standalone'?)" ;;
+  esac
+}
+
+cmd_receive() {
+  local preview=''
+  [[ $# -ge 2 ]] || die "usage: vgruvs receive <app> <release> [--preview <name>]"
+  load_app "$1"
+  local release="$2"
+  shift 2
+  if [[ "${1:-}" == --preview ]]; then
+    preview="${2:-}"
+    valid_name "$preview" || die "bad preview name: $preview"
+  fi
+  valid_release "$release" || die "bad release id: $release"
+  lock_app
+
+  if [[ -n "$preview" ]]; then
+    [[ "$APP_TYPE" != node ]] || die "previews are static only; $APP is a node app"
+    local pdir="$APP_DIR/previews/$preview"
+    rm -rf "$pdir.tmp" && mkdir -p "$pdir.tmp"
+    unpack_into "$pdir.tmp"
+    check_release_shape "$pdir.tmp"
+    printf '%s\n%s\n' "$release" "$(date -u +%FT%TZ)" >"$pdir.tmp/.vgruvs-release"
+    rm -rf "$pdir" && mv "$pdir.tmp" "$pdir"
+    say "preview $preview of $APP is at https://$preview.${PREVIEW_DOMAIN:-<no PREVIEW_DOMAIN set>}"
+    return 0
+  fi
+
+  local rel_dir="$APP_DIR/releases/$release"
+  rm -rf "$rel_dir.tmp" && mkdir -p "$rel_dir.tmp"
+  unpack_into "$rel_dir.tmp"
+  check_release_shape "$rel_dir.tmp"
+  printf '%s\n%s\n' "$release" "$(date -u +%FT%TZ)" >"$rel_dir.tmp/.vgruvs-release"
+  if [[ "$APP_TYPE" == node && -d "$rel_dir.tmp/.next" ]]; then
+    # Releases are read-only to the app; Next's ISR and image cache live in
+    # one writable place per app instead, and survive deploys.
+    mkdir -p "$ROOT/cache/$APP"
+    chown "$APP_USER:$APP_USER" "$ROOT/cache/$APP" 2>/dev/null || true
+    rm -rf "$rel_dir.tmp/.next/cache"
+    ln -s "$ROOT/cache/$APP" "$rel_dir.tmp/.next/cache"
+  fi
+  rm -rf "$rel_dir" && mv "$rel_dir.tmp" "$rel_dir"
+
+  local previous
+  previous="$(current_release)"
+  say "activating $APP $release (was: $previous)"
+  if ! activate "$release"; then
+    rm -rf "$rel_dir"
+    die "deploy of $APP $release failed; still serving $previous"
+  fi
+
+  if ! public_check "$release"; then
+    if [[ "$previous" != none && -d "$APP_DIR/releases/$previous" ]]; then
+      warn "$APP $release failed the public check; rolling back to $previous"
+      activate "$previous" || warn "rollback to $previous also failed: check 'vgruvs status $APP'"
+      public_check "$previous" || true
+    fi
+    die "deploy of $APP $release failed its public check"
+  fi
+
+  prune
+  say "$APP $release is live on https://$PRIMARY_DOMAIN"
+}
+
+cmd_rollback() {
+  [[ $# -ge 1 ]] || die "usage: vgruvs rollback <app> [<release>]"
+  load_app "$1"
+  lock_app
+  local target="${2:-}" live
+  live="$(current_release)"
+  if [[ -z "$target" ]]; then
+    # Release names are validated ([A-Za-z0-9._-]), so ls is safe here.
+    # shellcheck disable=SC2010
+    target="$(ls -1t "$APP_DIR/releases" | grep -vx "$live" | head -1 || true)"
+    [[ -n "$target" ]] || die "$APP has no earlier release to roll back to"
+  fi
+  valid_release "$target" || die "bad release id: $target"
+  say "rolling $APP back from $live to $target"
+  activate "$target" || die "rollback failed; still serving $live"
+  public_check "$target" || warn "$target is live but failed the public check"
+  # Mark it newest so the next plain `rollback` goes further back, not forward.
+  touch "$APP_DIR/releases/$target"
+  say "$APP $target is live"
+}
+
+cmd_releases() {
+  load_app "$1"
+  local live r when
+  live="$(current_release)"
+  # shellcheck disable=SC2010 # validated names, newest first
+  for r in $(ls -1t "$APP_DIR/releases" 2>/dev/null | grep -v '\.tmp$'); do
+    when="$(sed -n 2p "$APP_DIR/releases/$r/.vgruvs-release" 2>/dev/null || echo '?')"
+    printf '%s %-40s %s\n' "$([[ "$r" == "$live" ]] && echo '*' || echo ' ')" "$r" "$when"
+  done
+}
+
+app_health() {
+  local code
+  if [[ "$APP_TYPE" == static ]]; then
+    [[ -s "$APP_DIR/current/index.html" ]] && echo ok || echo "missing index.html"
+    return
+  fi
+  code="$("$CURL" --noproxy '*' -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:$(slot_port "$(active_slot)")$HEALTH_PATH" 2>/dev/null || true)"
+  [[ "$code" =~ ^[23] ]] && echo ok || echo "unhealthy (HTTP ${code:-none})"
+}
+
+cmd_status() {
+  local apps app
+  if [[ $# -ge 1 ]]; then apps="$1"; else apps="$(ls "$ETC/apps" 2>/dev/null | sed -n 's/\.conf$//p')"; fi
+  for app in $apps; do
+    load_app "$app"
+    printf '%-12s %-9s release=%-28s health=%s\n' "$APP" "$APP_TYPE" "$(current_release)" "$(app_health)"
+  done
+  if [[ $# -eq 0 ]]; then
+    printf '\nmemory: %s\n' "$(free -m 2>/dev/null | awk '/Mem:/ {print $3 " MB used of " $2 " MB"}')"
+    printf 'disk:   %s\n' "$(df -h "$ROOT" 2>/dev/null | awk 'NR==2 {print $3 " used of " $2 " (" $5 ")"}')"
+    local cert
+    for cert in /etc/letsencrypt/live/*/cert.pem; do
+      [[ -r "$cert" ]] || continue
+      printf 'cert:   %-28s expires %s\n' "$(basename "$(dirname "$cert")")" "$(openssl x509 -enddate -noout -in "$cert" | cut -d= -f2)"
+    done
+  fi
+}
+
+cmd_logs() {
+  load_app "$1"
+  [[ "$APP_TYPE" != static ]] || die "$APP is static; see /var/log/nginx/access.log"
+  journalctl -u "vgruvs-app@$APP-a" -u "vgruvs-app@$APP-b" --no-pager -n 200 "${@:2}"
+}
+
+cmd_restart() {
+  load_app "$1"
+  [[ "$APP_TYPE" != static ]] || { say "$APP is static; nothing to restart"; return; }
+  svc restart "vgruvs-app@$APP-$(active_slot)"
+  wait_healthy "http://127.0.0.1:$(slot_port "$(active_slot)")$HEALTH_PATH" && say "$APP restarted"
+}
+
+cmd_env() {
+  load_app "$1"
+  local file="$ETC/env/$APP.env" action="${2:-list}"
+  mkdir -p "$ETC/env"
+  touch "$file"
+  chmod 640 "$file"
+  chgrp vgruvs "$file" 2>/dev/null || true
+  case "$action" in
+    list) sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' "$file" ;; # names only, never values
+    set)
+      local key="${3:-}" value="${4:-}"
+      [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || die "bad variable name: $key"
+      grep -v "^$key=" "$file" >"$file.tmp" || true
+      printf '%s=%q\n' "$key" "$value" >>"$file.tmp"
+      mv -f "$file.tmp" "$file"
+      chmod 640 "$file"
+      chgrp vgruvs "$file" 2>/dev/null || true
+      say "set $key for $APP; restarting"
+      cmd_restart "$APP"
+      ;;
+    unset)
+      local key="${3:-}"
+      grep -v "^$key=" "$file" >"$file.tmp" || true
+      mv -f "$file.tmp" "$file"
+      say "removed $key from $APP; restarting"
+      cmd_restart "$APP"
+      ;;
+    *) die "usage: vgruvs env <app> list | set <KEY> <VALUE> | unset <KEY>" ;;
+  esac
+}
+
+cmd_certs() {
+  load_app "$1"
+  local args=() d
+  for d in $DOMAINS; do args+=(-d "$d"); done
+  mkdir -p /var/www/letsencrypt
+  certbot certonly --webroot -w /var/www/letsencrypt --keep-until-expiring --non-interactive --agree-tos \
+    --register-unsafely-without-email --cert-name "$PRIMARY_DOMAIN" "${args[@]}" \
+    --deploy-hook "systemctl reload nginx"
+}
+
+cmd_site() {
+  load_app "$1"
+  local src="$LIB/nginx/sites/$APP.conf"
+  [[ -r "$src" ]] || die "no site template for $APP at $src"
+  [[ -r "/etc/letsencrypt/live/$PRIMARY_DOMAIN/fullchain.pem" ]] ||
+    die "no certificate for $PRIMARY_DOMAIN yet: point its DNS here, then run 'vgruvs certs $APP'"
+  if [[ "$APP_TYPE" != static && ! -f "$NGINX_DIR/vgruvs/upstreams/$APP.conf" ]]; then
+    write_upstream "$(slot_port "$(active_slot)")"
+  fi
+  cp "$src" "$NGINX_DIR/sites-available/vgruvs-$APP.conf"
+  ln -sfn "$NGINX_DIR/sites-available/vgruvs-$APP.conf" "$NGINX_DIR/sites-enabled/vgruvs-$APP.conf"
+  if ! "$NGINX" -t -q; then
+    rm -f "$NGINX_DIR/sites-enabled/vgruvs-$APP.conf"
+    die "nginx rejected the $APP site; it was not enabled"
+  fi
+  svc reload nginx
+  say "$APP is served by nginx for: $DOMAINS"
+}
+
+cmd_previews() {
+  load_app "$1"
+  case "${2:-list}" in
+    list)
+      # shellcheck disable=SC2010 # validated names, newest first
+      ls -1t "$APP_DIR/previews" 2>/dev/null | grep -v '\.tmp$' | sed "s#.*#& -> https://&.${PREVIEW_DOMAIN}#" || true
+      ;;
+    remove)
+      valid_name "${3:-}" || die "usage: vgruvs previews <app> remove <name>"
+      rm -rf -- "$APP_DIR/previews/$3"
+      say "removed preview $3"
+      ;;
+    enable)
+      [[ -n "$PREVIEW_DOMAIN" ]] || die "set PREVIEW_DOMAIN in $ETC/apps/$APP.conf first"
+      [[ -r "/etc/letsencrypt/live/$PREVIEW_DOMAIN/fullchain.pem" ]] ||
+        die "needs a wildcard certificate for *.$PREVIEW_DOMAIN (see the README)"
+      local suffix='' re="${PREVIEW_DOMAIN//./\\.}"
+      [[ "$APP_TYPE" == functions ]] && suffix="/${STATIC_DIR:-dist}"
+      sed -e "s#__APP__#$APP#g" -e "s#__PREVIEW_DOMAIN_RE__#$re#g" -e "s#__PREVIEW_DOMAIN__#$PREVIEW_DOMAIN#g" \
+        -e "s#__STATIC_SUFFIX__#$suffix#g" "$LIB/nginx/sites/previews.conf.template" \
+        >"$NGINX_DIR/sites-available/vgruvs-$APP-previews.conf"
+      ln -sfn "$NGINX_DIR/sites-available/vgruvs-$APP-previews.conf" "$NGINX_DIR/sites-enabled/vgruvs-$APP-previews.conf"
+      reload_nginx
+      say "previews for $APP are served at https://<name>.$PREVIEW_DOMAIN"
+      ;;
+    *) die "usage: vgruvs previews <app> list | remove <name> | enable" ;;
+  esac
+}
+
+# Every two minutes: restart an app whose active slot stopped answering,
+# drop previews older than two weeks, and make sure certificates renew.
+cmd_heal() {
+  local app
+  for app in $(ls "$ETC/apps" 2>/dev/null | sed -n 's/\.conf$//p'); do
+    load_app "$app"
+    find "$APP_DIR/previews" -mindepth 1 -maxdepth 1 -type d -mtime +14 -exec rm -rf {} + 2>/dev/null || true
+    [[ "$APP_TYPE" == static || "$(current_release)" == none ]] && continue
+    if [[ "$(app_health)" != ok ]]; then
+      warn "$APP is unhealthy; restarting slot $(active_slot)"
+      svc restart "vgruvs-app@$APP-$(active_slot)" || true
+    fi
+  done
+  # Twice a day is what certbot asks for; its own timer may be missing.
+  local stamp="$ROOT/.certbot-renewed"
+  if command -v certbot >/dev/null && [[ -z "$(find "$stamp" -mmin -720 2>/dev/null)" ]]; then
+    touch "$stamp"
+    certbot renew --quiet --deploy-hook "systemctl reload nginx" || warn "certbot renew failed"
+  fi
+}
+
+main() {
+  local cmd="${1:-help}"
+  shift || true
+  case "$cmd" in
+    receive) cmd_receive "$@" ;;
+    rollback) cmd_rollback "$@" ;;
+    releases) [[ $# -ge 1 ]] || die "usage: vgruvs releases <app>"; cmd_releases "$1" ;;
+    status) cmd_status "$@" ;;
+    logs) [[ $# -ge 1 ]] || die "usage: vgruvs logs <app> [-f]"; cmd_logs "$@" ;;
+    env) [[ $# -ge 1 ]] || die "usage: vgruvs env <app> ..."; cmd_env "$@" ;;
+    restart) [[ $# -ge 1 ]] || die "usage: vgruvs restart <app>"; cmd_restart "$1" ;;
+    site) [[ $# -ge 1 ]] || die "usage: vgruvs site <app>"; cmd_site "$1" ;;
+    certs) [[ $# -ge 1 ]] || die "usage: vgruvs certs <app>"; cmd_certs "$1" ;;
+    previews) [[ $# -ge 1 ]] || die "usage: vgruvs previews <app> ..."; cmd_previews "$@" ;;
+    heal) cmd_heal ;;
+    help | -h | --help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) die "unknown command: $cmd (try vgruvs help)" ;;
+  esac
+}
+
+main "$@"

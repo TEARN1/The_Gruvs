@@ -1,15 +1,22 @@
 # ────────────────────────────────────────────────────────────────────────────
-# Web Deploy — Expo web → DigitalOcean droplet (replaces the old Vercel deploy)
+# Web Deploy — Expo web → DigitalOcean droplet, through V-Gruvs
 #
-# CI builds dist/ (validates the bundle), then ships it to the droplet over SSH
-# and reloads nginx. Production lives at https://thegruvs.com.
+# CI builds dist/ (validates the bundle), then ships it to the droplet. With
+# V-Gruvs installed (infra/vgruvs, see its README) every deploy is a new
+# release: checked through nginx, rolled back by itself if the site stops
+# answering, and one click back with the "Web Rollback" workflow.
 #
-# GATED: the deploy job SKIPS cleanly (green) unless the DROPLET_SSH_KEY secret
-# is set — so this workflow never fails just because auto-deploy isn't wired up.
+# GATED: the deploy job SKIPS cleanly (green) unless a key secret is set — so
+# this workflow never fails just because auto-deploy isn't wired up.
 #
-# To enable auto-deploy on push to main, add these repo secrets:
-#   • DROPLET_SSH_KEY  — the private key authorized as root on the droplet
+# Repo secrets:
+#   • VGRUVS_SSH_KEY   — the `deploy` user's private key. It can ship and roll
+#                        back releases and nothing else. Preferred.
+#   • DROPLET_SSH_KEY  — legacy root key. Still works (it uses V-Gruvs when the
+#                        droplet has it), but delete it once VGRUVS_SSH_KEY is set.
 #   • DROPLET_HOST     — (optional) defaults to 144.126.236.75
+# Repo variable:
+#   • VGRUVS_PREVIEWS = true — also deploy each PR to pr-<n>.preview.thegruvs.com
 # ────────────────────────────────────────────────────────────────────────────
 name: Web Deploy
 
@@ -55,32 +62,61 @@ jobs:
           path: dist/
           retention-days: 1
 
-  # ── Ship to the droplet — only on push to main, only if the key is set ────
+  # ── Ship to the droplet — only on push to main, only if a key is set ─────
   deploy:
     name: Deploy to droplet
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # One deploy at a time; a newer push waits rather than racing the swap.
+    concurrency:
+      group: web-deploy-production
+      cancel-in-progress: false
     steps:
-      - name: Guard — skip cleanly if no SSH key is configured
+      - name: Guard — pick the deploy key, or skip cleanly
         id: guard
         env:
-          KEY: ${{ secrets.DROPLET_SSH_KEY }}
+          VGRUVS_KEY: ${{ secrets.VGRUVS_SSH_KEY }}
+          ROOT_KEY: ${{ secrets.DROPLET_SSH_KEY }}
         run: |
-          if [ -z "$KEY" ]; then
-            echo "::notice::DROPLET_SSH_KEY not set — skipping droplet deploy (add it to enable auto-deploy)."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
+          if [ -n "$VGRUVS_KEY" ]; then
+            echo "mode=vgruvs" >> "$GITHUB_OUTPUT"
+          elif [ -n "$ROOT_KEY" ]; then
+            echo "mode=root" >> "$GITHUB_OUTPUT"
+            echo "::warning::Deploying with the root key (DROPLET_SSH_KEY). Add VGRUVS_SSH_KEY for the deploy user and delete DROPLET_SSH_KEY."
+          else
+            echo "::notice::No VGRUVS_SSH_KEY or DROPLET_SSH_KEY — skipping droplet deploy (add one to enable auto-deploy)."
+            echo "mode=skip" >> "$GITHUB_OUTPUT"
           fi
+          echo "release=$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::10}" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the deploy client
+        if: steps.guard.outputs.mode == 'vgruvs'
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: infra/vgruvs/client
 
       - name: Download dist artifact
-        if: steps.guard.outputs.skip != 'true'
+        if: steps.guard.outputs.mode != 'skip'
         uses: actions/download-artifact@v8
         with:
           name: web-dist-${{ github.sha }}
           path: dist/
 
-      - name: Set up SSH
-        if: steps.guard.outputs.skip != 'true'
+      # The droplet unpacks the release, checks it through nginx and rolls
+      # back by itself if the site stops answering; a failed deploy fails here.
+      - name: Ship dist → V-Gruvs (deploy user)
+        if: steps.guard.outputs.mode == 'vgruvs'
+        env:
+          VGRUVS_SSH_KEY: ${{ secrets.VGRUVS_SSH_KEY }}
+          HOST: ${{ secrets.DROPLET_HOST }}
+          RELEASE: ${{ steps.guard.outputs.release }}
+        run: |
+          VGRUVS_HOST="deploy@${HOST:-144.126.236.75}" \
+            bash infra/vgruvs/client/vgruvs-deploy.sh thegruvs --from dist --release "$RELEASE"
+
+      - name: Set up SSH (root key)
+        if: steps.guard.outputs.mode == 'root'
         env:
           KEY: ${{ secrets.DROPLET_SSH_KEY }}
           HOST: ${{ secrets.DROPLET_HOST }}
@@ -90,15 +126,18 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "${HOST:-144.126.236.75}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Ship dist → droplet (staged + atomic swap) + reload nginx
-        if: steps.guard.outputs.skip != 'true'
+      # Root key: V-Gruvs when the droplet has it (after bootstrap, nginx serves
+      # /srv/vgruvs, so writing /var/www would change nothing); otherwise the
+      # old staged swap into /var/www/thegruvs.
+      - name: Ship dist → droplet (root key)
+        if: steps.guard.outputs.mode == 'root'
         env:
           HOST: ${{ secrets.DROPLET_HOST }}
+          RELEASE: ${{ steps.guard.outputs.release }}
         run: |
           TARGET="root@${HOST:-144.126.236.75}"
-          # Atomic: extract to a stage dir, then swap with instant renames so the
-          # live dir is never empty mid-deploy (avoids the nginx 403 flash).
           ( cd dist && tar czf - . ) | ssh -i ~/.ssh/id_ed25519 "$TARGET" "
+            if [ -x /usr/local/bin/vgruvs ]; then exec /usr/local/bin/vgruvs receive thegruvs $RELEASE; fi
             set -e
             rm -rf /var/www/thegruvs_stage && mkdir -p /var/www/thegruvs_stage &&
             tar xzf - -C /var/www/thegruvs_stage &&
@@ -113,8 +152,61 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          MODE: ${{ steps.guard.outputs.mode }}
+          RELEASE: ${{ steps.guard.outputs.release }}
+          OUTCOME: ${{ job.status }}
         run: |
-          echo "## Web Deploy" >> $GITHUB_STEP_SUMMARY
-          echo "- Target: https://thegruvs.com (droplet)" >> $GITHUB_STEP_SUMMARY
-          echo "- Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Deployed: ${{ steps.guard.outputs.skip == 'true' && 'skipped (no DROPLET_SSH_KEY)' || 'yes' }}" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Web Deploy"
+            echo "- Target: https://thegruvs.com (droplet)"
+            echo "- Commit: \`$GITHUB_SHA\`"
+            if [ "$MODE" = skip ]; then
+              echo "- Deployed: skipped (no VGRUVS_SSH_KEY or DROPLET_SSH_KEY)"
+            else
+              echo "- Release: \`$RELEASE\` via ${MODE} key — $OUTCOME"
+              echo "- Undo: run the **Web Rollback** workflow"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── PR previews at pr-<n>.preview.thegruvs.com (opt-in) ───────────────────
+  # Needs the repo variable VGRUVS_PREVIEWS=true plus the wildcard DNS record
+  # and certificate from infra/vgruvs/README.md. PRs from forks never get the
+  # key, so they skip.
+  preview:
+    name: Deploy PR preview
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request' && vars.VGRUVS_PREVIEWS == 'true'
+    concurrency:
+      group: web-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - name: Guard — skip cleanly without the deploy key
+        id: guard
+        env:
+          KEY: ${{ secrets.VGRUVS_SSH_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::notice::VGRUVS_SSH_KEY not available — skipping the preview."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          sparse-checkout: infra/vgruvs/client
+      - uses: actions/download-artifact@v8
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          name: web-dist-${{ github.sha }}
+          path: dist/
+      - name: Ship the preview
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          VGRUVS_SSH_KEY: ${{ secrets.VGRUVS_SSH_KEY }}
+          HOST: ${{ secrets.DROPLET_HOST }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          VGRUVS_HOST="deploy@${HOST:-144.126.236.75}" \
+            bash infra/vgruvs/client/vgruvs-deploy.sh thegruvs --from dist --preview "pr-$PR" --release "pr-$PR-${GITHUB_SHA::10}"
+          echo "Preview: https://pr-$PR.preview.thegruvs.com" >> "$GITHUB_STEP_SUMMARY"
