@@ -78,6 +78,7 @@ this way.
 - `vgruvs doctor`: checks nginx, every app, certificates, DNS, memory, disk, services, firewall, updates and the clock, and says how to fix each problem.
 - `vgruvs apps add`: a new app from a template, ready for its first deploy.
 - **Self-healing:** every two minutes, apps that stopped answering are restarted, certificates are renewed, and warnings go out for the disk and certificates.
+- **Restarts that look after themselves:** security updates that need a restart (a new kernel) restart the droplet at 01:30 UTC (03:30 in South Africa), and `vgruvs-boot.service` starts every app's live release at boot. `NO_AUTO_REBOOT=1 bash bootstrap.sh` leaves restarts to you.
 
 ## Memory and droplet size
 
@@ -185,12 +186,17 @@ ssh -L 9900:127.0.0.1:9900 root@144.126.236.75     # then open http://localhost:
 
 It refreshes every few minutes and after every deploy.
 
-To open it on the web behind a password:
+To open it on the web behind a password, at `https://ops.thegruvs.com`:
 
-1. Point a domain at the droplet.
-2. Run `vgruvs console publish ops.thegruvs.com`. It gets the certificate and prints a password.
+1. At GoDaddy (thegruvs.com → DNS), add an **A** record: name `ops`, value `144.126.236.75`.
+2. In the_gruvs repo, add the secret `VGRUVS_CONSOLE_PASSWORD` (12 characters or more).
+3. Run **Actions → V-Gruvs Droplet → publish the console**.
 
-`vgruvs console unpublish` takes it off the web again. The console is read-only by design: actions stay with `vgruvs` and the GitHub workflows, behind SSH keys.
+   On the droplet itself, the same is `vgruvs console publish ops.thegruvs.com`: with no password on stdin it makes one and shows it once.
+
+It refuses, changing nothing, until the name's own nameservers point here. The password is never printed or put on a command line. Before it stays online, it checks that the page is locked without the password and opens with it. Sign in as `admin`.
+
+`vgruvs console unpublish` (or **unpublish the console**) takes it off the web again. The console is read-only by design: actions stay with `vgruvs` and the GitHub workflows, behind SSH keys.
 
 ## Settings per app
 
@@ -219,12 +225,12 @@ Each app's settings are in `/etc/vgruvs/apps/<app>.conf`. Edit the file, then ru
 
 ## Notifications
 
-Create `/etc/vgruvs/notify.conf` (mode 600) with one line, then run `vgruvs notify test`:
+Pick where they go:
 
-```bash
-NOTIFY_URL=https://discord.com/api/webhooks/...      # or a Slack webhook,
-                                                     # or https://ntfy.sh/<a-long-random-topic> for phone push
-```
+- **Your phone, free:** install the ntfy app and subscribe to a long random topic, for example `gruvs-` followed by 20 random letters. The URL is `https://ntfy.sh/<that topic>`; anyone who knows it can read the messages, so keep it secret.
+- **Discord or Slack:** a channel's incoming-webhook URL.
+
+Put the URL in the_gruvs repo's `VGRUVS_NOTIFY_URL` secret and run **V-Gruvs Droplet → install or update**. It sets the URL and sends a test message. On the droplet, the same is `vgruvs notify set -` with the URL on stdin, then `vgruvs notify test`. It is kept in `/etc/vgruvs/notify.conf` (mode 600).
 
 You hear about:
 
@@ -235,7 +241,8 @@ You hear about:
 - certificates close to expiry, and a full disk;
 - attack mode;
 - failed crons;
-- maintenance mode.
+- maintenance mode;
+- the droplet starting up (after a security restart, for example), a site connected, the console published.
 
 `NOTIFY_EVENTS="deploy_failed auto_rollback"` narrows that list.
 
@@ -294,7 +301,7 @@ Vercel serves from many cities; the droplet is in one. Cloudflare's free plan ad
 | `apps/*.conf` | `/etc/vgruvs/apps/` | each app's settings |
 | `nginx/sites/*`, `nginx/templates/*` | nginx | one site per app, port 80, the console, previews, new-app templates |
 | `nginx/snippets/*.conf` | `/etc/nginx/snippets/` | TLS, compression, headers, proxy, edge cache, platform features |
-| `systemd/*` | `/etc/systemd/system/` | app slots, heal and cron timers |
+| `systemd/*` | `/etc/systemd/system/` | app slots, heal and cron timers, start-up |
 | `client/vgruvs-deploy.sh` | (copied into each repo) | ships a build from CI or a laptop |
 
 **Generated on the droplet:**

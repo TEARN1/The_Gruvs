@@ -46,6 +46,19 @@ cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
 EOF
+# An update that needs a restart (a new kernel) is not in force until the
+# droplet restarts: do it at 01:30 UTC (03:30 in South Africa), when the apps
+# are quietest. vgruvs-boot.service starts them again; the restart is in
+# `vgruvs events` and, with notifications on, on your phone.
+# NO_AUTO_REBOOT=1 leaves restarts to you.
+if [[ -z "${NO_AUTO_REBOOT:-}" ]]; then
+  cat >/etc/apt/apt.conf.d/52vgruvs-reboot <<'EOF'
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "01:30";
+EOF
+else
+  rm -f /etc/apt/apt.conf.d/52vgruvs-reboot
+fi
 systemctl enable --now fail2ban >/dev/null 2>&1 || true
 
 say "Swap"
@@ -119,9 +132,12 @@ done
 install -m 644 "$HERE"/nginx/snippets/*.conf /etc/nginx/snippets/
 install -d -m 755 /etc/nginx/vgruvs /etc/nginx/vgruvs/upstreams /etc/nginx/vgruvs/apps /etc/nginx/vgruvs/auth
 install -m 644 "$HERE"/systemd/vgruvs-app@.service "$HERE"/systemd/vgruvs-heal.service "$HERE"/systemd/vgruvs-heal.timer \
-  "$HERE"/systemd/vgruvs-cron.service "$HERE"/systemd/vgruvs-cron.timer /etc/systemd/system/
+  "$HERE"/systemd/vgruvs-cron.service "$HERE"/systemd/vgruvs-cron.timer "$HERE"/systemd/vgruvs-boot.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now vgruvs-heal.timer vgruvs-cron.timer >/dev/null
+# Enabled, not started: it runs at the next boot (starting it now would only
+# report a start-up that did not happen).
+systemctl enable vgruvs-boot.service >/dev/null 2>&1
 
 # Request logs: two weeks, compressed after a day (insights reads both).
 cat >/etc/logrotate.d/vgruvs <<'ROTATE'
@@ -301,8 +317,10 @@ Next steps
      (or the "connect a site" action of the V-Gruvs Droplet workflow)
   3. Secrets: each app's deploy workflow copies them from its repo's GitHub
      secrets, or by hand:  vgruvs env excellency set VERIFIER_SECRET -  (stdin)
-  4. The console:  ssh -L 9900:127.0.0.1:9900 root@<this droplet>  then open
-     http://localhost:9900   (or: vgruvs console publish ops.<your domain>)
-  5. Optional: notifications in /etc/vgruvs/notify.conf, AI incident analysis
-     in /etc/vgruvs/ai.env (see the README), then:  vgruvs doctor
+  4. The console on the web: an A record for ops.thegruvs.com, the
+     VGRUVS_CONSOLE_PASSWORD secret, then "publish the console" in the
+     V-Gruvs Droplet workflow (or: ssh -L 9900:127.0.0.1:9900 root@<droplet>)
+  5. Notifications: the VGRUVS_NOTIFY_URL secret (ntfy, Discord or Slack),
+     then "install or update" again. Optional AI incident analysis in
+     /etc/vgruvs/ai.env (see the README). Then:  vgruvs doctor
 EOF
