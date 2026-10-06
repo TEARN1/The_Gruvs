@@ -12,7 +12,7 @@ import { BusinessDashboardScreen } from './src/screens/BusinessDashboardScreen';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import { setDriftReporter } from './src/utils/resilience';
-import { shouldEnterSafeMode, clearCrashLog } from './src/utils/bootGuard';
+import { shouldEnterSafeMode, shouldEnterSafeModeSync, clearCrashLog } from './src/utils/bootGuard';
 import { logError } from './src/utils/logError';
 import { captureRef } from './src/services/referral';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -1014,9 +1014,13 @@ export default function App() {
   // (a synchronous provider-init throw, a hung font load); this catches
   // that case using a PERSISTENT log (survives a full app kill, unlike
   // sessionStorage) written by ErrorBoundary's `critical` catch.
-  const [safeModeChecked, setSafeModeChecked] = useState(false);
-  const [inSafeMode, setInSafeMode] = useState(false);
+  // Web answers synchronously from localStorage, so the first render is the
+  // real app rather than a spinner frame; native still uses the async check.
+  const [syncSafeMode] = useState(() => (Platform.OS === 'web' ? shouldEnterSafeModeSync() : null));
+  const [safeModeChecked, setSafeModeChecked] = useState(syncSafeMode !== null);
+  const [inSafeMode, setInSafeMode] = useState(!!syncSafeMode);
   useEffect(() => {
+    if (syncSafeMode !== null) return undefined;
     let alive = true;
     // Race against a short timeout — a boot gate must never hang the app
     // waiting on storage; fail OPEN (normal boot) if the check is slow.
@@ -1053,7 +1057,11 @@ export default function App() {
     }
   }, []);
 
-  if (!safeModeChecked || (!fontsLoaded && !forceLoaded)) {
+  // Web never waits for the icon font: the static shell is already on screen
+  // and holding the app behind a spinner for up to 1.2 s made it feel like it
+  // "doesn't open". Icons render as the font arrives (it's preloaded in
+  // index.html by scripts/inject-pwa.js). Native keeps the short font gate.
+  if (!safeModeChecked || (Platform.OS !== 'web' && !fontsLoaded && !forceLoaded)) {
     return (
       <View style={styles.loadingScreen}>
         <StatusBar barStyle="light-content" backgroundColor="#0d1112" translucent={false} />

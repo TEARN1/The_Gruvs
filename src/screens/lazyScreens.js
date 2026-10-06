@@ -1,4 +1,14 @@
-// Screens are eager-required on every platform.
+// Screens are required on FIRST RENDER, not at app start (all platforms).
+//
+// Startup (2026-10-06): with every screen eagerly required, a mid-range phone
+// spent seconds executing each screen's module and building its StyleSheets
+// before the first tab could render. Each export below is a tiny wrapper that
+// require()s the real screen the first time it renders. The code is still in
+// the one bundle (no async chunks, so the failure described below can't
+// recur); only its *execution* moves off the startup path. Tabs mount on first
+// visit or during idle prefetch (App.js), so that's when this now runs.
+//
+// History: screens were eager-required on every platform, because of this:
 //
 // These were React.lazy(() => import(...)) on web to split them off the first-
 // parse critical path. But the web build ships with app.json
@@ -18,15 +28,27 @@
 // the first paint, and the other two export shell-level unread hooks that run
 // before any tab is visited.
 
-export const ReelsScreen = require('./ReelsScreen').ReelsScreen;
-export const ExplorePage = require('./ExplorePage').ExplorePage;
-export const CalendarPage = require('./CalendarPage').CalendarPage;
-export const ProfilePage = require('./ProfilePage').ProfilePage;
-export const GodViewDashboard = require('./GodViewDashboard').GodViewDashboard;
-export const MapScreen = require('./MapScreen').MapScreen;
+import React from 'react';
+
+const deferred = (load, name) => {
+  let Screen = null;
+  const Deferred = React.forwardRef((props, ref) => {
+    if (!Screen) Screen = load();
+    return <Screen ref={ref} {...props} />;
+  });
+  Deferred.displayName = `Deferred(${name})`;
+  return Deferred;
+};
+
+export const ReelsScreen = deferred(() => require('./ReelsScreen').ReelsScreen, 'ReelsScreen');
+export const ExplorePage = deferred(() => require('./ExplorePage').ExplorePage, 'ExplorePage');
+export const CalendarPage = deferred(() => require('./CalendarPage').CalendarPage, 'CalendarPage');
+export const ProfilePage = deferred(() => require('./ProfilePage').ProfilePage, 'ProfilePage');
+export const GodViewDashboard = deferred(() => require('./GodViewDashboard').GodViewDashboard, 'GodViewDashboard');
+export const MapScreen = deferred(() => require('./MapScreen').MapScreen, 'MapScreen');
 
 // Conditional overlays reached from inside another screen (PathMapScreen and
 // WalletScreen sit behind parked Focus Cut flags).
-export const PathMapScreen = require('./PathMapScreen').PathMapScreen;
-export const WalletScreen = require('./WalletScreen').WalletScreen;
-export const ServiceMarketplace = require('./ServiceMarketplace').ServiceMarketplace;
+export const PathMapScreen = deferred(() => require('./PathMapScreen').PathMapScreen, 'PathMapScreen');
+export const WalletScreen = deferred(() => require('./WalletScreen').WalletScreen, 'WalletScreen');
+export const ServiceMarketplace = deferred(() => require('./ServiceMarketplace').ServiceMarketplace, 'ServiceMarketplace');

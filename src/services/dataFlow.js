@@ -21,7 +21,7 @@ import { heatScore as canonicalHeatScore } from '../utils/heatScore';
 import { getXpLevel } from '../utils/vibeLevel';
 import { rankEventResults, rankUserResults } from '../utils/searchRelevance';
 import { secureCode } from '../utils/secureId';
-import { GLOBAL_EVENTS_CATALOG } from '../constants/globalEventsCatalog';
+import { loadEventsCatalog } from './eventsCatalog';
 import { TicketCache } from './offlineCache';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
@@ -214,8 +214,9 @@ _extend('dating',     'dating','speed_dating','singles_night','lgbtq','pride','s
                       'babyshower','reunion');
 
 // Helper to filter and paginate the curated Global Events Catalog
-export const filterCatalog = ({ category = 'all', query = '', dateRange = null, mode = 'drop', limit = 30 } = {}) => {
-  let list = Array.isArray(GLOBAL_EVENTS_CATALOG) ? [...GLOBAL_EVENTS_CATALOG] : [];
+export const filterCatalog = async ({ category = 'all', query = '', dateRange = null, mode = 'drop', limit = 30 } = {}) => {
+  const catalog = await loadEventsCatalog();
+  let list = Array.isArray(catalog) ? [...catalog] : [];
   
   if (category && category !== 'all') {
     const subCats = CAT_KEY_TO_SUBCATS[category];
@@ -937,7 +938,7 @@ export const FeedManager = {
       // enrich with curated real-world global events from the catalog
       if (mode !== 'mine' && mode !== 'following' && events.length < 15) {
         try {
-          const catalogEvents = filterCatalog({ category, query, dateRange, mode, limit: 30 });
+          const catalogEvents = await filterCatalog({ category, query, dateRange, mode, limit: 30 });
           const existingIds = new Set(events.map(e => String(e.id)));
           const additions = catalogEvents.filter(ce => !existingIds.has(String(ce.id)));
           if (additions.length > 0) {
@@ -978,9 +979,9 @@ export const FeedManager = {
         throw new Error('cache miss');
       },
       // ── Mother escalation: fallback to curated global events catalog ──────
-      () => {
-        const fallbackList = (mode !== 'mine' && mode !== 'following') 
-          ? filterCatalog({ category, query, dateRange, mode, limit: pageSize })
+      async () => {
+        const fallbackList = (mode !== 'mine' && mode !== 'following')
+          ? await filterCatalog({ category, query, dateRange, mode, limit: pageSize })
           : [];
         return { events: fallbackList, total: fallbackList.length, page, hasMore: false };
       },
@@ -1122,7 +1123,7 @@ export const FeedManager = {
 
   async fetchSingle(eventId) {
     if (eventId && (String(eventId).startsWith('gp_') || String(eventId).startsWith('global_'))) {
-      const found = (GLOBAL_EVENTS_CATALOG || []).find(e => String(e.id) === String(eventId));
+      const found = (await loadEventsCatalog()).find(e => String(e.id) === String(eventId));
       if (found) return normalizeEvent(found);
     }
 
