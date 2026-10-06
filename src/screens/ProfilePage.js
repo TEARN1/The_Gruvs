@@ -1880,10 +1880,10 @@ const GalleryTab = ({ userId, primary, muted, myEvents, profileGallery, onDelete
           )}
           {lightboxItem?.isVideo ? (
             <Pressable onPress={e => e.stopPropagation()}>
-              <Video source={{ uri: lightboxItem.url }} style={{ width: width - 32, height: (width - 32) * 9 / 16, borderRadius: 12 }} resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping useNativeControls />
+              <Video source={{ uri: lightboxItem.url }} style={{ width: windowWidth - 32, height: (windowWidth - 32) * 9 / 16, borderRadius: 12 }} resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping useNativeControls />
             </Pressable>
           ) : (
-            <Image source={{ uri: lightboxItem?.url }} style={{ width: width - 32, height: width - 32, borderRadius: 12 }} resizeMode="contain" />
+            <Image source={{ uri: lightboxItem?.url }} style={{ width: windowWidth - 32, height: windowWidth - 32, borderRadius: 12 }} resizeMode="contain" />
           )}
         </Pressable>
       </Modal>

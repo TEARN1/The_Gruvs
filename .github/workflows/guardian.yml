@@ -64,7 +64,7 @@ jobs:
         run: node scripts/audit-maintenance.mjs
         env:
           SUPABASE_URL:      ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
   client-errors:
     name: Client errors (is the app secretly running on fallbacks?)
@@ -80,7 +80,7 @@ jobs:
         run: node scripts/audit-client-errors.mjs
         env:
           SUPABASE_URL:      ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
   health:
     name: Health (does the live site actually work?)

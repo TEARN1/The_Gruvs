@@ -58,7 +58,10 @@ as $$
   );
 $$;
 
-grant execute on function public.client_error_status(integer) to anon, authenticated;
+-- Not anon: these SECURITY DEFINER sensors expose operational data. The
+-- Guardian calls them with the service role key.
+revoke execute on function public.client_error_status(integer) from anon, public;
+grant execute on function public.client_error_status(integer) to authenticated, service_role;
 
 comment on function public.client_error_status(integer) is
   'Aggregate counts of client_errors for the Guardian sensor. Labels + counts only — never messages, user ids or context.';

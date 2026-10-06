@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Started by vgruvs-app@<app>-<slot>.service: runs one slot of one app.
+#   run-app excellency-a
+set -euo pipefail
+instance="$1"
+app="${instance%-*}"
+slot="${instance##*-}"
+[[ "$app" =~ ^[a-z0-9-]+$ && "$slot" =~ ^[ab]$ ]] || { echo "bad instance: $instance" >&2; exit 2; }
+
+ETC="${VGRUVS_ETC:-/etc/vgruvs}"
+ROOT="${VGRUVS_ROOT:-/srv/vgruvs}"
+# shellcheck source=/dev/null
+. "$ETC/apps/$app.conf"
+if [[ -r "$ETC/env/$app.env" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  . "$ETC/env/$app.env"
+  set +a
+fi
+
+dir="$(readlink -f "$ROOT/$app/slots/$slot")"
+port="$PORT_A"
+[[ "$slot" == b ]] && port="$PORT_B"
+export NODE_ENV=production
+
+case "$APP_TYPE" in
+  functions)
+    exec node "${VGRUVS_LIB:-/usr/local/lib/vgruvs}/functions-server.mjs" --dir "$dir" --static "${STATIC_DIR:-dist}" --port "$port" --host 127.0.0.1
+    ;;
+  node)
+    cd "$dir"
+    export PORT="$port" HOSTNAME=127.0.0.1
+    exec node server.js
+    ;;
+  *)
+    echo "$app is a static app; nothing to run" >&2
+    exit 2
+    ;;
+esac

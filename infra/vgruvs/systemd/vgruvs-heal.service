@@ -1,0 +1,6 @@
+[Unit]
+Description=V-Gruvs self-heal: restart unhealthy apps, renew certificates, prune old previews
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/vgruvs heal
