@@ -13,6 +13,8 @@
 # With a Resident release folder (what its deploy workflow ships: the Next
 # standalone output plus public/ and .next/static), it is deployed too.
 set -euo pipefail
+# With pipefail, `cmd | head -1` can die of SIGPIPE when head exits first:
+# take the first item with -quit or `sed -n 1p` (which reads to the end).
 
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 EXCELLENCY="${1:-}"
@@ -291,7 +293,7 @@ code_of excellencyacs.com /verify/EA-2026-00001 >/dev/null
 check "a public function response is served from the edge cache" contains "$(last_log excellency /verify/EA-2026-00001)" '"c":"HIT"'
 check "functions answer JSON" contains "$(get excellencyacs.com '/api/verify-dossier?id=EA-2026-00001&format=json')" '"valid":false'
 check "an unknown function is a 404" test "$(code_of excellencyacs.com /api/nope)" = 404
-asset="$(find "$T/srv/excellency/current/dist/assets" -maxdepth 1 -type f ! -name '*.gz' ! -name '*.br' -printf '%f\n' | head -1)"
+asset="$(find "$T/srv/excellency/current/dist/assets" -maxdepth 1 -type f ! -name '*.gz' ! -name '*.br' -printf '%f\n' -quit)"
 check "fingerprinted assets are immutable" contains "$(head_of excellencyacs.com "/assets/$asset")" "immutable"
 check "the health endpoint names the release" contains "$(get excellencyacs.com /_vgruvs/health)" '"release":"e1"'
 mk_excellency | "$VG" receive excellency e2 >/dev/null
@@ -417,9 +419,9 @@ if [[ -n "$RESIDENT" && -s "$RESIDENT/server.js" ]]; then
   tar -czf - -C "$RESIDENT" . | VGRUVS_HEALTH_WAIT=60 "$VG" receive theresident "$real" >/dev/null
   check "the real Resident build goes live" test "$(code_of theresidentcrew.com /)" = 200
   check "and is the release nginx serves" test "$(readlink "$T/srv/theresident/current")" = "releases/$real"
-  asset="$(get theresidentcrew.com /faq | grep -o '/_next/static/[^"]*' | head -1)"
+  asset="$(get theresidentcrew.com /faq | grep -o '/_next/static/[^"]*' | sed -n 1p)"
   check "the assets a real page asks for load (with ?dpl= when it has one)" test -n "$asset" -a "$(code_of theresidentcrew.com "$asset")" = 200
-  chunk="$(cd "$RESIDENT" && find .next/static -name '*.js' | head -1)"
+  chunk="$(cd "$RESIDENT" && find .next/static -name '*.js' -print -quit)"
   check "Next's static files come from disk, cached for a year" contains "$(head_of theresidentcrew.com "/_${chunk#.}")" "immutable"
   check "a page that regenerates (ISR) renders" test "$(code_of theresidentcrew.com /services)" = 200
   check "with the Web Vitals script" contains "$(get theresidentcrew.com /services)" "/_vgruvs/v.js"
@@ -441,6 +443,42 @@ check "a new app can be added from a template" test -s "$T/etc/apps/demo.conf" -
 mk_static demo | "$VG" receive demo d1 >/dev/null
 check "and is served once deployed" contains "$(get demo.test /)" "gruvs demo"
 check "status reports every app healthy" bash -c "! '$VG' status | grep -E '^(thegruvs|excellency|theresident|demo) ' | grep -v 'health=ok'"
+
+# --- connecting an app to its domains -----------------------------------------
+echo "connect"
+"$VG" apps add later --type static --domain later.test >/dev/null
+out="$(printf 'not-on-argv' | "$VG" env later set TOKEN - 2>&1)"
+check "a secret can be set from stdin before the first deploy" \
+  bash -c "grep -q 'first deploy will use it' <<<'$out' && grep -qx 'TOKEN=not-on-argv' '$T/etc/env/later.env'"
+check "setting the same value again changes nothing" contains "$(printf 'not-on-argv' | "$VG" env later set TOKEN - 2>&1)" "unchanged"
+out="$("$VG" connect later 2>&1 || true)"
+check "connect refuses an app with nothing deployed" contains "$out" "nothing deployed yet"
+out="$(mk_static later | "$VG" receive later l1 2>&1 || echo "EXIT $?")"
+check "an app deploys before its domains point here" bash -c "grep -q 'vgruvs connect later' <<<'$out' && ! grep -q EXIT <<<'$out'"
+check "and nginx does not serve it yet" test "$(code_of later.test /)" = 000
+out="$(VGRUVS_RESOLVE="later.test=203.0.113.9" "$VG" connect later 2>&1 || true)"
+check "connect refuses while DNS points elsewhere" contains "$out" "later.test: points to 203.0.113.9"
+check "and changes nothing" test ! -e "$T/nginx/sites-enabled/vgruvs-later.conf"
+out="$(VGRUVS_RESOLVE="other.test=192.0.2.2" "$VG" connect later 2>&1 || true)"
+check "connect refuses a domain with no A record" contains "$out" "later.test: no A record"
+# Let's Encrypt stands in: the fake certbot records its arguments.
+mkdir -p "$T/fakebin"
+printf '#!/bin/sh\necho "$*" >>"%s/certbot.log"\n' "$T" >"$T/fakebin/certbot"
+chmod +x "$T/fakebin/certbot"
+cert later.test later.test
+here="$(hostname -I | awk '{print $1}')"
+# Without the test switch, curl checks the (self-signed) certificate for real
+# and refuses it: connect must switch the site off again.
+out="$(PATH="$T/fakebin:$PATH" VGRUVS_RESOLVE="later.test=$here" "$VG" connect later 2>&1 || true)"
+check "connect switches the site off again if it does not answer with a valid certificate" \
+  bash -c "grep -q 'The site is off again' <<<'$out' && test ! -e '$T/nginx/sites-enabled/vgruvs-later.conf'"
+out="$(PATH="$T/fakebin:$PATH" VGRUVS_RESOLVE="later.test=$here" VGRUVS_TLS_INSECURE_FOR_TESTS=1 "$VG" connect later 2>&1)"
+check "connect gets the certificate for every domain" grep -q -- '--cert-name later.test -d later.test' "$T/certbot.log"
+check "and puts the app on its domain" bash -c "grep -q 'later is live: https://later.test' <<<'$out'"
+check "which answers through nginx" contains "$(get later.test /)" "gruvs later"
+out="$(mk_static later | "$VG" receive later l2 2>&1)"
+check "later deploys get the full check through nginx" contains "$out" "later l2 is live on https://later.test"
+check "connecting is in the events" bash -c "'$VG' events later | grep -q 'later is live on later.test'"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [[ "$FAIL" -eq 0 ]]
