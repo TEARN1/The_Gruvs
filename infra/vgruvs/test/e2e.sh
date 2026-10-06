@@ -110,7 +110,7 @@ exec nginx -p "$T/nginx" -c "$T/nginx/nginx.conf" "\$@"
 EOF
 cat >"$T/bin/systemctl" <<EOF
 #!/usr/bin/env bash
-# restart|stop vgruvs-app@<app>-<slot>; reload nginx; is-active says "no".
+# start|restart|stop vgruvs-app@<app>-<slot>; reload nginx; is-active says "no".
 action="\$1"; unit="\${2:-}"
 case "\$action:\$unit" in
   reload:nginx)
@@ -130,7 +130,7 @@ case "\$action:\$unit" in
     inst="\${unit#vgruvs-app@}"
     pidf="$T/pids/\$inst.pid"
     if [[ -f "\$pidf" ]]; then kill "\$(cat "\$pidf")" 2>/dev/null || true; rm -f "\$pidf"; sleep 0.3; fi
-    if [[ "\$action" == restart ]]; then
+    if [[ "\$action" == restart || "\$action" == start ]]; then
       VGRUVS_ETC="$T/etc" VGRUVS_ROOT="$T/srv" VGRUVS_LIB="$T/lib" nohup "$T/lib/run-app" "\$inst" >>"$T/logs/\$inst.log" 2>&1 &
       echo \$! >"\$pidf"
     fi
@@ -479,6 +479,40 @@ check "which answers through nginx" contains "$(get later.test /)" "gruvs later"
 out="$(mk_static later | "$VG" receive later l2 2>&1)"
 check "later deploys get the full check through nginx" contains "$out" "later l2 is live on https://later.test"
 check "connecting is in the events" bash -c "'$VG' events later | grep -q 'later is live on later.test'"
+
+# --- the console on the web, notifications, start-up ---------------------------
+echo "console on the web"
+cert ops.test ops.test
+out="$(printf 'correct horse battery\n' | VGRUVS_RESOLVE="ops.test=203.0.113.9" "$VG" console publish ops.test 2>&1 || true)"
+check "the console is not published while its DNS points elsewhere" \
+  bash -c "grep -q 'ops.test: points to 203.0.113.9' <<<'$out' && test ! -e '$T/nginx/sites-enabled/vgruvs-console-public.conf'"
+out="$(printf 'short\n' | VGRUVS_RESOLVE="ops.test=$here" "$VG" console publish ops.test 2>&1 || true)"
+check "nor with a short password" contains "$out" "at least 12 characters"
+out="$(printf 'correct horse battery\n' | VGRUVS_RESOLVE="ops.test=$here" VGRUVS_TLS_INSECURE_FOR_TESTS=1 "$VG" console publish ops.test 2>&1)"
+check "the console goes online behind a password" contains "$out" "console: https://ops.test"
+check "which is never printed" bash -c "! grep -q 'correct horse' <<<'$out'"
+check "without the password it is locked" test "$(code_of ops.test /)" = 401
+check "with it, the console opens" contains "$(get ops.test / -u 'admin:correct horse battery')" "V-Gruvs Console"
+"$VG" console unpublish >/dev/null
+check "unpublish takes it off the web" test "$(code_of ops.test /)" = 000
+
+echo "notifications"
+echo '# a line of my own' >>"$T/etc/notify.conf"
+out="$(printf 'http://127.0.0.1:%s/hook\n' "$HOOK_PORT" | "$VG" notify set - 2>&1)"
+check "the notification URL is set from stdin, and only its host is shown" \
+  bash -c "grep -q 'notifications go to 127.0.0.1:$HOOK_PORT' <<<'$out' && ! grep -q '/hook' <<<'$out'"
+check "the rest of notify.conf is kept" \
+  bash -c "grep -q 'a line of my own' '$T/etc/notify.conf' && test \"\$(grep -c '^NOTIFY_URL=' '$T/etc/notify.conf')\" = 1"
+check "a plain-http URL is refused" bash -c "! printf 'http://example.com/x\n' | '$VG' notify set - 2>/dev/null"
+
+echo "start-up"
+slot="$(cat "$T/srv/excellency/active-slot")"
+"$T/bin/systemctl" stop "vgruvs-app@excellency-$slot"
+check "an app that is down, as after a restart" bash -c "'$VG' status excellency | grep -qv 'health=ok'"
+"$VG" boot >/dev/null
+check "is started by vgruvs boot" eventually 20 bash -c "'$VG' status excellency | grep -q 'health=ok'"
+check "and the start-up is in the events" bash -c "'$VG' events -n 5 | grep -q 'droplet started up'"
+check "and in the notifications" eventually 10 grep -q 'droplet started up' "$T/notified.log"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [[ "$FAIL" -eq 0 ]]

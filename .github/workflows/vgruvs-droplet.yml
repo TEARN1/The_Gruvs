@@ -12,7 +12,15 @@
 #                            checks DNS, gets the certificate, switches the
 #                            site on, and switches it off again if the site
 #                            does not answer
+#   publish the console      the V-Gruvs console at https://<console_domain>
+#                            (ops.thegruvs.com), behind the password in the
+#                            VGRUVS_CONSOLE_PASSWORD secret; unpublish takes
+#                            it off the web again
 #   status / doctor / events / insights   V-Gruvs' own reports (read-only)
+#
+# Optional secret VGRUVS_NOTIFY_URL (a Discord or Slack webhook, or
+# https://ntfy.sh/<topic> for phone pushes): install or update sets it, so
+# deploys, rollbacks and restarts reach you.
 #
 # Optional "deploy_pubkey": the public half of a CI deploy key; bootstrap
 # installs it for the `deploy` user, whose private half then goes in each
@@ -26,13 +34,17 @@ on:
       action:
         description: What to do
         type: choice
-        options: [inspect, install or update, connect a site, status, doctor, events, insights]
+        options: [inspect, install or update, connect a site, publish the console, unpublish the console, status, doctor, events, insights]
         default: inspect
       app:
         description: For "connect a site", which app
         type: choice
         options: [excellency, theresident]
         default: excellency
+      console_domain:
+        description: For "publish the console", where (its DNS A record must point at the droplet)
+        required: false
+        default: ops.thegruvs.com
       deploy_pubkey:
         description: Optional public deploy key (ssh-ed25519 AAAA... name), for install
         required: false
@@ -45,7 +57,7 @@ concurrency:
 
 jobs:
   droplet:
-    name: ${{ inputs.action == 'connect a site' && format('connect {0}', inputs.app) || inputs.action }}
+    name: ${{ inputs.action == 'connect a site' && format('connect {0}', inputs.app) || inputs.action == 'publish the console' && format('publish the console at {0}', inputs.console_domain) || inputs.action }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -94,6 +106,7 @@ jobs:
         if: inputs.action == 'install or update'
         env:
           PUBKEY: ${{ inputs.deploy_pubkey }}
+          NOTIFY_URL: ${{ secrets.VGRUVS_NOTIFY_URL }}
         run: |
           if [ -n "$PUBKEY" ] && ! printf '%s' "$PUBKEY" | grep -Eq '^ssh-(ed25519|rsa) [A-Za-z0-9+/=]+( [A-Za-z0-9@._-]+)?$'; then
             echo "::error::deploy_pubkey must be one public key line (ssh-ed25519 AAAA... name)"; exit 1
@@ -102,7 +115,13 @@ jobs:
           ssh droplet "DEPLOY_PUBKEY='$PUBKEY' bash /root/vgruvs/bootstrap.sh" 2>&1 | tee bootstrap.log
           status="${PIPESTATUS[0]}"
           { echo "## V-Gruvs install"; echo '```'; tail -n 40 bootstrap.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          exit "$status"
+          [ "$status" = 0 ] || exit "$status"
+          # On stdin: a webhook URL is a secret.
+          if [ -n "$NOTIFY_URL" ]; then
+            printf '%s\n' "$NOTIFY_URL" | ssh droplet 'vgruvs notify set - && vgruvs notify test'
+          else
+            echo "::notice::No VGRUVS_NOTIFY_URL secret, so deploys and rollbacks are not sent anywhere (see the README, Notifications)."
+          fi
 
       - name: Connect the site
         if: inputs.action == 'connect a site'
@@ -136,8 +155,28 @@ jobs:
             echo "https://$d $msg" | tee -a "$GITHUB_STEP_SUMMARY"
           done
 
+      - name: Publish the console
+        if: inputs.action == 'publish the console'
+        env:
+          PASSWORD: ${{ secrets.VGRUVS_CONSOLE_PASSWORD }}
+          DOMAIN: ${{ inputs.console_domain }}
+        run: |
+          [ -n "$PASSWORD" ] || { echo "::error::Add the VGRUVS_CONSOLE_PASSWORD secret (12 characters or more) first."; exit 1; }
+          [[ "$DOMAIN" =~ ^[a-z0-9.-]+\.[a-z]{2,}$ ]] || { echo "::error::bad domain: $DOMAIN"; exit 1; }
+          # The password on stdin, never on a command line; the droplet never prints it.
+          printf '%s\n' "$PASSWORD" | ssh droplet "vgruvs console publish $DOMAIN" 2>&1 | tee publish.log
+          status="${PIPESTATUS[1]}"
+          { echo "## Console"; echo '```'; cat publish.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          [ "$status" = 0 ] || exit "$status"
+          code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://$DOMAIN/" || true)"
+          echo "From GitHub's side, https://$DOMAIN without the password answers $code (401: locked, as it should be)." | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Unpublish the console
+        if: inputs.action == 'unpublish the console'
+        run: ssh droplet 'vgruvs console unpublish'
+
       - name: Report
-        if: inputs.action != 'inspect' && inputs.action != 'install or update' && inputs.action != 'connect a site'
+        if: inputs.action != 'inspect' && inputs.action != 'install or update' && inputs.action != 'connect a site' && inputs.action != 'publish the console' && inputs.action != 'unpublish the console'
         env:
           ACTION: ${{ inputs.action }}
         run: |
