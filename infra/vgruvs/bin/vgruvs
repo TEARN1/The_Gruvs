@@ -10,7 +10,7 @@
 #   vgruvs status [<app>]                               what is live and whether it answers
 #   vgruvs logs <app> [-f]                              the app's own output
 #   vgruvs restart <app>
-#   vgruvs env <app> list | set <KEY> <VALUE> | unset <KEY>
+#   vgruvs env <app> list | set <KEY> [<VALUE> | -] | unset <KEY>   (- reads stdin)
 #   vgruvs maintenance <app> on [<message>] | off
 #   vgruvs cron <app> [list | run <path>]
 # Seeing what happens
@@ -24,6 +24,7 @@
 #   vgruvs shield [status | block <ip> | unblock <ip> | attack on|off]
 # Setup
 #   vgruvs apps [list | add <name> --type static|functions|node --domain <domain> ...]
+#   vgruvs connect <app>                                once DNS points here: certificate + site
 #   vgruvs site <app> | certs <app> | sync [--no-reload]
 #   vgruvs previews <app> list | remove <name> | enable | protect <user> | unprotect
 #   vgruvs notify test
@@ -221,6 +222,10 @@ wait_healthy() {
   warn "$url did not answer 2xx/3xx${EXPECT:+ with $EXPECT} within ${HEALTH_WAIT}s (last: ${code:-none})"
   return 1
 }
+
+# Whether nginx serves this app's domains yet (vgruvs connect, or site).
+# Before that, a release can only be checked on its own port.
+site_enabled() { [[ -e "$NGINX_DIR/sites-enabled/vgruvs-$APP.conf" ]]; }
 
 # The public check: through nginx and TLS, as a visitor would see it. Right
 # after a reload, nginx's old workers can still answer for a moment, so it
@@ -433,7 +438,7 @@ activate() {
     return 1
   fi
 
-  if [[ -n "$ROLLOUT" && "$mode" != instant && "$(current_release)" != none && "$(app_health)" == ok ]]; then
+  if [[ -n "$ROLLOUT" && "$mode" != instant && "$(current_release)" != none && "$(app_health)" == ok ]] && site_enabled; then
     local first="${ROLLOUT%% *}"
     cat >"$APP_DIR/rollout" <<EOF
 R_RELEASE=$release
@@ -566,6 +571,15 @@ cmd_receive() {
     die "deploy of $APP $release failed; still serving $previous"
   fi
 
+  # Deployed before its DNS moved here: nothing to check through nginx yet.
+  if ! site_enabled; then
+    prune
+    event deploy "$APP" "$release is ready; not on its domains yet" "\"release\":$(json_str "$release"),\"previous\":$(json_str "$previous")"
+    refresh_console
+    say "$APP $release is ready$([[ "$APP_TYPE" == static ]] || echo ' and answers on its own port'). nginx does not serve $DOMAINS yet: once their DNS points here, run  vgruvs connect $APP"
+    return 0
+  fi
+
   if [[ -n "$ROLLING" ]]; then
     if ! public_check; then
       rollout_abort_locked "the site stopped answering through nginx"
@@ -616,7 +630,7 @@ cmd_rollback() {
   valid_release "$target" || die "bad release id: $target"
   say "rolling $APP back from $live to $target"
   activate "$target" instant || die "rollback failed; still serving $live"
-  public_check "$target" || warn "$target is live but failed the public check"
+  if site_enabled; then public_check "$target" || warn "$target is live but failed the public check"; fi
   # Mark it newest so the next plain `rollback` goes further back, not forward.
   touch "$APP_DIR/releases/$target"
   # The autopilot records its own, more telling event.
@@ -845,6 +859,17 @@ cmd_restart() {
   wait_healthy "http://127.0.0.1:$(slot_port "$(active_slot)")$HEALTH_PATH" && say "$APP restarted"
 }
 
+# After an env change: a running app restarts to see it; an app with nothing
+# deployed yet gets it with its first release.
+env_changed() {
+  if [[ "$(current_release)" == none ]]; then
+    say "$1 for $APP; its first deploy will use it"
+  else
+    say "$1 for $APP; restarting"
+    cmd_restart "$APP"
+  fi
+}
+
 cmd_env() {
   load_app "$1"
   local file="$ETC/env/$APP.env" action="${2:-list}"
@@ -855,24 +880,31 @@ cmd_env() {
   case "$action" in
     list) sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' "$file" ;; # names only, never values
     set)
-      local key="${3:-}" value="${4:-}"
+      local key="${3:-}" value old
       [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || die "bad variable name: $key"
+      # The value as an argument, or on stdin with `-` (or none): stdin keeps
+      # a secret out of the process list and out of sudo's log.
+      if [[ $# -ge 4 && "$4" != - ]]; then value="$4"; else value="$(cat)"; fi
+      old="$(grep "^$key=" "$file" || true)"
       grep -v "^$key=" "$file" >"$file.tmp" || true
       printf '%s=%q\n' "$key" "$value" >>"$file.tmp"
+      if [[ -n "$old" && "$(grep "^$key=" "$file.tmp")" == "$old" ]]; then
+        rm -f "$file.tmp"
+        say "$key for $APP is unchanged"
+        return 0
+      fi
       mv -f "$file.tmp" "$file"
       chmod 640 "$file"
       chgrp vgruvs "$file" 2>/dev/null || true
-      say "set $key for $APP; restarting"
-      cmd_restart "$APP"
+      env_changed "set $key"
       ;;
     unset)
       local key="${3:-}"
       grep -v "^$key=" "$file" >"$file.tmp" || true
       mv -f "$file.tmp" "$file"
-      say "removed $key from $APP; restarting"
-      cmd_restart "$APP"
+      env_changed "removed $key"
       ;;
-    *) die "usage: vgruvs env <app> list | set <KEY> <VALUE> | unset <KEY>" ;;
+    *) die "usage: vgruvs env <app> list | set <KEY> [<VALUE> | - (stdin)] | unset <KEY>" ;;
   esac
 }
 
@@ -1074,7 +1106,7 @@ cmd_doctor() {
     else
       doc fail "$app" "release $(current_release): $(app_health)" "vgruvs logs $app; vgruvs restart $app"
     fi
-    [[ -e "$NGINX_DIR/sites-enabled/vgruvs-$app.conf" ]] || doc warn "$app site" "not served by nginx yet" "vgruvs certs $app && vgruvs site $app"
+    [[ -e "$NGINX_DIR/sites-enabled/vgruvs-$app.conf" ]] || doc warn "$app site" "not served by nginx yet" "once its DNS points here: vgruvs connect $app"
     cert="/etc/letsencrypt/live/$PRIMARY_DOMAIN/fullchain.pem"
     if [[ -r "$cert" ]]; then
       days=$((($(date -d "$(openssl x509 -enddate -noout -in "$cert" | cut -d= -f2)" +%s) - $(date +%s)) / 86400))
@@ -1082,7 +1114,7 @@ cmd_doctor() {
       elif ((days < 14)); then doc warn "$app certificate" "expires in $days days" "certbot renew"
       else doc ok "$app certificate" "valid for $days more days"; fi
     else
-      doc warn "$app certificate" "none for $PRIMARY_DOMAIN" "point DNS here, then: vgruvs certs $app"
+      doc warn "$app certificate" "none for $PRIMARY_DOMAIN" "point DNS here, then: vgruvs connect $app"
     fi
     for d in $DOMAINS; do
       resolved="$(getent ahostsv4 "$d" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ' || true)"
@@ -1281,7 +1313,7 @@ cmd_apps() {
         -e "s#__STATIC_DIR__#$static_dir#g" "$LIB/nginx/templates/$type.conf.template" >"$ETC/sites/$name.conf"
       event app_added "$name" "added $name ($type) for $domains"
       say "added $name ($type) for $domains"
-      say "next: point DNS here, then  vgruvs certs $name && vgruvs site $name   and deploy with vgruvs-deploy.sh"
+      say "next: deploy with vgruvs-deploy.sh, point DNS here, then  vgruvs connect $name"
       ;;
     *) die "usage: vgruvs apps [list | add <name> --type ... --domain ...]" ;;
   esac
@@ -1318,6 +1350,80 @@ cmd_site() {
   fi
   svc reload nginx
   say "$APP is served by nginx for: $DOMAINS"
+}
+
+# The A records of a name as its own nameservers give them, so a change made
+# a minute ago shows before resolver caches catch up. Without dig, the local
+# resolver's answer. VGRUVS_RESOLVE="name=ip ..." stands in for DNS in tests.
+authoritative_a() {
+  local name="$1" zone="$1" ns='' pair
+  if [[ -n "${VGRUVS_RESOLVE:-}" ]]; then
+    for pair in $VGRUVS_RESOLVE; do [[ "${pair%%=*}" == "$name" ]] && echo "${pair#*=}"; done
+    return 0
+  fi
+  if command -v dig >/dev/null; then
+    while [[ "$zone" == *.* && -z "$ns" ]]; do
+      ns="$(dig +noall +answer +time=3 +tries=2 NS "$zone" 2>/dev/null | awk '$4 == "NS" {print $5; exit}')"
+      [[ -n "$ns" ]] || zone="${zone#*.}"
+    done
+  fi
+  if [[ -n "$ns" ]]; then
+    dig +short +time=3 +tries=2 A "$name" "@$ns" 2>/dev/null | grep -E '^[0-9]+(\.[0-9]+){3}$' || true
+  else
+    getent ahostsv4 "$name" 2>/dev/null | awk '{print $1}' | sort -u || true
+  fi
+}
+
+# Puts an app on its domains, once their DNS points here. Checks first: the
+# app answers, and every domain's own nameservers point only here (each
+# failed Let's Encrypt attempt counts against an hourly limit). Then the
+# certificate, the site, and a request to every domain through nginx with
+# the certificate checked for real. If that last step fails, the site is
+# switched off again.
+cmd_connect() {
+  load_app "$1"
+  local d ip got ips bad='' code tls=()
+  [[ "$(current_release)" != none ]] ||
+    die "$APP has nothing deployed yet. Deploy it first (its Deploy (V-Gruvs) workflow); its visitors would get nothing"
+  [[ "$(app_health)" == ok ]] ||
+    die "$APP release $(current_release) is not answering ($(app_health)). Fix that first: vgruvs logs $APP"
+  ips="$(public_ips)"
+  if [[ -z "$ips" ]]; then
+    warn "could not tell this server's addresses; skipping the DNS check"
+  else
+    for d in $DOMAINS; do
+      got="$(authoritative_a "$d")"
+      if [[ -z "$got" ]]; then
+        bad+="  $d: no A record (or a CNAME to another host)"$'\n'
+        continue
+      fi
+      for ip in $got; do
+        if ! grep -qxF "$ip" <<<"$ips"; then
+          bad+="  $d: points to $(tr '\n' ' ' <<<"$got")"$'\n'
+          break
+        fi
+      done
+    done
+    [[ -z "$bad" ]] || die "DNS is not pointing here yet, so nothing was changed:
+${bad}Set the A records of $DOMAINS to $(a_record_ip "$ips" | grep . || echo "this server's public address") (and remove any others), wait a few minutes, then run this again."
+    say "DNS for $DOMAINS points here"
+  fi
+  cmd_certs "$APP" || die "Let's Encrypt did not issue the certificate (see above); nothing was changed"
+  cmd_site "$APP"
+  [[ -z "${VGRUVS_TLS_INSECURE_FOR_TESTS:-}" ]] || tls=(-k)
+  bad=''
+  for d in $DOMAINS; do
+    code="$("$CURL" --noproxy '*' -s -o /dev/null -w '%{http_code}' --max-time 20 "${tls[@]}" \
+      --resolve "$d:$HTTPS_PORT:127.0.0.1" "https://$d:$HTTPS_PORT/" || true)"
+    [[ "$code" =~ ^[23] ]] || bad+=" $d ($code)"
+  done
+  if [[ -n "$bad" ]]; then
+    rm -f "$NGINX_DIR/sites-enabled/vgruvs-$APP.conf"
+    svc reload nginx
+    die "after switching the site on, these did not answer with a valid certificate:$bad. The site is off again; the certificate is kept for the next try"
+  fi
+  event site_connected "$APP" "$APP is live on $DOMAINS"
+  say "$APP is live: $(sed 's#\([^ ]*\)#https://\1#g' <<<"$DOMAINS")"
 }
 
 write_preview_auth() {
@@ -1451,12 +1557,13 @@ main() {
     apps) cmd_apps "$@" ;;
     site) [[ $# -ge 1 ]] || die "usage: vgruvs site <app>"; cmd_site "$1" ;;
     certs) [[ $# -ge 1 ]] || die "usage: vgruvs certs <app>"; cmd_certs "$1" ;;
+    connect) [[ $# -ge 1 ]] || die "usage: vgruvs connect <app>"; cmd_connect "$1" ;;
     sync) cmd_sync "$@" ;;
     previews) [[ $# -ge 1 ]] || die "usage: vgruvs previews <app> ..."; cmd_previews "$@" ;;
     notify) cmd_notify "$@" ;;
     heal) cmd_heal ;;
     version | --version) echo "V-Gruvs $VERSION" ;;
-    help | -h | --help) sed -n '2,36p' "$SELF" | sed 's/^# \{0,1\}//' ;;
+    help | -h | --help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$SELF" ;;
     *) die "unknown command: $cmd (try vgruvs help)" ;;
   esac
 }

@@ -7,6 +7,11 @@
 #   install or update        copy infra/vgruvs up and run bootstrap.sh; safe
 #                            to repeat; puts the old nginx config back if
 #                            anything fails
+#   connect a site           put Excellency or The Resident on its domains,
+#                            once it is deployed and its DNS points here:
+#                            checks DNS, gets the certificate, switches the
+#                            site on, and switches it off again if the site
+#                            does not answer
 #   status / doctor / events / insights   V-Gruvs' own reports (read-only)
 #
 # Optional "deploy_pubkey": the public half of a CI deploy key; bootstrap
@@ -21,8 +26,13 @@ on:
       action:
         description: What to do
         type: choice
-        options: [inspect, install or update, status, doctor, events, insights]
+        options: [inspect, install or update, connect a site, status, doctor, events, insights]
         default: inspect
+      app:
+        description: For "connect a site", which app
+        type: choice
+        options: [excellency, theresident]
+        default: excellency
       deploy_pubkey:
         description: Optional public deploy key (ssh-ed25519 AAAA... name), for install
         required: false
@@ -35,7 +45,7 @@ concurrency:
 
 jobs:
   droplet:
-    name: ${{ inputs.action }}
+    name: ${{ inputs.action == 'connect a site' && format('connect {0}', inputs.app) || inputs.action }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -94,8 +104,40 @@ jobs:
           { echo "## V-Gruvs install"; echo '```'; tail -n 40 bootstrap.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
 
+      - name: Connect the site
+        if: inputs.action == 'connect a site'
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          [[ "$APP" =~ ^[a-z0-9-]+$ ]] || { echo "::error::bad app name"; exit 1; }
+          ssh droplet "vgruvs connect $APP" 2>&1 | tee connect.log
+          status="${PIPESTATUS[0]}"
+          { echo "## Connect $APP"; echo '```'; cat connect.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      # The same domains through the public internet, from GitHub's side. A
+      # resolver that still holds the old address answers from the old host:
+      # that is DNS caching, and clears within the record's TTL.
+      - name: From the outside
+        if: inputs.action == 'connect a site'
+        env:
+          APP: ${{ inputs.app }}
+          HOST: ${{ secrets.DROPLET_HOST }}
+        run: |
+          domains="$(ssh droplet "sed -n 's/^DOMAINS=//p' /etc/vgruvs/apps/$APP.conf" | tr -d '"')"
+          droplet="${HOST:-144.126.236.75}"
+          for d in $domains; do
+            out="$(curl -sS -o /dev/null -w '%{http_code} %{remote_ip}' --max-time 20 "https://$d/" 2>&1 || true)"
+            case "$out" in
+              [23]??" $droplet") msg="answers ${out%% *} from the droplet" ;;
+              [23]??" "*) msg="answers ${out%% *} from ${out#* } (the old host: this resolver has not seen the change yet)" ;;
+              *) msg="did not answer: $out" ;;
+            esac
+            echo "https://$d $msg" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+
       - name: Report
-        if: inputs.action != 'inspect' && inputs.action != 'install or update'
+        if: inputs.action != 'inspect' && inputs.action != 'install or update' && inputs.action != 'connect a site'
         env:
           ACTION: ${{ inputs.action }}
         run: |

@@ -34,7 +34,7 @@ export DEBIAN_FRONTEND=noninteractive
 # for them (up to 5 minutes) rather than fail.
 apt_get() { apt-get -o DPkg::Lock::Timeout=300 "$@"; }
 apt_get update -q
-apt_get install -y -q nginx certbot curl ufw fail2ban unattended-upgrades openssl
+apt_get install -y -q nginx certbot curl ufw fail2ban unattended-upgrades openssl bind9-dnsutils
 node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
 if ((node_major < 20)); then
   say "Installing Node 22 (found: ${node_major})"
@@ -75,10 +75,12 @@ if [[ -n "${DEPLOY_PUBKEY:-}" ]] && ! grep -qF "$DEPLOY_PUBKEY" /home/deploy/.ss
   echo "$DEPLOY_PUBKEY" >>/home/deploy/.ssh/authorized_keys
 fi
 chown deploy:deploy /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys
-# The deploy key can ship and roll back releases, and nothing else: a leaked
-# CI key is no longer root on the box.
+# The deploy key can ship and roll back releases, and set an app's secrets
+# from stdin (CI copies them from GitHub on each deploy), and nothing else:
+# a leaked CI key is no longer root on the box. It could already ship code
+# that runs as the app, so setting the app's environment gives it no more.
 cat >/etc/sudoers.d/vgruvs-deploy <<'EOF'
-deploy ALL=(root) NOPASSWD: /usr/local/bin/vgruvs receive *, /usr/local/bin/vgruvs rollback *, /usr/local/bin/vgruvs releases *, /usr/local/bin/vgruvs rollout *, /usr/local/bin/vgruvs status, /usr/local/bin/vgruvs status *
+deploy ALL=(root) NOPASSWD: /usr/local/bin/vgruvs receive *, /usr/local/bin/vgruvs rollback *, /usr/local/bin/vgruvs releases *, /usr/local/bin/vgruvs rollout *, /usr/local/bin/vgruvs status, /usr/local/bin/vgruvs status *, /usr/local/bin/vgruvs env * set * -
 EOF
 chmod 440 /etc/sudoers.d/vgruvs-deploy
 visudo -cf /etc/sudoers.d/vgruvs-deploy >/dev/null || { rm -f /etc/sudoers.d/vgruvs-deploy; die "sudoers rule rejected"; }
@@ -293,10 +295,12 @@ cat <<EOF
 Next steps
   1. Add the CI deploy key:  DEPLOY_PUBKEY="ssh-ed25519 ..." bash $HERE/bootstrap.sh
      and put the private half in each repo's VGRUVS_SSH_KEY secret.
-  2. For Excellency and The Resident, point their DNS A records at this
-     droplet, then:  vgruvs certs excellency && vgruvs site excellency
-                     vgruvs certs theresident && vgruvs site theresident
-  3. Secrets:  vgruvs env excellency set VERIFIER_SECRET '...'
+  2. For Excellency and The Resident: deploy them, point their DNS A records
+     (@ and www) at this droplet, then:  vgruvs connect excellency
+                                         vgruvs connect theresident
+     (or the "connect a site" action of the V-Gruvs Droplet workflow)
+  3. Secrets: each app's deploy workflow copies them from its repo's GitHub
+     secrets, or by hand:  vgruvs env excellency set VERIFIER_SECRET -  (stdin)
   4. The console:  ssh -L 9900:127.0.0.1:9900 root@<this droplet>  then open
      http://localhost:9900   (or: vgruvs console publish ops.<your domain>)
   5. Optional: notifications in /etc/vgruvs/notify.conf, AI incident analysis

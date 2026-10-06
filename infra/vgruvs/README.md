@@ -108,23 +108,27 @@ ssh root@144.126.236.75 "DEPLOY_PUBKEY='$(cat vgruvs-ci.pub)' bash /root/vgruvs/
 
 Bootstrap does the following, in order:
 
-1. **Packages:** nginx, certbot, Node 22, the ufw firewall, fail2ban, automatic security updates, and brotli when Ubuntu has it.
+1. **Packages:** nginx, certbot, Node 22, the ufw firewall, fail2ban, automatic security updates, `dig` (for the DNS check of `vgruvs connect`), and brotli when Ubuntu has it.
 2. **Swap file.**
 3. **Users:**
    - `vgruvs` runs the apps.
-   - `deploy` is for CI; its sudo rule allows `vgruvs receive`, `rollback`, `releases`, `rollout` and `status`.
+   - `deploy` is for CI; its sudo rule allows `vgruvs receive`, `rollback`, `releases`, `rollout`, `status`, and `env <app> set <KEY> -` (a secret on stdin, never on the command line).
 4. **The vgruvs command and its pieces:** the command, the Node modules, the timers (heal every 2 minutes, crons every minute), log rotation (14 days) and the scanner jail.
 5. **The move:** The Gruvs' live files move from `/var/www/thegruvs` into release `migrated-<date>`.
 
 It is safe to run again. It never deletes a release, and it keeps app configs you changed (the repo's version goes beside them as `.new`). `HARDEN_SSH=1` turns off password logins, but only if root already has a key.
 
 ```bash
-# 3. Excellency and The Resident: point their DNS A records (@ and www) at
-#    144.126.236.75, wait for DNS, then on the droplet:
-vgruvs certs excellency   && vgruvs site excellency
-vgruvs certs theresident  && vgruvs site theresident
-vgruvs env excellency set VERIFIER_SECRET '...'               # the same value Vercel has
-vgruvs env theresident set SUPABASE_SERVICE_ROLE_KEY '...'    # and its other server secrets
+# 3. Excellency and The Resident: deploy them first (their Deploy (V-Gruvs)
+#    workflows), then point their DNS A records (@ and www) at 144.126.236.75
+#    and, on the droplet (or with the "connect a site" action of the
+#    V-Gruvs Droplet workflow in the_gruvs repo):
+vgruvs connect excellency
+vgruvs connect theresident
+# Server secrets: each app's deploy workflow copies them from its repo's
+# GitHub secrets on every deploy (Excellency: VERIFIER_SECRET). By hand, on
+# stdin so the value stays out of the shell history and the process list:
+vgruvs env theresident set SUPABASE_SERVICE_ROLE_KEY -        # then paste, Ctrl-D
 ```
 
 **4. GitHub, in each repo** (Settings → Secrets and variables → Actions):
