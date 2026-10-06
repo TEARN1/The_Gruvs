@@ -189,6 +189,7 @@ The Gruvs' old `DROPLET_SSH_KEY` (root) keeps working: it uses V-Gruvs once it i
 - **Release check:** a release must have the right shape before it can go live (`index.html`, `api/`, or `server.js`).
 - **Names:** app, release and preview names are checked against a strict pattern before any path is built from them. The deploy client quotes them before they reach the remote shell.
 - **Network:**
+  - HTTPS for a hostname no site claims gets its connection closed, so no app ever sees a forged `Host`.
   - ufw allows only SSH, 80 and 443.
   - fail2ban watches SSH.
   - Security updates install themselves.
@@ -232,12 +233,12 @@ The end-to-end test runs:
 - the real `vgruvs` command;
 - the functions runtime, with Excellency's real build if you give it a path.
 
-It covers 33 checks, including:
+It covers 34 checks, including:
 
 - static and blue/green deploys;
 - a broken release refused;
 - a release that dies after going live rolled back automatically;
-- manual rollback, pruning, previews, rewrites, rate limits and the `X-Forwarded-For` override.
+- manual rollback, pruning, previews, rewrites, rate limits, the `X-Forwarded-For` override and unknown hostnames refused.
 
 `bootstrap.sh` was rehearsed against a copy of today's droplet setup (the live nginx config, `/var/www/thegruvs` and Let's Encrypt files). It covered:
 

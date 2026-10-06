@@ -35,6 +35,7 @@ mkdir -p "$T"/{srv,etc/apps,etc/env,lib,nginx/sites-enabled,nginx/sites-availabl
 # --- install the kit into the sandbox, with paths and ports rewritten -------
 rewrite_paths() {
   sed -e "s#/srv/vgruvs#$T/srv#g" -e "s#/etc/letsencrypt#$T/letsencrypt#g" -e "s#/etc/nginx/vgruvs#$T/nginx/vgruvs#g" \
+    -e "s#/etc/vgruvs/tls#$T/tls#g" -e "s#listen 443 ssl http2 default_server;#listen $HTTPS_PORT ssl http2 default_server;#" \
     -e "s#/var/www/letsencrypt#$T/acme#g" -e "s#/var/www/downloads#$T/downloads#g" \
     -e "s#listen 443 ssl http2;#listen $HTTPS_PORT ssl http2;#" -e "s#listen 80 default_server;#listen $HTTP_PORT default_server;#" \
     -e '/listen \[::\]/d'
@@ -47,6 +48,9 @@ for f in "$HERE"/nginx/sites/*; do rewrite_paths <"$f" >"$T/lib/nginx/sites/$(ba
 rewrite_paths <"$HERE/nginx/sites/00-vgruvs-http.conf" >"$T/nginx/sites-enabled/00-vgruvs-http.conf"
 cp "$HERE"/apps/*.conf "$T/etc/apps/"
 
+mkdir -p "$T/tls"
+openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj "/CN=invalid" \
+  -keyout "$T/tls/default.key" -out "$T/tls/default.crt" >/dev/null 2>&1
 for d in thegruvs.com excellencyacs.com theresidentcrew.com; do
   mkdir -p "$T/letsencrypt/live/$d"
   openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj "/CN=$d" \
@@ -123,6 +127,7 @@ for app in thegruvs excellency theresident; do enable_site "$app"; done
 "$T/bin/nginx" -t -q && "$T/bin/nginx" -s reload
 check "all three sites pass nginx -t together" "$T/bin/nginx" -t -q
 sleep 0.5
+check "an unknown hostname gets no site" test "$(code_of unknown.example /)" = 000
 
 echo "static app (The Gruvs)"
 mk_static() { local d; d="$(mktemp -d "$T/build.XXXX")"; mkdir -p "$d/_expo"; echo "<!doctype html><title>gruvs $1</title>" >"$d/index.html"; echo "x" >"$d/_expo/app.js"; tar -czf - -C "$d" .; }

@@ -78,6 +78,13 @@ visudo -cf /etc/sudoers.d/vgruvs-deploy >/dev/null || { rm -f /etc/sudoers.d/vgr
 say "V-Gruvs files"
 install -d -m 755 /srv/vgruvs /usr/local/lib/vgruvs /usr/local/lib/vgruvs/nginx/sites /etc/vgruvs /etc/vgruvs/apps /var/www/letsencrypt
 install -d -m 750 -o root -g vgruvs /etc/vgruvs/env
+install -d -m 700 /etc/vgruvs/tls
+if [[ ! -s /etc/vgruvs/tls/default.key ]]; then
+  # For the catch-all HTTPS server that refuses unknown hostnames.
+  openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN=invalid" \
+    -keyout /etc/vgruvs/tls/default.key -out /etc/vgruvs/tls/default.crt >/dev/null 2>&1
+  chmod 600 /etc/vgruvs/tls/default.key
+fi
 install -d -m 755 -o vgruvs -g vgruvs /srv/vgruvs/cache
 install -m 755 "$HERE/bin/vgruvs" /usr/local/bin/vgruvs
 install -m 755 "$HERE/lib/run-app" /usr/local/lib/vgruvs/run-app
