@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
-  TextInput, useWindowDimensions, Dimensions, Animated, Platform, Modal, RefreshControl, ActivityIndicator,
+  TextInput, Dimensions, useWindowDimensions, Animated, Platform, Modal, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import * as Location from 'expo-location';
@@ -41,11 +41,8 @@ import { MealCard } from '../components/MealCard';
 import { MealDetailModal } from '../components/MealDetailModal';
 import { MealService } from '../services/mealService';
 
-
-// Module-level StyleSheets (hero / cg / et below) size from the window at
-// load. The responsive pass moved components to useWindowDimensions() but
-// left these referencing `width`, which no longer existed: a ReferenceError
-// on import, so Explore could not render at all.
+// Module-level StyleSheets below (hero, cg, et) size from the window at load.
+// The component itself reads live dimensions through useWindowDimensions.
 const { width } = Dimensions.get('window');
 
 // ── Sport type quick-filter chips ────────────────────────────────────────────

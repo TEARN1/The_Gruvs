@@ -16,7 +16,7 @@
  * gets ignored (same reasoning as audit-schema.mjs).
  *
  * Usage:  node scripts/audit-client-errors.mjs
- * Env:    SUPABASE_URL, SUPABASE_ANON_KEY  (falls back to .env for local runs)
+ * Env:    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (falls back to .env for local runs)
  */
 import { readFileSync, existsSync } from 'fs';
 
@@ -33,14 +33,16 @@ function env(name, ...alts) {
 }
 
 const URL = env('SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_URL');
-const KEY = env('SUPABASE_ANON_KEY', 'EXPO_PUBLIC_SUPABASE_ANON_KEY');
+// Production grants these SECURITY DEFINER sensors to authenticated and
+// service_role only (anon was revoked), so the watchdog uses the service key.
+const KEY = env('SUPABASE_SERVICE_ROLE_KEY');
 
 // In CI, missing credentials is a BROKEN SENSOR, not a clean run — a watchdog
 // that reports healthy while blindfolded is worse than no watchdog. Locally
 // (no CI env var) it stays a skip so the script is still runnable offline.
 if (!URL || !KEY) {
   if (process.env.CI) {
-    console.error('::error::Supabase URL/key missing — the client-error sensor cannot see the database.');
+    console.error('::error::Supabase URL or SUPABASE_SERVICE_ROLE_KEY missing (add it as a repository secret) — the client-error sensor cannot see the database.');
     process.exitCode = 1;
   } else {
     console.log('Supabase URL/key not available — skipping client-error audit.');

@@ -1,0 +1,196 @@
+# ────────────────────────────────────────────────────────────────────────────
+# V-Gruvs Droplet: look at, install or update V-Gruvs on the droplet, from the
+# Actions tab. Uses the DROPLET_SSH_KEY secret (root), which Web Deploy
+# already uses.
+#
+#   inspect                  what the droplet runs today (read-only)
+#   install or update        copy infra/vgruvs up and run bootstrap.sh; safe
+#                            to repeat; puts the old nginx config back if
+#                            anything fails
+#   connect a site           put Excellency or The Resident on its domains,
+#                            once it is deployed and its DNS points here:
+#                            checks DNS, gets the certificate, switches the
+#                            site on, and switches it off again if the site
+#                            does not answer
+#   publish the console      the V-Gruvs console at https://<console_domain>
+#                            (ops.thegruvs.com), behind the password in the
+#                            VGRUVS_CONSOLE_PASSWORD secret; unpublish takes
+#                            it off the web again
+#   status / doctor / events / insights   V-Gruvs' own reports (read-only)
+#
+# Optional secret VGRUVS_NOTIFY_URL (a Discord or Slack webhook, or
+# https://ntfy.sh/<topic> for phone pushes): install or update sets it, so
+# deploys, rollbacks and restarts reach you.
+#
+# Optional "deploy_pubkey": the public half of a CI deploy key; bootstrap
+# installs it for the `deploy` user, whose private half then goes in each
+# repo's VGRUVS_SSH_KEY secret.
+# ────────────────────────────────────────────────────────────────────────────
+name: V-Gruvs Droplet
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to do
+        type: choice
+        options: [inspect, install or update, connect a site, publish the console, unpublish the console, status, doctor, events, insights]
+        default: inspect
+      app:
+        description: For "connect a site", which app
+        type: choice
+        options: [excellency, theresident]
+        default: excellency
+      console_domain:
+        description: For "publish the console", where (its DNS A record must point at the droplet)
+        required: false
+        default: ops.thegruvs.com
+      deploy_pubkey:
+        description: Optional public deploy key (ssh-ed25519 AAAA... name), for install
+        required: false
+        default: ''
+
+# Never at the same time as a deploy.
+concurrency:
+  group: web-deploy-production
+  cancel-in-progress: false
+
+jobs:
+  droplet:
+    name: ${{ inputs.action == 'connect a site' && format('connect {0}', inputs.app) || inputs.action == 'publish the console' && format('publish the console at {0}', inputs.console_domain) || inputs.action }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Connect
+        env:
+          KEY: ${{ secrets.DROPLET_SSH_KEY }}
+          HOST: ${{ secrets.DROPLET_HOST }}
+        run: |
+          [ -n "$KEY" ] || { echo "::error::This needs the DROPLET_SSH_KEY secret."; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_root && chmod 600 ~/.ssh/id_root
+          ssh-keyscan -H "${HOST:-144.126.236.75}" >> ~/.ssh/known_hosts 2>/dev/null
+          printf 'Host droplet\n  HostName %s\n  User root\n  IdentityFile ~/.ssh/id_root\n  IdentitiesOnly yes\n  ServerAliveInterval 15\n' \
+            "${HOST:-144.126.236.75}" > ~/.ssh/config
+          ssh droplet true
+
+      - name: Inspect
+        if: inputs.action == 'inspect'
+        run: |
+          ssh droplet 'bash -s' <<'REMOTE'
+          echo "== system";   . /etc/os-release; echo "$PRETTY_NAME, kernel $(uname -r)"
+          echo "== memory";   free -m
+          echo "== disk";     df -h /
+          echo "== nginx";    nginx -v 2>&1; nginx -V 2>&1 | tr ' ' '\n' | grep -E 'sub_module|gzip_static|v2_module' || true
+          echo "== node";     node -v 2>/dev/null || echo "no node"
+          echo "== listening"; ss -tlnp | awk 'NR>1 {print $4, $6}' | sort -u
+          echo "== firewall"; ufw status 2>/dev/null | grep -v '(v6)' || echo "no ufw"
+          echo "== deploy keys"; ssh-keygen -lf /home/deploy/.ssh/authorized_keys 2>/dev/null || echo "none"
+          echo "== certificate renewal"; grep -H '^authenticator' /etc/letsencrypt/renewal/*.conf 2>/dev/null || echo "none"
+          echo "== sites enabled"; ls -la /etc/nginx/sites-enabled/
+          for f in /etc/nginx/sites-enabled/*; do echo "---- $f"; cat "$f"; done
+          echo "== conf.d"; ls /etc/nginx/conf.d/ 2>/dev/null
+          echo "== certificates"; ls /etc/letsencrypt/live/ 2>/dev/null
+          echo "== site files"; ls -la /var/www/ /var/www/thegruvs 2>/dev/null | head -20
+          echo "== v-gruvs"; command -v vgruvs && vgruvs version || echo "not installed"
+          echo "== nginx -t"; nginx -t 2>&1 | tail -3
+          REMOTE
+
+      - name: Check out the kit
+        if: inputs.action == 'install or update'
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: infra/vgruvs
+
+      - name: Install or update V-Gruvs
+        if: inputs.action == 'install or update'
+        env:
+          PUBKEY: ${{ inputs.deploy_pubkey }}
+          NOTIFY_URL: ${{ secrets.VGRUVS_NOTIFY_URL }}
+        run: |
+          if [ -n "$PUBKEY" ] && ! printf '%s' "$PUBKEY" | grep -Eq '^ssh-(ed25519|rsa) [A-Za-z0-9+/=]+( [A-Za-z0-9@._-]+)?$'; then
+            echo "::error::deploy_pubkey must be one public key line (ssh-ed25519 AAAA... name)"; exit 1
+          fi
+          tar -czf - -C infra vgruvs | ssh droplet 'rm -rf /root/vgruvs.new && mkdir -p /root/vgruvs.new && tar -xzf - -C /root/vgruvs.new && rm -rf /root/vgruvs && mv /root/vgruvs.new/vgruvs /root/vgruvs && rm -rf /root/vgruvs.new'
+          ssh droplet "DEPLOY_PUBKEY='$PUBKEY' bash /root/vgruvs/bootstrap.sh" 2>&1 | tee bootstrap.log
+          status="${PIPESTATUS[0]}"
+          { echo "## V-Gruvs install"; echo '```'; tail -n 40 bootstrap.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          [ "$status" = 0 ] || exit "$status"
+          # On stdin: a webhook URL is a secret.
+          if [ -n "$NOTIFY_URL" ]; then
+            printf '%s\n' "$NOTIFY_URL" | ssh droplet 'vgruvs notify set - && vgruvs notify test'
+          else
+            echo "::notice::No VGRUVS_NOTIFY_URL secret, so deploys and rollbacks are not sent anywhere (see the README, Notifications)."
+          fi
+
+      - name: Connect the site
+        if: inputs.action == 'connect a site'
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          [[ "$APP" =~ ^[a-z0-9-]+$ ]] || { echo "::error::bad app name"; exit 1; }
+          ssh droplet "vgruvs connect $APP" 2>&1 | tee connect.log
+          status="${PIPESTATUS[0]}"
+          { echo "## Connect $APP"; echo '```'; cat connect.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      # The same domains through the public internet, from GitHub's side. A
+      # resolver that still holds the old address answers from the old host:
+      # that is DNS caching, and clears within the record's TTL.
+      - name: From the outside
+        if: inputs.action == 'connect a site'
+        env:
+          APP: ${{ inputs.app }}
+          HOST: ${{ secrets.DROPLET_HOST }}
+        run: |
+          domains="$(ssh droplet "sed -n 's/^DOMAINS=//p' /etc/vgruvs/apps/$APP.conf" | tr -d '"')"
+          droplet="${HOST:-144.126.236.75}"
+          for d in $domains; do
+            out="$(curl -sS -o /dev/null -w '%{http_code} %{remote_ip}' --max-time 20 "https://$d/" 2>&1 || true)"
+            case "$out" in
+              [23]??" $droplet") msg="answers ${out%% *} from the droplet" ;;
+              [23]??" "*) msg="answers ${out%% *} from ${out#* } (the old host: this resolver has not seen the change yet)" ;;
+              *) msg="did not answer: $out" ;;
+            esac
+            echo "https://$d $msg" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Publish the console
+        if: inputs.action == 'publish the console'
+        env:
+          PASSWORD: ${{ secrets.VGRUVS_CONSOLE_PASSWORD }}
+          DOMAIN: ${{ inputs.console_domain }}
+        run: |
+          [ -n "$PASSWORD" ] || { echo "::error::Add the VGRUVS_CONSOLE_PASSWORD secret (12 characters or more) first."; exit 1; }
+          [[ "$DOMAIN" =~ ^[a-z0-9.-]+\.[a-z]{2,}$ ]] || { echo "::error::bad domain: $DOMAIN"; exit 1; }
+          # The password on stdin, never on a command line; the droplet never prints it.
+          printf '%s\n' "$PASSWORD" | ssh droplet "vgruvs console publish $DOMAIN" 2>&1 | tee publish.log
+          status="${PIPESTATUS[1]}"
+          { echo "## Console"; echo '```'; cat publish.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          [ "$status" = 0 ] || exit "$status"
+          code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://$DOMAIN/" || true)"
+          echo "From GitHub's side, https://$DOMAIN without the password answers $code (401: locked, as it should be)." | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Unpublish the console
+        if: inputs.action == 'unpublish the console'
+        run: ssh droplet 'vgruvs console unpublish'
+
+      - name: Report
+        if: inputs.action != 'inspect' && inputs.action != 'install or update' && inputs.action != 'connect a site' && inputs.action != 'publish the console' && inputs.action != 'unpublish the console'
+        env:
+          ACTION: ${{ inputs.action }}
+        run: |
+          case "$ACTION" in
+            status) cmd='vgruvs status' ;;
+            doctor) cmd='vgruvs doctor' ;;
+            events) cmd='vgruvs events -n 50' ;;
+            insights) cmd='for a in $(ls /etc/vgruvs/apps | sed -n "s/\.conf$//p"); do vgruvs insights "$a"; echo; done' ;;
+          esac
+          ssh droplet "$cmd" 2>&1 | tee report.txt
+          { echo "## vgruvs: $ACTION"; echo '```'; cat report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: After an install, the report
+        if: inputs.action == 'install or update'
+        run: |
+          ssh droplet 'vgruvs status; echo; vgruvs doctor' 2>&1 | tee report.txt
+          { echo "## After the install"; echo '```'; cat report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

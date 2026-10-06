@@ -1,0 +1,15 @@
+# Starts every app's live release when the droplet starts (a security
+# restart, a resize, DigitalOcean maintenance), instead of waiting for the
+# heal timer to notice it is down. Enabled by bootstrap.sh.
+[Unit]
+Description=V-Gruvs: start the apps at boot
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/vgruvs boot
+
+[Install]
+WantedBy=multi-user.target

@@ -62,10 +62,10 @@ fail2ban-client status sshd
 ss -tlnp                                   # nothing should listen publicly except 22/80/443
 ```
 
-- ⚠️ **Move CI deploy off `root`.** Today the GitHub Action SSHes as `root@droplet`. Switch the
-  workflow's `TARGET` to `deploy@` and give `deploy` a scoped sudoers entry limited to exactly
-  the deploy commands (rsync/tar to `/var/www`, `nginx -t`, `systemctl reload/restart nginx`).
-  A leaked deploy key should never equal instant root.
+- ⚠️ **Move CI deploy off `root`.** Built: V-Gruvs (`infra/vgruvs`) creates a `deploy` user whose
+  sudoers entry allows only `vgruvs receive/rollback/releases/status`, and `web-deploy.yml` uses it
+  when the `VGRUVS_SSH_KEY` secret is set. To finish: run `bootstrap.sh` with `DEPLOY_PUBKEY`, add
+  `VGRUVS_SSH_KEY`, then delete `DROPLET_SSH_KEY`. A leaked deploy key should never equal instant root.
 - ⚠️ **Rotate the `DROPLET_SSH_KEY`** used in Actions after any teammate change; it is the crown
   jewel. Consider a deploy-only key with a `command="..."` restriction in authorized_keys.
 - ⚠️ **DO Cloud Firewall** (in the DO panel, in addition to ufw) — belt and braces at the network
