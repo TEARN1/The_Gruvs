@@ -69,7 +69,7 @@ The droplet has **512 MB of RAM**. That is enough for The Gruvs (static) plus Ex
 
 **Before The Resident goes on, resize to 1 GB** in the DigitalOcean panel (Resize → CPU and RAM only, so it can be undone):
 
-- A Next.js server uses 150–250 MB.
+- The Resident's server used about 100 MB after serving its first pages in testing, and grows with traffic.
 - A blue/green deploy briefly runs two copies.
 
 Bootstrap adds a 2 GB swap file on small droplets, so a peak slows down rather than crashes.
@@ -224,16 +224,18 @@ Secrets are in `/etc/vgruvs/env/<app>.env`, readable by root and the app user on
 
 ```bash
 node --test infra/vgruvs/runtime/functions-server.test.mjs   # the functions runtime (12 tests)
-bash infra/vgruvs/test/e2e.sh [path/to/built/excellency]      # everything, on one machine
+bash infra/vgruvs/test/e2e.sh [excellency checkout] [resident release]   # everything, on one machine
 ```
 
 The end-to-end test runs:
 
 - real nginx with TLS on high ports;
 - the real `vgruvs` command;
-- the functions runtime, with Excellency's real build if you give it a path.
+- the functions runtime, with Excellency's real build if you give it a path;
+- The Resident's real standalone build, if you give it the folder its
+  `scripts/vgruvs-release.sh` writes.
 
-It covers 34 checks, including:
+It covers 38 checks with both real builds, including:
 
 - static and blue/green deploys;
 - a broken release refused;
