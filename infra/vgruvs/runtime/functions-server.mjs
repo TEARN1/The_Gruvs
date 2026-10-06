@@ -7,6 +7,12 @@
 //   api/<name>.js  exporting  GET / POST / ... (request: Request) => Response
 //                  or        default (request: Request) => Response
 //   vercel.json    "rewrites": [{ "source": "/verify/:id", "destination": "/api/verify-dossier?id=:id" }]
+//                  "redirects": [{ "source": "/old/:slug", "destination": "/new/:slug", "permanent": true }]
+//                  "headers": [{ "source": "/api/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] }]
+//
+// Responses stream: a function can return a ReadableStream body (server-sent
+// events, an AI model's tokens) and it reaches the visitor as it is produced.
+// A function sets "X-Accel-Buffering: no" for nginx not to hold it back.
 //
 // nginx serves every file that exists in the static directory itself and
 // proxies everything else here. This process then applies the rewrites, runs
@@ -20,11 +26,15 @@
 import http from 'node:http';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { pathToFileURL } from 'node:url';
 
 const METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 const MAX_BODY = 1024 * 1024; // 1 MB, as on Vercel's hobby plan
+// Time to the first byte of a response, and the longest a streamed one may run.
 const TIMEOUT_MS = Number(process.env.VGRUVS_FUNCTION_TIMEOUT_MS ?? 10_000);
+const MAX_STREAM_MS = Number(process.env.VGRUVS_FUNCTION_MAX_DURATION_MS ?? 300_000);
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -73,12 +83,34 @@ export function compileSource(source) {
   };
 }
 
+function readConfig(dir) {
+  const file = join(dir, 'vercel.json');
+  return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+}
+
 /** The rewrites from the release's vercel.json, compiled. */
 export function loadRewrites(dir) {
-  const file = join(dir, 'vercel.json');
-  if (!existsSync(file)) return [];
-  const config = JSON.parse(readFileSync(file, 'utf8'));
-  return (config.rewrites ?? []).map((r) => ({ match: compileSource(r.source), destination: r.destination }));
+  return (readConfig(dir).rewrites ?? []).map((r) => ({ match: compileSource(r.source), destination: r.destination }));
+}
+
+/** vercel.json "redirects", compiled; permanent unless it says otherwise (308), as on Vercel. */
+export function loadRedirects(dir) {
+  return (readConfig(dir).redirects ?? []).map((r) => ({
+    match: compileSource(r.source),
+    destination: r.destination,
+    status: r.statusCode ?? (r.permanent === false ? 307 : 308)
+  }));
+}
+
+/** vercel.json "headers", compiled. */
+export function loadHeaders(dir) {
+  return (readConfig(dir).headers ?? []).map((h) => ({ match: compileSource(h.source), headers: h.headers ?? [] }));
+}
+
+function fill(destination, params) {
+  let dest = destination;
+  for (const [k, v] of Object.entries(params)) dest = dest.replaceAll(`:${k}`, encodeURIComponent(v));
+  return dest;
 }
 
 /** Applies the first matching rewrite; returns the new path + query, or null. */
@@ -86,12 +118,24 @@ export function rewrite(rewrites, pathname, search) {
   for (const r of rewrites) {
     const params = r.match(pathname);
     if (!params) continue;
-    let dest = r.destination;
-    for (const [k, v] of Object.entries(params)) dest = dest.replaceAll(`:${k}`, encodeURIComponent(v));
-    const url = new URL(dest, 'http://x');
+    const url = new URL(fill(r.destination, params), 'http://x');
     // The original query string is kept, as Vercel does; the rewrite's own wins.
     for (const [k, v] of new URLSearchParams(search)) if (!url.searchParams.has(k)) url.searchParams.append(k, v);
     return url.pathname + url.search;
+  }
+  return null;
+}
+
+/** The first matching redirect as { status, location }, or null. */
+export function redirect(redirects, pathname, search) {
+  for (const r of redirects) {
+    const params = r.match(pathname);
+    if (!params) continue;
+    const dest = fill(r.destination, params);
+    const absolute = /^https?:\/\//.test(dest);
+    const url = new URL(dest, 'http://x');
+    for (const [k, v] of new URLSearchParams(search)) if (!url.searchParams.has(k)) url.searchParams.append(k, v);
+    return { status: r.status, location: absolute ? url.href : url.pathname + url.search };
   }
   return null;
 }
@@ -138,6 +182,8 @@ export function createServer({ dir, static: staticDir = 'dist' }) {
   const root = resolve(dir);
   const staticRoot = resolve(root, staticDir);
   const rewrites = loadRewrites(root);
+  const redirects = loadRedirects(root);
+  const headerRules = loadHeaders(root);
   const functions = new Set(listFunctions(root));
   const modules = new Map();
   let release = 'unknown';
@@ -192,15 +238,28 @@ export function createServer({ dir, static: staticDir = 'dist' }) {
     });
     try {
       const response = await Promise.race([handler(request), timeout]);
+      clearTimeout(timer);
       const out = {};
       response.headers.forEach((v, k) => {
         if (k !== 'set-cookie') out[k] = v;
       });
       const cookies = response.headers.getSetCookie?.() ?? [];
       if (cookies.length) out['set-cookie'] = cookies;
-      const buf = Buffer.from(await response.arrayBuffer());
+      for (const [k, v] of Object.entries(res.getHeaders())) if (!(k in out)) out[k] = v;
       res.writeHead(response.status, out);
-      res.end(req.method === 'HEAD' ? undefined : buf);
+      if (req.method === 'HEAD' || !response.body) {
+        res.end();
+        return;
+      }
+      // Stream the body as the function produces it, within MAX_STREAM_MS.
+      const cap = setTimeout(() => res.destroy(new Error('stream ran past its maximum duration')), MAX_STREAM_MS);
+      try {
+        await pipeline(Readable.fromWeb(response.body), res);
+      } catch (err) {
+        if (!res.destroyed) res.destroy(err);
+      } finally {
+        clearTimeout(cap);
+      }
     } finally {
       clearTimeout(timer);
     }
@@ -212,7 +271,18 @@ export function createServer({ dir, static: staticDir = 'dist' }) {
       let url = publicUrl(req, req.url ?? '/');
       if (url.pathname === '/_vgruvs/health') {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: true, release, functions: [...functions] }));
+        res.end(JSON.stringify({ ok: true, release, functions: [...functions], uptime: Math.round(process.uptime()) }));
+        return;
+      }
+
+      res.setHeader('X-VGruvs-Release', release);
+      for (const rule of headerRules) {
+        if (rule.match(url.pathname)) for (const { key, value } of rule.headers) res.setHeader(key, value);
+      }
+      const moved = redirect(redirects, url.pathname, url.search);
+      if (moved) {
+        res.writeHead(moved.status, { Location: moved.location, 'Cache-Control': 'public, max-age=300' });
+        res.end();
         return;
       }
 

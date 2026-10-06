@@ -1,88 +1,101 @@
-# V-Gruvs
+# V-Gruvs 2
 
-V-Gruvs is the hosting layer for our DigitalOcean droplet (`144.126.236.75`).
-It gives The Gruvs, Excellency Academy and The Resident Crew the parts of
-Vercel we rely on, on a machine we already pay for:
+V-Gruvs turns our DigitalOcean droplet (`144.126.236.75`) into a
+Vercel-style platform for The Gruvs, Excellency Academy and The Resident Crew.
 
-- Every deploy is a new release.
-- A deploy only goes live if it answers.
-- A bad deploy rolls back by itself.
-- Going back to any earlier release takes one command.
+It uses nginx, systemd timers, a bash command and a few small Node modules.
+The only processes that keep running are the apps themselves: there is no
+platform daemon, no database and no Docker, so all the memory goes to the apps.
+
+[VISION.md](VISION.md) holds the research and reasoning behind it: what Vercel
+offers in 2026, what Coolify, Dokploy and Kamal do, and why V-Gruvs is built
+this way.
 
 | App | Type | What runs | Domains |
 |---|---|---|---|
 | `thegruvs` | static | nginx serves the Expo web export | thegruvs.com, www |
-| `excellency` | functions | nginx serves `dist/`; the V-Gruvs runtime runs `api/*.js` and `vercel.json` rewrites | excellencyacs.com, www |
+| `excellency` | functions | nginx serves `dist/`; the V-Gruvs runtime runs `api/*.js` and `vercel.json` | excellencyacs.com, www |
 | `theresident` | node | Next.js standalone `server.js` behind nginx | theresidentcrew.com, www |
 
-## How it compares with Vercel
+## What it does
 
-**What V-Gruvs does too**
+**Deploys you can trust**
 
-- **Push-to-deploy:** a GitHub Actions workflow per repo, using `vgruvs-deploy.sh`.
-- **Atomic deploys:** releases live in their own folders, and a symlink swap is instant.
 - **Instant rollback:**
-  - `vgruvs rollback <app>`, or the **Web Rollback** workflow.
-  - The last 5 releases are kept (3 for The Resident).
-- **Zero-downtime deploys for servers:**
-  - Blue/green: the new release starts on the idle port.
-  - It must pass its health check before nginx switches to it.
-  - Requests still running on the old copy are allowed to finish.
-- **A broken deploy never stays live:**
-  - After the switch, the site is checked through nginx and TLS, as a visitor sees it.
-  - It must give three good answers in a row, and the functions runtime must report the new release id.
-  - Otherwise it rolls back to the previous release automatically.
-- **Serverless-style functions:**
-  - `api/<name>.js` exporting `GET`/`POST`/… or a default handler, using Web `Request`/`Response`.
-  - `vercel.json` rewrites work as they do on Vercel, with no code changes.
-- **Preview URLs:**
-  - `--preview pr-12` puts a build at `https://pr-12.preview.thegruvs.com`.
-  - Previews are kept out of search engines and removed after 14 days.
-- **Environment variables:** `vgruvs env <app> set KEY value`. Values are never printed, and the app restarts with them.
-- **HTTPS and certificate renewal:** Let's Encrypt; checked twice a day by `vgruvs heal` and certbot's own timer.
-- **Logs:** `vgruvs logs <app> -f`.
+  - Every deploy is a release folder, and going live is an atomic switch.
+  - `vgruvs rollback <app>` (or the **Rollback** workflow in each repo) takes seconds.
+- **Zero downtime:**
+  - Server apps start the new release on a spare port.
+  - nginx switches only after it answers, and requests already running on the old copy finish first.
+- **Rolling releases (optional):**
+  - With `ROLLOUT="20 50"`, a new release first serves 20% of visitors, then 50%, then everyone.
+  - Each visitor stays on one version.
+  - Before each step, the new release's error rate and speed are compared with the old one's on the same traffic. A worse release is withdrawn by itself.
+- **Autopilot:**
+  - For five minutes after every deploy, real traffic is compared with the hour before.
+  - If errors jump, the deploy is rolled back by itself and an incident report is written.
+  - You are notified, and Claude can optionally analyse the report.
+- **Skew protection:**
+  - Visitors who opened the site before a deploy keep getting their version's JavaScript and CSS for 7 days. No more white screens from missing chunks.
+  - Next.js pages get their exact release's files (`?dpl=`).
+- **Previews:** `pr-<n>.preview.thegruvs.com` for pull requests, optionally behind a password.
 
-**Where it is better**
+**Fast, and up when an app is not**
 
-- **Rate limits that hold:**
-  - nginx limits `/api/` to 10 requests per second per address, and The Resident's `/auth/` and `/api/` to 30 per minute.
-  - On Vercel, in-memory limits reset on every cold instance. Here there is one machine, so they hold.
-  - nginx replaces `X-Forwarded-For` with the real address, so a client cannot fake its way past the limit.
-- **Predictable cost:** a flat droplet price. No bandwidth or function-invocation overage, no per-seat plan, and nothing "full".
-- **One place:** the same machine, same commands and same logs for all three apps.
+- **Compressed once, at deploy:** text files are gzipped (and brotli-compressed where nginx has the module). nginx sends them with no work per request.
+- **Edge cache:**
+  - Pages an app marks cacheable (`s-maxage`, `stale-while-revalidate`) are served by nginx.
+  - Never for a visitor with a login cookie.
+  - Each release starts fresh.
+- **Always online:** if an app crashes, cached pages keep being served, and anything else gets a "we'll be right back" page that retries by itself.
 
-**What it does not have (and what to do about it)**
+**Seeing what happens** (no cookies, no query strings, no third parties)
 
-- **A global edge network.**
-  - Vercel serves from many cities; the droplet is in one.
-  - Fix: put the domains behind Cloudflare's free plan:
-    1. Point the DNS at Cloudflare and proxy the records.
-    2. Set SSL to "Full (strict)".
-  - When you do, tell nginx the real visitor address, or every visitor will look like Cloudflare to the rate limits. Add `real_ip_header CF-Connecting-IP;` and a `set_real_ip_from` line for each Cloudflare range to `/etc/nginx/conf.d/cloudflare.conf`.
-- **Autoscaling.** One droplet has fixed capacity. For our traffic this is not the constraint; memory is (below).
-- **Build servers.** Apps build in GitHub Actions (or on a laptop), never on the droplet. A 512 MB machine cannot run Metro or `next build`.
-- **Image optimisation and analytics.** Next.js still optimises images itself, with its cache kept across deploys in `/srv/vgruvs/cache/<app>`. For analytics, use Plausible or Umami if needed.
+- `vgruvs insights <app>`: requests, errors, p50/p95/p99 speed, edge-cache hits, and the busiest, slowest and failing routes.
+- `vgruvs analytics <app>`: visitors (a hash that resets daily, as Vercel does), page views, referrers, devices and browsers; bots are left out.
+- `vgruvs vitals <app>`: Core Web Vitals (LCP, INP, CLS, FCP, TTFB) from real visitors.
+  - A 2 KB script is added to every page by nginx; the apps need no changes.
+  - The result is p75 per metric and an experience score.
+- **The console:** one page showing every app's health, releases, rollout progress, traffic, vitals, events, incidents and certificates.
+
+**Protection**
+
+- **Shield:**
+  - Requests only scanners make (`/.env`, `/wp-login.php`, `.php`, ...) get the connection closed. Three of them earn a one-day ban (fail2ban).
+  - `vgruvs shield block <ip>` blocks an address on every app.
+  - `vgruvs shield attack on` puts a strict per-address limit on everything.
+- **Built-in rate limits:** the APIs and the sign-in pages have rate limits that hold, because everything runs on one machine.
+- **Unknown hostnames:** HTTPS for a hostname no site claims is refused.
+- **Accounts:**
+  - CI deploys as a `deploy` user that can only ship, roll back, run rollouts and read status.
+  - Apps run unprivileged, cannot change their own code, and have memory caps.
+
+**Running it**
+
+- `vgruvs maintenance <app> on "message"`: a maintenance page with a bypass token, so you can still check the site.
+- **Crons:** Vercel-style (`crons` in `vercel.json`, or `CRONS` in the conf), sent with `Authorization: Bearer $CRON_SECRET`.
+- **Notifications:** Discord, Slack, ntfy (phone push) or any webhook.
+- `vgruvs doctor`: checks nginx, every app, certificates, DNS, memory, disk, services, firewall, updates and the clock, and says how to fix each problem.
+- `vgruvs apps add`: a new app from a template, ready for its first deploy.
+- **Self-healing:** every two minutes, apps that stopped answering are restarted, certificates are renewed, and warnings go out for the disk and certificates.
 
 ## Memory and droplet size
 
-The droplet has **512 MB of RAM**. That is enough for The Gruvs (static) plus Excellency, whose functions runtime uses about 60 MB.
+The droplet has **512 MB of RAM**:
 
-**Before The Resident goes on, resize to 1 GB** in the DigitalOcean panel (Resize → CPU and RAM only, so it can be undone):
+- The Gruvs (static) and Excellency (about 60 MB) fit.
+- The Resident's Next.js server used about 100 MB after its first pages in testing, and grows with traffic.
+- Rolling releases briefly run two copies of an app.
 
-- The Resident's server used about 100 MB after serving its first pages in testing, and grows with traffic.
-- A blue/green deploy briefly runs two copies.
+**Resize to 1 GB before The Resident goes on.** In the DigitalOcean panel, use Resize → CPU and RAM only, so it can be undone.
 
-Bootstrap adds a 2 GB swap file on small droplets, so a peak slows down rather than crashes.
-
-Each app slot is capped by systemd (`MemoryHigh=280M`, `MemoryMax=360M`), so one app cannot starve the others. To raise the cap for one app:
-
-```bash
-systemctl edit vgruvs-app@theresident-a   # and -b
-```
+Bootstrap adds a 2 GB swap file, so a peak slows the droplet down rather than crashing it. Each app slot is capped by systemd (`MemoryHigh=280M`, `MemoryMax=360M`); to raise one, run `systemctl edit vgruvs-app@theresident-a` (and `-b`).
 
 ## Setting it up (once)
 
-Run these as root from a machine with the repo. Bootstrap backs up the nginx config first. If nginx rejects the new config, or thegruvs.com stops answering, it puts the old config back, so the live site keeps working.
+Run these as root from a machine with the repo. Bootstrap backs up the nginx
+config first. If nginx rejects the new one, or thegruvs.com stops answering,
+it puts the old one back, so the live site keeps working.
 
 ```bash
 # 1. A deploy key for CI (keep the private half for step 4)
@@ -93,69 +106,150 @@ scp -r infra/vgruvs root@144.126.236.75:/root/vgruvs
 ssh root@144.126.236.75 "DEPLOY_PUBKEY='$(cat vgruvs-ci.pub)' bash /root/vgruvs/bootstrap.sh"
 ```
 
-Bootstrap does the following:
+Bootstrap does the following, in order:
 
-1. Installs the packages: nginx, certbot, Node 22, the ufw firewall, fail2ban and automatic security updates.
-2. Adds a swap file.
-3. Creates two users:
+1. **Packages:** nginx, certbot, Node 22, the ufw firewall, fail2ban, automatic security updates, and brotli when Ubuntu has it.
+2. **Swap file.**
+3. **Users:**
    - `vgruvs` runs the apps.
-   - `deploy` is for CI. Its sudo rule allows `vgruvs receive`, `rollback`, `releases` and `status`, and nothing else, so a leaked CI key is not root.
-4. Installs the `vgruvs` command and the systemd units.
-5. Moves the live The Gruvs files from `/var/www/thegruvs` into release `migrated-<date>`.
+   - `deploy` is for CI; its sudo rule allows `vgruvs receive`, `rollback`, `releases`, `rollout` and `status`.
+4. **The vgruvs command and its pieces:** the command, the Node modules, the timers (heal every 2 minutes, crons every minute), log rotation (14 days) and the scanner jail.
+5. **The move:** The Gruvs' live files move from `/var/www/thegruvs` into release `migrated-<date>`.
 
-It is safe to run again. It never deletes a release, and it keeps any app config you changed on the droplet; the repo's version is put beside it as `.new`.
-
-Add `HARDEN_SSH=1` to turn off password logins. It only does this if root already has a key.
+It is safe to run again. It never deletes a release, and it keeps app configs you changed (the repo's version goes beside them as `.new`). `HARDEN_SSH=1` turns off password logins, but only if root already has a key.
 
 ```bash
 # 3. Excellency and The Resident: point their DNS A records (@ and www) at
 #    144.126.236.75, wait for DNS, then on the droplet:
 vgruvs certs excellency   && vgruvs site excellency
 vgruvs certs theresident  && vgruvs site theresident
-vgruvs env excellency set VERIFIER_SECRET '...'     # the same value Vercel has
-vgruvs env theresident set NEXT_PUBLIC_SUPABASE_URL '...'   # and the rest of its .env
+vgruvs env excellency set VERIFIER_SECRET '...'               # the same value Vercel has
+vgruvs env theresident set SUPABASE_SERVICE_ROLE_KEY '...'    # and its other server secrets
 ```
 
-**4. GitHub secrets.** In each repo, under Settings → Secrets and variables → Actions:
+**4. GitHub, in each repo** (Settings → Secrets and variables → Actions):
 
-- `VGRUVS_SSH_KEY`: the contents of `vgruvs-ci`, the private key.
-- `DROPLET_HOST`: optional; it defaults to `144.126.236.75`.
-
-The Gruvs' old `DROPLET_SSH_KEY` (root) keeps working: it uses V-Gruvs once it is installed. Delete it once `VGRUVS_SSH_KEY` deploys succeed.
+- **Secrets:**
+  - `VGRUVS_SSH_KEY`: the contents of `vgruvs-ci`, the private key.
+  - `DROPLET_HOST` (optional): it defaults to `144.126.236.75`.
+- **The Resident only:** its `NEXT_PUBLIC_*` values as repository variables. Its deploy workflow lists them.
+- **The old root key:** The Gruvs' `DROPLET_SSH_KEY` (root) still works and uses V-Gruvs. Delete it once deploys with the new key succeed.
 
 **Order matters for Excellency and The Resident:**
 
-1. Do step 3 before the first deploy, or the site will not be served yet.
-2. Deploy once, so the app has a release.
+1. Do step 3.
+2. Deploy once.
 3. Only then switch DNS away from Vercel.
+
+**5. Check:** run `vgruvs doctor` on the droplet.
 
 ## Every day
 
 | Want to | Run (on the droplet, as root) |
 |---|---|
-| See everything | `vgruvs status`: live release and health per app, memory, disk, certificate expiry |
-| List releases | `vgruvs releases thegruvs`: `*` marks the live one |
-| Undo the last deploy | `vgruvs rollback thegruvs`, or the **Web Rollback** workflow |
-| Go to a specific release | `vgruvs rollback thegruvs 20261006-101500-ab12cd34ef` |
-| Read app logs | `vgruvs logs excellency -f` |
-| Set a secret | `vgruvs env excellency set KEY 'value'` (`list` shows names only) |
-| Restart an app | `vgruvs restart theresident` |
+| See everything | `vgruvs status` · the console (below) |
+| Undo the last deploy | `vgruvs rollback <app>` · or **Rollback** in the repo's Actions tab |
+| Go to a specific release | `vgruvs releases <app>`, then `vgruvs rollback <app> <release>` |
+| Follow a staged rollout | `vgruvs rollout <app>` · `promote` · `abort` |
+| Traffic, errors and speed | `vgruvs insights <app> --since 24h` |
+| Visitors | `vgruvs analytics <app> --since 7d` |
+| Real-user speed | `vgruvs vitals <app>` |
+| What happened, and when | `vgruvs events [<app>]` · reports in `/var/lib/vgruvs/incidents` |
+| App output | `vgruvs logs <app> -f` |
+| Set a secret | `vgruvs env <app> set KEY 'value'` (`list` shows names only) |
+| Take a site down nicely | `vgruvs maintenance <app> on "Back at 10:00"` · `off` |
+| Run or list crons | `vgruvs cron <app>` · `vgruvs cron <app> run /api/job` |
+| Block an address | `vgruvs shield block 1.2.3.4` · `unblock` · `vgruvs shield` |
+| Under attack | `vgruvs shield attack on` · `off` |
+| Something feels wrong | `vgruvs doctor` |
+| Apply edited app settings | `vgruvs sync` |
 
 **Deploys:**
 
-- **From CI:** pushes to `main` deploy through the repo's workflow.
+- **From CI:** pushes to the main branch deploy through each repo's workflow, which shows up under the repo's Environments.
 - **From a laptop:**
 
   ```bash
   VGRUVS_HOST=deploy@144.126.236.75 infra/vgruvs/client/vgruvs-deploy.sh thegruvs --from dist
-  VGRUVS_HOST=deploy@144.126.236.75 infra/vgruvs/client/vgruvs-deploy.sh excellency dist api vercel.json
   ```
 
-**Self-healing:** `vgruvs-heal.timer` runs every two minutes. It does three things:
+## The console
 
-- restarts an app that stopped answering;
-- removes previews older than two weeks;
-- renews certificates.
+```bash
+ssh -L 9900:127.0.0.1:9900 root@144.126.236.75     # then open http://localhost:9900
+```
+
+It refreshes every few minutes and after every deploy.
+
+To open it on the web behind a password:
+
+1. Point a domain at the droplet.
+2. Run `vgruvs console publish ops.thegruvs.com`. It gets the certificate and prints a password.
+
+`vgruvs console unpublish` takes it off the web again. The console is read-only by design: actions stay with `vgruvs` and the GitHub workflows, behind SSH keys.
+
+## Settings per app
+
+Each app's settings are in `/etc/vgruvs/apps/<app>.conf`. Edit the file, then run `vgruvs sync`.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `APP_TYPE` | | `static`, `functions` or `node` |
+| `DOMAINS` | | Space-separated; the first is the primary |
+| `PORT_A`, `PORT_B` | | The two blue/green ports (functions and node) |
+| `HEALTH_PATH` | `/` | Checked on the new copy, then through nginx |
+| `KEEP_RELEASES` | 5 | Releases kept for rollback |
+| `SKEW_DIRS` | per type | Fingerprinted folders kept after deploys (`url[=path in release]`) |
+| `SKEW_MAX_AGE_DAYS` | 7 | How long an old release's files stay loadable |
+| `PRECOMPRESS` | on | gzip/brotli at deploy time |
+| `EDGE_CACHE` | on | Cache what the app marks cacheable |
+| `VITALS` | on | Add the Web Vitals script to pages |
+| `ROLLOUT` | empty | Percent steps, e.g. `"20 50"`; empty means switch everyone at once |
+| `ROLLOUT_STEP_SECONDS` | 120 | Time per step |
+| `AUTOPILOT` | on | Watch each deploy and roll back on an error jump |
+| `AUTOPILOT_WINDOW_SECONDS` | 300 | How long it watches |
+| `AUTOPILOT_MAX_ERROR_RATE` | 5 | Percent of server errors that counts as a jump (and more than twice the hour before) |
+| `AUTOPILOT_MIN_REQUESTS` | 20 | Fewer requests than this are not judged |
+| `CRONS` | empty | `"0 3 * * * /api/cleanup; */10 * * * * /api/sync"` (UTC) |
+| `PREVIEW_DOMAIN` | empty | Turns on previews at `<name>.<PREVIEW_DOMAIN>` |
+
+## Notifications
+
+Create `/etc/vgruvs/notify.conf` (mode 600) with one line, then run `vgruvs notify test`:
+
+```bash
+NOTIFY_URL=https://discord.com/api/webhooks/...      # or a Slack webhook,
+                                                     # or https://ntfy.sh/<a-long-random-topic> for phone push
+```
+
+You hear about:
+
+- deploys and failed deploys;
+- rollbacks, including autopilot ones;
+- rollout steps;
+- apps restarted by the heal timer;
+- certificates close to expiry, and a full disk;
+- attack mode;
+- failed crons;
+- maintenance mode.
+
+`NOTIFY_EVENTS="deploy_failed auto_rollback"` narrows that list.
+
+## AI incident analysis (optional)
+
+When the autopilot rolls a deploy back, it writes an incident report. Claude can add a plain-language root-cause analysis to it.
+
+To turn it on, create `/etc/vgruvs/ai.env` (mode 600):
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+# AI_MODEL=claude-opus-5-5     the default
+# AI_EFFORT=high
+```
+
+**What is sent:** only the report. It has counts per route and the app's output, with query strings and IP addresses removed. It never contains visitors' addresses, cookies or request bodies.
+
+Without the file, nothing is sent anywhere.
 
 ## PR previews (optional)
 
@@ -168,83 +262,59 @@ The Gruvs' old `DROPLET_SSH_KEY` (root) keeps working: it uses V-Gruvs once it i
    printf 'dns_digitalocean_token = %s\n' 'dop_v1_...' > /root/.do.ini && chmod 600 /root/.do.ini
    certbot certonly --dns-digitalocean --dns-digitalocean-credentials /root/.do.ini \
      -d '*.preview.thegruvs.com' --cert-name preview.thegruvs.com
-
-   # DNS elsewhere: certbot certonly --manual --preferred-challenges dns \
-   #   -d '*.preview.thegruvs.com' --cert-name preview.thegruvs.com
-   #   (it asks you to add a TXT record; manual certificates do not renew by themselves)
    ```
 
-3. Turn the previews on:
-   - On the droplet, run `vgruvs previews thegruvs enable`.
-   - In GitHub, set the repo variable `VGRUVS_PREVIEWS` to `true`.
+3. On the droplet, run `vgruvs previews thegruvs enable`. In GitHub, set the repo variable `VGRUVS_PREVIEWS=true`.
+4. Optional: `vgruvs previews thegruvs protect reviewer` puts the previews behind a password. It prints one, or reads it from standard input.
 
-   Each PR then deploys to `https://pr-<number>.preview.thegruvs.com`.
+## Cloudflare in front (optional)
 
-## Security
+Vercel serves from many cities; the droplet is in one. Cloudflare's free plan adds a global cache and DDoS protection:
 
-- **Users:**
-  - CI deploys as `deploy`, not root.
-  - Apps run as `vgruvs`, with systemd hardening: read-only system, no home directories, no privilege escalation, and write access to their own cache only.
-- **Unpacking:** uploads are unpacked as `vgruvs`. A crafted archive can write nowhere but its own release folder.
-- **Release check:** a release must have the right shape before it can go live (`index.html`, `api/`, or `server.js`).
-- **Names:** app, release and preview names are checked against a strict pattern before any path is built from them. The deploy client quotes them before they reach the remote shell.
-- **Network:**
-  - HTTPS for a hostname no site claims gets its connection closed, so no app ever sees a forged `Host`.
-  - ufw allows only SSH, 80 and 443.
-  - fail2ban watches SSH.
-  - Security updates install themselves.
-- **Function runtime:**
-  - Errors become a plain 500, so stack traces never reach visitors.
-  - Request bodies are capped at 1 MB and requests time out after 10 seconds.
-  - `X-Forwarded-*` is trusted only from nginx on the same machine.
+1. Move the DNS to Cloudflare, with the records proxied.
+2. Set SSL to "Full (strict)".
+3. Tell nginx the real visitor address, or every visitor looks like Cloudflare to the rate limits, the shield and the analytics. Create `/etc/nginx/conf.d/cloudflare.conf` with `real_ip_header CF-Connecting-IP;` and one `set_real_ip_from <range>;` line for each range at cloudflare.com/ips.
 
 ## Files
 
 | Path | Installed to | Purpose |
 |---|---|---|
 | `bin/vgruvs` | `/usr/local/bin/vgruvs` | the command |
-| `runtime/functions-server.mjs` | `/usr/local/lib/vgruvs/` | runs `api/*.js` + `vercel.json` (no dependencies) |
+| `runtime/functions-server.mjs` | `/usr/local/lib/vgruvs/` | runs `api/*.js` and `vercel.json` (rewrites, redirects, headers; streaming) |
+| `runtime/vitals.js` | `/usr/local/lib/vgruvs/runtime/` | the Web Vitals beacon |
+| `lib/insights.mjs` | `/usr/local/lib/vgruvs/` | logs: insights, analytics, vitals, canary and autopilot verdicts, incident reports |
+| `lib/console.mjs` | `/usr/local/lib/vgruvs/` | writes the console |
+| `lib/cron.mjs`, `lib/notify.mjs`, `lib/ai.mjs` | `/usr/local/lib/vgruvs/` | crons, notifications, AI analysis |
 | `lib/run-app` | `/usr/local/lib/vgruvs/` | starts one slot of one app |
-| `apps/*.conf` | `/etc/vgruvs/apps/` | app type, domains, ports, health path, releases kept |
-| `nginx/sites/*.conf` | enabled by `vgruvs site <app>` | one site per app, plus port 80 and previews |
-| `nginx/snippets/*.conf` | `/etc/nginx/snippets/` | TLS, gzip, headers, proxy, ACME |
-| `systemd/*` | `/etc/systemd/system/` | app slots and the heal timer |
+| `pages/*.html` | `/usr/local/lib/vgruvs/pages/` | the offline and maintenance pages |
+| `apps/*.conf` | `/etc/vgruvs/apps/` | each app's settings |
+| `nginx/sites/*`, `nginx/templates/*` | nginx | one site per app, port 80, the console, previews, new-app templates |
+| `nginx/snippets/*.conf` | `/etc/nginx/snippets/` | TLS, compression, headers, proxy, edge cache, platform features |
+| `systemd/*` | `/etc/systemd/system/` | app slots, heal and cron timers |
 | `client/vgruvs-deploy.sh` | (copied into each repo) | ships a build from CI or a laptop |
 
-On the droplet, each app has:
+**Generated on the droplet:**
 
-- `/srv/vgruvs/<app>/releases/<id>`
-- `current` (a symlink)
-- `slots/a|b` (for functions and node apps)
-- `previews/<name>`
-
-Secrets are in `/etc/vgruvs/env/<app>.env`, readable by root and the app user only.
+- **nginx includes:** written by `vgruvs sync` into `/etc/nginx/vgruvs/`.
+- **Releases:** `/srv/vgruvs/<app>/releases/<id>`, `current`, `slots/a|b`, `vault/` (skew protection) and `previews/`.
+- **Events and incidents:** in `/var/lib/vgruvs/`.
+- **Request logs:** in `/var/log/nginx/vgruvs/`.
+- **The edge cache:** in `/var/cache/nginx/vgruvs/`.
 
 ## Tests
 
 ```bash
-node --test infra/vgruvs/runtime/functions-server.test.mjs   # the functions runtime (12 tests)
-bash infra/vgruvs/test/e2e.sh [excellency checkout] [resident release]   # everything, on one machine
+node --test infra/vgruvs/runtime/functions-server.test.mjs    # the functions runtime
+node --test infra/vgruvs/lib/lib.test.mjs                     # insights, crons, notifications, AI request
+bash infra/vgruvs/test/e2e.sh [excellency checkout] [resident release]
 ```
 
-The end-to-end test runs:
+The end-to-end test runs real nginx with TLS on high ports, the real `vgruvs` command, and real app processes (with the real Excellency and Resident builds when given). It covers:
 
-- real nginx with TLS on high ports;
-- the real `vgruvs` command;
-- the functions runtime, with Excellency's real build if you give it a path;
-- The Resident's real standalone build, if you give it the folder its
-  `scripts/vgruvs-release.sh` writes.
+- every deploy path, rollbacks, skew protection and `?dpl=` routing;
+- gzip and brotli, the edge cache, "always online" and the offline page, and the heal timer;
+- crons, staged rollouts (promoted and withdrawn), and the autopilot rolling back a bad deploy, with its notification and incident report;
+- the shield, maintenance mode, and previews with a password;
+- insights, analytics and vitals, the console, the doctor, and adding an app.
 
-It covers 38 checks with both real builds, including:
-
-- static and blue/green deploys;
-- a broken release refused;
-- a release that dies after going live rolled back automatically;
-- manual rollback, pruning, previews, rewrites, rate limits, the `X-Forwarded-For` override and unknown hostnames refused.
-
-`bootstrap.sh` was rehearsed against a copy of today's droplet setup (the live nginx config, `/var/www/thegruvs` and Let's Encrypt files). It covered:
-
-- a broken kit, which was refused with the old site still serving;
-- the migration;
-- a deploy and rollback with the installed command;
-- a second run that changed nothing.
+`bootstrap.sh` was also rehearsed against a copy of the droplet as it is today.

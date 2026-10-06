@@ -10,9 +10,11 @@
 #   HARDEN_SSH=1                             turn off SSH passwords (only if root already has a key)
 #
 # What it does, in order: packages (nginx, certbot, Node 22, firewall,
-# fail2ban, automatic security updates), a swap file, the `vgruvs` and
-# `deploy` users, the vgruvs command and runtime, systemd units, the nginx
-# snippets, and then moves The Gruvs from /var/www/thegruvs onto V-Gruvs.
+# fail2ban, automatic security updates, brotli when available), a swap file,
+# the `vgruvs` and `deploy` users, the vgruvs command and its modules,
+# systemd units (heal, crons), log rotation, the scanner jail, the nginx
+# snippets and console, and then moves The Gruvs from /var/www/thegruvs onto
+# V-Gruvs.
 # The move backs up the current nginx config first and restores it if
 # nginx rejects the new one or the site stops answering.
 set -euo pipefail
@@ -70,13 +72,16 @@ chown deploy:deploy /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/
 # The deploy key can ship and roll back releases, and nothing else: a leaked
 # CI key is no longer root on the box.
 cat >/etc/sudoers.d/vgruvs-deploy <<'EOF'
-deploy ALL=(root) NOPASSWD: /usr/local/bin/vgruvs receive *, /usr/local/bin/vgruvs rollback *, /usr/local/bin/vgruvs releases *, /usr/local/bin/vgruvs status, /usr/local/bin/vgruvs status *
+deploy ALL=(root) NOPASSWD: /usr/local/bin/vgruvs receive *, /usr/local/bin/vgruvs rollback *, /usr/local/bin/vgruvs releases *, /usr/local/bin/vgruvs rollout *, /usr/local/bin/vgruvs status, /usr/local/bin/vgruvs status *
 EOF
 chmod 440 /etc/sudoers.d/vgruvs-deploy
 visudo -cf /etc/sudoers.d/vgruvs-deploy >/dev/null || { rm -f /etc/sudoers.d/vgruvs-deploy; die "sudoers rule rejected"; }
 
 say "V-Gruvs files"
-install -d -m 755 /srv/vgruvs /usr/local/lib/vgruvs /usr/local/lib/vgruvs/nginx/sites /etc/vgruvs /etc/vgruvs/apps /var/www/letsencrypt
+install -d -m 755 /srv/vgruvs /srv/vgruvs/_console /usr/local/lib/vgruvs /usr/local/lib/vgruvs/runtime /usr/local/lib/vgruvs/pages \
+  /usr/local/lib/vgruvs/nginx/sites /usr/local/lib/vgruvs/nginx/templates /etc/vgruvs /etc/vgruvs/apps /etc/vgruvs/sites \
+  /etc/vgruvs/shield /var/www/letsencrypt /var/lib/vgruvs /var/log/nginx/vgruvs /var/cache/nginx/vgruvs
+touch /var/log/nginx/vgruvs/vitals.log
 install -d -m 750 -o root -g vgruvs /etc/vgruvs/env
 install -d -m 700 /etc/vgruvs/tls
 if [[ ! -s /etc/vgruvs/tls/default.key ]]; then
@@ -89,7 +94,11 @@ install -d -m 755 -o vgruvs -g vgruvs /srv/vgruvs/cache
 install -m 755 "$HERE/bin/vgruvs" /usr/local/bin/vgruvs
 install -m 755 "$HERE/lib/run-app" /usr/local/lib/vgruvs/run-app
 install -m 644 "$HERE/runtime/functions-server.mjs" /usr/local/lib/vgruvs/functions-server.mjs
+install -m 644 "$HERE/runtime/vitals.js" /usr/local/lib/vgruvs/runtime/vitals.js
+for mod in insights cron notify console ai; do install -m 644 "$HERE/lib/$mod.mjs" "/usr/local/lib/vgruvs/$mod.mjs"; done
+install -m 644 "$HERE"/pages/*.html /usr/local/lib/vgruvs/pages/
 install -m 644 "$HERE"/nginx/sites/* /usr/local/lib/vgruvs/nginx/sites/
+install -m 644 "$HERE"/nginx/templates/* /usr/local/lib/vgruvs/nginx/templates/
 for conf in "$HERE"/apps/*.conf; do
   dest="/etc/vgruvs/apps/$(basename "$conf")"
   if [[ ! -f "$dest" ]]; then
@@ -100,10 +109,72 @@ for conf in "$HERE"/apps/*.conf; do
   fi
 done
 install -m 644 "$HERE"/nginx/snippets/*.conf /etc/nginx/snippets/
-install -d -m 755 /etc/nginx/vgruvs/upstreams
-install -m 644 "$HERE"/systemd/vgruvs-app@.service "$HERE"/systemd/vgruvs-heal.service "$HERE"/systemd/vgruvs-heal.timer /etc/systemd/system/
+install -d -m 755 /etc/nginx/vgruvs /etc/nginx/vgruvs/upstreams /etc/nginx/vgruvs/apps /etc/nginx/vgruvs/auth
+install -m 644 "$HERE"/systemd/vgruvs-app@.service "$HERE"/systemd/vgruvs-heal.service "$HERE"/systemd/vgruvs-heal.timer \
+  "$HERE"/systemd/vgruvs-cron.service "$HERE"/systemd/vgruvs-cron.timer /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now vgruvs-heal.timer >/dev/null
+systemctl enable --now vgruvs-heal.timer vgruvs-cron.timer >/dev/null
+
+# Request logs: two weeks, compressed after a day (insights reads both).
+cat >/etc/logrotate.d/vgruvs <<'ROTATE'
+/var/log/nginx/vgruvs/*.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        invoke-rc.d nginx rotate >/dev/null 2>&1 || nginx -s reopen >/dev/null 2>&1 || true
+    endscript
+}
+ROTATE
+
+# Shield: an address that asks for /.env, /wp-login.php and the like three
+# times in ten minutes is banned for a day.
+if [[ -d /etc/fail2ban ]]; then
+  mkdir -p /etc/fail2ban/filter.d /etc/fail2ban/jail.d
+  cat >/etc/fail2ban/filter.d/vgruvs-probes.conf <<'FILTER'
+# V-Gruvs: requests only vulnerability scanners make (nginx answers 444).
+[Definition]
+failregex = ^\{"t":"[^"]*","ip":"<HOST>",.*"s":444,
+ignoreregex =
+FILTER
+  cat >/etc/fail2ban/jail.d/vgruvs.conf <<'JAIL'
+[vgruvs-probes]
+enabled  = true
+port     = http,https
+filter   = vgruvs-probes
+logpath  = /var/log/nginx/vgruvs/*.log
+maxretry = 3
+findtime = 10m
+bantime  = 1d
+JAIL
+  systemctl restart fail2ban >/dev/null 2>&1 || true
+fi
+
+# Brotli, when the distribution packages the nginx module: smaller than
+# gzip for text. Kept off if nginx does not accept it.
+if apt-get install -y -q libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static brotli >/dev/null 2>&1 &&
+  compgen -G '/etc/nginx/modules-enabled/*brotli*' >/dev/null; then
+  cat >/etc/nginx/snippets/vgruvs-brotli.conf <<'BROTLI'
+brotli_static on;
+brotli on;
+brotli_comp_level 5;
+brotli_types text/plain text/css application/javascript text/javascript application/json image/svg+xml application/manifest+json application/xml;
+BROTLI
+  if nginx -t -q 2>/dev/null; then
+    echo "brotli is on"
+  else
+    install -m 644 "$HERE/nginx/snippets/vgruvs-brotli.conf" /etc/nginx/snippets/vgruvs-brotli.conf
+    echo "nginx refused the brotli module; brotli stays off"
+  fi
+fi
+
+# Every nginx include vgruvs generates (shield, logging, edge cache, Web
+# Vitals, maintenance) is written from the app confs.
+vgruvs sync --no-reload
 
 say "Firewall"
 ufw allow OpenSSH >/dev/null
@@ -137,6 +208,9 @@ if [[ -e /srv/vgruvs/thegruvs/current && -r /etc/letsencrypt/live/thegruvs.com/f
   # per-domain redirects; the old thegruvs site file is switched off.
   install -m 644 "$HERE/nginx/sites/00-vgruvs-http.conf" /etc/nginx/sites-available/00-vgruvs-http.conf
   ln -sfn /etc/nginx/sites-available/00-vgruvs-http.conf /etc/nginx/sites-enabled/00-vgruvs-http.conf
+  # The console, on 127.0.0.1:9900 only (reach it through an SSH tunnel).
+  install -m 644 "$HERE/nginx/sites/00-vgruvs-console.conf" /etc/nginx/sites-available/00-vgruvs-console.conf
+  ln -sfn /etc/nginx/sites-available/00-vgruvs-console.conf /etc/nginx/sites-enabled/00-vgruvs-console.conf
   rm -f /etc/nginx/sites-enabled/default
   for f in /etc/nginx/sites-enabled/*; do
     [[ "$f" == */00-vgruvs-http.conf || "$f" == */vgruvs-* ]] && continue
@@ -190,4 +264,8 @@ Next steps
      droplet, then:  vgruvs certs excellency && vgruvs site excellency
                      vgruvs certs theresident && vgruvs site theresident
   3. Secrets:  vgruvs env excellency set VERIFIER_SECRET '...'
+  4. The console:  ssh -L 9900:127.0.0.1:9900 root@<this droplet>  then open
+     http://localhost:9900   (or: vgruvs console publish ops.<your domain>)
+  5. Optional: notifications in /etc/vgruvs/notify.conf, AI incident analysis
+     in /etc/vgruvs/ai.env (see the README), then:  vgruvs doctor
 EOF

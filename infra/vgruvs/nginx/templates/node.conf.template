@@ -1,0 +1,42 @@
+# __APP__ on V-Gruvs (node): a server.js (e.g. Next.js standalone) behind
+# nginx. Written by `vgruvs apps add`; edit freely, then `vgruvs site __APP__`.
+proxy_cache_path /var/cache/nginx/vgruvs/__APP__ levels=1:2 keys_zone=vgruvs_cache___APPVAR__:10m
+                 max_size=256m inactive=7d use_temp_path=off;
+include /etc/nginx/vgruvs/upstreams/__APP__.conf;
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name __DOMAINS__;
+    server_tokens off;
+    client_max_body_size 10m;
+
+    ssl_certificate /etc/letsencrypt/live/__PRIMARY__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__PRIMARY__/privkey.pem;
+    include snippets/vgruvs-tls.conf;
+    include snippets/vgruvs-gzip.conf;
+    include /etc/nginx/vgruvs/apps/__APP__.conf;
+    include snippets/vgruvs-platform.conf;
+    include snippets/vgruvs-acme.conf;
+
+    location /_next/static/ {
+        root /srv/vgruvs/__APP__/releases/$vgruvs_dpl;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        try_files $uri @next_live;
+    }
+    location @next_live {
+        root /srv/vgruvs/__APP__/current;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        try_files $uri @next_vault;
+    }
+    location @next_vault {
+        root /srv/vgruvs/__APP__/vault;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        try_files $uri =404;
+    }
+    location / {
+        proxy_pass http://vgruvs___APPVAR__;
+        include snippets/vgruvs-proxy.conf;
+        include snippets/vgruvs-edge.conf;
+    }
+}

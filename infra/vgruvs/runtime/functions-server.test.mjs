@@ -1,10 +1,10 @@
-// node --test infra/vgruvs/runtime/
+// node --test infra/vgruvs/runtime/functions-server.test.mjs
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { compileSource, createServer, rewrite } from './functions-server.mjs';
+import { compileSource, createServer, redirect, rewrite } from './functions-server.mjs';
 
 let server;
 let base;
@@ -23,7 +23,12 @@ before(async () => {
       rewrites: [
         { source: '/verify/:id', destination: '/api/echo?id=:id' },
         { source: '/eval/:token', destination: '/index.html' }
-      ]
+      ],
+      redirects: [
+        { source: '/old/:slug', destination: '/new/:slug' },
+        { source: '/go', destination: 'https://example.com/landing', permanent: false }
+      ],
+      headers: [{ source: '/api/(.*)', headers: [{ key: 'X-Robots-Tag', value: 'noindex' }] }]
     })
   );
   writeFileSync(
@@ -40,6 +45,20 @@ before(async () => {
      }`
   );
   writeFileSync(join(dir, 'api', 'boom.js'), `export async function GET() { throw new Error('secret detail'); }`);
+  writeFileSync(
+    join(dir, 'api', 'stream.js'),
+    `export async function GET() {
+       let i = 0;
+       const body = new ReadableStream({
+         async pull(controller) {
+           if (i === 3) return controller.close();
+           await new Promise((r) => setTimeout(r, 150));
+           controller.enqueue(new TextEncoder().encode('data: ' + i++ + '\\n\\n'));
+         }
+       });
+       return new Response(body, { headers: { 'content-type': 'text/event-stream', 'x-accel-buffering': 'no' } });
+     }`
+  );
   writeFileSync(join(dir, 'api', 'plain.js'), `export default async function (request) { return new Response('plain ' + request.method); }`);
   server = createServer({ dir, static: 'dist' });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -65,7 +84,7 @@ test('reports health with the release id and functions', async () => {
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(body.release, 'abc123');
-  assert.deepEqual(body.functions.sort(), ['boom', 'echo', 'plain']);
+  assert.deepEqual(body.functions.sort(), ['boom', 'echo', 'plain', 'stream']);
 });
 
 test('runs a function through a vercel.json rewrite, with the public origin from nginx', async () => {
@@ -121,4 +140,38 @@ test('never serves files outside the static root', async () => {
 test('refuses a body over 1 MB', async () => {
   const res = await fetch(`${base}/api/echo`, { method: 'POST', body: 'x'.repeat(1024 * 1024 + 10) }).catch(() => null);
   assert.ok(!res || res.status === 413);
+});
+
+test('redirects from vercel.json, permanent by default, keeping the query', async () => {
+  const rules = [{ match: compileSource('/old/:slug'), destination: '/new/:slug', status: 308 }];
+  assert.deepEqual(redirect(rules, '/old/a', '?x=1'), { status: 308, location: '/new/a?x=1' });
+  const res = await fetch(`${base}/old/pricing?ref=ad`, { redirect: 'manual' });
+  assert.equal(res.status, 308);
+  assert.equal(res.headers.get('location'), '/new/pricing?ref=ad');
+  const out = await fetch(`${base}/go`, { redirect: 'manual' });
+  assert.equal(out.status, 307);
+  assert.equal(out.headers.get('location'), 'https://example.com/landing');
+});
+
+test('applies vercel.json headers and names the release', async () => {
+  const res = await fetch(`${base}/api/plain`);
+  assert.equal(res.headers.get('x-robots-tag'), 'noindex');
+  assert.equal(res.headers.get('x-vgruvs-release'), 'abc123');
+});
+
+test('streams a response as the function produces it', async () => {
+  const started = Date.now();
+  const res = await fetch(`${base}/api/stream`);
+  assert.equal(res.headers.get('content-type'), 'text/event-stream');
+  const reader = res.body.getReader();
+  const first = await reader.read();
+  const firstAt = Date.now() - started;
+  let text = new TextDecoder().decode(first.value);
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    text += new TextDecoder().decode(value);
+  }
+  assert.equal(text, 'data: 0\n\ndata: 1\n\ndata: 2\n\n');
+  assert.ok(firstAt < 400, `the first chunk arrived after ${firstAt} ms, so the body was buffered`);
 });

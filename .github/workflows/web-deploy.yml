@@ -62,16 +62,14 @@ jobs:
           path: dist/
           retention-days: 1
 
-  # ── Ship to the droplet — only on push to main, only if a key is set ─────
-  deploy:
-    name: Deploy to droplet
+  # ── Which key to deploy with (seconds; skips cleanly without one) ───────
+  gate:
+    name: Deploy key check
     runs-on: ubuntu-latest
-    needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    # One deploy at a time; a newer push waits rather than racing the swap.
-    concurrency:
-      group: web-deploy-production
-      cancel-in-progress: false
+    outputs:
+      mode: ${{ steps.guard.outputs.mode }}
+      release: ${{ steps.guard.outputs.release }}
     steps:
       - name: Guard — pick the deploy key, or skip cleanly
         id: guard
@@ -90,14 +88,29 @@ jobs:
           fi
           echo "release=$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::10}" >> "$GITHUB_OUTPUT"
 
+  # ── Ship to the droplet — only on push to main, only if a key is set ─────
+  deploy:
+    name: Deploy to droplet
+    runs-on: ubuntu-latest
+    needs: [build, gate]
+    if: needs.gate.outputs.mode == 'vgruvs' || needs.gate.outputs.mode == 'root'
+    # Shows up under the repo's Environments, with a link to the live site.
+    environment:
+      name: production
+      url: https://thegruvs.com
+    # One deploy at a time; a newer push waits rather than racing the swap.
+    concurrency:
+      group: web-deploy-production
+      cancel-in-progress: false
+    steps:
       - name: Check out the deploy client
-        if: steps.guard.outputs.mode == 'vgruvs'
+        if: needs.gate.outputs.mode == 'vgruvs'
         uses: actions/checkout@v7
         with:
           sparse-checkout: infra/vgruvs/client
 
       - name: Download dist artifact
-        if: steps.guard.outputs.mode != 'skip'
+        if: needs.gate.outputs.mode != 'skip'
         uses: actions/download-artifact@v8
         with:
           name: web-dist-${{ github.sha }}
@@ -106,17 +119,17 @@ jobs:
       # The droplet unpacks the release, checks it through nginx and rolls
       # back by itself if the site stops answering; a failed deploy fails here.
       - name: Ship dist → V-Gruvs (deploy user)
-        if: steps.guard.outputs.mode == 'vgruvs'
+        if: needs.gate.outputs.mode == 'vgruvs'
         env:
           VGRUVS_SSH_KEY: ${{ secrets.VGRUVS_SSH_KEY }}
           HOST: ${{ secrets.DROPLET_HOST }}
-          RELEASE: ${{ steps.guard.outputs.release }}
+          RELEASE: ${{ needs.gate.outputs.release }}
         run: |
           VGRUVS_HOST="deploy@${HOST:-144.126.236.75}" \
             bash infra/vgruvs/client/vgruvs-deploy.sh thegruvs --from dist --release "$RELEASE"
 
       - name: Set up SSH (root key)
-        if: steps.guard.outputs.mode == 'root'
+        if: needs.gate.outputs.mode == 'root'
         env:
           KEY: ${{ secrets.DROPLET_SSH_KEY }}
           HOST: ${{ secrets.DROPLET_HOST }}
@@ -130,10 +143,10 @@ jobs:
       # /srv/vgruvs, so writing /var/www would change nothing); otherwise the
       # old staged swap into /var/www/thegruvs.
       - name: Ship dist → droplet (root key)
-        if: steps.guard.outputs.mode == 'root'
+        if: needs.gate.outputs.mode == 'root'
         env:
           HOST: ${{ secrets.DROPLET_HOST }}
-          RELEASE: ${{ steps.guard.outputs.release }}
+          RELEASE: ${{ needs.gate.outputs.release }}
         run: |
           TARGET="root@${HOST:-144.126.236.75}"
           ( cd dist && tar czf - . ) | ssh -i ~/.ssh/id_ed25519 "$TARGET" "
@@ -153,8 +166,8 @@ jobs:
       - name: Summary
         if: always()
         env:
-          MODE: ${{ steps.guard.outputs.mode }}
-          RELEASE: ${{ steps.guard.outputs.release }}
+          MODE: ${{ needs.gate.outputs.mode }}
+          RELEASE: ${{ needs.gate.outputs.release }}
           OUTCOME: ${{ job.status }}
         run: |
           {
@@ -166,6 +179,7 @@ jobs:
             else
               echo "- Release: \`$RELEASE\` via ${MODE} key — $OUTCOME"
               echo "- Undo: run the **Web Rollback** workflow"
+              echo "- Watching: the droplet's autopilot checks real traffic for 5 minutes and rolls back by itself if errors jump"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -177,7 +191,11 @@ jobs:
     name: Deploy PR preview
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name == 'pull_request' && vars.VGRUVS_PREVIEWS == 'true'
+    # Same-repository PRs only: a fork's PR never gets the deploy key.
+    if: github.event_name == 'pull_request' && vars.VGRUVS_PREVIEWS == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    environment:
+      name: preview
+      url: https://pr-${{ github.event.pull_request.number }}.preview.thegruvs.com
     concurrency:
       group: web-preview-${{ github.event.pull_request.number }}
       cancel-in-progress: true
