@@ -18,13 +18,13 @@ import { pathToFileURL } from 'node:url';
 export const DEFAULT_EVENTS = [
   'deploy', 'deploy_failed', 'rollback', 'auto_rollback', 'rollout_started', 'rollout_done', 'rollout_abort',
   'heal_restart', 'cert_expiring', 'disk_full', 'attack_on', 'attack_off', 'cron_failed', 'maintenance_on', 'maintenance_off',
-  'boot', 'site_connected', 'console_published'
+  'boot', 'reboot', 'site_connected', 'console_published'
 ];
 
 const ICONS = {
   deploy: '✅', verified: '🛡️', deploy_failed: '❌', rollback: '⏪', auto_rollback: '🚨', rollout_started: '🚦', rollout_step: '🚦',
   rollout_done: '✅', rollout_abort: '🛑', heal_restart: '🩹', cert_expiring: '🔐', disk_full: '💾', attack_on: '🛡️',
-  attack_off: '🛡️', cron_failed: '⏰', maintenance_on: '🚧', maintenance_off: '🚧', test: '👋', boot: '🔄',
+  attack_off: '🛡️', cron_failed: '⏰', maintenance_on: '🚧', maintenance_off: '🚧', test: '👋', boot: '🔄', reboot: '🔁',
   site_connected: '🌐', console_published: '📊'
 };
 
