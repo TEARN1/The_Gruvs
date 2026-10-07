@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, startTransiti
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -91,6 +91,7 @@ import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { BorderTracer } from '../components/KasiIndustrialUI';
 import { deferred } from '../utils/deferred';
 import { loadEventsCatalog } from '../services/eventsCatalog';
+import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 
 // Panels load on first open, not at app start (see src/utils/deferred.js).
 const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
@@ -140,6 +141,7 @@ const AvatarStack = ({ count, size = 20 }) => {
 const SkeletonCard = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
+    if (IS_WEB_LOOP) return;   // web: CSS animation (cssLoop) — no per-frame re-render
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.7, duration: 1000, useNativeDriver: true }),
@@ -148,7 +150,7 @@ const SkeletonCard = ({ primary }) => {
     ).start();
   }, []);
   return (
-    <Animated.View style={[skStyles.card, { opacity: pulse, borderColor: `${primary}30` }]}>
+    <Animated.View style={[skStyles.card, IS_WEB_LOOP ? { opacity: 0.3, ...cssLoop({ '0%': { opacity: 0.3 }, '100%': { opacity: 0.7 } }, 1000) } : { opacity: pulse }, { borderColor: `${primary}30` }]}>
       <View style={[skStyles.media, { backgroundColor: `${primary}12` }]} />
       <View style={skStyles.body}>
         <View style={[skStyles.avatar, { backgroundColor: `${primary}20` }]} />

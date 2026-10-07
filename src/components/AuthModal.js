@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import {
   Modal, View, Text, StyleSheet, TextInput,
   TouchableOpacity, Animated, KeyboardAvoidingView,

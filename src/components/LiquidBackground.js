@@ -13,6 +13,7 @@ import { useEffect, useRef } from 'react';
 import { View, Animated, Platform, Easing } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { MOTION } from '../constants/DesignTokens';
+import { cssLoop } from '../utils/cssLoop';
 
 const IS_WEB = Platform.OS === 'web';
 const reducedMotion = () =>
@@ -29,7 +30,7 @@ const hexA = (hex, a) => {
 const Blob = ({ color, size, from, to, duration, delay = 0, style }) => {
   const t = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (reducedMotion()) return;
+    if (IS_WEB || reducedMotion()) return;   // web: CSS animation below
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(t, { toValue: 1, duration, delay, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
@@ -39,6 +40,24 @@ const Blob = ({ color, size, from, to, duration, delay = 0, style }) => {
     loop.start();
     return () => loop.stop();
   }, [t, duration, delay]);
+
+  if (IS_WEB) {
+    const at = (p, s) => ({ transform: `translateX(${p.x}px) translateY(${p.y}px) scale(${s})` });
+    return (
+      <View
+        pointerEvents="none"
+        style={[
+          {
+            position: 'absolute', width: size, height: size, borderRadius: size / 2,
+            backgroundImage: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+            transform: `translateX(${from.x}px) translateY(${from.y}px)`,
+            ...cssLoop({ '0%': at(from, 1), '50%': at({ x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }, 1.12), '100%': at(to, 1) }, duration, { delay }),
+          },
+          style,
+        ]}
+      />
+    );
+  }
 
   const translateY = t.interpolate({ inputRange: [0, 1], outputRange: [from.y, to.y] });
   const translateX = t.interpolate({ inputRange: [0, 1], outputRange: [from.x, to.x] });

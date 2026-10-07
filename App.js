@@ -1050,7 +1050,7 @@ export default function App() {
   // Kick off font load in background. Never block rendering — if the load
   // stalls, the app would be permanently blank. Icons self-load in componentDidMount.
   // First paint blocks ONLY on Feather (~56KB) — 96% of the app's icons. The
-  // heavy MaterialCommunityIcons face (~1.15MB) loads in the BACKGROUND so a
+  // MaterialCommunityIcons face (subset, ~72KB) loads in the BACKGROUND so a
   // slow connection no longer stares at a multi-second spinner; the handful of
   // MCI glyphs simply pop in a moment later.
   const [fontsLoaded] = useFonts({
@@ -1059,8 +1059,8 @@ export default function App() {
   });
   useEffect(() => {
     Font.loadAsync({
-      MaterialCommunityIcons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
-      'material-community': require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
+      MaterialCommunityIcons: require('./assets/fonts/MaterialCommunityIconsSubset.ttf'),
+      'material-community': require('./assets/fonts/MaterialCommunityIconsSubset.ttf'),
     }).catch(() => {});
   }, []);
 

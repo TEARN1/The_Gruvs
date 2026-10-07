@@ -8,6 +8,9 @@ import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { DirectMessageModal } from './DirectMessageModal';
+import { cssLoop, IS_WEB } from '../utils/cssLoop';
+
+const dotPulse = cssLoop({ '0%': { transform: 'scale(1)' }, '100%': { transform: 'scale(1.6)' } }, 900);
 
 const REFRESH_MS = 120000; // 2 min — was 30s, reduced DB load 4×
 // "Online" means active in the last 5 minutes — the is_online boolean goes
@@ -151,6 +154,7 @@ export const CommunityStatsBar = () => {
   }, [user]);
 
   useEffect(() => {
+    if (IS_WEB) return;   // web: CSS animation (dotPulse) — no per-frame re-render
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.6, duration: 900, useNativeDriver: true }),
@@ -192,7 +196,7 @@ export const CommunityStatsBar = () => {
         onPress={handleOpen}
         activeOpacity={0.8}
       >
-        <Animated.View style={[ss.dot, { backgroundColor: "#10b981", transform: [{ scale: pulseAnim }] }]} />
+        <Animated.View style={[ss.dot, { backgroundColor: "#10b981", ...(IS_WEB ? dotPulse : { transform: [{ scale: pulseAnim }] }) }]} />
         <Text style={[ss.count, { color: "#10b981" }]}>{fmt(onlineCount)}</Text>
         <Text style={[ss.label, { color: 'rgba(255,255,255,0.45)' }]}>
           {onlineCount === 1 ? 'mutual online' : 'mutuals online'}
@@ -210,7 +214,7 @@ export const CommunityStatsBar = () => {
         <View style={[ss.sheet, { backgroundColor: surface, borderColor: `${primary}18` }]}>
           <View style={[ss.handle, { backgroundColor: 'rgba(255,255,255,0.15)' }]} />
           <View style={[ss.sheetHeader, { borderBottomColor: 'rgba(255,255,255,0.06)' }]}>
-            <Animated.View style={[ss.dot, { backgroundColor: "#10b981", transform: [{ scale: pulseAnim }] }]} />
+            <Animated.View style={[ss.dot, { backgroundColor: "#10b981", ...(IS_WEB ? dotPulse : { transform: [{ scale: pulseAnim }] }) }]} />
             <Text style={[ss.sheetTitle, { color: textColor }]}>Mutuals Online Now</Text>
             <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Feather name="x" size={18} color={muted} />
