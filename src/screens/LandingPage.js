@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition, Suspense } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -1067,6 +1067,12 @@ const orderForGuest = (list) =>
 //  filters, dedupes and collapses tours; it never re-ranks.)
 
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels }) => {
+  // Header fit on small phones: at 320 px the logo, wordmark and five round
+  // buttons were wider than the screen and the "+" (post) button was cut off.
+  const { width: winW } = useWindowDimensions();
+  const tightHeader = winW < 360;
+  const iconSize = tightHeader ? 32 : 36;
+  const iconBox = { width: iconSize, height: iconSize, borderRadius: iconSize / 2 };
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
@@ -2130,8 +2136,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {/* Main Row: Logo + Search + Actions */}
       <View style={styles.mainRow}>
         <View style={styles.brandGroup}>
-          <BrandLogo size={36} showGlow />
-          <View style={styles.wordmarkMini}>
+          <BrandLogo size={tightHeader ? 30 : 36} showGlow />
+          {!tightHeader && <View style={styles.wordmarkMini}>
             <Text style={[styles.brandText, { color: primary }]}>GRUVS</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <Text style={[styles.brandSub, { color: muted }]}>{mode === 'drop' ? 'DROP' : 'EXPLORE'}</Text>
@@ -2141,7 +2147,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 </View>
               )}
             </View>
-          </View>
+          </View>}
         </View>
 
         <GlassView style={[styles.compactSearch, { borderColor: `${primary}30` }]}>
@@ -2162,11 +2168,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           )}
         </GlassView>
 
-        <View style={styles.headerActions}>
+        <View style={[styles.headerActions, tightHeader && { gap: 6 }]}>
           {/* Reels — opt-in entry while it's demoted from the tab bar */}
           {onNavigateToReels && HIDDEN_TABS.includes('reels') && (
             <TouchableOpacity
-              style={[styles.iconBtn, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}
+              style={[styles.iconBtn, iconBox, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}
               onPress={onNavigateToReels}
               accessibilityRole="button"
               accessibilityLabel="Reels"
@@ -2175,7 +2181,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.1)' }]}
+            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.1)' }]}
             onPress={() => setRouletteVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Vibe Roulette"
@@ -2183,7 +2189,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             <Feather name="compass" size={16} color={textColor} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
+            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
             onPress={() => setSensoryModalVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Nightlife Sensory Suite"
@@ -2191,7 +2197,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             <Feather name="zap" size={16} color="#00f2ff" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: '#f59e0b35' }]}
+            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: '#f59e0b35' }]}
             onPress={() => setCultureModalVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Culture & Heritage Artifacts"
@@ -2199,7 +2205,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             <Feather name="award" size={16} color="#f59e0b" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.postIconBtn, { backgroundColor: primary, borderColor: primary }]}
+            style={[styles.postIconBtn, iconBox, { backgroundColor: primary, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
           >
             <Feather name="plus" size={18} color="#000" />

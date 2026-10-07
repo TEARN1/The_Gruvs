@@ -116,11 +116,22 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const indicatorAnim = useRef(new Animated.Value(0)).current;
-  const tabWidth = width / TABS.length; // auto-scales with the visible tab count
+  // Measure the BAR, not the window. The bar is 94% wide, capped at 520 px and
+  // centred, so window-based maths put the highlight bubble under the wrong
+  // tab (a stray circle behind "Lineup") and made drag-to-scrub pick the wrong
+  // tab on tablets. Until the first layout, estimate from the same rules.
+  const [bar, setBar] = useState(() => {
+    const w = Math.min(width * 0.94, 520);
+    return { x: (width - w) / 2, w };
+  });
+  const BAR_PAD = 6; // styles.tabBar.paddingHorizontal
+  const tabWidth = Math.max(1, (bar.w - BAR_PAD * 2) / TABS.length);
+  // Too narrow for every label (small phones): show the active tab's only.
+  const compactLabels = tabWidth < 50;
 
   useEffect(() => {
     const index = TABS.findIndex(t => t.key === currentTab);
-    const target = index * tabWidth + (tabWidth / 2) - 20;
+    const target = BAR_PAD + index * tabWidth + 6;
     if (!isNaN(target)) {
       Animated.spring(indicatorAnim, {
         toValue: target,
@@ -137,14 +148,14 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
   const currentTabRef = useRef(currentTab);
   currentTabRef.current = currentTab;
   const scrubToX = useCallback((pageX) => {
-    let idx = Math.floor(pageX / tabWidth);
+    let idx = Math.floor((pageX - bar.x - BAR_PAD) / tabWidth);
     idx = Math.max(0, Math.min(TABS.length - 1, idx));
     const key = TABS[idx].key;
     if (key !== currentTabRef.current) {
       try { Haptics.selectionAsync(); } catch {}
       onTabChange(key);
     }
-  }, [tabWidth, onTabChange]);
+  }, [tabWidth, bar.x, onTabChange]);
 
   const panResponder = useMemo(() => PanResponder.create({
     // Only hijack clearly-horizontal drags; taps still hit the tabs below.
@@ -164,6 +175,10 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
           }
         ]}
         {...panResponder.panHandlers}
+        onLayout={(e) => {
+          const { x, width: w } = e.nativeEvent.layout;
+          if (Math.abs(w - bar.w) > 0.5 || Math.abs(x - bar.x) > 0.5) setBar({ x, w });
+        }}
       >
         <Animated.View
           style={[
@@ -212,7 +227,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
                   </View>
                 )}
               </View>
-              <Text
+              {(!compactLabels || isActive) && <Text
                 style={[
                   styles.tabLabel,
                   {
@@ -224,7 +239,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
                 numberOfLines={1}
               >
                 {tab.label}
-              </Text>
+              </Text>}
             </TouchableOpacity>
           );
         })}
@@ -1175,6 +1190,7 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: 'absolute',
+    left: 0,   // without an anchor, web centred it and translateX moved it from there
     top: 6,
     bottom: 6,
     borderRadius: 24,

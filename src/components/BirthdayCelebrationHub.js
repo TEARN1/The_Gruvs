@@ -194,7 +194,7 @@ export function BirthdayCelebrationHub({
                         activeOpacity={0.8}
                       >
                         <Feather name={wished ? 'check' : 'heart'} size={13} color={wished ? '#10b981' : '#fff'} />
-                        <Text style={[styles.wishBtnText, { color: wished ? '#10b981' : '#fff' }]}>
+                        <Text numberOfLines={1} style={[styles.wishBtnText, { color: wished ? '#10b981' : '#fff' }]}>
                           {wished ? 'Vibe Sent ✨' : 'Send Birthday Vibe ✨'}
                         </Text>
                         <ControlledGlitterBurst trigger={glitterTrigger} count={12} radius={35} colors={['#ec4899', '#fde047', '#fff']} />
@@ -284,6 +284,11 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } : {}),
   },
   sheet: {
+    // Bottom sheet on phones; on tablets/desktop it stayed full-window wide,
+    // stretching every button into a 1,200 px bar. Cap and centre it.
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderWidth: 1,
@@ -355,10 +360,12 @@ const styles = StyleSheet.create({
   },
   bdayActionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',   // small phones: Gift drops under Wish instead of squeezing it
     gap: 8,
   },
   wishBtn: {
-    flex: 1.3,
+    flexGrow: 1.3,
+    flexBasis: 170,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -373,7 +380,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   giftBtn: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 110,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
