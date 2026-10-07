@@ -31,6 +31,8 @@ import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
 import { GiftingModal } from '../components/GiftingModal';
 import { useEventRole } from '../hooks/useEventRole';
+import { DoorCodeModal } from '../components/DoorCodeModal';
+import { DoorCodeEntryModal } from '../components/DoorCodeEntryModal';
 import { SafeSection } from '../components/SafeSection';
 import { NowPlayingBar } from '../components/NowPlayingBar';
 import { EventFollowButton } from '../components/EventFollowButton';
@@ -253,7 +255,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [giftingOpen, setGiftingOpen] = useState(false);
   const scrollRef = useRef(null);
 
-  const { isOrganiser, isCoHost, canPost, canModerate } = useEventRole(
+  const [doorCodeOpen, setDoorCodeOpen] = useState(false);
+  const [doorEntryOpen, setDoorEntryOpen] = useState(false);
+  const { isOrganiser, isCoHost, canPost, canModerate, canScan } = useEventRole(
     event?.id, user?.id, event?.author_id ?? event?.profiles?.id
   );
 
@@ -1182,6 +1186,33 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             />
           )}
 
+          {event?.id && canScan && (
+            <DoorCodeModal
+              visible={doorCodeOpen}
+              eventId={event.id}
+              eventTitle={event.title}
+              primary={primary}
+              onClose={() => setDoorCodeOpen(false)}
+            />
+          )}
+          {event?.id && user && (
+            <DoorCodeEntryModal
+              visible={doorEntryOpen}
+              eventId={event.id}
+              primary={primary}
+              onClose={() => setDoorEntryOpen(false)}
+              getCoords={() => Promise.race([
+                LocationService.requestAndGet(),
+                new Promise((resolve) => setTimeout(() => resolve(null), 4000)),
+              ])}
+              onVerified={() => {
+                setCheckedIn(true);
+                try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
+                showToast('Verified at the door ✓ Your Touch Down is proven.', 'success');
+              }}
+            />
+          )}
+
           {/* Host: Set Now Playing modal */}
           {isOrganiser && event?.id && (
             <SetNowPlayingModal
@@ -1197,6 +1228,21 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               boundary keeps a failure to a small labelled chip and, next time,
               tells us exactly which host tool broke instead of hiding it. */}
           <SafeSection label="Host tools" primary={primary}>
+          {/* Touch Down v2: the rotating door code (organiser, co-host, scanner). */}
+          {canScan && event?.id && (
+            <TouchableOpacity
+              onPress={() => setDoorCodeOpen(true)}
+              activeOpacity={0.85}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                marginHorizontal: 16, marginTop: 12, paddingVertical: 12, borderRadius: 12,
+                backgroundColor: primary,
+              }}
+            >
+              <Feather name="shield" size={15} color="#000" />
+              <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Show door code</Text>
+            </TouchableOpacity>
+          )}
           {/* Host only: the door list. RSVP next to VERIFIED attendance — the one
               thing a spreadsheet can't give them, and the first thing they ask for. */}
           {isOrganiser && event?.id && (
@@ -1971,6 +2017,21 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 </Text>
               </TouchableOpacity>
             </View>
+          )}
+
+          {/* Touch Down v2: guests verify with the code shown at the door. */}
+          {user && event?.id && (
+            <TouchableOpacity
+              onPress={() => setDoorEntryOpen(true)}
+              activeOpacity={0.8}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 }}
+              accessibilityRole="button"
+            >
+              <Feather name="shield" size={13} color={primary} />
+              <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>
+                {checkedIn ? 'Verify at the door with a code' : 'At the door? Verify with a code'}
+              </Text>
+            </TouchableOpacity>
           )}
 
           {event && (

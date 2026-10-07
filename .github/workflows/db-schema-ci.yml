@@ -116,6 +116,11 @@ jobs:
       - name: Verify The Meal reach columns can't be self-set
         run: $PSQL -f supabase/test/meal_reach_test.sql
 
+      # Touch Down v2: only door staff get the rotating code, guests with the
+      # right code verify at level 2, guessing is capped, phones can't self-verify.
+      - name: Verify Touch Down door code (presence proof)
+        run: $PSQL -f supabase/test/touch_down_v2_test.sql
+
       # Security control, not a shape check: proves the report-driven auto-hide
       # policies still exist, are still RESTRICTIVE, and still gate on the right
       # column — and pins down that service_role (BYPASSRLS) skips them, which is
