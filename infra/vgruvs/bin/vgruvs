@@ -1169,10 +1169,9 @@ cmd_doctor() {
     if "$SYSTEMCTL" is-active --quiet "$unit" 2>/dev/null; then doc ok "$unit" "running"; else doc warn "$unit" "not running" "systemctl enable --now $unit"; fi
   done
   if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q 'Status: active'; then doc ok "firewall" "on"; else doc warn "firewall" "off or not installed" "bootstrap.sh turns it on"; fi
-  local autoreboot=''
-  grep -qs 'Automatic-Reboot "true"' /etc/apt/apt.conf.d/52vgruvs-reboot && autoreboot=1
-  if [[ ! -f /var/run/reboot-required ]]; then doc ok "updates" "no reboot waiting"
-  elif [[ -n "$autoreboot" ]]; then doc ok "updates" "a reboot is waiting; it happens by itself at $(sed -n 's/.*Automatic-Reboot-Time "\([^"]*\)".*/\1/p' /etc/apt/apt.conf.d/52vgruvs-reboot) UTC"
+  if [[ ! -f "$REBOOT_FLAG" ]]; then doc ok "updates" "no reboot waiting"
+  elif grep -qs 'Automatic-Reboot "true"' "$REBOOT_CONF" && [[ -n "$(reboot_time)" ]]; then
+    doc ok "updates" "a reboot is waiting; the heal timer restarts the droplet at $(reboot_time) UTC"
   else doc warn "updates" "a reboot is waiting" "reboot the droplet at a quiet time"; fi
   if "$SYSTEMCTL" is-enabled --quiet vgruvs-boot.service 2>/dev/null; then doc ok "start-up" "apps start at boot"
   else doc warn "start-up" "apps wait for heal after a reboot (up to 2 minutes)" "re-run bootstrap.sh"; fi
@@ -1573,6 +1572,33 @@ cmd_boot() {
   event boot "" "the droplet started up; apps started:${started:- none needed}"
 }
 
+# A restart that updates are waiting for (a new kernel), at the quiet time set
+# in 52vgruvs-reboot (bootstrap.sh). Ubuntu's own automatic restart only
+# follows an update run that installed something itself, so a restart left
+# over from an earlier update would wait forever without this.
+REBOOT_CONF="${VGRUVS_REBOOT_CONF:-/etc/apt/apt.conf.d/52vgruvs-reboot}"
+REBOOT_FLAG="${VGRUVS_REBOOT_FLAG:-/var/run/reboot-required}"
+reboot_time() { sed -n 's/.*Automatic-Reboot-Time "\([0-9][0-9]:[0-9][0-9]\)".*/\1/p' "$REBOOT_CONF" 2>/dev/null | head -1; }
+maybe_reboot() {
+  [[ -f "$REBOOT_FLAG" ]] && grep -qs 'Automatic-Reboot "true"' "$REBOOT_CONF" || return 0
+  local at now start mins pkgs
+  at="$(reboot_time)"
+  [[ -n "$at" ]] || return 0
+  now="${VGRUVS_NOW_HHMM:-$(date -u +%H%M)}"
+  start=$((10#${at%%:*} * 60 + 10#${at##*:}))
+  mins=$((10#${now:0:2} * 60 + 10#${now:2:2}))
+  # A half-hour window from the set time (heal runs every 2 minutes).
+  ((mins >= start && mins < start + 30)) || return 0
+  # Never twice in a row: if a restart did not clear the flag, wait a day.
+  [[ -z "$(find "$STATE/reboot.stamp" -mmin -720 2>/dev/null)" ]] || return 0
+  mkdir -p "$STATE"
+  touch "$STATE/reboot.stamp"
+  pkgs="$(tr '\n' ' ' <"$REBOOT_FLAG.pkgs" 2>/dev/null | sed 's/ *$//' || true)"
+  event reboot "" "restarting for security updates${pkgs:+ ($pkgs)}; the apps start again at boot"
+  sleep "${VGRUVS_REBOOT_WAIT:-10}" # time for the notification to go out
+  "$SYSTEMCTL" reboot
+}
+
 # Every two minutes: restart an app whose active slot stopped answering,
 # drop previews older than two weeks, renew certificates, warn early about
 # disk and certificates, and keep the console fresh.
@@ -1611,6 +1637,7 @@ cmd_heal() {
   if [[ -z "$(find "$ROOT/_console/index.html" -mmin -9 2>/dev/null)" ]]; then
     cmd_console build --quiet || true
   fi
+  maybe_reboot
 }
 
 main() {

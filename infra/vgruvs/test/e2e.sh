@@ -135,6 +135,7 @@ case "\$action:\$unit" in
       echo \$! >"\$pidf"
     fi
     ;;
+  reboot:) touch "$T/rebooted" ;;
   *) echo "fake systemctl: ignoring \$*" >&2 ;;
 esac
 EOF
@@ -513,6 +514,21 @@ check "an app that is down, as after a restart" bash -c "'$VG' status excellency
 check "is started by vgruvs boot" eventually 20 bash -c "'$VG' status excellency | grep -q 'health=ok'"
 check "and the start-up is in the events" bash -c "'$VG' events -n 5 | grep -q 'droplet started up'"
 check "and in the notifications" eventually 10 grep -q 'droplet started up' "$T/notified.log"
+
+echo "restarts for updates"
+printf 'Unattended-Upgrade::Automatic-Reboot "true";\nUnattended-Upgrade::Automatic-Reboot-Time "01:30";\n' >"$T/52vgruvs-reboot"
+echo '*** System restart required ***' >"$T/reboot-required"
+echo 'linux-image-6.8.0-130-generic' >"$T/reboot-required.pkgs"
+heal_at() { VGRUVS_REBOOT_CONF="$T/52vgruvs-reboot" VGRUVS_REBOOT_FLAG="$T/reboot-required" VGRUVS_REBOOT_WAIT=0 VGRUVS_NOW_HHMM="$1" "$VG" heal >/dev/null 2>&1; }
+heal_at 1200
+check "a waiting restart does not happen outside the quiet hour" test ! -e "$T/rebooted"
+heal_at 0135
+check "it happens at the quiet hour, by the heal timer" test -e "$T/rebooted"
+check "and says why in the events" bash -c "'$VG' events -n 5 | grep -q 'restarting for security updates (linux-image-6.8.0-130-generic)'"
+rm -f "$T/rebooted"
+heal_at 0137
+check "but never twice in a row" test ! -e "$T/rebooted"
+check "doctor says when it will happen" bash -c "VGRUVS_REBOOT_CONF='$T/52vgruvs-reboot' VGRUVS_REBOOT_FLAG='$T/reboot-required' '$VG' doctor 2>&1 | grep -q 'the heal timer restarts the droplet at 01:30 UTC'"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [[ "$FAIL" -eq 0 ]]
