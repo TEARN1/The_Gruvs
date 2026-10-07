@@ -40,7 +40,6 @@ export function DoorCodeEntryModal({ visible, eventId, onClose, onVerified, getC
             inputMode="numeric"
             autoComplete="one-time-code"
             textContentType="oneTimeCode"
-            maxLength={6}
             placeholder="000000"
             placeholderTextColor="rgba(255,255,255,0.2)"
             style={[s.input, { borderColor: `${primary}55` }]}
