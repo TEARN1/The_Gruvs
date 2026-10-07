@@ -9,15 +9,32 @@
  *   - Everything else (Supabase, weserv images, APIs, cross-origin): pass
  *     straight through, never cached.
  */
-const VERSION = 'gruvs-v3';
+const VERSION = 'gruvs-v4';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const NAV_TIMEOUT_MS = 3000;
 
+// Cache the app bundle (and preloaded fonts) during install, not on first use.
+// Chrome builds the full V8 code cache for scripts a service worker caches at
+// install time, so from the second visit the 4 MB bundle skips parsing and
+// compiling, which is most of the startup cost on a mid-range phone.
+function precacheBundle() {
+  return fetch('/', { cache: 'no-cache' })
+    .then((res) => res.text())
+    .then((html) => {
+      const urls = [...html.matchAll(/(?:src|href)="(\/(?:_expo|assets)\/[^"]+\.(?:js|ttf))"/g)].map((m) => m[1]);
+      return caches.open(ASSETS).then((c) => c.addAll(urls));
+    })
+    .catch(() => {});
+}
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(SHELL).then((c) => c.addAll(['/', '/index.html', '/manifest.json']).catch(() => {}))
+    Promise.all([
+      caches.open(SHELL).then((c) => c.addAll(['/', '/index.html', '/manifest.json']).catch(() => {})),
+      precacheBundle(),
+    ])
   );
 });
 
