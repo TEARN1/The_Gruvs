@@ -31,8 +31,6 @@ import { DirectMessageModal } from '../components/DirectMessageModal';
 import { ReportModal } from '../components/ReportModal';
 import { GiftingModal } from '../components/GiftingModal';
 import { useEventRole } from '../hooks/useEventRole';
-import { DoorCodeModal } from '../components/DoorCodeModal';
-import { DoorCodeEntryModal } from '../components/DoorCodeEntryModal';
 import { SafeSection } from '../components/SafeSection';
 import { NowPlayingBar } from '../components/NowPlayingBar';
 import { EventFollowButton } from '../components/EventFollowButton';
@@ -93,15 +91,20 @@ import { lifecycleState } from '../utils/eventLifecycle';
 import { eventInstant } from '../utils/tz';
 import { DoorCheckInModal } from '../components/DoorCheckInModal';
 import { checkinVerdict, movementPlausible } from '../utils/checkinGuard';
-import { TicketVaultExchangeModal } from '../components/TicketVaultExchangeModal';
-import { NightSafetyLogisticsModal } from '../components/NightSafetyLogisticsModal';
-import { InPersonVibeRadarModal } from '../components/InPersonVibeRadarModal';
-import { BoothAndStreetModal } from '../components/BoothAndStreetModal';
 import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
-import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
-import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { OpticalMoirePass, BorderTracer } from '../components/KasiIndustrialUI';
+import { deferred } from '../utils/deferred';
+
+// Panels load on first open, not at app start (see src/utils/deferred.js).
+const DoorCodeModal = deferred(() => require('../components/DoorCodeModal').DoorCodeModal, 'DoorCodeModal');
+const DoorCodeEntryModal = deferred(() => require('../components/DoorCodeEntryModal').DoorCodeEntryModal, 'DoorCodeEntryModal');
+const TicketVaultExchangeModal = deferred(() => require('../components/TicketVaultExchangeModal').TicketVaultExchangeModal, 'TicketVaultExchangeModal');
+const NightSafetyLogisticsModal = deferred(() => require('../components/NightSafetyLogisticsModal').NightSafetyLogisticsModal, 'NightSafetyLogisticsModal');
+const InPersonVibeRadarModal = deferred(() => require('../components/InPersonVibeRadarModal').InPersonVibeRadarModal, 'InPersonVibeRadarModal');
+const BoothAndStreetModal = deferred(() => require('../components/BoothAndStreetModal').BoothAndStreetModal, 'BoothAndStreetModal');
+const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
+const CultureArtifactsModal = deferred(() => require('../components/CultureArtifactsModal').CultureArtifactsModal, 'CultureArtifactsModal');
 
 // Gaming events get a scoreboard too (esports engine), EXCEPT the purely social
 // gaming categories where a league table makes no sense.

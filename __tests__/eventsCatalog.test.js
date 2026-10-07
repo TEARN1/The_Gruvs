@@ -25,3 +25,19 @@ describe('loadEventsCatalog', () => {
     expect(await loadEventsCatalog()).toEqual([]);
   });
 });
+
+describe('rejected key or token is not retried', () => {
+  it.each([
+    [{ message: 'Invalid API key' }],
+    [{ message: 'JWT expired', code: 'PGRST301' }],
+    [{ message: 'No API key found in request' }],
+  ])('%j goes straight to the fallback', async (err) => {
+    let calls = 0;
+    const tier = async () => { calls++; return { data: null, error: err }; };
+    const t0 = Date.now();
+    const out = await resilientRead(tier, tier, tier, async () => 'fallback', 'test');
+    expect(out).toBe('fallback');
+    expect(calls).toBe(1);                 // no retries, no other tiers
+    expect(Date.now() - t0).toBeLessThan(200);
+  });
+});

@@ -87,16 +87,19 @@ import { EventTicketModal }        from '../components/EventTicketModal';
 import { CreateReelModal }         from '../components/CreateReelModal';
 import { GetAppModal }            from '../components/GetAppModal';
 import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
-import { BusinessActivationPortal } from '../components/BusinessActivationPortal';
-import { SportTournamentHub } from '../components/SportTournamentHub';
-import { FoodKotaSection } from '../components/FoodKotaSection';
-import { BirthdayCelebrationHub } from '../components/BirthdayCelebrationHub';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
-import { TicketVaultExchangeModal } from '../components/TicketVaultExchangeModal';
-import { NightSafetyLogisticsModal } from '../components/NightSafetyLogisticsModal';
-import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
-import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
+import { deferred } from '../utils/deferred';
+
+// Panels load on first open, not at app start (see src/utils/deferred.js).
+const BusinessActivationPortal = deferred(() => require('../components/BusinessActivationPortal').BusinessActivationPortal, 'BusinessActivationPortal');
+const SportTournamentHub = deferred(() => require('../components/SportTournamentHub').SportTournamentHub, 'SportTournamentHub');
+const FoodKotaSection = deferred(() => require('../components/FoodKotaSection').FoodKotaSection, 'FoodKotaSection');
+const BirthdayCelebrationHub = deferred(() => require('../components/BirthdayCelebrationHub').BirthdayCelebrationHub, 'BirthdayCelebrationHub');
+const TicketVaultExchangeModal = deferred(() => require('../components/TicketVaultExchangeModal').TicketVaultExchangeModal, 'TicketVaultExchangeModal');
+const NightSafetyLogisticsModal = deferred(() => require('../components/NightSafetyLogisticsModal').NightSafetyLogisticsModal, 'NightSafetyLogisticsModal');
+const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
+const CultureArtifactsModal = deferred(() => require('../components/CultureArtifactsModal').CultureArtifactsModal, 'CultureArtifactsModal');
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 
