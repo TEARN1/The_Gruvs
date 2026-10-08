@@ -6,9 +6,7 @@
  *       CSS (src/styles/webFx.js), so it runs on the compositor; JavaScript
  *       only re-sizes it when the zoom changes.
  *
- *   createHotspotPulses(engine, map)  Pulsing rings on the busiest hotspots
- *       (up to 12): green for live venues (beats faster), amber for busy ones,
- *       cyan otherwise. Also DOM markers animated by CSS.
+ *   rankHotspots(events)  Which hotspots get a light beam (utils/mapFuture).
  *
  *   startMapPulse(map, containerEl)  Only a short "pop" when new hotspots load.
  *       Anything continuous was moved OFF the map canvas: every paint-property
@@ -91,41 +89,6 @@ export function rankHotspots(events = [], max = HOT_MAX) {
     .filter(Boolean)
     .sort((a, b) => b.score - a.score)
     .slice(0, max);
-}
-
-export function createHotspotPulses(engine, map) {
-  if (typeof document === 'undefined' || !engine?.Marker) return { update() {}, destroy() {} };
-  const markers = new Map(); // id -> { marker, el }
-  const update = (events = []) => {
-    const ranked = rankHotspots(events);
-    const keep = new Set(ranked.map((r) => r.id));
-    for (const [id, m] of markers) if (!keep.has(id)) { m.marker.remove(); markers.delete(id); }
-    for (const r of ranked) {
-      const kind = r.live ? 'live' : r.here >= 10 ? 'hot' : 'cool';
-      let m = markers.get(r.id);
-      if (!m) {
-        const el = document.createElement('div');
-        el.className = 'gx-hotspot';
-        el.setAttribute('aria-hidden', 'true');
-        el.innerHTML = '<i></i><i></i>';
-        const marker = new engine.Marker({ element: el, anchor: 'center', pitchAlignment: 'map' })
-          .setLngLat([r.lng, r.lat]).addTo(map);
-        m = { marker, el };
-        markers.set(r.id, m);
-      } else {
-        m.marker.setLngLat([r.lng, r.lat]);
-      }
-      m.el.setAttribute('data-kind', kind);
-      // Busier venue, bigger ring (matches the GL dot/aura scale).
-      const size = Math.round(36 + Math.min(1, r.here / 50) * 36);
-      m.el.style.width = `${size}px`;
-      m.el.style.height = `${size}px`;
-    }
-  };
-  return {
-    update,
-    destroy() { for (const m of markers.values()) m.marker.remove(); markers.clear(); },
-  };
 }
 
 const DOT_RADIUS = ['interpolate', ['linear'], ['get', 'here'], 0, 5, 50, 9];

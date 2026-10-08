@@ -213,7 +213,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const [followMe, setFollowMe] = useState(false);
   const [mapStyle, setMapStyle] = useState('dark');
-  const [show3D, setShow3D] = useState(false);
+  // On by default: the tilted neon city is the Vibe Map's signature look.
+  const [show3D, setShow3D] = useState(true);
   const [showWeather, setShowWeather] = useState(false);
   const [searchQuery, setSearchBar] = useState('');
   const [searching, setSearchBusy] = useState(false);
@@ -847,6 +848,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               followUser={followMe}
               onMapClick={onMapClick}
               onReady={(map) => { mapApiRef.current = map; }}
+              focusId={previewId}
               onEventPress={(id) => {
                 setActiveZone(null); setActiveStay(null); setPreviewId(id);
                 // Focus the tapped pin (A7) so it sits above the preview sheet.

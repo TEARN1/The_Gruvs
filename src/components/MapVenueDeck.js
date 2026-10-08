@@ -237,7 +237,13 @@ export function MapVenueDeck({
                 ]}
               >
                 {/* Top Info Row */}
-                <View style={s.cardTop}>
+                <TouchableOpacity
+                  style={s.cardTop}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show ${ev.title || 'this venue'} on the map`}
+                  onPress={() => { setCurrentIndex(idx); onSelectEvent?.(ev.id); }}
+                >
                   {cover ? (
                     <SmartImage source={cover} style={s.cardCover} />
                   ) : (
@@ -295,7 +301,7 @@ export function MapVenueDeck({
                       color={isSaved ? primary : muted}
                     />
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
 
                 {/* Secret Drop Countdown Alert */}
                 {isSecret && (

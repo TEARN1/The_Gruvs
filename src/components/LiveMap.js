@@ -19,7 +19,8 @@ import {
 } from '../utils/mapGeoJSON';
 import { toBbox } from '../utils/mapViewport';
 import { applyGroupVisibility } from '../constants/mapLayers';
-import { createRadar, createHotspotPulses, startMapPulse } from '../utils/mapMotion';
+import { createRadar, startMapPulse } from '../utils/mapMotion';
+import { createBeams, createStreams, createHud, cinematicIntro, focusOrbit, applyNeonCity } from '../utils/mapFuture';
 
 // A pan fires 'moveend' once, but a flick that settles can fire several. Wait
 // for the map to actually stop before asking the server for anything.
@@ -154,6 +155,7 @@ export function LiveMap({
   mapStyle = 'dark',      // 'dark' | 'light' | 'liberty'
   show3D = false,         // show 3D buildings
   onReady,
+  focusId = null,         // a picked hotspot: fly to it, tilt in, slowly orbit
   primaryColor = '#00f2ff',
   style,
 }) {
@@ -172,8 +174,14 @@ export function LiveMap({
   const radarRef = useRef(null);
   const pulseRef = useRef(null);
   const hotRef = useRef(null);
+  const streamsRef = useRef(null);
+  const hudRef = useRef(null);
+  const introDoneRef = useRef(false);
+  const orbitStopRef = useRef(null);
   const eventsRef = useRef(events);
   eventsRef.current = events;
+  const focusIdRef = useRef(focusId);
+  focusIdRef.current = focusId;
   const userLocRef = useRef(userLoc);
   userLocRef.current = userLoc;
 
@@ -619,8 +627,13 @@ export function LiveMap({
       try {
         radarRef.current = createRadar(engine, map, { color: primaryColor });
         radarRef.current.setLocation(userLocRef.current);
-        hotRef.current = createHotspotPulses(engine, map);
+        applyNeonCity(map);
+        hotRef.current = createBeams(engine, map, { onPress: (id) => onEventRef.current?.(id) });
         hotRef.current.update(heatRef.current ? [] : eventsRef.current);
+        streamsRef.current = createStreams(engine, map, { primary: primaryColor });
+        streamsRef.current.update(userLocRef.current, heatRef.current ? [] : eventsRef.current, focusIdRef.current);
+        hudRef.current = createHud(containerRef.current, map);
+        if (userLocRef.current && !introDoneRef.current) { introDoneRef.current = true; cinematicIntro(map, userLocRef.current); }
         pulseRef.current = startMapPulse(map, containerRef.current);
         pulseRef.current.popEvents();
       } catch { /* motion is decoration — never block the map */ }
@@ -630,8 +643,13 @@ export function LiveMap({
 
     return () => {
       clearTimeout(viewportTimerRef.current);
-      try { pulseRef.current?.stop(); radarRef.current?.destroy(); hotRef.current?.destroy(); } catch {}
+      try {
+        orbitStopRef.current?.();
+        pulseRef.current?.stop(); radarRef.current?.destroy(); hotRef.current?.destroy();
+        streamsRef.current?.destroy(); hudRef.current?.destroy();
+      } catch {}
       pulseRef.current = null; radarRef.current = null; hotRef.current = null;
+      streamsRef.current = null; hudRef.current = null;
       try { map.remove(); } catch {}
       mapRef.current = null; readyRef.current = false;
     };
@@ -657,8 +675,9 @@ export function LiveMap({
   useEffect(() => {
     const g = eventsToGeoJSON(events); setData('events', g); setData('eventsC', g);
     pulseRef.current?.popEvents();
-    hotRef.current?.update(heat ? [] : events);   // the heatmap view hides pins, so hide their pulses too
-  }, [events, heat]);
+    hotRef.current?.update(heat ? [] : events);   // the heatmap view hides pins, so hide their beams too
+    streamsRef.current?.update(userLoc, heat ? [] : events, focusId);
+  }, [events, heat, userLoc?.lat, userLoc?.lng, focusId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     setData('zones', zonesToGeoJSON(zones));
     setData('zone-markers', zonesToMarkersGeoJSON(zones));
@@ -700,6 +719,26 @@ export function LiveMap({
     const m = mapRef.current;
     if (m && readyRef.current && center) m.easeTo({ center: [center.lng, center.lat], duration: 700 });
   }, [center]);
+  // Camera moves (declared after the plain re-centre so they win in the same
+  // commit): the cinematic fly-in the first time we know where you are, and the
+  // fly-to + orbit when a hotspot is picked.
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || !readyRef.current || !userLoc || introDoneRef.current || focusId) return;
+    introDoneRef.current = true;
+    cinematicIntro(m, userLoc);
+  }, [userLoc?.lat, userLoc?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const m = mapRef.current;
+    orbitStopRef.current?.();
+    orbitStopRef.current = null;
+    if (!m || !readyRef.current || focusId == null) return;
+    const ev = (eventsRef.current || []).find((e) => e.id === focusId);
+    const lat = ev && Number(ev.lat ?? ev.latitude), lng = ev && Number(ev.lon ?? ev.longitude);
+    if (!ev || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    introDoneRef.current = true;
+    orbitStopRef.current = focusOrbit(m, { lat, lng });
+  }, [focusId]);
 
   function setData(id, data) {
     const m = mapRef.current;
@@ -725,7 +764,9 @@ export function LiveMap({
   function toggle3D(on) {
     const m = mapRef.current;
     if (!m || !readyRef.current) return;
-    try { m.easeTo({ pitch: on ? 45 : 0, duration: 400 }); } catch { /* mid-transition */ }
+    try { m.easeTo({ pitch: on ? 50 : 0, duration: 500 }); } catch { /* mid-transition */ }
+    // The extruded city follows the toggle too (it was only ever set at load).
+    try { if (m.getLayer('3d-buildings')) m.setLayoutProperty('3d-buildings', 'visibility', on ? 'visible' : 'none'); } catch {}
   }
 
   async function toggleWeather(on) {
