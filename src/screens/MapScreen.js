@@ -51,6 +51,7 @@ import { Accommodation } from '../services/accommodation';
 import { residentUrl, hasResident } from '../constants/residentUrl';
 import { SecurityService } from '../services/securityService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fx } from '../styles/webFx';
 
 const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
 const NUDGE_COOLDOWN_MS = 2 * 3600 * 1000; // don't nag — at most every 2h
@@ -861,8 +862,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             <View style={cs.thumbPod} pointerEvents="box-none">
               {/* Recenter GPS */}
               <TouchableOpacity
+                {...fx('glass rise', 0)}
                 onPress={recenter}
-                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.92)', borderColor: 'rgba(255,255,255,0.15)' }]}
+                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.6)', borderColor: 'rgba(255,255,255,0.15)' }]}
                 accessibilityLabel="Recenter GPS"
               >
                 <Feather name="crosshair" size={17} color={primary} />
@@ -870,11 +872,12 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
               {/* Nightlife Timeline Dial Trigger */}
               <TouchableOpacity
+                {...fx('glass rise', 1)}
                 onPress={() => setShowTimeDial((v) => !v)}
                 style={[
                   cs.thumbBtn,
                   {
-                    backgroundColor: showTimeDial ? 'rgba(0,242,255,0.22)' : 'rgba(12,16,18,0.92)',
+                    backgroundColor: showTimeDial ? 'rgba(0,242,255,0.22)' : 'rgba(12,16,18,0.6)',
                     borderColor: showTimeDial ? primary : 'rgba(255,255,255,0.15)',
                   },
                 ]}
@@ -885,8 +888,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
               {/* Layers Drawer Trigger */}
               <TouchableOpacity
+                {...fx('glass rise', 2)}
                 onPress={() => setLayersModalVisible(true)}
-                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.92)', borderColor: 'rgba(255,255,255,0.15)' }]}
+                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.6)', borderColor: 'rgba(255,255,255,0.15)' }]}
                 accessibilityLabel="Open map layers and visual modes"
               >
                 <Feather name="layers" size={17} color={primary} />
@@ -894,8 +898,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
               {/* Vibe Roulette */}
               <TouchableOpacity
+                {...fx('glass rise', 3)}
                 onPress={() => setShowRoulette(true)}
-                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.92)', borderColor: 'rgba(255,255,255,0.15)' }]}
+                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.6)', borderColor: 'rgba(255,255,255,0.15)' }]}
                 accessibilityLabel="Vibe roulette"
               >
                 <Feather name="compass" size={17} color={primary} />
@@ -903,6 +908,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
               {/* Report button */}
               <TouchableOpacity
+                {...fx('rise pulse', 4)}
                 onPress={() => (user ? setReportSheet(true) : onAuthRequired?.())}
                 style={[cs.thumbBtnPrimary, { backgroundColor: primary }]}
                 accessibilityLabel="Report incident or live tip"

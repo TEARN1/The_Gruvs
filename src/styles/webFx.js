@@ -22,6 +22,9 @@
  *   sheen    a light sweep across (primary buttons)
  *   aurora   a soft glow drifting behind the content (hero cards)
  *   pulse    a ring breathing out from the element (the + button)
+ *   beat     a small dot that throbs (live indicators)
+ *
+ * Map: .gx-radar (utils/mapMotion.js) — sonar sweep + pings around you.
  *
  * Global, no tagging needed:
  *   - every button/tab springs when pressed (scaled to its size)
@@ -59,6 +62,9 @@ export const FX_CSS = `
 @keyframes gx-unlike{0%{transform:scale(1)}40%{transform:scale(.72)}100%{transform:scale(1)}}
 @keyframes gx-flip{0%{transform:perspective(500px) rotateX(0)}35%{transform:perspective(500px) rotateX(-55deg) scale(1.08)}100%{transform:perspective(500px) rotateX(0)}}
 @keyframes gx-orb-in{0%{opacity:0;transform:translate3d(0,10px,0) scale(.3)}65%{opacity:1;transform:translate3d(0,-2px,0) scale(1.12)}100%{opacity:1;transform:none}}
+@keyframes gx-spin{to{transform:rotate(360deg)}}
+@keyframes gx-sonar{0%{transform:scale(.04);opacity:.85}70%{opacity:.25}100%{transform:scale(1);opacity:0}}
+@keyframes gx-beat{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.9);opacity:.15}}
 @keyframes gx-tick-up{from{opacity:0;transform:translate3d(0,70%,0)}to{opacity:1;transform:none}}
 @keyframes gx-tick-down{from{opacity:0;transform:translate3d(0,-70%,0)}to{opacity:1;transform:none}}
 ${stagger}
@@ -69,6 +75,16 @@ ${stagger}
   background:linear-gradient(140deg,rgba(255,255,255,.55),rgba(255,255,255,.08) 30%,rgba(255,255,255,0) 58%,rgba(255,255,255,.2));
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 [data-fx~="aurora"],[data-fx~="sheen"]{overflow:hidden}
+/* maplibre-gl.css isn't loaded (see LiveMap.js), so give DOM markers the one rule they need. */
+.maplibregl-marker{position:absolute;top:0;left:0;will-change:transform}
+.gx-radar{border-radius:50%;pointer-events:none}
+.gx-radar-sweep{position:absolute;inset:0;border-radius:50%;display:none;
+  background:conic-gradient(from 0deg,transparent 0deg 285deg,var(--gx-radar-soft) 318deg,var(--gx-radar-strong) 359deg,transparent 360deg)}
+.gx-radar-ping{position:absolute;inset:0;border-radius:50%;display:none;border:2px solid var(--gx-radar-line);opacity:0}
+.gx-hotspot{pointer-events:none;--gx-hot:rgba(0,242,255,.85)}
+.gx-hotspot[data-kind="live"]{--gx-hot:rgba(16,185,129,.95)}
+.gx-hotspot[data-kind="hot"]{--gx-hot:rgba(245,158,11,.95)}
+.gx-hotspot>i{position:absolute;inset:0;border-radius:50%;border:2px solid var(--gx-hot);opacity:0;display:none}
 [aria-modal="true"]{-webkit-backdrop-filter:blur(6px) saturate(140%);backdrop-filter:blur(6px) saturate(140%)}
 [data-fx~="aurora"]::after{content:"";position:absolute;left:-25%;top:-60%;width:150%;height:220%;z-index:-1;pointer-events:none;
   background:radial-gradient(closest-side,var(--color-glow,#00f2ff),transparent 70%);opacity:.22}
@@ -92,6 +108,15 @@ ${stagger}
   [data-gx-play="flip"]{animation:gx-flip .5s ${SPRING}}
   [data-fx~="orb"]{animation:gx-orb-in .42s ${SPRING} backwards;animation-delay:calc(var(--gx-i,0) * 35ms);transition:transform .3s ${SPRING}}
   [data-fx~="orb"][data-active="true"]{transform:scale(1.18)}
+  .gx-radar-sweep{display:block;animation:gx-spin 4.8s linear infinite}
+  .gx-radar-ping{display:block;animation:gx-sonar 3.6s cubic-bezier(.2,.6,.3,1) infinite}
+  .gx-radar-ping:nth-child(3){animation-delay:1.2s}
+  .gx-radar-ping:nth-child(4){animation-delay:2.4s}
+  .gx-hotspot>i{display:block;animation:gx-sonar 2.6s cubic-bezier(.2,.6,.3,1) infinite}
+  .gx-hotspot>i:nth-child(2){animation-delay:1.3s}
+  .gx-hotspot[data-kind="live"]>i{animation-duration:1.7s}
+  .gx-hotspot[data-kind="live"]>i:nth-child(2){animation-delay:.85s}
+  [data-fx~="beat"]{animation:gx-beat 1.6s ease-in-out infinite}
   [data-fx~="tick-up"]{display:inline-block;animation:gx-tick-up .32s ${EASE_OUT}}
   [data-fx~="tick-down"]{display:inline-block;animation:gx-tick-down .32s ${EASE_OUT}}
   [data-fx~="float"]{animation:gx-float 2.6s ease-in-out infinite alternate;animation-delay:calc(var(--gx-i,0) * -400ms)}

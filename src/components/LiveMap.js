@@ -19,6 +19,7 @@ import {
 } from '../utils/mapGeoJSON';
 import { toBbox } from '../utils/mapViewport';
 import { applyGroupVisibility } from '../constants/mapLayers';
+import { createRadar, createHotspotPulses, startMapPulse } from '../utils/mapMotion';
 
 // A pan fires 'moveend' once, but a flick that settles can fire several. Wait
 // for the map to actually stop before asking the server for anything.
@@ -167,6 +168,14 @@ export function LiveMap({
   const staysRef = useRef(showStays);
   const show3DRef = useRef(show3D);
   const weatherRef = useRef(showWeather);
+  // Motion (utils/mapMotion): the radar around you and the breathing loop.
+  const radarRef = useRef(null);
+  const pulseRef = useRef(null);
+  const hotRef = useRef(null);
+  const eventsRef = useRef(events);
+  eventsRef.current = events;
+  const userLocRef = useRef(userLoc);
+  userLocRef.current = userLoc;
 
   // Pan to user if following is active
   useEffect(() => {
@@ -607,12 +616,22 @@ export function LiveMap({
       emitViewport(); // first load: report the opening view
 
       map.getCanvas().style.cursor = '';
+      try {
+        radarRef.current = createRadar(engine, map, { color: primaryColor });
+        radarRef.current.setLocation(userLocRef.current);
+        hotRef.current = createHotspotPulses(engine, map);
+        hotRef.current.update(heatRef.current ? [] : eventsRef.current);
+        pulseRef.current = startMapPulse(map, containerRef.current);
+        pulseRef.current.popEvents();
+      } catch { /* motion is decoration — never block the map */ }
       onReady?.(map);
      } catch (e) { /* one bad layer must never blank the whole map */ }
     });
 
     return () => {
       clearTimeout(viewportTimerRef.current);
+      try { pulseRef.current?.stop(); radarRef.current?.destroy(); hotRef.current?.destroy(); } catch {}
+      pulseRef.current = null; radarRef.current = null; hotRef.current = null;
       try { map.remove(); } catch {}
       mapRef.current = null; readyRef.current = false;
     };
@@ -635,7 +654,11 @@ export function LiveMap({
     onViberRef.current = onViberPress; onViewportRef.current = onViewportChange; });
 
   // ── update sources on data change ───────────────────────────────────────────
-  useEffect(() => { const g = eventsToGeoJSON(events); setData('events', g); setData('eventsC', g); }, [events]);
+  useEffect(() => {
+    const g = eventsToGeoJSON(events); setData('events', g); setData('eventsC', g);
+    pulseRef.current?.popEvents();
+    hotRef.current?.update(heat ? [] : events);   // the heatmap view hides pins, so hide their pulses too
+  }, [events, heat]);
   useEffect(() => {
     setData('zones', zonesToGeoJSON(zones));
     setData('zone-markers', zonesToMarkersGeoJSON(zones));
@@ -650,6 +673,7 @@ export function LiveMap({
   useEffect(() => {
     setData('self', pointsToGeoJSON(userLoc ? [userLoc] : []));
     setData('isochrones', isochronesGeoJSON(userLoc));
+    radarRef.current?.setLocation(userLoc);
   }, [userLoc]);
   useEffect(() => { setData('reports', reportsToGeoJSON(reports)); }, [reports]);
   // Animate a ripple each time `ripple.key` changes — radius grows, ring fades.
