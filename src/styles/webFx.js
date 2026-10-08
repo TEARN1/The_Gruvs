@@ -108,7 +108,7 @@ ${stagger}
 .gx-hud-c.br{bottom:12px;right:12px;border-bottom-width:2px;border-right-width:2px;border-bottom-right-radius:6px}
 .gx-compass{position:absolute;left:14px;top:46%;z-index:3;width:44px;height:44px;border-radius:50%;cursor:pointer;padding:0;
   border:1px solid rgba(0,242,255,.45);background:rgba(8,12,16,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-  box-shadow:0 0 16px rgba(0,242,255,.25),inset 0 0 12px rgba(0,242,255,.15);transition:transform .2s linear}
+  box-shadow:0 0 16px rgba(0,242,255,.25),inset 0 0 12px rgba(0,242,255,.15)}
 .gx-compass-n{position:absolute;top:2px;left:0;right:0;text-align:center;font:800 9px/10px system-ui,sans-serif;color:#ff4d6d}
 .gx-compass-needle{position:absolute;left:50%;top:50%;width:8px;height:20px;margin:-8px 0 0 -4px;
   clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:linear-gradient(to bottom,#ff4d6d 0 50%,rgba(255,255,255,.8) 50%)}
