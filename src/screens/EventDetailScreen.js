@@ -92,6 +92,8 @@ import { eventInstant } from '../utils/tz';
 import { DoorCheckInModal } from '../components/DoorCheckInModal';
 import { checkinVerdict, movementPlausible } from '../utils/checkinGuard';
 import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
+import { Pop } from '../components/Pop';
+import { AnimatedCounter } from '../components/Motion';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { OpticalMoirePass, BorderTracer } from '../components/KasiIndustrialUI';
 import { deferred } from '../utils/deferred';
@@ -661,18 +663,34 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     } catch { showToast('Could not add to calendar', 'error'); }
   }, [event, showToast]);
 
+  // Same vibe state as the feed (see VibeManager.subscribe): a vibe made on
+  // either screen, and the server's real count, show up on both.
+  useEffect(() => VibeManager.subscribe(({ eventId, userId, vibed, count }) => {
+    if (!event?.id || eventId !== event.id || userId !== user?.id) return;
+    setHasVibed(vibed);
+    if (typeof count === 'number') setVibeCount(count);
+  }), [event?.id, user?.id]);
+
+  const [likeFx, setLikeFx] = useState({ n: 0, kind: 'like', burst: 0 });
+
   const handleVibe = useCallback(async () => {
     if (!user) { onAuthRequired?.(); return; }
     if (vibeSending) return;
     const wasVibed = hasVibed;
+    if (!wasVibed && event?.author_id === user.id) { showToast("You can't vibe your own event", 'info'); return; }
+    setLikeFx(f => ({ n: f.n + 1, kind: wasVibed ? 'unlike' : 'like', burst: wasVibed ? f.burst : Date.now() }));
     setHasVibed(!wasVibed);
     setVibeCount(c => wasVibed ? Math.max(0, c - 1) : c + 1);
     setVibeSending(true);
     try {
-      const ok = wasVibed
+      const res = wasVibed
         ? await VibeManager.removeVibe(event.id, user.id)
-        : await VibeManager.sendVibe(event.id, user.id);
-      if (!ok) throw new Error('vibe failed');
+        : await VibeManager.sendVibe(event.id, user.id, event.author_id);
+      // Only `true` is success. 'self' and 'throttled' are truthy strings, and
+      // were counted as success: own-event vibes showed +1 the server rejected.
+      if (res === 'self') { setHasVibed(wasVibed); setVibeCount(c => wasVibed ? c + 1 : Math.max(0, c - 1)); showToast("You can't vibe your own event", 'info'); return; }
+      if (res === 'throttled') { setHasVibed(wasVibed); setVibeCount(c => wasVibed ? c + 1 : Math.max(0, c - 1)); return; }
+      if (res !== true) throw new Error('vibe failed');
       if (!wasVibed) {
         if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         showToast('⚡ Vibe sent!', 'success');
@@ -1378,13 +1396,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {/* Vibe count + Who's Going */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <TouchableOpacity
-              style={[styles.vibePill, { backgroundColor: hasVibed ? `${primary}30` : `${primary}15`, borderColor: hasVibed ? primary : `${primary}30` }]}
+              style={[styles.vibePill, { position: 'relative', backgroundColor: hasVibed ? `${primary}30` : `${primary}15`, borderColor: hasVibed ? primary : `${primary}30` }]}
               onPress={handleVibe}
               disabled={vibeSending}
               activeOpacity={0.7}
             >
-              <Feather name="zap" size={13} color={primary} />
-              <Text style={[styles.vibeCountText, { color: primary }]}>{vibeCount} Vibe{vibeCount !== 1 ? 's' : ''}</Text>
+              <View style={{ position: 'relative' }}>
+                <Pop trigger={likeFx.n} kind={likeFx.kind}>
+                  <Feather name="zap" size={13} color={primary} />
+                </Pop>
+                <ControlledGlitterBurst trigger={likeFx.burst} count={10} radius={26} colors={[primary, '#fde047', '#ffffff']} enableHaptics={false} />
+              </View>
+              <AnimatedCounter value={vibeCount} style={[styles.vibeCountText, { color: primary }]} />
+              <Text style={[styles.vibeCountText, { color: primary }]}> Vibe{vibeCount !== 1 ? 's' : ''}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.vibePill, { backgroundColor: `${primary}08`, borderColor: `${primary}20` }]}

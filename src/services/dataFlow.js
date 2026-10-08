@@ -1388,10 +1388,31 @@ export const TrendingManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 // VIBE MANAGER  (reactions on events)
 // ─────────────────────────────────────────────────────────────────────────────
+// One source of truth for "did I vibe this, and what's the count", shared by
+// every screen. Without it the feed and the event page each kept their own
+// copy: vibe on one, the other still showed "not vibed", and tapping it added a
+// +1 the server (correctly) ignored, so counts drifted. After every successful
+// toggle we broadcast the new state, then the server's real count.
+const _vibeListeners = new Set();
+const _emitVibe = (change) => _vibeListeners.forEach((fn) => { try { fn(change); } catch { /* listener bug must not break vibing */ } });
+async function _settleVibe(eventId, userId, vibed) {
+  cache.invalidate(`user_vibes:${userId}`);
+  _emitVibe({ eventId, userId, vibed });
+  try {
+    const { data } = await supabase.from('events').select('vibe_count').eq('id', eventId).maybeSingle();
+    if (data && typeof data.vibe_count === 'number') _emitVibe({ eventId, userId, vibed, count: data.vibe_count });
+  } catch { /* the optimistic count stays; realtime will correct it */ }
+}
+
 export const VibeManager = {
+  /** subscribe(fn) → unsubscribe. fn({ eventId, userId, vibed, count? }) */
+  subscribe(fn) { _vibeListeners.add(fn); return () => _vibeListeners.delete(fn); },
+
   // Returns true on success, 'self' if own event, null on failure
   async sendVibe(eventId, userId, authorId = null) {
-    if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return true;
+    // Throttled taps did nothing but reported success, so the screen kept a +1
+    // the server never saw. Say so, and let the caller roll back.
+    if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return 'throttled';
     if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
 
     // Self-vibe check — use passed authorId first to avoid extra round-trip
@@ -1411,6 +1432,7 @@ export const VibeManager = {
     );
     if (result !== null) {
       FeedManager.invalidate(eventId);
+      _settleVibe(eventId, userId, true);
       VibeEquityLedger.mintEquity(userId, 'SOCIAL_RESONANCE').catch(() => {});
       ScoreEngine.computeVibeScore(userId).catch(() => {});
       _notifyEventAuthor(eventId, userId, 'vibe').catch(() => {});
@@ -1434,14 +1456,16 @@ export const VibeManager = {
       ],
       { attemptsPerTier: 3, baseMs: 300, label: 'VibeManager.removeVibe', fallbackValue: null }
     );
-    if (result !== null) { FeedManager.invalidate(eventId); return true; }
+    if (result !== null) { FeedManager.invalidate(eventId); _settleVibe(eventId, userId, false); return true; }
     log.error('VibeManager:removeVibe', 'all tiers exhausted');
     return null;
   },
 
   async getUserVibes(eventIds, userId) {
     if (!userId || !eventIds.length) return new Set();
-    const cacheKey = `user_vibes:${userId}:${eventIds.slice(0, 3).join(',')}`;
+    // Key on EVERY id: keying on the first three returned another page's
+    // answer, showing events you'd vibed as un-vibed (and a tap then +1'd them).
+    const cacheKey = `user_vibes:${userId}:${[...eventIds].sort().join(',')}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
     try {

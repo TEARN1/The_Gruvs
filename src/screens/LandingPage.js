@@ -55,6 +55,8 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
+import { Pop } from '../components/Pop';
+import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
 import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PresenceBar } from '../components/PresenceBar';
@@ -327,6 +329,8 @@ const EventCard = React.memo(({
   const title = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
   const matchCard = parseMatchCard(event.match_card);
   const [saveFx, setSaveFx] = useState(0);
+  // Like (vibe) button animation: n bumps on every tap; burst only when turning ON.
+  const [likeFx, setLikeFx] = useState({ n: 0, kind: 'like', burst: 0 });
   const [isFlashing, setIsFlashing] = useState(false);
   const prevSavedRef = useRef(isSaved);
   useEffect(() => {
@@ -851,12 +855,21 @@ const EventCard = React.memo(({
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
             <View style={styles.actionBar}>
               <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onVibe(id)}
+                style={[styles.actionBtn, { position: 'relative' }]}
+                onPress={() => {
+                  const canVibe = !!user && (isVibed || event.author_id !== user.id);
+                  if (canVibe) setLikeFx(f => ({ n: f.n + 1, kind: isVibed ? 'unlike' : 'like', burst: isVibed ? f.burst : Date.now() }));
+                  onVibe(id);
+                }}
                 accessibilityRole="button"
                 accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
               >
-                <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
+                <View style={{ position: 'relative' }}>
+                  <Pop trigger={likeFx.n} kind={likeFx.kind}>
+                    <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
+                  </Pop>
+                  <ControlledGlitterBurst trigger={likeFx.burst} count={10} radius={26} colors={['#ef4444', '#fde047', '#ffffff']} enableHaptics={false} />
+                </View>
                 <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? "#ef4444" : muted }]} />
               </TouchableOpacity>
 
@@ -866,10 +879,12 @@ const EventCard = React.memo(({
                 accessibilityRole="button"
                 accessibilityLabel="React to this event"
               >
-                {userReaction
-                  ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
-                  : <Feather name="smile" size={19} color={muted} />
-                }
+                <Pop trigger={userReaction || ''} kind="pop">
+                  {userReaction
+                    ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
+                    : <Feather name="smile" size={19} color={muted} />
+                  }
+                </Pop>
                 <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
               </TouchableOpacity>
 
@@ -1861,6 +1876,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
   }, [user, followingSet]);
 
+  // Vibes made anywhere (this feed, the event page) land here, with the
+  // server's real count once known, so this list never drifts from it.
+  useEffect(() => VibeManager.subscribe(({ eventId, userId, vibed, count }) => {
+    if (!user?.id || userId !== user.id) return;
+    setMyVibes(prev => {
+      if (prev.has(eventId) === vibed) return prev;
+      const next = new Set(prev);
+      if (vibed) next.add(eventId); else next.delete(eventId);
+      return next;
+    });
+    if (typeof count === 'number') {
+      setVibeCounts(prev => (prev[eventId] === count ? prev : { ...prev, [eventId]: count }));
+      setEvents(prev => prev.map(e => (e.id === eventId && e.vibe_count !== count ? { ...e, vibe_count: count } : e)));
+    }
+  }), [user?.id]);
+
   const handleVibe = async (eventId) => {
     if (!user) { onAuthRequired(); return; }
     if (isVibing[eventId]) return;
@@ -1908,6 +1939,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       if (res === 'self') {
         rollback();
         toast.show("You can't vibe your own event", 'info');
+      } else if (res === 'throttled') {
+        rollback();   // too fast: nothing was sent, so don't keep the +1
       } else if (res === null) {
         rollback();
         toast.show(isCurrentVibed ? 'Failed to remove vibe' : 'Failed to send vibe — try again', 'error');

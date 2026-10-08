@@ -68,7 +68,23 @@ const NativeShimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = 'r
 };
 
 // ── AnimatedCounter ──────────────────────────────────────────────────────────
-export const AnimatedCounter = ({ value = 0, style, format = (n) => `${n}` }) => {
+export const AnimatedCounter = (props) => (IS_WEB ? <WebCounter {...props} /> : <NativeCounter {...props} />);
+
+// Web: show the new number at once and slide it in from the direction it moved
+// (CSS). The count-up below re-rendered every card's counter on every frame for
+// almost a second whenever counts arrived, which made the feed sluggish.
+const WebCounter = ({ value = 0, style, format = (n) => `${n}` }) => {
+  const prev = useRef(value);
+  const dir = value > prev.current ? 'tick-up' : value < prev.current ? 'tick-down' : null;
+  useEffect(() => { prev.current = value; }, [value]);
+  return (
+    <Text key={value} style={style} {...(dir && !reducedMotion() ? { dataSet: { fx: dir } } : {})}>
+      {format(value)}
+    </Text>
+  );
+};
+
+const NativeCounter = ({ value = 0, style, format = (n) => `${n}` }) => {
   const [display, setDisplay] = useState(value);
   const anim = useRef(new Animated.Value(value)).current;
   const prev = useRef(value);

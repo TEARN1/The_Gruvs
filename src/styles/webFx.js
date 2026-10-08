@@ -12,7 +12,9 @@
  *
  * Effects (combine with spaces):
  *   rise     fade + lift in when mounted (staggered by the index)
- *   reveal   same, but plays as the element scrolls into view (feed cards)
+ *   reveal   same, but plays as the element scrolls into view (feed cards).
+ *            Visible by default: FadeInView only hides it after checking it is
+ *            below the screen, so a browser quirk can never leave it invisible.
  *   glass    frosted blur + gloss + light-catching rim
  *   rim      just the light-catching rim (cheap: no blur, for long lists)
  *   lift     hover lift on desktop
@@ -53,6 +55,12 @@ export const FX_CSS = `
 @keyframes gx-sheen{0%{transform:translate3d(-130%,0,0) skewX(-20deg)}55%,100%{transform:translate3d(330%,0,0) skewX(-20deg)}}
 @keyframes gx-ring{0%{transform:scale(1);opacity:.6}80%,100%{transform:scale(1.65);opacity:0}}
 @keyframes gx-drift{from{transform:translate3d(-18%,-8%,0) scale(1)}to{transform:translate3d(18%,10%,0) scale(1.15)}}
+@keyframes gx-like{0%{transform:scale(1)}20%{transform:scale(.7) rotate(-12deg)}55%{transform:scale(1.5) rotate(8deg)}80%{transform:scale(.92) rotate(-3deg)}100%{transform:scale(1)}}
+@keyframes gx-unlike{0%{transform:scale(1)}40%{transform:scale(.72)}100%{transform:scale(1)}}
+@keyframes gx-flip{0%{transform:perspective(500px) rotateX(0)}35%{transform:perspective(500px) rotateX(-55deg) scale(1.08)}100%{transform:perspective(500px) rotateX(0)}}
+@keyframes gx-orb-in{0%{opacity:0;transform:translate3d(0,10px,0) scale(.3)}65%{opacity:1;transform:translate3d(0,-2px,0) scale(1.12)}100%{opacity:1;transform:none}}
+@keyframes gx-tick-up{from{opacity:0;transform:translate3d(0,70%,0)}to{opacity:1;transform:none}}
+@keyframes gx-tick-down{from{opacity:0;transform:translate3d(0,-70%,0)}to{opacity:1;transform:none}}
 ${stagger}
 
 [data-fx~="glass"]{-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);background-image:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0) 55%)}
@@ -73,13 +81,19 @@ ${stagger}
   button,[role="button"],[role="tab"],[tabindex="0"]{transition-property:opacity,background-color,border-color,box-shadow!important;transition-duration:.22s!important;transition-timing-function:ease!important}
   [data-gx-press]{transform:scale(var(--gx-ps,.96))!important;transition:transform 90ms ease-out!important}
   [data-gx-rel]{transition:transform 460ms ${SPRING}!important}
-  [data-screen][data-active="true"]{animation:gx-screen .34s ${EASE_OUT} backwards}
+  [data-screen][data-active="true"]{animation:gx-screen .24s ${EASE_OUT} backwards}
   [role="tab"][aria-selected="true"]>div:first-child{animation:gx-pop .5s ${SPRING}}
-  [data-fx~="rise"]{animation:gx-rise .55s ${EASE_OUT} backwards;animation-delay:calc(var(--gx-i,0) * 70ms)}
-  [data-fx~="reveal"]{animation:gx-rise .55s ${EASE_OUT} backwards}
-  @supports (animation-timeline:view()){
-    [data-fx~="reveal"]{animation:gx-rise linear both;animation-timeline:view();animation-range:entry 0% entry 60%;animation-delay:0s}
-  }
+  [data-fx~="rise"]{animation:gx-rise .45s ${EASE_OUT} backwards;animation-delay:calc(var(--gx-i,0) * 55ms)}
+  [data-fx~="reveal"]{transition:opacity .45s ease,transform .55s ${EASE_OUT}}
+  [data-gx-wait]{opacity:0;transform:translate3d(0,26px,0) scale(.97)}
+  [data-gx-play="pop"]{animation:gx-pop .45s ${SPRING}}
+  [data-gx-play="like"]{animation:gx-like .6s ${SPRING}}
+  [data-gx-play="unlike"]{animation:gx-unlike .3s ease-out}
+  [data-gx-play="flip"]{animation:gx-flip .5s ${SPRING}}
+  [data-fx~="orb"]{animation:gx-orb-in .42s ${SPRING} backwards;animation-delay:calc(var(--gx-i,0) * 35ms);transition:transform .3s ${SPRING}}
+  [data-fx~="orb"][data-active="true"]{transform:scale(1.18)}
+  [data-fx~="tick-up"]{display:inline-block;animation:gx-tick-up .32s ${EASE_OUT}}
+  [data-fx~="tick-down"]{display:inline-block;animation:gx-tick-down .32s ${EASE_OUT}}
   [data-fx~="float"]{animation:gx-float 2.6s ease-in-out infinite alternate;animation-delay:calc(var(--gx-i,0) * -400ms)}
   [data-fx~="sheen"]::after{animation:gx-sheen 4.2s ease-in-out 1.2s infinite}
   [data-fx~="aurora"]::after{animation:gx-drift 9s ease-in-out infinite alternate}
@@ -125,6 +139,15 @@ function installPress() {
     document.addEventListener(type, release, { capture: true, passive: true });
   }
   window.addEventListener('blur', release);
+}
+
+// Restart a one-shot animation (pop, like, flip) on an element. Removing and
+// re-adding the attribute with a reflow in between replays it every time.
+export function replay(el, name) {
+  if (!IS_WEB || !el || typeof el.setAttribute !== 'function') return;
+  el.removeAttribute('data-gx-play');
+  void el.offsetWidth;
+  el.setAttribute('data-gx-play', name);
 }
 
 export function installWebFx() {
