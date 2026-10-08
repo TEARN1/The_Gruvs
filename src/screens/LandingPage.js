@@ -92,6 +92,7 @@ import { BorderTracer } from '../components/KasiIndustrialUI';
 import { deferred } from '../utils/deferred';
 import { loadEventsCatalog } from '../services/eventsCatalog';
 import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
+import { fx } from '../styles/webFx';
 
 // Panels load on first open, not at app start (see src/utils/deferred.js).
 const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
@@ -179,12 +180,13 @@ const skStyles = StyleSheet.create({
 // different (Touch Down), then the sign-in CTA. Guest-only, so it never clutters
 // the signed-in feed.
 const VisitorBanner = ({ onSignIn, primary, muted, textColor }) => (
-  <View style={[vb.hero, { backgroundColor: `${primary}0e`, borderColor: `${primary}30` }]}>
+  <View {...fx('glass aurora rise')} style={[vb.hero, { backgroundColor: `${primary}0e`, borderColor: `${primary}30` }]}>
     <Text style={[vb.heroTitle, { color: textColor }]}>What’s on tonight, near you.</Text>
     <Text style={[vb.heroSub, { color: muted }]}>
       Real nights, verified. Find what’s happening, RSVP, and <Text style={{ color: primary, fontWeight: '800' }}>Touch Down</Text> at the door to prove you were there.
     </Text>
     <TouchableOpacity
+      {...fx('sheen')}
       style={[vb.heroBtn, { backgroundColor: primary }]}
       onPress={onSignIn}
       activeOpacity={0.85}
@@ -363,9 +365,10 @@ const EventCard = React.memo(({
 
   return (
     <React.Fragment>
-      <FadeInView delay={Math.min(index, 5) * 60} direction="up">
+      <FadeInView delay={Math.min(index, 5) * 60} direction="up" reveal>
         <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
         <View
+          {...fx('rim')}
           style={[
             styles.eventCard,
             {
@@ -3085,6 +3088,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       {/* ── Create event FAB (bottom right, above floating dock) ───────────────── */}
       <TouchableOpacity
+        {...fx('pulse')}
         style={[styles.createFab, { backgroundColor: primary, bottom: Math.max((insets.bottom || 0) + 76, 86) }]}
         onPress={() => {
           safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));

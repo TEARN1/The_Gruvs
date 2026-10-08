@@ -40,6 +40,7 @@ import { SurveyCard } from '../components/SurveyCard';
 import { MealCard } from '../components/MealCard';
 import { MealDetailModal } from '../components/MealDetailModal';
 import { MealService } from '../services/mealService';
+import { fx } from '../styles/webFx';
 
 // Module-level StyleSheets below (hero, cg, et) size from the window at load.
 // The component itself reads live dimensions through useWindowDimensions.
@@ -316,13 +317,14 @@ const CategoryGrid = ({ onSelect, primary, textColor, muted, categoryCounts }) =
   const TOP_CATS = CATEGORY_KEYS.slice(0, 12);
   return (
     <View style={cg.grid}>
-      {TOP_CATS.map(key => {
+      {TOP_CATS.map((key, idx) => {
         const cfg = CATEGORY_CONFIG[key];
         const count = categoryCounts[key] || 0;
         return (
           // Items 67-68: accessible label + web hover via className
           <TouchableOpacity
             key={key}
+            {...fx('rim lift rise', idx)}
             style={[
               cg.cell,
               { backgroundColor: `${cfg.color}12`, borderColor: `${cfg.color}25` },

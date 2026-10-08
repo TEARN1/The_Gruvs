@@ -90,6 +90,8 @@ import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { deferred } from '../utils/deferred';
+import { fx } from '../styles/webFx';
+import { cssLoop, IS_WEB as IS_WEB_FX } from '../utils/cssLoop';
 
 // Panels load on first open, not at app start (see src/utils/deferred.js).
 const BusinessActivationPortal = deferred(() => require('../components/BusinessActivationPortal').BusinessActivationPortal, 'BusinessActivationPortal');
@@ -1299,6 +1301,7 @@ const ft = StyleSheet.create({
 const ProfileTabSkeleton = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
+    if (IS_WEB_FX) return;   // web: CSS pulse (cssLoop) — no per-frame re-render
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
@@ -1309,7 +1312,7 @@ const ProfileTabSkeleton = ({ primary }) => {
     return () => anim.stop();
   }, [pulse]);
   return (
-    <Animated.View style={{ opacity: pulse, gap: 10, paddingVertical: 4 }}>
+    <Animated.View style={[{ gap: 10, paddingVertical: 4 }, IS_WEB_FX ? { opacity: 0.3, ...cssLoop({ '0%': { opacity: 0.3 }, '100%': { opacity: 0.7 } }, 700) } : { opacity: pulse }]}>
       {[1, 2, 3].map(i => (
         <View key={i} style={{ flexDirection: 'row', gap: 12, padding: 12, borderRadius: 14, backgroundColor: `${primary}08` }}>
           <View style={{ width: 64, height: 64, borderRadius: 10, backgroundColor: `${primary}20` }} />
@@ -2858,7 +2861,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
         </View>
 
         {/* Stats Row — Crew/Following are tappable → see exactly who */}
-        <View style={[styles.statsBar, { borderColor: `${primary}18` }]}>
+        <View {...fx('glass rise')} style={[styles.statsBar, { borderColor: `${primary}18` }]}>
           {[
             { label: 'Gruvs', value: eventCount },
             { label: 'Crew', value: followerCount, onPress: () => setFollowList('followers') },
@@ -2936,6 +2939,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, biz: Date.now() }));
                 setBizPortalVisible(true);
               }}
+              {...fx('glass lift rise', 0)}
               style={[
                 styles.hubTile,
                 {
@@ -2947,7 +2951,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: `${primary}50`, backgroundColor: `${primary}20` }]}>
+              <View {...fx('float', 0)} style={[styles.hubIconWrap, { borderColor: `${primary}50`, backgroundColor: `${primary}20` }]}>
                 <Feather name="briefcase" size={16} color={primary} />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Business Studio</Text>
@@ -2961,6 +2965,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, sport: Date.now() }));
                 setSportHubVisible(true);
               }}
+              {...fx('glass lift rise', 1)}
               style={[
                 styles.hubTile,
                 {
@@ -2972,7 +2977,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#10b98150', backgroundColor: 'rgba(16,185,129,0.20)' }]}>
+              <View {...fx('float', 1)} style={[styles.hubIconWrap, { borderColor: '#10b98150', backgroundColor: 'rgba(16,185,129,0.20)' }]}>
                 <Text style={{ fontSize: 16 }}>🏆</Text>
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Sports & Cups</Text>
@@ -2988,6 +2993,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, food: Date.now() }));
                 setFoodKotaVisible(true);
               }}
+              {...fx('glass lift rise', 2)}
               style={[
                 styles.hubTile,
                 {
@@ -2999,7 +3005,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#f59e0b50', backgroundColor: 'rgba(245,158,11,0.20)' }]}>
+              <View {...fx('float', 2)} style={[styles.hubIconWrap, { borderColor: '#f59e0b50', backgroundColor: 'rgba(245,158,11,0.20)' }]}>
                 <Text style={{ fontSize: 16 }}>🍔</Text>
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Kotas & Food</Text>
@@ -3013,6 +3019,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, bday: Date.now() }));
                 setBdayHubVisible(true);
               }}
+              {...fx('glass lift rise', 3)}
               style={[
                 styles.hubTile,
                 {
@@ -3024,7 +3031,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
+              <View {...fx('float', 3)} style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
                 <Text style={{ fontSize: 16 }}>🎂</Text>
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Birthday Radar</Text>
@@ -3041,6 +3048,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, vault: Date.now() }));
                 setProfileVaultVisible(true);
               }}
+              {...fx('glass lift rise', 0)}
               style={[
                 styles.hubTile,
                 {
@@ -3052,7 +3060,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#00f2ff50', backgroundColor: 'rgba(0,242,255,0.20)' }]}>
+              <View {...fx('float', 0)} style={[styles.hubIconWrap, { borderColor: '#00f2ff50', backgroundColor: 'rgba(0,242,255,0.20)' }]}>
                 <Feather name="shield" size={16} color={primary} />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Ticket Vault</Text>
@@ -3067,6 +3075,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, safety: Date.now() }));
                 setProfileSafetyVisible(true);
               }}
+              {...fx('glass lift rise', 1)}
               style={[
                 styles.hubTile,
                 {
@@ -3078,7 +3087,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#ef444450', backgroundColor: 'rgba(239,68,68,0.20)' }]}>
+              <View {...fx('float', 1)} style={[styles.hubIconWrap, { borderColor: '#ef444450', backgroundColor: 'rgba(239,68,68,0.20)' }]}>
                 <Feather name="life-buoy" size={16} color="#ef4444" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Safe Ride Home</Text>
@@ -3094,6 +3103,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, sensory: Date.now() }));
                 setProfileSensoryVisible(true);
               }}
+              {...fx('glass lift rise', 2)}
               style={[
                 styles.hubTile,
                 {
@@ -3105,7 +3115,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
+              <View {...fx('float', 2)} style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
                 <Feather name="zap" size={16} color="#ec4899" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Sensory Suite</Text>
@@ -3119,6 +3129,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, culture: Date.now() }));
                 setProfileCultureVisible(true);
               }}
+              {...fx('glass lift rise', 3)}
               style={[
                 styles.hubTile,
                 {
@@ -3130,7 +3141,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#fbbf2450', backgroundColor: 'rgba(251,191,36,0.20)' }]}>
+              <View {...fx('float', 3)} style={[styles.hubIconWrap, { borderColor: '#fbbf2450', backgroundColor: 'rgba(251,191,36,0.20)' }]}>
                 <Feather name="award" size={16} color="#fbbf24" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Cultural Stubs</Text>

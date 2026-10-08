@@ -17,7 +17,31 @@ const reducedMotion = () =>
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // ── Shimmer ──────────────────────────────────────────────────────────────────
-export const Shimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = 'rgba(255,255,255,0.22)' }) => {
+export const Shimmer = (props) => (IS_WEB ? <WebShimmer {...props} /> : <NativeShimmer {...props} />);
+
+// Web: the sweep is a CSS animation (an endless Animated.loop re-rendered the
+// skeleton every frame in JavaScript on web).
+const WebShimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = 'rgba(255,255,255,0.22)' }) => (
+  <View style={[{ overflow: 'hidden', backgroundColor: color, borderRadius: 12 }, style]}>
+    {!reducedMotion() && (
+      <View
+        style={{
+          position: 'absolute', top: 0, bottom: 0, left: 0, width: '50%',
+          backgroundImage: `linear-gradient(90deg, transparent, ${highlight}, transparent)`,
+          animationKeyframes: [{
+            from: { transform: 'translateX(-120%) skewX(-18deg)' },
+            to: { transform: 'translateX(320%) skewX(-18deg)' },
+          }],
+          animationDuration: `${MOTION.shimmer}ms`,
+          animationTimingFunction: 'ease-in-out',
+          animationIterationCount: 'infinite',
+        }}
+      />
+    )}
+  </View>
+);
+
+const NativeShimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = 'rgba(255,255,255,0.22)' }) => {
   const x = useRef(new Animated.Value(-1)).current;
   useEffect(() => {
     if (reducedMotion()) return;

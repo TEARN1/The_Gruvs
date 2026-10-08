@@ -49,6 +49,7 @@ import { VibeEconomyEngine } from './src/services/revenueEngine';
 import { supabase } from './src/services/supabase';
 import { prewarmSections } from './src/services/prewarm';
 import { backStack } from './src/utils/backStack';
+import { installWebFx } from './src/styles/webFx';
 
 // Install before any component mounts so all boot errors are captured.
 // installGlobalErrorHandler covers native (ErrorUtils); installWebErrorHandler
@@ -58,6 +59,9 @@ import { backStack } from './src/utils/backStack';
 // exist. Reporters are injected (not imported directly) so this module stays
 // free of a supabase dependency, matching resilience.js's setDriftReporter.
 installGlobalErrorHandler();
+
+// Motion + glass layer (web only; CSS, so it costs the JS thread nothing).
+installWebFx();
 installWebErrorHandler({
   logError: (label, err) => logError(label, err),
   logSecurityEvent: (userId, type, details) => SecurityService.logSecurityEvent(userId, type, details),
