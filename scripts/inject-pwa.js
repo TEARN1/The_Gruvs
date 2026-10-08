@@ -146,6 +146,12 @@ if (/<meta name="description"[^>]*>/.test(html)) {
 // Dark background from the very first paint. Without it the loading shell was
 // a white page (its body text is white, so it was invisible) until the bundle
 // ran: visitors saw what looked like a blank, broken site.
+// Never let the page get wider than the screen. One stray element past the
+// right edge (it was the nav bar's bubble) made phones zoom the whole app out,
+// leaving a white strip down the side. body alone isn't enough on mobile.
+if (!html.includes('id="gruvs-no-hscroll"')) {
+  html = html.replace('</head>', '    <style id="gruvs-no-hscroll">html,body{overflow-x:hidden;max-width:100%}#root{overflow:hidden}</style>\n</head>');
+}
 if (!html.includes('id="gruvs-boot-bg"')) {
   html = html.replace('</head>', '    <style id="gruvs-boot-bg">html,body{background:#0d1112;color:#fff}</style>\n</head>');
 }

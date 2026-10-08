@@ -131,7 +131,11 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
 
   useEffect(() => {
     const index = TABS.findIndex(t => t.key === currentTab);
-    const target = BAR_PAD + index * tabWidth + 6;
+    if (index < 0) return;   // a hidden tab (deep link): leave the bubble where it is
+    // Clamped inside the bar: a bubble placed past its edge widened the page and
+    // made phones zoom the whole app out (white strip down the right side).
+    const maxX = Math.max(BAR_PAD, bar.w - BAR_PAD - (tabWidth - 12));
+    const target = Math.min(maxX, Math.max(BAR_PAD, BAR_PAD + index * tabWidth + 6));
     if (!isNaN(target)) {
       Animated.spring(indicatorAnim, {
         toValue: target,
@@ -140,7 +144,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
         friction: 12,
       }).start();
     }
-  }, [currentTab, tabWidth]);
+  }, [currentTab, tabWidth, bar.w]);
 
   // Drag-to-scrub: glide a thumb across the bar to slide between sections
   // (faster than aiming at one tab). Latest tab kept in a ref so the gesture
@@ -642,17 +646,27 @@ const MainNavigator = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-launch welcome tutorial on first app open
+  // Once per signed-in user (and once for guests): Royal glow, weekly digest,
+  // location refresh, session check. Keyed on the user id ONLY. It used to also
+  // depend on applyNeuralTheme, which changed on every theme render, and the
+  // glow it applies re-renders the theme: for Royal users that looped forever,
+  // re-rendering the whole app and hitting the database on every pass, so the
+  // app stopped responding (Vibe Card hubs wouldn't open).
+  const applyNeuralThemeRef = useRef(applyNeuralTheme);
+  applyNeuralThemeRef.current = applyNeuralTheme;
   useEffect(() => {
+    let cancelled = false;
+    const timers = [];
     const checkStatus = async () => {
       if (!authUser) return;
 
       const status = await VibeEconomyEngine.getSovereignStatus(authUser.id);
+      if (cancelled) return;
 
       // Dynamic Sovereign Glow
       if (status.isRoyal) {
         const glowIntensity = Math.min(1, status.equity / VibeEconomyEngine.ROYAL_THRESHOLD);
-        applyNeuralTheme({ glowIntensity: glowIntensity * 0.5 });
+        applyNeuralThemeRef.current({ glowIntensity: glowIntensity * 0.5 });
       }
 
 
@@ -662,17 +676,17 @@ const MainNavigator = () => {
 
     // Weekly "you missed out" digest — at most once a week, never blocks startup.
     if (authUser) {
-      setTimeout(() => {
+      timers.push(setTimeout(() => {
         import('./src/services/missedEventsDigest')
           .then(m => m.maybeSendMissedDigest(authUser))
           .catch(() => {});
-      }, 4000);
+      }, 4000));
 
       // Keep the user findable in "Find Them": refresh their saved location on
       // launch, but ONLY if location permission is already granted (this never
       // shows a prompt). get_safe_nearby_vibers still gates on is_discoverable,
       // so a ghost/private user storing coords is never surfaced to others.
-      setTimeout(async () => {
+      timers.push(setTimeout(async () => {
         try {
           const Location = await import('expo-location');
           const { status } = await Location.getForegroundPermissionsAsync();
@@ -683,7 +697,7 @@ const MainNavigator = () => {
             LocationService.saveToProfile(authUser.id, coords.lat, coords.lon);
           }
         } catch { /* best-effort presence refresh */ }
-      }, 6000);
+      }, 6000));
     }
 
     SecurityService.validateSession().then(isValid => {
@@ -692,6 +706,12 @@ const MainNavigator = () => {
       }
     });
 
+    return () => { cancelled = true; timers.forEach(clearTimeout); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser?.id]);
+
+  // Auto-launch welcome tutorial on first app open
+  useEffect(() => {
     if (!hasLaunched) {
       const timer = setTimeout(() => {
         openTutorial('welcome');
@@ -699,8 +719,7 @@ const MainNavigator = () => {
       }, 1200);
       return () => clearTimeout(timer);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLaunched, authUser, applyNeuralTheme, openTutorial, markLaunched]);
+  }, [hasLaunched, openTutorial, markLaunched]);
 
   const bg = currentTheme?.background || '#0d1112';
   const primary = currentTheme?.primary || '#00f2ff';
@@ -1186,6 +1205,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     position: 'relative',
     paddingHorizontal: 6,
+    overflow: 'hidden',   // the bubble can never stick out and widen the page
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
   },
   indicator: {
