@@ -25,6 +25,7 @@
  *   - every button/tab springs when pressed (scaled to its size)
  *   - a tab's screen fades/lifts in when you switch to it
  *   - the active nav icon pops
+ *   - whatever is behind a pop-up (modal) is frosted
  * Everything that moves is off for people who ask for reduced motion.
  * Native ignores all of this: fx() returns {} there.
  */
@@ -60,6 +61,7 @@ ${stagger}
   background:linear-gradient(140deg,rgba(255,255,255,.55),rgba(255,255,255,.08) 30%,rgba(255,255,255,0) 58%,rgba(255,255,255,.2));
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 [data-fx~="aurora"],[data-fx~="sheen"]{overflow:hidden}
+[aria-modal="true"]{-webkit-backdrop-filter:blur(6px) saturate(140%);backdrop-filter:blur(6px) saturate(140%)}
 [data-fx~="aurora"]::after{content:"";position:absolute;left:-25%;top:-60%;width:150%;height:220%;z-index:-1;pointer-events:none;
   background:radial-gradient(closest-side,var(--color-glow,#00f2ff),transparent 70%);opacity:.22}
 [data-fx~="sheen"]::after{content:"";position:absolute;top:0;bottom:0;left:0;width:38%;pointer-events:none;
