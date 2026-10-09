@@ -50,6 +50,16 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   // stale; App.js has always kept both the standalone tab (gated on this
   // flag) and the separate Path Map modal (gated on `pathMap`, still off
   // below — that one genuinely does need crowd density to feel alive).
+  // ── Demos parked until they're real (master spec v2.5, section 5) ──────────
+  // These screens save to one phone only, use built-in numbers, or write to
+  // tables that don't exist, and some told users things that weren't true
+  // ("cryptographically vaulted", "VERIFIED"). Flip to true only once the
+  // feature has a migration, a checked server function and a test.
+  ticketVault:  false, // offline vault, resale, kitty, talent escrow, bounties, door queue
+  inPersonVibe: false, // Vibe Handshake, Where's My Crew (local-only)
+  boothStreet:  false, // DJ drops, track ID, kota tracker, car-meet meter (local-only)
+  proofOfSweat: false, // no sensor is read; everyone showed "VERIFIED"
+  safetyExtras: false, // lost & found, shuttles, floor plan (sample data)
   liveMap: true,
 } : {
   reelsRail: true, business: true, gifting: true, cashout: false, // still no payout rail — see the comment above
@@ -57,6 +67,8 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   residentAlerts: true, // res_* schema live (2026-07-17)
   accommodation: true,  // res_* schema live (2026-07-17)
   liveMap: true,        // The Living Map — map_zones schema live
+  // Demos stay parked in the full app too: they aren't real yet (see above).
+  ticketVault: false, inPersonVibe: false, boothStreet: false, proofOfSweat: false, safetyExtras: false,
 };
 
 /** feature('business') → true when the surface is live. Unknown keys default on. */

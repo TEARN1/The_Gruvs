@@ -20,10 +20,19 @@ name: DB Schema CI
 on:
   push:
     branches: ["**"]
-    paths: ["supabase/queries/**", "supabase/test/**", ".github/workflows/db-schema-ci.yml"]
+    paths:
+      - "supabase/queries/**"
+      - "supabase/migrations/**"
+      - "supabase/test/**"
+      - "supabase/functions/**"   # these read with service_role — see rls_autohide_test.sql
+      - ".github/workflows/db-schema-ci.yml"
   pull_request:
     branches: [main]
-    paths: ["supabase/queries/**", "supabase/test/**"]
+    paths:
+      - "supabase/queries/**"
+      - "supabase/migrations/**"
+      - "supabase/test/**"
+      - "supabase/functions/**"
 
 jobs:
   build-schema:
@@ -87,6 +96,49 @@ jobs:
       # And prove the drift fixes are idempotent too.
       - name: Re-apply schema_drift_fixes (idempotency check)
         run: $PSQL -f supabase/queries/schema_drift_fixes.sql
+
+      # Every migration, in order, on top of the base schema — then again, to
+      # prove each is idempotent (supabase db push applies these to production,
+      # and a hand-run in the SQL editor may already have applied some).
+      - name: Apply supabase/migrations (in order)
+        run: for f in $(ls supabase/migrations/*.sql | sort); do echo "── $f"; $PSQL -f "$f"; done
+
+      - name: Re-apply supabase/migrations (idempotency check)
+        run: for f in $(ls supabase/migrations/*.sql | sort); do $PSQL -f "$f"; done
+
+      # Money can't be minted: bookings, disputes and ledger rows go through
+      # checked server functions only, and unfunded escrow credits nothing.
+      - name: Verify bookings / escrow / ledger integrity
+        run: $PSQL -f supabase/test/service_bookings_test.sql
+
+      # Skips on this build (The Meal's SQL isn't part of schema_part_*), but
+      # runs anywhere it is installed.
+      - name: Verify The Meal reach columns can't be self-set
+        run: $PSQL -f supabase/test/meal_reach_test.sql
+
+      # Touch Down v2: only door staff get the rotating code, guests with the
+      # right code verify at level 2, guessing is capped, phones can't self-verify.
+      - name: Verify Touch Down door code (presence proof)
+        run: $PSQL -f supabase/test/touch_down_v2_test.sql
+
+      # Security control, not a shape check: proves the report-driven auto-hide
+      # policies still exist, are still RESTRICTIVE, and still gate on the right
+      # column — and pins down that service_role (BYPASSRLS) skips them, which is
+      # why every Edge Function reading these tables must re-filter by hand.
+      - name: Verify auto-hide moderation policies (RLS)
+        run: $PSQL -f supabase/test/rls_autohide_test.sql
+
+      # Two privilege bugs that both shipped silently: SECURITY DEFINER writers
+      # granted to clients with no auth.uid() check, and SECURITY DEFINER trigger
+      # guards testing current_user (which is the owner there, so they never fire).
+      - name: Verify SECURITY DEFINER privilege guards
+        run: $PSQL -f supabase/test/definer_privilege_test.sql
+
+      # View options are NOT inherited through CREATE OR REPLACE, so a later
+      # redefinition silently resets them. definer_views_audit.sql found that
+      # regression and left it unsolved; this makes the intent enforceable.
+      - name: Verify view visibility modes (security_invoker)
+        run: $PSQL -f supabase/test/view_security_test.sql
 
       - name: Summary
         if: always()

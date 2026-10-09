@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { Platform } from 'react-native';
 import { THEMES, GENDERS, findThemeById } from '../constants/Themes';
 import { supabase } from '../services/supabase';
@@ -96,7 +96,10 @@ export const ThemeProvider = ({ children }) => {
     if (metaTheme) metaTheme.setAttribute('content', currentTheme.background || '#0d1112');
   }, [currentTheme]);
 
-  const changeTheme = (newGender, newIndex) => {
+  // Stable identities (useCallback + useMemo below). These used to be new
+  // functions on every render, so any effect depending on them re-ran each
+  // time the theme changed: App's Royal-glow effect looped forever that way.
+  const changeTheme = useCallback((newGender, newIndex) => {
     setNeuralOverride(null); // Clear AI override on manual change
     if (!THEMES[newGender]?.[newIndex]) return;
     setGender(newGender);
@@ -111,14 +114,25 @@ export const ThemeProvider = ({ children }) => {
         })
         .catch(() => {});
     }
-  };
+  }, []);
 
-  const applyNeuralTheme = (override) => {
-    setNeuralOverride(override);
-  };
+  const applyNeuralTheme = useCallback((override) => {
+    // Same values as now → keep the same object, so nothing re-renders.
+    setNeuralOverride(prev => {
+      if (prev === override) return prev;
+      if (prev && override && Object.keys(override).length === Object.keys(prev).length &&
+          Object.keys(override).every(k => prev[k] === override[k])) return prev;
+      return override;
+    });
+  }, []);
+
+  const value = useMemo(
+    () => ({ currentTheme, gender, themeIndex, changeTheme, applyNeuralTheme, ready }),
+    [currentTheme, gender, themeIndex, changeTheme, applyNeuralTheme, ready],
+  );
 
   return (
-    <ThemeContext.Provider value={{ currentTheme, gender, themeIndex, changeTheme, applyNeuralTheme, ready }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

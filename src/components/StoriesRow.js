@@ -249,7 +249,13 @@ export const StoriesRow = ({ onAuthRequired }) => {
       const { data: follows } = await supabase
         .from('follows')
         .select('following_id')
-        .eq('follower_id', user.id);
+        .eq('follower_id', user.id)
+        // Capped: this was unbounded, so a power user pulled their entire
+        // following list to build a filter set. 2000 is the same ceiling
+        // CrewOutCard uses. Someone following more than that may miss a story
+        // from the tail of the list — a far better failure than a multi-MB
+        // response on mobile data.
+        .limit(2000);
       // Hidden = blocked (absolute) ∪ muted (soft hide). A block/mute doesn't
       // unfollow, so filter here so their stories never render (B-sweep 2 + 6).
       const [{ data: blocks }, { data: mutes }] = await Promise.all([

@@ -91,15 +91,22 @@ import { lifecycleState } from '../utils/eventLifecycle';
 import { eventInstant } from '../utils/tz';
 import { DoorCheckInModal } from '../components/DoorCheckInModal';
 import { checkinVerdict, movementPlausible } from '../utils/checkinGuard';
-import { TicketVaultExchangeModal } from '../components/TicketVaultExchangeModal';
-import { NightSafetyLogisticsModal } from '../components/NightSafetyLogisticsModal';
-import { InPersonVibeRadarModal } from '../components/InPersonVibeRadarModal';
-import { BoothAndStreetModal } from '../components/BoothAndStreetModal';
 import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
-import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
-import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
+import { Pop } from '../components/Pop';
+import { AnimatedCounter } from '../components/Motion';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { OpticalMoirePass, BorderTracer } from '../components/KasiIndustrialUI';
+import { deferred } from '../utils/deferred';
+
+// Panels load on first open, not at app start (see src/utils/deferred.js).
+const DoorCodeModal = deferred(() => require('../components/DoorCodeModal').DoorCodeModal, 'DoorCodeModal');
+const DoorCodeEntryModal = deferred(() => require('../components/DoorCodeEntryModal').DoorCodeEntryModal, 'DoorCodeEntryModal');
+const TicketVaultExchangeModal = deferred(() => require('../components/TicketVaultExchangeModal').TicketVaultExchangeModal, 'TicketVaultExchangeModal');
+const NightSafetyLogisticsModal = deferred(() => require('../components/NightSafetyLogisticsModal').NightSafetyLogisticsModal, 'NightSafetyLogisticsModal');
+const InPersonVibeRadarModal = deferred(() => require('../components/InPersonVibeRadarModal').InPersonVibeRadarModal, 'InPersonVibeRadarModal');
+const BoothAndStreetModal = deferred(() => require('../components/BoothAndStreetModal').BoothAndStreetModal, 'BoothAndStreetModal');
+const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
+const CultureArtifactsModal = deferred(() => require('../components/CultureArtifactsModal').CultureArtifactsModal, 'CultureArtifactsModal');
 
 // Gaming events get a scoreboard too (esports engine), EXCEPT the purely social
 // gaming categories where a league table makes no sense.
@@ -253,7 +260,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [giftingOpen, setGiftingOpen] = useState(false);
   const scrollRef = useRef(null);
 
-  const { isOrganiser, isCoHost, canPost, canModerate } = useEventRole(
+  const [doorCodeOpen, setDoorCodeOpen] = useState(false);
+  const [doorEntryOpen, setDoorEntryOpen] = useState(false);
+  const { isOrganiser, isCoHost, canPost, canModerate, canScan } = useEventRole(
     event?.id, user?.id, event?.author_id ?? event?.profiles?.id
   );
 
@@ -654,18 +663,34 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     } catch { showToast('Could not add to calendar', 'error'); }
   }, [event, showToast]);
 
+  // Same vibe state as the feed (see VibeManager.subscribe): a vibe made on
+  // either screen, and the server's real count, show up on both.
+  useEffect(() => VibeManager.subscribe(({ eventId, userId, vibed, count }) => {
+    if (!event?.id || eventId !== event.id || userId !== user?.id) return;
+    setHasVibed(vibed);
+    if (typeof count === 'number') setVibeCount(count);
+  }), [event?.id, user?.id]);
+
+  const [likeFx, setLikeFx] = useState({ n: 0, kind: 'like', burst: 0 });
+
   const handleVibe = useCallback(async () => {
     if (!user) { onAuthRequired?.(); return; }
     if (vibeSending) return;
     const wasVibed = hasVibed;
+    if (!wasVibed && event?.author_id === user.id) { showToast("You can't vibe your own event", 'info'); return; }
+    setLikeFx(f => ({ n: f.n + 1, kind: wasVibed ? 'unlike' : 'like', burst: wasVibed ? f.burst : Date.now() }));
     setHasVibed(!wasVibed);
     setVibeCount(c => wasVibed ? Math.max(0, c - 1) : c + 1);
     setVibeSending(true);
     try {
-      const ok = wasVibed
+      const res = wasVibed
         ? await VibeManager.removeVibe(event.id, user.id)
-        : await VibeManager.sendVibe(event.id, user.id);
-      if (!ok) throw new Error('vibe failed');
+        : await VibeManager.sendVibe(event.id, user.id, event.author_id);
+      // Only `true` is success. 'self' and 'throttled' are truthy strings, and
+      // were counted as success: own-event vibes showed +1 the server rejected.
+      if (res === 'self') { setHasVibed(wasVibed); setVibeCount(c => wasVibed ? c + 1 : Math.max(0, c - 1)); showToast("You can't vibe your own event", 'info'); return; }
+      if (res === 'throttled') { setHasVibed(wasVibed); setVibeCount(c => wasVibed ? c + 1 : Math.max(0, c - 1)); return; }
+      if (res !== true) throw new Error('vibe failed');
       if (!wasVibed) {
         if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         showToast('⚡ Vibe sent!', 'success');
@@ -1182,6 +1207,33 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             />
           )}
 
+          {event?.id && canScan && (
+            <DoorCodeModal
+              visible={doorCodeOpen}
+              eventId={event.id}
+              eventTitle={event.title}
+              primary={primary}
+              onClose={() => setDoorCodeOpen(false)}
+            />
+          )}
+          {event?.id && user && (
+            <DoorCodeEntryModal
+              visible={doorEntryOpen}
+              eventId={event.id}
+              primary={primary}
+              onClose={() => setDoorEntryOpen(false)}
+              getCoords={() => Promise.race([
+                LocationService.requestAndGet(),
+                new Promise((resolve) => setTimeout(() => resolve(null), 4000)),
+              ])}
+              onVerified={() => {
+                setCheckedIn(true);
+                try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
+                showToast('Verified at the door ✓ Your Touch Down is proven.', 'success');
+              }}
+            />
+          )}
+
           {/* Host: Set Now Playing modal */}
           {isOrganiser && event?.id && (
             <SetNowPlayingModal
@@ -1197,6 +1249,21 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               boundary keeps a failure to a small labelled chip and, next time,
               tells us exactly which host tool broke instead of hiding it. */}
           <SafeSection label="Host tools" primary={primary}>
+          {/* Touch Down v2: the rotating door code (organiser, co-host, scanner). */}
+          {canScan && event?.id && (
+            <TouchableOpacity
+              onPress={() => setDoorCodeOpen(true)}
+              activeOpacity={0.85}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                marginHorizontal: 16, marginTop: 12, paddingVertical: 12, borderRadius: 12,
+                backgroundColor: primary,
+              }}
+            >
+              <Feather name="shield" size={15} color="#000" />
+              <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Show door code</Text>
+            </TouchableOpacity>
+          )}
           {/* Host only: the door list. RSVP next to VERIFIED attendance — the one
               thing a spreadsheet can't give them, and the first thing they ask for. */}
           {isOrganiser && event?.id && (
@@ -1329,13 +1396,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {/* Vibe count + Who's Going */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <TouchableOpacity
-              style={[styles.vibePill, { backgroundColor: hasVibed ? `${primary}30` : `${primary}15`, borderColor: hasVibed ? primary : `${primary}30` }]}
+              style={[styles.vibePill, { position: 'relative', backgroundColor: hasVibed ? `${primary}30` : `${primary}15`, borderColor: hasVibed ? primary : `${primary}30` }]}
               onPress={handleVibe}
               disabled={vibeSending}
               activeOpacity={0.7}
             >
-              <Feather name="zap" size={13} color={primary} />
-              <Text style={[styles.vibeCountText, { color: primary }]}>{vibeCount} Vibe{vibeCount !== 1 ? 's' : ''}</Text>
+              <View style={{ position: 'relative' }}>
+                <Pop trigger={likeFx.n} kind={likeFx.kind}>
+                  <Feather name="zap" size={13} color={primary} />
+                </Pop>
+                <ControlledGlitterBurst trigger={likeFx.burst} count={10} radius={26} colors={[primary, '#fde047', '#ffffff']} enableHaptics={false} />
+              </View>
+              <AnimatedCounter value={vibeCount} style={[styles.vibeCountText, { color: primary }]} />
+              <Text style={[styles.vibeCountText, { color: primary }]}> Vibe{vibeCount !== 1 ? 's' : ''}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.vibePill, { backgroundColor: `${primary}08`, borderColor: `${primary}20` }]}
@@ -1468,6 +1541,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
               {/* 2x2 Command Grid with flat shadowless styling and micro-glitter bursts */}
               <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                {feature('ticketVault') && (<>
                 {/* 1. Offline Pass & Vault */}
                 <TouchableOpacity
                   onPress={() => {
@@ -1498,6 +1572,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Pass · Resale · Kitty · Escrow</Text>
                   <ControlledGlitterBurst trigger={dockGlitter.vault} count={12} radius={32} colors={[primary, '#fde047', '#fff']} />
                 </TouchableOpacity>
+                </>)}
 
                 {/* 2. Night Safety & Squad Care */}
                 <TouchableOpacity
@@ -1531,7 +1606,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 </TouchableOpacity>
               </View>
 
+              {(feature('inPersonVibe') || feature('boothStreet')) && (<>
               <View style={{ flexDirection: 'row', gap: 10 }}>
+                {feature('inPersonVibe') && (<>
                 {/* 3. In-Person Radar & Handshake */}
                 <TouchableOpacity
                   onPress={() => {
@@ -1562,7 +1639,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Handshake · Crossed · Mayor</Text>
                   <ControlledGlitterBurst trigger={dockGlitter.vibe} count={12} radius={32} colors={['#10b981', '#00f2ff', '#fff']} />
                 </TouchableOpacity>
+                </>)}
 
+                {feature('boothStreet') && (<>
                 {/* 4. DJ Booth & Street Bites */}
                 <TouchableOpacity
                   onPress={() => {
@@ -1593,7 +1672,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                   <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Live Audio · Kotas · 3AM Braai</Text>
                   <ControlledGlitterBurst trigger={dockGlitter.booth} count={12} radius={32} colors={['#f59e0b', '#fde047', '#fff']} />
                 </TouchableOpacity>
+                </>)}
               </View>
+              </>)}
 
               {/* Row 3: Sensory & Safety Suite + Cultural Artifacts */}
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
@@ -1963,6 +2044,21 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 </Text>
               </TouchableOpacity>
             </View>
+          )}
+
+          {/* Touch Down v2: guests verify with the code shown at the door. */}
+          {user && event?.id && (
+            <TouchableOpacity
+              onPress={() => setDoorEntryOpen(true)}
+              activeOpacity={0.8}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 }}
+              accessibilityRole="button"
+            >
+              <Feather name="shield" size={13} color={primary} />
+              <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>
+                {checkedIn ? 'Verify at the door with a code' : 'At the door? Verify with a code'}
+              </Text>
+            </TouchableOpacity>
           )}
 
           {event && (

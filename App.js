@@ -12,7 +12,7 @@ import { BusinessDashboardScreen } from './src/screens/BusinessDashboardScreen';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import { setDriftReporter } from './src/utils/resilience';
-import { shouldEnterSafeMode, clearCrashLog } from './src/utils/bootGuard';
+import { shouldEnterSafeMode, shouldEnterSafeModeSync, clearCrashLog } from './src/utils/bootGuard';
 import { logError } from './src/utils/logError';
 import { captureRef } from './src/services/referral';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -49,6 +49,7 @@ import { VibeEconomyEngine } from './src/services/revenueEngine';
 import { supabase } from './src/services/supabase';
 import { prewarmSections } from './src/services/prewarm';
 import { backStack } from './src/utils/backStack';
+import { installWebFx } from './src/styles/webFx';
 
 // Install before any component mounts so all boot errors are captured.
 // installGlobalErrorHandler covers native (ErrorUtils); installWebErrorHandler
@@ -58,6 +59,9 @@ import { backStack } from './src/utils/backStack';
 // exist. Reporters are injected (not imported directly) so this module stays
 // free of a supabase dependency, matching resilience.js's setDriftReporter.
 installGlobalErrorHandler();
+
+// Motion + glass layer (web only; CSS, so it costs the JS thread nothing).
+installWebFx();
 installWebErrorHandler({
   logError: (label, err) => logError(label, err),
   logSecurityEvent: (userId, type, details) => SecurityService.logSecurityEvent(userId, type, details),
@@ -116,11 +120,26 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const indicatorAnim = useRef(new Animated.Value(0)).current;
-  const tabWidth = width / TABS.length; // auto-scales with the visible tab count
+  // Measure the BAR, not the window. The bar is 94% wide, capped at 520 px and
+  // centred, so window-based maths put the highlight bubble under the wrong
+  // tab (a stray circle behind "Lineup") and made drag-to-scrub pick the wrong
+  // tab on tablets. Until the first layout, estimate from the same rules.
+  const [bar, setBar] = useState(() => {
+    const w = Math.min(width * 0.94, 520);
+    return { x: (width - w) / 2, w };
+  });
+  const BAR_PAD = 6; // styles.tabBar.paddingHorizontal
+  const tabWidth = Math.max(1, (bar.w - BAR_PAD * 2) / TABS.length);
+  // Too narrow for every label (small phones): show the active tab's only.
+  const compactLabels = tabWidth < 50;
 
   useEffect(() => {
     const index = TABS.findIndex(t => t.key === currentTab);
-    const target = index * tabWidth + (tabWidth / 2) - 20;
+    if (index < 0) return;   // a hidden tab (deep link): leave the bubble where it is
+    // Clamped inside the bar: a bubble placed past its edge widened the page and
+    // made phones zoom the whole app out (white strip down the right side).
+    const maxX = Math.max(BAR_PAD, bar.w - BAR_PAD - (tabWidth - 12));
+    const target = Math.min(maxX, Math.max(BAR_PAD, BAR_PAD + index * tabWidth + 6));
     if (!isNaN(target)) {
       Animated.spring(indicatorAnim, {
         toValue: target,
@@ -129,7 +148,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
         friction: 12,
       }).start();
     }
-  }, [currentTab, tabWidth]);
+  }, [currentTab, tabWidth, bar.w]);
 
   // Drag-to-scrub: glide a thumb across the bar to slide between sections
   // (faster than aiming at one tab). Latest tab kept in a ref so the gesture
@@ -137,14 +156,14 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
   const currentTabRef = useRef(currentTab);
   currentTabRef.current = currentTab;
   const scrubToX = useCallback((pageX) => {
-    let idx = Math.floor(pageX / tabWidth);
+    let idx = Math.floor((pageX - bar.x - BAR_PAD) / tabWidth);
     idx = Math.max(0, Math.min(TABS.length - 1, idx));
     const key = TABS[idx].key;
     if (key !== currentTabRef.current) {
       try { Haptics.selectionAsync(); } catch {}
       onTabChange(key);
     }
-  }, [tabWidth, onTabChange]);
+  }, [tabWidth, bar.x, onTabChange]);
 
   const panResponder = useMemo(() => PanResponder.create({
     // Only hijack clearly-horizontal drags; taps still hit the tabs below.
@@ -164,6 +183,10 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
           }
         ]}
         {...panResponder.panHandlers}
+        onLayout={(e) => {
+          const { x, width: w } = e.nativeEvent.layout;
+          if (Math.abs(w - bar.w) > 0.5 || Math.abs(x - bar.x) > 0.5) setBar({ x, w });
+        }}
       >
         <Animated.View
           style={[
@@ -212,7 +235,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
                   </View>
                 )}
               </View>
-              <Text
+              {(!compactLabels || isActive) && <Text
                 style={[
                   styles.tabLabel,
                   {
@@ -224,7 +247,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
                 numberOfLines={1}
               >
                 {tab.label}
-              </Text>
+              </Text>}
             </TouchableOpacity>
           );
         })}
@@ -627,17 +650,27 @@ const MainNavigator = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-launch welcome tutorial on first app open
+  // Once per signed-in user (and once for guests): Royal glow, weekly digest,
+  // location refresh, session check. Keyed on the user id ONLY. It used to also
+  // depend on applyNeuralTheme, which changed on every theme render, and the
+  // glow it applies re-renders the theme: for Royal users that looped forever,
+  // re-rendering the whole app and hitting the database on every pass, so the
+  // app stopped responding (Vibe Card hubs wouldn't open).
+  const applyNeuralThemeRef = useRef(applyNeuralTheme);
+  applyNeuralThemeRef.current = applyNeuralTheme;
   useEffect(() => {
+    let cancelled = false;
+    const timers = [];
     const checkStatus = async () => {
       if (!authUser) return;
 
       const status = await VibeEconomyEngine.getSovereignStatus(authUser.id);
+      if (cancelled) return;
 
       // Dynamic Sovereign Glow
       if (status.isRoyal) {
         const glowIntensity = Math.min(1, status.equity / VibeEconomyEngine.ROYAL_THRESHOLD);
-        applyNeuralTheme({ glowIntensity: glowIntensity * 0.5 });
+        applyNeuralThemeRef.current({ glowIntensity: glowIntensity * 0.5 });
       }
 
 
@@ -647,17 +680,17 @@ const MainNavigator = () => {
 
     // Weekly "you missed out" digest — at most once a week, never blocks startup.
     if (authUser) {
-      setTimeout(() => {
+      timers.push(setTimeout(() => {
         import('./src/services/missedEventsDigest')
           .then(m => m.maybeSendMissedDigest(authUser))
           .catch(() => {});
-      }, 4000);
+      }, 4000));
 
       // Keep the user findable in "Find Them": refresh their saved location on
       // launch, but ONLY if location permission is already granted (this never
       // shows a prompt). get_safe_nearby_vibers still gates on is_discoverable,
       // so a ghost/private user storing coords is never surfaced to others.
-      setTimeout(async () => {
+      timers.push(setTimeout(async () => {
         try {
           const Location = await import('expo-location');
           const { status } = await Location.getForegroundPermissionsAsync();
@@ -668,7 +701,7 @@ const MainNavigator = () => {
             LocationService.saveToProfile(authUser.id, coords.lat, coords.lon);
           }
         } catch { /* best-effort presence refresh */ }
-      }, 6000);
+      }, 6000));
     }
 
     SecurityService.validateSession().then(isValid => {
@@ -677,6 +710,12 @@ const MainNavigator = () => {
       }
     });
 
+    return () => { cancelled = true; timers.forEach(clearTimeout); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser?.id]);
+
+  // Auto-launch welcome tutorial on first app open
+  useEffect(() => {
     if (!hasLaunched) {
       const timer = setTimeout(() => {
         openTutorial('welcome');
@@ -684,8 +723,7 @@ const MainNavigator = () => {
       }, 1200);
       return () => clearTimeout(timer);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLaunched, authUser, applyNeuralTheme, openTutorial, markLaunched]);
+  }, [hasLaunched, openTutorial, markLaunched]);
 
   const bg = currentTheme?.background || '#0d1112';
   const primary = currentTheme?.primary || '#00f2ff';
@@ -1014,9 +1052,13 @@ export default function App() {
   // (a synchronous provider-init throw, a hung font load); this catches
   // that case using a PERSISTENT log (survives a full app kill, unlike
   // sessionStorage) written by ErrorBoundary's `critical` catch.
-  const [safeModeChecked, setSafeModeChecked] = useState(false);
-  const [inSafeMode, setInSafeMode] = useState(false);
+  // Web answers synchronously from localStorage, so the first render is the
+  // real app rather than a spinner frame; native still uses the async check.
+  const [syncSafeMode] = useState(() => (Platform.OS === 'web' ? shouldEnterSafeModeSync() : null));
+  const [safeModeChecked, setSafeModeChecked] = useState(syncSafeMode !== null);
+  const [inSafeMode, setInSafeMode] = useState(!!syncSafeMode);
   useEffect(() => {
+    if (syncSafeMode !== null) return undefined;
     let alive = true;
     // Race against a short timeout — a boot gate must never hang the app
     // waiting on storage; fail OPEN (normal boot) if the check is slow.
@@ -1031,7 +1073,7 @@ export default function App() {
   // Kick off font load in background. Never block rendering — if the load
   // stalls, the app would be permanently blank. Icons self-load in componentDidMount.
   // First paint blocks ONLY on Feather (~56KB) — 96% of the app's icons. The
-  // heavy MaterialCommunityIcons face (~1.15MB) loads in the BACKGROUND so a
+  // MaterialCommunityIcons face (subset, ~72KB) loads in the BACKGROUND so a
   // slow connection no longer stares at a multi-second spinner; the handful of
   // MCI glyphs simply pop in a moment later.
   const [fontsLoaded] = useFonts({
@@ -1040,8 +1082,8 @@ export default function App() {
   });
   useEffect(() => {
     Font.loadAsync({
-      MaterialCommunityIcons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
-      'material-community': require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
+      MaterialCommunityIcons: require('./assets/fonts/MaterialCommunityIconsSubset.ttf'),
+      'material-community': require('./assets/fonts/MaterialCommunityIconsSubset.ttf'),
     }).catch(() => {});
   }, []);
 
@@ -1053,7 +1095,11 @@ export default function App() {
     }
   }, []);
 
-  if (!safeModeChecked || (!fontsLoaded && !forceLoaded)) {
+  // Web never waits for the icon font: the static shell is already on screen
+  // and holding the app behind a spinner for up to 1.2 s made it feel like it
+  // "doesn't open". Icons render as the font arrives (it's preloaded in
+  // index.html by scripts/inject-pwa.js). Native keeps the short font gate.
+  if (!safeModeChecked || (Platform.OS !== 'web' && !fontsLoaded && !forceLoaded)) {
     return (
       <View style={styles.loadingScreen}>
         <StatusBar barStyle="light-content" backgroundColor="#0d1112" translucent={false} />
@@ -1163,10 +1209,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     position: 'relative',
     paddingHorizontal: 6,
+    overflow: 'hidden',   // the bubble can never stick out and widen the page
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
   },
   indicator: {
     position: 'absolute',
+    left: 0,   // without an anchor, web centred it and translateX moved it from there
     top: 6,
     bottom: 6,
     borderRadius: 24,

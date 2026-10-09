@@ -657,7 +657,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         .select('username, display_name, vibe_score, is_verified, followers_count')
         .eq('id', user.id)
         .single();
-      const cardText = buildVibeCardShareText(profile || { username: user.email });
+      // Never fall back to the email: it would be sent to the recipient as
+      // the card's handle.
+      const cardText = buildVibeCardShareText(profile || {});
       const newMsg = await MessageManager.send(user.id, recipient.id, cardText, { messageType: 'vibe_card', profile_id: user?.id });
       if (newMsg) {
         setMessages(prev => [...prev, newMsg]);

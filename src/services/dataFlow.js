@@ -21,7 +21,7 @@ import { heatScore as canonicalHeatScore } from '../utils/heatScore';
 import { getXpLevel } from '../utils/vibeLevel';
 import { rankEventResults, rankUserResults } from '../utils/searchRelevance';
 import { secureCode } from '../utils/secureId';
-import { GLOBAL_EVENTS_CATALOG } from '../constants/globalEventsCatalog';
+import { loadEventsCatalog } from './eventsCatalog';
 import { TicketCache } from './offlineCache';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
@@ -214,8 +214,9 @@ _extend('dating',     'dating','speed_dating','singles_night','lgbtq','pride','s
                       'babyshower','reunion');
 
 // Helper to filter and paginate the curated Global Events Catalog
-export const filterCatalog = ({ category = 'all', query = '', dateRange = null, mode = 'drop', limit = 30 } = {}) => {
-  let list = Array.isArray(GLOBAL_EVENTS_CATALOG) ? [...GLOBAL_EVENTS_CATALOG] : [];
+export const filterCatalog = async ({ category = 'all', query = '', dateRange = null, mode = 'drop', limit = 30 } = {}) => {
+  const catalog = await loadEventsCatalog();
+  let list = Array.isArray(catalog) ? [...catalog] : [];
   
   if (category && category !== 'all') {
     const subCats = CAT_KEY_TO_SUBCATS[category];
@@ -937,7 +938,7 @@ export const FeedManager = {
       // enrich with curated real-world global events from the catalog
       if (mode !== 'mine' && mode !== 'following' && events.length < 15) {
         try {
-          const catalogEvents = filterCatalog({ category, query, dateRange, mode, limit: 30 });
+          const catalogEvents = await filterCatalog({ category, query, dateRange, mode, limit: 30 });
           const existingIds = new Set(events.map(e => String(e.id)));
           const additions = catalogEvents.filter(ce => !existingIds.has(String(ce.id)));
           if (additions.length > 0) {
@@ -978,9 +979,9 @@ export const FeedManager = {
         throw new Error('cache miss');
       },
       // ── Mother escalation: fallback to curated global events catalog ──────
-      () => {
-        const fallbackList = (mode !== 'mine' && mode !== 'following') 
-          ? filterCatalog({ category, query, dateRange, mode, limit: pageSize })
+      async () => {
+        const fallbackList = (mode !== 'mine' && mode !== 'following')
+          ? await filterCatalog({ category, query, dateRange, mode, limit: pageSize })
           : [];
         return { events: fallbackList, total: fallbackList.length, page, hasMore: false };
       },
@@ -1122,7 +1123,7 @@ export const FeedManager = {
 
   async fetchSingle(eventId) {
     if (eventId && (String(eventId).startsWith('gp_') || String(eventId).startsWith('global_'))) {
-      const found = (GLOBAL_EVENTS_CATALOG || []).find(e => String(e.id) === String(eventId));
+      const found = (await loadEventsCatalog()).find(e => String(e.id) === String(eventId));
       if (found) return normalizeEvent(found);
     }
 
@@ -1387,10 +1388,31 @@ export const TrendingManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 // VIBE MANAGER  (reactions on events)
 // ─────────────────────────────────────────────────────────────────────────────
+// One source of truth for "did I vibe this, and what's the count", shared by
+// every screen. Without it the feed and the event page each kept their own
+// copy: vibe on one, the other still showed "not vibed", and tapping it added a
+// +1 the server (correctly) ignored, so counts drifted. After every successful
+// toggle we broadcast the new state, then the server's real count.
+const _vibeListeners = new Set();
+const _emitVibe = (change) => _vibeListeners.forEach((fn) => { try { fn(change); } catch { /* listener bug must not break vibing */ } });
+async function _settleVibe(eventId, userId, vibed) {
+  cache.invalidate(`user_vibes:${userId}`);
+  _emitVibe({ eventId, userId, vibed });
+  try {
+    const { data } = await supabase.from('events').select('vibe_count').eq('id', eventId).maybeSingle();
+    if (data && typeof data.vibe_count === 'number') _emitVibe({ eventId, userId, vibed, count: data.vibe_count });
+  } catch { /* the optimistic count stays; realtime will correct it */ }
+}
+
 export const VibeManager = {
+  /** subscribe(fn) → unsubscribe. fn({ eventId, userId, vibed, count? }) */
+  subscribe(fn) { _vibeListeners.add(fn); return () => _vibeListeners.delete(fn); },
+
   // Returns true on success, 'self' if own event, null on failure
   async sendVibe(eventId, userId, authorId = null) {
-    if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return true;
+    // Throttled taps did nothing but reported success, so the screen kept a +1
+    // the server never saw. Say so, and let the caller roll back.
+    if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return 'throttled';
     if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
 
     // Self-vibe check — use passed authorId first to avoid extra round-trip
@@ -1410,6 +1432,7 @@ export const VibeManager = {
     );
     if (result !== null) {
       FeedManager.invalidate(eventId);
+      _settleVibe(eventId, userId, true);
       VibeEquityLedger.mintEquity(userId, 'SOCIAL_RESONANCE').catch(() => {});
       ScoreEngine.computeVibeScore(userId).catch(() => {});
       _notifyEventAuthor(eventId, userId, 'vibe').catch(() => {});
@@ -1433,14 +1456,16 @@ export const VibeManager = {
       ],
       { attemptsPerTier: 3, baseMs: 300, label: 'VibeManager.removeVibe', fallbackValue: null }
     );
-    if (result !== null) { FeedManager.invalidate(eventId); return true; }
+    if (result !== null) { FeedManager.invalidate(eventId); _settleVibe(eventId, userId, false); return true; }
     log.error('VibeManager:removeVibe', 'all tiers exhausted');
     return null;
   },
 
   async getUserVibes(eventIds, userId) {
     if (!userId || !eventIds.length) return new Set();
-    const cacheKey = `user_vibes:${userId}:${eventIds.slice(0, 3).join(',')}`;
+    // Key on EVERY id: keying on the first three returned another page's
+    // answer, showing events you'd vibed as un-vibed (and a tap then +1'd them).
+    const cacheKey = `user_vibes:${userId}:${[...eventIds].sort().join(',')}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
     try {

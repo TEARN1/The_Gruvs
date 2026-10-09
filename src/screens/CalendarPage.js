@@ -20,6 +20,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SmartImage } from '../components/SmartImage';
 import { LineupRail } from '../components/LineupRail';
 import { thumb as cdnThumb } from '../utils/storageThumb';
+import { fx } from '../styles/webFx';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const FULL_MONTH = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -238,8 +239,9 @@ const CalEventCard = ({ ev, primary, textColor, muted, onPress, index, showDate 
   const isPast = ev.event_date && ev.event_date.split('T')[0] < todayStr;
 
   return (
-    <FadeInView delay={index * 60} direction="up">
+    <FadeInView delay={Math.min(index, 8) * 60} direction="up">
       <TouchableOpacity
+        {...fx('rim lift')}
         style={[ec.wrap, { borderColor: `${catColor}30`, backgroundColor: `${catColor}08`, opacity: isPast ? 0.55 : 1 }]}
         onPress={onPress}
         activeOpacity={0.85}
@@ -369,6 +371,7 @@ const UpcomingStrip = ({ events, primary, textColor, muted, onPress }) => {
           return (
             <TouchableOpacity
               key={ev.id}
+              {...fx('rim lift rise', i)}
               style={[us.card, { backgroundColor: `${catColor}12`, borderColor: `${catColor}25` }]}
               onPress={() => onPress(ev)}
             >

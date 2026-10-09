@@ -46,7 +46,10 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
     let blockedIds = new Set();
     try {
       const [{ data }, { data: blocks }] = await Promise.all([
-        supabase.from('follows').select('following_id').eq('follower_id', user.id),
+        // Capped (was unbounded). This is only an exclusion set — "don't
+        // suggest people I already follow" — so the worst case past 2000 is one
+        // already-followed suggestion, not a broken screen.
+        supabase.from('follows').select('following_id').eq('follower_id', user.id).limit(2000),
         // Block is ABSOLUTE — never SUGGEST someone the viewer blocked (B-sweep 2).
         supabase.from('user_blocks').select('blocked_id').eq('blocker_id', user.id),
       ]);

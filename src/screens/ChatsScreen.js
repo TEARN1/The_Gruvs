@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, TextInput, BackHandler, Platform, Animated, useWindowDimensions } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, TextInput, BackHandler, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
@@ -14,6 +14,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { SmartImage } from '../components/SmartImage';
 import { GlassView } from '../components/GlassView';
+import { FadeInView } from '../components/FadeInView';
 
 const fmtAge = (ts) => {
   if (!ts) return '';
@@ -43,28 +44,10 @@ const ConvoRow = React.memo(({ item, userId, primary, textColor, muted, surface,
   const timeLabel = item.created_at ? `, ${fmtAge(item.created_at)}` : '';
   const rowLabel = `${partner?.username || 'Unknown'}${unreadLabel}, ${previewLabel}${timeLabel}`;
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 350,
-        delay: Math.min(index * 60, 450),
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 350,
-        delay: Math.min(index * 60, 450),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
+  // Staggered entrance via FadeInView: a CSS animation on web (Animated ran
+  // in JavaScript there, one per row, every frame).
   return (
-    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+    <FadeInView delay={Math.min(index * 60, 450)} duration={350} direction="up">
       <TouchableOpacity
         style={[cs.row, { borderBottomColor: `${primary}12` }, isActive && { backgroundColor: `${primary}14`, borderLeftWidth: 3, borderLeftColor: primary }]}
         onPress={onPress}
@@ -111,7 +94,7 @@ const ConvoRow = React.memo(({ item, userId, primary, textColor, muted, surface,
           </View>
         </View>
       </TouchableOpacity>
-    </Animated.View>
+    </FadeInView>
   );
 }, (prev, next) => {
   return (

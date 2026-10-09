@@ -13,14 +13,41 @@ useDefault = true   # all the built-in secret rules (AWS, GCP, private keys, tok
 [allowlist]
 description = "Public-by-design values and where they legitimately live"
 paths = [
-  '''eas\.json''',              # public anon key in build env (intended)
-  '''\.env\.example''',         # template, no real secrets
-  '''\.github/workflows/.*''',  # anon key placeholders in CI env
-  '''supabase/queries/.*''',    # SQL migrations reference the public project ref
+  '''eas\.json''',                 # public anon key in build env (intended)
+  '''\.env\.example''',            # template, no real secrets
+  '''\.github/workflows/.*''',     # anon key placeholders in CI env
+  '''supabase/queries/.*''',       # SQL migrations reference the public project ref
+  # Asserts that the logger SCRUBS tokens, so it necessarily contains
+  # token-shaped literals. They are invented and match no real system.
+  '''__tests__/log\.test\.js''',
 ]
 regexes = [
-  # The Supabase ANON JWT (issuer "supabase", role "anon") — public by design.
-  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS[A-Za-z0-9_.-]+''',
+  # The Supabase ANON key — public by design (it ships in every client bundle;
+  # RLS is what protects the data, not the key's secrecy).
+  #
+  # Pinned to the EXACT value on purpose. This used to be the pattern
+  #   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS[A-Za-z0-9_.-]+
+  # which reads as "the anon key" but matches ANY Supabase-issued JWT — including
+  # the SERVICE_ROLE key. Committing that would have passed the scan silently,
+  # which is the one thing this scanner exists to prevent. Verified: the old
+  # pattern matched a service_role token; this does not.
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlZXZ2ZGR2cmptZmJoZmZjY2JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2OTEwNTAsImV4cCI6MjA4ODI2NzA1MH0.CvZRz05orvSEeaawwponcjpZypX3CePBny6zsgmc4bU''',
   # The public project ref / URL (also client-side, safe).
   '''feevvddvrjmfbhffccbf''',
+  # Local-storage key NAMES, not credentials. The app names them
+  # `gruvs_<thing>_v<n>` and assigns them to constants called *_KEY, which is
+  # exactly what generic-api-key looks for — so every new one would otherwise
+  # fail the build on unrelated work. There are 10 of them today
+  # (gruvs_sound_volume_v1, gruvs_pending_ref_v1, gruvs_region_v1, …).
+  #
+  # Allowlisting the CONVENTION rather than each value: lowercase words with a
+  # version suffix. No real credential — a JWT, an AWS key, a private key —
+  # takes that shape, so this cannot hide one. Verified a planted service_role
+  # key is still caught with this in place.
+  '''gruvs_[a-z0-9_]+_v[0-9]+''',
+  # The Web Push VAPID *public* application-server key — handed to
+  # PushManager.subscribe() in the browser, so public by design. The matching
+  # PRIVATE key is a Supabase function secret and is deliberately NOT
+  # allowlisted, so leaking that one still trips the scan.
+  '''BFcGNc-yn3m7MgqI1y2e4uAfywbTL3pnkP6CtPTOBz247ddaL2MVZqUe_zBoybkaiiCeRa8uifTnc2zZfJ1VLZU''',
 ]

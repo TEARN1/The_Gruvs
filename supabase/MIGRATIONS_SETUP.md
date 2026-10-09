@@ -1,5 +1,14 @@
 # Supabase migrations — one-time setup (READ BEFORE deploy.yml runs `db push`)
 
+> **Status (2026-09-27):** `supabase/migrations/` now exists and holds the pending
+> fixes as idempotent migrations (see DB_UPDATE_RUNBOOK.md). They are written to
+> be safe on the EXISTING production database, so `db push` can apply them without
+> a pulled baseline. A `supabase db pull` baseline is still worth taking once the
+> project is restored: it is the only way to capture what the live DB has that
+> the repo does not (the contract check found ~59 RPCs the app calls that no repo
+> file defines). If you add one, mark it applied rather than running it:
+> `supabase migration repair --status applied <baseline_version>`.
+
 The CD pipeline (`.github/workflows/deploy.yml`) runs `supabase db push`, which applies
 files in `supabase/migrations/*.sql` that haven't been applied yet.
 

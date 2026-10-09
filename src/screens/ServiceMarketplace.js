@@ -213,7 +213,7 @@ function BookingModal({
       if (id) {
         setBookingId(id);
         setPhase('proof');
-        showToast('Funds locked in escrow!', 'success');
+        showToast('Booking requested!', 'success');
       } else {
         showToast('Booking failed — please check your connection and try again.', 'error');
       }
@@ -361,8 +361,8 @@ function BookingModal({
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <>
-                      <Feather name="lock" size={16} color="#fff" />
-                      <Text style={styles.ctaBtnText}>Lock Funds in Escrow</Text>
+                      <Feather name="check" size={16} color="#fff" />
+                      <Text style={styles.ctaBtnText}>Request Booking</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -374,10 +374,13 @@ function BookingModal({
                 <View style={[styles.escrowBadge, { backgroundColor: '#10b98122' }]}>
                   <Feather name="shield" size={28} color="#10b981" />
                   <Text style={[styles.escrowTitle, { color: "#10b981" }]}>
-                    Escrow Active
+                    Booking Requested
                   </Text>
+                  {/* No payment provider holds funds yet (payment_status stays
+                      'unfunded' — see 20260927000900_service_bookings_integrity.sql), so say
+                      nothing about money being held. */}
                   <Text style={[styles.escrowSub, { color: muted }]}>
-                    {money(estimatedPrice)} is held securely. Release only when satisfied.
+                    Agreed price: {money(estimatedPrice)}. Mark it complete once the job is done.
                   </Text>
                 </View>
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition, Suspense } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -55,6 +55,8 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { AnimatedCounter } from '../components/Motion';
+import { Pop } from '../components/Pop';
+import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
 import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PresenceBar } from '../components/PresenceBar';
@@ -89,8 +91,14 @@ import { NotificationNudge } from '../components/NotificationNudge';
 import { BirthDateNudge } from '../components/BirthDateNudge';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { BorderTracer } from '../components/KasiIndustrialUI';
-import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
-import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
+import { deferred } from '../utils/deferred';
+import { loadEventsCatalog } from '../services/eventsCatalog';
+import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
+import { fx } from '../styles/webFx';
+
+// Panels load on first open, not at app start (see src/utils/deferred.js).
+const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
+const CultureArtifactsModal = deferred(() => require('../components/CultureArtifactsModal').CultureArtifactsModal, 'CultureArtifactsModal');
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
@@ -136,6 +144,7 @@ const AvatarStack = ({ count, size = 20 }) => {
 const SkeletonCard = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
+    if (IS_WEB_LOOP) return;   // web: CSS animation (cssLoop) — no per-frame re-render
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.7, duration: 1000, useNativeDriver: true }),
@@ -144,7 +153,7 @@ const SkeletonCard = ({ primary }) => {
     ).start();
   }, []);
   return (
-    <Animated.View style={[skStyles.card, { opacity: pulse, borderColor: `${primary}30` }]}>
+    <Animated.View style={[skStyles.card, IS_WEB_LOOP ? { opacity: 0.3, ...cssLoop({ '0%': { opacity: 0.3 }, '100%': { opacity: 0.7 } }, 1000) } : { opacity: pulse }, { borderColor: `${primary}30` }]}>
       <View style={[skStyles.media, { backgroundColor: `${primary}12` }]} />
       <View style={skStyles.body}>
         <View style={[skStyles.avatar, { backgroundColor: `${primary}20` }]} />
@@ -173,12 +182,13 @@ const skStyles = StyleSheet.create({
 // different (Touch Down), then the sign-in CTA. Guest-only, so it never clutters
 // the signed-in feed.
 const VisitorBanner = ({ onSignIn, primary, muted, textColor }) => (
-  <View style={[vb.hero, { backgroundColor: `${primary}0e`, borderColor: `${primary}30` }]}>
+  <View {...fx('glass aurora rise')} style={[vb.hero, { backgroundColor: `${primary}0e`, borderColor: `${primary}30` }]}>
     <Text style={[vb.heroTitle, { color: textColor }]}>What’s on tonight, near you.</Text>
     <Text style={[vb.heroSub, { color: muted }]}>
       Real nights, verified. Find what’s happening, RSVP, and <Text style={{ color: primary, fontWeight: '800' }}>Touch Down</Text> at the door to prove you were there.
     </Text>
     <TouchableOpacity
+      {...fx('sheen')}
       style={[vb.heroBtn, { backgroundColor: primary }]}
       onPress={onSignIn}
       activeOpacity={0.85}
@@ -319,6 +329,8 @@ const EventCard = React.memo(({
   const title = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
   const matchCard = parseMatchCard(event.match_card);
   const [saveFx, setSaveFx] = useState(0);
+  // Like (vibe) button animation: n bumps on every tap; burst only when turning ON.
+  const [likeFx, setLikeFx] = useState({ n: 0, kind: 'like', burst: 0 });
   const [isFlashing, setIsFlashing] = useState(false);
   const prevSavedRef = useRef(isSaved);
   useEffect(() => {
@@ -357,9 +369,10 @@ const EventCard = React.memo(({
 
   return (
     <React.Fragment>
-      <FadeInView delay={Math.min(index, 5) * 60} direction="up">
+      <FadeInView delay={Math.min(index, 5) * 60} direction="up" reveal>
         <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
         <View
+          {...fx('rim')}
           style={[
             styles.eventCard,
             {
@@ -842,12 +855,21 @@ const EventCard = React.memo(({
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
             <View style={styles.actionBar}>
               <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onVibe(id)}
+                style={[styles.actionBtn, { position: 'relative' }]}
+                onPress={() => {
+                  const canVibe = !!user && (isVibed || event.author_id !== user.id);
+                  if (canVibe) setLikeFx(f => ({ n: f.n + 1, kind: isVibed ? 'unlike' : 'like', burst: isVibed ? f.burst : Date.now() }));
+                  onVibe(id);
+                }}
                 accessibilityRole="button"
                 accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
               >
-                <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
+                <View style={{ position: 'relative' }}>
+                  <Pop trigger={likeFx.n} kind={likeFx.kind}>
+                    <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
+                  </Pop>
+                  <ControlledGlitterBurst trigger={likeFx.burst} count={10} radius={26} colors={['#ef4444', '#fde047', '#ffffff']} enableHaptics={false} />
+                </View>
                 <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? "#ef4444" : muted }]} />
               </TouchableOpacity>
 
@@ -857,10 +879,12 @@ const EventCard = React.memo(({
                 accessibilityRole="button"
                 accessibilityLabel="React to this event"
               >
-                {userReaction
-                  ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
-                  : <Feather name="smile" size={19} color={muted} />
-                }
+                <Pop trigger={userReaction || ''} kind="pop">
+                  {userReaction
+                    ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
+                    : <Feather name="smile" size={19} color={muted} />
+                  }
+                </Pop>
                 <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
               </TouchableOpacity>
 
@@ -1067,6 +1091,16 @@ const orderForGuest = (list) =>
 //  filters, dedupes and collapses tours; it never re-ranks.)
 
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels }) => {
+  // Header fit on small phones: at 320 px the logo, wordmark and five round
+  // buttons were wider than the screen and the "+" (post) button was cut off.
+  const { width: winW } = useWindowDimensions();
+  const tightHeader = winW < 360;
+  // Warm the fallback events list in the background: the feed reaches for it
+  // the moment the database answers with too few events (or not at all), and
+  // fetching it only then added a round-trip to the first paint of the feed.
+  useEffect(() => { loadEventsCatalog().catch(() => {}); }, []);
+  const iconSize = tightHeader ? 32 : 36;
+  const iconBox = { width: iconSize, height: iconSize, borderRadius: iconSize / 2 };
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
@@ -1842,6 +1876,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
   }, [user, followingSet]);
 
+  // Vibes made anywhere (this feed, the event page) land here, with the
+  // server's real count once known, so this list never drifts from it.
+  useEffect(() => VibeManager.subscribe(({ eventId, userId, vibed, count }) => {
+    if (!user?.id || userId !== user.id) return;
+    setMyVibes(prev => {
+      if (prev.has(eventId) === vibed) return prev;
+      const next = new Set(prev);
+      if (vibed) next.add(eventId); else next.delete(eventId);
+      return next;
+    });
+    if (typeof count === 'number') {
+      setVibeCounts(prev => (prev[eventId] === count ? prev : { ...prev, [eventId]: count }));
+      setEvents(prev => prev.map(e => (e.id === eventId && e.vibe_count !== count ? { ...e, vibe_count: count } : e)));
+    }
+  }), [user?.id]);
+
   const handleVibe = async (eventId) => {
     if (!user) { onAuthRequired(); return; }
     if (isVibing[eventId]) return;
@@ -1889,6 +1939,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       if (res === 'self') {
         rollback();
         toast.show("You can't vibe your own event", 'info');
+      } else if (res === 'throttled') {
+        rollback();   // too fast: nothing was sent, so don't keep the +1
       } else if (res === null) {
         rollback();
         toast.show(isCurrentVibed ? 'Failed to remove vibe' : 'Failed to send vibe — try again', 'error');
@@ -2130,8 +2182,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {/* Main Row: Logo + Search + Actions */}
       <View style={styles.mainRow}>
         <View style={styles.brandGroup}>
-          <BrandLogo size={36} showGlow />
-          <View style={styles.wordmarkMini}>
+          <BrandLogo size={tightHeader ? 30 : 36} showGlow />
+          {!tightHeader && <View style={styles.wordmarkMini}>
             <Text style={[styles.brandText, { color: primary }]}>GRUVS</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <Text style={[styles.brandSub, { color: muted }]}>{mode === 'drop' ? 'DROP' : 'EXPLORE'}</Text>
@@ -2141,7 +2193,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 </View>
               )}
             </View>
-          </View>
+          </View>}
         </View>
 
         <GlassView style={[styles.compactSearch, { borderColor: `${primary}30` }]}>
@@ -2162,11 +2214,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           )}
         </GlassView>
 
-        <View style={styles.headerActions}>
+        <View style={[styles.headerActions, tightHeader && { gap: 6 }]}>
           {/* Reels — opt-in entry while it's demoted from the tab bar */}
           {onNavigateToReels && HIDDEN_TABS.includes('reels') && (
             <TouchableOpacity
-              style={[styles.iconBtn, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}
+              style={[styles.iconBtn, iconBox, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}
               onPress={onNavigateToReels}
               accessibilityRole="button"
               accessibilityLabel="Reels"
@@ -2175,7 +2227,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.1)' }]}
+            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.1)' }]}
             onPress={() => setRouletteVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Vibe Roulette"
@@ -2183,7 +2235,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             <Feather name="compass" size={16} color={textColor} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
+            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
             onPress={() => setSensoryModalVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Nightlife Sensory Suite"
@@ -2191,7 +2243,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             <Feather name="zap" size={16} color="#00f2ff" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: '#f59e0b35' }]}
+            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: '#f59e0b35' }]}
             onPress={() => setCultureModalVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Culture & Heritage Artifacts"
@@ -2199,7 +2251,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             <Feather name="award" size={16} color="#f59e0b" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.postIconBtn, { backgroundColor: primary, borderColor: primary }]}
+            style={[styles.postIconBtn, iconBox, { backgroundColor: primary, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
           >
             <Feather name="plus" size={18} color="#000" />
@@ -3069,6 +3121,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       {/* ── Create event FAB (bottom right, above floating dock) ───────────────── */}
       <TouchableOpacity
+        {...fx('pulse')}
         style={[styles.createFab, { backgroundColor: primary, bottom: Math.max((insets.bottom || 0) + 76, 86) }]}
         onPress={() => {
           safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));

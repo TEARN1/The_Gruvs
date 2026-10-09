@@ -7,7 +7,7 @@ import {
   KeyboardAvoidingView, Platform, Image, Dimensions, Alert,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 
 import * as Location from 'expo-location';
 import { LocationService } from '../services/locationService';
