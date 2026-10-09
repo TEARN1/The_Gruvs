@@ -43,6 +43,7 @@ import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
 import { GetAppModal } from '../components/GetAppModal';
 import { SecurityService } from '../services/securityService';
 import { ECOSYSTEM_APPS } from '../constants/ecosystemApps';
+import { isRadioTrackingEnabled, setRadioTrackingEnabled } from '../services/coPresence';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
@@ -182,8 +183,18 @@ export const SettingsScreen = ({
   const [safetyHubOpen, setSafetyHubOpen] = useState(false);
   const [getHomeSafeOpen, setGetHomeSafeOpen] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
-  const [bioLabel, setBioLabel] = useState('Biometrics');
   const [lockEnabled, setLockEnabled] = useState(false);
+  const [radioTrackingOn, setRadioTrackingOn] = useState(false);
+
+  useEffect(() => {
+    isRadioTrackingEnabled().then(setRadioTrackingOn).catch(() => {});
+  }, []);
+
+  const handleToggleRadioTracking = useCallback(async (v) => {
+    setRadioTrackingOn(v);
+    await setRadioTrackingEnabled(v);
+    toast?.show(v ? 'Radio Proximity Tracking active 📡' : 'Radio Tracking paused', 'info');
+  }, [toast]);
 
   // Career & looks
   const [careerTitle, setCareerTitle] = useState(profile?.career_title || '');
@@ -475,6 +486,9 @@ export const SettingsScreen = ({
             primary={primary} muted={muted} textColor={textColor} />
           <ToggleRow label="Share events" sub="Show your event activity on your profile"
             value={shareEvents} onValueChange={(v) => writeField('share_events', v, setShareEvents, shareEvents)}
+            primary={primary} muted={muted} textColor={textColor} />
+          <ToggleRow label="Radio Proximity Tracking" sub="Get pinged when a friend passes by (~500m) to say hi"
+            value={radioTrackingOn} onValueChange={handleToggleRadioTracking}
             primary={primary} muted={muted} textColor={textColor} />
 
           {/* Panic — disappear from all presence instantly (#136) */}

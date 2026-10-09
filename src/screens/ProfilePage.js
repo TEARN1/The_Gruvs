@@ -64,6 +64,7 @@ import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
 import { ResidentTrustBadge } from '../components/ResidentTrustBadge';
 import { VerifiedRequestCard } from '../components/VerifiedRequestCard';
 import { ClubScreen } from './ClubScreen';
+import { getZodiacSign, daysUntilBirthday } from '../utils/birthday';
 
 // ── Static imports — avoids "unknown module" chunk failures on web ──
 import { DirectMessageModal }      from '../components/DirectMessageModal';
@@ -433,6 +434,8 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
   const [surname, setSurname] = useState(profile?.surname || '');
   const [clanName, setClanName] = useState(profile?.clan_name || '');
   const [birthDate, setBirthDate] = useState(profile?.birth_date || ''); // YYYY-MM-DD
+  const monthInputRef = useRef(null);
+  const yearInputRef = useRef(null);
   // Derive day/month/year from birthDate for the split inputs, and recompose on edit.
   const _bparts = (birthDate || '').split('-');
   const birthY = _bparts[0] || '', birthM = _bparts[1] || '', birthD = _bparts[2] || '';
@@ -442,7 +445,14 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
     const m = which === 'm' ? val : (birthDate.split('-')[1] || '');
     const d = which === 'd' ? val : (birthDate.split('-')[2] || '');
     setBirthDate([y, m, d].join('-')); // raw while typing; normalized at save time
+    if (which === 'd' && val.length >= 2) {
+      monthInputRef.current?.focus();
+    } else if (which === 'm' && val.length >= 2) {
+      yearInputRef.current?.focus();
+    }
   };
+  const zodiac = useMemo(() => getZodiacSign(birthDate), [birthDate]);
+  const daysToBday = useMemo(() => daysUntilBirthday(birthDate), [birthDate]);
   const [homeVillage, setHomeVillage] = useState(profile?.home_village || '');
   // Home area — where you actually live, so the feed can lead with what's on
   // near home instead of near wherever you happen to be at 3pm. Always set by
@@ -666,26 +676,60 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
         <Text style={{ color: muted, fontSize: 11, marginBottom: 10, lineHeight: 15 }}>
           Lets you invite people who share your name, surname or clan.
         </Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4, width: '100%', maxWidth: '100%' }}>
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6, width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
           <TextInput
-            style={[fm.input, { flex: 1, minWidth: 0, color: textColor, borderColor: `${primary}30` }]}
+            style={[fm.input, { flex: 1, minWidth: 0, maxWidth: '30%', textAlign: 'center', color: textColor, borderColor: `${primary}30`, marginBottom: 0 }]}
             placeholder="DD" placeholderTextColor={muted}
             value={birthD} onChangeText={v => setBirthPart('d', v)}
             keyboardType="numeric" maxLength={2}
           />
           <TextInput
-            style={[fm.input, { flex: 1, minWidth: 0, color: textColor, borderColor: `${primary}30` }]}
+            ref={monthInputRef}
+            style={[fm.input, { flex: 1, minWidth: 0, maxWidth: '30%', textAlign: 'center', color: textColor, borderColor: `${primary}30`, marginBottom: 0 }]}
             placeholder="MM" placeholderTextColor={muted}
             value={birthM} onChangeText={v => setBirthPart('m', v)}
             keyboardType="numeric" maxLength={2}
           />
           <TextInput
-            style={[fm.input, { flex: 1.4, minWidth: 0, color: textColor, borderColor: `${primary}30` }]}
+            ref={yearInputRef}
+            style={[fm.input, { flex: 1.3, minWidth: 0, maxWidth: '40%', textAlign: 'center', color: textColor, borderColor: `${primary}30`, marginBottom: 0 }]}
             placeholder="YYYY" placeholderTextColor={muted}
             value={birthY} onChangeText={v => setBirthPart('y', v)}
             keyboardType="numeric" maxLength={4}
           />
         </View>
+
+        {zodiac && (
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 12,
+            paddingVertical: 9,
+            borderRadius: 14,
+            backgroundColor: `${primary}12`,
+            borderWidth: 1,
+            borderColor: `${primary}30`,
+            marginBottom: 8,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 20 }}>{zodiac.symbol}</Text>
+              <View>
+                <Text style={{ color: primary, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 }}>
+                  {zodiac.sign.toUpperCase()} · {zodiac.element.toUpperCase()} ELEMENT
+                </Text>
+                <Text style={{ color: muted, fontSize: 10.5 }}>
+                  {daysToBday === 0 ? "🎉 Today is your special day!" : `⏳ ${daysToBday} days until next orbit`}
+                </Text>
+              </View>
+            </View>
+            <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: `${primary}22` }}>
+              <Text style={{ color: primary, fontSize: 10, fontWeight: '900' }}>
+                {daysToBday === 0 ? 'SPOTLIGHT ✦' : `${daysToBday}d`}
+              </Text>
+            </View>
+          </View>
+        )}
         <Text style={{ color: muted, fontSize: 11, marginBottom: 10, lineHeight: 15 }}>
           We’ll celebrate your birthday with you — your year stays private.
         </Text>
@@ -1179,6 +1223,65 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
     <>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <GlassView style={fm.section}>
+          {/* Cyber Sonar Radar HUD */}
+          <View style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 18,
+            borderBottomWidth: 1,
+            borderBottomColor: `${primary}20`,
+            marginBottom: 16,
+          }}>
+            <View style={{
+              width: 140,
+              height: 140,
+              borderRadius: 70,
+              borderWidth: 1.5,
+              borderColor: `${primary}40`,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: `${primary}08`,
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              {/* Concentric rings */}
+              <View style={{ position: 'absolute', width: 95, height: 95, borderRadius: 48, borderWidth: 1, borderColor: `${primary}25`, borderStyle: 'dashed' }} />
+              <View style={{ position: 'absolute', width: 50, height: 50, borderRadius: 25, borderWidth: 1, borderColor: `${primary}35` }} />
+              {/* Radar Crosshairs */}
+              <View style={{ position: 'absolute', width: '100%', height: 1, backgroundColor: `${primary}20` }} />
+              <View style={{ position: 'absolute', height: '100%', width: 1, backgroundColor: `${primary}20` }} />
+              {/* Center emitter */}
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: primary }} />
+              {/* Detected blips */}
+              {people.slice(0, 5).map((p, i) => {
+                const angle = (i * 72) * (Math.PI / 180);
+                const r = 32 + (i % 3) * 18;
+                return (
+                  <View
+                    key={p.id || i}
+                    style={{
+                      position: 'absolute',
+                      left: 70 + r * Math.cos(angle) - 4,
+                      top: 70 + r * Math.sin(angle) - 4,
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: '#10b981',
+                      borderWidth: 1.5,
+                      borderColor: '#fff',
+                    }}
+                  />
+                );
+              })}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: loading ? '#f59e0b' : '#10b981' }} />
+              <Text style={{ color: primary, fontSize: 10.5, fontWeight: '900', letterSpacing: 1.2 }}>
+                {loading ? 'RADAR SWEEP ACTIVE...' : `${people.length} VIBERS IN RANGE (${distance}KM)`}
+              </Text>
+            </View>
+          </View>
+
           <Text style={[fm.sectionTitle, { color: primary }]}>Search Radius</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
             {DIST_OPTIONS.map(d => (

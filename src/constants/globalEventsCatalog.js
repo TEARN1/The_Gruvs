@@ -7,6 +7,180 @@
 
 export const GLOBAL_EVENTS_CATALOG = [
   {
+    "id": "gp_sport_derby_2026",
+    "title": "Soweto Derby Fan Fest 2026: Kaizer Chiefs vs Orlando Pirates",
+    "description": "The biggest clash in African football! Live stadium broadcast, giant 4K LED towers, amapiano soundstage hosted by Kabza De Small & Young Stunna. Authentic Highveld braai plaza, safe parking, and verified carpool transit.",
+    "category": "sport",
+    "event_date": "2026-10-17",
+    "event_time": "15:00",
+    "venue_name": "FNB Stadium Outer Fields & Fan Arena",
+    "address": "Soccer City Ave, Nasrec, Soweto, Johannesburg",
+    "city": "Johannesburg",
+    "province": "Gauteng",
+    "country": "South Africa",
+    "lat": -26.2348,
+    "lon": 27.9824,
+    "cover_url": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200&auto=format&fit=crop",
+    "media_urls": [
+      "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200&auto=format&fit=crop"
+    ],
+    "price": "R180",
+    "price_amount": 180,
+    "currency": "ZAR",
+    "rsvp_tiers": [
+      { "name": "General Fan Park", "price": 180, "currency": "ZAR", "capacity": 3000 },
+      { "name": "VIP Grandstand & Sound Lounge", "price": 450, "currency": "ZAR", "capacity": 350 }
+    ],
+    "tags": ["sport", "soccer", "soweto derby", "kaizer chiefs", "orlando pirates", "amapiano", "kabza", "soweto"],
+    "author_id": "00000000-0000-0000-0000-000000000077",
+    "author": {
+      "id": "00000000-0000-0000-0000-000000000077",
+      "username": "kabza_destiny",
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop",
+      "is_verified": true,
+      "vibe_score": 99
+    }
+  },
+  {
+    "id": "gp_sport_betway_2026",
+    "title": "Betway Premiership Super Clash: Mamelodi Sundowns vs SuperSport United",
+    "description": "Tshwane Derby football fiesta with pre-game sound rigs and halftime dance battle hosted by Uncle Waffles & Focalistic. Massive outdoor screens, food trucks, and vibrant fan zones.",
+    "category": "sport",
+    "event_date": "2026-10-24",
+    "event_time": "17:30",
+    "venue_name": "Loftus Versfeld Stadium Fan Plaza",
+    "address": "416 Kirkness St, Arcadia, Pretoria",
+    "city": "Pretoria",
+    "province": "Gauteng",
+    "country": "South Africa",
+    "lat": -25.7533,
+    "lon": 28.2227,
+    "cover_url": "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1200&auto=format&fit=crop",
+    "media_urls": [
+      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1200&auto=format&fit=crop"
+    ],
+    "price": "R160",
+    "price_amount": 160,
+    "currency": "ZAR",
+    "rsvp_tiers": [
+      { "name": "General Plaza", "price": 160, "currency": "ZAR", "capacity": 2500 },
+      { "name": "Pitchside Deck", "price": 400, "currency": "ZAR", "capacity": 200 }
+    ],
+    "tags": ["sport", "soccer", "sundowns", "pretoria", "uncle waffles", "focalistic", "gauteng"],
+    "author_id": "00000000-0000-0000-0000-000000000078",
+    "author": {
+      "id": "00000000-0000-0000-0000-000000000078",
+      "username": "waffles_sound",
+      "avatar_url": "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=400&auto=format&fit=crop",
+      "is_verified": true,
+      "vibe_score": 98
+    }
+  },
+  {
+    "id": "gp_sport_rugby_2026",
+    "title": "The Rugby Championship: Springboks vs All Blacks Fan Arena",
+    "description": "Green & Gold glory at Ellis Park Precinct! Live broadcast on giant outdoor screens with post-match amapiano & afro-house set hosted by DJ Maphorisa & Daliwonga. Premium braai pits and safe parking.",
+    "category": "sport",
+    "event_date": "2026-11-07",
+    "event_time": "16:00",
+    "venue_name": "Emirates Airline Park (Ellis Park) Precinct",
+    "address": "Currie St, Doornfontein, Johannesburg",
+    "city": "Johannesburg",
+    "province": "Gauteng",
+    "country": "South Africa",
+    "lat": -26.1979,
+    "lon": 28.0609,
+    "cover_url": "https://images.unsplash.com/photo-1544698310-74ea9d1c8258?q=80&w=1200&auto=format&fit=crop",
+    "media_urls": [
+      "https://images.unsplash.com/photo-1544698310-74ea9d1c8258?q=80&w=1200&auto=format&fit=crop"
+    ],
+    "price": "R220",
+    "price_amount": 220,
+    "currency": "ZAR",
+    "rsvp_tiers": [
+      { "name": "Fan Arena Pass", "price": 220, "currency": "ZAR", "capacity": 4000 },
+      { "name": "VIP Terrace & Hospitality", "price": 650, "currency": "ZAR", "capacity": 300 }
+    ],
+    "tags": ["sport", "rugby", "springboks", "all blacks", "maphorisa", "daliwonga", "johannesburg"],
+    "author_id": "00000000-0000-0000-0000-000000000079",
+    "author": {
+      "id": "00000000-0000-0000-0000-000000000079",
+      "username": "maphorisa_groove",
+      "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop",
+      "is_verified": true,
+      "vibe_score": 99
+    }
+  },
+  {
+    "id": "gp_sport_marathon_2026",
+    "title": "Soweto Marathon Carnival & Finish Line Concert",
+    "description": "Celebrating the People's Marathon! 42.2km runners and party vibers unite for an epic finish line celebration hosted by Musa Keys & DBN Gogo. Recovery village, street food, and sundowner groove.",
+    "category": "sport",
+    "event_date": "2026-11-01",
+    "event_time": "11:00",
+    "venue_name": "Nasrec Expo Centre & FNB Precinct",
+    "address": "Nasrec Rd, Johannesburg South",
+    "city": "Johannesburg",
+    "province": "Gauteng",
+    "country": "South Africa",
+    "lat": -26.2411,
+    "lon": 27.9796,
+    "cover_url": "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1200&auto=format&fit=crop",
+    "media_urls": [
+      "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1200&auto=format&fit=crop"
+    ],
+    "price": "R120",
+    "price_amount": 120,
+    "currency": "ZAR",
+    "rsvp_tiers": [
+      { "name": "Spectator & Party Pass", "price": 120, "currency": "ZAR", "capacity": 2000 }
+    ],
+    "tags": ["sport", "running", "marathon", "soweto", "musa keys", "dbn gogo", "carnival"],
+    "author_id": "00000000-0000-0000-0000-000000000080",
+    "author": {
+      "id": "00000000-0000-0000-0000-000000000080",
+      "username": "dbn_gogo_official",
+      "avatar_url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=400&auto=format&fit=crop",
+      "is_verified": true,
+      "vibe_score": 97
+    }
+  },
+  {
+    "id": "gp_sport_hoopfest_2026",
+    "title": "Red Bull Street Style & 3v3 Hoop Fest JHB",
+    "description": "High-octane urban basketball championship and slam dunk tournament hosted by Nasty C & Blxckie. Live hip-hop showcases, 3v3 streetball showdowns, and streetwear pop-up stalls.",
+    "category": "sport",
+    "event_date": "2026-11-14",
+    "event_time": "13:00",
+    "venue_name": "Constitution Hill Courtyard",
+    "address": "11 Kotze St, Braamfontein, Johannesburg",
+    "city": "Johannesburg",
+    "province": "Gauteng",
+    "country": "South Africa",
+    "lat": -26.1895,
+    "lon": 28.0428,
+    "cover_url": "https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=1200&auto=format&fit=crop",
+    "media_urls": [
+      "https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=1200&auto=format&fit=crop"
+    ],
+    "price": "R150",
+    "price_amount": 150,
+    "currency": "ZAR",
+    "rsvp_tiers": [
+      { "name": "Courtside Pass", "price": 150, "currency": "ZAR", "capacity": 1500 },
+      { "name": "VIP Bleachers & Cypher Access", "price": 350, "currency": "ZAR", "capacity": 150 }
+    ],
+    "tags": ["sport", "basketball", "streetball", "nasty c", "blxckie", "hip hop", "braamfontein"],
+    "author_id": "00000000-0000-0000-0000-000000000081",
+    "author": {
+      "id": "00000000-0000-0000-0000-000000000081",
+      "username": "ivyson_army",
+      "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=400&auto=format&fit=crop",
+      "is_verified": true,
+      "vibe_score": 98
+    }
+  },
+  {
     "id": "gp_rave_2026_9_1",
     "title": "Modular Underground: Deep Acid & Industrial Techno (Johannesburg)",
     "description": "Join us for Modular Underground: Deep Acid & Industrial Techno at The Playground Braamfontein Rooftop & Hall in Johannesburg, Gauteng. Enjoy authentic Highveld vibes, incredible sound, safe parking, and great crowd energy. Food and drinks available on-site.",

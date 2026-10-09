@@ -125,5 +125,46 @@
     }
   ],
   "prefer_related_applications": false,
-  "scope": "/"
+  "scope": "/",
+  "widgets": [
+    {
+      "name": "Drop Radar Widget",
+      "short_name": "Radar",
+      "description": "Live radar of trending nightlife drops and nearby events in your area",
+      "tag": "drop-radar",
+      "template": "drop-radar-template",
+      "ms_ac_template": "/widgets/drop-radar.json",
+      "data": "/api/widgets/drop-radar",
+      "type": "application/json",
+      "icons": [
+        { "src": "/logo.png", "sizes": "192x192" }
+      ]
+    },
+    {
+      "name": "Tonight Live Events Widget",
+      "short_name": "Tonight",
+      "description": "Instant countdown to tonight's biggest events, guestlists, and crew meetups",
+      "tag": "tonight-live",
+      "template": "tonight-live-template",
+      "ms_ac_template": "/widgets/tonight-live.json",
+      "data": "/api/widgets/tonight-live",
+      "type": "application/json",
+      "icons": [
+        { "src": "/logo.png", "sizes": "192x192" }
+      ]
+    },
+    {
+      "name": "Crew Check-In & Countdown",
+      "short_name": "Crew",
+      "description": "Your crew status, active safe rides, and tonight check-in tracker",
+      "tag": "crew-tracker",
+      "template": "crew-tracker-template",
+      "ms_ac_template": "/widgets/crew-tracker.json",
+      "data": "/api/widgets/crew-tracker",
+      "type": "application/json",
+      "icons": [
+        { "src": "/logo.png", "sizes": "192x192" }
+      ]
+    }
+  ]
 }

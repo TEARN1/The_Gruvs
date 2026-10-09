@@ -351,12 +351,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       quality: 0.85,
     });
     if (!result.canceled && result.assets) {
-      const newItems = result.assets.map(a => ({
-        uri: a.uri,
-        type: a.type || (a.uri.includes('.mp4') || a.uri.includes('.mov') ? 'video' : 'image'),
-        name: a.fileName || `media_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        mimeType: a.mimeType || undefined,
-      }));
+      const newItems = result.assets.map(a => {
+        const isVid = a.type === 'video' || a.mimeType?.startsWith('video/') || /\.(mp4|mov|m4v|webm|3gp|mkv|avi)/i.test(a.fileName || a.uri || '');
+        return {
+          uri: a.uri,
+          type: isVid ? 'video' : 'image',
+          name: a.fileName || `media_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          mimeType: a.mimeType || (isVid ? 'video/mp4' : undefined),
+        };
+      });
       setMediaItems(prev => [...prev, ...newItems].slice(0, MAX_MEDIA));
     }
   };

@@ -779,6 +779,10 @@ const MainNavigator = () => {
             onTargetHandled={() => setTargetEvent(null)}
             refreshKey={feedRefreshKey}
             onNavigateToServices={handleNavigateToServices}
+            onNavigateToMap={(ev) => {
+              if (ev) setTargetEvent(ev);
+              handleTabChange('map');
+            }}
             onNavigateToReels={(reelId) => {
               if (reelId) setTargetReel(reelId);
               handleTabChange('reels');
@@ -799,7 +803,7 @@ const MainNavigator = () => {
       case 'explore':
         return <ExplorePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'map':
-        return <MapScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
+        return <MapScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} initialEvent={targetEvent} onInitialEventHandled={() => setTargetEvent(null)} />;
       case 'calendar':
         return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
       case 'chats':

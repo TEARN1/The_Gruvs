@@ -41,6 +41,7 @@ export function NightlifeSensoryModal({
   visible,
   event,
   onClose,
+  onNavigateToMap,
   primary = '#00f2ff',
   textColor = '#fff',
   muted = 'rgba(255,255,255,0.55)',
@@ -228,17 +229,19 @@ export function NightlifeSensoryModal({
                 </View>
               </TouchableOpacity>
 
-              {/* 3. Driver Pickup / Directions */}
+              {/* 3. Driver Pickup / Local Map */}
               <TouchableOpacity
                 style={styles.survivalBtn}
                 onPress={() => {
-                  Linking.openURL('https://maps.google.com');
+                  toast.show('Opening local in-app map radar...', 'info');
+                  onClose?.();
+                  onNavigateToMap?.();
                 }}
               >
                 <Feather name="navigation" size={22} color="#10b981" />
                 <View>
-                  <Text style={styles.survivalBtnTitle}>GET PICKUP / DIRECTIONS</Text>
-                  <Text style={styles.survivalBtnSub}>Directions to home address</Text>
+                  <Text style={styles.survivalBtnTitle}>IN-APP LOCAL MAP RADAR</Text>
+                  <Text style={styles.survivalBtnSub}>Navigate safely with local map</Text>
                 </View>
               </TouchableOpacity>
             </View>
