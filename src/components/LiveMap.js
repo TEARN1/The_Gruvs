@@ -353,10 +353,19 @@ export function LiveMap({
         'minzoom': 14,
         'layout': { 'visibility': show3DRef.current ? 'visible' : 'none' },
         'paint': {
-          'fill-extrusion-color': '#aaa',
-          'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'render_height']],
-          'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'render_min_height']],
-          'fill-extrusion-opacity': 0.6
+          'fill-extrusion-color': [
+            'interpolate',
+            ['linear'],
+            ['coalesce', ['get', 'render_height'], ['get', 'height'], 0],
+            0, '#0c1219',
+            25, '#121b26',
+            75, '#1a2738',
+            150, '#24374f',
+            250, '#2e4563'
+          ],
+          'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'render_height'], ['get', 'height'], 10]],
+          'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]],
+          'fill-extrusion-opacity': 0.88,
         }
       }, 'ev-glow'); // Place under event pins
 

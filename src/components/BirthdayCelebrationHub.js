@@ -163,7 +163,7 @@ export function BirthdayCelebrationHub({
                         </Text>
                       </View>
                       <View style={{ flex: 1, marginLeft: 10 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <Text style={[styles.bdayName, { color: textColor }]}>{bday.name}</Text>
                           <View style={styles.bdayBadge}>
                             <Text style={styles.bdayBadgeText}>TURNING {bday.ageTurned} 🎈</Text>
@@ -292,6 +292,10 @@ const styles = StyleSheet.create({
     padding: 18,
     paddingBottom: Platform.OS === 'ios' ? 36 : 24,
     gap: 12,
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
+    overflow: 'hidden',
   },
   headRow: {
     flexDirection: 'row',
@@ -355,10 +359,12 @@ const styles = StyleSheet.create({
   },
   bdayActionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   wishBtn: {
-    flex: 1.3,
+    flex: 1.2,
+    minWidth: 140,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -374,6 +380,7 @@ const styles = StyleSheet.create({
   },
   giftBtn: {
     flex: 1,
+    minWidth: 110,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

@@ -300,6 +300,7 @@ export const SecurityService = {
   ALLOWED_HOSTS: [
     'thegruvs.com', 'www.thegruvs.com', 'thegruvs.app',
     'theresidentcrew.com', 'www.theresidentcrew.com',
+    'excellencyacs.com', 'www.excellencyacs.com',
     'open.spotify.com', 'www.youtube.com', 'youtube.com', 'youtu.be',
     'wa.me', 'maps.google.com', 'www.google.com', 'maps.apple.com',
     'm.uber.com', 'bolt.eu',

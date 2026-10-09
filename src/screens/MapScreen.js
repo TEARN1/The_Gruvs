@@ -1447,6 +1447,9 @@ const cs = StyleSheet.create({
     right: 0,
     zIndex: 30,
     gap: 10,
+    maxWidth: 680,
+    alignSelf: 'center',
+    width: '100%',
   },
   glassSearchRow: {
     flexDirection: 'row',

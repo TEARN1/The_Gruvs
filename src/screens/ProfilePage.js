@@ -666,21 +666,21 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
         <Text style={{ color: muted, fontSize: 11, marginBottom: 10, lineHeight: 15 }}>
           Lets you invite people who share your name, surname or clan.
         </Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4, width: '100%', maxWidth: '100%' }}>
           <TextInput
-            style={[fm.input, { flex: 1, color: textColor, borderColor: `${primary}30` }]}
+            style={[fm.input, { flex: 1, minWidth: 0, color: textColor, borderColor: `${primary}30` }]}
             placeholder="DD" placeholderTextColor={muted}
             value={birthD} onChangeText={v => setBirthPart('d', v)}
             keyboardType="numeric" maxLength={2}
           />
           <TextInput
-            style={[fm.input, { flex: 1, color: textColor, borderColor: `${primary}30` }]}
+            style={[fm.input, { flex: 1, minWidth: 0, color: textColor, borderColor: `${primary}30` }]}
             placeholder="MM" placeholderTextColor={muted}
             value={birthM} onChangeText={v => setBirthPart('m', v)}
             keyboardType="numeric" maxLength={2}
           />
           <TextInput
-            style={[fm.input, { flex: 1.4, color: textColor, borderColor: `${primary}30` }]}
+            style={[fm.input, { flex: 1.4, minWidth: 0, color: textColor, borderColor: `${primary}30` }]}
             placeholder="YYYY" placeholderTextColor={muted}
             value={birthY} onChangeText={v => setBirthPart('y', v)}
             keyboardType="numeric" maxLength={4}
@@ -1021,7 +1021,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
 };
 
 const fm = StyleSheet.create({
-  section: { margin: 16, padding: 18, borderRadius: 20 },
+  section: { margin: 16, padding: 18, borderRadius: 20, maxWidth: '100%', overflow: 'hidden' },
   sectionTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1 },
   toggleLabel: { fontSize: 14, fontWeight: '700' },
@@ -4214,7 +4214,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
 
               {/* Gender */}
               <Text style={{ color: primary, fontSize: 12, fontWeight: '700', marginBottom: 8 }}>Gender</Text>
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                 {['Male', 'Female', 'Non-binary', 'Other'].map(g => (
                   <TouchableOpacity
                     key={g}
@@ -4286,7 +4286,22 @@ const COVER_H = 140;
 const AVATAR_SIZE = 86;
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, width: '100%', maxWidth: '100%', overflow: 'hidden' },
+
+  modalSheetTall: {
+    width: '100%',
+    maxWidth: 580,
+    alignSelf: 'center',
+    maxHeight: '88%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
 
   // Tutorials card (these were referenced but never defined → unstyled "CSS missing")
   vibeCoachBanner: {

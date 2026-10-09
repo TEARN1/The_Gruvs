@@ -20,6 +20,7 @@ import { GlitterBurst } from './GlitterBurst';
 import { escapeLike, findImpersonation } from '../utils/handleGuard';
 import { isLikelyBot } from '../utils/botCheck';
 import { CalendarPicker } from './DateTimePickers';
+import { ECOSYSTEM_APPS } from '../constants/ecosystemApps';
 
 const SCREEN_W = Dimensions.get('window').width;
 const HM = SCREEN_W < 375 ? 12 : 25;
@@ -488,9 +489,27 @@ export const AuthModal = ({ visible, onClose }) => {
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.sublabel, { color: muted, marginBottom: 10 }]}>
-              One account — the same login works on The Resident.
-            </Text>
+            {/* Unified Ecosystem SSO Vault */}
+            <View style={[styles.ecosystemCard, { borderColor: `${primary}30`, backgroundColor: 'rgba(255,255,255,0.03)' }]}>
+              <View style={styles.ecosystemHeaderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={[styles.ecosystemLiveDot, { backgroundColor: '#10b981' }]} />
+                  <Text style={[styles.ecosystemTitle, { color: primary }]}>ECOSYSTEM SSO VAULT</Text>
+                </View>
+                <Text style={[styles.ecosystemStatus, { color: '#10b981' }]}>● Sync Active</Text>
+              </View>
+              <Text style={[styles.ecosystemDesc, { color: muted }]}>
+                One credential unlocks The Gruvs, Excellency Academy & The Resident Crew.
+              </Text>
+              <View style={styles.ecosystemPills}>
+                {ECOSYSTEM_APPS.map((app) => (
+                  <View key={app.id} style={[styles.ecosystemPill, { borderColor: `${app.color}40`, backgroundColor: `${app.color}10` }]}>
+                    <Text style={{ fontSize: 11 }}>{app.badge}</Text>
+                    <Text style={[styles.ecosystemPillText, { color: textColor }]}>{app.name}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
 
             <View style={[styles.tabRow, { borderColor: `${primary}40` }]}>
               {['signin', 'signup'].map((m) => (
@@ -888,4 +907,56 @@ const styles = StyleSheet.create({
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: HM, marginBottom: 14 },
   oauthBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
   oauthText: { fontSize: 13, fontWeight: '700' },
+  ecosystemCard: {
+    marginHorizontal: HM,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' } : {}),
+  },
+  ecosystemHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ecosystemLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  ecosystemTitle: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  ecosystemStatus: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  ecosystemDesc: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  ecosystemPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2,
+  },
+  ecosystemPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  ecosystemPillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
 });
