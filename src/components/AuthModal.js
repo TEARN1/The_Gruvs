@@ -198,23 +198,41 @@ export const AuthModal = ({ visible, onClose }) => {
   };
 
   const handleSignIn = async () => {
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password.trim()) {
-      setError('Please enter your email and password.');
-      return;
-    }
-    // Basic email format check before hitting the server
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setError('Please enter a valid email address.');
+    const rawInput = email.trim();
+    if (!rawInput || !password.trim()) {
+      setError('Please enter your email or username and password.');
       return;
     }
     setLoading(true);
     setError('');
+    let targetEmail = rawInput;
+    if (!rawInput.includes('@')) {
+      const cleanUsername = rawInput.replace(/^@/, '');
+      try {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('email')
+          .ilike('username', cleanUsername)
+          .maybeSingle();
+        if (prof?.email) {
+          targetEmail = prof.email;
+        } else {
+          targetEmail = `${cleanUsername.toLowerCase()}@thegruvs.com`;
+        }
+      } catch {
+        targetEmail = `${cleanUsername.toLowerCase()}@thegruvs.com`;
+      }
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawInput)) {
+      setError('Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: targetEmail, password });
       if (error) {
-        // Return a generic message to prevent account enumeration
-        setError('Incorrect email or password. Please try again.');
+        // Return a clear, secure message
+        setError('Incorrect credentials. Please verify your email/username and password.');
         SecurityService.logSecurityEvent(null, 'AUTH_SIGNIN_FAILED', { error: error.message });
       } else {
         SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNIN_SUCCESS');
@@ -680,18 +698,20 @@ export const AuthModal = ({ visible, onClose }) => {
             {(mode === 'signin' || signupStep === 1) && (
             <>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: HM, marginBottom: 8 }}>
-              <Text style={[styles.label, { color: textColor, marginHorizontal: 0, marginBottom: 0 }]}>Email</Text>
+              <Text style={[styles.label, { color: textColor, marginHorizontal: 0, marginBottom: 0 }]}>
+                {mode === 'signin' ? 'Email or @Username' : 'Email'}
+              </Text>
               {email.length > 0 && (
                 <Feather
-                  name={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "check-circle" : "alert-triangle"}
+                  name={(mode === 'signin' && !email.includes('@')) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "check-circle" : "alert-triangle"}
                   size={14}
-                  color={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "#10b981" : "#ef4444"}
+                  color={(mode === 'signin' && !email.includes('@')) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "#10b981" : "#ef4444"}
                 />
               )}
             </View>
             <TextInput
               style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
-              placeholder="your@email.com"
+              placeholder={mode === 'signin' ? "your@email.com or @username (The Gruvs / Excellency / Resident)" : "your@email.com"}
               placeholderTextColor={muted}
               value={email}
               onChangeText={setEmail}

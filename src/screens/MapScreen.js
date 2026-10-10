@@ -856,6 +856,38 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             />
           </ErrorBoundary>
 
+          {/* Futuristic Cyber Reticle Brackets */}
+          <View pointerEvents="none" style={cs.reticleContainer}>
+            <View style={[cs.reticleCorner, cs.reticleTL, { borderColor: `${primary}55` }]} />
+            <View style={[cs.reticleCorner, cs.reticleTR, { borderColor: `${primary}55` }]} />
+            <View style={[cs.reticleCorner, cs.reticleBL, { borderColor: `${primary}55` }]} />
+            <View style={[cs.reticleCorner, cs.reticleBR, { borderColor: `${primary}55` }]} />
+          </View>
+
+          {/* Futuristic Cyber Telemetry HUD Bar */}
+          {!drawing && (
+            <View pointerEvents="none" style={[cs.cyberTelemetryBar, { backgroundColor: 'rgba(8,12,14,0.85)', borderColor: `${primary}30` }]}>
+              <View style={cs.cyberHudItem}>
+                <View style={[cs.cyberHudDot, { backgroundColor: '#10b981' }]} />
+                <Text style={[cs.cyberHudText, { color: primary }]}>
+                  {center?.lat != null ? `${center.lat.toFixed(3)}°S, ${center.lng.toFixed(3)}°E` : 'GPS SYNCING'}
+                </Text>
+              </View>
+              <Text style={[cs.cyberHudDivider, { color: `${muted}40` }]}>|</Text>
+              <View style={cs.cyberHudItem}>
+                <Feather name="shield" size={10} color="#10b981" />
+                <Text style={[cs.cyberHudText, { color: textColor }]}>LOCAL GRID</Text>
+              </View>
+              <Text style={[cs.cyberHudDivider, { color: `${muted}40` }]}>|</Text>
+              <View style={cs.cyberHudItem}>
+                <Feather name="zap" size={10} color="#f59e0b" />
+                <Text style={[cs.cyberHudText, { color: textColor }]}>
+                  {shownEvents.length} {shownEvents.length === 1 ? 'NODE' : 'NODES'}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Luminous Thumb Control Pod */}
           {isMapSupported() && !drawing && !activeZone && (
             <View style={cs.thumbPod} pointerEvents="box-none">
@@ -1758,6 +1790,77 @@ const cs = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
+  },
+  reticleContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+    pointerEvents: 'none',
+  },
+  reticleCorner: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+  },
+  reticleTL: {
+    top: 72,
+    left: 12,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopLeftRadius: 6,
+  },
+  reticleTR: {
+    top: 72,
+    right: 12,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderTopRightRadius: 6,
+  },
+  reticleBL: {
+    bottom: 96,
+    left: 12,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomLeftRadius: 6,
+  },
+  reticleBR: {
+    bottom: 96,
+    right: 12,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomRightRadius: 6,
+  },
+  cyberTelemetryBar: {
+    position: 'absolute',
+    top: 66,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    zIndex: 10,
+    gap: 8,
+  },
+  cyberHudItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  cyberHudDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  cyberHudText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  cyberHudDivider: {
+    fontSize: 10,
+    fontWeight: '300',
   },
 });
 

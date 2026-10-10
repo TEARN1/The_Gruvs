@@ -24,6 +24,7 @@ import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { useToast } from '../components/ToastNotification';
 import { GlassView } from '../components/GlassView';
+import { LiquidBackground } from '../components/LiquidBackground';
 import { WritingStylePicker } from '../components/WritingStylePicker';
 import { CurrencyPicker } from '../components/CurrencyPicker';
 import { Biometric } from '../services/biometric';
@@ -60,7 +61,7 @@ const genderKey = (g) => {
 };
 
 const SectionCard = ({ icon, title, children, primary, muted, textColor }) => (
-  <GlassView style={st.section} intensity={1.25} sheen={true}>
+  <GlassView style={st.section} intensity={1.35} sheen={true}>
     <View style={st.sectionHead}>
       <View style={[st.sectionIcon, { backgroundColor: `${primary}18`, borderColor: `${primary}35`, borderWidth: 1 }]}>
         <Feather name={icon} size={15} color={primary} />
@@ -385,6 +386,7 @@ export const SettingsScreen = ({
   return (
     <ErrorBoundary label="Settings" primary={primary}>
     <View style={[st.root, { backgroundColor: background }]}>
+      <LiquidBackground intensity={0.8} />
       {/* Header */}
       <View style={[st.header, { borderBottomColor: `${primary}18` }]}>
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
