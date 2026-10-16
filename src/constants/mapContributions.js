@@ -94,8 +94,20 @@ export const MAP_REPORT_TYPES = [
   T('meeting_point',  'Meeting point',      'flag',           BLUE,  'Deals', 6),
 ];
 
+// Door-line pins are dropped from the venue deck's "Report Door Reality" row
+// (services/doorStatus.js), not the picker — so they're lookup-only: the map can
+// label them, but they never appear in MAP_REPORT_GROUPS.
+const DOOR_REPORT_TYPES = [
+  T('door_walk_in',   'Door: walk in',      'check-circle',   GREEN, 'Entry', 2),
+  T('door_steady',    'Door: moving steady','clock',          CYAN,  'Entry', 2),
+  T('door_packed',    'Door: packed line',  'alert-triangle', AMBER, 'Entry', 2),
+  T('door_capacity',  'Door: 1-in 1-out',   'slash',          RED,   'Entry', 2),
+];
+
 // Fast lookup + grouped view for the picker.
-export const MAP_REPORT_BY_KEY = Object.fromEntries(MAP_REPORT_TYPES.map((t) => [t.key, t]));
+export const MAP_REPORT_BY_KEY = Object.fromEntries(
+  [...MAP_REPORT_TYPES, ...DOOR_REPORT_TYPES].map((t) => [t.key, t]),
+);
 export const MAP_REPORT_GROUPS = MAP_REPORT_TYPES.reduce((acc, t) => {
   (acc[t.group] = acc[t.group] || []).push(t);
   return acc;

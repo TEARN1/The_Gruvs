@@ -15,13 +15,16 @@ const placeholderSource = require('../../assets/events/pixel.jpg');
 const useLikedImages = (media, userId, eventId) => {
   const [likes, setLikes] = useState({});
 
+  // Keyed on the URL list, not the array: callers build `media` inline
+  // (LandingPage, ExplorePage), so its identity changes on every parent render
+  // and depending on it re-queried media_likes each time.
+  const urlKey = (media || []).map(m => m.url).filter(Boolean).join('\n');
   useEffect(() => {
     let alive = true;
-    const urls = (media || []).map(m => m.url).filter(Boolean);
-    if (!urls.length) return;
-    getMediaLikes(urls, userId).then((state) => { if (alive && Object.keys(state).length) setLikes(state); });
+    if (!urlKey) return;
+    getMediaLikes(urlKey.split('\n'), userId).then((state) => { if (alive && Object.keys(state).length) setLikes(state); });
     return () => { alive = false; };
-  }, [media, userId]);
+  }, [urlKey, userId]);
 
   const toggle = useCallback(async (url) => {
     if (!url) return false;

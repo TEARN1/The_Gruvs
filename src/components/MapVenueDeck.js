@@ -83,8 +83,11 @@ export function MapVenueDeck({
   useEffect(() => {
     let alive = true;
     const current = events[currentIndex];
-    if (current?.id && !doorStatusMap[current.id]) {
-      DoorStatusService.getStatus(current.id).then((status) => {
+    // `in`, not truthiness: "nobody has reported" is stored as null, and
+    // re-fetching on null would loop this effect.
+    if (current?.id && !(current.id in doorStatusMap)) {
+      const coords = { lat: current.lat ?? current.latitude, lon: current.lon ?? current.longitude };
+      DoorStatusService.getStatus(current.id, coords).then((status) => {
         if (alive) setDoorStatusMap((prev) => ({ ...prev, [current.id]: status }));
       });
     }
@@ -219,7 +222,7 @@ export function MapVenueDeck({
             const dist = userCoords && lat && lng ? distanceKm(userCoords.lat, userCoords.lng, lat, lng) : null;
             const isSaved = savedStates[ev.id] || false;
             const isGoing = rsvpStates[ev.id] || false;
-            const door = doorStatusMap[ev.id] || DOOR_LEVELS.walk_in;
+            const door = doorStatusMap[ev.id] || null;
             const cover = ev.cover_url || ev.image_url || ev.image;
             const isSecret = !!(ev.is_secret || ev.secret_act);
 
@@ -272,11 +275,13 @@ export function MapVenueDeck({
                         </View>
                       )}
 
-                      {/* Door Line Reality Badge */}
-                      <View style={[s.doorBadge, { backgroundColor: door.badgeBg, borderColor: `${door.color}40` }]}>
-                        <Feather name={door.icon} size={10} color={door.color} />
-                        <Text style={[s.doorBadgeText, { color: door.color }]}>{door.waitEstimate}</Text>
-                      </View>
+                      {/* Door Line Reality Badge — only when someone actually reported it */}
+                      {door && (
+                        <View style={[s.doorBadge, { backgroundColor: door.badgeBg, borderColor: `${door.color}40` }]}>
+                          <Feather name={door.icon} size={10} color={door.color} />
+                          <Text style={[s.doorBadgeText, { color: door.color }]}>{door.waitEstimate}</Text>
+                        </View>
+                      )}
                     </View>
 
                     <Text style={[s.cardTitle, { color: textColor }]} numberOfLines={1}>
@@ -398,7 +403,8 @@ export function MapVenueDeck({
                       },
                     ]}
                     onPress={() => {
-                      DoorStatusService.reportStatus(activeEvent.id, user?.id, lvl.key).then(() => {
+                      const coords = { lat: activeEvent.lat ?? activeEvent.latitude, lon: activeEvent.lon ?? activeEvent.longitude };
+                      DoorStatusService.reportStatus(activeEvent.id, user?.id, lvl.key, coords).then(() => {
                         setDoorStatusMap((prev) => ({ ...prev, [activeEvent.id]: lvl }));
                         toast(`Reported: ${lvl.label}`, 'success');
                       });

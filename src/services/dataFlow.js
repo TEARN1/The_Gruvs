@@ -216,7 +216,10 @@ _extend('dating',     'dating','speed_dating','singles_night','lgbtq','pride','s
 // Helper to filter and paginate the curated Global Events Catalog
 export const filterCatalog = async ({ category = 'all', query = '', dateRange = null, mode = 'drop', limit = 30 } = {}) => {
   const catalog = await loadEventsCatalog();
-  let list = Array.isArray(catalog) ? [...catalog] : [];
+  // A dated catalog entry that has already happened is never worth showing —
+  // without this, a third of the file was past events padding the live feed.
+  const today = new Date().toISOString().split('T')[0];
+  let list = Array.isArray(catalog) ? catalog.filter(e => !e.event_date || String(e.event_date) >= today) : [];
   
   if (category && category !== 'all') {
     const subCats = CAT_KEY_TO_SUBCATS[category];
