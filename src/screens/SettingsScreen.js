@@ -184,6 +184,7 @@ export const SettingsScreen = ({
   const [safetyHubOpen, setSafetyHubOpen] = useState(false);
   const [getHomeSafeOpen, setGetHomeSafeOpen] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioLabel, setBioLabel] = useState('Biometrics');
   const [lockEnabled, setLockEnabled] = useState(false);
   const [radioTrackingOn, setRadioTrackingOn] = useState(false);
 
