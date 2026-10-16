@@ -99,6 +99,7 @@ import { fx } from '../styles/webFx';
 // Panels load on first open, not at app start (see src/utils/deferred.js).
 const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
 const CultureArtifactsModal = deferred(() => require('../components/CultureArtifactsModal').CultureArtifactsModal, 'CultureArtifactsModal');
+const DropRidesModal = deferred(() => require('../components/DropRidesModal').DropRidesModal, 'DropRidesModal');
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
@@ -1090,7 +1091,7 @@ const orderForGuest = (list) =>
 //  ScoreEngine.eventScore + personalisation + diversify. This screen only
 //  filters, dedupes and collapses tours; it never re-ranks.)
 
-export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels }) => {
+export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap }) => {
   // Header fit on small phones: at 320 px the logo, wordmark and five round
   // buttons were wider than the screen and the "+" (post) button was cut off.
   const { width: winW } = useWindowDimensions();
@@ -1116,6 +1117,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [trendingEvents, setTrendingEvents] = useState([]); // full event objects for top trending
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ridesModalVisible, setRidesModalVisible] = useState(false);
   const [selectedCat, setSelectedCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   // ── Community Safety Alert (from The Resident) ────────────────────────────
@@ -2251,6 +2253,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             <Feather name="award" size={16} color="#f59e0b" />
           </TouchableOpacity>
           <TouchableOpacity
+            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
+            onPress={() => setRidesModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Resident Rides & Lifts"
+          >
+            <Feather name="navigation" size={16} color={primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.postIconBtn, iconBox, { backgroundColor: primary, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
           >
@@ -2339,12 +2349,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           const idx = events.findIndex(e => e.id === ev.id);
           if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.1 });
         }}
+        onNavigateToMap={onNavigateToMap}
         primary={primary}
       />
 
       {/* Vibe Oracle (AI Prediction) — DISABLED */}
 
-      {/* Feed mode toggle — All / Upcoming / Following / Mine */}
+      {/* Feed mode toggle — All / Upcoming / Following / Mine / Rides */}
       <View style={{ flexDirection: 'row', marginHorizontal: 14, marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
           {[
             { key: 'upcoming', label: 'Upcoming', icon: 'calendar' },
@@ -2375,6 +2386,24 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
               </TouchableOpacity>
             );
           })}
+          {/* Dedicated Rides Strategy Button */}
+          <TouchableOpacity
+            onPress={() => {
+              setRidesModalVisible(true);
+              safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="The Drop Rides & Resident Lifts"
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 5,
+              paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+              backgroundColor: `${primary}18`,
+              borderWidth: 1, borderColor: `${primary}45`,
+            }}
+          >
+            <Feather name="navigation" size={12} color={primary} />
+            <Text style={{ fontSize: 12, fontWeight: '800', color: primary }}>Rides</Text>
+          </TouchableOpacity>
           {/* List ⇄ Masonry (Pinterest) layout toggle */}
           <TouchableOpacity
             onPress={() => {
@@ -2407,21 +2436,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingBottom: 8 }}
         {...(Platform.OS === 'web' ? { className: 'sticky-filter-bar' } : {})}
       >
-        {/* Web has no pull-to-refresh gesture — give it an explicit button. */}
-        {Platform.OS === 'web' && (
-          <TouchableOpacity
-            onPress={handleRefresh}
-            disabled={refreshing}
-            accessibilityLabel="Refresh feed"
-            accessibilityRole="button"
-            style={[styles.pill, { backgroundColor: `${primary}18`, borderColor: `${primary}40`, borderWidth: 1 }]}
-          >
-            {refreshing
-              ? <ActivityIndicator size="small" color={primary} />
-              : <Feather name="refresh-cw" size={13} color={primary} />}
-            <Text style={[styles.pillText, { color: primary }]}>Refresh</Text>
-          </TouchableOpacity>
-        )}
         {CATEGORY_KEYS.map(key => {
           const cfg = CATEGORY_CONFIG[key];
           const isActive = selectedCat === key;
@@ -2739,9 +2753,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         // matter how far you scroll — "I only see 5 events"). Browsers handle a
         // few hundred cards fine, so render everything and let the DOM scroll.
         disableVirtualization={Platform.OS === 'web'}
-        maxToRenderPerBatch={Platform.OS === 'web' ? 100 : 8}
-        windowSize={Platform.OS === 'web' ? 1001 : 14}
-        initialNumToRender={Platform.OS === 'web' ? 200 : 7}
+        maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 8}
+        windowSize={Platform.OS === 'web' ? 25 : 14}
+        initialNumToRender={Platform.OS === 'web' ? 16 : 7}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>
@@ -2921,9 +2935,18 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <NightlifeSensoryModal
             visible={sensoryModalVisible}
             onClose={() => setSensoryModalVisible(false)}
+            onNavigateToMap={onNavigateToMap}
             event={events[0] || null}
           />
         </SafeSection>
+      )}
+      {ridesModalVisible && (
+        <DropRidesModal
+          visible={ridesModalVisible}
+          onClose={() => setRidesModalVisible(false)}
+          events={events}
+          onNavigateToMap={onNavigateToMap}
+        />
       )}
       {cultureModalVisible && (
         <SafeSection label="Culture Artifacts" primary={primary}>

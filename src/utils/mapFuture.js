@@ -7,7 +7,7 @@
  *       cyan = everything else. DOM markers animated by CSS (webFx.js).
  *   createStreams(engine, map)  Glowing arcs from you to the nearest hotspots
  *       with sparks flowing along them, like a live route.
- *   createHud(container, map)  Scan line, corner brackets, a faint grid and a
+ *   createHud(container, map)  Scan line, a faint grid (MapScreen draws the corner brackets) and a
  *       compass that turns with the map (tap → north up).
  *   cinematicIntro(map, loc) / focusOrbit(map, loc)  Camera moves: the fly-in
  *       when the map opens, and the fly-to + slow orbit when a hotspot is picked.
@@ -241,8 +241,9 @@ export function createHud(container, map) {
   const hud = document.createElement('div');
   hud.className = 'gx-hud';
   hud.setAttribute('aria-hidden', 'true');
-  hud.innerHTML = '<div class="gx-hud-grid"></div><div class="gx-hud-scan"></div>'
-    + '<i class="gx-hud-c tl"></i><i class="gx-hud-c tr"></i><i class="gx-hud-c bl"></i><i class="gx-hud-c br"></i>';
+  // Corner brackets come from MapScreen's reticle (native and web), so the
+  // web HUD adds only the grid and the scan line.
+  hud.innerHTML = '<div class="gx-hud-grid"></div><div class="gx-hud-scan"></div>';
   const compass = document.createElement('button');
   compass.className = 'gx-compass';
   compass.type = 'button';

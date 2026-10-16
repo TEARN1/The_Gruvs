@@ -16,6 +16,7 @@
  * "both RSVP'd" or "both follow the same page". Intent is not attendance.
  */
 import { supabase } from './supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const cache = new Map(); // "a|b" -> { events, at }
 const TTL_MS = 5 * 60 * 1000;
@@ -136,4 +137,106 @@ export async function findNearbyCoPresence(userId, eventId) {
     return [];
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Radio Proximity Tracking — "Passing-By Radar"
+// Notifies user when a crew member or friend is passing by (~500m) to say hi.
+// Strictly opt-in: only active when user enables it in settings/profile.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const RADIO_PREF_KEY = '@gruvs_radio_proximity_enabled';
+const RADIO_NOTIFIED_COOLDOWN = new Map(); // friendId -> timestamp
+const COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+export async function isRadioTrackingEnabled() {
+  try {
+    const val = await AsyncStorage.getItem(RADIO_PREF_KEY);
+    return val === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function setRadioTrackingEnabled(enabled) {
+  try {
+    await AsyncStorage.setItem(RADIO_PREF_KEY, enabled ? 'true' : 'false');
+  } catch {}
+}
+
+/**
+ * Calculates distance in meters between two lat/lon points (Haversine formula).
+ */
+export function getDistanceMeters(lat1, lon1, lat2, lon2) {
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return Infinity;
+  const R = 6371e3; // Earth radius in meters
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
+
+/**
+ * Checks if any mutual friends or crew members are currently passing by within ~500m.
+ * Dispatches a notification if passing by and cooldown has elapsed.
+ */
+export async function checkRadioPassingBy({
+  userId,
+  userLat,
+  userLon,
+  onPassingByAlert,
+} = {}) {
+  if (!userId || userLat == null || userLon == null) return [];
+  const enabled = await isRadioTrackingEnabled();
+  if (!enabled) return [];
+
+  try {
+    // Look up mutual follows / crew members with recent location presence
+    const { data: presenceList, error } = await supabase
+      .from('user_presence')
+      .select('user_id, lat, lon, updated_at, profiles:user_id(id, username, display_name, avatar_url)')
+      .neq('user_id', userId)
+      .gt('updated_at', new Date(Date.now() - 15 * 60 * 1000).toISOString()) // active within 15 min
+      .limit(30);
+
+    if (error || !presenceList?.length) return [];
+
+    const now = Date.now();
+    const detected = [];
+
+    for (const item of presenceList) {
+      if (item.lat == null || item.lon == null) continue;
+      const distM = getDistanceMeters(userLat, userLon, item.lat, item.lon);
+
+      // Within 500m boundary ("Passing By")
+      if (distM <= 500) {
+        const lastNotified = RADIO_NOTIFIED_COOLDOWN.get(item.user_id) || 0;
+        if (now - lastNotified > COOLDOWN_MS) {
+          RADIO_NOTIFIED_COOLDOWN.set(item.user_id, now);
+          const friend = item.profiles || { username: 'A Viber', display_name: 'A friend' };
+          const payload = {
+            friendId: item.user_id,
+            friendName: friend.display_name || friend.username || 'A friend',
+            avatarUrl: friend.avatar_url,
+            distanceM: distM,
+            message: `${friend.display_name || friend.username} is passing by (~${distM}m away). Would you like to say hi?`,
+          };
+          detected.push(payload);
+          onPassingByAlert?.(payload);
+        }
+      }
+    }
+
+    return detected;
+  } catch (err) {
+    console.warn('[coPresence] checkRadioPassingBy error:', err);
+    return [];
+  }
+}
+
 

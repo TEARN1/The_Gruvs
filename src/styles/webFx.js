@@ -101,11 +101,6 @@ ${stagger}
   -webkit-mask-image:radial-gradient(ellipse at center,transparent 35%,#000 100%);mask-image:radial-gradient(ellipse at center,transparent 35%,#000 100%)}
 .gx-hud-scan{position:absolute;left:0;right:0;top:0;height:20%;opacity:0;
   background:linear-gradient(to bottom,rgba(0,242,255,0),rgba(0,242,255,.07) 70%,rgba(0,242,255,.22) 99%,rgba(0,242,255,0))}
-.gx-hud-c{position:absolute;width:22px;height:22px;border-color:rgba(0,242,255,.55);border-style:solid;border-width:0}
-.gx-hud-c.tl{top:12px;left:12px;border-top-width:2px;border-left-width:2px;border-top-left-radius:6px}
-.gx-hud-c.tr{top:12px;right:12px;border-top-width:2px;border-right-width:2px;border-top-right-radius:6px}
-.gx-hud-c.bl{bottom:12px;left:12px;border-bottom-width:2px;border-left-width:2px;border-bottom-left-radius:6px}
-.gx-hud-c.br{bottom:12px;right:12px;border-bottom-width:2px;border-right-width:2px;border-bottom-right-radius:6px}
 .gx-compass{position:absolute;left:14px;top:46%;z-index:3;width:44px;height:44px;border-radius:50%;cursor:pointer;padding:0;
   border:1px solid rgba(0,242,255,.45);background:rgba(8,12,16,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
   box-shadow:0 0 16px rgba(0,242,255,.25),inset 0 0 12px rgba(0,242,255,.15)}

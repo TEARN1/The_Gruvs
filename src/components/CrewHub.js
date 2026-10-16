@@ -124,6 +124,31 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
   const [inviteState, setInviteState] = useState({});
   const [callOpen, setCallOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    let alive = true;
+    setSearching(true);
+    const clean = searchQuery.trim().replace(/^@/, '');
+    supabase.from('profiles')
+      .select('id, username, avatar_url, vibe_score')
+      .ilike('username', `%${clean}%`)
+      .limit(6)
+      .then(({ data }) => {
+        if (!alive) return;
+        const memIds = new Set(members.map(m => m.id));
+        setSearchResults((data || []).filter(p => p.id !== user?.id && !memIds.has(p.id)));
+      })
+      .catch(() => {})
+      .finally(() => { if (alive) setSearching(false); });
+    return () => { alive = false; };
+  }, [searchQuery, members, user?.id]);
 
   const isOwner = crew && user && crew.owner_id === user.id;
 
@@ -219,7 +244,48 @@ const CrewDetailModal = ({ visible, crew, onClose, onChanged }) => {
                 </View>
               ))}
 
-              <Text style={[s.label, { color: muted, marginTop: 14 }]}>INVITE YOUR MUTUALS</Text>
+              <Text style={[s.label, { color: muted, marginTop: 14 }]}>INVITE VIBERS</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8, borderWidth: 1, borderColor: `${primary}25` }}>
+                <Feather name="user-plus" size={14} color={primary} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={{ flex: 1, color: text, fontSize: 13, padding: 0 }}
+                  placeholder="Search Viber to invite (@username)..."
+                  placeholderTextColor={muted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCapitalize="none"
+                />
+                {searching && <ActivityIndicator size="small" color={primary} />}
+              </View>
+
+              {searchResults.length > 0 && (
+                <View style={{ marginBottom: 12, padding: 10, borderRadius: 14, backgroundColor: `${primary}0d`, borderWidth: 1, borderColor: `${primary}25` }}>
+                  <Text style={[s.label, { color: primary, marginBottom: 6 }]}>FOUND VIBERS</Text>
+                  {searchResults.map(p => (
+                    <View key={p.id} style={s.personRow}>
+                      {p.avatar_url ? <Image source={{ uri: p.avatar_url }} style={s.personAvatar} />
+                        : <View style={[s.personAvatar, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}><Text style={{ color: text, fontWeight: '800' }}>{(p.username || '?')[0]?.toUpperCase()}</Text></View>}
+                      <Text style={[s.personName, { color: text }]} numberOfLines={1}>@{p.username || 'viber'}</Text>
+                      {(() => {
+                        const st = inviteState[p.id];
+                        const label = st === 'sending' ? 'Sending…' : st === 'sent' ? '✓ Invited' : st === 'error' ? 'Retry' : 'Invite';
+                        const done = st === 'sent';
+                        const err = st === 'error';
+                        const bgc = done ? 'transparent' : err ? '#ef4444' : primary;
+                        const fg = done ? primary : '#000';
+                        return (
+                          <TouchableOpacity onPress={() => invite(p)} disabled={st === 'sending' || done} activeOpacity={0.7}
+                            style={[s.inviteBtn, { backgroundColor: bgc, borderColor: err ? '#ef4444' : primary, opacity: st === 'sending' ? 0.7 : 1 }]}>
+                            <Text style={{ color: err ? '#fff' : fg, fontSize: 11, fontWeight: '900' }}>{label}</Text>
+                          </TouchableOpacity>
+                        );
+                      })()}
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <Text style={[s.label, { color: muted, marginTop: 10 }]}>INVITE YOUR MUTUALS</Text>
               {follows.length === 0 ? (
                 <Text style={{ color: muted, fontSize: 12, paddingVertical: 8 }}>You can only invite mutuals — people you follow who follow you back. None left to add here yet.</Text>
               ) : follows.map(p => (

@@ -58,6 +58,11 @@ export async function safeOpenURL(url) {
   const ALLOWED_HOSTS = [
     'thegruvs.com',
     'www.thegruvs.com',
+    'thegruvs.app',
+    'theresidentcrew.com',
+    'www.theresidentcrew.com',
+    'excellencyacs.com',
+    'www.excellencyacs.com',
     'spotify.com',
     'open.spotify.com',
     'youtube.com',

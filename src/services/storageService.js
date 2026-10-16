@@ -16,12 +16,23 @@ const MIME_MAP = {
   mp4:  'video/mp4',
   mov:  'video/quicktime',
   m4v:  'video/x-m4v',
+  webm: 'video/webm',
+  '3gp': 'video/3gpp',
+  '3gpp': 'video/3gpp',
+  ogg:  'video/ogg',
+  ogv:  'video/ogg',
+  mkv:  'video/x-matroska',
+  avi:  'video/avi',
+  mpg:  'video/mpeg',
+  mpeg: 'video/mpeg',
 };
 
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'image/heic', 'image/heif',
   'video/mp4', 'video/quicktime', 'video/x-m4v', 'video/webm',
+  'video/3gp', 'video/3gpp', 'video/ogg', 'video/x-matroska',
+  'video/avi', 'video/mpeg',
 ];
 
 // ── Per-bucket size limits — these MIRROR the real limits on storage.buckets ──

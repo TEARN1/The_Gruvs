@@ -24,6 +24,7 @@ import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
 import { useToast } from '../components/ToastNotification';
 import { GlassView } from '../components/GlassView';
+import { LiquidBackground } from '../components/LiquidBackground';
 import { WritingStylePicker } from '../components/WritingStylePicker';
 import { CurrencyPicker } from '../components/CurrencyPicker';
 import { Biometric } from '../services/biometric';
@@ -42,6 +43,8 @@ import { PermissionsPanel } from '../components/PermissionsPanel';
 import { GetHomeSafeModal } from '../components/GetHomeSafeModal';
 import { GetAppModal } from '../components/GetAppModal';
 import { SecurityService } from '../services/securityService';
+import { ECOSYSTEM_APPS } from '../constants/ecosystemApps';
+import { isRadioTrackingEnabled, setRadioTrackingEnabled } from '../services/coPresence';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
@@ -58,9 +61,9 @@ const genderKey = (g) => {
 };
 
 const SectionCard = ({ icon, title, children, primary, muted, textColor }) => (
-  <GlassView style={st.section}>
+  <GlassView style={st.section} intensity={1.35} sheen={true}>
     <View style={st.sectionHead}>
-      <View style={[st.sectionIcon, { backgroundColor: `${primary}18` }]}>
+      <View style={[st.sectionIcon, { backgroundColor: `${primary}18`, borderColor: `${primary}35`, borderWidth: 1 }]}>
         <Feather name={icon} size={15} color={primary} />
       </View>
       <Text style={[st.sectionTitle, { color: textColor }]}>{title}</Text>
@@ -181,8 +184,18 @@ export const SettingsScreen = ({
   const [safetyHubOpen, setSafetyHubOpen] = useState(false);
   const [getHomeSafeOpen, setGetHomeSafeOpen] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
-  const [bioLabel, setBioLabel] = useState('Biometrics');
   const [lockEnabled, setLockEnabled] = useState(false);
+  const [radioTrackingOn, setRadioTrackingOn] = useState(false);
+
+  useEffect(() => {
+    isRadioTrackingEnabled().then(setRadioTrackingOn).catch(() => {});
+  }, []);
+
+  const handleToggleRadioTracking = useCallback(async (v) => {
+    setRadioTrackingOn(v);
+    await setRadioTrackingEnabled(v);
+    toast?.show(v ? 'Radio Proximity Tracking active 📡' : 'Radio Tracking paused', 'info');
+  }, [toast]);
 
   // Career & looks
   const [careerTitle, setCareerTitle] = useState(profile?.career_title || '');
@@ -373,6 +386,7 @@ export const SettingsScreen = ({
   return (
     <ErrorBoundary label="Settings" primary={primary}>
     <View style={[st.root, { backgroundColor: background }]}>
+      <LiquidBackground intensity={0.8} />
       {/* Header */}
       <View style={[st.header, { borderBottomColor: `${primary}18` }]}>
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -382,7 +396,62 @@ export const SettingsScreen = ({
         <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ maxWidth: 680, width: '100%', alignSelf: 'center', padding: 16, paddingBottom: 48 }}>
+        {/* UNIFIED ECOSYSTEM PASSPORT */}
+        <SectionCard icon="cpu" title="Ecosystem Passport & SSO" primary={primary} muted={muted} textColor={textColor}>
+          <View style={[st.ecoBanner, { borderColor: `${primary}30`, backgroundColor: `${primary}08` }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={[st.liveDot, { backgroundColor: '#10b981' }]} />
+                <Text style={[st.ecoTag, { color: primary }]}>UNIFIED DIGITALOCEAN CLOUD</Text>
+              </View>
+              <Text style={{ fontSize: 10, fontWeight: '800', color: '#10b981' }}>● SSO Synchronized</Text>
+            </View>
+            <Text style={{ color: muted, fontSize: 11, lineHeight: 15, marginTop: 4 }}>
+              Your verified profile, credentials and authentication synchronize automatically across all 3 platforms.
+            </Text>
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {ECOSYSTEM_APPS.map((app) => {
+                const isCurrent = app.id === 'thegruvs';
+                return (
+                  <TouchableOpacity
+                    key={app.id}
+                    onPress={() => isCurrent ? null : openUrl(app.url)}
+                    activeOpacity={isCurrent ? 1 : 0.75}
+                    style={[
+                      st.ecoAppRow,
+                      {
+                        borderColor: isCurrent ? `${primary}55` : 'rgba(255,255,255,0.08)',
+                        backgroundColor: isCurrent ? `${primary}14` : 'rgba(255,255,255,0.03)',
+                      }
+                    ]}
+                  >
+                    <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: `${app.color}20`, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontSize: 15 }}>{app.badge}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ color: textColor, fontWeight: '800', fontSize: 12.5 }}>{app.name}</Text>
+                        {isCurrent ? (
+                          <View style={{ backgroundColor: `${primary}25`, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
+                            <Text style={{ color: primary, fontSize: 8.5, fontWeight: '900' }}>CURRENT APP</Text>
+                          </View>
+                        ) : (
+                          <View style={{ backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
+                            <Text style={{ color: '#10b981', fontSize: 8.5, fontWeight: '900' }}>SSO LINKED</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={{ color: muted, fontSize: 10.5 }}>{app.tagline}</Text>
+                    </View>
+                    {!isCurrent && <Feather name="external-link" size={13} color={muted} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </SectionCard>
+
         {/* ACCOUNT */}
         <SectionCard icon="user" title="Account" primary={primary} muted={muted} textColor={textColor}>
           <LinkRow icon="edit-2" label="Edit profile" onPress={onEditProfile} primary={primary} muted={muted} textColor={textColor} />
@@ -419,6 +488,9 @@ export const SettingsScreen = ({
             primary={primary} muted={muted} textColor={textColor} />
           <ToggleRow label="Share events" sub="Show your event activity on your profile"
             value={shareEvents} onValueChange={(v) => writeField('share_events', v, setShareEvents, shareEvents)}
+            primary={primary} muted={muted} textColor={textColor} />
+          <ToggleRow label="Radio Proximity Tracking" sub="Get pinged when a friend passes by (~500m) to say hi"
+            value={radioTrackingOn} onValueChange={handleToggleRadioTracking}
             primary={primary} muted={muted} textColor={textColor} />
 
           {/* Panic — disappear from all presence instantly (#136) */}
@@ -671,10 +743,44 @@ const st = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 17, fontWeight: '900', letterSpacing: 0.3 },
-  section: { marginBottom: 16, padding: 14 },
+  section: {
+    marginBottom: 18,
+    padding: 16,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)' } : {}),
+  },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   sectionIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   sectionTitle: { fontSize: 14, fontWeight: '900' },
+  ecoBanner: {
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  ecoTag: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  ecoAppRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
   rowLabel: { fontSize: 13.5, fontWeight: '700' },
   rowSub: { fontSize: 11, marginTop: 2, lineHeight: 15 },

@@ -114,7 +114,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     try {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.85,
         videoMaxDuration: 60,
       });
@@ -209,11 +209,34 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 0.85,
       videoMaxDuration: 60,
     });
-    if (result.canceled || !result.assets?.length) return;
+    if (result.canceled || !result.assets?.length) {
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'video/*,image/*';
+        input.onchange = async (e) => {
+          const file = e.target?.files?.[0];
+          if (!file) return;
+          const uri = URL.createObjectURL(file);
+          const isVideo = file.type ? file.type.startsWith('video/') : /\.(mp4|mov|webm|3gp|mkv)/i.test(file.name);
+          setAsset({
+            uri,
+            fileName: file.name,
+            mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
+            fileSize: file.size,
+            __isVideo: isVideo,
+          });
+          setTrimEnd(30);
+          setStep('details');
+        };
+        input.click();
+      }
+      return;
+    }
     const picked = result.assets[0];
     // The `reels` bucket rejects anything over 100 MB server-side. Claiming 150 MB
     // here just let a too-big video through to fail later with a useless error.

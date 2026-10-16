@@ -20,6 +20,7 @@ import { GlitterBurst } from './GlitterBurst';
 import { escapeLike, findImpersonation } from '../utils/handleGuard';
 import { isLikelyBot } from '../utils/botCheck';
 import { CalendarPicker } from './DateTimePickers';
+import { ECOSYSTEM_APPS } from '../constants/ecosystemApps';
 
 const SCREEN_W = Dimensions.get('window').width;
 const HM = SCREEN_W < 375 ? 12 : 25;
@@ -257,20 +258,38 @@ export const AuthModal = ({ visible, onClose }) => {
   };
 
   const handleSignIn = async () => {
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password.trim()) {
-      setError('Please enter your email and password.');
-      return;
-    }
-    // Basic email format check before hitting the server
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setError('Please enter a valid email address.');
+    const rawInput = email.trim();
+    if (!rawInput || !password.trim()) {
+      setError('Please enter your email or username and password.');
       return;
     }
     setLoading(true);
     setError('');
+    let targetEmail = rawInput;
+    if (!rawInput.includes('@')) {
+      const cleanUsername = rawInput.replace(/^@/, '');
+      try {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('email')
+          .ilike('username', cleanUsername)
+          .maybeSingle();
+        if (prof?.email) {
+          targetEmail = prof.email;
+        } else {
+          targetEmail = `${cleanUsername.toLowerCase()}@thegruvs.com`;
+        }
+      } catch {
+        targetEmail = `${cleanUsername.toLowerCase()}@thegruvs.com`;
+      }
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawInput)) {
+      setError('Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: targetEmail, password });
       if (error) {
         const code = error.code || '';
         const msg  = (error.message || '').toLowerCase();
@@ -286,7 +305,7 @@ export const AuthModal = ({ visible, onClose }) => {
           // both return `invalid_credentials` instead. So anyone who sees this
           // has already proven they know the password for this address, and is
           // learning nothing new about whether it exists.
-          setUnconfirmedEmail(trimmedEmail);
+          setUnconfirmedEmail(targetEmail);
           setError('Your email address hasn\u2019t been confirmed yet.');
         } else if (error.status === 429 || code === 'over_request_rate_limit' || msg.includes('rate limit')) {
           // Telling someone their password is wrong when they are simply being
@@ -295,7 +314,7 @@ export const AuthModal = ({ visible, onClose }) => {
         } else {
           // Genuinely wrong credentials: stay generic, this is the case where
           // enumeration actually matters.
-          setError('Incorrect email or password. Please try again.');
+          setError('Incorrect credentials. Please verify your email/username and password.');
         }
         SecurityService.logSecurityEvent(null, 'AUTH_SIGNIN_FAILED', { error: error.message });
       } else {
@@ -586,9 +605,27 @@ export const AuthModal = ({ visible, onClose }) => {
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.sublabel, { color: muted, marginBottom: 10 }]}>
-              One account — the same login works on The Resident.
-            </Text>
+            {/* Unified Ecosystem SSO Vault */}
+            <View style={[styles.ecosystemCard, { borderColor: `${primary}30`, backgroundColor: 'rgba(255,255,255,0.03)' }]}>
+              <View style={styles.ecosystemHeaderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={[styles.ecosystemLiveDot, { backgroundColor: '#10b981' }]} />
+                  <Text style={[styles.ecosystemTitle, { color: primary }]}>ECOSYSTEM SSO VAULT</Text>
+                </View>
+                <Text style={[styles.ecosystemStatus, { color: '#10b981' }]}>● Sync Active</Text>
+              </View>
+              <Text style={[styles.ecosystemDesc, { color: muted }]}>
+                One credential unlocks The Gruvs, Excellency Academy & The Resident Crew.
+              </Text>
+              <View style={styles.ecosystemPills}>
+                {ECOSYSTEM_APPS.map((app) => (
+                  <View key={app.id} style={[styles.ecosystemPill, { borderColor: `${app.color}40`, backgroundColor: `${app.color}10` }]}>
+                    <Text style={{ fontSize: 11 }}>{app.badge}</Text>
+                    <Text style={[styles.ecosystemPillText, { color: textColor }]}>{app.name}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
 
             <View style={[styles.tabRow, { borderColor: `${primary}40` }]}>
               {['signin', 'signup'].map((m) => (
@@ -759,18 +796,20 @@ export const AuthModal = ({ visible, onClose }) => {
             {(mode === 'signin' || signupStep === 1) && (
             <>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: HM, marginBottom: 8 }}>
-              <Text style={[styles.label, { color: textColor, marginHorizontal: 0, marginBottom: 0 }]}>Email</Text>
+              <Text style={[styles.label, { color: textColor, marginHorizontal: 0, marginBottom: 0 }]}>
+                {mode === 'signin' ? 'Email or @Username' : 'Email'}
+              </Text>
               {email.length > 0 && (
                 <Feather
-                  name={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "check-circle" : "alert-triangle"}
+                  name={(mode === 'signin' && !email.includes('@')) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "check-circle" : "alert-triangle"}
                   size={14}
-                  color={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "#10b981" : "#ef4444"}
+                  color={(mode === 'signin' && !email.includes('@')) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "#10b981" : "#ef4444"}
                 />
               )}
             </View>
             <TextInput
               style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
-              placeholder="your@email.com"
+              placeholder={mode === 'signin' ? "your@email.com or @username (The Gruvs / Excellency / Resident)" : "your@email.com"}
               placeholderTextColor={muted}
               value={email}
               onChangeText={(t) => { setEmail(t); if (unconfirmedEmail) setUnconfirmedEmail(''); }}
@@ -1009,4 +1048,56 @@ const styles = StyleSheet.create({
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: HM, marginBottom: 14 },
   oauthBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
   oauthText: { fontSize: 13, fontWeight: '700' },
+  ecosystemCard: {
+    marginHorizontal: HM,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' } : {}),
+  },
+  ecosystemHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ecosystemLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  ecosystemTitle: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  ecosystemStatus: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  ecosystemDesc: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  ecosystemPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2,
+  },
+  ecosystemPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  ecosystemPillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
 });

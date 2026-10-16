@@ -38,7 +38,7 @@ const isEventTonight = (event) => {
   return eventDate === today;
 };
 
-export const TonightAlert = ({ events = [], onViewEvent }) => {
+export const TonightAlert = ({ events = [], onViewEvent, onNavigateToMap }) => {
   const { currentTheme } = useTheme();
   const [dismissed, setDismissed] = useState(false);
   const [checked, setChecked] = useState(false);
@@ -149,13 +149,18 @@ export const TonightAlert = ({ events = [], onViewEvent }) => {
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => {
-                        const q = encodeURIComponent(ev.venue_name || ev.address || 'Johannesburg');
-                        Linking.openURL(`https://maps.google.com/?q=${q}`);
+                        if (onNavigateToMap) {
+                          onNavigateToMap(ev);
+                        } else if (onViewEvent) {
+                          onViewEvent(ev);
+                        }
                       }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`View ${ev.title || 'event'} on local map`}
                       style={[styles.quickPassBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.15)' }]}
                     >
                       <Feather name="navigation" size={11} color="#fff" />
-                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>Nav</Text>
+                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>Local Nav</Text>
                     </TouchableOpacity>
                   </View>
                 </View>

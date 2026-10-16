@@ -194,20 +194,59 @@ export const CallOverlay = ({
         </View>
       )}
 
+      {/* Cyber HUD Header Telemetry */}
+      <View style={[cs.hudHeader, { borderColor: `${primary}30` }]}>
+        <View style={cs.hudTagRow}>
+          <View style={[cs.hudLiveDot, { backgroundColor: status === 'connected' ? '#10b981' : '#f59e0b' }]} />
+          <Text style={[cs.hudTagText, { color: primary }]}>
+            {status === 'connected' ? 'SECURE P2P WEBRTC // ENCRYPTED' : 'INITIALIZING QUANTUM FREQ...'}
+          </Text>
+        </View>
+        <Text style={[cs.hudCodecText, { color: 'rgba(255,255,255,0.45)' }]}>OPUS-HD · 48KHZ · LOW-LATENCY</Text>
+      </View>
+
       {/* Remote video fills the screen for a connected video call */}
       {video && remoteStream && status === 'connected' ? (
-        <View style={StyleSheet.absoluteFill}><StreamVideo stream={remoteStream} /></View>
+        <View style={StyleSheet.absoluteFill}>
+          <StreamVideo stream={remoteStream} />
+          {/* Cyber HUD Overlays on Remote Video */}
+          <View pointerEvents="none" style={cs.videoReticleOverlay}>
+            <View style={[cs.reticleCorner, cs.reticleTL, { borderColor: primary }]} />
+            <View style={[cs.reticleCorner, cs.reticleTR, { borderColor: primary }]} />
+            <View style={[cs.reticleCorner, cs.reticleBL, { borderColor: primary }]} />
+            <View style={[cs.reticleCorner, cs.reticleBR, { borderColor: primary }]} />
+          </View>
+        </View>
       ) : (
         <View style={cs.centerStage}>
-          <Animated.View style={{ transform: [{ scale: pulse }] }}>
-            {peer?.avatar_url
-              ? <SmartImage source={peer.avatar_url} style={cs.bigAvatar} />
-              : <View style={[cs.bigAvatar, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
-                  <Feather name="user" size={54} color={primary} />
-                </View>}
-          </Animated.View>
-          <Text style={cs.name}>{peer?.username || 'Viber'}</Text>
-          <Text style={cs.status}>{label}</Text>
+          {/* Futuristic Glowing Cyber Reticle */}
+          <View style={cs.avatarWrapper}>
+            <View style={[cs.cyberRing, { borderColor: `${primary}35` }]} />
+            <Animated.View style={{ transform: [{ scale: pulse }] }}>
+              {peer?.avatar_url
+                ? <SmartImage source={peer.avatar_url} style={cs.bigAvatar} />
+                : <View style={[cs.bigAvatar, { backgroundColor: `${primary}22`, alignItems: 'center', justifyContent: 'center' }]}>
+                    <Feather name="user" size={54} color={primary} />
+                  </View>}
+            </Animated.View>
+          </View>
+          <Text style={cs.name}>{peer?.username ? `@${peer.username.toUpperCase()}` : 'VIBER'}</Text>
+          <Text style={[cs.status, { color: primary }]}>{label}</Text>
+
+          {/* Sci-Fi Audio Waveform Visualizer */}
+          {status === 'connected' && (
+            <View style={cs.waveContainer}>
+              {[18, 32, 22, 40, 28, 36, 20].map((h, i) => (
+                <View
+                  key={i}
+                  style={[
+                    cs.waveBar,
+                    { height: h, backgroundColor: primary, shadowColor: primary, shadowOpacity: 0.8, shadowRadius: 6 },
+                  ]}
+                />
+              ))}
+            </View>
+          )}
         </View>
       )}
 
@@ -353,4 +392,19 @@ const cs = StyleSheet.create({
   quickModalOption: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', marginBottom: 10 },
   quickModalOptionText: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1 },
   quickModalCancel: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
+  hudHeader: { position: 'absolute', top: 28, alignSelf: 'center', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 14, backgroundColor: 'rgba(10,13,14,0.75)', borderWidth: 1, zIndex: 60 },
+  hudTagRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  hudLiveDot: { width: 7, height: 7, borderRadius: 3.5 },
+  hudTagText: { fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
+  hudCodecText: { fontSize: 8, fontWeight: '700', letterSpacing: 0.8 },
+  videoReticleOverlay: { ...StyleSheet.absoluteFillObject },
+  reticleCorner: { position: 'absolute', width: 24, height: 24, borderTopWidth: 2, borderLeftWidth: 2 },
+  reticleTL: { top: 30, left: 24 },
+  reticleTR: { top: 30, right: 24, transform: [{ rotate: '90deg' }] },
+  reticleBL: { bottom: 120, left: 24, transform: [{ rotate: '-90deg' }] },
+  reticleBR: { bottom: 120, right: 24, transform: [{ rotate: '180deg' }] },
+  avatarWrapper: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  cyberRing: { position: 'absolute', width: 146, height: 146, borderRadius: 73, borderWidth: 1.5, borderStyle: 'dashed' },
+  waveContainer: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 14, height: 42 },
+  waveBar: { width: 4, borderRadius: 2 },
 });
