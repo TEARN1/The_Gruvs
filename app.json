@@ -54,9 +54,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0d1112"
       },
-      "package": "com.thegruvs.app",
-      "versionCode": 3,
-      "googleServicesFile": "./google-services.json",
+      "package": "com.thegruvs_tearn",
+      "versionCode": 4,
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",

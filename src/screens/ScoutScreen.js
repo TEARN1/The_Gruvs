@@ -28,10 +28,14 @@ let RNMapView = null;
 let RNMarker = null;
 let RNCircle = null;
 if (Platform.OS !== 'web') {
-  const maps = require('react-native-maps');
-  RNMapView = maps.default;
-  RNMarker = maps.Marker;
-  RNCircle = maps.Circle;
+  try {
+    const maps = require('react-native-maps');
+    RNMapView = maps?.default || maps;
+    RNMarker = maps?.Marker;
+    RNCircle = maps?.Circle;
+  } catch {
+    // react-native-maps not linked or missing Google Play Services key — falls back to canvas map
+  }
 }
 
 const { width: SW } = Dimensions.get('window');
