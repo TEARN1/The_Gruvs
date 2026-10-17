@@ -22,7 +22,9 @@ import {
   PanResponder,
   Platform,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import { SmartImage } from './SmartImage';
 import { distanceKm } from '../utils/geo';
@@ -58,6 +60,11 @@ export function MapVenueDeck({
 }) {
   const { user } = useAuth();
   const { show: toast } = useToast();
+
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768;
+  const bottomOffset = isWide ? 0 : Math.max(insets.bottom || 0, 10) + 70;
 
   const [deckState, setDeckState] = useState('carousel'); // 'peek' | 'carousel' | 'expanded'
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -166,7 +173,7 @@ export function MapVenueDeck({
   }
 
   return (
-    <Animated.View style={[s.deckContainer, { height: animHeight, backgroundColor: 'rgba(10,14,16,0.96)' }]}>
+    <Animated.View style={[s.deckContainer, { height: animHeight, bottom: bottomOffset, backgroundColor: 'rgba(10,14,16,0.96)' }]}>
       {/* Deck Header & Grip Bar */}
       <TouchableOpacity
         style={s.gripBar}

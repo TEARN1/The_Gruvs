@@ -3030,10 +3030,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </SafeSection>
       )}
 
-      {/* Royal Journey Builder Floating Action */}
+      {/* Royal Journey Builder Floating Action (docked on bottom-left, balancing createFab on right) */}
       {routeEvents.length > 0 && (
         <TouchableOpacity
-          style={[styles.routeFab, { backgroundColor: primary }]}
+          style={[styles.routeFab, { backgroundColor: primary, bottom: Math.max((insets.bottom || 0) + 76, 86) }]}
           onPress={() => setRouteModalVisible(true)}
           activeOpacity={0.9}
         >
@@ -3074,10 +3074,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </View>
       )}
 
-      {/* ── Scroll-to-top button ─────────────────────────────────────────── */}
+      {/* ── Scroll-to-top button (stacked cleanly above createFab) ─────────────────── */}
       {showScrollTop && (
         <TouchableOpacity
-          style={[styles.scrollTopBtn, { backgroundColor: `${primary}22`, borderColor: `${primary}60`, bottom: (insets.bottom || 0) + 100 }]}
+          style={[styles.scrollTopBtn, { backgroundColor: `${primary}22`, borderColor: `${primary}60`, bottom: Math.max((insets.bottom || 0) + 76, 86) + 64 }]}
           onPress={() => {
             flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
             safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
@@ -3342,8 +3342,8 @@ const styles = StyleSheet.create({
   emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 30 },
   emptyBtnText: { fontWeight: '900', fontSize: 14, letterSpacing: 0.5 },
 
-  // Royal Journey FAB
-  routeFab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ffffff20', zIndex: 100 },
+  // Royal Journey FAB (docked bottom-left)
+  routeFab: { position: 'absolute', bottom: 86, left: 20, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ffffff20', zIndex: 100 },
   routeFabBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: "#ef4444", minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#000' },
   routeFabBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
   reactorsSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, paddingBottom: 0, maxHeight: '65%' },

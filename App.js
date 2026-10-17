@@ -116,12 +116,17 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const indicatorAnim = useRef(new Animated.Value(0)).current;
-  const tabWidth = width / TABS.length; // auto-scales with the visible tab count
+
+  // Accurately compute the floating dock's inner dimensions (width: '94%', maxWidth: 520, paddingHorizontal: 6)
+  const dockWidth = Math.min(width * 0.94, 520);
+  const innerPad = 6;
+  const dockInnerWidth = Math.max(0, dockWidth - (innerPad * 2));
+  const tabWidth = dockInnerWidth / TABS.length;
 
   useEffect(() => {
     const index = TABS.findIndex(t => t.key === currentTab);
-    const target = index * tabWidth + (tabWidth / 2) - 20;
-    if (!isNaN(target)) {
+    if (index >= 0 && !isNaN(tabWidth) && tabWidth > 0) {
+      const target = innerPad + index * tabWidth + 2;
       Animated.spring(indicatorAnim, {
         toValue: target,
         useNativeDriver: true,
@@ -131,23 +136,22 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
     }
   }, [currentTab, tabWidth]);
 
-  // Drag-to-scrub: glide a thumb across the bar to slide between sections
-  // (faster than aiming at one tab). Latest tab kept in a ref so the gesture
-  // only fires onTabChange when the tab under the finger actually changes.
+  // Drag-to-scrub: glide a thumb across the dock to slide between sections
   const currentTabRef = useRef(currentTab);
   currentTabRef.current = currentTab;
   const scrubToX = useCallback((pageX) => {
-    let idx = Math.floor(pageX / tabWidth);
+    const dockLeft = (width - dockWidth) / 2;
+    const relX = pageX - dockLeft - innerPad;
+    let idx = Math.floor(relX / tabWidth);
     idx = Math.max(0, Math.min(TABS.length - 1, idx));
     const key = TABS[idx].key;
     if (key !== currentTabRef.current) {
       try { Haptics.selectionAsync(); } catch {}
       onTabChange(key);
     }
-  }, [tabWidth, onTabChange]);
+  }, [width, dockWidth, tabWidth, onTabChange]);
 
   const panResponder = useMemo(() => PanResponder.create({
-    // Only hijack clearly-horizontal drags; taps still hit the tabs below.
     onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
     onPanResponderGrant: (e) => scrubToX(e.nativeEvent.pageX),
     onPanResponderMove: (e) => scrubToX(e.nativeEvent.pageX),
@@ -171,7 +175,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
             {
               backgroundColor: `${primary}20`,
               borderColor: `${primary}50`,
-              width: tabWidth - 12,
+              width: Math.max(0, tabWidth - 4),
               transform: [{ translateX: indicatorAnim }],
             },
           ]}

@@ -55,7 +55,7 @@
         "backgroundColor": "#0d1112"
       },
       "package": "com.thegruvs_tearn",
-      "versionCode": 4,
+      "versionCode": 5,
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",

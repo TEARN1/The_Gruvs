@@ -1726,7 +1726,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         {/* Create Reel FAB — anchored to the feed frame */}
         {user && (
           <TouchableOpacity
-            style={[rs.fab, { backgroundColor: primary, bottom: IS_WEB ? 24 : (insets.bottom || 16) + 16 }]}
+            style={[rs.fab, { backgroundColor: primary, bottom: IS_WEB ? 24 : Math.max((insets.bottom || 0) + 76, 86) }]}
             onPress={() => setCreateVisible(true)}
             activeOpacity={0.85}
           >
