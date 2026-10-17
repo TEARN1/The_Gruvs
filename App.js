@@ -1055,10 +1055,10 @@ export default function App() {
 
   const [forceLoaded, setForceLoaded] = useState(false);
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      const t = setTimeout(() => setForceLoaded(true), 1200); // shorter safety net
-      return () => clearTimeout(t);
-    }
+    // Safety net on all platforms: if font asset loading ever stalls or fails,
+    // ensure rendering proceeds within 1500ms rather than hanging on a blank spinner
+    const t = setTimeout(() => setForceLoaded(true), 1500);
+    return () => clearTimeout(t);
   }, []);
 
   if (!safeModeChecked || (!fontsLoaded && !forceLoaded)) {
