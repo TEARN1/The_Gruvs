@@ -37,6 +37,7 @@ import { money, priceLabel } from '../constants/currencies';
 import { buildVibeCardShareText } from '../utils/vibeCardShare';
 import { ViberSearchPickerModal } from './ViberSearchPickerModal';
 import { VideoStickerMakerModal } from './VideoStickerMakerModal';
+import { AnimatedChatBubble } from './AnimatedChatBubble';
 
 // Dynamic wrapper to break static circular import cycle
 const ViberProfileModal = (props) => {
@@ -992,7 +993,12 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
             </TouchableOpacity>
           )}
           <View style={{ flex: 1 }}>
-            <TouchableOpacity
+            <AnimatedChatBubble
+              isMine={isMine}
+              isSelected={isSelected}
+              isRecent={item.created_at ? (Date.now() - new Date(item.created_at).getTime() < 120000) : false}
+              primary={primary}
+              style={[isMine ? dm.bubbleMine : dm.bubbleTheirs]}
               onLongPress={() => {
                 if (isMultiSelectMode) return;
                 setSelectedMsgId(isSelected ? null : item.id);
@@ -1002,11 +1008,12 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
                 }
                 try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
               }}
-              onPress={() => {
+              onPress={(triggerEnergyWave) => {
                 const now = Date.now();
                 const last = lastTapRef.current[item.id] || 0;
                 if (now - last < 320) {
-                  // Double tap instant reaction!
+                  // Double tap instant reaction + holographic energy wave!
+                  triggerEnergyWave?.();
                   handleReact(item.id, '❤️');
                   try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
                   lastTapRef.current[item.id] = 0;
@@ -1024,8 +1031,6 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
                   setSelectedMsgId(null);
                 }
               }}
-              activeOpacity={0.85}
-              style={[isMine ? dm.bubbleMine : dm.bubbleTheirs]}
             >
               <View style={[
                 dm.bubbleInner,
@@ -1235,7 +1240,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
                   )}
                 </View>
               )}
-            </TouchableOpacity>
+            </AnimatedChatBubble>
           </View>
         </View>
 

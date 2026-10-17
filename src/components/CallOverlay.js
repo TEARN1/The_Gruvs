@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import { SmartImage } from './SmartImage';
 import { VIDEO_FILTERS } from '../utils/videoFilters';
+import { CyberScanline } from './Motion';
 
 let NativeRTCView = null;
 if (Platform.OS !== 'web') {
@@ -216,6 +217,7 @@ export const CallOverlay = ({
           <StreamVideo stream={remoteStream} />
           {/* Cyber HUD Overlays on Remote Video */}
           <View pointerEvents="none" style={cs.videoReticleOverlay}>
+            <CyberScanline color={primary} opacity={0.15} duration={3200} />
             <View style={[cs.reticleCorner, cs.reticleTL, { borderColor: primary }]} />
             <View style={[cs.reticleCorner, cs.reticleTR, { borderColor: primary }]} />
             <View style={[cs.reticleCorner, cs.reticleBL, { borderColor: primary }]} />

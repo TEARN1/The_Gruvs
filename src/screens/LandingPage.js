@@ -54,10 +54,11 @@ import { CheckInNudge } from '../components/CheckInNudge';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
-import { AnimatedCounter } from '../components/Motion';
+import { AnimatedCounter, CyberScanline } from '../components/Motion';
 import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PresenceBar } from '../components/PresenceBar';
+import { CyberRadarRefresh } from '../components/CyberRadarRefresh';
 import { AdFlywheel } from '../components/AdFlywheel';
 import { optimisticEngine } from '../services/optimisticEngine';
 import { EchoSection } from '../components/EchoSection';
@@ -2129,6 +2130,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // ── HEADER ──────────────────────────────────────────────────────────────────
   const renderHeader = () => (
     <View style={[styles.headerWrap, { borderBottomColor: `${primary}20` }]}>
+      <CyberScanline color={primary} opacity={0.12} duration={4500} />
       {/* Main Row: Logo + Search + Actions */}
       <View style={styles.mainRow}>
         <View style={styles.brandGroup}>
@@ -3060,18 +3062,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </SafeSection>
       )}
 
-      {/* ── Web pull-to-refresh indicator ────────────────────────────────── */}
-      {Platform.OS === 'web' && (pullDist > 0 || refreshing) && (
-        <View style={{
-          position: 'absolute', top: 10, alignSelf: 'center', zIndex: 60,
-          width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center',
-          backgroundColor: surface, borderWidth: 1.5,
-          borderColor: refreshing || pullDist > 80 ? primary : `${primary}35`,
-        }}>
-          {refreshing
-            ? <ActivityIndicator size="small" color={primary} />
-            : <Feather name="arrow-down" size={17} color={pullDist > 80 ? primary : muted} />}
-        </View>
+      {/* ── Futuristic Cyber Radar Sonar Pull-to-Refresh HUD ────────────────── */}
+      {(pullDist > 0 || refreshing) && (
+        <CyberRadarRefresh
+          refreshing={refreshing}
+          pullDist={pullDist}
+          threshold={80}
+          primary={primary}
+          textColor={textColor}
+          muted={muted}
+        />
       )}
 
       {/* ── Scroll-to-top button (stacked cleanly above createFab) ─────────────────── */}
