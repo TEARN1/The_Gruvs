@@ -724,6 +724,30 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             </TouchableOpacity>
           </View>
 
+          {/* Futuristic Cyber Telemetry HUD Bar (cleanly integrated under search, never overlapping filters) */}
+          {!drawing && (
+            <View pointerEvents="none" style={[cs.cyberTelemetryBar, { backgroundColor: 'rgba(8,12,14,0.85)', borderColor: `${primary}30` }]}>
+              <View style={cs.cyberHudItem}>
+                <View style={[cs.cyberHudDot, { backgroundColor: '#10b981' }]} />
+                <Text style={[cs.cyberHudText, { color: primary }]}>
+                  {center?.lat != null ? `${center.lat.toFixed(3)}°S, ${center.lng.toFixed(3)}°E` : 'GPS SYNCING'}
+                </Text>
+              </View>
+              <Text style={[cs.cyberHudDivider, { color: `${muted}40` }]}>|</Text>
+              <View style={cs.cyberHudItem}>
+                <Feather name="shield" size={10} color="#10b981" />
+                <Text style={[cs.cyberHudText, { color: textColor }]}>LOCAL GRID</Text>
+              </View>
+              <Text style={[cs.cyberHudDivider, { color: `${muted}40` }]}>|</Text>
+              <View style={cs.cyberHudItem}>
+                <Feather name="zap" size={10} color="#f59e0b" />
+                <Text style={[cs.cyberHudText, { color: textColor }]}>
+                  {shownEvents.length} {shownEvents.length === 1 ? 'NODE' : 'NODES'}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Quick Filter Pill Strip */}
           {isMapSupported() && !drawing && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -867,33 +891,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             <View style={[cs.reticleCorner, cs.reticleBR, { borderColor: `${primary}55` }]} />
           </View>
 
-          {/* Futuristic Cyber Telemetry HUD Bar */}
-          {!drawing && (
-            <View pointerEvents="none" style={[cs.cyberTelemetryBar, { backgroundColor: 'rgba(8,12,14,0.85)', borderColor: `${primary}30` }]}>
-              <View style={cs.cyberHudItem}>
-                <View style={[cs.cyberHudDot, { backgroundColor: '#10b981' }]} />
-                <Text style={[cs.cyberHudText, { color: primary }]}>
-                  {center?.lat != null ? `${center.lat.toFixed(3)}°S, ${center.lng.toFixed(3)}°E` : 'GPS SYNCING'}
-                </Text>
-              </View>
-              <Text style={[cs.cyberHudDivider, { color: `${muted}40` }]}>|</Text>
-              <View style={cs.cyberHudItem}>
-                <Feather name="shield" size={10} color="#10b981" />
-                <Text style={[cs.cyberHudText, { color: textColor }]}>LOCAL GRID</Text>
-              </View>
-              <Text style={[cs.cyberHudDivider, { color: `${muted}40` }]}>|</Text>
-              <View style={cs.cyberHudItem}>
-                <Feather name="zap" size={10} color="#f59e0b" />
-                <Text style={[cs.cyberHudText, { color: textColor }]}>
-                  {shownEvents.length} {shownEvents.length === 1 ? 'NODE' : 'NODES'}
-                </Text>
-              </View>
-            </View>
-          )}
-
           {/* Luminous Thumb Control Pod */}
           {isMapSupported() && !drawing && !activeZone && (
-            <View style={cs.thumbPod} pointerEvents="box-none">
+            <View style={[cs.thumbPod, { bottom: (!drawing && !activeZone && shownEvents.length > 0) ? 315 : 95 }]} pointerEvents="box-none">
               {/* Recenter GPS */}
               <TouchableOpacity
                 {...fx('glass rise', 0)}
@@ -1545,7 +1545,7 @@ const cs = StyleSheet.create({
   thumbPod: {
     position: 'absolute',
     right: 16,
-    bottom: 250,
+    bottom: 205,
     alignItems: 'center',
     gap: 10,
     zIndex: 36,
@@ -1810,14 +1810,14 @@ const cs = StyleSheet.create({
     height: 24,
   },
   reticleTL: {
-    top: 72,
+    top: 135,
     left: 12,
     borderTopWidth: 2,
     borderLeftWidth: 2,
     borderTopLeftRadius: 6,
   },
   reticleTR: {
-    top: 72,
+    top: 135,
     right: 12,
     borderTopWidth: 2,
     borderRightWidth: 2,
@@ -1838,16 +1838,13 @@ const cs = StyleSheet.create({
     borderBottomRightRadius: 6,
   },
   cyberTelemetryBar: {
-    position: 'absolute',
-    top: 66,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 14,
     borderWidth: 1,
-    zIndex: 10,
     gap: 8,
   },
   cyberHudItem: {

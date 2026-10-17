@@ -138,8 +138,8 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
     if (index < 0) return;   // a hidden tab (deep link): leave the bubble where it is
     // Clamped inside the bar: a bubble placed past its edge widened the page and
     // made phones zoom the whole app out (white strip down the right side).
-    const maxX = Math.max(BAR_PAD, bar.w - BAR_PAD - (tabWidth - 12));
-    const target = Math.min(maxX, Math.max(BAR_PAD, BAR_PAD + index * tabWidth + 6));
+    const maxX = Math.max(BAR_PAD, bar.w - BAR_PAD - (tabWidth - 4));
+    const target = Math.min(maxX, Math.max(BAR_PAD, BAR_PAD + index * tabWidth + 2));
     if (!isNaN(target)) {
       Animated.spring(indicatorAnim, {
         toValue: target,
@@ -150,9 +150,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
     }
   }, [currentTab, tabWidth, bar.w]);
 
-  // Drag-to-scrub: glide a thumb across the bar to slide between sections
-  // (faster than aiming at one tab). Latest tab kept in a ref so the gesture
-  // only fires onTabChange when the tab under the finger actually changes.
+  // Drag-to-scrub: glide a thumb across the dock to slide between sections
   const currentTabRef = useRef(currentTab);
   currentTabRef.current = currentTab;
   const scrubToX = useCallback((pageX) => {
@@ -166,7 +164,6 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
   }, [tabWidth, bar.x, onTabChange]);
 
   const panResponder = useMemo(() => PanResponder.create({
-    // Only hijack clearly-horizontal drags; taps still hit the tabs below.
     onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
     onPanResponderGrant: (e) => scrubToX(e.nativeEvent.pageX),
     onPanResponderMove: (e) => scrubToX(e.nativeEvent.pageX),
@@ -194,7 +191,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
             {
               backgroundColor: `${primary}20`,
               borderColor: `${primary}50`,
-              width: tabWidth - 12,
+              width: Math.max(0, tabWidth - 4),
               transform: [{ translateX: indicatorAnim }],
             },
           ]}
@@ -1093,10 +1090,10 @@ export default function App() {
 
   const [forceLoaded, setForceLoaded] = useState(false);
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      const t = setTimeout(() => setForceLoaded(true), 1200); // shorter safety net
-      return () => clearTimeout(t);
-    }
+    // Safety net on all platforms: if font asset loading ever stalls or fails,
+    // ensure rendering proceeds within 1500ms rather than hanging on a blank spinner
+    const t = setTimeout(() => setForceLoaded(true), 1500);
+    return () => clearTimeout(t);
   }, []);
 
   // Web never waits for the icon font: the static shell is already on screen

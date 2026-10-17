@@ -52,6 +52,7 @@ import { CarpoolBoard }           from '../components/CarpoolBoard';
 import { ResidentLiftsSection }   from '../components/ResidentLiftsSection';
 import { ResidentStaysSection }   from '../components/ResidentStaysSection';
 import { ResidentTrustBadge }     from '../components/ResidentTrustBadge';
+import { ExcellencyMasterclassSection } from '../components/ExcellencyMasterclassSection';
 import { EventContextualAds }     from '../components/EventContextualAds';
 import { EventFlyersSection }     from '../components/EventFlyersSection';
 import { EventScheduleSection }   from '../components/EventScheduleSection';
@@ -2145,6 +2146,24 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <SafeSection label="Stays" primary={primary}>
                 <View style={{ paddingHorizontal: 16 }}>
                   <ResidentStaysSection
+                    event={event}
+                    primary={primary}
+                    surface={surface}
+                    textColor={textColor}
+                    muted={textMuted}
+                  />
+                </View>
+              </SafeSection>
+            </>
+          )}
+
+          {/* Excellency Academy — Masterclasses & Talent Mentorship */}
+          {event?.id && (
+            <>
+              <View style={styles.sectionDivider} />
+              <SafeSection label="Excellency" primary={primary}>
+                <View style={{ paddingHorizontal: 16 }}>
+                  <ExcellencyMasterclassSection
                     event={event}
                     primary={primary}
                     surface={surface}

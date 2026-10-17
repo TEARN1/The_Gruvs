@@ -144,4 +144,75 @@ export const LiquidRefresh = ({ color = "#00f2ff", size = 26 }) => {
   );
 };
 
+// ── CyberScanline ────────────────────────────────────────────────────────────
+// A subtle futuristic horizontal laser beam / scanline that sweeps down a container.
+export const CyberScanline = ({ color = '#00f2ff', opacity = 0.15, duration = 3500 }) => {
+  const y = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reducedMotion()) return;
+    const loop = Animated.loop(
+      Animated.timing(y, {
+        toValue: 1,
+        duration,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [y, duration]);
+  const translateY = y.interpolate({ inputRange: [0, 1], outputRange: [-20, 400] });
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Animated.View
+        style={{
+          width: '100%',
+          height: 2,
+          backgroundColor: color,
+          opacity,
+          shadowColor: color,
+          shadowOpacity: 0.8,
+          shadowRadius: 4,
+          transform: [{ translateY }],
+        }}
+      />
+    </View>
+  );
+};
+
+// ── NeonGlowPulse ────────────────────────────────────────────────────────────
+// An ambient cyber border glow that breathes with energy.
+export const NeonGlowPulse = ({ color = '#00f2ff', children, style, radius = 18 }) => {
+  const g = useRef(new Animated.Value(0.25)).current;
+  useEffect(() => {
+    if (reducedMotion()) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(g, { toValue: 0.75, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        Animated.timing(g, { toValue: 0.25, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [g]);
+  return (
+    <Animated.View
+      style={[
+        {
+          borderRadius: radius,
+          borderWidth: 1.5,
+          borderColor: color,
+          shadowColor: color,
+          shadowOpacity: g,
+          shadowRadius: 10,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
 const mt = StyleSheet.create({ center: { alignItems: 'center', justifyContent: 'center' } });
+
