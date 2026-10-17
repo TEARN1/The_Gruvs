@@ -59,6 +59,7 @@ import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PresenceBar } from '../components/PresenceBar';
 import { CyberRadarRefresh } from '../components/CyberRadarRefresh';
+import { EcosystemUniverseBar } from '../components/EcosystemUniverseBar';
 import { AdFlywheel } from '../components/AdFlywheel';
 import { optimisticEngine } from '../services/optimisticEngine';
 import { EchoSection } from '../components/EchoSection';
@@ -2222,6 +2223,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       <StoriesRow onAuthRequired={onAuthRequired} />
 
       <CommunityStatsBar />
+      <EcosystemUniverseBar primary={primary} textColor={textColor} muted={muted} />
 
       {!!user && (
         <ErrorBoundary inline label="Check in">
