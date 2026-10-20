@@ -98,6 +98,10 @@ import { AnimatedCounter } from '../components/Motion';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { OpticalMoirePass, BorderTracer } from '../components/KasiIndustrialUI';
 import { deferred } from '../utils/deferred';
+import { EventClipsSection } from '../components/EventClipsSection';
+import { CreateReelModal } from '../components/CreateReelModal';
+import { ClipConversions } from '../services/clipConversions';
+import { ClipStatsPanel } from '../components/ClipStatsPanel';
 
 // Panels load on first open, not at app start (see src/utils/deferred.js).
 const DoorCodeModal = deferred(() => require('../components/DoorCodeModal').DoorCodeModal, 'DoorCodeModal');
@@ -175,7 +179,8 @@ const formatPrice = (price) => {
   return money(parsedFloat, { decimals: true });
 };
 
-export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) => {
+// onOpenReel(reelId): open the full-screen Reels player on a clip from this event.
+export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onOpenReel }) => {
   useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
@@ -234,6 +239,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [inviteVisible, setInviteVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
+  const [clipCreatorOpen, setClipCreatorOpen] = useState(false);
+  const [clipsRefresh, setClipsRefresh] = useState(0);
   const [mapVisible, setMapVisible] = useState(false);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [guestListBusy, setGuestListBusy] = useState(false);
@@ -634,7 +641,10 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     try {
       const ok = await RSVPManager.upsert(event.id, user.id, status);
       if (!ok) throw new Error('RSVP update failed');
-      if (status === 'going' || status === 'maybe') track('rsvp', { eventId: event.id, status });
+      if (status === 'going' || status === 'maybe') {
+        track('rsvp', { eventId: event.id, status });
+        ClipConversions.recordRsvp({ eventId: event.id, viewerId: user.id }); // credits the clip that sent them, if one did
+      }
       showToast(
         status === 'going' ? "You're Locked In!" : status === 'maybe' ? "Marked Maybe" : "Removed",
         'success'
@@ -964,6 +974,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 surface={surface}
                 triggerCapture={momentCaptureOpen}
                 onCaptureHandled={() => setMomentCaptureOpen(false)}
+              />
+            </SafeSection>
+          )}
+
+          {event?.id && (
+            <SafeSection label="Clips" primary={primary}>
+              <EventClipsSection
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                refreshKey={clipsRefresh}
+                onOpenReel={onOpenReel}
+                onAddClip={() => (user ? setClipCreatorOpen(true) : onAuthRequired?.())}
               />
             </SafeSection>
           )}
@@ -2281,6 +2305,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 textColor={textColor}
                 muted={textMuted}
               />
+              {/* Clips sell the night: post one, and see which ones filled it */}
+              <ClipStatsPanel
+                eventId={event.id}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                refreshKey={clipsRefresh}
+                onPostClip={() => setClipCreatorOpen(true)}
+              />
               {_isSportCat(event.category)
                 ? <SportManagementPanel
                     event={event}
@@ -2921,6 +2954,16 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           events={[event]}
           userCoords={userCoords}
           onSelectEvent={() => setMapVisible(false)}
+        />
+      )}
+
+      {/* "Add a clip" — the creator opens already tagged to this event */}
+      {clipCreatorOpen && (
+        <CreateReelModal
+          visible={clipCreatorOpen}
+          presetEvent={{ id: event.id, title: event.title, event_date: event.event_date }}
+          onClose={() => setClipCreatorOpen(false)}
+          onPosted={() => { setClipCreatorOpen(false); setClipsRefresh((n) => n + 1); }}
         />
       )}
       </View>

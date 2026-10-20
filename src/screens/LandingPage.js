@@ -3082,6 +3082,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             event={selectedEvent}
             onClose={() => setSelectedEvent(null)}
             onAuthRequired={onAuthRequired}
+            onOpenReel={onNavigateToReels ? (reelId) => { setSelectedEvent(null); onNavigateToReels(reelId); } : undefined}
           />
         </SafeSection>
       )}

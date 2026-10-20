@@ -140,6 +140,12 @@ jobs:
       - name: Verify view visibility modes (security_invoker)
         run: $PSQL -f supabase/test/view_security_test.sql
 
+      # Permissive SELECT policies are OR'd, so one that ignores visibility made
+      # every private reel public. Guests see settled clips only, deleted clips
+      # stay deleted, and clip → RSVP credit can only record what happened.
+      - name: Verify reel visibility + clip stats (RLS)
+        run: $PSQL -f supabase/test/reels_visibility_test.sql
+
       - name: Summary
         if: always()
         run: |

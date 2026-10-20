@@ -177,8 +177,8 @@ export const ReelsRepository = {
           // Tier 1: Detailed Join
           async () => {
             let qb = supabase.from('reels')
-              .select('id, caption, media_url, media_type, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, metadata, visibility, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
-              .eq('is_deleted', false).limit(30);
+              .select('id, caption, media_url, media_type, thumbnail_url, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, metadata, visibility, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
+              .eq('is_deleted', false).is('deleted_at', null).limit(30);
             if (tab === 'following' && followedIds.length) qb = qb.in('user_id', followedIds);
             if (hashtag) qb = qb.ilike('caption', likeContains(hashtag));
             qb = applyOrder(qb);

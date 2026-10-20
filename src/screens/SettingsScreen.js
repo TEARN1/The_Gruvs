@@ -45,6 +45,7 @@ import { GetAppModal } from '../components/GetAppModal';
 import { SecurityService } from '../services/securityService';
 import { ECOSYSTEM_APPS } from '../constants/ecosystemApps';
 import { isRadioTrackingEnabled, setRadioTrackingEnabled } from '../services/coPresence';
+import { DataSaverPicker } from '../components/DataSaverPicker';
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
@@ -651,6 +652,12 @@ export const SettingsScreen = ({
           <TouchableOpacity style={[st.cta, { backgroundColor: primary }]} onPress={saveCareer} disabled={savingCareer} activeOpacity={0.85}>
             {savingCareer ? <ActivityIndicator size="small" color="#000" /> : <Text style={st.ctaText}>Save Career Profile</Text>}
           </TouchableOpacity>
+        </SectionCard>
+
+        {/* DATA & VIDEO */}
+        <SectionCard icon="wifi" title="Data & video" primary={primary} muted={muted} textColor={textColor}>
+          <Text style={[st.subLabel, { color: muted, marginTop: 0 }]}>DATA SAVER</Text>
+          <DataSaverPicker primary={primary} textColor={textColor} muted={muted} />
         </SectionCard>
 
         {/* APPEARANCE */}
