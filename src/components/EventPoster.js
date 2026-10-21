@@ -43,7 +43,9 @@ export const EventPoster = ({ title, category, date, time, venue, color = '#00f2
 const ep = StyleSheet.create({
   wrap: { width: '100%', overflow: 'hidden', borderBottomWidth: 1, justifyContent: 'flex-end' },
   disc: { position: 'absolute' },
-  body: { padding: 18, gap: 6 },
+  // Extra room at the bottom: the feed card lays its "In N days" chip over
+  // the image's bottom-left corner, which sat on top of the venue line.
+  body: { padding: 18, paddingBottom: 44, gap: 6 },
   cat: { fontSize: 11, fontWeight: '900', letterSpacing: 2 },
   title: { color: '#fff', fontSize: 26, fontWeight: '900', lineHeight: 30, letterSpacing: -0.3 },
   rule: { width: 36, height: 3, borderRadius: 2, marginVertical: 4 },
