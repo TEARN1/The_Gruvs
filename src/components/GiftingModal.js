@@ -10,7 +10,7 @@ import {
   ActivityIndicator, Image, Platform, Linking, Dimensions,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MonetizationService } from '../services/monetizationService';

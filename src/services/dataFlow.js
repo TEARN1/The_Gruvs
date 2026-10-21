@@ -1353,7 +1353,7 @@ export const TrendingManager = {
       const weekEnd = endOfWeek.toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
-        .select('id, title, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at, profiles(username, avatar_url)')
+        .select('id, title, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at, profiles:author_id(username, avatar_url)')
         .gte('event_date', today)
         .lte('event_date', weekEnd)
         .is('deleted_at', null)

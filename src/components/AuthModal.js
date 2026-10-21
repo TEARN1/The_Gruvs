@@ -266,7 +266,14 @@ export const AuthModal = ({ visible, onClose }) => {
     setLoading(true);
     setError('');
     let targetEmail = rawInput;
-    if (!rawInput.includes('@')) {
+    // Signed-out visitors can't read profiles.email, so this lookup comes back
+    // empty for almost everyone and the guess below (<name>@thegruvs.com) is
+    // only right for accounts that were made with one. Remember whether the
+    // email was really found, so a failure can say "use your email" instead of
+    // a misleading "wrong password".
+    const byUsername = !rawInput.includes('@');
+    let usernameResolved = false;
+    if (byUsername) {
       const cleanUsername = rawInput.replace(/^@/, '');
       try {
         const { data: prof } = await supabase
@@ -276,6 +283,7 @@ export const AuthModal = ({ visible, onClose }) => {
           .maybeSingle();
         if (prof?.email) {
           targetEmail = prof.email;
+          usernameResolved = true;
         } else {
           targetEmail = `${cleanUsername.toLowerCase()}@thegruvs.com`;
         }
@@ -311,6 +319,9 @@ export const AuthModal = ({ visible, onClose }) => {
           // Telling someone their password is wrong when they are simply being
           // throttled makes them retry harder and dig the hole deeper.
           setError('Too many attempts \u2014 wait about a minute, then try again.');
+        } else if (byUsername && !usernameResolved) {
+          // Same message for every username, real or not, so it reveals nothing.
+          setError('Username sign-in isn\u2019t available from here yet. Please sign in with the email address you joined with.');
         } else {
           // Genuinely wrong credentials: stay generic, this is the case where
           // enumeration actually matters.
@@ -809,7 +820,7 @@ export const AuthModal = ({ visible, onClose }) => {
             </View>
             <TextInput
               style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
-              placeholder={mode === 'signin' ? "your@email.com or @username (The Gruvs / Excellency / Resident)" : "your@email.com"}
+              placeholder="your@email.com" /* username sign-in works for 1 of 41 accounts (see handleSignIn), so it is not advertised */
               placeholderTextColor={muted}
               value={email}
               onChangeText={(t) => { setEmail(t); if (unconfirmedEmail) setUnconfirmedEmail(''); }}

@@ -2403,7 +2403,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           async () => {
             const { data: d, error } = await supabase
               .from('events')
-              .select('*, profiles(username, avatar_url)')
+              // events links to profiles twice (author_id, user_id), so an unnamed
+              // embed fails for every viewer and this tab fell back to its degraded path.
+              .select('*, profiles:author_id(username, avatar_url)')
               .or(`author_id.eq.${user.id},user_id.eq.${user.id}`)
               .is('deleted_at', null)
               .neq('status', 'cancelled')
@@ -3200,7 +3202,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           </View>
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-            {/* Sensory Suite (Beacon & Survival) */}
+            {/* Sensory Suite (Beacon & Survival) — parked, see launchConfig */}
+            {feature('sensorySuite') && (
             <TouchableOpacity
               onPress={() => {
                 setHubGlitter((prev) => ({ ...prev, sensory: Date.now() }));
@@ -3225,6 +3228,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               <Text style={[styles.hubTileSub, { color: muted }]}>Beacon · 3AM Survival</Text>
               <ControlledGlitterBurst trigger={hubGlitter.sensory} count={12} radius={34} colors={['#ec4899', '#fde047', '#fff']} />
             </TouchableOpacity>
+            )}
 
             {/* Cultural Artifacts (Wristbands & Stubs) */}
             <TouchableOpacity

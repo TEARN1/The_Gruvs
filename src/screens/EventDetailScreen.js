@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, TextInput, ActivityIndicator, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
@@ -101,6 +101,7 @@ import { deferred } from '../utils/deferred';
 import { EventClipsSection } from '../components/EventClipsSection';
 import { CreateReelModal } from '../components/CreateReelModal';
 import { ClipConversions } from '../services/clipConversions';
+import { PendingIntent } from '../utils/pendingIntent';
 import { ClipStatsPanel } from '../components/ClipStatsPanel';
 
 // Panels load on first open, not at app start (see src/utils/deferred.js).
@@ -620,7 +621,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
   }, [visible, event?.id, fetchUserState, fetchAttendeePreview]);
 
   const handleRsvp = useCallback(async (status) => {
-    if (!user) { onAuthRequired?.(); return; }
+    // Signed out: remember the tap, so signing in finishes it (effect below).
+    if (!user) { PendingIntent.set('rsvp', { eventId: event?.id, status }); onAuthRequired?.(); return; }
     // Age gate (the only legal hard restriction): no positive RSVP to an 18+
     // Gruv when the user is under the limit.
     if (status === 'going' || status === 'maybe') {
@@ -659,6 +661,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
       setRsvpLoading(false);
     }
   }, [user, profile, rsvpStatus, rsvpLoading, event, onAuthRequired, showToast]);
+
+  // They tapped RSVP while signed out and have now signed in: do what they
+  // asked. Waits for the profile so the 18+ check sees their real birthday.
+  useEffect(() => {
+    if (!user?.id || !profile || !event?.id) return;
+    const wanted = PendingIntent.take('rsvp', (p) => p?.eventId === event.id);
+    if (wanted?.status) handleRsvp(wanted.status);
+  }, [user?.id, profile, event?.id, handleRsvp]);
 
   const handleAddToCalendar = useCallback(async () => {
     if (!event) return;
@@ -1183,6 +1193,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
                         <Text style={[styles.ticketValue, { color: textColor, fontSize: 13, fontWeight: '700' }]}>{parsed.other}</Text>
                       </View>
                     ) : null}
+                    {/* Prices with no way to buy, and no word on how, read like a
+                        broken button. Say only what we know. */}
+                    {!event?.ticket_url && (
+                      <Text style={{ color: textMuted, fontSize: 12, marginTop: 10 }}>
+                        No ticket link added yet.
+                      </Text>
+                    )}
                   </View>
                 );
           })()}

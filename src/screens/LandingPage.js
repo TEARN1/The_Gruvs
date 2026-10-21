@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition, Suspense } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler, useWindowDimensions } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,6 +46,7 @@ import { MasonryFeed } from '../components/MasonryFeed';
 import { ReelsRail } from '../components/ReelsRail';
 import { LazyCard } from '../components/LazyCard';
 import { feature } from '../constants/launchConfig';
+import { PendingIntent } from '../utils/pendingIntent';
 import { logError } from '../utils/logError';
 import { track } from '../utils/analytics';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
@@ -471,6 +472,7 @@ const EventCard = React.memo(({
               aspectRatio={event.poster_mode ? 3 / 4 : 4 / 3}
               fitToImage
               maxHeightRatio={1.5}
+              emptyPoster={{ title, category: event.category, date: event.event_date, time: event.event_time, venue: event.venue_name, color: catColor }}
               media={(() => {
               let m = event.media;
               if (!m?.length && event.media_urls?.length) {
@@ -671,20 +673,16 @@ const EventCard = React.memo(({
               </View>
             )}
 
-            {/* Crowd Thermal Meter Pill */}
-            <View style={[styles.crewBadge, { backgroundColor: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.35)' }]}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981', marginRight: 2 }} />
-              <Text style={[styles.crewBadgeText, { color: '#10b981' }]}>
-                {event.capacity ? `${goingPct > 70 ? '🟢 84% Inside · High Thermal' : '🟡 42% Inside · Warming Up'}` : '🟢 84% Inside'}
-              </Text>
-            </View>
-
-            {/* Daylight / Solar UV Protection Badge */}
+            {/* The "Crowd Thermal" pill that sat here printed a fixed "84% Inside"
+                or "42% Inside" on every card, events ten days out included, and
+                a "UV 8.4" badge printed the same number whatever the weather.
+                The heat pill above is the real signal (Touch Downs, then intent);
+                invented numbers undercut "Real nights, verified". */}
             {(event.category === 'day_party' || event.category === 'outdoor' || (event.event_time && parseInt(event.event_time) < 18)) && (
               <View style={[styles.crewBadge, { backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.35)' }]}>
                 <Feather name="sun" size={11} color="#f59e0b" />
                 <Text style={[styles.crewBadgeText, { color: '#f59e0b' }]}>
-                  ☀️ UV 8.4 · Peak Sun Protection
+                  Daytime · bring sunscreen
                 </Text>
               </View>
             )}
@@ -774,7 +772,7 @@ const EventCard = React.memo(({
                 <View style={styles.rsvpLabels}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <AvatarStack count={event.going || 0} primary={primary} />
-                    <Text style={[styles.rsvpText, { color: textColor }]}>{event.going || 0} going</Text>
+                    <Text style={[styles.rsvpText, { color: textColor }]}>{event.going ? `${event.going} going` : 'Be the first to go'}</Text>
                   </View>
                   {event.capacity - (event.going || 0) > 0 && (
                     <Text style={[styles.rsvpText, { color: muted }]}>
@@ -794,6 +792,13 @@ const EventCard = React.memo(({
                 <Feather name="tag" size={13} color={catColor} />
                 <Text style={[styles.ticketText, { color: catColor }]}>Get Tickets / RSVP</Text>
               </TouchableOpacity>
+            ) : (event.price && priceLabel(event.price) !== 'FREE') ? (
+              // 65 of 106 upcoming events showed a price with no way to pay and
+              // no word on how. Say only what we know: no ticket link was added.
+              <View style={[styles.ticketBtn, { borderColor: `${catColor}55` }]}>
+                <Feather name="info" size={13} color={muted} />
+                <Text style={[styles.ticketText, { color: muted }]}>No ticket link added yet</Text>
+              </View>
             ) : null}
 
             {/* 1-Tap Tactile Log-Drum RSVP button */}
@@ -807,7 +812,8 @@ const EventCard = React.memo(({
               ]}
               onPress={() => {
                 sensoryHaptics.triggerLogDrum('heavy');
-                user ? onRsvpEvent(event) : onAuthRequired();
+                if (user) onRsvpEvent(event);
+                else { PendingIntent.set('rsvp', { eventId: event.id, event }); onAuthRequired(); }
               }}
               activeOpacity={0.8}
               accessibilityRole="button"
@@ -957,7 +963,8 @@ const EventCard = React.memo(({
 
               <TouchableOpacity style={styles.actionBtn} onPress={() => {
                 safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
-                user ? onRsvpEvent(event) : onAuthRequired();
+                if (user) onRsvpEvent(event);
+                else { PendingIntent.set('rsvp', { eventId: event.id, event }); onAuthRequired(); }
               }}>
                 <Feather name="check-circle" size={19} color={muted} />
                 <Text style={[styles.actionLabel, { color: muted }]}>RSVP</Text>
@@ -1223,6 +1230,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // New feature modals
   const [editEvent, setEditEvent] = useState(null);
   const [rsvpEvent, setRsvpEvent] = useState(null);
+  // A guest tapped RSVP on a card, then signed in: open the RSVP sheet they
+  // were reaching for (they still confirm it — nothing is RSVP'd for them).
+  useEffect(() => {
+    if (!user?.id) return;
+    const wanted = PendingIntent.take('rsvp', (p) => !!p?.event);
+    if (wanted?.event) setRsvpEvent(wanted.event);
+  }, [user?.id]);
   const [reportTarget, setReportTarget] = useState(null);
   const [rouletteVisible, setRouletteVisible] = useState(false);
   const [sensoryModalVisible, setSensoryModalVisible] = useState(false);
@@ -2239,14 +2253,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           >
             <Feather name="compass" size={16} color={textColor} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
-            onPress={() => setSensoryModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Nightlife Sensory Suite"
-          >
-            <Feather name="zap" size={16} color="#00f2ff" />
-          </TouchableOpacity>
+          {feature('sensorySuite') && (
+            <TouchableOpacity
+              style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
+              onPress={() => setSensoryModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Nightlife Sensory Suite"
+            >
+              <Feather name="zap" size={16} color="#00f2ff" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: '#f59e0b35' }]}
             onPress={() => setCultureModalVisible(true)}

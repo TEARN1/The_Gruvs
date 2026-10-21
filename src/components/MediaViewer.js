@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Text, FlatList, TouchableOpacity, Dimensions, Animated, Platform } from 'react-native';
+import { EventPoster } from './EventPoster';
 import Feather from '@expo/vector-icons/Feather';
 import { AutoPlayVideo } from './AutoPlayVideo';
 import { SmartImage } from './SmartImage';
@@ -119,7 +120,9 @@ const HeartBurst = ({ onComplete }) => {
 };
 
 // ── Main MediaViewer ─────────────────────────────────────────────────────────
-export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', fitToImage = false, maxHeightRatio = null, eventId = null, onAuthRequired }) => {
+// emptyPoster: { title, category, date, time, venue, color } — drawn instead of
+// the "No photo added" box when the event has no picture at all.
+export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', fitToImage = false, maxHeightRatio = null, eventId = null, onAuthRequired, emptyPoster = null }) => {
   const { user } = useAuth();
   const [measuredWidth, setMeasuredWidth] = useState(containerWidth || SCREEN_WIDTH);
   // fitToImage: a poster/flyer should fill the frame with no letterbox bars and
@@ -161,6 +164,14 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
     setDownloadedKeys(prev => ({ ...prev, [key]: true }));
     setTimeout(() => setDownloadedKeys(prev => ({ ...prev, [key]: false })), 2000);
   }, []);
+
+  if ((!media || media.length === 0) && emptyPoster) {
+    return (
+      <View style={[s.container, { height: MEDIA_HEIGHT }]} onLayout={onLayout}>
+        <EventPoster {...emptyPoster} height={MEDIA_HEIGHT} />
+      </View>
+    );
+  }
 
   if (!media || media.length === 0) {
     return (

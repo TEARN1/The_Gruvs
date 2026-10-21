@@ -22,7 +22,7 @@ import { TalentEngine } from '../services/talentEngine';
 import { EditEventModal } from './EditEventModal';
 import { UserManager, PresenceManager, AuraService, PeopleInterestManager, isOnline as checkOnline } from '../services/dataFlow';
 import { SoundFX } from '../services/soundFX';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { isCallSupported } from '../services/webrtcCall';
 import { useCall } from '../context/CallContext';
 import { ReelsObservers } from '../services/reelsDataFlow';

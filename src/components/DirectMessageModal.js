@@ -16,7 +16,7 @@ import { useCall } from '../context/CallContext';
 import { SignedImage } from './SignedImage';
 import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { supabase } from '../services/supabase';
 import { SoundFX } from '../services/soundFX';
 import { resilientRead } from '../utils/resilience';

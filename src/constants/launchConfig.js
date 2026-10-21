@@ -60,6 +60,9 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   boothStreet:  false, // DJ drops, track ID, kota tracker, car-meet meter (local-only)
   proofOfSweat: false, // no sensor is read; everyone showed "VERIFIED"
   safetyExtras: false, // lost & found, shuttles, floor plan (sample data)
+  // Nightlife Sensory Suite: a door scanner with "Simulate valid / Simulate
+  // fake" buttons and a made-up headcount, one tap from The Drop's header.
+  sensorySuite: false,
   liveMap: true,
 } : {
   reelsRail: true, business: true, gifting: true, cashout: false, // still no payout rail — see the comment above
@@ -69,6 +72,7 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   liveMap: true,        // The Living Map — map_zones schema live
   // Demos stay parked in the full app too: they aren't real yet (see above).
   ticketVault: false, inPersonVibe: false, boothStreet: false, proofOfSweat: false, safetyExtras: false,
+  sensorySuite: false,
 };
 
 /** feature('business') → true when the surface is live. Unknown keys default on. */

@@ -6,7 +6,7 @@
  * On native, triggers synchronized precision haptics and safe audio chimes.
  */
 import { Platform } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from './haptics';
 
 let webAudioCtx = null;
 

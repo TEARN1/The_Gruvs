@@ -406,6 +406,10 @@ export const StoriesRow = ({ onAuthRequired }) => {
     }
   };
 
+  // A guest can't post a story, and an empty row with only "Your Story" in it
+  // pushed the first event further down The Drop for every new visitor.
+  if (!user && !grouped.length) return null;
+
   return (
     <>
       <ScrollView
@@ -418,7 +422,7 @@ export const StoriesRow = ({ onAuthRequired }) => {
           ? <View style={[sb.wrap, { justifyContent: 'center' }]}>
               <ActivityIndicator color={primary} />
             </View>
-          : <AddStoryBubble primary={primary} onPress={addStory} avatarUrl={profile?.avatar_url} />
+          : user ? <AddStoryBubble primary={primary} onPress={addStory} avatarUrl={profile?.avatar_url} /> : null
         }
         {grouped.map((g, i) => {
           const allSeen = g.stories.every(s => seenMap[s.id]);

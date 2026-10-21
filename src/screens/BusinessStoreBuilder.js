@@ -9,7 +9,7 @@ import {
   TextInput, ActivityIndicator, Modal, Alert, Animated,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { GlassView } from '../components/GlassView';

@@ -11,7 +11,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Animated, ScrollView,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 import { adSlotActive } from '../constants/adConfig';
 import { getEventPhaseKey, PHASE_META } from '../utils/eventPhase';

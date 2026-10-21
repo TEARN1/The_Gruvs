@@ -477,7 +477,7 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
     try {
       const { data } = await supabase
         .from('service_nodes')
-        .select('*, profiles(username, avatar_url, social_integrity_score)')
+        .select('*, profiles:user_id(username, avatar_url, social_integrity_score)')
         .eq('available', true)
         .order('created_at', { ascending: false });
       setProviders(data || []);
@@ -492,7 +492,7 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
     try {
       const { data } = await supabase
         .from('gig_posts')
-        .select('*, profiles(username, avatar_url, social_integrity_score)')
+        .select('*, profiles:user_id(username, avatar_url, social_integrity_score)')
         .eq('active', true)
         .order('created_at', { ascending: false });
       setGigs(data || []);
