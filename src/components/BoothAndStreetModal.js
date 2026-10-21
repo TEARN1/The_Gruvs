@@ -89,7 +89,7 @@ export function BoothAndStreetModal({
     triggerGlitter('play_booth');
     setIsPlayingAudio(prev => !prev);
     if (!isPlayingAudio) {
-      toast?.('Streaming 15-second live soundboard snippet from the booth! 🎧🔊', 'success');
+      toast?.('Streaming 15-second live soundboard snippet from the booth!', 'success');
       setTimeout(() => setIsPlayingAudio(false), 15000);
     }
   };
@@ -104,7 +104,7 @@ export function BoothAndStreetModal({
     });
     setNewTrackName('');
     loadData();
-    toast?.('Track ID submitted to live tracklist! 🎵', 'success');
+    toast?.('Track ID submitted to live tracklist!', 'success');
   };
 
   const handleLogSoundScore = async () => {
@@ -119,7 +119,7 @@ export function BoothAndStreetModal({
     });
     setSoundCarModel('');
     loadData();
-    toast?.(`Logged ${soundDb} dB for ${soundCarModel}! 🚗💥`, 'success');
+    toast?.(`Logged ${soundDb} dB for ${soundCarModel}!`, 'success');
   };
 
   return (
@@ -326,7 +326,7 @@ export function BoothAndStreetModal({
                       <Text style={{ color: muted, fontSize: 10.5 }}>{spot.perk} · ~{spot.distanceKm} km</Text>
                     </View>
                     <TouchableOpacity
-                      onPress={() => toast?.(`Routing to ${spot.name}! 🗺️`, 'success')}
+                      onPress={() => toast?.(`Routing to ${spot.name}!`, 'success')}
                       style={[styles.smallBtn, { backgroundColor: primary }]}
                     >
                       <Feather name="navigation" size={13} color="#000" />

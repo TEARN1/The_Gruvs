@@ -2656,9 +2656,9 @@ async function _notifyEventAuthor(eventId, actorId, type) {
       .maybeSingle();
     if (!event?.author_id || event.author_id === actorId) return;
     const messages = {
-      vibe: { title: 'New Vibe on your Gruv 🔥', body: `Someone Vibed "${event.title}"` },
+      vibe: { title: 'New Vibe on your Gruv', body: `Someone Vibed "${event.title}"` },
       rsvp: { title: 'New RSVP on your Gruv', body: `Someone locked in to "${event.title}"` },
-      checkin: { title: 'Someone Touched Down 📍', body: `A Vibe just Touched Down at "${event.title}"` },
+      checkin: { title: 'Someone Touched Down', body: `A Vibe just Touched Down at "${event.title}"` },
     };
     const msg = messages[type];
     if (!msg) return;
@@ -2755,7 +2755,7 @@ export const InviteManager = {
    */
   async inviteToEvent(eventId, eventTitle, recipientIds, hostId, hostName) {
     if (!eventId || !recipientIds?.length) return 0;
-    const title = 'You\'re invited 🎉';
+    const title = 'You\'re invited';
     const body = `${hostName || 'A host'} invited you to "${eventTitle || 'an event'}"`;
     let sent = 0;
     for (const rid of recipientIds) {
@@ -3446,7 +3446,7 @@ export const PresenceManager = {
         const name = me?.display_name || me?.username || 'A viber';
         const where = placeLabel ? ` at ${placeLabel}` : ' near you';
         await Promise.all(mutuals.map(rid =>
-          _notify(rid, userId, 'beacon', `${name} is out — pull up 📍`,
+          _notify(rid, userId, 'beacon', `${name} is out — pull up`,
             `${name} just went live${where}. Beacon is on for ${minutes} min.`).catch(() => {})
         ));
       } catch (e) { logError('Beacon.fanout', e, { userId }); }

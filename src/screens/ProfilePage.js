@@ -725,7 +725,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
                   {zodiac.sign.toUpperCase()} · {zodiac.element.toUpperCase()} ELEMENT
                 </Text>
                 <Text style={{ color: muted, fontSize: 10.5 }}>
-                  {daysToBday === 0 ? "🎉 Today is your special day!" : `⏳ ${daysToBday} days until next orbit`}
+                  {daysToBday === 0 ? "Today is your special day!" : `${daysToBday} days until next orbit`}
                 </Text>
               </View>
             </View>
@@ -1349,7 +1349,7 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
         <View style={{ paddingHorizontal: 16 }}>
           {displayed.length === 0 && !loading ? (
             <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-              <Text style={{ fontSize: 36 }}>📍</Text>
+              <Feather name="map-pin" size={34} color={primary} />
               <Text style={{ color: textColor, fontSize: 15, fontWeight: '800', marginTop: 12 }}>
                 No one found nearby
               </Text>
@@ -1542,7 +1542,7 @@ const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose, onClu
         <View style={[styles.modalSheet, { backgroundColor: surface }]}>
           {/* Header */}
           <View style={styles.modalHeaderRow}>
-            <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>⚔️ My Clubs</Text>
+            <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>My Clubs</Text>
             <TouchableOpacity onPress={onClose}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
           </View>
 
@@ -3083,7 +3083,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               activeOpacity={0.8}
             >
               <View {...fx('float', 1)} style={[styles.hubIconWrap, { borderColor: '#10b98150', backgroundColor: 'rgba(16,185,129,0.20)' }]}>
-                <Text style={{ fontSize: 16 }}>🏆</Text>
+                <Feather name="award" size={16} color="#10b981" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Sports & Cups</Text>
               <Text style={[styles.hubTileSub, { color: muted }]}>Top 32 & Fair Play</Text>
@@ -3111,7 +3111,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               activeOpacity={0.8}
             >
               <View {...fx('float', 2)} style={[styles.hubIconWrap, { borderColor: '#f59e0b50', backgroundColor: 'rgba(245,158,11,0.20)' }]}>
-                <Text style={{ fontSize: 16 }}>🍔</Text>
+                <Feather name="coffee" size={16} color="#f59e0b" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Kotas & Food</Text>
               <Text style={[styles.hubTileSub, { color: muted }]}>Late Night Kitchens</Text>
@@ -3137,7 +3137,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               activeOpacity={0.8}
             >
               <View {...fx('float', 3)} style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
-                <Text style={{ fontSize: 16 }}>🎂</Text>
+                <Feather name="gift" size={16} color="#ec4899" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Birthday Radar</Text>
               <Text style={[styles.hubTileSub, { color: muted }]}>Perks & Free Drinks</Text>
@@ -3671,7 +3671,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 </View>
               ))}
               {!!vibeCoachData.next_milestone && (
-                <Text style={{ color: primary, fontSize: 11, fontWeight: '700', marginTop: 4 }}>🎯 {vibeCoachData.next_milestone}</Text>
+                <Text style={{ color: primary, fontSize: 11, fontWeight: '700', marginTop: 4 }}>Next: {vibeCoachData.next_milestone}</Text>
               )}
             </>
           ) : (

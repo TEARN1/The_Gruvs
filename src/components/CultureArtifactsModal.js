@@ -254,7 +254,7 @@ export function CultureArtifactsModal({
                       <Text style={{ fontSize: 52 }}>🍾✨</Text>
                     </Animated.View>
                     <Text style={{ color: sparklerActive ? '#fbbf24' : muted, fontWeight: '900', fontSize: 14 }}>
-                      {sparklerActive ? '✨ VIP BOTTLE SPARKLER FIZZING ✨' : 'READY TO LIGHT VIP SPARKLER'}
+                      {sparklerActive ? 'VIP BOTTLE SPARKLER FIZZING' : 'READY TO LIGHT VIP SPARKLER'}
                     </Text>
                   </View>
 

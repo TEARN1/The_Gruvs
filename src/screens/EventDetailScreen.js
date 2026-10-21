@@ -677,7 +677,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
       if (result.success) {
         setCalendarAdded(true);
         await RichHaptics.success();
-        showToast('Gruv added to your calendar! 📅', 'success');
+        showToast('Gruv added to your calendar!', 'success');
       } else {
         showToast(result.error === 'Permission denied' ? 'Allow calendar access in Settings' : 'Could not add to calendar', 'error');
       }
@@ -714,7 +714,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
       if (res !== true) throw new Error('vibe failed');
       if (!wasVibed) {
         if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-        showToast('⚡ Vibe sent!', 'success');
+        showToast('Vibe sent!', 'success');
       }
     } catch {
       setHasVibed(wasVibed);
@@ -884,20 +884,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
         SoundFX.playChannel('touchDown'); // the hero sound — the signature moment, tone-pickable
         track('touch_down', { eventId: event.id, category: event.category });
-        showToast("Touched Down! Your footprint is lit. 🔥", 'success');
+        showToast("Touched Down! Your footprint is lit.", 'success');
         // Reveal who you keep crossing paths with — but only where there's enough
         // density for it to be magic (parked at launch; see launchConfig).
         if (feature('crossedPaths')) setCrossedVisible(true);
       } else if (await CheckinSync.queueFailed(event.id, user.id, privateCoords, { expiresAt: checkinExpiry, identityMode })) {
         setCheckedIn(true);
-        showToast("Bad signal — we'll log your Touch Down the moment you're back. 📍", 'info');
+        showToast("Bad signal — we'll log your Touch Down the moment you're back.", 'info');
       } else {
         showToast('Touch Down failed. Try again.', 'error');
       }
     } catch {
       if (await CheckinSync.queueFailed(event.id, user.id, {}, { identityMode })) {
         setCheckedIn(true);
-        showToast("Bad signal — we'll log your Touch Down the moment you're back. 📍", 'info');
+        showToast("Bad signal — we'll log your Touch Down the moment you're back.", 'info');
       } else {
         showToast('Touch Down failed. Try again.', 'error');
       }
@@ -1166,7 +1166,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
             if (!hasTiers) return null;
             return (
                   <View style={[styles.ticketSection, { backgroundColor: `${primary}06`, borderColor: `${primary}18` }]}>
-                    <Text style={[styles.ticketSectionTitle, { color: primary }]}>🎟️ TICKET OPTIONS</Text>
+                    <Text style={[styles.ticketSectionTitle, { color: primary }]}>TICKET OPTIONS</Text>
                     <View style={styles.ticketGrid}>
                       {parsed.general ? (
                         <View style={styles.ticketTier}>
@@ -1176,13 +1176,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
                       ) : null}
                       {parsed.vip ? (
                         <View style={styles.ticketTier}>
-                          <Text style={[styles.ticketLabel, { color: "#f59e0b" }]}>👑 VIP</Text>
+                          <Text style={[styles.ticketLabel, { color: "#f59e0b" }]}>VIP</Text>
                           <Text style={[styles.ticketValue, { color: "#f59e0b" }]}>{money(parseFloat(parsed.vip), { decimals: true })}</Text>
                         </View>
                       ) : null}
                       {parsed.vvip ? (
                         <View style={styles.ticketTier}>
-                          <Text style={[styles.ticketLabel, { color: "#d946ef" }]}>💎 VVIP</Text>
+                          <Text style={[styles.ticketLabel, { color: "#d946ef" }]}>VVIP</Text>
                           <Text style={[styles.ticketValue, { color: "#d946ef" }]}>{money(parseFloat(parsed.vvip), { decimals: true })}</Text>
                         </View>
                       ) : null}
@@ -1552,7 +1552,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
                     <Text style={{ color: textColor, fontWeight: '900', fontSize: 13 }}>{revealed ? 'Headliner revealed' : 'Secret headliner'}</Text>
                   </View>
                   {revealed ? (
-                    <Text style={{ color: '#fbbf24', fontWeight: '900', fontSize: 20 }}>🎤 {event.secret_act}</Text>
+                    <Text style={{ color: '#fbbf24', fontWeight: '900', fontSize: 20 }}>{event.secret_act}</Text>
                   ) : (
                     <>
                       <Text style={{ color: textColor, fontWeight: '900', fontSize: 20, letterSpacing: 4 }}>▓▓▓▓▓▓</Text>
@@ -2292,7 +2292,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
             <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}20` }}>
               {[
                 { key: 'info',    label: 'Info' },
-                ...(isOrganiser || isCoHost ? [{ key: 'manage', label: '⚙️ Manage' }] : []),
+                ...(isOrganiser || isCoHost ? [{ key: 'manage', label: 'Manage' }] : []),
                 { key: 'polls',   label: 'Polls' },
                 { key: 'playlist', label: 'Playlist' },
               ].map(tab => (
@@ -2529,7 +2529,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <Text style={[{ color: textColor, fontWeight: '700', fontSize: 14 }]}>{p.username}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                        <Text style={[{ color: primary, fontSize: 11, fontWeight: '600' }]}>⚡ {p.vibe_score || 0} pts</Text>
+                        <Text style={[{ color: primary, fontSize: 11, fontWeight: '600' }]}>{p.vibe_score || 0} pts</Text>
                         {p.social_integrity_score != null && (
                           <View style={[styles.sisBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
                             <Text style={{ color: primary, fontSize: 9, fontWeight: '700' }}>SIS {p.social_integrity_score}</Text>
@@ -2601,9 +2601,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
                             <View style={{ backgroundColor: '#10b98120', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                              <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '700' }}>📍 In Room</Text>
+                              <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '700' }}>In Room</Text>
                             </View>
-                            <Text style={{ color: primary, fontSize: 11, fontWeight: '600' }}>⚡ {p.vibe_score || 0} pts</Text>
+                            <Text style={{ color: primary, fontSize: 11, fontWeight: '600' }}>{p.vibe_score || 0} pts</Text>
                           </View>
                         </View>
                       </TouchableOpacity>
@@ -2933,7 +2933,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
                       await new Promise(r => setTimeout(r, 600));
                       setPitchSent(true);
                       setPitchModalOpen(false);
-                      showToast(`Pitch delivered to @${organizer?.username || 'Host'}! 🚀 We'll notify you when reviewed.`, 'success');
+                      showToast(`Pitch delivered to @${organizer?.username || 'Host'}! We'll notify you when reviewed.`, 'success');
                     } catch (e) {
                       showToast("Could not send pitch. Please try again.", 'error');
                     } finally {

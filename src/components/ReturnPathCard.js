@@ -185,7 +185,7 @@ export const ReturnPathCard = ({
     const memberNames = group.members.map(m => m.profiles?.username || 'Someone').join(', ');
     const deepLink = `gruvs://event/${event?.id}?group=${encodeURIComponent(group.neighbourhood)}`;
     const message =
-      `🚗 Safe Group Ride from ${group.neighbourhood}\n` +
+      `Safe Group Ride from ${group.neighbourhood}\n` +
       `Members: ${memberNames}\n` +
       `Join up: ${deepLink}`;
 

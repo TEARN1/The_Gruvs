@@ -116,7 +116,7 @@ const SIDEBAR_OPEN_WIDTH = 220;
 const SIDEBAR_CLOSED_WIDTH = 56;
 
 // ── Bottom Tab Bar (narrow screens) ──────────────────────────────────────────
-const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, unreadDMCount = 0 }) => {
+const TabBar = ({ currentTab, onTabChange, primary, muted, bg, textColor = '#fff', unreadCount = 0, unreadDMCount = 0 }) => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const indicatorAnim = useRef(new Animated.Value(0)).current;
@@ -131,7 +131,9 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
   const BAR_PAD = 6; // styles.tabBar.paddingHorizontal
   const tabWidth = Math.max(1, (bar.w - BAR_PAD * 2) / TABS.length);
   // Too narrow for every label (small phones): show the active tab's only.
-  const compactLabels = tabWidth < 50;
+  const compactLabels = tabWidth < 42;
+  // Seven tabs on a phone leave ~50px each, which cut "Vibe Card" to "Vibe Car".
+  const labelSize = tabWidth < 56 ? 9 : 10;
 
   useEffect(() => {
     const index = TABS.findIndex(t => t.key === currentTab);
@@ -175,8 +177,10 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
         style={[
           styles.tabBar,
           {
-            borderColor: `${primary}30`,
-            backgroundColor: bg ? `${bg}f0` : 'rgba(13,17,18,0.92)',
+            // Solid, not see-through: feed cards showing through the bar made
+            // the tabs hard to read.
+            borderColor: `${primary}55`,
+            backgroundColor: bg || '#0d1112',
           }
         ]}
         {...panResponder.panHandlers}
@@ -209,11 +213,13 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
               accessibilityState={{ selected: isActive }}
             >
               <View style={styles.tabIconWrap}>
+                {/* Inactive tabs used the muted colour AND 65% opacity on top,
+                    about a third of full strength: too faint on a phone outdoors. */}
                 <Feather
                   name={tab.icon}
-                  size={isActive ? 20 : 18}
-                  color={isActive ? primary : muted}
-                  style={{ opacity: isActive ? 1 : 0.65 }}
+                  size={isActive ? 21 : 19}
+                  color={isActive ? primary : textColor}
+                  style={{ opacity: isActive ? 1 : 0.82 }}
                 />
                 {tab.key === 'notifications' && unreadCount > 0 && (
                   <View
@@ -236,9 +242,10 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
                 style={[
                   styles.tabLabel,
                   {
-                    color: isActive ? primary : muted,
-                    fontWeight: isActive ? '900' : '600',
-                    opacity: isActive ? 1 : 0.7,
+                    color: isActive ? primary : textColor,
+                    fontWeight: isActive ? '900' : '700',
+                    opacity: isActive ? 1 : 0.82,
+                    fontSize: labelSize,
                   }
                 ]}
                 numberOfLines={1}
@@ -404,7 +411,7 @@ const MainNavigator = () => {
   const updateReady = useWebAppUpdate(); // web: a newer build was deployed
   const unreadCount = useUnreadCount();
   const unreadDMCount = useUnreadDMCount(
-    () => { if (currentTab !== 'chats') showToast('💬 New message in Linked Up', 'info'); }
+    () => { if (currentTab !== 'chats') showToast('New message in Linked Up', 'info'); }
   );
   const { hasLaunched, openTutorial, markLaunched, activeTutorial } = useTutorial();
   const [currentTab, setCurrentTab] = useState('feed');
@@ -986,6 +993,7 @@ const MainNavigator = () => {
                 primary={primary}
                 muted={muted}
                 bg={bg}
+                textColor={currentTheme?.text || '#fff'}
                 unreadCount={unreadCount}
                 unreadDMCount={unreadDMCount}
               />
@@ -1203,8 +1211,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    width: '94%',
-    maxWidth: 520,
+    width: '96%',
+    maxWidth: 560,
     height: 64,
     borderRadius: 32,
     borderWidth: 1,
@@ -1234,7 +1242,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabLabel: { fontSize: 10, letterSpacing: 0.2 },
+  tabLabel: { fontSize: 10, letterSpacing: 0 },
   unreadBadge: { position: 'absolute', top: -4, right: -8, minWidth: 15, height: 15, borderRadius: 7.5, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   unreadBadgeText: { color: '#fff', fontSize: 9, fontWeight: '900' },
 

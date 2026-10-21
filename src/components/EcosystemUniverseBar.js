@@ -61,7 +61,7 @@ export function EcosystemUniverseBar({
               ]}
               activeOpacity={0.82}
             >
-              <Text style={{ fontSize: 13 }}>{app.badge}</Text>
+              <Feather name={app.icon} size={14} color={isActive ? app.color : textColor} />
               <View style={styles.textWrap}>
                 <Text
                   style={[

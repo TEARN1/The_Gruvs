@@ -40,7 +40,7 @@ export function NightlifeTimeDial({
     const h = new Date().getHours();
     if (h >= 18 && h < 21) return { phase: 'SUNSET WARMUP', color: '#f59e0b', tag: 'PRE-GAME ACTIVE' };
     if (h >= 21 && h < 23) return { phase: 'DOORS & EARLY SETS', color: '#10b981', tag: 'SURGE BUILDING' };
-    if (h >= 23 || h < 2) return { phase: 'PEAK HEADLINERS', color: '#00f2ff', tag: 'MAXIMUM ENERGY // 🔥' };
+    if (h >= 23 || h < 2) return { phase: 'PEAK HEADLINERS', color: '#00f2ff', tag: 'MAXIMUM ENERGY //' };
     if (h >= 2 && h < 4) return { phase: 'UNDERGROUND AFTERS', color: '#a855f7', tag: 'WAREHOUSE PULSE' };
     return { phase: 'RECOVERY & RETURN', color: '#38bdf8', tag: 'SAFE RETURN ACTIVE' };
   }, []);

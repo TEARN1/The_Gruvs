@@ -1028,7 +1028,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       <FadeInView delay={300} direction="up">
         <View style={[styles.welcomeCard, { backgroundColor: `${primary}10`, borderColor: `${primary}30` }]}>
           <View style={styles.welcomeInfo}>
-            <Text style={[styles.welcomeTitle, { color: textColor }]}>Welcome, {user.user_metadata?.display_name || 'Viber'}! 👑</Text>
+            <Text style={[styles.welcomeTitle, { color: textColor }]}>Welcome, {user.user_metadata?.display_name || 'Viber'}!</Text>
             <Text style={[styles.welcomeSub, { color: muted }]}>You've unlocked the vibe economy. Find your first gruv or hire a crew today.</Text>
           </View>
           <TouchableOpacity 
@@ -1287,7 +1287,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {/* ── Rising Now (momentum) ───────────────────────────────────── */}
             {risingEvents.length > 0 && !activeCat && activeMoods.size === 0 && (
               <View style={{ marginBottom: 20 }}>
-                <SectionHeader title="📈 Rising Now" textColor={textColor} primary={primary} />
+                <SectionHeader title="Rising Now" textColor={textColor} primary={primary} />
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
                   {risingEvents.map((ev, i) => (
                     <FadeInView key={ev.id} delay={i * 40} direction="right">
@@ -1364,7 +1364,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                     >
                       <Feather name="map" size={24} color={primary} />
                       <Text style={[styles.emptyNearbyText, { color: textColor }]}>No gruvs within 50km yet.</Text>
-                      <Text style={[styles.emptyNearbySub, { color: muted }]}>Be the first to host one in your area! 🚀</Text>
+                      <Text style={[styles.emptyNearbySub, { color: muted }]}>Be the first to host one in your area!</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -1521,7 +1521,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {/* ── Birthdays today (people you follow) ──────────────────────── */}
             {birthdays.length > 0 && (
               <View style={{ marginBottom: 20 }}>
-                <SectionHeader title="🎂 Birthdays today" textColor={textColor} primary={primary} />
+                <SectionHeader title="Birthdays today" textColor={textColor} primary={primary} />
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
                   {birthdays.map((b) => (
                     <TouchableOpacity
@@ -1535,9 +1535,9 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                           ? <SmartImage source={{ uri: thumb.avatarLg(b.avatar_url) }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                           : <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>{(b.username || '?').slice(0, 1).toUpperCase()}</Text>}
                       </View>
-                      <Text style={{ position: 'absolute', top: -2, right: 6, fontSize: 18 }}>🎂</Text>
+                      <View style={{ position: 'absolute', top: 0, right: 6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#ec4899', alignItems: 'center', justifyContent: 'center' }}><Feather name="gift" size={11} color="#fff" /></View>
                       <Text style={{ color: textColor, fontSize: 11, fontWeight: '700', marginTop: 5 }} numberOfLines={1}>{b.username || 'viber'}</Text>
-                      <Text style={{ color: muted, fontSize: 9 }}>Wish them 🎉</Text>
+                      <Text style={{ color: muted, fontSize: 9 }}>Wish them</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -1549,7 +1549,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
             {/* ── Photo Gallery ───────────────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
-              <SectionHeader title="📸 Photos from Gruvs" textColor={textColor} primary={primary} />
+              <SectionHeader title="Photos from Gruvs" textColor={textColor} primary={primary} />
               {galleryLoading ? (
                 <View style={{ paddingVertical: 20, alignItems: 'center' }}>
                   <ActivityIndicator color={primary} />

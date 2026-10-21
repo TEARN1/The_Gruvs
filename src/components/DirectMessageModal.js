@@ -427,7 +427,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
         return `> **${senderName}**: ${m.body || '[Media/Shared Event]'}`;
       }).join('\n');
 
-      const shareText = `🔒 Shared messages from chat with ${recipient.username}:\n${formattedLines}`;
+      const shareText = `Shared messages from chat with ${recipient.username}:\n${formattedLines}`;
 
       await MessageManager.send(user.id, targetPartner.id, shareText);
       // `toast?.show(...)` threw here: optional chaining guards a null property,

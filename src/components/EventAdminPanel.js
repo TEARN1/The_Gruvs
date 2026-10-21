@@ -261,7 +261,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
           {/* Header */}
           <View style={ad.header}>
             <View style={{ flex: 1 }}>
-              <Text style={[ad.title, { color: primary }]}>📊 EVENT DASHBOARD</Text>
+              <Text style={[ad.title, { color: primary }]}>EVENT DASHBOARD</Text>
               <Text style={[ad.subtitle, { color: muted }]} numberOfLines={1}>
                 {event?.title || 'Your Event'}
               </Text>

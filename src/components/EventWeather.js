@@ -135,7 +135,7 @@ export const EventWeather = ({ event, primary, textColor, muted, surface }) => {
         </View>
         {isWet && (
           <View style={[w.advisory, { backgroundColor: '#06b6d420', borderColor: '#06b6d440' }]}>
-            <Text style={{ color: "#06b6d4", fontSize: 10, fontWeight: '700' }}>☂ Bring an umbrella</Text>
+            <Text style={{ color: "#06b6d4", fontSize: 10, fontWeight: '700' }}>Bring an umbrella</Text>
           </View>
         )}
       </View>

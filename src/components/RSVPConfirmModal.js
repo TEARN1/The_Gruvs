@@ -111,7 +111,7 @@ export const RSVPConfirmModal = ({ visible, onClose, event, onRsvped }) => {
                 <Feather name={OPTIONS.find(o => o.status === selected)?.icon || 'check'} size={40} color={OPTIONS.find(o => o.status === selected)?.color} />
               </View>
               <Text style={[s.doneTitle, { color: textColor }]}>
-                {selected === 'going' ? "You're going! 🎉" : selected === 'maybe' ? "Maybe see you there!" : "RSVP saved"}
+                {selected === 'going' ? "You're going!" : selected === 'maybe' ? "Maybe see you there!" : "RSVP saved"}
               </Text>
               <Text style={[s.doneSub, { color: muted }]}>
                 {selected === 'going'

@@ -299,7 +299,7 @@ export const NotificationService = {
         // Notify current user themselves
         await this.send(currentUserId, {
           type: 'event_day',
-          title: `🎉 Today's the day!`,
+          title: `Today's the day!`,
           body: `${event.title} is happening today. Check in when you arrive!`,
           eventId: event.id,
         });
@@ -327,7 +327,7 @@ export const NotificationService = {
 
             await this.send(rsvp.user_id, {
               type: 'event_day',
-              title: `🎉 Today's the day!`,
+              title: `Today's the day!`,
               body: `${event.title} is happening today. Check in when you arrive!`,
               eventId: event.id,
               actorId: currentUserId,
@@ -352,7 +352,7 @@ export const NotificationService = {
       for (const f of (followers || [])) {
         await this.send(f.user_id, {
           type: 'now_playing',
-          title: '🎵 Now Playing',
+          title: 'Now Playing',
           body,
           eventId,
         });
@@ -371,7 +371,7 @@ export const NotificationService = {
       for (const f of (followers || [])) {
         await this.send(f.user_id, {
           type: 'lineup_change',
-          title: '📋 Lineup Update',
+          title: 'Lineup Update',
           body: message,
           eventId,
         });
@@ -391,7 +391,7 @@ export const NotificationService = {
       for (const f of (followers || [])) {
         await this.send(f.user_id, {
           type: 'session_starting',
-          title: '🎤 Starting Now',
+          title: 'Starting Now',
           body,
           eventId,
         });
@@ -413,7 +413,7 @@ export const NotificationService = {
       for (const f of (followers || [])) {
         await this.send(f.user_id, {
           type: 'sport_goal',
-          title: `⚽ GOAL! ${scoringTeam}`,
+          title: `GOAL! ${scoringTeam}`,
           body: matchLine,
           eventId,
         });
@@ -434,7 +434,7 @@ export const NotificationService = {
       for (const f of (followers || [])) {
         await this.send(f.user_id, {
           type: 'sport_result',
-          title: `🏁 Full Time: ${resultLabel}`,
+          title: `Full Time: ${resultLabel}`,
           body: scoreLine,
           eventId,
         });
@@ -456,7 +456,7 @@ export const NotificationService = {
       for (const f of (followers || [])) {
         await this.send(f.user_id, {
           type: 'sport_fixture',
-          title: `📅 Fixture: ${homeTeam} vs ${awayTeam}`,
+          title: `Fixture: ${homeTeam} vs ${awayTeam}`,
           body: when ? `Scheduled for ${when}` : 'New fixture added',
           eventId,
         });

@@ -77,7 +77,7 @@ export const InviteByNameModal = ({ visible, onClose, event }) => {
     try {
       const hostName = user?.user_metadata?.username || terms.firstName || 'A host';
       const n = await InviteManager.inviteToEvent(event.id, event.title, [...selected], user?.id, hostName);
-      toast?.show?.(n > 0 ? `Invited ${n} ${n === 1 ? 'person' : 'people'} 🎉` : 'Could not send invites.', n > 0 ? 'success' : 'error');
+      toast?.show?.(n > 0 ? `Invited ${n} ${n === 1 ? 'person' : 'people'}` : 'Could not send invites.', n > 0 ? 'success' : 'error');
       if (n > 0) onClose?.();
     } catch (e) {
       toast?.show?.(e?.message || 'Could not send invites.', 'error');

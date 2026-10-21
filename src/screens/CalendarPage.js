@@ -634,8 +634,8 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 8 }}>
           {[
             { key: 'all',      label: 'All Gruvs' },
-            { key: 'my_rsvps', label: '⚡ Locked In' },
-            { key: 'free',     label: '🎫 Free' },
+            { key: 'my_rsvps', label: 'Locked In' },
+            { key: 'free',     label: 'Free' },
           ].map(f => (
             <TouchableOpacity
               key={f.key}

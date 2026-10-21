@@ -114,7 +114,7 @@ export function TicketVaultExchangeModal({
       tier: 'General / VIP',
     });
     loadData();
-    toast?.('Ticket cryptographically vaulted for offline entry! 🎟️', 'success');
+    toast?.('Ticket cryptographically vaulted for offline entry!', 'success');
   };
 
   const handleListResale = async () => {
@@ -136,7 +136,7 @@ export function TicketVaultExchangeModal({
     triggerGlitter(`buy_${listingId}`);
     await TicketVaultService.purchaseResaleTicket(listingId, user?.id || 'buyer');
     loadData();
-    toast?.(`Purchased! Old QR revoked, new secure pass minted for R${price}! 🎉`, 'success');
+    toast?.(`Purchased! Old QR revoked, new secure pass minted for R${price}!`, 'success');
   };
 
   const handleUpdateQueue = async () => {
@@ -173,7 +173,7 @@ export function TicketVaultExchangeModal({
       amountZar: 250,
     });
     loadData();
-    toast?.('Added R250 to table kitty! 🍾', 'success');
+    toast?.('Added R250 to table kitty!', 'success');
   };
 
   const handleCreateEscrow = async () => {
@@ -189,21 +189,21 @@ export function TicketVaultExchangeModal({
     });
     setEscrowArtist('');
     loadData();
-    toast?.(`R${escrowFee} locked in Talent Escrow for ${escrowArtist}! 🔒`, 'success');
+    toast?.(`R${escrowFee} locked in Talent Escrow for ${escrowArtist}!`, 'success');
   };
 
   const handleReleaseEscrow = async (escrowId, name) => {
     triggerGlitter(`release_${escrowId}`);
     await TicketVaultService.releaseTalentEscrow(escrowId);
     loadData();
-    toast?.(`Set verified! Performance fee paid directly to ${name}'s wallet! 💸`, 'success');
+    toast?.(`Set verified! Performance fee paid directly to ${name}'s wallet!`, 'success');
   };
 
   const handleShareBounty = (bounty) => {
     triggerGlitter(`bounty_${bounty.id}`);
     const link = `https://thegruvs.com/events/${event.id}?ref=${user?.id || 'promo'}`;
     if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(`🔥 Catch me at ${event.title}! RSVP here: ${link}`).catch(() => {});
+      navigator.clipboard.writeText(`Catch me at ${event.title}! RSVP here: ${link}`).catch(() => {});
     }
     toast?.(`Referral link copied! Earn ${bounty.reward_per_checkin} coins for every friend who checks in!`, 'success');
   };

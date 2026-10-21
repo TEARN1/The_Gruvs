@@ -45,14 +45,14 @@ const AGE_MIN_OPTIONS = [0, 13, 16, 18, 21, 25, 30, 35];
 const AGE_MAX_OPTIONS = [0, 17, 20, 25, 30, 35, 45, 99]; // 0 = no upper limit
 
 const VIBE_RULES_OPTIONS = [
-  '🧊 No Cooler Box Fee',
-  '💨 Hubbly / Shisha Allowed',
-  '🎹 Strictly Amapiano & Deep House',
-  '🛡️ Heavy Security / Metal Detector at Gate',
-  '🥩 Kasi Kota & Braai Stalls On-Site',
-  '👗 Dress Code: Streetwear / Smart Casual',
-  '🚫 No Under 21s After 10 PM',
-  '🚗 Secured Kasi Car Park Marshals',
+  'No Cooler Box Fee',
+  'Hubbly / Shisha Allowed',
+  'Strictly Amapiano & Deep House',
+  'Heavy Security / Metal Detector at Gate',
+  'Kasi Kota & Braai Stalls On-Site',
+  'Dress Code: Streetwear / Smart Casual',
+  'No Under 21s After 10 PM',
+  'Secured Kasi Car Park Marshals',
 ];
 
 export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) => {
@@ -1467,7 +1467,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                       marginBottom: 10,
                       gap: 6,
                     }}>
-                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>💡 Secret Headliner Examples:</Text>
+                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Secret Headliner Examples:</Text>
                       <Text style={{ color: muted, fontSize: 11, lineHeight: 16 }}>
                         Keep surprise features hidden on the event page until your RSVPs reach a target threshold!
                       </Text>
@@ -2396,7 +2396,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                         {otherTickets ? `(${otherTickets})` : ''}
                       </Text>
                     ) : (
-                      <Text style={[pm.summaryLine, { color: muted }]}>🎟️ FREE entry</Text>
+                      <Text style={[pm.summaryLine, { color: muted }]}>FREE entry</Text>
                     )}
                     {ageMin > 0 && (
                       <Text style={[pm.summaryLine, { color: muted }]}>
@@ -2472,7 +2472,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                         ? (tourProgress
                             ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><ActivityIndicator color="#000" /><Text style={pm.postBtnText}>{tourProgress}</Text></View>
                             : <ActivityIndicator color="#000" />)
-                        : <Text style={pm.postBtnText}>{isTour ? 'ANNOUNCE TOUR 👑' : 'ANNOUNCE EVENT 👑'}</Text>
+                        : <Text style={pm.postBtnText}>{isTour ? 'ANNOUNCE TOUR' : 'ANNOUNCE EVENT'}</Text>
                       }
                     </TouchableOpacity>
                   </View>

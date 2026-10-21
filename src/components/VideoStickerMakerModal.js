@@ -176,7 +176,7 @@ export function VideoStickerMakerModal({
             <Text style={[styles.sectionLabel, { color: muted }]}>CAPTION TEXT (OPTIONAL)</Text>
             <TextInput
               style={[styles.captionInput, { color: textColor, backgroundColor: surface, borderColor: `${primary}30` }]}
-              placeholder="e.g. MOOD TONIGHT 🔥"
+              placeholder="e.g. MOOD TONIGHT"
               placeholderTextColor="rgba(255,255,255,0.35)"
               value={stickerCaption}
               onChangeText={setStickerCaption}

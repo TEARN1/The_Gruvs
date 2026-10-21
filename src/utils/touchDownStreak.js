@@ -36,7 +36,7 @@ export function buildTouchDownStreak(checkinDates = [], now = Date.now()) {
   const alive = anchor !== null;
 
   let message;
-  if (current >= 2) message = `🔥 ${current} weekends running${thisWeekendOut ? '' : ' — keep it alive this weekend'}`;
+  if (current >= 2) message = `${current} weekends running${thisWeekendOut ? '' : ' — keep it alive this weekend'}`;
   else if (thisWeekendOut)  message = 'You started a streak — nice';
   else if (alive)           message = 'One more weekend keeps it going';
   else                      message = 'Your next night out starts a streak';

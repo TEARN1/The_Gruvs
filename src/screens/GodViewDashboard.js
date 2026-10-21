@@ -172,7 +172,7 @@ export const GodViewDashboard = ({ visible, onClose }) => {
             Truth Protocol applies to the admin view too: never read sim as real. */}
         <View style={{ backgroundColor: '#f59e0b18', borderColor: '#f59e0b55', borderWidth: 1, borderRadius: 12, padding: 10, marginBottom: 12 }}>
           <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '800' }}>
-            ⚠️ SIMULATED — these figures are generated locally for modelling, not live data. Don’t base real decisions on them yet.
+SIMULATED — these figures are generated locally for modelling, not live data. Don’t base real decisions on them yet.
           </Text>
         </View>
 
@@ -224,7 +224,7 @@ export const GodViewDashboard = ({ visible, onClose }) => {
           {modLoading ? (
             <ActivityIndicator color={primary} style={{ marginVertical: 14 }} />
           ) : modQueue.length === 0 ? (
-            <Text style={{ color: muted, fontSize: 11, paddingVertical: 8 }}>Nothing hidden — queue is clear. ✅</Text>
+            <Text style={{ color: muted, fontSize: 11, paddingVertical: 8 }}>Nothing hidden — queue is clear.</Text>
           ) : modQueue.map(item => (
             <GlassView key={`${item.type}-${item.id}`} style={[s.governorCard, { marginBottom: 8 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>

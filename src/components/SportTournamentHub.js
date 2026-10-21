@@ -154,9 +154,9 @@ export function SportTournamentHub({
       minute: "84'",
       status: 'LIVE',
       events: [
-        { min: "82'", text: "GOAL! Sipho header into top right corner (3-2) ⚽" },
-        { min: "65'", text: "Yellow card for tackle on edge of box 🟨" },
-        { min: "44'", text: "GOAL! Jozi Dribblers equalizer via penalty (2-2) ⚽" },
+        { min: "82'", text: "GOAL! Sipho header into top right corner (3-2)" },
+        { min: "65'", text: "Yellow card for tackle on edge of box" },
+        { min: "44'", text: "GOAL! Jozi Dribblers equalizer via penalty (2-2)" },
       ],
     },
     {
@@ -168,7 +168,7 @@ export function SportTournamentHub({
       minute: 'Set 3 (5-4)',
       status: 'MATCH POINT',
       events: [
-        { min: 'Set 3', text: 'Break point won by Diepkloof Aces 🎾' },
+        { min: 'Set 3', text: 'Break point won by Diepkloof Aces' },
       ],
     },
   ]);
@@ -618,7 +618,7 @@ export function SportTournamentHub({
               <View style={{ gap: 12 }}>
                 <Text style={[styles.sectionTitle, { color: muted }]}>SPECTATOR BRACKET PREDICTIONS</Text>
                 <View style={[styles.fairPlayCard, { borderColor: '#8b5cf650', backgroundColor: 'rgba(139,92,246,0.08)' }]}>
-                  <Text style={{ color: textColor, fontSize: 13, fontWeight: '900' }}>Pick Matchup Winners · Win Coins 🎯</Text>
+                  <Text style={{ color: textColor, fontSize: 13, fontWeight: '900' }}>Pick Matchup Winners · Win Coins</Text>
                   <Text style={{ color: muted, fontSize: 11 }}>Lock your prediction before the final whistle. Correct picks earn 50 Coins!</Text>
                 </View>
 
@@ -632,7 +632,7 @@ export function SportTournamentHub({
                           onPress={() => {
                             setPredictionGlitters(prev => ({ ...prev, [`${m.id}_A`]: Date.now() }));
                             setPredictions(prev => ({ ...prev, [m.id]: m.teamA }));
-                            toast(`Prediction locked: ${m.teamA} to win! 🎯`, 'success');
+                            toast(`Prediction locked: ${m.teamA} to win!`, 'success');
                           }}
                           style={[
                             styles.teamActionBtn,
@@ -654,7 +654,7 @@ export function SportTournamentHub({
                           onPress={() => {
                             setPredictionGlitters(prev => ({ ...prev, [`${m.id}_B`]: Date.now() }));
                             setPredictions(prev => ({ ...prev, [m.id]: m.teamB }));
-                            toast(`Prediction locked: ${m.teamB} to win! 🎯`, 'success');
+                            toast(`Prediction locked: ${m.teamB} to win!`, 'success');
                           }}
                           style={[
                             styles.teamActionBtn,
