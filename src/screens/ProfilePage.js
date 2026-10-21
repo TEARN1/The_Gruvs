@@ -2244,6 +2244,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const [profileVaultVisible, setProfileVaultVisible] = useState(false);
   const [profileSafetyVisible, setProfileSafetyVisible] = useState(false);
   const [profileSensoryVisible, setProfileSensoryVisible] = useState(false);
+  // The tools & dashboards group under the profile: closed by default, so the
+  // profile itself and your posts come first.
+  const [hubOpen, setHubOpen] = useState(false);
   const [profileCultureVisible, setProfileCultureVisible] = useState(false);
   const [hubGlitter, setHubGlitter] = useState({});
   const [whoWasThereVisible, setWhoWasThereVisible] = useState(false);
@@ -3169,6 +3172,121 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           <VibeLevel score={vibeScore} primary={primary} muted={muted} textColor={textColor} />
         </View>
 
+        {/* Quick actions — the few things people open every visit stay up top */}
+        {/* Find Me / Find Them buttons */}
+        <View style={styles.findRow}>
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setSubView('findme')}
+          >
+            <Feather name="user-check" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Find Me</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setSubView('findthem')}
+          >
+            <Feather name="users" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Find Them</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setWhoWasThereVisible(true)}
+          >
+            <Feather name="clock" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>History</Text>
+          </TouchableOpacity>
+          {/* Crossed Paths needs crowd density to feel alive — parked by the
+              Focus Cut. This entry point was missing its flag check. */}
+          {feature('crossedPaths') && (
+            <TouchableOpacity
+              style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+              onPress={() => user ? setCrossedPathsVisible(true) : onAuthRequired()}
+            >
+              <Feather name="shuffle" size={16} color={primary} />
+              <Text style={[styles.findBtnText, { color: primary }]}>Crossed</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.findRow}>
+          {!LAUNCH_MINIMAL && (
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={async () => {
+              const passed = await BiometricAuth.gate('Confirm your identity to open Wallet');
+              if (passed) { await RichHaptics.tap(); setWalletVisible(true); }
+            }}
+          >
+            <Feather name="wallet" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Wallet</Text>
+          </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setTicketsVisible(true)}
+          >
+            <Feather name="ticket" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Tickets</Text>
+          </TouchableOpacity>
+
+          {!LAUNCH_MINIMAL && (
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setProviderDashVisible(true)}
+          >
+            <Feather name="briefcase" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Hub</Text>
+          </TouchableOpacity>
+          )}
+
+          {!LAUNCH_MINIMAL && (profile?.vibe_score >= 500) && (
+            <TouchableOpacity
+              style={[styles.findBtn, { backgroundColor: '#FFD70018', borderColor: '#FFD70040' }]}
+              onPress={() => setSubView('council')}
+            >
+              <Feather name="shield" size={16} color="#FFD700" />
+              <Text style={[styles.findBtnText, { color: "#FFD700" }]}>Council</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
+            onPress={() => setSubView('settings')}
+          >
+            <Feather name="settings" size={16} color={primary} />
+            <Text style={[styles.findBtnText, { color: primary }]}>Settings</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Everything else — business, sports, food, birthdays, tickets, safety,
+            progress, recap, standing, partner hubs, tutorials, analytics, coach,
+            clubs — lived here as ~30 stacked sections, so your own profile and
+            posts sat at the very bottom. They are one tap away instead. */}
+        <View style={{ paddingHorizontal: 16, marginTop: 4, marginBottom: hubOpen ? 8 : 16 }}>
+          <TouchableOpacity
+            onPress={() => setHubOpen((o) => !o)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: hubOpen }}
+            accessibilityLabel={hubOpen ? 'Hide your tools and dashboards' : 'Show your tools and dashboards'}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: `${primary}0c` }}
+          >
+            <View style={{ width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: `${primary}1f` }}>
+              <Feather name="grid" size={18} color={primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: textColor, fontSize: 14, fontWeight: '900' }}>Your tools & dashboards</Text>
+              <Text style={{ color: muted, fontSize: 11.5, marginTop: 2 }} numberOfLines={1}>
+                Business Studio, Ticket Vault, Safe Ride, Sports, progress and more
+              </Text>
+            </View>
+            <Feather name={hubOpen ? 'chevron-up' : 'chevron-down'} size={18} color={muted} />
+          </TouchableOpacity>
+        </View>
+
+        {hubOpen && (
+        <>
         {/* Gifting Wallet card */}
         {user && feature('gifting') && (
           <View style={{ paddingHorizontal: 16, marginTop: 12, marginBottom: 12 }}>
@@ -3640,91 +3758,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           </GlassView>
         )}
 
-        {/* Find Me / Find Them buttons */}
-        <View style={styles.findRow}>
-          <TouchableOpacity
-            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={() => setSubView('findme')}
-          >
-            <Feather name="user-check" size={16} color={primary} />
-            <Text style={[styles.findBtnText, { color: primary }]}>Find Me</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={() => setSubView('findthem')}
-          >
-            <Feather name="users" size={16} color={primary} />
-            <Text style={[styles.findBtnText, { color: primary }]}>Find Them</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={() => setWhoWasThereVisible(true)}
-          >
-            <Feather name="clock" size={16} color={primary} />
-            <Text style={[styles.findBtnText, { color: primary }]}>History</Text>
-          </TouchableOpacity>
-          {/* Crossed Paths needs crowd density to feel alive — parked by the
-              Focus Cut. This entry point was missing its flag check. */}
-          {feature('crossedPaths') && (
-            <TouchableOpacity
-              style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-              onPress={() => user ? setCrossedPathsVisible(true) : onAuthRequired()}
-            >
-              <Feather name="shuffle" size={16} color={primary} />
-              <Text style={[styles.findBtnText, { color: primary }]}>Crossed</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <View style={styles.findRow}>
-          {!LAUNCH_MINIMAL && (
-          <TouchableOpacity
-            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={async () => {
-              const passed = await BiometricAuth.gate('Confirm your identity to open Wallet');
-              if (passed) { await RichHaptics.tap(); setWalletVisible(true); }
-            }}
-          >
-            <Feather name="wallet" size={16} color={primary} />
-            <Text style={[styles.findBtnText, { color: primary }]}>Wallet</Text>
-          </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={() => setTicketsVisible(true)}
-          >
-            <Feather name="ticket" size={16} color={primary} />
-            <Text style={[styles.findBtnText, { color: primary }]}>Tickets</Text>
-          </TouchableOpacity>
-
-          {!LAUNCH_MINIMAL && (
-          <TouchableOpacity
-            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={() => setProviderDashVisible(true)}
-          >
-            <Feather name="briefcase" size={16} color={primary} />
-            <Text style={[styles.findBtnText, { color: primary }]}>Hub</Text>
-          </TouchableOpacity>
-          )}
-
-          {!LAUNCH_MINIMAL && (profile?.vibe_score >= 500) && (
-            <TouchableOpacity
-              style={[styles.findBtn, { backgroundColor: '#FFD70018', borderColor: '#FFD70040' }]}
-              onPress={() => setSubView('council')}
-            >
-              <Feather name="shield" size={16} color="#FFD700" />
-              <Text style={[styles.findBtnText, { color: "#FFD700" }]}>Council</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[styles.findBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-            onPress={() => setSubView('settings')}
-          >
-            <Feather name="settings" size={16} color={primary} />
-            <Text style={[styles.findBtnText, { color: primary }]}>Settings</Text>
-          </TouchableOpacity>
-        </View>
 
         {/* Tutorials — Prominent Card */}
         <TouchableOpacity
@@ -3853,6 +3886,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
 
         {/* Clubs & Awards */}
         <ClubsAndAwardsSection userId={user?.id} primary={primary} textColor={textColor} muted={muted} surface={surface} onClubSelect={setActiveClubId} />
+
+        </>
+        )}
 
         {/* Profile Content Tabs */}
         <View style={[styles.contentTabRow, { borderColor: `${primary}20` }]}>
