@@ -1364,7 +1364,7 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
 
 
 // ── Find Them Sub-View ────────────────────────────────────────────────────────
-const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, applyLocationPrivacy, initialDistance = 5, onShowMap }) => {
+const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, initialDistance = 5, onShowMap }) => {
   const [distance, setDistance] = useState(initialDistance);
   const [activeFilter, setActiveFilter] = useState(null);
   const [people, setPeople] = useState([]);
@@ -1375,16 +1375,14 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
     if (!user) { onAuthRequired(); return; }
     setLoading(true);
     try {
+      // Looking for people used to save YOUR position to your profile as a
+      // side effect. Searching now only reads where you are, on this phone;
+      // you're findable only when you choose to be, from Find Me.
       const coords = await LocationService.requestAndGet();
-      if (coords && applyLocationPrivacy) {
-        const privateCoords = applyLocationPrivacy(coords.lat, coords.lon);
-        if (privateCoords) {
-          LocationService.saveToProfile(user.id, privateCoords.lat, privateCoords.lon);
-        }
-      }
+      if (!coords) { toast.show('Turn on location to see who is nearby.', 'info'); return; }
       const data = await DiscoveryManager.findNearbyVibers(user.id, distance);
       setPeople(data || []);
-      if (!data || data.length === 0) toast.show('No vibers found nearby — try a wider range', 'info');
+      if (!data || data.length === 0) toast.show('Nobody nearby is findable right now. People only show here while they are live on Find Me.', 'info');
     } catch {
       toast.show('Search failed — check your connection', 'error');
     } finally {
@@ -2279,7 +2277,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const [clubsModalVisible, setClubsModalVisible] = useState(false);
   const [activeClubId, setActiveClubId] = useState(null);
   const [pendingInvites, setPendingInvites] = useState(0);
-  const { identityMode, modeConfig, setIdentityMode, applyLocationPrivacy } = useIdentity();
+  const { identityMode, modeConfig, setIdentityMode } = useIdentity();
   const [activeTab, setActiveTab] = useState('gruvs');
   const [showAllMyEvents, setShowAllMyEvents] = useState(false);
   const [showAllSavedEvents, setShowAllSavedEvents] = useState(false);
@@ -2894,7 +2892,6 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
         <FindThemPage
           primary={primary} muted={muted} textColor={textColor}
           user={user} onAuthRequired={onAuthRequired} toast={toast}
-          applyLocationPrivacy={applyLocationPrivacy}
           initialDistance={discoverRadius}
           onShowMap={() => onNavigateToTab?.('map')}
         />

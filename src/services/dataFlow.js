@@ -2187,15 +2187,29 @@ export const DiscoveryManager = {
       const coords = LocationService.getCached();
       if (!coords) return [];
 
-      // Use the safe, fuzzed version of the nearby function
+      // Live, visible, rounded positions only — see find_me_privacy.sql.
       const { data } = await supabase.rpc('get_safe_nearby_vibers', {
         u_lat: coords.lat,
         u_lon: coords.lon,
         radius_km: radius
       });
+      let people = data || [];
 
-      if (data) cache.set(cacheKey, data);
-      return data || [];
+      // The nearby list carries no interests, so Find Them's "Filter by
+      // Interest" matched nobody and every card's interests were blank.
+      // Fetch the public profile bits for exactly these people.
+      if (people.length) {
+        try {
+          const { data: extra } = await supabase.from('profiles')
+            .select('id, interests, display_name, is_verified')
+            .in('id', people.map(p => p.id).slice(0, 100));
+          const byId = new Map((extra || []).map(r => [r.id, r]));
+          people = people.map(p => ({ ...byId.get(p.id), ...p }));
+        } catch { /* the list still works without interests */ }
+      }
+
+      if (data) cache.set(cacheKey, people);
+      return people;
     } catch (error) {
       return [];
     }
