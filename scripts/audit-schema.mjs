@@ -48,7 +48,12 @@ const REST = `${URL.replace(/\/$/, '')}/rest/v1`;
 // Remove an entry the moment its schema ships.
 // (The res_* Resident schema went LIVE 2026-07-17 — those tables were removed
 // from here so their genuine disappearance would now correctly fail the guard.)
-const EXPECTED_MISSING = new Set([]);
+const EXPECTED_MISSING = new Set([
+  // Clip → RSVP credit. Ships with supabase/migrations/20261020000100_reels_guest_safety_clip_stats.sql,
+  // which is in the repo but not yet applied to production. The client writes are
+  // best-effort, so nothing breaks meanwhile. Remove this line once it is applied.
+  'reel_conversions',
+]);
 
 // Known, ACKNOWLEDGED drift with an owner and a plan. These do not fail the
 // build (a guard that is always red gets ignored, and then the next real

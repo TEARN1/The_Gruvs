@@ -74,8 +74,8 @@ shipped the fix (a request-and-invoice flow) — this is the SQL half.
 |---|---|---|---|
 | 1 | `checkin_verification.sql` | Server-verified Touch Downs (GPS-spoof defence) | insert a test check-in with far coords → `verified=false` |
 | 2 | `data_retention.sql` | Retention cleanup (POPIA) | runs clean |
-| 3 | `username_skeleton.sql` | Username impersonation defence | runs clean |
-| 4 | `vibe_equity_column.sql` | Equity gets its own column — mint/burn stop touching `vibe_score` | `select vibe_equity from profiles limit 1;` |
+| 3 | `20260927000800_username_skeleton.sql` | Username impersonation defence | runs clean |
+| 4 | `20260927000100_vibe_equity_column.sql` | Equity gets its own column — mint/burn stop touching `vibe_score` | `select vibe_equity from profiles limit 1;` |
 | 5 | `boosted_slot.sql` | Paid boosts actually place a labeled "Promoted" card | `select * from get_boosted_hosts();` (empty is fine) |
 | 6 | `web_push.sql` | Closed-tab web push storage | `select count(*) from web_push_subscriptions;` → 0 |
 | 7 | `verification_engine.sql` | In-app Verified applications (criteria checked server-side) | `select request_verification();` as a NEW user → should REJECT with "account too new" |

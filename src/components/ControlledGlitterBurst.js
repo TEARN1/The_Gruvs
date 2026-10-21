@@ -14,7 +14,7 @@
  *   </TouchableOpacity>
  */
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { View, Animated, Easing, StyleSheet, Platform } from 'react-native';
+import { View, Text, Animated, Easing, StyleSheet, Platform } from 'react-native';
 import { haptics } from '../utils/haptics';
 
 const IS_WEB = Platform.OS === 'web';
@@ -34,15 +34,19 @@ export function ControlledGlitterBurst({
   // Generate tightly controlled particle trajectories around the button perimeter
   const particles = useMemo(() => {
     return Array.from({ length: count }).map((_, i) => {
-      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.45;
-      const dist = radius * 0.65 + Math.random() * (radius * 0.45);
+      // Web uses fixed (pseudo-random) trajectories: each becomes a CSS
+      // @keyframes rule, and fixed values let the same few rules be reused.
+      const r1 = IS_WEB ? ((i * 37) % 11) / 10 : Math.random();
+      const r2 = IS_WEB ? ((i * 53) % 7) / 6 : Math.random();
+      const angle = (Math.PI * 2 * i) / count + (r1 - 0.5) * 0.45;
+      const dist = radius * 0.65 + r2 * (radius * 0.45);
       return {
         angle,
         dist,
         glyph: GLITTER_GLYPHS[i % GLITTER_GLYPHS.length],
         color: colors[i % colors.length],
-        spin: (Math.random() > 0.5 ? 1 : -1) * (180 + Math.random() * 180),
-        size: 8 + Math.random() * 6,
+        spin: (i % 2 ? 1 : -1) * Math.round(180 + r1 * 180),
+        size: Math.round(8 + r2 * 6),
       };
     });
   }, [cycle, count, radius, colors]);
@@ -53,6 +57,7 @@ export function ControlledGlitterBurst({
       try { haptics.light(); } catch {}
     }
     setCycle((c) => c + 1);
+    if (IS_WEB) return;   // web: CSS keyframes below
     anim.setValue(0);
     Animated.timing(anim, {
       toValue: 1,
@@ -63,6 +68,41 @@ export function ControlledGlitterBurst({
   }, [trigger, anim, enableHaptics]);
 
   if (!trigger) return null;
+
+  // Web: one CSS animation per particle (Animated would re-render all of them
+  // in JavaScript every frame, right as the panel they open is mounting).
+  if (IS_WEB) {
+    return (
+      <View pointerEvents="none" style={styles.anchor}>
+        {particles.map((p, i) => {
+          const dx = Math.round(Math.cos(p.angle) * p.dist);
+          const dy = Math.round(Math.sin(p.angle) * p.dist);
+          return (
+            <Text
+              key={`${cycle}-${i}`}
+              style={[styles.sparkle, {
+                color: p.color,
+                fontSize: p.size,
+                textShadow: `0 0 5px ${p.color}`,
+                animationKeyframes: [{
+                  '0%': { opacity: 0, transform: 'translate(0px,0px) scale(0.3) rotate(0deg)' },
+                  '15%': { opacity: 1 },
+                  '35%': { transform: `translate(${Math.round(dx * 0.7)}px,${Math.round(dy * 0.7)}px) scale(1.25) rotate(${Math.round(p.spin * 0.35)}deg)` },
+                  '65%': { opacity: 0.9 },
+                  '100%': { opacity: 0, transform: `translate(${dx}px,${dy}px) scale(0.4) rotate(${p.spin}deg)` },
+                }],
+                animationDuration: '580ms',
+                animationTimingFunction: 'cubic-bezier(.2,.8,.2,1)',
+                animationFillMode: 'both',
+              }]}
+            >
+              {p.glyph}
+            </Text>
+          );
+        })}
+      </View>
+    );
+  }
 
   return (
     <View pointerEvents="none" style={styles.anchor}>

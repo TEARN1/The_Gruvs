@@ -54,7 +54,7 @@ safety risk.**
 
 **Fix:** restrict `live_checkins` SELECT — at minimum block anonymous, ideally
 serve locations only through the privacy-aware `get_safe_nearby_vibers` RPC and
-revoke direct table reads. SQL in `scripts/security-rls-fixes.sql` (§1).
+revoke direct table reads. SQL in `supabase/migrations/20260927000400_security_rls_fixes.sql` (§1).
 
 ## 2. 🟠 MEDIUM — PII columns readable on `profiles`
 
@@ -129,7 +129,7 @@ function — otherwise any logged-in user could call them directly.
   (finding #6).
 
 ## What you must apply server-side (cannot be done from app code)
-Review and run `scripts/security-rls-fixes.sql` against your Supabase project
+Review and run `supabase/migrations/20260927000400_security_rls_fixes.sql` against your Supabase project
 (**test on a branch / staging first** — RLS changes can lock out features).
 That file addresses findings #1, #2, #4 and #5, with comments on each.
 
@@ -194,7 +194,7 @@ SCADA/OT, or datacenter of yours** to attack, so whole categories don't apply.
 |---|---|---|
 | XSS (stored/reflected/DOM) | Partly (web) | ✅ No HTML sinks; RN `<Text>` auto-escapes; no `dangerouslySetInnerHTML`/`eval` |
 | SQL/NoSQL/filter injection | Yes | ✅ Supabase parameterises; PostgREST `.or()` injection fixed (`sanitizeSearch`) |
-| IDOR / BOLA / BFLA | Yes | ⚠️ = server-side RLS (findings #1–#5, #7) — run `security-rls-fixes.sql` |
+| IDOR / BOLA / BFLA | Yes | ⚠️ = server-side RLS (findings #1–#5, #7) — run `20260927000400_security_rls_fixes.sql` |
 | Clickjacking / UI-redress | Yes (web) | ✅ X-Frame-Options + CSP frame-ancestors |
 | CSRF | Low | ✅ Auth is JWT in `Authorization` header, not cookies |
 | SSL/TLS stripping | Yes (web) | ✅ HSTS |
@@ -212,6 +212,503 @@ SCADA/OT, or datacenter of yours** to attack, so whole categories don't apply.
 
 ---
 
+# Round 2 — build-pipeline & server-side review (2026-08-27)
+
+Scope: CI/CD workflows, Supabase Edge Functions, nginx config, and the client
+code paths the round-1 fixes touched. Every finding below was reproduced before
+being fixed; the verification command is given with each.
+
+| # | Severity | Issue | Status |
+|---|----------|-------|--------|
+| 11 | 🔴 HIGH | Secret scanning **had never run** — wrong gitleaks subcommand, silently swallowed | ✅ Fixed + now blocking |
+| 12 | 🟠 MEDIUM | Spotify **client secret** injected into every build as an `EXPO_PUBLIC_*` var | ✅ Removed from all 6 workflows |
+| 13 | 🟠 MEDIUM | `spotify-token` built its auth client with the **service_role** key | ✅ Now anon key + explicit JWT |
+| 14 | 🟠 MEDIUM | `.mcp.json` tracked in git with a **Supabase PAT** slot; `.gitignore` was inert | ✅ Untracked, `.example` added |
+| 15 | 🟠 MEDIUM | nginx `/thegruvs.apk` dropped **every** security header | ✅ Headers restated |
+| 16 | 🟡 LOW | Edge Functions pinned to a **floating** `npm:@supabase/supabase-js` | ✅ Pinned to `@2.58.0` |
+| 17 | 🟡 LOW | `push-notify` compared the service key with non-constant-time `!==` | ✅ `timingSafeEqual` |
+| 18 | 🟡 LOW | `spotify-token` echoed internal/upstream error text to callers | ✅ Logged server-side only |
+| 19 | 🐛 BUG | `isSpotifyConfigured()` threw `ReferenceError` (fallout of the #8 fix) | ✅ Fixed |
+| 20 | 🔴 HIGH | `og-meta` share links bypassed the **auto-hide moderation system** entirely | ✅ Fixed + regression test |
+| 21 | 🟠 MEDIUM | CI's `service_role` lacked `BYPASSRLS`, so it modelled the opposite of production | ✅ Fixed |
+| 22 | 🔴 CRITICAL | Four `SECURITY DEFINER` RPCs granted to all users with **no caller check** — mint money, delete any row | ✅ Fixed + test |
+| 23 | 🔴 CRITICAL | The anti-escalation trigger **never fired** — `role='admin'` was self-assignable | ✅ Fixed + test |
+| 24 | 🟠 MEDIUM | An `ALTER VIEW … security_invoker` that hard-errors guest browsing, defused only by accident | ✅ Fixed + test |
+| 25 | 🔴 HIGH | **Two fresh accounts could auto-hide anyone** — trust weighting was inert (every account at the cap) | ✅ Fixed |
+
+## 11. 🔴 HIGH — the secret scanner never actually ran
+
+`.github/workflows/security.yml` invoked `gitleaks dir . --config ...`. The
+`dir` subcommand does not exist in gitleaks **8.18.4** (the version the workflow
+pins) — it was added in a later release. So every run did this:
+
+```
+Error: unknown command "dir" for "gitleaks"
+```
+
+…and the trailing `|| true` swallowed the failure, after which the job printed
+"Secret scan complete" and went green. The repo has had secret scanning in name
+only since it was added — a real committed credential would not have been caught.
+
+**Fixed:** use the subcommand that exists in 8.18.4 (`detect --no-git --source .`),
+drop `|| true`, and set `--exit-code 1` so a finding fails the build. Also runs on
+all branches now, not just `main`.
+
+Verified both directions on this tree:
+
+```
+# clean tree
+$ gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 1
+INF no leaks found                                    → exit 0
+
+# with a service_role-shaped JWT planted in a source file
+$ gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 1
+WRN leaks found: 1                                    → exit 1
+```
+
+The two findings on the real tree were both public-by-design and are now
+allowlisted in `.gitleaks.toml`: the **VAPID public key** (`src/constants/webPush.js`
+— it is handed to `PushManager.subscribe()`, so it is meant to be in the client)
+and the token-shaped **fixtures in `__tests__/log.test.js`** (that test asserts the
+logger *scrubs* tokens, so it has to contain token-shaped strings). The VAPID
+**private** key is deliberately not allowlisted.
+
+## 12. 🟠 MEDIUM — Spotify client secret plumbed through every build
+
+Six workflows passed `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` into the build env
+(`ci.yml`, `web-deploy.yml`, `deploy.yml`, `eas-preview.yml`, `eas-production.yml`,
+`eas-update.yml` — 8 references). `.env.example` in this very repo says never to
+do that, because every `EXPO_PUBLIC_*` var is inlined into the public bundle.
+
+**Measured, so the record is accurate:** a canary build with
+`EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=CANARY_…` set showed the value does **not**
+reach `dist/` today — Metro only inlines a var some source file actually
+references, and the last reference was removed in `92f2959`. So this was a
+**latent footgun, not an active leak**: one `process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET`
+added back anywhere in `src/` would have silently shipped a live credential to
+production. The real secret belongs only on the `spotify-token` Edge Function.
+
+**Fixed:** removed from all six workflows; `.github/CICD_SETUP.md` now states the
+rule and marks the remaining vars as public-by-design. **Action for the owner:**
+delete `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` from the repo's Actions secrets and
+rotate the secret in the Spotify dashboard.
+
+## 13. 🟠 MEDIUM — `spotify-token` verified callers with a service_role client
+
+```ts
+const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {   // service_role!
+  global: { headers: { Authorization: authHeader } },        // caller-controlled
+});
+const { data: { user } } = await supabase.auth.getUser();    // no explicit JWT
+```
+
+Pairing the **service_role** key with a caller-supplied `Authorization` header is
+a privilege-escalation footgun. It happens to verify correctly on current
+supabase-js (which honours a custom auth header), but the failure mode is
+maximally bad: any refactor, or a change in how that fallback works, turns a
+failed verification into a fully privileged client. `delete-account` already got
+this right — it uses the anon key.
+
+**Fixed:** anon key for the verification client, and the JWT is passed explicitly
+to `getUser(jwt)` so a missing/invalid token fails closed. Also now rejects
+non-POST, returns generic errors (#18), and returns only `access_token` /
+`expires_in` rather than the whole upstream payload.
+
+## 14. 🟠 MEDIUM — `.mcp.json` tracked despite being in `.gitignore`
+
+`.gitignore` lists `.mcp.json`, but the file was already tracked (`92f2959`) —
+and `.gitignore` has no effect on an already-tracked file. The file is the
+designated slot for a **Supabase Personal Access Token**, which is a
+full-account credential, far stronger than the service_role key.
+
+History is clean: every committed revision holds only the
+`YOUR_SUPABASE_PAT_HERE` placeholder, so **nothing leaked**. But the ignore rule
+gave false confidence — filling the token in locally and running `git add -A`
+would have committed it.
+
+**Fixed:** `git rm --cached .mcp.json` (file kept on disk), with
+`.mcp.json.example` committed as the template. Finding #11 is the backstop:
+gitleaks would now actually catch such a token.
+
+## 15. 🟠 MEDIUM — nginx served the APK with no security headers
+
+nginx inherits `add_header` from an outer block **only when the current block
+defines none**. `location = /thegruvs.apk` defines `Content-Disposition`, so all
+seven server-level headers (CSP, HSTS, `nosniff`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, `X-XSS-Protection`) were dropped for the
+APK download. The config's own comment states this exact invariant — the asset
+locations were written to respect it, and this one location broke it.
+
+**Fixed:** the security headers are restated inside that location, with a
+`default-src 'none'` CSP (nothing is rendered from a binary download).
+
+Also strengthened HSTS at the server level: `max-age=31536000` →
+`max-age=63072000; includeSubDomains`. Without `includeSubDomains` a subdomain
+can still be MITM'd over plain HTTP and set a cookie the apex origin reads; two
+years is also the minimum the HSTS preload list requires.
+
+## 19. 🐛 `isSpotifyConfigured()` threw on every call
+
+Commit `92f2959` removed `const SPOTIFY_SECRET = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET`
+(the correct fix for #8) but left the identifier referenced:
+
+```js
+isSpotifyConfigured: () => !!(SPOTIFY_ID && SPOTIFY_SECRET),   // ReferenceError
+```
+
+`EventPlaylistSection.js:31` calls it during render, so the event-playlist UI hit
+`ReferenceError: SPOTIFY_SECRET is not defined` every time it mounted. Reproduced
+directly. **Fixed:** the check is now `SPOTIFY_ID && isSupabaseEnabled`, which is
+what "configured" actually means once the token comes from the Edge Function.
+
+## 20. 🔴 HIGH — share links bypassed the entire auto-hide moderation system
+
+`og-meta` is public (no JWT) and reads with the **service_role** key. service_role
+is `BYPASSRLS`, so it skips the four RESTRICTIVE policies in `schema_part_4.sql`
+that take reported content out of public view once ~3 trusted reports land
+(`events.auto_hidden`, `reels.auto_hidden`, `echoes.auto_hidden`,
+`profiles.is_auto_hidden`).
+
+None of the three handlers re-applied that rule:
+
+| Handler | Filtered | Missing |
+|---|---|---|
+| `handleEvent` | `is_published`, `deleted_at` | `auto_hidden` |
+| `handleReel` | `is_deleted` | `auto_hidden` |
+| `handleProfile` | *(nothing at all)* | `is_auto_hidden` |
+
+So the content most likely to be reported — an abusive profile, a harmful event,
+a reported reel — kept serving a full rich preview (name, bio, avatar, cover
+image, stats) from `/functions/v1/og-meta/...` to anyone with the link, and to
+WhatsApp / X / Facebook / Telegram crawlers, which then **cache and redistribute**
+it. Moderating the content in-app did nothing to the share card.
+
+`handleEvent` even carries the comment *"service_role bypasses RLS, so filter
+explicitly"* — the reasoning was right there, applied to two flags and not to the
+one that matters most for abuse.
+
+**Reproduced on a local Postgres** modelling the live roles:
+
+```
+anon         → cleanuser
+service_role → cleanuser, reporteduser     ← the auto-hidden profile
+```
+
+**Fixed:** all three handlers now apply `COALESCE(<flag>, false) = false` (the
+policy's own semantics, so a NULL flag still counts as visible), via a shared
+`notHidden()` helper, with a header comment on the client explaining why every
+query in that file has to do this by hand.
+
+**Regression test added** — `supabase/test/rls_autohide_test.sql`, wired into
+DB Schema CI. It asserts each policy still exists, is still `RESTRICTIVE` (a
+PERMISSIVE one would be worse than none — permissive policies are OR'd, so it
+would *widen* access), and still gates on the right column; then proves the
+behaviour end-to-end on a throwaway table. It refuses to pass vacuously if the
+tables are missing. Verified it fails on each real breakage:
+
+| Broken control | Result |
+|---|---|
+| a policy dropped | ✅ fails |
+| policy recreated PERMISSIVE | ✅ fails |
+| `service_role` loses BYPASSRLS | ✅ fails |
+| all restored | ✅ passes |
+
+## 21. 🟠 MEDIUM — CI modelled `service_role` incorrectly
+
+`supabase/test/bootstrap.sql` created `service_role` as plain `NOLOGIN`. In
+production Supabase it is `NOLOGIN BYPASSRLS`. CI therefore modelled a
+service_role that RLS still applies to — the **opposite** of live behaviour — so
+an RLS test there could pass while the real Edge Functions sail straight through
+the same policy. That is precisely the gap that let #20 exist unnoticed.
+
+**Fixed:** `CREATE ROLE service_role NOLOGIN BYPASSRLS`, plus an idempotent
+`ALTER ROLE` for pre-existing roles. Finding #20's test asserts this and fails
+loudly if the environment stops modelling production.
+
+## 22. 🔴 CRITICAL — four SECURITY DEFINER RPCs granted to every signed-in user
+
+`SECURITY DEFINER` runs as the function owner and bypasses RLS. Four such
+functions were `GRANT EXECUTE ... TO authenticated` while taking a target-user or
+target-row argument and **never consulting `auth.uid()`**:
+
+| Function | What any signed-in user could do |
+|---|---|
+| `increment_wallet_balance(p_user_id, p_amount)` | Mint themselves unlimited money; drain anyone else's wallet with a negative amount |
+| `update_sis_score(p_user_id, p_delta)` | Move anyone's trust score — also defeating the trigger that pins that exact column |
+| `soft_delete(p_table, p_id)` | `UPDATE public.<any table> SET deleted_at = now()` — delete anyone's event, reel, booking, message |
+| `restore_deleted(p_table, p_id)` | Un-delete anything, including content its owner deliberately deleted |
+
+Row ids are visible throughout the app, so every one of these is a single API
+call. (The dynamic SQL uses `format('%I')`, so the table name is correctly
+quoted — there is no injection. The flaw is purely the missing authorization.)
+
+**Reproduced on a local Postgres**, as one ordinary `authenticated` session:
+
+```
+before:  attacker 0        victim 500 / sis 50    event: live
+         → increment_wallet_balance(attacker, 1000000)
+         → increment_wallet_balance(victim,   -500)
+         → update_sis_score(victim, -100)
+         → soft_delete('events', <someone else's event>)
+after:   attacker 1000000  victim 0   / sis 0     event: deleted
+```
+
+**Client-caller survey before fixing:** `soft_delete` 0 callers, `restore_deleted`
+0 callers, `update_sis_score` 1 caller (already broken — it passes
+`user_id`/`check_in_reliable`… to a function whose parameters are
+`p_user_id`/`p_delta`, so PostgREST never resolves it), `increment_wallet_balance`
+1 caller (same arg-name mismatch). So revoking all four from `authenticated`
+breaks nothing that currently works.
+
+**Fixed** in `supabase/migrations/20260927000200_definer_rpc_hardening.sql`: all four revoked from
+`public, anon, authenticated`. They still work for `service_role` and for other
+DEFINER functions, which execute as their owner.
+
+**Escrow replaced properly.** The escrow release was doubly broken: tier 1 (the
+RPC) never resolved, and tier 2 fell back to
+`profiles.update({ wallet_balance })` on the *provider's* row — which
+`profiles_update_own` (`id = auth.uid()`) blocks, since the payer is the one
+releasing. Net effect: bookings flipped to `completed` and providers were never
+paid. New `release_escrow_to_provider(p_booking_id)` checks `auth.uid()` is the
+client who paid, requires `status = 'escrow_held'`, and settles under
+`FOR UPDATE`. Verified: provider self-pay refused, third party refused, payer
+succeeds (R250.00 credited), double-release refused.
+
+## 23. 🔴 CRITICAL — the anti-privilege-escalation trigger never fired
+
+`schema_part_4.sql` added `protect_profile_trust_columns()` for one stated
+purpose — stopping "a signed-in user could `update({ role:'admin',
+is_verified:true })` on their OWN row and become an admin". Its guard:
+
+```sql
+IF current_user NOT IN ('authenticated', 'anon') THEN
+  RETURN NEW;   -- trusted server path — allow
+END IF;
+```
+
+The function is declared **`SECURITY DEFINER`**, and inside a `SECURITY DEFINER`
+function `current_user` is the function **owner**, not the caller — it returns
+`postgres`. The condition is therefore **always true**, the function always
+returns `NEW` unmodified, and the trigger has never pinned a single column.
+
+Confirmed by probe (`current_user=postgres session_user=postgres` inside the
+trigger), then exploited against the trigger exactly as shipped:
+
+```
+UPDATE profiles SET role='admin', is_verified=true, social_integrity_score=100
+ WHERE id = <their own id>;
+
+  username | role  | is_verified | social_integrity_score
+  attacker | admin | t           | 100
+```
+
+`profiles_update_own` lets a user update their own row, `is_admin()` reads
+`profiles.role = 'admin'`, and the admin RLS policies across
+`schema_part_1/3/4` plus the God View gate all key off it. **This is full admin
+takeover from any account**, plus a self-granted verified badge and a maxed trust
+score.
+
+**Fixed:** declared `SECURITY INVOKER`, so `current_user` is the real caller. The
+body only reassigns fields on `NEW` and touches no tables, so it needs no
+elevated privileges. A legitimate DEFINER RPC still passes through, because
+inside one `current_user` is that RPC's owner. Corrected in all three places the
+function is defined (`schema_part_4.sql`, `20260927000100_vibe_equity_column.sql`, and the new
+hardening migration) so a fresh build is never vulnerable.
+
+`wallet_balance` is now also pinned — `schema_part_4`'s own comment said that was
+the next step "but first route their few remaining direct client updates through
+the existing SECURITY DEFINER RPCs", and finding #22 did exactly that.
+`vibe_score` / `vibe_coins` / `vibe_equity` are deliberately **not** pinned yet:
+they still have live direct client writers (`dataFlow.js`, `vibeEquityLedger.js`),
+and pinning them first would make every mint silently no-op.
+
+Verified after the fix: the escalation is fully reverted, the escrow RPC still
+credits the provider, and ordinary profile edits still work.
+
+**Regression test:** `supabase/test/definer_privilege_test.sql`, wired into DB
+Schema CI, guards both classes — no client-executable DEFINER writer may skip
+the caller check, and no trigger guard that reads `current_user` may be
+`SECURITY DEFINER`. Verified each class fails independently and both pass after
+the fix.
+
+## 24. 🟠 MEDIUM — a "hardening" ALTER that breaks guest browsing, defused only by accident
+
+`schema_part_3.sql` carried:
+
+```sql
+-- Run the view with the querying user's privileges (respects profiles RLS)
+ALTER VIEW public.public_profiles SET (security_invoker = true);
+```
+
+That reads like hardening and is the opposite. `anon` has **no SELECT policy on
+`public.profiles`** — being walled off from that table is the whole reason the
+curated `public_profiles` projection exists. Running the view as the caller
+therefore fails outright for signed-out visitors.
+
+**Verified on a local Postgres** modelling the live grants:
+
+```
+DEFINER  (as it actually runs today) → ntando, sipho
+INVOKER  (what part_3 asks for)      → ERROR: permission denied for table profiles
+```
+
+Note this is worse than `definer_views_audit.sql` predicted — it does not return
+zero rows, it **hard-errors on every signed-out page load**.
+
+It has never fired because `schema_part_4.sql` and `schema_part_1.sql` both
+`CREATE OR REPLACE` the view afterwards (fresh-build order 2→3→4→1), and a
+`CREATE OR REPLACE` **drops the option**. Guest browsing works by accident.
+Reorder the build, or remove either redefinition, and the site breaks for every
+logged-out visitor.
+
+The repo already reached the right conclusion in `definer_views_audit.sql`
+("public_profiles stays DEFINER on purpose… Do NOT set security_invoker — it
+returns 0 rows to guests and breaks guest browsing") but recorded it only as a
+comment, and left the contradicting ALTER in the schema.
+
+**Fixed:** `schema_part_3.sql` now sets `security_invoker = false` with the
+reasoning inline, and `schema_part_1.sql` — the last file in the build order to
+touch the view, and therefore the authoritative one — asserts the same
+explicitly. Intent is now stated rather than inherited from an accident.
+
+**Regression test:** `supabase/test/view_security_test.sql`, wired into DB Schema
+CI. It pins each view's intended mode and fails in *both* directions — a view
+that should be invoker flipping to definer (RLS bypass, data leak) and
+`public_profiles` flipping to invoker (guests locked out). It also warns on any
+*new* anon-readable definer view so they get triaged instead of accumulating.
+This closes what `definer_views_audit.sql` §STEP 4 explicitly left open:
+
+> schema_part_4.sql:363 recreates public_profiles and drops its options… Left as
+> a note rather than an edit.
+
+Verified: fails when the view is invoker, passes when definer, still passes after
+a `CREATE OR REPLACE` drops the option, and warns (without failing) when a new
+anon-readable definer view appears.
+
+## 25. 🔴 HIGH — two fresh accounts could hide anyone
+
+`apply_report_autohide()` weights each distinct reporter and auto-hides the
+target once the weights sum to 3.0:
+
+```sql
+GREATEST(0, LEAST(2.0, COALESCE(MAX(p.social_integrity_score), 50) / 50.0))
+```
+
+The divisor of 50 says the formula was written for a baseline score of 50, and
+every other place in the codebase agrees — `trustLedger.js` uses `|| 50` twice,
+`update_sis_score` uses `COALESCE(social_integrity_score, 50)`, and this very
+function COALESCEs NULL to 50.
+
+But the column is declared **`social_integrity_score INTEGER DEFAULT 100`**
+(four declarations, all 100).
+
+So every real account computes `100/50.0 = 2.0` and is clamped at the 2.0 cap:
+
+| account | score | weight |
+|---|---|---|
+| 3-year-old venue, perfect standing | 100 | **2.0** |
+| sock puppet created 30 seconds ago | 100 | **2.0** |
+
+Two consequences:
+
+1. **Two brand-new accounts sum to 4.0 and clear the 3.0 threshold.** Signup
+   logs you straight in without email confirmation, so that is two minutes of
+   work to hide any user, event, reel or echo — including a competitor's venue.
+2. **The trust gradient does not exist.** The weighting the design depends on is
+   inert; every account sits at the ceiling.
+
+**Reproduced** on a local Postgres against the trigger exactly as shipped: two
+accounts created seconds earlier set `is_auto_hidden` on a 3-year-old profile.
+
+**Fixed** in `supabase/migrations/20260927000300_report_brigading_fix.sql`:
+
+- **Rebased the divisor** to the real default, so a normal account weighs 1.0 and
+  three are needed — what "~3 trusted reports" was meant to mean. Score now only
+  ever *reduces* weight (100 → 1.0, 50 → 0.5, 0 → 0.0).
+- **Added an establishment factor.** A report is worth what the account behind it
+  is worth: under 24h → ×0.2, under 7d → ×0.5, under 30d → ×0.8. Account age is
+  the one input a brigade cannot manufacture on demand.
+- **Added `UNIQUE (reporter_id, target_id, target_type)`.**
+
+Measured after the fix:
+
+| | before | after |
+|---|---|---|
+| established account weight | 2.0 | **1.0** |
+| fresh account weight | 2.0 | **0.20** |
+| fresh accounts needed to hide someone | **2** | **15** |
+| established reporters needed | 2 | **3** (as designed) |
+
+Regression-checked: three established reporters still trigger the auto-hide, so
+genuine moderation is unchanged.
+
+### The unique index was already expected by the client
+
+`ReportModal.js:62-64` is a `resilient()` chain whose second tier is:
+
+```js
+supabase.from('reports').upsert(payload,
+  { onConflict: 'reporter_id,target_id,target_type', ignoreDuplicates: true })
+```
+
+That names exactly the constraint this file creates — the client was written
+expecting it. Without it, tier 2 fails with *"there is no unique or exclusion
+constraint matching the ON CONFLICT specification"* (verified), and tier 3 calls
+`submit_report`, one of the RPCs defined nowhere in the repo. So reporting has
+been running on tier 1 alone, accumulating duplicate rows. Creating the index
+repairs the path the client always intended to use.
+
+## Reviewed and found sound
+
+Not every surface had a problem. Recording these so they are not re-audited from
+scratch:
+
+- **Storage bucket policies** (`schema_part_1.sql`) — correct. Every INSERT
+  policy requires `(storage.foldername(name))[1] = auth.uid()::text`, and
+  DELETE/UPDATE use the same predicate, so a user cannot write into or delete
+  from another user's folder. (An omitted `WITH CHECK` on the UPDATE policy is
+  fine: Postgres reuses `USING` for the check when `WITH CHECK` is absent.)
+- **PostgREST `.or()` filter injection** — `sanitizeSearch()` strips the
+  structural characters, and every search-fed `.or()` goes through it. The
+  id-interpolated `.or()` calls in `escrowService` / `trustLedger` are
+  defence-in-depth only; RLS is the real boundary there and it is correct
+  (`service_bookings_manage USING (client_id = auth.uid() OR provider_id = auth.uid())`).
+- **`sso-redeem`** — sound. Codes are 244 bits of entropy, single-use via an
+  atomic claim, 60-second TTL, audience-bound, capped at 5 live per user, and
+  the table is default-deny with `REVOKE ALL`.
+- **Client-side XSS sinks** — none.
+- **Realtime subscriptions** — clean. 55 `.channel()` sites against 56 cleanups,
+  and spot-checks confirm `return () => supabase.removeChannel(...)` inside the
+  effect. No leaked channels.
+- **Timers** — 14 `setInterval` against 14 `clearInterval`.
+- **`select('*')` on PII tables** — only 9 sites, all RLS-scoped to the owner, and
+  `profiles` is not among them (`AuthContext` already uses an explicit
+  `PROFILE_FIELDS` list). Bandwidth cost, not leakage. No `dangerouslySetInnerHTML`, `eval`,
+  `new Function`, or `WebView`; React Native `<Text>` cannot execute links.
+
+## Still open (server-side / owner action)
+
+These need the Supabase dashboard or a SQL run — they cannot be fixed in this repo:
+
+- **Findings #22 and #23 are the priority** — run
+  `supabase/migrations/20260927000200_definer_rpc_hardening.sql` against the live database. Until
+  it is applied, any signed-in account can make itself an admin and mint
+  currency. Everything in this repo is only the fix *staged*; the live DB is
+  unchanged until you run it. Afterwards, audit `profiles` for accounts whose
+  `role`, `is_verified`, `wallet_balance` or `social_integrity_score` you did not
+  set yourself.
+- **Findings #1–#5, #7** from round 1 — run `supabase/migrations/20260927000400_security_rls_fixes.sql`.
+  The GPS exposure on `live_checkins` (#1) is still the highest-severity item.
+- **Rotate the Spotify client secret** and remove
+  `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` from the repo's Actions secrets (#12).
+- **Dependency vulnerabilities**: `npm audit` reports 29 (1 critical, 23 high),
+  effectively all in the Expo/Metro **build toolchain** (`tar`, `cacache`,
+  `metro`, `@expo/cli`) rather than in shipped app code. Clearing them means an
+  Expo SDK 52 → 57 major upgrade, which is a separate, breaking piece of work —
+  deliberately not attempted here. Dependabot PRs #25/#26 cover part of it.
+
+---
+
 # Round 3 (2026-10-04) — client hardening pass
 
 | # | Severity | Finding | Status |
@@ -226,4 +723,4 @@ SCADA/OT, or datacenter of yours** to attack, so whole categories don't apply.
 
 Tests: `__tests__/sanitize.test.js` covers the credential-URL, bidi and LIKE-escape cases.
 
-**Still server-side / owner action (unchanged):** run `scripts/security-rls-fixes.sql` (findings #1, #2, #4, #5), rotate the Spotify secret (#8), confirm admin RPCs check `role` server-side (#7), enable Supabase Auth rate-limits + leaked-password protection. The owner email is still hardcoded in `BusinessDashboardScreen.js` (tier-upgrade `mailto:`). Swap it for a support alias.
+**Still server-side / owner action (unchanged):** run `supabase/migrations/20260927000400_security_rls_fixes.sql` (findings #1, #2, #4, #5), rotate the Spotify secret (#8), confirm admin RPCs check `role` server-side (#7), enable Supabase Auth rate-limits + leaked-password protection. The owner email is still hardcoded in `BusinessDashboardScreen.js` (tier-upgrade `mailto:`). Swap it for a support alias.

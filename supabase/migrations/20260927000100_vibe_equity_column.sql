@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- vibe_equity_column.sql — F2: ONE vibe_score writer
+-- 20260927000100_vibe_equity_column.sql — F2: ONE vibe_score writer
 --
 -- vibe_score had THREE writers clobbering each other (computeVibeScore's
 -- deterministic recompute, VibeEquityLedger.mintEquity's 8-decimal float,
@@ -19,8 +19,11 @@ ALTER TABLE public.profiles
 
 -- Equity is server-adjudicated like the other trust columns: pin it against
 -- direct client updates by extending the existing trust-column guard.
+-- SECURITY INVOKER, not DEFINER: inside a SECURITY DEFINER function `current_user`
+-- is the owner (postgres), so the guard below would never engage and the trigger
+-- would pin nothing. See 20260927000200_definer_rpc_hardening.sql §4.
 CREATE OR REPLACE FUNCTION public.protect_profile_trust_columns()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = public AS $$
 BEGIN
   IF current_user NOT IN ('authenticated', 'anon') THEN
     RETURN NEW; -- trusted server path (definer RPCs / admin) — allow

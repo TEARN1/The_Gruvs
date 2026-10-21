@@ -34,6 +34,7 @@ import { DoorStatusService, DOOR_LEVELS } from '../services/doorStatus';
 import { RSVPManager, CheckInManager, BookmarkManager } from '../services/dataFlow';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
+import { fx } from '../styles/webFx';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.82, 330);
@@ -89,8 +90,11 @@ export function MapVenueDeck({
   useEffect(() => {
     let alive = true;
     const current = events[currentIndex];
-    if (current?.id && !doorStatusMap[current.id]) {
-      DoorStatusService.getStatus(current.id).then((status) => {
+    // `in`, not truthiness: "nobody has reported" is stored as null, and
+    // re-fetching on null would loop this effect.
+    if (current?.id && !(current.id in doorStatusMap)) {
+      const coords = { lat: current.lat ?? current.latitude, lon: current.lon ?? current.longitude };
+      DoorStatusService.getStatus(current.id, coords).then((status) => {
         if (alive) setDoorStatusMap((prev) => ({ ...prev, [current.id]: status }));
       });
     }
@@ -183,7 +187,7 @@ export function MapVenueDeck({
         <View style={s.pillIndicator} />
         <View style={s.headerRow}>
           <View style={s.pulseStat}>
-            <View style={s.radarGreenDot} />
+            <View {...fx('beat')} style={s.radarGreenDot} />
             <Text style={[s.pulseStatText, { color: '#10b981' }]}>
               {events.filter((e) => (e.here_count || 0) > 0).length} Live Now
             </Text>
@@ -225,13 +229,14 @@ export function MapVenueDeck({
             const dist = userCoords && lat && lng ? distanceKm(userCoords.lat, userCoords.lng, lat, lng) : null;
             const isSaved = savedStates[ev.id] || false;
             const isGoing = rsvpStates[ev.id] || false;
-            const door = doorStatusMap[ev.id] || DOOR_LEVELS.walk_in;
+            const door = doorStatusMap[ev.id] || null;
             const cover = ev.cover_url || ev.image_url || ev.image;
             const isSecret = !!(ev.is_secret || ev.secret_act);
 
             return (
               <View
                 key={ev.id}
+                {...fx('rim rise', idx)}
                 style={[
                   s.card,
                   {
@@ -242,7 +247,13 @@ export function MapVenueDeck({
                 ]}
               >
                 {/* Top Info Row */}
-                <View style={s.cardTop}>
+                <TouchableOpacity
+                  style={s.cardTop}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show ${ev.title || 'this venue'} on the map`}
+                  onPress={() => { setCurrentIndex(idx); onSelectEvent?.(ev.id); }}
+                >
                   {cover ? (
                     <SmartImage source={cover} style={s.cardCover} />
                   ) : (
@@ -259,7 +270,7 @@ export function MapVenueDeck({
                           activeOpacity={0.8}
                           onPress={() => onOpenWhoHere?.(ev.id)}
                         >
-                          <View style={s.liveDotPulse} />
+                          <View {...fx('beat')} style={s.liveDotPulse} />
                           <Text style={s.liveBadgeText}>{here} In The Room</Text>
                           <Feather name="chevron-right" size={10} color="#10b981" />
                         </TouchableOpacity>
@@ -271,11 +282,13 @@ export function MapVenueDeck({
                         </View>
                       )}
 
-                      {/* Door Line Reality Badge */}
-                      <View style={[s.doorBadge, { backgroundColor: door.badgeBg, borderColor: `${door.color}40` }]}>
-                        <Feather name={door.icon} size={10} color={door.color} />
-                        <Text style={[s.doorBadgeText, { color: door.color }]}>{door.waitEstimate}</Text>
-                      </View>
+                      {/* Door Line Reality Badge — only when someone actually reported it */}
+                      {door && (
+                        <View style={[s.doorBadge, { backgroundColor: door.badgeBg, borderColor: `${door.color}40` }]}>
+                          <Feather name={door.icon} size={10} color={door.color} />
+                          <Text style={[s.doorBadgeText, { color: door.color }]}>{door.waitEstimate}</Text>
+                        </View>
+                      )}
                     </View>
 
                     <Text style={[s.cardTitle, { color: textColor }]} numberOfLines={1}>
@@ -300,7 +313,7 @@ export function MapVenueDeck({
                       color={isSaved ? primary : muted}
                     />
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
 
                 {/* Secret Drop Countdown Alert */}
                 {isSecret && (
@@ -397,7 +410,8 @@ export function MapVenueDeck({
                       },
                     ]}
                     onPress={() => {
-                      DoorStatusService.reportStatus(activeEvent.id, user?.id, lvl.key).then(() => {
+                      const coords = { lat: activeEvent.lat ?? activeEvent.latitude, lon: activeEvent.lon ?? activeEvent.longitude };
+                      DoorStatusService.reportStatus(activeEvent.id, user?.id, lvl.key, coords).then(() => {
                         setDoorStatusMap((prev) => ({ ...prev, [activeEvent.id]: lvl }));
                         toast(`Reported: ${lvl.label}`, 'success');
                       });

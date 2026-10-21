@@ -76,9 +76,11 @@ describe('Network Chaos & Database Strain Integration Tests', () => {
       const results = await Promise.all(vibePromises);
       // Because SecurityService throttles clicks to 1000ms delay,
       // subsequent immediate vibes are throttled client-side.
-      // The first should succeed, the rest should resolve immediately as throttled (returning true)
-      // but without hitting the database.
-      expect(results.every(r => r === true || r === 'self')).toBe(true);
+      // The first goes through; the rest resolve immediately as 'throttled'
+      // without hitting the database. They used to report `true`, so the screen
+      // kept a +1 the server never received (the vibe count drifted).
+      expect(results[0] === true || results[0] === 'self').toBe(true);
+      expect(results.slice(1).every(r => r === 'throttled')).toBe(true);
 
       // Verify database write queryCount is throttled (only 1 query made instead of 5)
       expect(mockQueryCount).toBeLessThan(5);

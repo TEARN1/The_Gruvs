@@ -33,13 +33,26 @@ Go to: **GitHub repo → Settings → Secrets and variables → Actions → New 
 | `VERCEL_PROJECT_ID` | Same file → `projectId` |
 
 ### App env vars (used during build)
-| Secret | Value |
-|--------|-------|
-| `EXPO_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon key |
-| `EXPO_PUBLIC_SPOTIFY_CLIENT_ID` | Spotify app client ID |
-| `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` | Spotify app client secret |
-| `EXPO_PUBLIC_YOUTUBE_API_KEY` | YouTube Data API v3 key |
+
+> **Every `EXPO_PUBLIC_*` value is inlined into the public web/app bundle at build
+> time.** Anyone can read them with view-source or by unzipping the APK. Only put
+> values here that are public by design. A real secret belongs in the Supabase
+> Edge Function environment (`supabase secrets set ...`), never in this table.
+
+| Secret | Value | Why it's safe to bundle |
+|--------|-------|-------------------------|
+| `EXPO_PUBLIC_SUPABASE_URL` | Your Supabase project URL | Public endpoint; RLS is the boundary |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon key | Public by design; RLS is the boundary |
+| `EXPO_PUBLIC_SPOTIFY_CLIENT_ID` | Spotify app client ID | Client IDs are not secret |
+| `EXPO_PUBLIC_YOUTUBE_API_KEY` | YouTube Data API v3 key | Bundled — restrict by HTTP referrer / package name and set a tight quota |
+
+**Not a repo secret:** the Spotify **client secret**. It is set only on the
+`spotify-token` Edge Function (`supabase secrets set SPOTIFY_CLIENT_SECRET=...`),
+which mints app tokens for signed-in callers. It was previously passed to builds
+as `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` — that name puts a real credential one
+source-reference away from shipping in the public bundle, so it has been removed
+from every workflow. Delete it from the repo's Actions secrets and **rotate it in
+the Spotify dashboard** if it was ever set.
 
 ---
 

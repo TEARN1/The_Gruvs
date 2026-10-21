@@ -7,8 +7,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import * as Haptics from 'expo-haptics';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -500,7 +500,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
           if (coords) return DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50);
           const { data, error } = await supabase
             .from('events')
-            .select('id, title, category, lat, lon, venue_name, event_date, cover_url, media, vibe_count, price, capacity, profiles(username, avatar_url)')
+            .select('id, title, category, lat, lon, venue_name, event_date, cover_url, media, vibe_count, price, capacity, profiles:author_id(username, avatar_url)')
             .gte('event_date', today)
             .is('deleted_at', null)
             .neq('status', 'cancelled')

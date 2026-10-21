@@ -468,8 +468,12 @@ export async function resilientRead(fetchFull, fetchSimple, fromCache, emptyResu
       attemptsPerTier: 3,
       baseMs: 300,
       label,
-      onExhausted: () => emptyResult,
-      fallbackValue: emptyResult,
+      // emptyResult may be a value OR a function computing the last-resort answer
+      // (FeedManager.fetchPage passes its catalog fallback that way). Returning
+      // the function itself handed callers a function instead of a feed, so
+      // the "database is down" path rendered nothing.
+      onExhausted: typeof emptyResult === 'function' ? emptyResult : () => emptyResult,
+      fallbackValue: typeof emptyResult === 'function' ? null : emptyResult,
       // Reads are safe to abandon: nothing is committed, and the caller already
       // has a meaningful answer to fall back on (emptyResult). 15 s is well past
       // any healthy response — the primary tier alone times out at 12 s — so a

@@ -1,4 +1,4 @@
-import { buildVibeCardShareText } from '../src/utils/vibeCardShare';
+import { buildVibeCardShareText, vibeCardLink } from '../src/utils/vibeCardShare';
 
 describe('buildVibeCardShareText — the flex that markets the app', () => {
   it('leads with the handle + earned level, not followers', () => {
@@ -9,7 +9,7 @@ describe('buildVibeCardShareText — the flex that markets the app', () => {
     expect(msg).toMatch(/· 750 vibe pts/);
     expect(msg).toMatch(/40 in their crew/);
     expect(msg).toMatch(/✓ Verified/);
-    expect(msg).toContain('thegruvs.com/u/lindi');
+    expect(msg).toContain('thegruvs.com/share/profile/lindi');
   });
 
   it('omits crew + verified when absent', () => {
@@ -21,6 +21,11 @@ describe('buildVibeCardShareText — the flex that markets the app', () => {
   it('reflects the earned tier from vibe_score', () => {
     expect(buildVibeCardShareText({ username: 'a', vibe_score: 0 })).toMatch(/Viber ·/);
     expect(buildVibeCardShareText({ username: 'a', vibe_score: 999999 })).not.toMatch(/^.*Viber · 999999/);
+  });
+
+  it('links through the share route (the only one the web app resolves)', () => {
+    expect(vibeCardLink('dj khaya')).toBe('https://thegruvs.com/share/profile/dj%20khaya');
+    expect(vibeCardLink()).toBe('https://thegruvs.com');
   });
 
   it('is robust to an empty profile', () => {

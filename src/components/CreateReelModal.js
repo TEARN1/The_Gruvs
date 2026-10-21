@@ -16,6 +16,8 @@ import { uploadToStorage } from '../services/storageService';
 import { rateContent } from '../utils/contentAgeRating';
 import { useBackClose } from '../hooks/useBackClose';
 import { useDraft } from '../hooks/useDraft';
+import { captureVideoCover } from '../utils/videoCover';
+import { rankTaggableEvents } from '../utils/clipEventSuggest';
 
 const SW = Dimensions.get('window').width;
 
@@ -69,7 +71,9 @@ const VIBE_COLORS = [
   { id: "#8b5cf6", label: 'Purple' }
 ];
 
-export const CreateReelModal = ({ visible, onClose, onPosted }) => {
+// presetEvent: { id, title, event_date } when opened from an event page — the
+// clip starts tagged to that event.
+export const CreateReelModal = ({ visible, onClose, onPosted, presetEvent = null }) => {
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const toast = useToast();
@@ -88,7 +92,12 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
 
   // Optional: tag the reel to one of the user's events
   const [myEvents, setMyEvents] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedEvent, setSelectedEventState] = useState(null);
+  const [eventSuggested, setEventSuggested] = useState(false); // the tag was picked for them, not by them
+  // Once the person taps a chip (None included), a late-arriving suggestion
+  // must not overwrite their choice.
+  const eventChosenByUser = useRef(false);
+  const setSelectedEvent = (ev) => { eventChosenByUser.current = true; setEventSuggested(false); setSelectedEventState(ev); };
 
   // Advanced Reel Creator settings state
   const [filter, setFilter] = useState('none');
@@ -151,25 +160,39 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     }, 1000);
   }, []);
 
-  // Load the events this user can tag a reel to (their own + ones they RSVP'd).
+  // Load the events this user can tag a reel to: the one they opened this from,
+  // the one they checked into, their own, and ones they RSVP'd. The likeliest
+  // one starts selected (see utils/clipEventSuggest.js).
   useEffect(() => {
     if (!visible || !user?.id) return undefined;
     let cancelled = false;
     (async () => {
       try {
-        const [authored, rsvped] = await Promise.all([
+        const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+        const [authored, rsvped, checkins] = await Promise.all([
           supabase.from('events').select('id, title, event_date').eq('author_id', user.id).order('event_date', { ascending: false }).limit(20),
           supabase.from('event_rsvps').select('events(id, title, event_date)').eq('user_id', user.id).limit(20),
+          supabase.from('live_checkins').select('checked_in_at, events(id, title, event_date)').eq('user_id', user.id)
+            .not('event_id', 'is', null).gte('checked_in_at', since).order('checked_in_at', { ascending: false }).limit(5),
         ]);
-        const map = new Map();
-        (authored.data || []).forEach(e => { if (e?.id) map.set(e.id, e); });
-        (rsvped.data || []).forEach(r => { const e = r.events; if (e?.id) map.set(e.id, e); });
-        const list = Array.from(map.values()).sort((a, b) => (b.event_date || '').localeCompare(a.event_date || ''));
-        if (!cancelled) setMyEvents(list);
-      } catch { if (!cancelled) setMyEvents([]); }
+        const { list, suggested } = rankTaggableEvents({
+          preset: presetEvent?.id ? presetEvent : null,
+          checkins: (checkins.data || []).map(c => c.events).filter(Boolean),
+          authored: authored.data || [],
+          rsvped: (rsvped.data || []).map(r => r.events).filter(Boolean),
+        });
+        if (cancelled) return;
+        setMyEvents(list);
+        if (suggested && !eventChosenByUser.current) {
+          setSelectedEventState(suggested);
+          setEventSuggested(true);
+        }
+      } catch {
+        if (!cancelled) setMyEvents(presetEvent?.id ? [presetEvent] : []);
+      }
     })();
     return () => { cancelled = true; };
-  }, [visible, user?.id]);
+  }, [visible, user?.id, presetEvent?.id]);
 
   const reset = () => {
     videoRef.current?.pauseAsync().catch(() => {});
@@ -189,7 +212,9 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
     setShowStickerForm(false);
     setVibeColor("#00f2ff");
     setVibeIntensity(70);
-    setSelectedEvent(null);
+    setSelectedEventState(null);
+    setEventSuggested(false);
+    eventChosenByUser.current = false;
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -297,6 +322,21 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
       const mimeType = asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg');
       const publicUrl = await uploadToStorage(asset.uri, 'reels', storagePath, { mimeType });
 
+      // A cover from the frame the clip starts on, so it never shows black while
+      // it loads. Web only and best-effort: the clip optimizer adds one anyway.
+      let coverUrl = null;
+      if (isVideo) {
+        try {
+          const coverBlob = await captureVideoCover(asset.uri, { atSec: (Number(trimStart) || 0) + 0.5 });
+          if (coverBlob) {
+            const objectUrl = URL.createObjectURL(coverBlob);
+            try {
+              coverUrl = await uploadToStorage(objectUrl, 'reels', storagePath.replace(/\.[a-z0-9]+$/i, '_cover.jpg'), { mimeType: 'image/jpeg' });
+            } finally { URL.revokeObjectURL(objectUrl); }
+          }
+        } catch { coverUrl = null; }
+      }
+
       // Core columns exist on every reels schema version; visibility + metadata
       // are newer and may not be migrated yet, so we insert in progressively
       // smaller tiers — a missing optional column can never block the post.
@@ -330,11 +370,12 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
       // the final tier still posts even if min_age isn't migrated yet.
       const rating = rateContent(caption.trim());
       const ratingCols = { min_age: rating.minAge, ...(rating.escalate ? { auto_flagged: true } : {}) };
+      const coverCol = coverUrl ? { thumbnail_url: coverUrl } : {};
 
       const saved = await resilient(
         [
-          insertRow({ ...baseRow, visibility, metadata, ...ratingCols }), // full
-          insertRow({ ...baseRow, metadata, ...ratingCols }),             // drop visibility
+          insertRow({ ...baseRow, visibility, metadata, ...ratingCols, ...coverCol }), // full
+          insertRow({ ...baseRow, metadata, ...ratingCols, ...coverCol }),             // drop visibility
           insertRow({ ...baseRow, ...ratingCols }),                       // drop metadata
           insertRow(baseRow),                                             // core only — always present
         ],
@@ -526,6 +567,11 @@ export const CreateReelModal = ({ visible, onClose, onPosted }) => {
                 {myEvents.length > 0 && (
                   <>
                     <Text style={[s.fieldLabel, { color: muted, marginTop: 12 }]}>TAG AN EVENT (OPTIONAL)</Text>
+                    {eventSuggested && selectedEvent && (
+                      <Text style={{ color: muted, fontSize: 11, marginBottom: 6 }}>
+                        Tagged to {selectedEvent.title} so viewers can RSVP from your clip. Tap None to remove it.
+                      </Text>
+                    )}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
                       <TouchableOpacity
                         onPress={() => setSelectedEvent(null)}

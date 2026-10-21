@@ -3,11 +3,12 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Easing, Platform,
 } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import { useTheme } from '../context/ThemeContext';
 import { REACTION_LIST } from '../constants/CategoryConfig';
 import { ReactionFX, themeForReaction } from './ReactionFX';
 import { ControlledGlitterBurst } from './ControlledGlitterBurst';
+import { replay } from '../styles/webFx';
 
 const IS_WEB = Platform.OS === 'web';
 const reducedMotion = () =>
@@ -24,7 +25,54 @@ const SIGNATURE_LIST = SIGNATURE_KEYS
   .filter(Boolean);
 
 // ── A single floating, glowing reaction orb ──────────────────────────────────
-const ReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle = true }) => {
+// Web: entrance, float, flip and the selected grow are CSS (src/styles/webFx.js).
+// The Animated version stepped every orb in JavaScript each frame on web — the
+// picker stuttered as it opened and the quick-react bar ran 8 endless loops.
+const WebReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle = true }) => {
+  const accent = themeForReaction(reaction.key).ring;
+  const flipRef = useRef(null);
+  const [glitterTrigger, setGlitterTrigger] = useState(0);
+  const handlePress = () => {
+    replay(flipRef.current, 'flip');
+    setGlitterTrigger(Date.now());
+    onPress(reaction.key);
+  };
+  const i = String(Math.min(index, 11));
+  return (
+    <View dataSet={{ fx: 'orb', fxI: i, active: isActive ? 'true' : 'false' }}>
+      <View dataSet={idle === false || reducedMotion() ? undefined : { fx: 'float', fxI: i }}>
+        <View ref={flipRef}>
+          <TouchableOpacity
+            onPress={handlePress}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={reaction.label}
+            accessibilityState={{ selected: isActive }}
+            style={[
+              styles.orb,
+              isActive && styles.orbActive,
+              {
+                borderColor: isActive ? accent : `${primary}22`,
+                backgroundColor: isActive ? `${accent}26` : 'rgba(255,255,255,0.05)',
+                position: 'relative',
+              },
+            ]}
+          >
+            <MaterialCommunityIcons name={reaction.icon || 'star'} size={18} color={isActive ? accent : 'rgba(255,255,255,0.55)'} />
+            {isActive && (
+              <Text style={[styles.count, { color: accent }]}>{count != null ? count : 1}</Text>
+            )}
+            <ControlledGlitterBurst trigger={glitterTrigger} count={10} radius={24} colors={[accent, primary, '#fff']} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+const ReactionOrb = (props) => (IS_WEB ? <WebReactionOrb {...props} /> : <NativeReactionOrb {...props} />);
+
+const NativeReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle = true }) => {
   const enter = useRef(new Animated.Value(0)).current;   // entrance pop
   const float = useRef(new Animated.Value(0)).current;   // idle hover
   const pop = useRef(new Animated.Value(1)).current;     // press/active bounce

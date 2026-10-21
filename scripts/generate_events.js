@@ -722,19 +722,12 @@ for (const cat of CATEGORIES) {
 
 console.log(`Generated ${allEvents.length} authentic Gauteng events across ${CATEGORIES.length} categories and ${MONTHS.length} months.`);
 
-// Write out JS Catalog
-const jsContent = `/**
- * The Gruvs — Gauteng Authentic Events Catalog
- * Curated real-world events across 29 prioritized cultural categories in Gauteng (Johannesburg, Pretoria, Soweto, Sandton, Rosebank, Maboneng, Centurion, Midrand)
- * Spanning Sept 2026 through Feb 2027.
- * Real authentic locations, GPS coordinates, ZAR pricing, and high-res imagery.
- */
-
-export const GLOBAL_EVENTS_CATALOG = ${JSON.stringify(allEvents, null, 2)};
-`;
-
-fs.writeFileSync(path.join(__dirname, '..', 'src', 'constants', 'globalEventsCatalog.js'), jsContent, 'utf8');
-console.log('Successfully updated src/constants/globalEventsCatalog.js with Gauteng events');
+// Write out the catalog as static JSON, fetched on demand by
+// src/services/eventsCatalog.js. (It used to be a JS constant in the app bundle,
+// which added 1.9 MB to every visitor's startup.)
+fs.mkdirSync(path.join(__dirname, '..', 'public', 'data'), { recursive: true });
+fs.writeFileSync(path.join(__dirname, '..', 'public', 'data', 'events-catalog.json'), JSON.stringify(allEvents), 'utf8');
+console.log('Successfully updated public/data/events-catalog.json with Gauteng events');
 
 // Write out Supabase SQL Seeder
 const sqlStatements = [

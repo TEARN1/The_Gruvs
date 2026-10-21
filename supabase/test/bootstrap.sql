@@ -6,11 +6,19 @@
 -- ══════════════════════════════════════════════════════════════
 
 -- Supabase roles (schema GRANTs/REVOKEs and `TO authenticated` policies need these).
+--
+-- service_role must be BYPASSRLS to match production. Without it, CI models a
+-- service_role that RLS still applies to — the opposite of how it behaves live —
+-- so a policy test here would pass while the real Edge Functions (which use the
+-- service_role key) sail straight through the same policy. That is exactly the
+-- gap that let og-meta serve auto-hidden, reported content to the public.
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon')          THEN CREATE ROLE anon          NOLOGIN; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role')  THEN CREATE ROLE service_role  NOLOGIN; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role')  THEN CREATE ROLE service_role  NOLOGIN BYPASSRLS; END IF;
 END $$;
+-- Idempotent for a pre-existing role from an earlier bootstrap run.
+ALTER ROLE service_role BYPASSRLS;
 
 -- Extensions the schema creates (postgis comes from the postgis/postgis image).
 CREATE EXTENSION IF NOT EXISTS postgis;

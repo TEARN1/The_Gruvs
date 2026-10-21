@@ -17,6 +17,7 @@ import { thumb } from '../utils/storageThumb';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { SmartImage } from '../components/SmartImage';
+import { fx } from '../styles/webFx';
 
 const TYPE_META = {
   vibe:             { icon: 'zap',            color: "#f97316" },
@@ -66,7 +67,7 @@ const isInSegment = (dateStr, segment) => {
 };
 
 // ── Notification Row ─────────────────────────────────────────────────────────
-const NotificationRow = React.memo(({ item, primary, textColor, muted, onPress }) => {
+const NotificationRow = React.memo(({ item, primary, textColor, muted, onPress, index = 0 }) => {
   const meta = TYPE_META[item.type] || TYPE_META.vibe;
   const avatarUrl = thumb.avatar(item.actor?.avatar_url || item.data?.viewer_avatar || item.data?.actor_avatar || null);
   const isActionable = [
@@ -77,6 +78,7 @@ const NotificationRow = React.memo(({ item, primary, textColor, muted, onPress }
 
   return (
     <TouchableOpacity
+      {...fx('rise', Math.min(index, 8))}
       onPress={() => onPress(item)}
       activeOpacity={isActionable ? 0.75 : 1}
     >
@@ -260,9 +262,10 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   }, [markRead, onNavigateToEvent]);
 
-  const renderItem = useCallback(({ item }) => (
+  const renderItem = useCallback(({ item, index }) => (
     <NotificationRow
       item={item}
+      index={index}
       primary={primary}
       textColor={textColor}
       muted={muted}

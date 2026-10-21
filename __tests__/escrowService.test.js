@@ -70,9 +70,11 @@ describe('EscrowService', () => {
   });
 
   describe('lockFunds', () => {
-    it('creates a service booking and returns the new booking ID', async () => {
-      mockSingle.mockResolvedValueOnce({ data: { id: 'booking-123' }, error: null });
-      const bookingData = {
+    // One server call: create_service_booking() takes the provider from the
+    // listing (never from the phone), refuses self-booking and bounds the amount.
+    it('creates the booking through create_service_booking and returns its id', async () => {
+      supabase.rpc.mockResolvedValueOnce({ data: 'booking-123', error: null });
+      const result = await EscrowService.lockFunds({
         requester_id: 'client-1',
         provider_id: 'provider-1',
         service_node_id: 'node-1',
@@ -81,53 +83,52 @@ describe('EscrowService', () => {
         dropoff_address: '456 Drop Rd',
         scheduled_at: '2026-06-07T00:00:00.000Z',
         amount_cents: 5000,
-      };
-
-      const result = await EscrowService.lockFunds(bookingData);
+      });
       expect(result).toBe('booking-123');
-      expect(supabase.from).toHaveBeenCalledWith('service_bookings');
-      expect(mockInsert).toHaveBeenCalledWith([
-        expect.objectContaining({
-          client_id: 'client-1',
-          provider_id: 'provider-1',
-          status: 'escrow_held',
-          amount_cents: 5000,
-          estimated_price: 50,
-        }),
-      ]);
+      expect(supabase.rpc).toHaveBeenCalledWith('create_service_booking', {
+        p_service_node_id: 'node-1',
+        p_amount_cents: 5000,
+        p_cargo_type: 'Logistics',
+        p_pickup_address: '123 Pick St',
+        p_dropoff_address: '456 Drop Rd',
+        p_scheduled_at: '2026-06-07T00:00:00.000Z',
+      });
+      // provider_id / client_id are NOT sent — the server decides them.
+      expect(supabase.from).not.toHaveBeenCalledWith('service_bookings');
     });
 
-    it('returns null on failure', async () => {
-      mockSingle.mockResolvedValueOnce({ data: null, error: new Error('DB error') });
-      const result = await EscrowService.lockFunds({});
-      expect(result).toBeNull();
+    it('returns null when the server refuses', async () => {
+      supabase.rpc.mockResolvedValueOnce({ data: null, error: new Error('you cannot book your own service') });
+      expect(await EscrowService.lockFunds({ service_node_id: 'node-1', amount_cents: 100 })).toBeNull();
+    });
+
+    it('returns null without calling the server when no listing is given', async () => {
+      expect(await EscrowService.lockFunds({})).toBeNull();
+      expect(supabase.rpc).not.toHaveBeenCalled();
     });
   });
 
   describe('releaseToProvider', () => {
-    it('verifies provider ownership and releases funds, updating trust/XP', async () => {
-      // 1. Fetch booking details success
-      mockSingle.mockResolvedValueOnce({
-        data: { amount_cents: 10000, client_id: 'client-1', provider_id: 'provider-1' },
+    // Escrow release is one authorized, atomic server call:
+    // release_escrow_to_provider(p_booking_id) verifies auth.uid() is the CLIENT
+    // who paid, that the booking is still escrow_held, then settles it under a
+    // row lock. See supabase/migrations/20260927000200_definer_rpc_hardening.sql.
+    it('releases through the authorized RPC and fires trust/XP hooks', async () => {
+      supabase.rpc.mockResolvedValueOnce({
+        data: [{ booking_id: 'booking-123', provider_id: 'provider-1', amount_cents: 10000 }],
         error: null,
       });
-      // 2. Mock wallet increment RPC success
-      supabase.rpc.mockResolvedValueOnce({ data: null, error: null });
 
       const result = await EscrowService.releaseToProvider('booking-123', 'provider-1');
       expect(result).toBe(true);
 
-      // Verify ownership filter eq('provider_id', providerId) was checked
-      expect(supabase.from).toHaveBeenCalledWith('service_bookings');
-      expect(mockSelect).toHaveBeenCalledWith('amount_cents, client_id, provider_id');
-
-      // Verify wallet RPC was called
-      expect(supabase.rpc).toHaveBeenCalledWith('increment_wallet_balance', {
-        user_id: 'provider-1',
-        amount: 100, // 10000 cents / 100
+      // The booking id is the only thing the client gets to assert — the server
+      // reads the provider and amount off the booking, so a caller cannot aim
+      // the payout at someone else or change what it is worth.
+      expect(supabase.rpc).toHaveBeenCalledWith('release_escrow_to_provider', {
+        p_booking_id: 'booking-123',
       });
 
-      // Verify integration hooks triggered
       expect(TrustLedger.updateAfterPath).toHaveBeenCalledWith('provider-1', {
         checkinReliable: true,
         cargoIntact: true,
@@ -136,67 +137,74 @@ describe('EscrowService', () => {
       expect(LevelManager.addXP).toHaveBeenCalledWith('provider-1', 'BOOKING_COMPLETE');
     });
 
-    it('blocks release if providerId does not match ownership', async () => {
-      // Mock fetch return null (meaning not found with this providerId and status escrow_held)
-      mockSingle.mockResolvedValueOnce({ data: null, error: new Error('Not found') });
+    it('returns false when the server refuses the release', async () => {
+      // e.g. the caller is the provider rather than the payer, or the booking is
+      // already completed — the RPC raises and PostgREST surfaces an error.
+      supabase.rpc.mockResolvedValueOnce({
+        data: null,
+        error: new Error('only the client who paid may release this escrow'),
+      });
 
-      const result = await EscrowService.releaseToProvider('booking-123', 'unauthorized-provider');
+      const result = await EscrowService.releaseToProvider('booking-123', 'provider-1');
+      expect(result).toBe(false);
+      expect(TrustLedger.updateAfterPath).not.toHaveBeenCalled();
+      expect(LevelManager.addXP).not.toHaveBeenCalled();
+    });
+
+    it('returns false when the RPC settles no booking', async () => {
+      supabase.rpc.mockResolvedValueOnce({ data: [], error: null });
+
+      const result = await EscrowService.releaseToProvider('booking-123', 'provider-1');
+      expect(result).toBe(false);
+      expect(LevelManager.addXP).not.toHaveBeenCalled();
+    });
+
+    it('requires a bookingId', async () => {
+      const result = await EscrowService.releaseToProvider(undefined, 'provider-1');
       expect(result).toBe(false);
       expect(supabase.rpc).not.toHaveBeenCalled();
     });
 
-    it('falls back to manual wallet update if RPC fails', async () => {
-      // 1. Fetch booking details
-      mockSingle.mockResolvedValueOnce({
-        data: { amount_cents: 10000, client_id: 'client-1', provider_id: 'provider-1' },
-        error: null,
-      });
-      // 2. Mock wallet increment RPC fails
+    // ── Security regression guard ──────────────────────────────────────────
+    // This replaces a test that used to assert the opposite ("falls back to
+    // manual wallet update if RPC fails"). That fallback wrote wallet_balance
+    // straight from the client, and the test locked the behaviour in. Money must
+    // only move server-side, so a failed release must move nothing at all.
+    it('NEVER writes wallet_balance from the client, even when the RPC fails', async () => {
       supabase.rpc.mockResolvedValueOnce({ data: null, error: new Error('RPC Failed') });
-      // 3. Mock profiles fetch for manual update
-      mockSingle.mockResolvedValueOnce({
-        data: { wallet_balance: 50 },
-        error: null,
-      });
 
       const result = await EscrowService.releaseToProvider('booking-123', 'provider-1');
-      expect(result).toBe(true);
+      expect(result).toBe(false);
 
-      // Verify manual update was called
-      expect(supabase.from).toHaveBeenCalledWith('profiles');
-      expect(mockUpdate).toHaveBeenCalledWith({ wallet_balance: 150 }); // 50 + 100
+      expect(supabase.from).not.toHaveBeenCalledWith('profiles');
+      const wroteWallet = mockUpdate.mock.calls.some(
+        ([payload]) => payload && Object.prototype.hasOwnProperty.call(payload, 'wallet_balance'),
+      );
+      expect(wroteWallet).toBe(false);
     });
   });
 
   describe('initiateDispute', () => {
-    it('allows client or provider of the booking to raise a dispute', async () => {
-      // 1. Fetch check success
-      mockSingle.mockResolvedValueOnce({ data: { id: 'booking-123' }, error: null });
-      // 2. Mock insert dispute success
-      mockInsert.mockReturnValueOnce({ error: null });
-
+    it('opens the dispute through open_dispute', async () => {
+      supabase.rpc.mockResolvedValueOnce({ data: 'dispute-1', error: null });
       const result = await EscrowService.initiateDispute('booking-123', 'Late arrival', 'client-1');
       expect(result).toBe(true);
-
-      // Verify update status disputed
-      expect(mockUpdate).toHaveBeenCalledWith({ status: 'disputed' });
-      // Verify insert dispute record
-      expect(supabase.from).toHaveBeenCalledWith('disputes');
-      expect(mockInsert).toHaveBeenCalledWith([
-        expect.objectContaining({
-          booking_id: 'booking-123',
-          raised_by: 'client-1',
-          reason: 'Late arrival',
-          status: 'open',
-        }),
-      ]);
+      expect(supabase.rpc).toHaveBeenCalledWith('open_dispute', {
+        p_booking_id: 'booking-123',
+        p_reason: 'Late arrival',
+      });
+      expect(supabase.from).not.toHaveBeenCalledWith('disputes');
     });
 
-    it('denies dispute raising if caller is not a party to the booking', async () => {
-      mockSingle.mockResolvedValueOnce({ data: null, error: new Error('Not found') });
-
+    it('returns false when the server refuses (caller not a party)', async () => {
+      supabase.rpc.mockResolvedValue({ data: null, error: new Error('booking not found') });
       const result = await EscrowService.initiateDispute('booking-123', 'Some reason', 'outsider-1');
       expect(result).toBe(false);
+    });
+
+    it('requires a caller id', async () => {
+      expect(await EscrowService.initiateDispute('booking-123', 'x', null)).toBe(false);
+      expect(supabase.rpc).not.toHaveBeenCalled();
     });
   });
 });

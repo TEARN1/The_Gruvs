@@ -7,9 +7,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { Platform, Easing } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
@@ -130,17 +130,20 @@ export const EventReactions = ({ eventId, primary, muted }) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     const wasActive = myReactions.has(key);
+    // The table holds ONE reaction per person per event (unique event_id,
+    // user_id), as the feed card already assumes. Picking a second one used to
+    // try to add a row the database refuses, so it never saved. Now a new pick
+    // replaces the old one.
+    const previous = [...myReactions].find(k => k !== key) || null;
     if (!wasActive) setFx({ key, trigger: Date.now() }); // erupt the opposite-world plume on add
     // Optimistic update
-    setMyReactions(prev => {
-      const next = new Set(prev);
-      wasActive ? next.delete(key) : next.add(key);
+    const before = { mine: myReactions, counts };
+    setMyReactions(wasActive ? new Set() : new Set([key]));
+    setCounts(prev => {
+      const next = { ...prev, [key]: Math.max(0, (prev[key] || 0) + (wasActive ? -1 : 1)) };
+      if (!wasActive && previous) next[previous] = Math.max(0, (prev[previous] || 0) - 1);
       return next;
     });
-    setCounts(prev => ({
-      ...prev,
-      [key]: Math.max(0, (prev[key] || 0) + (wasActive ? -1 : 1)),
-    }));
 
     try {
       if (wasActive) {
@@ -154,23 +157,16 @@ export const EventReactions = ({ eventId, primary, muted }) => {
       } else {
         await resilient(
           [
-            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user?.id, reaction_key: key }, { onConflict: 'event_id,user_id,reaction_key', ignoreDuplicates: true }),
-            () => supabase.from('event_reactions').insert({ event_id: eventId, user_id: user?.id, reaction_key: key }),
+            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user?.id, reaction_key: key }, { onConflict: 'event_id,user_id' }),
+            () => supabase.rpc('upsert_event_reaction', { p_event_id: eventId, p_user_id: user?.id, p_key: key }),
           ],
           { attemptsPerTier: 2, baseMs: 200, label: 'EventReactions.add', fallbackValue: null }
         );
       }
     } catch {
-      // Rollback
-      setMyReactions(prev => {
-        const next = new Set(prev);
-        wasActive ? next.add(key) : next.delete(key);
-        return next;
-      });
-      setCounts(prev => ({
-        ...prev,
-        [key]: Math.max(0, (prev[key] || 0) + (wasActive ? 1 : -1)),
-      }));
+      // Rollback to exactly what was showing before the tap.
+      setMyReactions(before.mine);
+      setCounts(before.counts);
     }
   };
 

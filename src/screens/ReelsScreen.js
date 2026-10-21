@@ -38,6 +38,10 @@ import { GlitterBurst } from '../components/GlitterBurst';
 import { audioState } from '../utils/audioState';
 import { filterByViewerAge } from '../utils/contentAgeRating';
 import { loadViewerAge, viewerAgeSync } from '../utils/viewerAge';
+import { useDataSaver } from '../utils/dataSaver';
+import { DataSaverPicker } from '../components/DataSaverPicker';
+import { storageThumb } from '../utils/storageThumb';
+import { ClipConversions } from '../services/clipConversions';
 
 const IS_WEB = Platform.OS === 'web';
 // Mobile fallback (used outside component for getItemLayout)
@@ -476,7 +480,7 @@ const cs = StyleSheet.create({
 });
 
 // ── Single Reel Item ──────────────────────────────────────────────────────────
-const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onMention, onManage, onOpenEvent, onBlocked, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH }) => {
+const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onMessage, onHashtag, onMention, onManage, onOpenEvent, onBlocked, onOpenSettings, playerPref = {}, onVideoFinish, reelW, reelH, dataSaver = false }) => {
   const videoRef = useRef(null);
   const lastTap = useRef(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
@@ -495,6 +499,8 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
   const [following, setFollowing] = useState(reel._following || false);
   const [saved, setSaved] = useState(reel._saved || false);
   const [paused, setPaused] = useState(false);
+  // Data saver: nothing loads until the viewer taps this clip once.
+  const [started, setStarted] = useState(false);
   const [showPauseIcon, setShowPauseIcon] = useState(false);
   const pauseIconAnim = useRef(new Animated.Value(0)).current;
 
@@ -544,8 +550,11 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
     }
   };
 
+  const isVideoReel = reel.media_type === 'video' || (!reel.media_type && /\.(mp4|mov|m4v|webm)/i.test(reel.media_url || ''));
+  const waitingForTap = isVideoReel && dataSaver && !started;
+
   useEffect(() => {
-    if (isActive && screenFocused && !paused) {
+    if (isActive && screenFocused && !paused && !waitingForTap) {
       videoRef.current?.playAsync().catch(() => {});
       if (user && reel?.id) {
         ReelsAnalytics.queueView(reel.id, user.id);
@@ -553,7 +562,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
     } else {
       videoRef.current?.pauseAsync().catch(() => {});
     }
-  }, [isActive, screenFocused, paused, user, reel?.id]);
+  }, [isActive, screenFocused, paused, waitingForTap, user, reel?.id]);
 
   const togglePause = () => {
     const next = !paused;
@@ -575,7 +584,7 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
     });
   };
 
-  const isVideo = reel.media_type === 'video' || (!reel.media_type && /\.(mp4|mov|m4v|webm)/i.test(reel.media_url || ''));
+  const isVideo = isVideoReel;
   const author = reel.profiles || {};
   const caption = reel.caption || '';
 
@@ -608,6 +617,8 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
   const tapTimer = useRef(null);
   useEffect(() => () => clearTimeout(tapTimer.current), []);
   const handleTap = () => {
+    // Data saver: the first tap is the viewer saying "yes, spend data on this one".
+    if (waitingForTap) { setStarted(true); setPaused(false); lastTap.current = 0; return; }
     const now = Date.now();
     const sinceLast = now - lastTap.current;
     lastTap.current = now;
@@ -760,13 +771,17 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
         {isVideo ? (
           <Video
             ref={videoRef}
-            source={shouldLoad ? { uri: reel.media_url } : null}
+            source={shouldLoad && !waitingForTap ? { uri: reel.media_url } : null}
+            // The cover shows until the first frame plays, instead of black.
+            usePoster={!!reel.thumbnail_url}
+            posterSource={reel.thumbnail_url ? { uri: storageThumb(reel.thumbnail_url, 720, 1280, 70) } : undefined}
+            posterStyle={{ resizeMode: 'cover' }}
             style={mediaStyle}
             resizeMode={videoResizeMode}
             isLooping={!playerPref.autoAdvance}
             isMuted={audioMuted}
             rate={playerPref.speed || 1.0}
-            shouldPlay={isActive}
+            shouldPlay={isActive && !waitingForTap}
             onReadyForDisplay={() => { setVideoLoaded(true); setVideoError(false); }}
             onError={() => setVideoError(true)}
             onPlaybackStatusUpdate={s => {
@@ -798,6 +813,19 @@ const ReelItem = memo(({ reel, isActive, shouldLoad, screenFocused, primary, mut
             <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12.5, textAlign: 'center', lineHeight: 18 }}>
               The video couldn't be reached. Check your connection and try again.
             </Text>
+          </View>
+        )}
+
+        {/* Data saver: a clear "tap to play" with the clip's size when known */}
+        {waitingForTap && (
+          <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }]}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' }}>
+              <Feather name="play" size={28} color="#fff" style={{ marginLeft: 3 }} />
+            </View>
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13, marginTop: 10, textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 6 }}>
+              Tap to play{reel.metadata?.optimized?.to_bytes ? ` · ${(reel.metadata.optimized.to_bytes / 1048576).toFixed(1)} MB` : ''}
+            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 3, textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 6 }}>Data saver is on</Text>
           </View>
         )}
 
@@ -1062,6 +1090,12 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
           </View>
 
           <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+            {/* Data saver — same setting as Settings → Data & video */}
+            <View style={as.section}>
+              <Text style={[as.sectionLabel, { color: muted }]}>DATA SAVER</Text>
+              <DataSaverPicker primary={primary} textColor={textColor} muted={muted} />
+            </View>
+
             {/* Playback speed */}
             <View style={as.section}>
               <Text style={[as.sectionLabel, { color: muted }]}>PLAYBACK SPEED</Text>
@@ -1213,6 +1247,7 @@ const as = StyleSheet.create({
 export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialReelHandled, onExitToDrop, onNavigateToEvent, tabActive = true }) => {
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
+  const { active: dataSaver } = useDataSaver();
   const { user } = useAuth();
   const toast = useToast();
 
@@ -1375,7 +1410,22 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
         force: isRefresh, // pull-to-refresh bypasses the launch-prewarm cache
       });
       // Silently drop mature reels for under-age (or unknown-age) viewers.
-      const data = filterByViewerAge(rawData, viewerAgeSync(), r => r.caption || '');
+      let data = filterByViewerAge(rawData, viewerAgeSync(), r => r.caption || '');
+
+      // A clip opened from an event page or The Drop may be older than the feed
+      // page that loaded, which used to leave the player on some other clip.
+      // Fetch it and put it first so the tap always lands on what was tapped.
+      if (initialReelId && !data.some(r => r.id === initialReelId)) {
+        try {
+          const { data: one } = await supabase.from('reels')
+            .select('id, caption, media_url, media_type, thumbnail_url, like_count, comment_count, view_count, event_id, event_title, user_id, created_at, sound_name, metadata, profiles:user_id(id, username, avatar_url, vibe_score, is_verified)')
+            .eq('id', initialReelId)
+            .eq('is_deleted', false)
+            .maybeSingle();
+          const allowed = one ? filterByViewerAge([one], viewerAgeSync(), r => r.caption || '') : [];
+          if (allowed.length) data = [allowed[0], ...data];
+        } catch { /* fall back to the feed as loaded */ }
+      }
 
       setReels(data);
       setError(null);
@@ -1524,7 +1574,9 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
     <ReelItem
       reel={item}
       isActive={index === activeIndex}
-      shouldLoad={Math.abs(index - activeIndex) <= 1}
+      // Data saver: only the clip on screen may load, and only once tapped.
+      shouldLoad={dataSaver ? index === activeIndex : Math.abs(index - activeIndex) <= 1}
+      dataSaver={dataSaver}
       screenFocused={screenFocused}
       primary={primary}
       muted={muted}
@@ -1538,7 +1590,12 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       onHashtag={onHashtag}
       onMention={onMention}
       onManage={onManage}
-      onOpenEvent={() => item.event_id && onNavigateToEvent?.({ id: item.event_id, title: item.event_title })}
+      onOpenEvent={() => {
+        if (!item.event_id) return;
+        // Remember which clip sent them, so an RSVP that follows counts for it.
+        ClipConversions.recordOpen({ reelId: item.id, eventId: item.event_id, viewerId: user?.id, authorId: item.user_id });
+        onNavigateToEvent?.({ id: item.event_id, title: item.event_title });
+      }}
       onBlocked={() => setReels(prev => prev.filter(r => r.user_id !== item.user_id))}
       onOpenSettings={() => setSettingsVisible(true)}
       playerPref={playerPref}
@@ -1546,7 +1603,7 @@ export const ReelsScreen = ({ onAuthRequired, onClose, initialReelId, onInitialR
       reelW={REEL_W}
       reelH={REEL_H}
     />
-  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag, onMention, onManage, onNavigateToEvent, playerPref, handleVideoFinish, REEL_W, REEL_H]);
+  ), [activeIndex, screenFocused, primary, muted, textColor, bg, surface, user, onComment, onProfile, onDmMessage, onHashtag, onMention, onManage, onNavigateToEvent, playerPref, handleVideoFinish, REEL_W, REEL_H, dataSaver]);
 
   if (loading) {
     return (

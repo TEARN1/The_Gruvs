@@ -67,7 +67,7 @@ export const GlassView = ({ children, style, intensity = 1, glow = false, sheen 
         },
         style,
       ]}
-      {...(IS_WEB ? { className: 'glass-view' } : {})}
+      {...(IS_WEB ? { className: 'glass-view', dataSet: { fx: 'rim' } } : {})}
     >
       {/* Top "wet" sheen highlight */}
       {sheen && (

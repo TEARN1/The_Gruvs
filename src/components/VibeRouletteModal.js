@@ -6,7 +6,7 @@ import {
 import Feather from '@expo/vector-icons/Feather';
 import { GlassView } from './GlassView';
 import { useTheme } from '../context/ThemeContext';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { GlitterBurst } from './GlitterBurst';
 import { getCategoryColor, CATEGORY_CONFIG } from '../constants/CategoryConfig';
 import { heatScore } from '../utils/heatScore';

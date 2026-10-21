@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useToast } from './ToastNotification';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 
 const CATEGORY_TEMPLATE = (cat = '') => {
   const c = cat.toLowerCase();

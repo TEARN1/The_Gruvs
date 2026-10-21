@@ -16,7 +16,7 @@ import { useCall } from '../context/CallContext';
 import { SignedImage } from './SignedImage';
 import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { supabase } from '../services/supabase';
 import { SoundFX } from '../services/soundFX';
 import { resilientRead } from '../utils/resilience';
@@ -735,7 +735,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
         .select('username, display_name, vibe_score, is_verified, followers_count')
         .eq('id', user.id)
         .single();
-      const cardText = buildVibeCardShareText(profile || { username: user.email });
+      // Never fall back to the email: it would be sent to the recipient as
+      // the card's handle.
+      const cardText = buildVibeCardShareText(profile || {});
       const newMsg = await MessageManager.send(user.id, recipient.id, cardText, { messageType: 'vibe_card', profile_id: user?.id });
       if (newMsg) {
         setMessages(prev => [...prev, newMsg]);

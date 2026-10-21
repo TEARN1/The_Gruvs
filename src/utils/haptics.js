@@ -26,4 +26,19 @@ export const haptics = {
   error:   () => safe(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)),
 };
 
+// Drop-in for `import * as Haptics from 'expo-haptics'` (same names, same
+// enums). 26 components called expo-haptics directly; on web every call
+// rejected ("Haptic.impactAsync is not available on web") as an unhandled
+// promise rejection. These resolve quietly on web and swallow native failures.
+const quiet = (fn) => (...args) => {
+  if (!ENABLED) return Promise.resolve();
+  try { return Promise.resolve(fn(...args)).catch(() => {}); } catch { return Promise.resolve(); }
+};
+export const SafeHaptics = {
+  ...Haptics,
+  impactAsync: quiet(Haptics.impactAsync),
+  selectionAsync: quiet(Haptics.selectionAsync),
+  notificationAsync: quiet(Haptics.notificationAsync),
+};
+
 export default haptics;

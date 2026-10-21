@@ -36,6 +36,16 @@ describe('insertStartHeaders', () => {
     expect(out.filter(x => x._header).every(h => String(h.id).startsWith('hdr-'))).toBe(true);
   });
 
+  it('gives each bucket ONE header even when a ranked list interleaves them', () => {
+    // Guest ordering ranks by excitement, so dates arrive interleaved.
+    const out = insertStartHeaders([ev('a', 20), ev('b', 10), ev('c', 21), ev('d', 11), ev('u', 0), { id: 'x' }], NOW);
+    expect(out.map(x => x._header || x.id)).toEqual([
+      'Tonight', 'u', 'Next week', 'b', 'd', 'Later this month', 'a', 'c', 'x',
+    ]);
+    const ids = out.map(x => x.id);
+    expect(new Set(ids).size).toBe(ids.length); // unique React keys
+  });
+
   it('skips headers for tiny lists and handles garbage', () => {
     expect(insertStartHeaders([ev('a', 0)], NOW)).toHaveLength(1);
     expect(insertStartHeaders(null, NOW)).toEqual([]);

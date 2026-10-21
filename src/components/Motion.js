@@ -17,7 +17,31 @@ const reducedMotion = () =>
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // ── Shimmer ──────────────────────────────────────────────────────────────────
-export const Shimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = 'rgba(255,255,255,0.22)' }) => {
+export const Shimmer = (props) => (IS_WEB ? <WebShimmer {...props} /> : <NativeShimmer {...props} />);
+
+// Web: the sweep is a CSS animation (an endless Animated.loop re-rendered the
+// skeleton every frame in JavaScript on web).
+const WebShimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = 'rgba(255,255,255,0.22)' }) => (
+  <View style={[{ overflow: 'hidden', backgroundColor: color, borderRadius: 12 }, style]}>
+    {!reducedMotion() && (
+      <View
+        style={{
+          position: 'absolute', top: 0, bottom: 0, left: 0, width: '50%',
+          backgroundImage: `linear-gradient(90deg, transparent, ${highlight}, transparent)`,
+          animationKeyframes: [{
+            from: { transform: 'translateX(-120%) skewX(-18deg)' },
+            to: { transform: 'translateX(320%) skewX(-18deg)' },
+          }],
+          animationDuration: `${MOTION.shimmer}ms`,
+          animationTimingFunction: 'ease-in-out',
+          animationIterationCount: 'infinite',
+        }}
+      />
+    )}
+  </View>
+);
+
+const NativeShimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = 'rgba(255,255,255,0.22)' }) => {
   const x = useRef(new Animated.Value(-1)).current;
   useEffect(() => {
     if (reducedMotion()) return;
@@ -44,7 +68,23 @@ export const Shimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = '
 };
 
 // ── AnimatedCounter ──────────────────────────────────────────────────────────
-export const AnimatedCounter = ({ value = 0, style, format = (n) => `${n}` }) => {
+export const AnimatedCounter = (props) => (IS_WEB ? <WebCounter {...props} /> : <NativeCounter {...props} />);
+
+// Web: show the new number at once and slide it in from the direction it moved
+// (CSS). The count-up below re-rendered every card's counter on every frame for
+// almost a second whenever counts arrived, which made the feed sluggish.
+const WebCounter = ({ value = 0, style, format = (n) => `${n}` }) => {
+  const prev = useRef(value);
+  const dir = value > prev.current ? 'tick-up' : value < prev.current ? 'tick-down' : null;
+  useEffect(() => { prev.current = value; }, [value]);
+  return (
+    <Text key={value} style={style} {...(dir && !reducedMotion() ? { dataSet: { fx: dir } } : {})}>
+      {format(value)}
+    </Text>
+  );
+};
+
+const NativeCounter = ({ value = 0, style, format = (n) => `${n}` }) => {
   const [display, setDisplay] = useState(value);
   const anim = useRef(new Animated.Value(value)).current;
   const prev = useRef(value);

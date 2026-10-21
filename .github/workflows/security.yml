@@ -2,13 +2,13 @@ name: Security
 
 # Secret scanning (#923). Blocks the build if a real secret is ever committed —
 # the backstop for the close calls this repo has had (an APK in history, .env
-# handling). The Supabase anon key is allowlisted in .gitleaks.toml (public by
-# design). Runs the gitleaks CLI directly (MIT-licensed) — no marketplace action,
-# no licence key, no recurring cost.
+# handling). Public-by-design values (the Supabase anon key, the VAPID public
+# key, token-shaped test fixtures) are allowlisted in .gitleaks.toml. Runs the
+# gitleaks CLI directly (MIT-licensed) — no marketplace action, no licence key.
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
     branches: [main]
 
@@ -21,16 +21,28 @@ jobs:
 
       - name: Run gitleaks
         run: |
+          set -euo pipefail
           VERSION=8.18.4
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
             | tar -xz gitleaks
-          # Scan the working tree (current files), not full history — catches any
-          # secret present now without failing forever on old commits. --redact
-          # keeps any match out of the logs.
+
+          # `detect --no-git` scans the working tree (current files), not full
+          # history — catches any secret present now without failing forever on
+          # old commits. --redact keeps any match out of the logs.
           #
-          # NON-BLOCKING for now (|| true): the anon-key allowlist in .gitleaks.toml
-          # hasn't been validated on a real run (couldn't run gitleaks locally — the
-          # dev network MITMs TLS). Once ONE run shows 0 findings, flip to blocking by
-          # replacing the line below with:  --exit-code 1  and dropping "|| true".
-          ./gitleaks dir . --config .gitleaks.toml --redact --exit-code 0 --verbose || true
-          echo "Secret scan complete — review any findings above." >> "$GITHUB_STEP_SUMMARY"
+          # BLOCKING: --exit-code 1 fails the job on a finding. Validated against
+          # this tree — the only two hits were the VAPID *public* key and the
+          # logger-scrubbing test fixtures, both now allowlisted in
+          # .gitleaks.toml, so a genuine secret is what trips this.
+          ./gitleaks detect \
+            --no-git \
+            --source . \
+            --config .gitleaks.toml \
+            --redact \
+            --exit-code 1 \
+            --no-banner \
+            --verbose
+
+      - name: Summary
+        if: always()
+        run: echo "Secret scan complete — a finding fails this job." >> "$GITHUB_STEP_SUMMARY"
