@@ -23,6 +23,7 @@ import { rankEventResults, rankUserResults } from '../utils/searchRelevance';
 import { secureCode } from '../utils/secureId';
 import { loadEventsCatalog } from './eventsCatalog';
 import { TicketCache } from './offlineCache';
+import { durationLabel } from '../utils/beaconDuration';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
 export const normalizeEvent = (event) => {
@@ -3387,9 +3388,13 @@ export const PresenceManager = {
   // `intent` — 'open' | 'crew' | 'music' | null. Purely informational (see
   // beacon_intent.sql): what someone means by going live, not just that they
   // are. Not an access-control gate; visibility is unchanged.
-  async activateBeacon(userId, coords = {}, minutes = 60, intent = null) {
+  // `audience` — 'everyone' | 'mutuals': who may find you while live. Enforced
+  // by get_safe_nearby_vibers (find_me_privacy.sql), not by this client.
+  // `minutes` is capped at 2 days here and again by the database.
+  async activateBeacon(userId, coords = {}, minutes = 60, intent = null, audience = null) {
     if (!userId) throw new Error('Sign in to go live.');
-    const expires = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+    const mins = Math.max(1, Math.min(48 * 60, Number(minutes) || 60));
+    const expires = new Date(Date.now() + mins * 60 * 1000).toISOString();
     const payload = {
       is_beacon_active: true,
       is_online: true,
@@ -3397,14 +3402,17 @@ export const PresenceManager = {
       beacon_expires_at: expires,
     };
     if (intent) payload.beacon_intent = intent;
+    if (audience) payload.beacon_audience = audience;
     if (coords?.lat != null && coords?.lon != null) { payload.lat = coords.lat; payload.lon = coords.lon; }
     const res = await resilient(
       [
         async () => { const { error } = await supabase.from('profiles').update(payload).eq('id', userId); if (error) throw error; return true; },
+        // Fallback for DBs without beacon_audience yet (find_me_privacy.sql not applied).
+        async () => { const { beacon_audience: _a, ...noAudience } = payload; const { error } = await supabase.from('profiles').update(noAudience).eq('id', userId); if (error) throw error; return true; },
         // Fallback for DBs without beacon_intent yet.
-        async () => { const { beacon_intent: _i, ...noIntent } = payload; const { error } = await supabase.from('profiles').update(noIntent).eq('id', userId); if (error) throw error; return true; },
+        async () => { const { beacon_intent: _i, beacon_audience: _a2, ...noIntent } = payload; const { error } = await supabase.from('profiles').update(noIntent).eq('id', userId); if (error) throw error; return true; },
         // Fallback for DBs without beacon_expires_at yet — still flips the beacon on.
-        async () => { const { beacon_expires_at: _x, beacon_intent: _i2, ...core } = payload; const { error } = await supabase.from('profiles').update(core).eq('id', userId); if (error) throw error; return true; },
+        async () => { const { beacon_expires_at: _x, beacon_intent: _i2, beacon_audience: _a3, ...core } = payload; const { error } = await supabase.from('profiles').update(core).eq('id', userId); if (error) throw error; return true; },
       ],
       { attemptsPerTier: 2, baseMs: 300, label: 'PresenceManager.activateBeacon', fallbackValue: null }
     );
@@ -3428,8 +3436,8 @@ export const PresenceManager = {
   // going live pings your MUTUALS (people you follow who follow you back —
   // a deliberate audience, never ambient broadcast) with where to pull up.
   // Truth Protocol: fires only on a real, user-initiated "go live".
-  async dropBeacon(userId, { coords = {}, minutes = 60, placeLabel = null, intent = null } = {}) {
-    const expires = await this.activateBeacon(userId, coords, minutes, intent);
+  async dropBeacon(userId, { coords = {}, minutes = 60, placeLabel = null, intent = null, audience = null } = {}) {
+    const expires = await this.activateBeacon(userId, coords, minutes, intent, audience);
 
     // Fan out to mutuals — bounded, best-effort, never blocks going live.
     (async () => {
@@ -3439,7 +3447,10 @@ export const PresenceManager = {
           supabase.from('follows').select('follower_id').eq('following_id', userId).limit(500),
         ]);
         const mine = new Set((iFollow || []).map(r => r.following_id));
-        const mutuals = (followMe || []).map(r => r.follower_id).filter(id => mine.has(id)).slice(0, 50);
+        // Never ping someone you've hidden from (they'd learn you're out).
+        const { data: hidden } = await supabase.from('presence_hidden_from').select('hidden_id').eq('owner_id', userId).limit(500);
+        const hiddenIds = new Set((hidden || []).map(r => r.hidden_id));
+        const mutuals = (followMe || []).map(r => r.follower_id).filter(id => mine.has(id) && !hiddenIds.has(id)).slice(0, 50);
         if (!mutuals.length) return;
 
         const { data: me } = await supabase.from('profiles').select('username, display_name').eq('id', userId).maybeSingle();
@@ -3447,7 +3458,7 @@ export const PresenceManager = {
         const where = placeLabel ? ` at ${placeLabel}` : ' near you';
         await Promise.all(mutuals.map(rid =>
           _notify(rid, userId, 'beacon', `${name} is out — pull up`,
-            `${name} just went live${where}. Beacon is on for ${minutes} min.`).catch(() => {})
+            `${name} just went live${where}. Findable for ${durationLabel(minutes)}.`).catch(() => {})
         ));
       } catch (e) { logError('Beacon.fanout', e, { userId }); }
     })();
