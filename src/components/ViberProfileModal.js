@@ -1069,8 +1069,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 const SHEET_MAX_H = '90%';
 
 const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  sheet: { maxHeight: SHEET_MAX_H, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, overflow: 'hidden' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end', alignItems: 'center' },
+  sheet: { maxHeight: SHEET_MAX_H, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, overflow: 'hidden', maxWidth: 680, width: '100%', alignSelf: 'center' },
   handle: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 6 },
   closeBtn: { position: 'absolute', top: 14, right: 16, zIndex: 10, padding: 8 },
 

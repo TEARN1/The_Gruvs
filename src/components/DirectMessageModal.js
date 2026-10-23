@@ -1279,7 +1279,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
       >
         {/* Header */}
         <View style={[dm.header, { borderBottomColor: `${primary}18`, paddingTop: embedded ? 14 : insets.top + 10 }]}>
-          <TouchableOpacity onPress={onClose} style={dm.backBtn}>
+          <TouchableOpacity onPress={onClose} style={dm.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Back">
             <Feather name={embedded ? 'x' : 'arrow-left'} size={22} color={textColor} />
           </TouchableOpacity>
           <TouchableOpacity style={dm.headerInfo} onPress={() => setProfileModalVisible(true)} activeOpacity={0.8}>

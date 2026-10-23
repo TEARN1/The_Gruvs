@@ -898,7 +898,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, maxWidth: 1080, width: '100%', alignSelf: 'center' },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 14, borderBottomWidth: 1 },
   brandRow: { flexDirection: 'row', alignItems: 'center' },

@@ -432,7 +432,7 @@ export const useUnreadDMCount = (onNewMessage) => {
 };
 
 const ch = StyleSheet.create({
-  screen:       { flex: 1 },
+  screen:       { flex: 1, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
   title:        { fontSize: 18, fontWeight: '900', letterSpacing: 2 },
   pendingBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1 },

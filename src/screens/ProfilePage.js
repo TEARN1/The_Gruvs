@@ -927,7 +927,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
           <View style={{ gap: 6, marginBottom: 8 }}>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               <TextInput style={[fm.input, { flex: 1, marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="Name" placeholderTextColor={muted} value={newContact.name} onChangeText={v => setNewContact(p => ({ ...p, name: v }))} />
-              <TextInput style={[fm.input, { flex: 1, marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="+27821234567" placeholderTextColor={muted} value={newContact.phone} onChangeText={v => setNewContact(p => ({ ...p, phone: v }))} keyboardType="phone-pad" />
+              <TextInput style={[fm.input, { flex: 1, marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="+27821234567" placeholderTextColor={muted} value={newContact.phone} onChangeText={v => setNewContact(p => ({ ...p, phone: v }))} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" />
             </View>
             <TextInput style={[fm.input, { marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="Relationship (e.g. mother)" placeholderTextColor={muted} value={newContact.relationship} onChangeText={v => setNewContact(p => ({ ...p, relationship: v }))} />
             <View style={{ flexDirection: 'row', gap: 8 }}>

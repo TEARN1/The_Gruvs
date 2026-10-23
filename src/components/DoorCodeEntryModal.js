@@ -12,30 +12,41 @@ export function DoorCodeEntryModal({ visible, eventId, onClose, onVerified, getC
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
 
-  const submit = async () => {
+  const submit = async (codeToUse) => {
     if (busy) return;
+    const finalCode = typeof codeToUse === 'string' ? codeToUse : code;
+    if (finalCode.length !== 6) return;
     setBusy(true); setMessage('');
     let coords = null;
     try { coords = getCoords ? await getCoords() : null; } catch { coords = null; } // location is optional here
-    const r = await touchDownWithCode(eventId, code, coords);
+    const r = await touchDownWithCode(eventId, finalCode, coords);
     setBusy(false);
     if (r.ok) { setCode(''); onVerified?.(r); onClose?.(); }
     else setMessage(r.message);
+  };
+
+  const handleCodeChange = (t) => {
+    const cleaned = cleanCode(t);
+    setCode(cleaned);
+    if (cleaned.length === 6 && !busy) {
+      submit(cleaned);
+    }
   };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.backdrop}>
         <View style={s.sheet}>
+          <View style={s.notchHandle} />
           <View style={s.head}>
             <Feather name="shield" size={18} color={primary} />
             <Text style={s.title}>Verify at the door</Text>
-            <TouchableOpacity onPress={onClose} accessibilityLabel="Close"><Feather name="x" size={20} color="rgba(255,255,255,0.6)" /></TouchableOpacity>
+            <TouchableOpacity onPress={onClose} accessibilityLabel="Close" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}><Feather name="x" size={20} color="rgba(255,255,255,0.6)" /></TouchableOpacity>
           </View>
           <Text style={s.sub}>Type the 6-digit code on the screen at the entrance. It proves you're really here.</Text>
           <TextInput
             value={code}
-            onChangeText={(t) => setCode(cleanCode(t))}
+            onChangeText={handleCodeChange}
             keyboardType="number-pad"
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -63,6 +74,7 @@ export function DoorCodeEntryModal({ visible, eventId, onClose, onVerified, getC
 
 const s = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
+  notchHandle: { width: 44, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.25)', alignSelf: 'center', marginBottom: 16 },
   sheet: { backgroundColor: '#0d1112', padding: 22, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', maxWidth: 580, width: '100%', alignSelf: 'center' },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { flex: 1, color: '#fff', fontSize: 17, fontWeight: '900' },

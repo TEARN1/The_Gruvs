@@ -568,7 +568,7 @@ export const WalletScreen = ({ visible, onClose }) => {
 };
 
 const s = StyleSheet.create({
-  screen: { flex: 1, paddingTop: Platform.OS === 'ios' ? 50 : 20 },
+  screen: { flex: 1, paddingTop: Platform.OS === 'ios' ? 50 : 20, maxWidth: 880, width: '100%', alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15 },
   title: { fontSize: 18, fontWeight: '900', letterSpacing: 0.5 },
   balanceCard: { margin: 16, padding: 24, borderRadius: 28, alignItems: 'center' },

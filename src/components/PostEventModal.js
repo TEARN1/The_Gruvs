@@ -1505,6 +1505,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     value={contactPhone}
                     onChangeText={setContactPhone}
                     keyboardType="phone-pad"
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
                   />
 
                   <Text style={[pm.label, { color: muted }]}>Contact Email (Optional)</Text>
@@ -1515,6 +1517,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     value={contactEmail}
                     onChangeText={setContactEmail}
                     keyboardType="email-address"
+                    autoComplete="email"
+                    textContentType="emailAddress"
                     autoCapitalize="none"
                   />
 

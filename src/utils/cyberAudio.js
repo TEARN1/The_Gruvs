@@ -6,9 +6,19 @@
  * On native, triggers synchronized precision haptics and safe audio chimes.
  */
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeHaptics as Haptics } from './haptics';
 
 let webAudioCtx = null;
+
+const CYBER_AUDIO_MUTE_KEY = '@gruvs_cyber_audio_muted';
+let _synthAudioMuted = false;
+
+try {
+  AsyncStorage.getItem(CYBER_AUDIO_MUTE_KEY).then(val => {
+    if (val !== null) _synthAudioMuted = val === 'true';
+  }).catch(() => {});
+} catch {}
 
 function getAudioContext() {
   if (Platform.OS !== 'web') return null;
@@ -32,11 +42,12 @@ function getAudioContext() {
   return webAudioCtx;
 }
 
-let _synthAudioMuted = false;
-
 export const cyberAudio = {
   setMuted(muted) {
     _synthAudioMuted = !!muted;
+    try {
+      AsyncStorage.setItem(CYBER_AUDIO_MUTE_KEY, String(_synthAudioMuted)).catch(() => {});
+    } catch {}
   },
   isMuted() {
     return _synthAudioMuted;
