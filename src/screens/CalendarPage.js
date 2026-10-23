@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  useWindowDimensions, Image, Animated, RefreshControl, TextInput, ActivityIndicator,
+  useWindowDimensions, Image, Animated, RefreshControl, TextInput, ActivityIndicator, Share,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
@@ -575,6 +575,16 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const isThisMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
 
+  const handleExportSchedule = async () => {
+    const list = upcomingEvents.length ? upcomingEvents : monthEvents;
+    if (!list.length) return;
+    const scheduleSummary = list.slice(0, 5).map(e => `• ${e.title} (${e.event_date}) @ ${e.venue_name || 'TBA'}`).join('\n');
+    const shareText = `👑 My Gruvs Lineup:\n\n${scheduleSummary}\n\nDiscover more on https://thegruvs.com`;
+    try {
+      await Share.share({ message: shareText, title: 'My Gruvs Lineup' });
+    } catch {}
+  };
+
   return (
     <ErrorBoundary label="Calendar">
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -602,6 +612,13 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
                 <Text style={[styles.todayBtnText, { color: primary }]}>Today</Text>
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              style={[styles.exportBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}15` }]}
+              onPress={handleExportSchedule}
+              accessibilityLabel="Export Schedule"
+            >
+              <Feather name="share-2" size={15} color={primary} />
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.addBtn, { backgroundColor: primary }]}
               onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
@@ -890,6 +907,7 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   todayBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1 },
   todayBtnText: { fontSize: 12, fontWeight: '800' },
+  exportBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   addBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
 
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
