@@ -46,6 +46,15 @@ import { SecurityService } from '../services/securityService';
 import { ECOSYSTEM_APPS } from '../constants/ecosystemApps';
 import { isRadioTrackingEnabled, setRadioTrackingEnabled } from '../services/coPresence';
 import { DataSaverPicker } from '../components/DataSaverPicker';
+import { cyberAudio } from '../utils/cyberAudio';
+
+const SETTINGS_ZONES = [
+  { id: 'all', label: 'All', icon: 'grid' },
+  { id: 'identity', label: 'Identity & SSO', icon: 'user' },
+  { id: 'experience', label: 'Experience & Audio', icon: 'sliders' },
+  { id: 'privacy', label: 'Privacy & Security', icon: 'shield' },
+  { id: 'data', label: 'Data & Storage', icon: 'database' },
+];
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 const PRIVACY_URL = 'https://thegruvs.com/privacy.html';
@@ -116,6 +125,14 @@ export const SettingsScreen = ({
   const background = currentTheme?.background || '#0d1112';
   const textColor = currentTheme?.text || '#fff';
   const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
+
+  const [activeZone, setActiveZone] = useState('all');
+  const [cyberAudioMuted, setCyberAudioMuted] = useState(() => cyberAudio.isMuted());
+  const toggleCyberAudioMute = useCallback((val) => {
+    setCyberAudioMuted(val);
+    cyberAudio.setMuted(val);
+    toast?.show(val ? 'Synthesizer muted' : 'Futuristic synthesizer active ⚡', 'info');
+  }, [toast]);
 
   // Privacy toggles mirror the profile; write-through on change.
   const [discoverable, setDiscoverable] = useState(profile?.is_discoverable ?? true);
@@ -398,8 +415,40 @@ export const SettingsScreen = ({
         <View style={{ width: 22 }} />
       </View>
 
+      {/* Category Triage Pills */}
+      <View style={{ paddingVertical: 10, paddingHorizontal: 16 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {SETTINGS_ZONES.map((zone) => {
+            const active = activeZone === zone.id;
+            return (
+              <TouchableOpacity
+                key={zone.id}
+                onPress={() => setActiveZone(zone.id)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  paddingHorizontal: 14,
+                  paddingVertical: 7,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: active ? primary : 'rgba(255,255,255,0.12)',
+                  backgroundColor: active ? `${primary}22` : 'rgba(255,255,255,0.04)',
+                }}
+              >
+                <Feather name={zone.icon} size={12} color={active ? primary : muted} />
+                <Text style={{ fontSize: 11.5, fontWeight: '800', color: active ? primary : textColor }}>
+                  {zone.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ maxWidth: 680, width: '100%', alignSelf: 'center', padding: 16, paddingBottom: 48 }}>
         {/* UNIFIED ECOSYSTEM PASSPORT */}
+        {(activeZone === 'all' || activeZone === 'identity') && (
         <SectionCard icon="cpu" title="Ecosystem Passport & SSO" primary={primary} muted={muted} textColor={textColor}>
           <View style={[st.ecoBanner, { borderColor: `${primary}30`, backgroundColor: `${primary}08` }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -453,8 +502,10 @@ export const SettingsScreen = ({
             </View>
           </View>
         </SectionCard>
+        )}
 
         {/* ACCOUNT */}
+        {(activeZone === 'all' || activeZone === 'identity') && (
         <SectionCard icon="user" title="Account" primary={primary} muted={muted} textColor={textColor}>
           <LinkRow icon="edit-2" label="Edit profile" onPress={onEditProfile} primary={primary} muted={muted} textColor={textColor} />
           {!!(profile?.email || user?.email) && (
@@ -464,8 +515,10 @@ export const SettingsScreen = ({
             <LinkRow icon="at-sign" label="Username" value={`${profile.username}`} primary={primary} muted={muted} textColor={textColor} />
           )}
         </SectionCard>
+        )}
 
         {/* PRIVACY & DISCOVERY */}
+        {(activeZone === 'all' || activeZone === 'privacy') && (
         <SectionCard icon="shield" title="Privacy & Discovery" primary={primary} muted={muted} textColor={textColor}>
           {/* Safety Center — one place that makes every protection legible (#150) */}
           <TouchableOpacity
@@ -552,8 +605,10 @@ export const SettingsScreen = ({
             </TouchableOpacity>
           )}
         </SectionCard>
+        )}
 
         {/* NOTIFICATIONS */}
+        {(activeZone === 'all' || activeZone === 'experience') && (
         <SectionCard icon="bell" title="Notifications" primary={primary} muted={muted} textColor={textColor}>
           <ToggleRow label="Push notifications" sub="RSVPs, messages, follows and event reminders"
             value={pushOn} onValueChange={togglePush} disabled={pushBusy}
@@ -561,6 +616,9 @@ export const SettingsScreen = ({
           {pushBusy && <ActivityIndicator color={primary} style={{ marginTop: 8 }} />}
           <ToggleRow label="Sound effects" sub="Signature Gruvs sounds for messages, pings & Touch Downs"
             value={soundOn} onValueChange={toggleSound}
+            primary={primary} muted={muted} textColor={textColor} />
+          <ToggleRow label="Cyber Audio Synthesizer" sub="Futuristic tactile chimes for radar sweeps, sonar & celebration bursts"
+            value={!cyberAudioMuted} onValueChange={(v) => toggleCyberAudioMute(!v)}
             primary={primary} muted={muted} textColor={textColor} />
           {/* Volume selector chips */}
           {soundOn && (
@@ -618,13 +676,17 @@ export const SettingsScreen = ({
             value={wantsEmail} onValueChange={(v) => writeField('wants_email', v, setWantsEmail, wantsEmail)}
             primary={primary} muted={muted} textColor={textColor} />
         </SectionCard>
+        )}
 
         {/* DEVICE ACCESS — what the browser has allowed, and how to unblock it */}
+        {(activeZone === 'all' || activeZone === 'privacy') && (
         <SectionCard icon="shield" title="Device access" primary={primary} muted={muted} textColor={textColor}>
           <PermissionsPanel primary={primary} muted={muted} textColor={textColor} />
         </SectionCard>
+        )}
 
         {/* CAREER & LOOKS */}
+        {(activeZone === 'all' || activeZone === 'identity') && (
         <SectionCard icon="briefcase" title="Career & Looks" primary={primary} muted={muted} textColor={textColor}>
           <Text style={[st.rowSub, { color: muted, marginBottom: 10 }]}>
             Let others know your vibe and profession to get invited to exclusive Gruvs.
@@ -653,14 +715,18 @@ export const SettingsScreen = ({
             {savingCareer ? <ActivityIndicator size="small" color="#000" /> : <Text style={st.ctaText}>Save Career Profile</Text>}
           </TouchableOpacity>
         </SectionCard>
+        )}
 
         {/* DATA & VIDEO */}
+        {(activeZone === 'all' || activeZone === 'experience') && (
         <SectionCard icon="wifi" title="Data & video" primary={primary} muted={muted} textColor={textColor}>
           <Text style={[st.subLabel, { color: muted, marginTop: 0 }]}>DATA SAVER</Text>
           <DataSaverPicker primary={primary} textColor={textColor} muted={muted} />
         </SectionCard>
+        )}
 
         {/* APPEARANCE */}
+        {(activeZone === 'all' || activeZone === 'experience') && (
         <SectionCard icon="droplet" title="Appearance" primary={primary} muted={muted} textColor={textColor}>
           <Text style={[st.subLabel, { color: muted, marginTop: 0 }]}>AURA</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
@@ -686,8 +752,10 @@ export const SettingsScreen = ({
           <WritingStylePicker gender={gKey} sample={profile?.username || profile?.display_name || 'The Gruvs'} userId={user?.id} primary={primary} muted={muted} />
           <CurrencyPicker primary={primary} muted={muted} />
         </SectionCard>
+        )}
 
         {/* SECURITY */}
+        {(activeZone === 'all' || activeZone === 'privacy') && (
         <SectionCard icon="lock" title="Security" primary={primary} muted={muted} textColor={textColor}>
           {bioAvailable ? (
             <ToggleRow label="App lock" sub={`Require ${bioLabel} to open the app`}
@@ -706,8 +774,10 @@ export const SettingsScreen = ({
             <Text style={[st.rowSub, { color: muted, flex: 1 }]}>Your session is protected by Supabase Auth with secure tokens.</Text>
           </View>
         </SectionCard>
+        )}
 
         {/* ABOUT & ECOSYSTEM */}
+        {(activeZone === 'all' || activeZone === 'data') && (
         <SectionCard icon="info" title="About & Partners" primary={primary} muted={muted} textColor={textColor}>
           {Platform.OS === 'web' && (
             <LinkRow icon="download" label="Install The Gruvs" sub="Add to home screen or desktop (Free)" onPress={() => setInstallModalOpen(true)} primary={primary} muted={muted} textColor={textColor} />
@@ -718,13 +788,16 @@ export const SettingsScreen = ({
           <LinkRow icon="book-open" label="Terms of service" onPress={() => openUrl(TERMS_URL)} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="tag" label="Version" value={APP_VERSION} primary={primary} muted={muted} textColor={textColor} />
         </SectionCard>
+        )}
 
         {/* DANGER ZONE */}
+        {(activeZone === 'all' || activeZone === 'data') && (
         <SectionCard icon="alert-triangle" title="Account actions" primary={primary} muted={muted} textColor={textColor}>
           <LinkRow icon="download" label={exportingData ? 'Preparing your data…' : 'Download my data'} onPress={handleExportData} primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="log-out" label="Sign out" onPress={confirmSignOut} danger primary={primary} muted={muted} textColor={textColor} />
           <LinkRow icon="trash-2" label="Delete account" onPress={confirmDelete} danger primary={primary} muted={muted} textColor={textColor} />
         </SectionCard>
+        )}
       </ScrollView>
 
       {/* onManageContacts was a dangling prop — the row never rendered because

@@ -41,7 +41,7 @@ const TYPE_META = {
   session_starting: { icon: 'play-circle',    color: "#06b6d4" },
 };
 
-const SEGMENTS = ['Today', 'This Week', 'Older'];
+const SEGMENTS = ['All', 'Mentions & DMs', 'Event Updates'];
 const ITEM_HEIGHT = 71; // paddingVertical 14*2 + avatar 42 + 1 border
 
 const formatAge = (dateStr) => {
@@ -55,15 +55,12 @@ const formatAge = (dateStr) => {
   return `${Math.floor(h / 24)}d ago`;
 };
 
-const isInSegment = (dateStr, segment) => {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const weekStart = new Date(todayStart);
-  weekStart.setDate(weekStart.getDate() - 6);
-  if (segment === 'Today') return date >= todayStart;
-  if (segment === 'This Week') return date >= weekStart && date < todayStart;
-  return date < weekStart;
+const isMatchingSegment = (notif, segment) => {
+  if (segment === 'All') return true;
+  const isMention = ['profile_view', 'follow', 'echo', 'comment', 'message', 'crew_invite'].includes(notif.type);
+  if (segment === 'Mentions & DMs') return isMention;
+  if (segment === 'Event Updates') return !isMention;
+  return true;
 };
 
 // ── Notification Row ─────────────────────────────────────────────────────────
@@ -142,7 +139,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [segment, setSegment] = useState('Today');
+  const [segment, setSegment] = useState('All');
   const [profileModalUserId, setProfileModalUserId] = useState(null);
   const channelRef = useRef(null);
 
@@ -235,7 +232,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     return () => { supabase.removeChannel(channel); };
   }, [user, fetchNotifications]);
 
-  const filtered = notifications.filter(n => isInSegment(n.created_at, segment));
+  const filtered = notifications.filter(n => isMatchingSegment(n, segment));
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleNotifPress = useCallback((item) => {

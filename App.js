@@ -144,8 +144,8 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
       Animated.spring(indicatorAnim, {
         toValue: target,
         useNativeDriver: true,
-        tension: 80,
-        friction: 12,
+        tension: 50,
+        friction: 7,
       }).start();
     }
   }, [currentTab, tabWidth, bar.w]);
@@ -1172,7 +1172,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, ...(Platform.OS === 'web' && { minHeight: '100dvh' }) },
+  root: { flex: 1, ...(Platform.OS === 'web' && { minHeight: '100dvh', overflowX: 'hidden' }) },
   safeArea: { flex: 1 },
 
   // Wide layout

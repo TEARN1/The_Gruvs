@@ -234,6 +234,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
   const [countdown, setCountdown] = useState(null);
   const [weather, setWeather] = useState(null);
   const [calendarAdded, setCalendarAdded] = useState(false);
+  const [showLogistics, setShowLogistics] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
   const [roleManagerVisible, setRoleManagerVisible] = useState(false);
   const [doorPosterVisible, setDoorPosterVisible] = useState(false);
@@ -2159,61 +2160,85 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
           )}
 
           <View style={styles.sectionDivider} />
+          {/* Logistics Accordion: Carpool, Stays & Mentorship */}
           {event?.id && (
-            <SafeSection label="Carpool" primary={primary}>
-              <CarpoolBoard
-                event={event}
-                primary={primary}
-                textColor={textColor}
-                muted={textMuted}
-                surface={surface}
-              />
-              <ResidentLiftsSection
-                eventId={event.id}
-                primary={primary}
-                surface={surface}
-                textColor={textColor}
-                muted={textMuted}
-              />
-            </SafeSection>
-          )}
-
-          {/* Stays — rooms/guesthouses near the event, from The Resident. Gated
-              by feature('accommodation') + self-disabling on missing table, so
-              it renders nothing until res_listings is live. */}
-          {feature('accommodation') && event?.id && (event?.city || event?.suburb) && (
-            <>
-              <View style={styles.sectionDivider} />
-              <SafeSection label="Stays" primary={primary}>
-                <View style={{ paddingHorizontal: 16 }}>
-                  <ResidentStaysSection
-                    event={event}
-                    primary={primary}
-                    surface={surface}
-                    textColor={textColor}
-                    muted={textMuted}
-                  />
+            <View style={{ marginHorizontal: 16, marginVertical: 6 }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: `${primary}30`,
+                  backgroundColor: `${primary}08`,
+                }}
+                onPress={() => setShowLogistics(prev => !prev)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle Travel and Logistics"
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+                  <Feather name="navigation" size={15} color={primary} />
+                  <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>
+                    Travel & Event Logistics
+                  </Text>
                 </View>
-              </SafeSection>
-            </>
-          )}
+                <Feather name={showLogistics ? "chevron-up" : "chevron-down"} size={16} color={primary} />
+              </TouchableOpacity>
 
-          {/* Excellency Academy — Masterclasses & Talent Mentorship */}
-          {event?.id && (
-            <>
-              <View style={styles.sectionDivider} />
-              <SafeSection label="Excellency" primary={primary}>
-                <View style={{ paddingHorizontal: 16 }}>
-                  <ExcellencyMasterclassSection
-                    event={event}
-                    primary={primary}
-                    surface={surface}
-                    textColor={textColor}
-                    muted={textMuted}
-                  />
+              {showLogistics && (
+                <View style={{ marginTop: 10 }}>
+                  <SafeSection label="Carpool" primary={primary}>
+                    <CarpoolBoard
+                      event={event}
+                      primary={primary}
+                      textColor={textColor}
+                      muted={textMuted}
+                      surface={surface}
+                    />
+                    <ResidentLiftsSection
+                      eventId={event.id}
+                      primary={primary}
+                      surface={surface}
+                      textColor={textColor}
+                      muted={textMuted}
+                    />
+                  </SafeSection>
+
+                  {feature('accommodation') && (event?.city || event?.suburb) && (
+                    <SafeSection label="Stays" primary={primary}>
+                      <View style={{ marginTop: 8 }}>
+                        <ResidentStaysSection
+                          event={event}
+                          primary={primary}
+                          surface={surface}
+                          textColor={textColor}
+                          muted={textMuted}
+                        />
+                      </View>
+                    </SafeSection>
+                  )}
+
+                  {/* Excellency Academy — only if event has linked masterclass/workshop */}
+                  {(event?.has_masterclass || event?.workshop_title) && (
+                    <SafeSection label="Excellency" primary={primary}>
+                      <View style={{ marginTop: 8 }}>
+                        <ExcellencyMasterclassSection
+                          event={event}
+                          primary={primary}
+                          surface={surface}
+                          textColor={textColor}
+                          muted={textMuted}
+                        />
+                      </View>
+                    </SafeSection>
+                  )}
                 </View>
-              </SafeSection>
-            </>
+              )}
+            </View>
           )}
 
           <View style={styles.sectionDivider} />

@@ -560,6 +560,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const { applyLocationPrivacy } = useIdentity();
 
   const [query, setQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [activeMoods, setActiveMoods] = useState(new Set());
   const [activeCat, setActiveCat] = useState(null);
   const [activeSport, setActiveSport] = useState(null);
@@ -1100,23 +1101,53 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
         </View>
 
         {/* Search bar — neo-glass capsule */}
-        <GlassView glow={isSearching} style={[styles.searchWrap, { borderColor: isSearching ? primary : `${primary}25`, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
-          <Feather name="search" size={17} color={isSearching ? primary : muted} />
+        <GlassView glow={isSearching || searchFocused} style={[styles.searchWrap, { borderColor: (isSearching || searchFocused) ? primary : `${primary}25`, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+          <Feather name="search" size={17} color={(isSearching || searchFocused) ? primary : muted} />
           <TextInput
             style={[styles.searchInput, { color: textColor }]}
             placeholder="Search events, artists, venues..."
             placeholderTextColor={muted}
             value={query}
             onChangeText={setQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
             accessibilityLabel="Search events, artists, and venues"
             accessibilityHint="Results appear below as you type"
           />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} style={{ padding: 6, marginRight: 2 }}>
+          {(query.length > 0 || searchFocused) && (
+            <TouchableOpacity onPress={() => { setQuery(''); setSearchFocused(false); }} style={{ padding: 6, marginRight: 2 }}>
               <Feather name="x" size={15} color={muted} />
             </TouchableOpacity>
           )}
         </GlassView>
+
+        {/* Recent & Trending search suggestions */}
+        {searchFocused && !isSearching && (
+          <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <Feather name="compass" size={12} color={primary} />
+              <Text style={{ color: muted, fontSize: 10.5, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                Trending Searches & Neighborhoods
+              </Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
+              {['Amapiano', 'Braamfontein', 'Rooftop Party', 'Deep House', 'Rosebank', 'Afrobeats', 'Kasi Soul', 'Soweto'].map(t => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => { setQuery(t); setSearchFocused(false); }}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+                    backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}35`,
+                  }}
+                >
+                  <Feather name="trending-up" size={11} color={primary} />
+                  <Text style={{ color: textColor, fontSize: 11.5, fontWeight: '700' }}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* ── SEARCH MODE ─────────────────────────────────────────────────── */}
         {isSearching ? (

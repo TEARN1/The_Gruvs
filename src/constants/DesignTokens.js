@@ -127,8 +127,8 @@ export const GLASS = {
   // hairline borders that catch light
   border:      'rgba(255,255,255,0.16)',
   borderBright:'rgba(255,255,255,0.28)',
-  // top sheen overlay (the "wet" highlight) — web gradient + native fallback
-  sheenWeb:    'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 38%, transparent 60%)',
+  // top sheen overlay (the "wet" highlight) — web gradient + native fallback (135° overhead angle)
+  sheenWeb:    'linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 45%, transparent 70%)',
   sheenNative: 'rgba(255,255,255,0.07)',
   // inner depth shadow for a "pane of glass" feel
   innerShadow: 'rgba(0,0,0,0.22)',
