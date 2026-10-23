@@ -2198,8 +2198,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const renderHeader = () => (
     <View style={[styles.headerWrap, { borderBottomColor: `${primary}20` }]}>
       <CyberScanline color={primary} opacity={0.12} duration={4500} />
-      {/* Main Row: Logo + Search + Actions */}
-      <View style={styles.mainRow}>
+      {/* Main Row: Logo + Search + Actions (dynamic notch clearance) */}
+      <View style={[styles.mainRow, { paddingTop: Math.max(insets.top || 0, 14) }]}>
         <View style={styles.brandGroup}>
           <BrandLogo size={tightHeader ? 30 : 36} showGlow />
           {!tightHeader && <View style={styles.wordmarkMini}>

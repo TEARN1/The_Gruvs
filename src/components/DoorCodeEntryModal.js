@@ -63,7 +63,7 @@ export function DoorCodeEntryModal({ visible, eventId, onClose, onVerified, getC
 
 const s = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
-  sheet: { backgroundColor: '#0d1112', padding: 22, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  sheet: { backgroundColor: '#0d1112', padding: 22, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', maxWidth: 580, width: '100%', alignSelf: 'center' },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { flex: 1, color: '#fff', fontSize: 17, fontWeight: '900' },
   sub: { color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 19, marginTop: 8 },

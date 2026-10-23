@@ -415,6 +415,8 @@ export const StoriesRow = ({ onAuthRequired }) => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToInterval={78}
         style={{ marginBottom: 16 }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 4 }}
       >

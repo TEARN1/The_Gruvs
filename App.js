@@ -170,7 +170,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
   }), [scrubToX]);
 
   return (
-    <View style={[styles.tabBarContainer, { paddingBottom: Math.max(insets.bottom, 10) }]} pointerEvents="box-none">
+    <View style={[styles.tabBarContainer, { paddingBottom: Math.max(insets.bottom, 14) }]} pointerEvents="box-none">
       <View
         style={[
           styles.tabBar,
@@ -220,7 +220,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
                     style={[styles.unreadBadge, { backgroundColor: '#ef4444' }]}
                     accessibilityLabel={`${unreadCount} unread notifications`}
                   >
-                    <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                    <Text style={styles.unreadBadgeText} maxFontSizeMultiplier={1.2}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
                   </View>
                 )}
                 {tab.key === 'chats' && unreadDMCount > 0 && (
@@ -228,7 +228,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
                     style={[styles.unreadBadge, { backgroundColor: primary }]}
                     accessibilityLabel={`${unreadDMCount} unread messages`}
                   >
-                    <Text style={[styles.unreadBadgeText, { color: '#000' }]}>{unreadDMCount > 9 ? '9+' : unreadDMCount}</Text>
+                    <Text style={[styles.unreadBadgeText, { color: '#000' }]} maxFontSizeMultiplier={1.2}>{unreadDMCount > 99 ? '99+' : unreadDMCount}</Text>
                   </View>
                 )}
               </View>
@@ -242,6 +242,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
                   }
                 ]}
                 numberOfLines={1}
+                maxFontSizeMultiplier={1.2}
               >
                 {tab.label}
               </Text>}

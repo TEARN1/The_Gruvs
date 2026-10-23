@@ -1728,7 +1728,11 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      {inner}
+      <View style={{ flex: 1, backgroundColor: bg, alignItems: 'center' }}>
+        <View style={{ flex: 1, width: '100%', maxWidth: 680 }}>
+          {inner}
+        </View>
+      </View>
     </Modal>
   );
 };

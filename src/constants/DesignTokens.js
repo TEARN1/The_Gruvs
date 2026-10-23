@@ -74,17 +74,46 @@ export const FONT = {
   caption:    { fontWeight: '600', letterSpacing: 0.1 },
 };
 
+export const HIT_SLOP = {
+  icon:  { top: 12, bottom: 12, left: 12, right: 12 },
+  small: { top: 8,  bottom: 8,  left: 8,  right: 8  },
+  chip:  { top: 10, bottom: 10, left: 10, right: 10 },
+};
+
+export const ACCESSIBILITY = {
+  maxFontSizeMultiplier: 1.3,
+  minTouchTarget: 44,
+};
+
+export const HIGH_CONTRAST = {
+  textPrimary:   '#ffffff',
+  textSecondary: 'rgba(255,255,255,0.78)',
+  textMuted:     'rgba(255,255,255,0.56)',
+  borderLuminous:'rgba(255,255,255,0.24)',
+  clubAmbient:   '#00f2ff',
+};
+
+export const WEIGHT = {
+  regular: '400',
+  medium:  '600',
+  bold:    '800',
+  black:   '900',
+};
+
 export const BREAKPOINT = {
-  wide:        900,
-  medium:      640,
-  small:       375,
+  compact:     340,
   smallMobile: 360,
-  tablet:      640,
+  small:       375,
+  medium:      640,
+  tablet:      768,
+  wide:        900,
   desktop:     1024,
   wideDesktop: 1440,
   feedMax:     680,
   detailMax:   740,
   modalMax:    580,
+  sheetMax:    620,
+  desktopMax:  1280,
 };
 
 // ── Glass / Water design language ────────────────────────────────────────────
