@@ -1683,6 +1683,24 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {/* ── App Updates (Upgrades) ──────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
               <SectionHeader title="App Upgrades" textColor={textColor} primary={primary} />
+              {Platform.OS === 'web' && (
+                <View style={{ marginHorizontal: 20, marginBottom: 14, padding: 14, borderRadius: 16, backgroundColor: `${primary}12`, borderWidth: 1, borderColor: `${primary}35`, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: primary, alignItems: 'center', justifyContent: 'center' }}>
+                    <Feather name="download" size={18} color="#000" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>Get The Gruvs Mobile App</Text>
+                    <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>Free install for Apple iOS & Android</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => appInstallService.openModal()}
+                    style={{ backgroundColor: primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>Install</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               {appUpdates.length === 0 ? (
                 <View style={{ paddingHorizontal: 20, paddingVertical: 14 }}>
                   <Text style={{ color: muted, fontSize: 13 }}>No updates recorded yet.</Text>

@@ -68,7 +68,7 @@ class AppInstallService {
         isSafari: false,
         isInApp: false,
         isStandalone: false,
-        platformKey: Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'desktop',
+        platformKey: Platform.OS === 'ios' ? 'apple' : Platform.OS === 'android' ? 'android' : 'desktop',
       };
     }
 
@@ -84,7 +84,7 @@ class AppInstallService {
       window.matchMedia?.('(display-mode: standalone)')?.matches ||
       window.navigator?.standalone === true;
 
-    const platformKey = isIOS ? 'ios' : isAndroid ? 'android' : 'desktop';
+    const platformKey = isIOS ? 'apple' : isAndroid ? 'android' : 'desktop';
 
     return {
       isIOS,

@@ -29,7 +29,7 @@ import { SmartImage } from '../components/SmartImage';
 import { GLASS } from '../constants/DesignTokens';
 import { MapReports } from '../services/mapReports';
 import { MAP_REPORT_BY_KEY } from '../constants/mapContributions';
-import { MapZones, ZONE_KINDS, ZONE_STATUS } from '../services/mapZones';
+import { MapZones, ZONE_KINDS, ZONE_STATUS, parseZoneTags, calculateDetourNavigation } from '../services/mapZones';
 import { supabase } from '../services/supabase';
 // Nearby vibers used DiscoveryManager without ever importing it — the FAB threw
 // a ReferenceError into a silent catch, so that layer has never once worked.
@@ -1225,6 +1225,25 @@ const StayDetail = ({ stay, onClose, bg, textColor, muted }) => {
 // ── Zone detail sheet ─────────────────────────────────────────────────────────
 const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textColor, muted }) => {
   const [endpoints, setEndpoints] = useState({ start: '', end: '' });
+  const tags = useMemo(() => parseZoneTags(zone.note), [zone.note]);
+
+  const nav = useMemo(() => {
+    let lat = -26.2041;
+    let lon = 28.0473;
+    if (zone.geometry?.type === 'Point') {
+      lon = zone.geometry.coordinates[0];
+      lat = zone.geometry.coordinates[1];
+    } else if (zone.geometry?.coordinates && zone.geometry.coordinates.length > 0) {
+      lon = zone.geometry.coordinates[0][0];
+      lat = zone.geometry.coordinates[0][1];
+    }
+    return calculateDetourNavigation({
+      lat,
+      lon,
+      coordinates: zone.geometry?.type === 'LineString' ? zone.geometry.coordinates : null,
+      detourCoords: tags.detourCoords,
+    });
+  }, [zone.geometry, tags.detourCoords]);
 
   useEffect(() => {
     if (zone.geometry?.type === 'LineString' && zone.geometry.coordinates.length >= 2) {
@@ -1311,7 +1330,66 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
         );
       })()}
 
-      {zone.note ? <Text style={{ color: muted, fontSize: 12, lineHeight: 17 }}>{zone.note}</Text> : null}
+      {/* Civic & Traffic Meta Badges */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {tags.traffic && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.14)', borderColor: '#ef4444', borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+            <Feather name="alert-triangle" size={11} color="#ef4444" />
+            <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '800' }}>{tags.traffic}</Text>
+          </View>
+        )}
+        {tags.pointsman && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: tags.pointsman === 'police' ? 'rgba(59,130,246,0.18)' : tags.pointsman === 'volunteer' ? 'rgba(234,179,8,0.18)' : 'rgba(239,68,68,0.14)', borderColor: tags.pointsman === 'police' ? '#3b82f6' : tags.pointsman === 'volunteer' ? '#eab308' : '#ef4444', borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+            <Text style={{ fontSize: 11 }}>{tags.pointsman === 'police' ? '👮' : tags.pointsman === 'volunteer' ? '🦺' : '⚠️'}</Text>
+            <Text style={{ color: tags.pointsman === 'police' ? '#60a5fa' : tags.pointsman === 'volunteer' ? '#fde047' : '#f87171', fontSize: 11, fontWeight: '800' }}>
+              {tags.pointsman === 'police' ? 'Metro Police on duty' : tags.pointsman === 'volunteer' ? 'Volunteer Pointsman' : '4-Way Stop (Unmanned)'}
+            </Text>
+          </View>
+        )}
+        {tags.routeCoords && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.15)', borderColor: '#10b981', borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+            <Feather name="navigation" size={11} color="#10b981" />
+            <Text style={{ color: '#10b981', fontSize: 11, fontWeight: '800' }}>{tags.routeCoords.length} Course Waypoints</Text>
+          </View>
+        )}
+      </View>
+
+      {tags.cleanNote ? <Text style={{ color: muted, fontSize: 12, lineHeight: 17 }}>{tags.cleanNote}</Text> : null}
+
+      {/* Smart Detour Guidance Card */}
+      {(tags.detour || tags.detourCoords || zone.geometry?.type === 'LineString') && (
+        <View style={{ gap: 8, padding: 12, backgroundColor: 'rgba(0,242,255,0.05)', borderRadius: 14, borderWidth: 1, borderColor: `${primary}30` }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Feather name="corner-up-right" size={14} color={primary} />
+            <Text style={{ color: primary, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 }}>SMART DETOUR GUIDANCE</Text>
+          </View>
+          {tags.detour ? (
+            <Text style={{ color: textColor, fontSize: 12, fontWeight: '600', lineHeight: 16 }}>
+              Suggested alternate: <Text style={{ color: primary, fontWeight: '800' }}>{tags.detour}</Text>
+            </Text>
+          ) : (
+            <Text style={{ color: muted, fontSize: 11 }}>
+              Active road restriction ahead. 1-tap navigation bypass routes around the closure corridor.
+            </Text>
+          )}
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(nav.googleMapsUrl).catch(() => {})}
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: primary, paddingVertical: 9, borderRadius: 10 }}
+            >
+              <Feather name="navigation" size={13} color="#000" />
+              <Text style={{ color: '#000', fontSize: 12, fontWeight: '900' }}>Google Maps ↗</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(nav.wazeUrl).catch(() => {})}
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, paddingVertical: 9, borderRadius: 10 }}
+            >
+              <Feather name="compass" size={13} color={textColor} />
+              <Text style={{ color: textColor, fontSize: 12, fontWeight: '800' }}>Waze ↗</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Point A to Point B explanation (for lines) */}
       {zone.geometry?.type === 'LineString' && (
