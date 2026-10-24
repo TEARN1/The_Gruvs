@@ -35,7 +35,7 @@ export const GetAppModal = ({
   initialPlatform = null,
 }) => {
   const env = useMemo(() => appInstallService.detectEnvironment(), [visible]);
-  const [activeTab, setActiveTab] = useState('apple');
+  const [activeTab, setActiveTab] = useState('ios');
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [copied, setCopied] = useState(false);
   const [installing, setInstalling] = useState(false);
@@ -45,7 +45,7 @@ export const GetAppModal = ({
     if (initialPlatform) {
       setActiveTab(initialPlatform);
     } else if (env.isIOS) {
-      setActiveTab('apple');
+      setActiveTab('ios');
     } else if (env.isAndroid) {
       setActiveTab('android');
     } else {
@@ -135,9 +135,9 @@ export const GetAppModal = ({
 
           {/* Platform Segmented Tabs */}
           <View style={styles.tabBar}>
-            <TouchableOpacity onPress={() => setActiveTab('apple')} style={[styles.tabBtn, activeTab === 'apple' && { backgroundColor: `${primary}20`, borderColor: primary }]} accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'apple' }}>
-              <Feather name="smartphone" size={14} color={activeTab === 'apple' ? primary : 'rgba(255,255,255,0.6)'} />
-              <Text style={[styles.tabBtnText, { color: activeTab === 'apple' ? primary : 'rgba(255,255,255,0.6)' }]}>Apple iOS</Text>
+            <TouchableOpacity onPress={() => setActiveTab('ios')} style={[styles.tabBtn, activeTab === 'ios' && { backgroundColor: `${primary}20`, borderColor: primary }]} accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'ios' }}>
+              <Feather name="smartphone" size={14} color={activeTab === 'ios' ? primary : 'rgba(255,255,255,0.6)'} />
+              <Text style={[styles.tabBtnText, { color: activeTab === 'ios' ? primary : 'rgba(255,255,255,0.6)' }]}>Apple iOS</Text>
               {env.isIOS && <View style={[styles.devicePill, { backgroundColor: primary }]}><Text style={styles.devicePillText}>YOU</Text></View>}
             </TouchableOpacity>
 
@@ -177,7 +177,7 @@ export const GetAppModal = ({
             )}
 
             {/* TAB 1: APPLE (iOS & iPadOS) */}
-            {activeTab === 'apple' && (
+            {activeTab === 'ios' && (
               <View style={styles.sectionWrap}>
                 <View style={styles.benefitCard}>
                   <Text style={styles.benefitTitle}>🍎 Instant iOS Web App (Fastest & Zero Bloat)</Text>
